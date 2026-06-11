@@ -1,98 +1,186 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gDNAx
-// Provides diagnostics for assessing genomic DNA contamination in RNA-seq data, as well as plots repre
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gDNAx/inst/doc/gDNAx.R
-// Upstream  : gDNAinRNAseqData
-// Downstream: none
-//
-// Install: BiocManager::install("gDNAx")
+// Bioconductor workflow: gDNAx — diagnose_and_filter_gdna_contamination
+// Diagnose genomic DNA contamination in RNA-seq BAM files and filter out reads of potential gDNA origin.
+// Input: bamfiles, txdb
+// Container: quay.io/biocontainers/bioconductor-gdnax:1.8.2--r45hdfd78af_0
+// R packages: GenomicFeatures, gdnainrnaseqdata, gDNAx, txdb_input
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicFeatures, gDNAx
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load BAM files and TxDb annotation
+//  * 2. [Core Analysis] Run diagnostics using gDNAdx()
+//  * 3. [Visualization & Output] Plot diagnostics using plot(), plotFrgLength(), and plotAlnOrigins()
+//  * 4. [Core Analysis] Retrieve diagnostic values using getDx(), getIgc(), and getInt()
+//  * 5. [Core Analysis] Estimate and classify strandedness using strandedness() and classifyStrandMode()
+//  * 6. [Core Analysis] Filter BAM files to remove gDNA contamination using gDNAtx() or filterBAMtx()
 
 nextflow.enable.dsl = 2
 
-process BIOC_GDNAX {
+process BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gdnax"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gdnax:1.4.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-gdnax:1.4.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gdnax_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gdnax_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gdnax_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicFeatures", "gdnainrnaseqdata", "gDNAx", "txdb_input")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(gDNAx)
-    library(jsonlite)
-
-    # --- get Dx [] ---
-    # Key functions: getDx
-    par(mar=c(4, 5, 2, 1))
-    plot(gdnax, group=pdat$gDNA, pch=19)
-    dx <- getDx(gdnax)
-    # --- plot Frg Length [] ---
-    # Key functions: plotFrgLength
-    plotFrgLength(gdnax)
-    # --- plot Aln Origins [] ---
-    # Key functions: plotAlnOrigins, getIgc, getInt
-    plotAlnOrigins(gdnax, group=pdat$gDNA)
-    igcann <- getIgc(gdnax)
-    intann <- getInt(gdnax)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gdnax_results.csv", row.names = TRUE)
+    library(GenomicFeatures)
+    
+    # 1. Load BAM files and TxDb annotation from the working directory
+    if (file.exists("bamfiles.txt")) {
+      bamfiles <- readLines("bamfiles.txt")
+      bamfiles <- bamfiles[bamfiles != ""]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gdnax_results.csv")
+      bamfiles <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gdnax_output.rds")
+    
+    if (length(bamfiles) == 0) {
+      stop("Error: No BAM files found. Please provide BAM files in the working directory or list them in 'bamfiles.txt'.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GDNAX:", paste0("    gdnax: ", packageVersion("gDNAx"))),
-        "versions.yml"
+    
+    # Load TxDb annotation
+    if (file.exists("txdb.txt")) {
+      txdb_input <- trimws(readLines("txdb.txt", n = 1))
+      if (suppressWarnings(require(txdb_input, character.only = TRUE, quietly = TRUE))) {
+        txdb <- get(txdb_input)
+      } else if (file.exists(txdb_input)) {
+        if (grepl("\\\\.rds\$", txdb_input, ignore.case = TRUE)) {
+          txdb <- readRDS(txdb_input)
+        } else {
+          txdb <- loadDb(txdb_input)
+        }
+      } else {
+        stop("Error: Specified TxDb package or file not found: ", txdb_input)
+      }
+    } else if (file.exists("txdb.rds")) {
+      txdb <- readRDS("txdb.rds")
+    } else {
+      stop("Error: TxDb annotation not found. Please provide 'txdb.txt' (containing TxDb package name or path) or 'txdb.rds' in the working directory.")
+    }
+    
+    # Load phenodata if available, otherwise create a default one
+    if (file.exists("phenodata.csv")) {
+      pdat <- read.csv("phenodata.csv", row.names = 1)
+      if (!"gDNA" %in% colnames(pdat)) {
+        pdat\$gDNA <- "unknown"
+      }
+    } else {
+      pdat <- data.frame(
+        gDNA = rep("unknown", length(bamfiles)),
+        row.names = basename(bamfiles),
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    # 2. Run diagnostics using gDNAdx()
+    gdnax <- gDNAdx(bamfiles, txdb)
+    
+    # 3. Plot diagnostics using plot(), plotFrgLength(), and plotAlnOrigins()
+    pdf("diagnostics_plot.pdf", width = 8, height = 12)
+    par(mar=c(4, 5, 2, 1))
+    plot(gdnax, group=pdat\$gDNA, pch=19)
+    dev.off()
+    
+    pdf("fragment_length_plot.pdf", width = 8, height = 4)
+    plotFrgLength(gdnax)
+    dev.off()
+    
+    pdf("alignment_origins_plot.pdf", width = 8, height = 5)
+    plotAlnOrigins(gdnax, group=pdat\$gDNA)
+    dev.off()
+    
+    # 4. Retrieve diagnostic values using getDx(), getIgc(), and getInt()
+    dx <- getDx(gdnax)
+    write.csv(as.data.frame(dx), "dx_metrics.csv", row.names = TRUE)
+    
+    igcann <- getIgc(gdnax)
+    saveRDS(igcann, "igc_annotations.rds")
+    
+    intann <- getInt(gdnax)
+    saveRDS(intann, "int_annotations.rds")
+    
+    # 5. Estimate and classify strandedness using strandedness() and classifyStrandMode()
+    strand_res <- strandedness(gdnax)
+    write.csv(as.data.frame(strand_res), "strandedness_metrics.csv", row.names = TRUE)
+    
+    strand_class <- classifyStrandMode(strand_res)
+    strand_class_df <- data.frame(
+      Sample = names(strand_class),
+      ClassifiedStrandMode = as.character(strand_class),
+      stringsAsFactors = FALSE
     )
+    write.csv(strand_class_df, "strand_mode_classification.csv", row.names = FALSE)
+    
+    # 6. Filter BAM files to remove gDNA contamination using gDNAtx()
+    tmpdir <- "filtered_bams"
+    if (!dir.exists(tmpdir)) {
+      dir.create(tmpdir, recursive = TRUE)
+    }
+    fstats <- gDNAtx(gdnax, path=tmpdir)
+    write.csv(as.data.frame(fstats), "filtering_stats.csv", row.names = TRUE)
+
+    writeLines(c(
+        '"BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION":',
+        paste0('    gDNAx: ', as.character(packageVersion('gDNAx')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gdnax_results.csv
-    touch ${prefix}_gdnax_output.rds
-    echo "BIOC_GDNAX:" > versions.yml
-    echo "    gdnax: 0.0.0" >> versions.yml
+    touch ${prefix}_diagnose_and_filter_gdna_contamination.csv versions.yml
     """
 }
 
-
-workflow BIOC_GDNAX_WORKFLOW {
+workflow BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bamfiles, txdb ] ]
 
     main:
-    BIOC_GDNAX(ch_input)
+    BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION(ch_input)
 
     emit:
-    results  = BIOC_GDNAX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GDNAX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GDNAX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GDNAX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION.out.tables
+    plots    = BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION.out.plots
+    objects  = BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION.out.objects
+    versions = BIOC_GDNAX_DIAGNOSE_AND_FILTER_GDNA_CONTAMINATION.out.versions
 }

@@ -1,0 +1,13 @@
+{
+  "package": "illuminaio",
+  "requirements": [
+    "SummarizedExperiment",
+    "illuminaio"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "illuminaio"
+    ]
+  }
+}

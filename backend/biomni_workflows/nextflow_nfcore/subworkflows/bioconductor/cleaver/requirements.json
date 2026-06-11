@@ -1,0 +1,19 @@
+{
+  "package": "cleaver",
+  "requirements": [
+    "Biostrings",
+    "IRanges",
+    "S4Vectors",
+    "UniProt.ws",
+    "cleaver"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "IRanges",
+      "S4Vectors",
+      "UniProt.ws",
+      "cleaver"
+    ]
+  }
+}

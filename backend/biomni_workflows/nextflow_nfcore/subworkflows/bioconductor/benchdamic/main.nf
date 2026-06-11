@@ -1,188 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: benchdamic
-// Starting from a microbiome dataset (16S or WMS with absolute count values) it is possible to perform
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/benchdamic/inst/doc/intro.R
-// Upstream  : BiocParallel, SPsimSeq, SummarizedExperiment, cowplot, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("benchdamic")
+// Bioconductor workflow: benchdamic — goodness_of_fit_assessment
+// Assess which parametric distributions best fit the count data and zero proportions of a microbiome dataset.
+// Input: ps_stool_16S
+// Container: quay.io/biocontainers/bioconductor-benchdamic:1.6.0--r43hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: benchdamic, phyloseq
+// Visualizations: mean-difference plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit a single model (e.g., Hurdle) to estimate counts and zero probabilities
+//  * 2. [Input & Preparation] Prepare observed counts with matching scaling
+//  * 3. [Core Analysis] Compute mean differences and zero probability differences
+//  * 4. [Core Analysis] Fit multiple parametric models simultaneously
+//  * 5. [Visualization & Output] Extract and plot Root Mean Squared Error (RMSE) and Mean Differences (MD)
 
 nextflow.enable.dsl = 2
 
-process BIOC_BENCHDAMIC {
+process BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-benchdamic"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-benchdamic:1.12.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-benchdamic:1.12.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_benchdamic_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_benchdamic_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_benchdamic_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(benchdamic)
-    library(SerialParam)
-    library(TreeSummarizedExperiment)
-    library(jsonlite)
-
-    # --- Goodness of Fit Evaluation [Goodness of Fit] ---
-    # Key functions: fitHURDLE, prepareObserved, meanDifferences, fitModels
-    data("ps_stool_16S")
+    library(phyloseq)
+    
+    # 1. Read the user input file from the working directory
+    if (file.exists("ps_stool_16S")) {
+        ps_stool_16S <- readRDS("ps_stool_16S")
+    } else if (file.exists("ps_stool_16S.rds")) {
+        ps_stool_16S <- readRDS("ps_stool_16S.rds")
+    } else {
+        stop("Input file 'ps_stool_16S' or 'ps_stool_16S.rds' not found in the working directory.")
+    }
+    
+    # 2. Fit a single model (Hurdle) to estimate counts and zero probabilities
     example_HURDLE <- fitHURDLE(
         object = ps_stool_16S,
         scale = "median"
     )
+    saveRDS(example_HURDLE, "example_HURDLE.rds")
+    
+    # 3. Prepare observed counts with matching scaling
     observed_hurdle <- prepareObserved(
-        object = ps_stool_16S,
+        object = ps_stool_16S, 
         scale = "median"
     )
+    saveRDS(observed_hurdle, "observed_hurdle.rds")
+    
+    # 4. Compute mean differences and zero probability differences
     m_diffs <- meanDifferences(
         estimated = example_HURDLE,
         observed = observed_hurdle
     )
-    gof_models <- fitModels(
+    write.csv(m_diffs, "mean_differences_hurdle.csv", row.names = TRUE)
+    
+    # 5. Fit multiple parametric models simultaneously
+    GOF_stool_16S <- fitModels(
         object = ps_stool_16S,
         models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
         scale_HURDLE = c("median", "default"),
         verbose = FALSE
     )
-
-    # --- Goodness of Fit Visualization [Visualisation] ---
-    # Key functions: plotRMSE, plotMD
-    rmse_md <- plotRMSE(
-        gof_models,
-        difference = "MD",
-        plotIt = FALSE
-    )
-    rmse_zpd <- plotRMSE(
-        gof_models,
-        difference = "ZPD",
-        plotIt = FALSE
-    )
-    md_plot <- plotMD(
-        data = gof_models,
+    saveRDS(GOF_stool_16S, "GOF_stool_16S.rds")
+    
+    # 6. Extract and plot Root Mean Squared Error (RMSE) and Mean Differences (MD)
+    rmse_md <- plotRMSE(GOF_stool_16S, difference = "MD", plotIt = FALSE)
+    write.csv(rmse_md, "rmse_md.csv", row.names = FALSE)
+    
+    rmse_zpd <- plotRMSE(GOF_stool_16S, difference = "ZPD", plotIt = FALSE)
+    write.csv(rmse_zpd, "rmse_zpd.csv", row.names = FALSE)
+    
+    # Save the Mean Differences plot to a PDF file
+    pdf("plot_md_split.pdf", width = 10, height = 8)
+    p <- plotMD(
+        data = GOF_stool_16S,
         difference = "MD",
         split = TRUE
     )
-    zpd_plot <- plotMD(
-        data = gof_models[1:5],
-        difference = "ZPD",
-        split = TRUE
-    )
+    print(p)
+    dev.off()
 
-    # --- Mock Dataset Generation and Normalisation [Normalisation] ---
-    # Key functions: createMocks, setNormalizations, runNormalizations
-    data("ps_stool_16S")
-    my_mocks <- createMocks(
-        nsamples = phyloseq::nsamples(ps_stool_16S),
-        N = 3
-    )
-    my_norms <- setNormalizations(
-        fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"),
-        method = c("TMM", "poscounts", "CSS")
-    )
-    ps_norm <- runNormalizations(
-        normalization_list = my_norms,
-        object = ps_stool_16S,
-        verbose = FALSE
-    )
-
-    # --- Zero-Inflated Negative Binomial Weights Estimation [Weights Estimation] ---
-    # Key functions: weights_ZINB
-    data("ps_stool_16S")
-    zinbweights <- weights_ZINB(
-        object = ps_stool_16S,
-        K = 0,
-        design = "~ 1"
-    )
-
-    # --- Differential Abundance Method Configuration [Method Configuration] ---
-    # Key functions: set_edgeR, set_DESeq2, set_limma, set_MAST, set_linda
-    my_edgeR <- set_edgeR(
-        pseudo_count = FALSE,
-        group_name = "group",
-        design = ~ group,
-        robust = FALSE,
-        coef = 2,
-        norm = "TMM",
-        weights_logical = c(TRUE, FALSE),
-        expand = TRUE
-    )
-    my_DESeq2 <- set_DESeq2(
-        pseudo_count = FALSE,
-        design = ~ group,
-        contrast = c("group", "grp2", "grp1"),
-        norm = "poscounts",
-        weights_logical = c(TRUE, FALSE),
-        alpha = 0.05,
-        expand = TRUE
-    )
-    my_limma <- set_limma(
-        pseudo_count = FALSE,
-        design = ~ group,
-        coef = 2,
-        norm = "TMM",
-        weights_logical = c(FALSE, TRUE),
-        expand = TRUE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_benchdamic_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_benchdamic_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_benchdamic_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BENCHDAMIC:", paste0("    benchdamic: ", packageVersion("benchdamic"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT":',
+        paste0('    benchdamic: ', as.character(packageVersion('benchdamic')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_benchdamic_results.csv
-    touch ${prefix}_benchdamic_output.rds
-    echo "BIOC_BENCHDAMIC:" > versions.yml
-    echo "    benchdamic: 0.0.0" >> versions.yml
+    touch ${prefix}_goodness_of_fit_assessment.csv versions.yml
     """
 }
 
-
-workflow BIOC_BENCHDAMIC_WORKFLOW {
+workflow BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ps_stool_16S ] ]
 
     main:
-    BIOC_BENCHDAMIC(ch_input)
+    BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT(ch_input)
 
     emit:
-    results  = BIOC_BENCHDAMIC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BENCHDAMIC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BENCHDAMIC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BENCHDAMIC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT.out.tables
+    plots    = BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT.out.plots
+    objects  = BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT.out.objects
+    versions = BIOC_BENCHDAMIC_GOODNESS_OF_FIT_ASSESSMENT.out.versions
 }

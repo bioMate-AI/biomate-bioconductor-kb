@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: countsSE=The SummarizedExperiment object containing the count data ;; assayName=The character name of the assay in the SummarizedExperiment to filter ;; colDataName=The character name of the column in colData describing biological conditions ;; prop0=Minimal proportion of zeros among a condition to consider a feature lowly expressed (default is (max_replicates - 1)/max_replicates) ;; percentile=Percentile used on the max distribution of lowly expressed genes to determine the filtering threshold (default is 0.9 if replicates < 5) ;; propUpThresh=Proportion of counts required to be above the threshold in at least one condition to keep the feature (default is 0.9)\n- alternatives: Arbitrary thresholding (the standard practice of choosing an arbitrary count threshold, which SeqGate replaces with a data-driven approach)\n- when_to_use: Use before performing differential expression analysis or other statistical tests on RNA-Seq/transcriptomics count data to remove lowly expressed features and increase detection sensitivity.\n- pitfalls: The input must be a SummarizedExperiment object with a numeric count assay and condition annotations in colData. If the calculated proportion of replicates (propUpThresh * replicates) is not an integer, it is rounded up to the next integer, which may strictly filter datasets with very few replicates.",
+  "workflows": [
+    {
+      "name": "seqgate_filtering",
+      "intent": "Filter lowly expressed features from a transcriptomics count dataset using replicate-based thresholding.",
+      "input": [
+        "counts_matrix.csv (matrix of raw transcriptomic counts)",
+        "sample_metadata.csv (sample annotations containing biological conditions)"
+      ],
+      "stages": "1. Load the SeqGate package and prepare the SummarizedExperiment object from the count matrix and condition metadata ;; 2. Apply the SeqGate filtering method using applySeqGate with default parameters ;; 3. Extract the kept features and the applied threshold ;; 4. Optionally apply SeqGate with custom parameters (prop0, percentile, propUpThresh) to refine filtering",
+      "code": "library(SeqGate)\ndata(data_MiTF_1000genes)\ncond<-c(\"A\",\"A\",\"B\",\"B\",\"A\",\"B\")\nrowData <- DataFrame(row.names=rownames(data_MiTF_1000genes))\ncolData <- DataFrame(Conditions=cond)\ncounts_strub <- SummarizedExperiment(\n                  assays=list(counts=data_MiTF_1000genes),\n                  rowData=rowData,\n                  colData=colData)\ncounts_strub <- applySeqGate(counts_strub,\"counts\",\"Conditions\")\nkeptGenes <- assay(counts_strub[rowData(counts_strub)$onFilter == TRUE,])\nmetadata(counts_strub)$threshold\nfilteredOut <- assay(counts_strub[rowData(counts_strub)$onFilter == FALSE,])\ncounts_strub <- applySeqGate(counts_strub,\"counts\",\"Conditions\",\n             prop0=1/3,\n             percentile=0.8,\n             propUpThresh=0.5)"
+    }
+  ]
+}

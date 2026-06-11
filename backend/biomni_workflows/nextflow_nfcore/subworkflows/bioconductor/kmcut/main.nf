@@ -1,106 +1,113 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: kmcut
-// The purpose of the package is to identify prognostic biomarkers and an optimal numeric cutoff for ea
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/kmcut/inst/doc/kmcut_intro.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("kmcut")
+// Bioconductor workflow: kmcut — optimal_cutoff_permutation
+// Identify optimal prognostic cutoffs for features and estimate their statistical significance using a permutation test.
+// Input: survival_data.txt, example_genes.txt
+// Container: quay.io/biocontainers/bioconductor-kmcut:1.4.0--r45hdfd78af_0
+// R packages: kmcut
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_KMCUT {
+process BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-kmcut"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-kmcut:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-kmcut:1.0.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-kmcut:1.4.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_kmcut_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_kmcut_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_kmcut_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("kmcut")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the kmcut package
     library(kmcut)
-    library(jsonlite)
-
-    # --- Training [] ---
-    # Key functions: training, test, create_se_object, ucox_pred
-    ---------------------------------------------------------------------
-    # Read names of the built-in training (fdat1) and test (fdat2)
-    # gene expression data files and survival data file (sdat)
-    fdat1 = system.file("extdata", "expression_data_1.txt", package = "kmcut")
-    fdat2 = system.file("extdata", "expression_data_2.txt", package = "kmcut")
-    # --- Genes [] ---
-    # Key functions: genes, id, extract_rows
-    ---------------------------------------------------------------------
-    # Read the name of the built-in gene expression data file with 2 genes (2 rows)
-    fdat = system.file("extdata", "example_genes.txt", package = "kmcut")
-    # Read the name of the built-in list file that contains one gene id (MYCN)
-    idlist = system.file("extdata", "rowids.txt", package = "kmcut")
-    # --- Genes [] ---
-    # Key functions: genes, column, extract_columns
-    ---------------------------------------------------------------------
-    # Read the name of the built-in gene expression data file with 2 genes (2 rows)
-    fdat = system.file("extdata", "example_genes.txt", package = "kmcut")
-    # Read the name of the built-in list file that contains a sub-set of
-    # column (sample) ids
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_kmcut_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_kmcut_results.csv")
+    
+    # Define input file paths in the working directory
+    fdat <- "example_genes.txt"
+    sdat <- "survival_data.txt"
+    
+    # Check if input files exist
+    if (!file.exists(fdat)) {
+      stop("Required input file 'example_genes.txt' is missing from the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_kmcut_output.rds")
+    if (!file.exists(sdat)) {
+      stop("Required input file 'survival_data.txt' is missing from the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_KMCUT:", paste0("    kmcut: ", packageVersion("kmcut"))),
-        "versions.yml"
+    
+    # Stage 1: Create a SummarizedExperiment object from the input files
+    se <- create_se_object(efile = fdat, sfile = sdat)
+    
+    # Save the constructed SummarizedExperiment object as an RDS file
+    saveRDS(se, file = "se_object.rds")
+    
+    # Stage 2: Run the permutation test and cutoff optimization
+    # Using the exact documented function call and arguments
+    km_opt_pcut(
+      obj = se,
+      bfname = "test",
+      n_iter = 10,
+      wlabels = TRUE,
+      wpdf = FALSE,
+      verbose = FALSE,
+      nproc = 1
     )
+
+    writeLines(c(
+        '"BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION":',
+        paste0('        kmcut: ', as.character(packageVersion("kmcut")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_kmcut_results.csv
-    touch ${prefix}_kmcut_output.rds
-    echo "BIOC_KMCUT:" > versions.yml
-    echo "    kmcut: 0.0.0" >> versions.yml
+    touch ${prefix}_optimal_cutoff_permutation.csv versions.yml
     """
 }
 
-
-workflow BIOC_KMCUT_WORKFLOW {
+workflow BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ survival_data.txt, example_genes.txt ] ]
 
     main:
-    BIOC_KMCUT(ch_input)
+    BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION(ch_input)
 
     emit:
-    results  = BIOC_KMCUT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_KMCUT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_KMCUT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_KMCUT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION.out.tables
+    plots    = BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION.out.plots
+    objects  = BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION.out.objects
+    versions = BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION.out.versions
 }

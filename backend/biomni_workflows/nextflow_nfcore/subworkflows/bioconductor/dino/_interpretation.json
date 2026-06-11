@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nCores=Integer specifying the number of parallel threads to use (default is 2; set to 0 to use all available cores) ;; depth=Optional vector of alternate sequencing depths (e.g., log of scran size factors) to correct for instead of the default sum of expression ;; doNorm=Logical parameter in SeuratFromDino; set to FALSE if the input matrix is already normalized ;; doLog=Logical parameter in SeuratFromDino; controls whether to log-transform the normalized expression matrix (e.g., log(x + 1))\n- alternatives: Scran method (calculateSumFactors from the scran package) can be used to compute alternate sequencing depth size factors to pass into Dino ;; Scale-factor normalization (which Dino converges to in the limit of its concentration parameter gamma)\n- when_to_use: Use when normalizing single-cell RNA-sequencing (scRNA-seq) UMI count data (such as 10x Genomics, Drop-seq, or inDrop) characterized by high proportions of zeros (shallow sequencing) and cellular heterogeneity.\n- pitfalls: Dino does not correct for batch or other sample-specific effects unless they are correlated with sequencing depth ;; User caution is advised if applying Dino to non-UMI sequencing protocols ;; Genes lacking a minimum of non-zero expression should be filtered out prior to normalization (Dino defaults to scaling instead of resampling for genes with < 10 non-zero samples; filtering genes with < 20 non-zero samples is recommended) ;; When providing alternate sequencing depths, the median depth should not be far from 1.",
+  "workflows": [
+    {
+      "name": "standard_matrix_normalization_and_seurat",
+      "intent": "Filter and normalize a raw UMI count matrix using Dino, then convert it to a Seurat object for downstream clustering and visualization.",
+      "input": [
+        "pbmcSmall (raw UMI count matrix with genes on rows and cells on columns)"
+      ],
+      "stages": "1. Filter out genes with low non-zero expression ;; 2. Normalize the UMI count matrix using Dino ;; 3. Convert the normalized matrix into a Seurat object using SeuratFromDino ;; 4. Run downstream Seurat clustering and visualization (FindVariableFeatures, ScaleData, RunPCA, FindNeighbors, FindClusters, RunUMAP, DimPlot)",
+      "code": "pbmcSmall <- pbmcSmall[rowSums(pbmcSmall != 0) >= 20, ]\npbmcSmall_Norm <- Dino(pbmcSmall)\npbmcSmall_Seurat <- SeuratFromDino(pbmcSmall_Norm, doNorm = FALSE)\npbmcSmall_Seurat <- FindVariableFeatures(pbmcSmall_Seurat, \n                        selection.method = \"mvp\")\npbmcSmall_Seurat <- ScaleData(pbmcSmall_Seurat, \n                        features = rownames(pbmcSmall_Norm))\npbmcSmall_Seurat <- RunPCA(pbmcSmall_Seurat, \n                        features = VariableFeatures(object = pbmcSmall_Seurat),\n                        verbose = FALSE)\npbmcSmall_Seurat <- FindNeighbors(pbmcSmall_Seurat, dims = 1:10)\npbmcSmall_Seurat <- FindClusters(pbmcSmall_Seurat, verbose = FALSE)\npbmcSmall_Seurat <- RunUMAP(pbmcSmall_Seurat, dims = 1:10)\nDimPlot(pbmcSmall_Seurat, reduction = \"umap\")"
+    },
+    {
+      "name": "single_cell_experiment_normalization",
+      "intent": "Normalize scRNA-seq data formatted as a SingleCellExperiment object using Dino.",
+      "input": [
+        "pbmcSmall (raw UMI count matrix)"
+      ],
+      "stages": "1. Create a SingleCellExperiment object from the count matrix ;; 2. Run Dino normalization directly on the SingleCellExperiment object using Dino_SCE ;; 3. Inspect or extract the normalized counts using normcounts",
+      "code": "pbmc_SCE <- SingleCellExperiment(assays = list(\"counts\" = pbmcSmall))\npbmc_SCE <- Dino_SCE(pbmc_SCE)\nstr(normcounts(pbmc_SCE))"
+    },
+    {
+      "name": "custom_depth_normalization",
+      "intent": "Normalize a UMI count matrix using Dino with custom sequencing depths calculated via Scran size factors.",
+      "input": [
+        "pbmcSmall (raw UMI count matrix)"
+      ],
+      "stages": "1. Compute size factors using Scran's calculateSumFactors ;; 2. Run Dino normalization with the depth parameter set to the log of the computed size factors",
+      "code": "scranSizes <- calculateSumFactors(pbmcSmall)\npbmcSmall_SNorm <- Dino(pbmcSmall, nCores = 1, depth = log(scranSizes))"
+    }
+  ]
+}

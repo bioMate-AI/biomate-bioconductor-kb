@@ -1,0 +1,26 @@
+{
+  "package": "alpsnmr",
+  "requirements": [
+    "AlpsNMR",
+    "BiocParallel",
+    "fs",
+    "ggplot2",
+    "readxl"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AlpsNMR",
+      "BiocParallel",
+      "fs",
+      "ggplot2",
+      "readxl"
+    ],
+    "untargeted_nmr_metabolomics_classic.nf": [
+      "AlpsNMR",
+      "BiocParallel",
+      "fs",
+      "ggplot2",
+      "readxl"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "comethdmr",
+  "requirements": [
+    "BiocParallel",
+    "GenomicRanges",
+    "coMethDMR",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "GenomicRanges",
+      "coMethDMR",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "qplexanalyzer",
+  "requirements": [
+    "MSnbase",
+    "limma",
+    "qPLEXanalyzer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "limma",
+      "qPLEXanalyzer"
+    ]
+  }
+}

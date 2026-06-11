@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprSet=An ExpressionSet containing the genomic feature expression data (exprs) and phenotypic endpoint data (phenoData) ;; geneSet=A GeneSetCollection object containing gene sets for GSEA, or NULL to perform gene-level analysis only ;; promise.pattern=A data frame defining the association pattern, specifying the statistic coefficient (stat.coef), statistic function (stat.func), and endpoint variables (endpt.vars) ;; strat.var=Variable used for stratification (set to NULL if no stratification is needed) ;; proj0=Logical; if TRUE, performs a projection to point 0 (ignoring stat.coef when prior biological knowledge of endpoint association direction is unavailable) ;; nbperm=Logical; if TRUE, uses a fast negative binomial permutation sampling strategy to stop permutations early for features with a fixed number of successes ;; max.ntail=Number of successes (tails) required to stop permutation early when nbperm=TRUE ;; nperms=Number of permutations to perform ;; seed=Seed for the random number generator to ensure reproducibility\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you want to identify genomic features or gene sets associated with multiple clinical or phenotypic endpoints simultaneously according to a predefined biological pattern (e.g., positively associated with drug level, negatively associated with residual disease, and positively associated with survival).\n- pitfalls: The array IDs (column names of exprs) and patient IDs (row names of phenoData) must match exactly. The probe IDs in the GeneSetCollection must be a subset of the probe IDs in the ExpressionSet. If prior biological knowledge of the endpoint variables is not available, proj0 must be set to TRUE so that stat.coef is ignored; otherwise, an incorrect arbitrary pattern might bias the projection.",
+  "workflows": [
+    {
+      "name": "promise_analysis_without_gsea",
+      "intent": "Identify individual genomic features associated with multiple phenotypic endpoints according to a predefined pattern without performing gene set enrichment analysis.",
+      "input": [
+        "expression_data.csv (microarray or RNA-seq expression matrix)",
+        "phenotype_data.csv (phenotypic endpoints for each sample)",
+        "pattern_definition.csv (association pattern coefficients and functions for each endpoint)"
+      ],
+      "stages": "1. Load the PROMISE package and construct the ExpressionSet from expression and phenotype data ;; 2. Define the association pattern data frame mapping endpoints to statistical functions and coefficients ;; 3. Run the PROMISE function with geneSet=NULL ;; 4. Extract and inspect the gene-level association statistics and permutation p-values.",
+      "code": "library(PROMISE)\ndata(sampExprSet)\ndata(sampGeneSet)\ndata(phPatt)\ntest1 <- PROMISE(exprSet=sampExprSet,\n                 geneSet=NULL, \n                 promise.pattern=phPatt, \n                 strat.var=NULL,\n                 proj0=FALSE,\n                 nbperm=FALSE, \n                 max.ntail=10,\n                 seed=13, \n                 nperms=100)\ngene.res<-test1$generes\nhead(gene.res)\nset.res<-test1$setres\nhead(set.res)"
+    },
+    {
+      "name": "promise_analysis_with_gsea",
+      "intent": "Identify both individual genomic features and gene sets associated with multiple phenotypic endpoints using projection-based statistics and fast negative binomial permutation.",
+      "input": [
+        "expression_data.csv (microarray or RNA-seq expression matrix)",
+        "phenotype_data.csv (phenotypic endpoints for each sample)",
+        "gene_sets.gmt (gene set definitions)",
+        "pattern_definition.csv (association pattern coefficients and functions for each endpoint)"
+      ],
+      "stages": "1. Load the PROMISE package, ExpressionSet, and GeneSetCollection ;; 2. Define the association pattern data frame ;; 3. Run the PROMISE function with a GeneSetCollection, enabling fast permutation (nbperm=TRUE) ;; 4. Extract and inspect both gene-level and gene-set-level results.",
+      "code": "library(PROMISE)\ndata(sampExprSet)\ndata(sampGeneSet)\ndata(phPatt)\ntest2 <- PROMISE(exprSet=sampExprSet,\n                 geneSet=sampGeneSet, \n                 promise.pattern=phPatt, \n                 strat.var=NULL,\n                 proj0=FALSE,\n                 nbperm=TRUE,\n                 max.ntail=10,\n                 seed=13, \n                 nperms=100)\ngene.res2<-test2$generes\nhead(gene.res2)\nset.res2<-test2$setres\nhead(set.res2)"
+    }
+  ]
+}

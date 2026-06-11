@@ -1,0 +1,13 @@
+{
+  "package": "rsbml",
+  "requirements": [
+    "graph",
+    "rsbml"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "graph",
+      "rsbml"
+    ]
+  }
+}

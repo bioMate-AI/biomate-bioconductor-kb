@@ -1,135 +1,221 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: phenomis
-// The 'phenomis' package provides methods to perform post-processing (i.e. quality control and normali
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/phenomis/inst/doc/phenomis-vignette.R
-// Upstream  : MultiAssayExperiment, MultiDataSet, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("phenomis")
+// Bioconductor workflow: phenomis — omics_post_processing_and_analysis
+// Perform quality control, normalization, and univariate statistical analysis on single or multi-omics datasets.
+// Input: SummarizedExperiment, MultiAssayExperiment
+// Container: quay.io/biocontainers/bioconductor-phenomis:1.12.0--r45hdfd78af_0
+// R packages: MultiAssayExperiment, MultiDataSet, phenomis, SummarizedExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MultiAssayExperiment, SummarizedExperiment, phenomis
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Quality control metrics assessment
+//  * 2. [Core Analysis] Signal drift and batch effect correction
+//  * 3. [Core Analysis] Intensity transformation
+//  * 4. [Core Analysis] Univariate hypothesis testing
+//  * 5. [Core Analysis] Clustering and metabolomics annotation
 
 nextflow.enable.dsl = 2
 
-process BIOC_PHENOMIS {
+process BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-phenomis"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-phenomis:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-phenomis:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_phenomis_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_phenomis_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_phenomis_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(phenomis)
-    library(ExpressionSet)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Signal Correction and Transformation [] ---
-    # Key functions: correcting, transforming
-    sacurine.se <- correcting(
-        sacurine.se,
-        reference.vc = "pool",
-        report.c = "none"
-    )
-    sacurine.se <- transforming(
-        sacurine.se,
-        method.vc = "log10"
-    )
-
-
-    # --- Statistical Hypothesis Testing [] ---
-    # Key functions: hypotesting
-    sacurine.se <- hypotesting(
-        sacurine.se,
-        test.c = "ttest",
-        factor_names.vc = "gender",
-        adjust.c = "BH",
-        adjust_thresh.n = 0.05,
-        report.c = "none"
-    )
-
-
-    # --- Clustering [] ---
-    # Key functions: clustering
-    sacurine.se <- clustering(
-        sacurine.se,
-        clusters.vi = c(5, 3)
-    )
-    clustered_data <- sacurine.se
-
-
-    # --- Metabolite Annotation [] ---
-    # Key functions: annotating
-    sacurine.se <- annotating(
-        sacurine.se,
-        database.c = "local.ms",
-        param.ls = list(
-            query.type = "mz",
-            query.col = "mass_to_charge",
-            ms.mode = "neg",
-            mz.tol = 5,
-            local.ms.db = msdbDF
-        ),
-        report.c = "none"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_phenomis_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_phenomis_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MultiAssayExperiment", "MultiDataSet", "phenomis", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_phenomis_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(MultiAssayExperiment)
+        library(phenomis)
+        
+        # ==========================================
+        # 0. Read User Input Files
+        # ==========================================
+        # The pipeline reads exactly these files from the working directory
+        se <- readRDS("SummarizedExperiment.rds")
+        mae <- readRDS("MultiAssayExperiment.rds")
+        
+        # Open PDF device to capture any diagnostic plots generated by the functions
+        pdf("phenomis_analysis_plots.pdf", width = 10, height = 8)
+        
+        # Helper function to find a suitable factor column for hypothesis testing
+        get_factor_col <- function(obj) {
+          cd <- colData(obj)
+          if (ncol(cd) == 0) return(NULL)
+          for (col in colnames(cd)) {
+            val <- cd[[col]]
+            if (!is.null(val) && length(unique(na.omit(val))) >= 2 && length(unique(na.omit(val))) < length(val)) {
+              return(col)
+            }
+          }
+          return(NULL)
+        }
+        
+        # ==========================================
+        # 1. Quality Control Metrics Assessment
+        # ==========================================
+        message("Stage 1: Quality control metrics assessment...")
+        
+        se_inspected <- inspecting(se)
+        
+        mae_inspected <- inspecting(mae)
+        
+        
+        # ==========================================
+        # 2. Signal Drift and Batch Effect Correction
+        # ==========================================
+        message("Stage 2: Signal drift and batch effect correction...")
+        
+        # Attempt correcting with default parameters
+        se_corrected <- correcting(se_inspected)
+        
+        mae_corrected <- correcting(mae_inspected)
+        
+        
+        # ==========================================
+        # 3. Intensity Transformation
+        # ==========================================
+        message("Stage 3: Intensity transformation...")
+        
+        se_transformed <- transforming(se_corrected, method = "log2")
+        
+        mae_transformed <- transforming(mae_corrected, method = "log2")
+        
+        
+        # ==========================================
+        # 4. Univariate Hypothesis Testing
+        # ==========================================
+        message("Stage 4: Univariate hypothesis testing...")
+        
+        # Determine factor columns dynamically from the datasets
+        se_factor <- get_factor_col(se_transformed)
+        mae_factor <- get_factor_col(mae_transformed)
+        
+        se_tested <- se_transformed
+        if (!is.null(se_factor)) {
+          message("Using factor column '", se_factor, "' for SummarizedExperiment hypothesis testing.")
+          se_tested <- hypothesistesting(se_transformed, test.c = "wilcoxon", factor.c = se_factor)
+        } else {
+          message("No suitable factor column found for SummarizedExperiment hypothesis testing.")
+        }
+        
+        mae_tested <- mae_transformed
+        if (!is.null(mae_factor)) {
+          message("Using factor column '", mae_factor, "' for MultiAssayExperiment hypothesis testing.")
+          mae_tested <- hypothesistesting(mae_transformed, test.c = "wilcoxon", factor.c = mae_factor)
+        } else {
+          message("No suitable factor column found for MultiAssayExperiment hypothesis testing.")
+        }
+        
+        
+        # ==========================================
+        # 5. Clustering and Metabolomics Annotation
+        # ==========================================
+        message("Stage 5: Clustering and metabolomics annotation...")
+        
+        # Clustering
+        se_clustered <- clustering(se_tested)
+        
+        mae_clustered <- clustering(mae_tested)
+        
+        # Annotation
+        se_annotated <- annotating(se_clustered)
+        
+        mae_annotated <- annotating(mae_clustered)
+        
+        # Close PDF device
+        dev.off()
+        
+        
+        # ==========================================
+        # 6. Write Outputs
+        # ==========================================
+        message("Writing output files...")
+        
+        # Save processed RDS objects
+        saveRDS(se_annotated, "se_processed.rds")
+        saveRDS(mae_annotated, "mae_processed.rds")
+        
+        # Export rowData (including hypothesis testing and clustering results) to CSV
+        if (inherits(se_annotated, "SummarizedExperiment")) {
+          se_rd <- as.data.frame(rowData(se_annotated))
+          if (ncol(se_rd) > 0) {
+            write.csv(se_rd, "se_rowData_results.csv", row.names = TRUE)
+          }
+        }
+        
+        if (inherits(mae_annotated, "MultiAssayExperiment")) {
+          for (exp_name in names(experiments(mae_annotated))) {
+            sub_se <- mae_annotated[[exp_name]]
+            sub_rd <- as.data.frame(rowData(sub_se))
+            if (ncol(sub_rd) > 0) {
+              write.csv(sub_rd, paste0("mae_", exp_name, "_rowData_results.csv"), row.names = TRUE)
+            }
+          }
+        }
+        
+        message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PHENOMIS:", paste0("    phenomis: ", packageVersion("phenomis"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS":',
+        paste0('    phenomis: ', as.character(packageVersion('phenomis')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_phenomis_results.csv
-    touch ${prefix}_phenomis_output.rds
-    echo "BIOC_PHENOMIS:" > versions.yml
-    echo "    phenomis: 0.0.0" >> versions.yml
+    touch ${prefix}_omics_post_processing_and_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_PHENOMIS_WORKFLOW {
+workflow BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ SummarizedExperiment, MultiAssayExperiment ] ]
 
     main:
-    BIOC_PHENOMIS(ch_input)
+    BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_PHENOMIS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PHENOMIS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PHENOMIS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PHENOMIS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS.out.tables
+    plots    = BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS.out.plots
+    objects  = BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS.out.objects
+    versions = BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS.out.versions
 }

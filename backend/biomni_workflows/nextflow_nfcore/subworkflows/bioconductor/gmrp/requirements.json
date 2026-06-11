@@ -1,0 +1,21 @@
+{
+  "package": "gmrp",
+  "requirements": [
+    "GMRP",
+    "GenomicRanges",
+    "S4Vectors",
+    "VariantAnnotation",
+    "diagram",
+    "plotrix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GMRP",
+      "GenomicRanges",
+      "S4Vectors",
+      "VariantAnnotation",
+      "diagram",
+      "plotrix"
+    ]
+  }
+}

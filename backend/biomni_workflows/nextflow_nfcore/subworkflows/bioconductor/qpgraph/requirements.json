@@ -1,0 +1,17 @@
+{
+  "package": "qpgraph",
+  "requirements": [
+    "GenomeInfoDb",
+    "graph",
+    "qpgraph",
+    "qtl"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomeInfoDb",
+      "graph",
+      "qpgraph",
+      "qtl"
+    ]
+  }
+}

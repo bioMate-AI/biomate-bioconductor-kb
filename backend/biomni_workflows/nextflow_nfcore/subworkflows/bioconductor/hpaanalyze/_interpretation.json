@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: downloadList=Specifies which datasets to download in hpaDownload() (e.g., 'all', 'histology', 'normal_tissue', 'pathology', 'subcellular_location') ;; version=Specifies the HPA dataset version in hpaDownload() (e.g., 'example' for built-in, 'v23', or default latest) ;; targetGene=A vector of HGNC gene symbols to filter or visualize in hpaSubset() or hpaVis() functions ;; targetTissue=A vector of target tissues to filter or visualize in hpaSubset() or hpaVis() functions ;; targetCancer=A vector of target cancer types to filter or visualize in hpaSubset() or hpaVis() functions ;; inputXml=Ensembl gene ID (starting with 'ENSG') or an imported xml_document object in hpaXml() or hpaXmlGet() ;; downloadImg=Logical indicating whether to automatically download histological staining images in hpaXmlTissueExprSum()\n- alternatives: hpar=A Bioconductor package for fast and easy programmatic access of HPA data. Prefer hpar for quick, stable single-version queries via a browser or simple table lookups. Prefer HPAanalyze for downloading full datasets, subsetting, exporting to Excel, advanced visualization (ggplot2), and parsing detailed XML files (including antibody and individual sample data) ;; xml2=Used under the hood by HPAanalyze for XML parsing. Prefer direct xml2 functions if you need to extract custom XML fields not covered by HPAanalyze's built-in extraction functions\n- when_to_use: Use when you have a list of candidate human genes (e.g., from differential expression or literature) and want to explore their protein expression profiles across normal tissues, cancers, or subcellular compartments using HPA's immunohistochemistry (IHC) and immunofluorescence (IF) data\n- pitfalls: hpaXml() and hpaXmlGet() only accept Ensembl gene IDs (starting with 'ENSG'), whereas dataset-based functions (like hpaSubset and hpaVis) use HGNC gene symbols ;; Downloading full datasets with hpaDownload(downloadList='all') requires significant RAM and processing power; it is recommended to download only specific datasets (e.g., 'histology') or use version='example' for testing ;; If an antibody was only used for immunofluorescence (IF) to determine subcellular locations, hpaXmlTissueExpr() will return an empty data frame for that antibody ;; 'xml_document' or 'xml_node' objects returned by hpaXmlGet() cannot be saved directly in R due to technical limitations; you must parse them into standard R lists/data frames first using hpaXml() before saving (e.g., with saveRDS()) ;; If you request hpaVis functions to plot parameters (tissues, cell types, cancers) not present in the dataset, they will silently ignore them and plot only what is available",
+  "workflows": [
+    {
+      "name": "download_subset_export_hpa",
+      "intent": "Download full HPA histology datasets, filter them for specific genes, tissues, and cancers of interest, and export the results to an Excel file.",
+      "input": [
+        "geneList (vector of HGNC symbols)",
+        "tissueList (vector of tissues)",
+        "cancerList (vector of cancers)"
+      ],
+      "stages": "1. Download HPA datasets using hpaDownload() ;; 2. Subset the downloaded data using hpaSubset() ;; 3. Export the subsetted data to an Excel file using hpaExport()",
+      "code": "downloadedData <- hpaDownload ( downloadList= 'histology' , version= 'v23' )\ngeneList <- c ( 'TP53' , 'EGFR' , 'CD44' , 'PTEN' , 'IDH1' , 'IDH2' , 'CYCS' )\ntissueList <- c ( 'Breast' , 'Cerebellum' , 'Skin 1' )\ncancerList <- c ( 'breast cancer' , 'glioma' , 'melanoma' )\ncellLineList <- c ( 'A-431' , 'A549' , 'AF22' , 'AN3-CA' )\nsubsetData <- hpaSubset ( data= downloadedData, targetGene= geneList, targetTissue= tissueList, targetCancer= cancerList, targetCellLine= cellLineList)\nhpaExport (subsetData, fileName= 'subset.xlsx' , fileType= 'xlsx' )"
+    },
+    {
+      "name": "visualize_hpa_expression",
+      "intent": "Generate exploratory plots (heatmaps, bar charts, tile charts) for a list of target genes across tissues, cancers, and subcellular compartments.",
+      "input": [
+        "geneList (vector of HGNC symbols)",
+        "tissueList (vector of tissues)",
+        "cancerList (vector of cancers)"
+      ],
+      "stages": "1. Download HPA datasets using hpaDownload() ;; 2. Visualize tissue expression using hpaVisTissue() ;; 3. Visualize cancer pathology expression using hpaVisPatho() ;; 4. Visualize subcellular localization using hpaVisSubcell()",
+      "code": "downloadedData <- hpaDownload ( downloadList= 'histology' , version= 'example' )\ngeneList <- c ( 'TP53' , 'EGFR' , 'CD44' , 'PTEN' , 'IDH1' , 'IDH2' , 'CYCS' )\ntissueList <- c ( 'Breast' , 'Cerebellum' , 'Skin 1' )\nhpaVisTissue (downloadedData, targetGene= geneList, targetTissue= tissueList)\ncancerList <- c ( 'breast cancer' , 'glioma' , 'lymphoma' , 'prostate cancer' )\ncolorGray <- c ( 'slategray1' , 'slategray2' , 'slategray3' , 'slategray4' )\nhpaVisPatho (downloadedData, targetGene= geneList, targetCancer= cancerList, color= colorGray)\nhpaVisSubcell (downloadedData, targetGene= geneList, customTheme= TRUE ) + ggplot2 :: theme_minimal () + ggplot2 :: ylab ( 'Subcellular locations' ) + ggplot2 :: xlab ( 'Protein' ) + ggplot2 :: theme ( axis.text.x= element_text ( angle= 45 , hjust= 1 )) + ggplot2 :: theme ( legend.position= \"none\" ) + ggplot2 :: coord_equal ()"
+    },
+    {
+      "name": "retrieve_parse_xml",
+      "intent": "Download detailed XML data for a specific Ensembl gene ID, extract protein classes, tissue expression summaries, antibody details, and individual sample IHC data, and optionally download staining images.",
+      "input": [
+        "ensembl_id (Ensembl gene ID starting with 'ENSG')"
+      ],
+      "stages": "1. Download and import the XML file using hpaXmlGet() ;; 2. Extract protein classes using hpaXmlProtClass() ;; 3. Extract tissue expression summary and download representative images using hpaXmlTissueExprSum() ;; 4. Extract antibody details using hpaXmlAntibody() ;; 5. Extract individual sample IHC details using hpaXmlTissueExpr() ;; 6. Parse all XML data at once using the umbrella function hpaXml()",
+      "code": "EGFRxml <- hpaXmlGet ( 'ENSG00000146648' )\nhpaXmlProtClass (EGFRxml)\nhpaXmlTissueExprSum (EGFRxml)\nhpaXmlAntibody (EGFRxml)\ntissueExpression <- hpaXmlTissueExpr (EGFRxml)\nEGFR <- hpaXml ( inputXml= 'ENSG00000146648' )"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: graph=An igraph object representing the network ;; method=The diffusion scoring method to use (e.g., \"raw\", \"ml\", \"gm\", \"ber_s\", \"ber_p\", \"mc\", \"z\") ;; scores=A named vector or matrix of input scores with node names ;; K=A precomputed dense graph kernel matrix to avoid redundant calculations on medium/large networks ;; validation=A matrix or vector of target labels used to evaluate the performance of the diffusion scores ;; grid_param=A data frame of parameter combinations (e.g., created by expand.grid) for screening multiple methods ;; n.perm=The number of permutations for permutation-based scores (mc, ber_p) or performance evaluation\n- alternatives: RANKS=An R package containing a variety of diffusion kernels and kernelised scores for binary input vectors, modeling label propagation as a semi-supervised one-class classification problem ;; HotNet=Uses a diffusion process with mutated genes as seed nodes to find mutated pathways ;; TieDIE=Runs two diffusion processes to link genomic perturbations with transcriptional states ;; GeneMANIA=A label propagation algorithm that introduces a bias term on unlabelled nodes\n- when_to_use: Use this package when you have a biological network (e.g., protein-protein interaction network) and a set of node labels (e.g., disease genes, pathways, or differential expression values) and want to propagate these labels to prioritize novel candidates or find functional modules.\n- pitfalls: scale_limitations=Explicit kernel computation scales quadratically in memory and is best suited for networks under 20,000 nodes on standard workstations ;; quantitative_inputs=Only raw, ber_s, z, ber_p, and mc accept quantitative inputs; ml and gm are strictly binary. Quantitative inputs must be monotonic (one-tailed) as opposing signs cancel out ;; unlabelled_vs_negatives=In permutation-based scores (mc, ber_p), negatives and unlabelled nodes are not equivalent because only observed nodes are permuted ;; high_positives_slowdown=Stochastic permutation analysis (mc, ber_p) can be slow if the input has a very high number of positive labels; use the parametric z-score as a faster alternative",
+  "workflows": [
+    {
+      "name": "single_network_diffusion",
+      "intent": "Propagate node labels over a network using a specific diffusion method to prioritize candidates and visualize the smoothed scores.",
+      "input": [
+        "network.graph (an igraph network object)",
+        "node_scores.csv (a named vector or matrix of initial node labels/scores)"
+      ],
+      "stages": "1. Load the network and input scores.\n2. Run diffusion using the diffuse function with a specified method (e.g., \"raw\" or \"mc\").\n3. Map scores to colors and shapes using scores2colours and scores2shapes for network visualization.",
+      "code": "output_vec <- diffuStats::diffuse(\n    graph = graph_toy,\n    method = \"raw\",\n    scores = input_vec)\n\nigraph::plot.igraph(\n    graph_toy, \n    vertex.color = diffuStats::scores2colours(output_vec),\n    vertex.shape = diffuStats::scores2shapes(input_vec),\n    main = \"Diffusion scores in our lattice\"\n)\n\noutput_mc <- diffuStats::diffuse(\n    graph = graph_toy, \n    method = \"mc\", \n    scores = input_mat)"
+    },
+    {
+      "name": "grid_diffusion_and_benchmarking",
+      "intent": "Precompute a graph kernel, run multiple diffusion methods in parallel, and evaluate their performance against validation labels.",
+      "input": [
+        "network.graph (an igraph network object)",
+        "training_labels.csv (matrix of known node labels for training)",
+        "validation_labels.csv (matrix of target node labels for validation)"
+      ],
+      "stages": "1. Precompute the regularised Laplacian kernel using regularisedLaplacianKernel.\n2. Run diffusion across a grid of methods using diffuse_grid.\n3. Evaluate performance (e.g., AUROC) of multiple methods using perf.\n4. Statistically compare performance metrics using perf_wilcox.",
+      "code": "K_rl <- diffuStats::regularisedLaplacianKernel(yeast)\n\ndf_diff <- diffuse_grid(\n    K = K_rl,\n    scores = scores_A,\n    grid_param = expand.grid(method = list_methods),\n    n.perm = 1000 \n)\n\ndf_methods <- perf(\n    K = K_rl,\n    scores = mat_classes[known, ],\n    validation = mat_classes[target, ],\n    grid_param = expand.grid(\n        method = list_methods,\n        stringsAsFactors = FALSE),\n    n.perm = 1000\n)\n\ndf_perf <- reshape2::acast(df_methods, Column~method, value.var = \"auc\")\n\ndf_test <- perf_wilcox(\n    df_perf, \n    digits_p = 1, \n    adjust = function(p) p.adjust(p, method = \"fdr\"), \n    scientific = FALSE)"
+    }
+  ]
+}

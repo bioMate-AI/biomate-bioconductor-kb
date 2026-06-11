@@ -1,0 +1,19 @@
+{
+  "package": "msfeatures",
+  "requirements": [
+    "MsFeatures",
+    "SummarizedExperiment",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MsFeatures",
+      "SummarizedExperiment",
+      "pheatmap"
+    ],
+    "subset_feature_grouping.nf": [
+      "MsFeatures",
+      "SummarizedExperiment"
+    ]
+  }
+}

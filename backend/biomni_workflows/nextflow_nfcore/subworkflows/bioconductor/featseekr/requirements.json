@@ -1,0 +1,15 @@
+{
+  "package": "featseekr",
+  "requirements": [
+    "FeatSeekR",
+    "SummarizedExperiment",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FeatSeekR",
+      "SummarizedExperiment",
+      "pheatmap"
+    ]
+  }
+}

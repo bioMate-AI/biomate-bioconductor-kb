@@ -1,0 +1,13 @@
+{
+  "package": "hilbertvis",
+  "requirements": [
+    "HilbertVis",
+    "lattice"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HilbertVis",
+      "lattice"
+    ]
+  }
+}

@@ -1,135 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pmp
-// Methods and tools for (pre-)processing of metabolomics datasets (i.e. peak matrices), including filt
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pmp/inst/doc/pmp_vignette_peak_matrix_processing_for_metabolomics_datasets.R
-// Upstream  : S4Vectors, SummarizedExperiment, ggplot2, gridExtra, reshape2
-// Downstream: none
-//
-// Install: BiocManager::install("pmp")
+// Bioconductor workflow: pmp — metabolomics_filtering_and_normalization
+// Filter, normalize, impute, and scale a metabolomics peak matrix to prepare it for downstream statistical analysis.
+// Input: MTBLS79
+// Container: quay.io/biocontainers/bioconductor-pmp:1.22.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: S4Vectors, SummarizedExperiment, pmp
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter samples by missing value percentage using filter_samples_by_mv
+//  * 2. [Core Analysis] Filter peaks by fraction of missing values in QC samples using filter_peaks_by_fraction
+//  * 3. [Core Analysis] Filter peaks by fraction of missing values across all samples using filter_peaks_by_fraction
+//  * 4. [Core Analysis] Filter peaks by relative standard deviation (RSD) in QC samples using filter_peaks_by_rsd
+//  * 5. [Core Analysis] Track processing history using processing_history
+//  * 6. [Core Analysis] Normalize data using probabilistic quotient normalization with pqn_normalisation
+//  * 7. [Core Analysis] Impute missing values using mv_imputation
+//  * 8. [Core Analysis] Perform generalized logarithm transformation using glog_transformation
+//  * 9. [Visualization & Output] Plot optimized lambda for glog transformation using glog_plot_optimised_lambda
 
 nextflow.enable.dsl = 2
 
-process BIOC_PMP {
+process BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pmp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pmp:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pmp:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pmp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pmp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pmp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(pmp)
-    library(jsonlite)
-
-    # --- Peak Filtering [] ---
-    # Key functions: filter_peaks_by_fraction, filter_peaks_by_rsd
-    MTBLS79_filtered <- filter_peaks_by_fraction(
-        df = MTBLS79_filtered,
-        min_frac = 0.9,
-        classes = MTBLS79_filtered$Class,
-        method = "QC",
-        qc_label = "QC"
-    )
-    MTBLS79_filtered <- filter_peaks_by_rsd(
-        df = MTBLS79_filtered,
-        max_rsd = 30,
-        classes = MTBLS79_filtered$Class,
-        qc_label = "QC"
-    )
-
-
-    # --- Normalisation [] ---
-    # Key functions: pqn_normalisation
-    MTBLS79_pqn_normalised <- pqn_normalisation(
-        df = MTBLS79_filtered,
-        classes = MTBLS79_filtered$Class,
-        qc_label = "QC"
-    )
-
-
-    # --- Missing Value Imputation [] ---
-    # Key functions: mv_imputation
-    MTBLS79_mv_imputed <- mv_imputation(
-        df = MTBLS79_pqn_normalised,
-        method = "knn"
-    )
-
-
-    # --- Glog Transformation and Visualisation [] ---
-    # Key functions: glog_transformation, processing_history, glog_plot_optimised_lambda
-    MTBLS79_glog <- glog_transformation(
-        df = MTBLS79_mv_imputed,
-        classes = MTBLS79_filtered$Class,
-        qc_label = "QC"
-    )
-    opt_lambda <- processing_history(
-        MTBLS79_glog
-    )$glog_transformation$lambda_opt
-    glog_plot_optimised_lambda(
-        df = MTBLS79_mv_imputed,
-        optimised_lambda = opt_lambda,
-        classes = MTBLS79_filtered$Class,
-        qc_label = "QC"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pmp_results.csv", row.names = TRUE)
+    library(S4Vectors)
+    
+    # 1. Read input file
+    if (file.exists("MTBLS79")) {
+      MTBLS79 <- readRDS("MTBLS79")
+    } else if (file.exists("MTBLS79.rds")) {
+      MTBLS79 <- readRDS("MTBLS79.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pmp_results.csv")
+      stop("Input file MTBLS79 or MTBLS79.rds not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pmp_output.rds")
-    }
+    
+    # 2. Filter samples by missing value percentage
+    MTBLS79_filtered <- filter_samples_by_mv(df=MTBLS79, max_perc_mv=0.1)
+    
+    # 3. Filter peaks by fraction of missing values in QC samples
+    MTBLS79_filtered <- filter_peaks_by_fraction(df=MTBLS79_filtered, min_frac=0.9, classes=MTBLS79_filtered\$Class, method="QC", qc_label="QC")
+    
+    # 4. Filter peaks by fraction of missing values across all samples
+    MTBLS79_filtered <- filter_peaks_by_fraction(df=MTBLS79_filtered, min_frac=0.9, classes=MTBLS79_filtered\$Class, method="across")
+    
+    # 5. Filter peaks by relative standard deviation (RSD) in QC samples
+    MTBLS79_filtered <- filter_peaks_by_rsd(df=MTBLS79_filtered, max_rsd=30, classes=MTBLS79_filtered\$Class, qc_label="QC")
+    
+    # 6. Track processing history
+    history_filtered <- processing_history(MTBLS79_filtered)
+    sink("processing_history_filtered.txt")
+    print(history_filtered)
+    sink()
+    
+    # 7. Normalize data using probabilistic quotient normalization
+    MTBLS79_pqn_normalised <- pqn_normalisation(df=MTBLS79_filtered, classes=MTBLS79_filtered\$Class, qc_label="QC")
+    
+    # 8. Impute missing values
+    MTBLS79_mv_imputed <- mv_imputation(df=MTBLS79_pqn_normalised, method="knn")
+    
+    # 9. Perform generalized logarithm transformation
+    MTBLS79_glog <- glog_transformation(df=MTBLS79_mv_imputed, classes=MTBLS79_filtered\$Class, qc_label="QC")
+    
+    # 10. Plot optimized lambda for glog transformation
+    opt_lambda <- processing_history(MTBLS79_glog)\$glog_transformation\$lambda_opt
+    
+    pdf("glog_optimised_lambda_plot.pdf", width=7, height=5)
+    glog_plot_optimised_lambda(df=MTBLS79_mv_imputed, optimised_lambda=opt_lambda, classes=MTBLS79_filtered\$Class, qc_label="QC")
+    dev.off()
+    
+    # Save outputs
+    saveRDS(MTBLS79_filtered, "MTBLS79_filtered.rds")
+    saveRDS(MTBLS79_pqn_normalised, "MTBLS79_pqn_normalised.rds")
+    saveRDS(MTBLS79_mv_imputed, "MTBLS79_mv_imputed.rds")
+    saveRDS(MTBLS79_glog, "MTBLS79_glog.rds")
+    
+    # Export final processed peak matrix as CSV
+    final_matrix <- assay(MTBLS79_glog)
+    write.csv(final_matrix, "MTBLS79_processed_matrix.csv", row.names=TRUE)
+    
+    # Export sample metadata as CSV
+    metadata <- as.data.frame(colData(MTBLS79_glog))
+    write.csv(metadata, "MTBLS79_processed_metadata.csv", row.names=TRUE)
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PMP:", paste0("    pmp: ", packageVersion("pmp"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION":',
+        paste0('    pmp: ', as.character(packageVersion('pmp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pmp_results.csv
-    touch ${prefix}_pmp_output.rds
-    echo "BIOC_PMP:" > versions.yml
-    echo "    pmp: 0.0.0" >> versions.yml
+    touch ${prefix}_metabolomics_filtering_and_normalization.csv versions.yml
     """
 }
 
-
-workflow BIOC_PMP_WORKFLOW {
+workflow BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ MTBLS79 ] ]
 
     main:
-    BIOC_PMP(ch_input)
+    BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION(ch_input)
 
     emit:
-    results  = BIOC_PMP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PMP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PMP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PMP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION.out.tables
+    plots    = BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION.out.plots
+    objects  = BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION.out.objects
+    versions = BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION.out.versions
 }

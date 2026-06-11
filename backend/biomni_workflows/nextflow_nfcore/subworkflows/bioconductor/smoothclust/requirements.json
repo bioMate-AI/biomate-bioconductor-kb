@@ -1,0 +1,21 @@
+{
+  "package": "smoothclust",
+  "requirements": [
+    "SpatialExperiment",
+    "ggspavis",
+    "scater",
+    "scran",
+    "scuttle",
+    "smoothclust"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "ggspavis",
+      "scater",
+      "scran",
+      "scuttle",
+      "smoothclust"
+    ]
+  }
+}

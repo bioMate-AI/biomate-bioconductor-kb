@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: eset=The ExpressionSet object containing expression data and phenoData ;; annotation=The annotation package (e.g., hgu95av2.db) used by annotateEset to map probe IDs to Entrez IDs, Symbols, and Gene Names ;; df=A data frame (typically from topTable) containing differential expression results ;; grp.factor=A factor defining the experimental groups for plotting in makeImages ;; collist=A list of column indices from the contrast matrix to compare in makeVenn ;; .modifyDF / .mofifyDF=A list of functions (like entrezLinks, affyLinks) passed to publish to turn IDs into clickable HTML hyperlinks\n- alternatives: ReportingTools default publishing=Mentioned as generating a combination of dotplot and boxplot by default, which the author finds \"weird\"; affycoretools::makeImages is preferred for cleaner dotplots/boxplots with links to larger plots ;; xtable or knitr::kable=Mentioned as alternatives for generating summary tables of comparisons with links to individual HTML reports\n- when_to_use: Use when performing standard microarray or RNA-Seq differential expression analysis (typically with limma) and there is a need to generate reproducible, user-friendly, and interactive HTML reports for collaborators or clients.\n- pitfalls: Typographical errors in arguments in the documentation (e.g., .mofifyDF is used in one code block and .modifyDF in another) ;; Generating many individual plot files can clutter the working directory; users should use the default \"reports\" subdirectory to keep files organized ;; Ensure the feature names of the ExpressionSet do not contain characters like \"/\" which might break file paths (the docs show featureNames(eset) <- gsub(\"/\", \"_\", featureNames(eset)) in an unprinted block)",
+  "workflows": [
+    {
+      "name": "differential_expression_and_html_reporting",
+      "intent": "Annotate expression data, fit a linear model, generate gene-level plots, and compile results into an interactive HTML report with clickable links.",
+      "input": [
+        "eset (ExpressionSet containing expression data and phenoData)",
+        "hgu95av2.db (Bioconductor annotation package)"
+      ],
+      "stages": "1. Annotate the ExpressionSet using annotateEset ;; 2. Fit a linear model and compute contrasts using limma ;; 3. Generate gene-level plots for top differentially expressed genes using makeImages ;; 4. Publish the results to an HTML report with clickable gene links using ReportingTools and finish",
+      "code": "eset <- annotateEset(eset, hgu95av2.db)\nfit <- lmFit(eset, design)\nfit2 <- contrasts.fit(fit, contrast)\nfit2 <- eBayes(fit)\nd.f <- topTable(fit2, 2)\nout <- makeImages(df = d.f, eset = eset, grp.factor = pd$type, design = design,\n                  contrast = contrast, colind = 1, repdir = \".\")\nhtab <- HTMLReport(\"afile3\", \"My cool results, affycoretools style\")\npublish(out$df, htab, .mofifyDF = list(entrezLinks, affyLinks))\nfinish(htab)"
+    },
+    {
+      "name": "interactive_venn_diagram_generation",
+      "intent": "Generate an interactive Venn diagram showing overlapping significant genes between multiple comparisons.",
+      "input": [
+        "fit2 (MArrayLM object from limma after eBayes)",
+        "contrast (Contrast matrix)",
+        "design (Design matrix)"
+      ],
+      "stages": "1. Define the list of contrast columns to compare ;; 2. Create the Venn object using makeVenn ;; 3. Generate and display the Venn diagram with captions using vennInLine",
+      "code": "collist <- list(1:2)\nvenn <- makeVenn(fit2, contrast, design, collist = collist, adj.meth = \"none\")\ncap <- list(paste(\"A Venn diagram. Note that the first sentence is bolded\",\n                  \"and blue, whereas the rest is normal type and black. Usually\",\n                  \"one would use a more useful caption than this one.\"))\nvennInLine(venn, cap)"
+    }
+  ]
+}

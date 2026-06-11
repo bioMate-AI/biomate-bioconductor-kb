@@ -1,0 +1,27 @@
+{
+  "package": "sva",
+  "requirements": [
+    "limma",
+    "pamr",
+    "sva"
+  ],
+  "by_workflow": {
+    "combat_known_batches.nf": [
+      "sva"
+    ],
+    "combat_seq_rna_seq.nf": [
+      "sva"
+    ],
+    "frozen_sva_prediction.nf": [
+      "pamr",
+      "sva"
+    ],
+    "main.nf": [
+      "limma",
+      "sva"
+    ],
+    "sva_sequencing.nf": [
+      "sva"
+    ]
+  }
+}

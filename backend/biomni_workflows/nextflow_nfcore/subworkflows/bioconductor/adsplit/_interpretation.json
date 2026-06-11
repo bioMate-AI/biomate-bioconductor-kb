@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: max.probes=Maximum limit of annotated genes allowed for a term of interest to be analyzed (terms exceeding this are skipped) ;; B=Number of random samplings used to compute empirical p-values ;; return.cut=Logical indicating whether diana2means should return the split classifications and score (TRUE) or just the score (FALSE) ;; ignore.genes=Number of top-scoring genes to exclude from DLD-score calculation to prevent single highly variable genes from dominating the score ;; filter.fdr=FDR threshold used to filter and display significant splits in the image plot\n- alternatives: Standard k-means clustering with random initialization (diana2means is preferred as its hierarchical centroid initialization outperforms random starting points) ;; ISIS package (from which the DLD-score implementation is derived)\n- when_to_use: Use this package when you want to perform unsupervised class discovery on patient/sample expression profiles using biologically focused gene sets (defined by GO terms or KEGG pathways) rather than all genes, allowing you to identify and functionally characterize distinct patient subgroups.\n- pitfalls: Terms with too many associated probesets (e.g., generic GO terms) or too few probesets will be automatically skipped unless max.probes is adjusted ;; Single highly variable genes can disproportionately drive the DLD-score, which can be mitigated by setting ignore.genes ;; Multiple testing is a major issue when testing many pathways, requiring FDR correction (q-values) which is automatically computed but requires a sufficiently high number of permutations (B).",
+  "workflows": [
+    {
+      "name": "annotation_driven_clustering",
+      "intent": "Perform annotation-driven class discovery on expression data using GO/KEGG annotations, compute empirical significance, and visualize the resulting patient splits.",
+      "input": [
+        "ExpressionSet object (microarray gene expression data)",
+        "Character string (name of the Bioconductor chip-specific annotation metadata package)"
+      ],
+      "stages": "1. Run adSplit to generate splits for specific terms or entire ontologies (\"GO\", \"KEGG\", \"all\") with permutation testing to compute empirical p-values. ;; 2. Summarize the resulting splitSet object. ;; 3. Plot a histogram of empirical p-values and corrected q-values. ;; 4. Generate a clustered heatmap image of the significant splits filtered by FDR.",
+      "code": "library(adSplit)\nlibrary(golubEsets)\ndata(Golub_Merge)\nglutamSplits <- adSplit(Golub_Merge, \"KEGG:00251\", \"hu6800\", B=1000)\nprint(glutamSplits)\nx <- adSplit(Golub_Merge, c(\"GO:0007165\",\"GO:0006915\"), \"hu6800\", max.probes=7000)\nprint(x)\nx <- adSplit(Golub_Merge, \"KEGG\", \"hu6800\")\nprint(x)\ndata(golubKEGGSplits)\nprint(golubKEGGSplits)\nsummary(golubKEGGSplits$qvalues)\nhist(golubKEGGSplits)\nimage(golubKEGGSplits, filter.fdr=0.3, outfile=\"splitSet.eps\", res=300)"
+    },
+    {
+      "name": "manual_split_and_null_distribution",
+      "intent": "Manually cluster samples using divisive hierarchical 2-means on a custom gene subset and generate a null distribution of DLD-scores using random gene sets.",
+      "input": [
+        "Matrix (gene expression matrix with genes as rows and samples as columns)",
+        "Environment (Entrez ID to probe set mapping environment from chip metadata)"
+      ],
+      "stages": "1. Filter the expression matrix for highly variable genes. ;; 2. Run diana2means to cluster samples and retrieve the split classifications and DLD-score. ;; 3. Create an Entrez ID to probe set environment using makeEID2PROBESenv. ;; 4. Draw random probe sets using drawRandomPS. ;; 5. Generate a null distribution of DLD-scores using randomDiana2means and plot the distributions.",
+      "code": "library(adSplit)\nlibrary(golubEsets)\ndata(Golub_Merge)\ne <- exprs(Golub_Merge)\nvars <- apply(e, 1, var)\ne <- e[vars > quantile(vars,0.9),]\ndiana2means(e)\ndiana2means(e, return.cut=TRUE)\nx <- diana2means(e, return.cut=TRUE)\nx$cut\nEID2PSenv <- makeEID2PROBESenv(hu6800ENTREZID)\ndrawRandomPS(10, EID2PSenv, ls(EID2PSenv))\nscores <- randomDiana2means(20, exprs(Golub_Merge), \"hu6800\", ndraws = 1000)\nscores2 <- randomDiana2means(20, exprs(Golub_Merge), \"hu6800\", ndraws = 1000, ignore.genes=5)\npar(mfrow=c(1,2))\nhist(scores,  nclass=30, main=\"\", col=\"grey\")\nhist(scores2, nclass=30, main=\"\", col=\"grey\")"
+    }
+  ]
+}

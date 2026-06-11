@@ -1,0 +1,17 @@
+{
+  "package": "scpca",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "ggpubr",
+    "scPCA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "ggpubr",
+      "scPCA"
+    ]
+  }
+}

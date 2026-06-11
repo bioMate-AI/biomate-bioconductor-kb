@@ -1,0 +1,15 @@
+{
+  "package": "methylseekr",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "MethylSeekR",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "MethylSeekR",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "package": "scry",
+  "requirements": [
+    "DelayedArray",
+    "HDF5Array",
+    "SingleCellExperiment",
+    "ggplot2",
+    "scry"
+  ],
+  "by_workflow": {
+    "large_data_deviance.nf": [
+      "DelayedArray",
+      "HDF5Array",
+      "SingleCellExperiment",
+      "scry"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scry"
+    ],
+    "sce_null_residuals_pca.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scry"
+    ]
+  }
+}

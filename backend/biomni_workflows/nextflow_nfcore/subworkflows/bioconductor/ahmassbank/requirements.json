@@ -1,0 +1,21 @@
+{
+  "package": "ahmassbank",
+  "requirements": [
+    "AHMassBank",
+    "AnnotationHub",
+    "BiocGenerics",
+    "CompoundDb",
+    "S4Vectors",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AHMassBank",
+      "AnnotationHub",
+      "BiocGenerics",
+      "CompoundDb",
+      "S4Vectors",
+      "ggplot2"
+    ]
+  }
+}

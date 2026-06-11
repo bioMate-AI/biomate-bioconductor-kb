@@ -1,0 +1,11 @@
+{
+  "package": "browserviz",
+  "requirements": [
+    "BrowserViz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BrowserViz"
+    ]
+  }
+}

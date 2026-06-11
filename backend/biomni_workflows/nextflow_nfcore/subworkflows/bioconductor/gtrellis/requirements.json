@@ -1,0 +1,15 @@
+{
+  "package": "gtrellis",
+  "requirements": [
+    "GenomicRanges",
+    "gtrellis",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "gtrellis",
+      "rtracklayer"
+    ]
+  }
+}

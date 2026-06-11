@@ -1,0 +1,11 @@
+{
+  "package": "phenogeneranker",
+  "requirements": [
+    "PhenoGeneRanker"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PhenoGeneRanker"
+    ]
+  }
+}

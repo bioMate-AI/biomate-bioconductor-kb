@@ -1,129 +1,173 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: OrderedList
-// Detection of similarities between ordered lists of genes. Thereby, either simple lists can be compar
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/OrderedList/inst/doc/tr_2006_01.R
-// Upstream  : Biobase, twilight
-// Downstream: none
-//
-// Install: BiocManager::install("OrderedList")
+// Bioconductor workflow: OrderedList — compare_expression_studies
+// Compare two gene expression studies to detect similarities and identify overlapping genes.
+// Input: eset1, eset2, mapping
+// Container: quay.io/biocontainers/bioconductor-orderedlist:1.82.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, OrderedList, twilight
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Combine and prepare the two expression datasets using prepareData
+//  * 2. [Core Analysis] Compute the similarity score and optimize alpha using OrderedList
+//  * 3. [Visualization & Output] Plot the results (pAUC, scores, overlap) using plot
+//  * 4. [Core Analysis] Extract the intersecting genes from the resulting object
 
 nextflow.enable.dsl = 2
 
-process BIOC_ORDEREDLIST {
+process BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-orderedlist"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-orderedlist:1.78.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-orderedlist:1.78.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_orderedlist_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_orderedlist_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_orderedlist_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(OrderedList)
-    library(jsonlite)
-
-    # --- Exit [] ---
-    # Key functions: exit
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(Biobase)
     library(twilight)
-    oldopt <- options(digits=3)
-    on.exit( {options(oldopt)} )
-    options(width=75)
-    # --- Data [] ---
-    # Key functions: prepareData
     library(OrderedList)
-    data(OL.data)
-    OL.data$breast
-    OL.data$prostate
-    OL.data$map[1:5,]
-    # --- Orderedlist [] ---
-    # Key functions: OrderedList
+    
+    # ----------------------------------------------------------------------
+    # 1. Read User Inputs
+    # ----------------------------------------------------------------------
+    eset1_path <- "eset1.rds"
+    if (!file.exists(eset1_path)) {
+      eset1_path <- "eset1"
+    }
+    if (!file.exists(eset1_path)) {
+      stop("Error: eset1 file not found in the working directory.")
+    }
+    eset1_obj <- readRDS(eset1_path)
+    
+    eset2_path <- "eset2.rds"
+    if (!file.exists(eset2_path)) {
+      eset2_path <- "eset2"
+    }
+    if (!file.exists(eset2_path)) {
+      stop("Error: eset2 file not found in the working directory.")
+    }
+    eset2_obj <- readRDS(eset2_path)
+    
+    mapping_obj <- NULL
+    if (file.exists("mapping.rds")) {
+      mapping_obj <- readRDS("mapping.rds")
+    } else if (file.exists("mapping.csv")) {
+      mapping_obj <- read.csv("mapping.csv", stringsAsFactors = FALSE)
+    } else if (file.exists("mapping")) {
+      mapping_obj <- readRDS("mapping")
+    }
+    
+    # Helper function to dynamically detect comparison variable and outcome levels
+    get_var_and_out <- function(eset) {
+      pd <- pData(eset)
+      if (ncol(pd) == 0) {
+        stop("Error: ExpressionSet phenoData is empty. Cannot determine comparison variable.")
+      }
+      # Look for columns with exactly 2 unique values first
+      classes <- sapply(pd, function(x) length(unique(x)))
+      two_level_cols <- names(classes)[classes == 2]
+      if (length(two_level_cols) > 0) {
+        var_name <- two_level_cols[1]
+      } else {
+        var_name <- colnames(pd)[1]
+      }
+      out_vals <- as.character(unique(pd[[var_name]]))
+      if (length(out_vals) > 2) {
+        out_vals <- out_vals[1:2]
+      }
+      list(var = var_name, out = out_vals)
+    }
+    
+    spec1 <- get_var_and_out(eset1_obj)
+    spec2 <- get_var_and_out(eset2_obj)
+    
+    # ----------------------------------------------------------------------
+    # 2. Combine and Prepare Data
+    # ----------------------------------------------------------------------
+    A <- prepareData(
+    eset1=list(data=eset1_obj,name="study1",var=spec1\$var,out=spec1\$out,paired=FALSE),
+    eset2=list(data=eset2_obj,name="study2",var=spec2\$var,out=spec2\$out,paired=FALSE),
+    mapping=mapping_obj
+    )
+    
+    # ----------------------------------------------------------------------
+    # 3. Compute Similarity Score and Optimize Alpha
+    # ----------------------------------------------------------------------
     x <- OrderedList(A, empirical=TRUE)
     x
-    x$intersect[1:5]
-    # --- Bitmap [] ---
-    # Key functions: bitmap, off, sleep
-    bitmap(file="tr_2006_01-pauc.png",width=4,height=3,res=300)
+    x\$intersect[1:5]
+    
+    # ----------------------------------------------------------------------
+    # 4. Plot Results
+    # ----------------------------------------------------------------------
+    pdf("plot_pauc.pdf")
     plot(x,"pauc")
     dev.off()
-    Sys.sleep(20)
-    bitmap(file="tr_2006_01-scores.png",width=4,height=3, res=300)
-    # --- Character [] ---
-    # Key functions: sample, compareLists
-    list1 <- as.character(OL.data$map$prostate)
-    list2 <- c(sample(list1[1:500]),sample(list1[501:1000]))
-    y <- compareLists(list1,list2)
-    y
-    # --- Getoverlap [] ---
-    # Key functions: getOverlap
-    z <- getOverlap(y)
-    z
-    z$intersect[1:5]
-    # --- Bitmap [] ---
-    # Key functions: bitmap, off, sleep
-    bitmap(file="tr_2006_01-z.png",width=4,height=3,res=300)
-    plot(z)
+    
+    pdf("plot_scores.pdf")
+    plot(x,"scores")
     dev.off()
-    Sys.sleep(20)
-    bitmap(file="tr_2006_01-density.png",width=4,height=3,res=300)
+    
+    pdf("plot_overlap.pdf")
+    plot(x,"overlap")
+    dev.off()
+    
+    # ----------------------------------------------------------------------
+    # 5. Save Outputs
+    # ----------------------------------------------------------------------
+    saveRDS(x, "ordered_list_results.rds")
+    write.csv(data.frame(IntersectingGenes = x\$intersect), "intersecting_genes.csv", row.names = FALSE)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_orderedlist_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_orderedlist_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_orderedlist_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ORDEREDLIST:", paste0("    orderedlist: ", packageVersion("OrderedList"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES":',
+        paste0('    OrderedList: ', as.character(packageVersion('OrderedList')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_orderedlist_results.csv
-    touch ${prefix}_orderedlist_output.rds
-    echo "BIOC_ORDEREDLIST:" > versions.yml
-    echo "    orderedlist: 0.0.0" >> versions.yml
+    touch ${prefix}_compare_expression_studies.csv versions.yml
     """
 }
 
-
-workflow BIOC_ORDEREDLIST_WORKFLOW {
+workflow BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ eset1, eset2, mapping ] ]
 
     main:
-    BIOC_ORDEREDLIST(ch_input)
+    BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES(ch_input)
 
     emit:
-    results  = BIOC_ORDEREDLIST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ORDEREDLIST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ORDEREDLIST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ORDEREDLIST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES.out.tables
+    plots    = BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES.out.plots
+    objects  = BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES.out.objects
+    versions = BIOC_ORDEREDLIST_COMPARE_EXPRESSION_STUDIES.out.versions
 }

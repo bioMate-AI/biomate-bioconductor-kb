@@ -1,136 +1,138 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: acde
-// This package provides a multivariate inferential analysis method for detecting differentially expres
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/acde/inst/doc/acde.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("acde")
+// Bioconductor workflow: acde — single_time_point_analysis
+// Detect differentially expressed genes at a single experimental time point using artificial components and FDR estimation.
+// Input: dat, des
+// Container: quay.io/biocontainers/bioconductor-acde:1.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: acde
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the package and prepare the expression matrix and design vector. 2. Run the single time point analysis using stp (optionally 
 
 nextflow.enable.dsl = 2
 
-process BIOC_ACDE {
+process BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-acde"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-acde:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-acde:1.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_acde_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_acde_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_acde_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the package and prepare the expression matrix and design vector
     library(acde)
-    library(jsonlite)
-
-    # --- Analysis [] ---
-    # Key functions: analysis, stp
-    ## ## Single time point analysis (36 hai)
-    ## dat <- phytophthora[[3]]
-    ## des <- c(rep(1,8), rep(2,8))
-    ## ### For a quick run, set BCa=FALSE
-    ## stpPI <- stp(dat, des, BCa=TRUE)
-    # --- Vector [] ---
-    # Key functions: tc
-    ## ## Time course analysis
-    ## desPI <- vector("list",4)
-    ## for(tp in 1:4) desPI[[tp]] <- c(rep(1,8), rep(2,8))
-    ## tcPI <- tc(phytophthora, desPI)
-    # --- Stppi [] ---
-    # Key functions: stp
-    ## library(acde)
-    ## dat <- phytophthora[[3]]
-    ## des <- c(rep(1,8), rep(2,8))
-    ## stpPI <- stp(dat, des, BCa=TRUE)
-    # --- Plotstp [] ---
-    # Key functions: off
-    golden <- 1.1*(1+sqrt(5))/2
-    hi <- 4
-    pdf("acde-plotStpFDR.pdf", width=golden*hi, height=hi, fonts="Times")
-    par(mfrow=c(1,1), mar=c(4, 4, 0.1, 1), las=1, family="Times")
-    plot(stpPI, AC=FALSE)
-    # --- Tcpi [] ---
-    # Key functions: tc
-    ## desPI <- vector("list",4)
-    ## for(tp in 1:4) desPI[[tp]] <- c(rep(1,8), rep(2,8))
-    ## tcPI <- tc(phytophthora, desPI)
-    # --- Plottcpi1 [] ---
-    # Key functions: off
-    tcAux1 <- tcPI; tcAux1$gct <- "Not computed."
-    hi <- 6
-    pdf("acde-plotTcPI1.pdf", width=golden*hi, height=hi, fonts="Times")
-    par(mfrow=c(1,1), mar=c(4, 4, 0.1, 1), las=1, family="Times")
-    plot(tcAux1, iRatios=FALSE, FDR=FALSE)
-    # --- Plottcpi2 [] ---
-    # Key functions: off
-    tcAux2 <- tcPI; tcAux2$act <- "Not computed."
-    pdf("acde-plotTcPI2.pdf", width=golden*hi, height=hi, fonts="Times")
-    par(mfrow=c(1,1), mar=c(4, 4, 0.1, 1), las=1, family="Times")
-    plot(tcAux2, iRatios=FALSE, AC=FALSE)
-    invisible(dev.off())
-    # --- Plottcpi3 [] ---
-    # Key functions: off
-    pdf("acde-plotTcPI3.pdf", width=golden*hi, height=hi, fonts="Times")
-    par(mfrow=c(1,1), mar=c(4, 4, 0.1, 1), las=1, family="Times")
-    plot(tcAux2, iRatios=FALSE, FDR=FALSE)
-    invisible(dev.off())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_acde_results.csv", row.names = TRUE)
+    
+    # Read the expression matrix (dat) from the working directory
+    if (file.exists("dat.csv")) {
+      dat <- as.matrix(read.csv("dat.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("dat.tsv")) {
+      dat <- as.matrix(read.delim("dat.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("dat.txt")) {
+      dat <- as.matrix(read.table("dat.txt", header = TRUE, row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_acde_results.csv")
+      stop("Error: Expression matrix file (dat.csv, dat.tsv, or dat.txt) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_acde_output.rds")
+    
+    # Read the design vector (des) from the working directory
+    if (file.exists("des.csv")) {
+      des <- as.numeric(read.csv("des.csv", header = FALSE)[[1]])
+    } else if (file.exists("des.txt")) {
+      des <- scan("des.txt", what = numeric(), quiet = TRUE)
+    } else {
+      stop("Error: Design vector file (des.csv or des.txt) not found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ACDE:", paste0("    acde: ", packageVersion("acde"))),
-        "versions.yml"
+    
+    # 2. Run the single time point analysis using stp (enabling BCa bootstrap confidence bounds)
+    stpPI <- stp(dat, des, BCa=TRUE)
+    
+    # 3. Print the summary of results (achieved FDR, number of up/down-regulated genes)
+    stpPI
+    
+    # 4. Plot the estimated FDR curve and the genes on the artificial plane using plot
+    # Save the default plots to a PDF file
+    pdf("stp_plots.pdf", width = 7, height = 9)
+    plot(stpPI)
+    invisible(dev.off())
+    
+    # Save individual plots as described in the vignette
+    golden <- 1.1 * (1 + sqrt(5)) / 2
+    hi <- 4
+    
+    pdf("acde-plotStpFDR.pdf", width = golden * hi, height = hi)
+    par(mfrow = c(1, 1), mar = c(4, 4, 1, 1), las = 1)
+    plot(stpPI, AC = FALSE)
+    invisible(dev.off())
+    
+    pdf("acde-plotStpAC.pdf", width = golden * hi, height = hi)
+    par(mfrow = c(1, 1), mar = c(4, 4, 1, 1), las = 1)
+    plot(stpPI, FDR = FALSE)
+    invisible(dev.off())
+    
+    # 5. Write named output files for the meaningful results
+    # Save the complete STP object
+    saveRDS(stpPI, file = "stp_results.rds")
+    
+    # Extract and save the results table
+    results_df <- data.frame(
+      psi1 = stpPI\$ac[, 1],
+      psi2 = stpPI\$ac[, 2],
+      qvalue = stpPI\$qvalues,
+      status = stpPI\$dgenes,
+      row.names = rownames(dat)
     )
+    write.csv(results_df, file = "stp_results_table.csv", row.names = TRUE)
+
+    writeLines(c(
+        '"BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS":',
+        paste0('    acde: ', as.character(packageVersion('acde')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_acde_results.csv
-    touch ${prefix}_acde_output.rds
-    echo "BIOC_ACDE:" > versions.yml
-    echo "    acde: 0.0.0" >> versions.yml
+    touch ${prefix}_single_time_point_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ACDE_WORKFLOW {
+workflow BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ dat, des ] ]
 
     main:
-    BIOC_ACDE(ch_input)
+    BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ACDE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ACDE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ACDE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ACDE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS.out.tables
+    plots    = BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS.out.plots
+    objects  = BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS.out.objects
+    versions = BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS.out.versions
 }

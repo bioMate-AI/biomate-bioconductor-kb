@@ -1,0 +1,22 @@
+{
+  "package": "chromplot",
+  "requirements": [
+    "GenomicRanges",
+    "chromPlot"
+  ],
+  "by_workflow": {
+    "histogram_density_profiling.nf": [
+      "GenomicRanges",
+      "chromPlot"
+    ],
+    "main.nf": [
+      "chromPlot"
+    ],
+    "segment_and_ancestry_mapping.nf": [
+      "chromPlot"
+    ],
+    "xy_plotting_of_genomic_statistics.nf": [
+      "chromPlot"
+    ]
+  }
+}

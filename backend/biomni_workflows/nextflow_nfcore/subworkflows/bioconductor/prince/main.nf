@@ -1,145 +1,167 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PrInCE
-// PrInCE (Predicting Interactomes from Co-Elution) uses a naive Bayes classifier trained on dataset-de
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PrInCE/inst/doc/intro-to-prince.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("PrInCE")
+// Bioconductor workflow: PrInCE — predict_interactions_workflow
+// Predict binary protein-protein interactions from co-elution proteomics data using a machine learning classifier trained on gold-standard complexes.
+// Input: co_elution_matrix.csv, gold_standard_complexes.rds
+// Container: quay.io/biocontainers/bioconductor-prince:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: PrInCE
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit Gaussian mixture models to elution profiles using build_gaussians. 2. Calculate pairwise features using calculate_features. 3.
 
 nextflow.enable.dsl = 2
 
-process BIOC_PRINCE {
+process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-prince"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-prince:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-prince:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_prince_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_prince_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_prince_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PrInCE)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(PrInCE)
+        
+        # ==========================================
+        # 1. Load User Input Files
+        # ==========================================
+        # Read the co-elution matrix (CSV format, first column as row names/protein IDs)
+        co_elution_file <- "co_elution_matrix.csv"
+        if (!file.exists(co_elution_file)) {
+          stop(paste("Required input file missing:", co_elution_file))
+        }
+        profiles_df <- read.csv(co_elution_file, row.names = 1, check.names = FALSE)
+        profiles <- as.matrix(profiles_df)
+        
+        # Read the gold standard complexes (RDS format, list of protein vectors)
+        gold_standard_file <- "gold_standard_complexes.rds"
+        if (!file.exists(gold_standard_file)) {
+          stop(paste("Required input file missing:", gold_standard_file))
+        }
+        gold_standard <- readRDS(gold_standard_file)
+        
+        # ==========================================
+        # 2. Fit Gaussian Mixture Models
+        # ==========================================
+        # Set seed to ensure reproducible output
+        set.seed(0)
+        
+        message("Fitting Gaussian mixture models to elution profiles...")
+        # Fit Gaussians using default parameters
+        gauss <- build_gaussians(profiles)
+        
+        # Save fitted Gaussians
+        saveRDS(gauss, "fitted_gaussians.rds")
+        
+        # Filter profiles that were not successfully fit
+        profiles_filtered <- profiles[names(gauss), ]
+        
+        # ==========================================
+        # 3. Calculate Pairwise Features
+        # ==========================================
+        message("Calculating pairwise features...")
+        # Calculate features
+        feat <- calculate_features(profiles_filtered, gauss)
+        
+        # Save calculated features
+        write.csv(feat, "calculated_features.csv", row.names = FALSE)
+        
+        # ==========================================
+        # 4. Predict Interactions
+        # ==========================================
+        message("Predicting protein-protein interactions...")
+        # Convert gold standard list to an adjacency matrix
+        reference <- adjacency_matrix_from_list(gold_standard)
+        
+        # Set seed to ensure reproducible classifier training
+        set.seed(0)
+        
+        # Predict interactions using SVM classifier with 10-fold cross-validation
+        ppi <- predict_interactions(feat, reference, 
+                                    classifier = "SVM",
+                                    models = 10, 
+                                    cv_folds = 10)
+        
+        # Save raw predicted interactions
+        saveRDS(ppi, "predicted_interactions.rds")
+        write.csv(ppi, "predicted_interactions.csv", row.names = FALSE)
+        
+        # ==========================================
+        # 5. Plot and Save Precision Curve
+        # ==========================================
+        message("Plotting precision curve...")
+        pdf("precision_curve.pdf", width = 6, height = 6)
+        # Safely determine the number of points to plot (up to 20,000)
+        n_points <- min(20000, length(ppi\$precision))
+        precision_subset <- ppi\$precision[seq_len(n_points)]
+        plot(precision_subset, type = "l", col = "blue", lwd = 2,
+             main = "PrInCE Interaction Prediction Precision",
+             xlab = "Ranked Interactions", ylab = "Precision")
+        dev.off()
+        
+        # ==========================================
+        # 6. Threshold Network at User-Defined Precision
+        # ==========================================
+        message("Filtering predicted interactions at precision threshold...")
+        # Threshold the network at 70% precision as documented
+        net <- threshold_precision(ppi, threshold = 0.7)
+        
+        # Save the final thresholded network
+        write.csv(net, "thresholded_network.csv", row.names = FALSE)
+        
+        message(paste("Pipeline completed successfully. Reconstructed network contains", nrow(net), "interactions."))
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(gold_standard)
-    head(gold_standard)
-    # --- Threshold Precision [] ---
-    # Key functions: threshold_precision
-    ---------------------------------------------------------------------
-    network <- threshold_precision(interactions, threshold = 0.5)
-    nrow(network)
-    # --- Data [] ---
-    # Key functions: build_gaussians
-    ---------------------------------------------------------------------
-    data(scott)
-    # set the seed to ensure reproducible output
-    set.seed(0)
-    # fit Gaussians
-    # --- Calculate Features [] ---
-    # Key functions: calculate_features
-    ---------------------------------------------------------------------
-    feat <- calculate_features(scott, gauss, euclidean_distance = FALSE)
-    head(feat)
-    # --- Data [] ---
-    # Key functions: adjacency_matrix_from_list, predict_interactions
-    ---------------------------------------------------------------------
-    data(gold_standard)
-    reference <- adjacency_matrix_from_list(gold_standard)
-    # set the seed to ensure reproducible output
-    set.seed(0)
-    # --- Threshold Precision [] ---
-    # Key functions: threshold_precision
-    ---------------------------------------------------------------------
-    net <- threshold_precision(ppi, threshold = 0.7)
-    nrow(net)
-    # --- Data [] ---
-    # Key functions: filter_profiles, clean_profiles
-    ---------------------------------------------------------------------
-    # analyze cleaned profiles
-    data(scott)
-    filtered = filter_profiles(scott)
-    chromatograms = clean_profiles(filtered)
-    # --- Omit [] ---
-    # Key functions: omit
-    ---------------------------------------------------------------------
-    # remove complexes that could not be analyzed
-    z_scores = na.omit(z_scores)
-    # how many could be tested?
-    length(z_scores)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("kristensen")
-    data("kristensen_gaussians")
-    dim(kristensen)
-    length(kristensen_gaussians)
-    # --- Threshold Precision [] ---
-    # Key functions: threshold_precision
-    ---------------------------------------------------------------------
-    network <- threshold_precision(interactions, 0.5)
-    nrow(network)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_prince_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_prince_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_prince_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PRINCE:", paste0("    prince: ", packageVersion("PrInCE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW":',
+        paste0('    PrInCE: ', as.character(packageVersion('PrInCE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_prince_results.csv
-    touch ${prefix}_prince_output.rds
-    echo "BIOC_PRINCE:" > versions.yml
-    echo "    prince: 0.0.0" >> versions.yml
+    touch ${prefix}_predict_interactions_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_PRINCE_WORKFLOW {
+workflow BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ co_elution_matrix.csv, gold_standard_complexes.rds ] ]
 
     main:
-    BIOC_PRINCE(ch_input)
+    BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_PRINCE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PRINCE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PRINCE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PRINCE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW.out.tables
+    plots    = BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW.out.plots
+    objects  = BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW.out.objects
+    versions = BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW.out.versions
 }

@@ -1,0 +1,25 @@
+# [biomate-fx-name] write targets matched to the workflow's declared input filenames
+# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
+.fx_deps <- c("FGNet", "gage", "org.Hs.eg.db", "AnnotationDbi")
+.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+if (length(.fx_miss)) {
+  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
+}
+library(FGNet)
+library(gage)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+
+# Load the dataset from the gage package as shown in the vignette
+data(gse16873)
+
+# Generate gene labels mapping Entrez IDs to Symbols
+geneSymbols <- select(org.Hs.eg.db, columns="SYMBOL", keytype="ENTREZID", keys=rownames(gse16873))
+geneLabels <- geneSymbols$SYMBOL
+names(geneLabels) <- geneSymbols$ENTREZID
+
+# Serialize the objects to the working directory as expected by the workflow
+saveRDS(gse16873, "gse16873.rds")
+saveRDS(geneLabels, "geneLabels.rds")

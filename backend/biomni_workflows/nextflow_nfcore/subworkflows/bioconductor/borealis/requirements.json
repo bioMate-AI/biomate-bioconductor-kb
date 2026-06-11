@@ -1,0 +1,15 @@
+{
+  "package": "borealis",
+  "requirements": [
+    "GenomicRanges",
+    "annotatr",
+    "borealis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "annotatr",
+      "borealis"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "seqgsea",
+  "requirements": [
+    "SeqGSEA",
+    "doParallel"
+  ],
+  "by_workflow": {
+    "de_only_gsea.nf": [
+      "SeqGSEA",
+      "doParallel"
+    ],
+    "main.nf": [
+      "SeqGSEA",
+      "doParallel"
+    ],
+    "one_step_seqgsea.nf": [
+      "SeqGSEA",
+      "doParallel"
+    ]
+  }
+}

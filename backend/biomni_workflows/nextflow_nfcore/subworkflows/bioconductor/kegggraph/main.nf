@@ -1,111 +1,158 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: KEGGgraph
-// KEGGGraph is an interface between KEGG pathway and graph object as well as a collection of tools to 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/KEGGgraph/inst/doc/KEGGgraph.R
-// Upstream  : RBGL, RColorBrewer, Rgraphviz, SPIA, biomaRt
-// Downstream: lpNet, ROntoTools, SPIA
-//
-// Install: BiocManager::install("KEGGgraph")
+// Bioconductor workflow: kegggraph — pathway_parsing_and_topology_analysis
+// Parse a KGML file into a gene-expanded graph and calculate node degrees to identify key regulatory genes.
+// Input: hsa04010.xml
+// Container: quay.io/biocontainers/bioconductor-kegggraph:1.70.0--r45hdfd78af_0
+// R packages: biomaRt, graph, KEGGgraph, RBGL, RColorBrewer, Rgraphviz, SPIA
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_KEGGGRAPH {
+process BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-kegggraph"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-kegggraph:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-kegggraph:1.66.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-kegggraph:1.70.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_kegggraph_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_kegggraph_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_kegggraph_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(KEGGgraph)
-    library(KEGGpathway2Graph)
-    library(KEGGpathway2reactionGraph)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biomaRt", "graph", "KEGGgraph", "RBGL", "RColorBrewer", "Rgraphviz", "SPIA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Extracting Node and Edge Data [] ---
-    # Key functions: getKEGGnodeData, getKEGGedgeData, translateKEGGID2GeneID
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(KEGGgraph)
+    library(graph)
+    
+    # Define input file (must be present in the working directory)
+    mapkKGML <- "hsa04010.xml"
+    
+    # Check if input file exists
+    if (!file.exists(mapkKGML)) {
+      stop(paste("Required input file", mapkKGML, "not found in the working directory."))
+    }
+    
+    # 1. Parse the KGML file into a graphNEL object with gene expansion
+    mapkG <- parseKGML2Graph(mapkKGML, expandGenes=TRUE)
+    
+    # 2. Extract node and edge information
     mapkNodes <- nodes(mapkG)
     mapkEdges <- edges(mapkG)
-    node_data <- getKEGGnodeData(mapkG)
-    edge_data <- getKEGGedgeData(mapkG)
-    gene_ids <- translateKEGGID2GeneID(mapkNodes[1:5])
-
-
-    # --- Graph Merging and Subgraphing [] ---
-    # Key functions: mergeGraphs, subGraphByNodeType, parseKGMLexpandMaps
-    wntKGML <- system.file("extdata/hsa04310.xml", package="KEGGgraph")
-    wntG <- parseKGML2Graph(wntKGML)
-    merged_graph <- mergeGraphs(list(mapk=mapkG, wnt=wntG))
-    mapkGall <- parseKGML2Graph(mapkKGML, genesOnly=FALSE)
-    gene_subgraph <- subGraphByNodeType(mapkGall, "gene")
-
-
-    # --- Pathway Reaction Graph Analysis [] ---
-    # Key functions: getReactions, KEGGpathway2reactionGraph
-    mapfile <- system.file("extdata/map00260.xml", package="KEGGgraph")
-    map_pathway <- parseKGML(mapfile)
-    reactions_list <- getReactions(map_pathway)
-    chemicalGraph <- KEGGpathway2reactionGraph(map_pathway)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_kegggraph_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_kegggraph_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_kegggraph_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_KEGGGRAPH:", paste0("    kegggraph: ", packageVersion("KEGGgraph"))),
-        "versions.yml"
+    
+    # 3. Retrieve node-specific KEGG attributes
+    mapkGnodedata <- getKEGGnodeData(mapkG)
+    
+    # 4. Calculate in-degrees and out-degrees to identify central regulatory nodes
+    mapkGoutdegrees <- sapply(edges(mapkG), length)
+    mapkGindegrees <- sapply(inEdges(mapkG), length)
+    topouts <- sort(mapkGoutdegrees, decreasing=TRUE)
+    topins <- sort(mapkGindegrees, decreasing=TRUE)
+    
+    # --- Save Outputs ---
+    
+    # Save the parsed graph object
+    saveRDS(mapkG, file="mapk_graph.rds")
+    
+    # Save all node degrees
+    degree_df <- data.frame(
+      Node = names(mapkGoutdegrees),
+      OutDegree = mapkGoutdegrees,
+      InDegree = mapkGindegrees[names(mapkGoutdegrees)]
     )
+    write.csv(degree_df, file="mapk_node_degrees.csv", row.names=FALSE)
+    
+    # Save top out-degrees and in-degrees
+    write.csv(data.frame(Node = names(topouts), OutDegree = topouts), file="top_out_degrees.csv", row.names=FALSE)
+    write.csv(data.frame(Node = names(topins), InDegree = topins), file="top_in_degrees.csv", row.names=FALSE)
+    
+    # Save node metadata
+    node_names <- sapply(mapkGnodedata, getName)
+    node_types <- sapply(mapkGnodedata, getType)
+    node_display <- sapply(mapkGnodedata, getDisplayName)
+    node_info_df <- data.frame(
+      KEGGID = names(mapkGnodedata),
+      Name = node_names,
+      Type = node_types,
+      DisplayName = node_display
+    )
+    write.csv(node_info_df, file="mapk_node_info.csv", row.names=FALSE)
+    
+    # Generate PDF plot of a subgraph of top central nodes
+    pdf("mapk_top_nodes_subgraph.pdf", width=10, height=10)
+    tryCatch({
+      if (requireNamespace("Rgraphviz", quietly=TRUE)) {
+        library(Rgraphviz)
+        # Select top 15 out-degree and top 15 in-degree nodes
+        top_nodes <- unique(c(names(topouts)[1:15], names(topins)[1:15]))
+        subG <- subGraph(top_nodes, mapkG)
+        plot(subG, main="MAPK Subgraph (Top Central Nodes)")
+      } else {
+        plot(1, type="n", axes=FALSE, xlab="", ylab="")
+        text(1, 1, "Rgraphviz not available for plotting", cex=1.5)
+      }
+    }, error = function(e) {
+      plot(1, type="n", axes=FALSE, xlab="", ylab="")
+      text(1, 1, paste("Plotting failed:", e\$message), cex=1.2)
+    })
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs saved to working directory.\n")
+
+    writeLines(c(
+        '"BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS":',
+        paste0('        kegggraph: ', as.character(packageVersion("kegggraph")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_kegggraph_results.csv
-    touch ${prefix}_kegggraph_output.rds
-    echo "BIOC_KEGGGRAPH:" > versions.yml
-    echo "    kegggraph: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_parsing_and_topology_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_KEGGGRAPH_WORKFLOW {
+workflow BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ hsa04010.xml ] ]
 
     main:
-    BIOC_KEGGGRAPH(ch_input)
+    BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_KEGGGRAPH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_KEGGGRAPH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_KEGGGRAPH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_KEGGGRAPH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS.out.tables
+    plots    = BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS.out.plots
+    objects  = BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS.out.objects
+    versions = BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS.out.versions
 }

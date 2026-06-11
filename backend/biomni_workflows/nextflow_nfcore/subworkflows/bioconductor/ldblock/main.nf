@@ -1,95 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ldblock
-// Define data structures for linkage disequilibrium measures in populations.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ldblock/inst/doc/ldblock.R
-// Upstream  : GenomeInfoDb, Matrix, gwascat
-// Downstream: none
-//
-// Install: BiocManager::install("ldblock")
+// Bioconductor workflow: ldblock — snp_set_expansion
+// Expand a set of target SNPs to include all SNPs in linkage disequilibrium above a specified threshold using population LD data.
+// Input: ld_data.txt.gz, target_snps.txt
+// Container: quay.io/biocontainers/bioconductor-ldblock:1.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomeInfoDb, Matrix, ldblock
+// Visualizations: image plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import HapMap-formatted LD data using hmld
+//  * 2. [Input & Preparation] Define the target SNP set
+//  * 3. [Core Analysis] Expand the SNP set based on an LD threshold using expandSnpSet
 
 nextflow.enable.dsl = 2
 
-process BIOC_LDBLOCK {
+process BIOC_LDBLOCK_SNP_SET_EXPANSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ldblock"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ldblock:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ldblock:1.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ldblock_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ldblock_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ldblock_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ldblock)
-    library(jsonlite)
-
-    # --- image [] ---
-    # Key functions: image
-    library(Matrix)
-    image(ceu17@ldmat[1:400,1:400],
-    col.reg=heat.colors(120), colorkey=TRUE, useRaster=TRUE)
-    # --- seqlevels Style [] ---
-    # Key functions: seqlevelsStyle, seqlevels
-    library(gwascat)
-    load(system.file("legacy/ebicat37.rda", package="gwascat"))
-    seqlevelsStyle(ebicat37) = "NCBI"  # noop?
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ldblock_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ldblock_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    suppressPackageStartupMessages({
+      library(ldblock)
+      library(GenomeInfoDb)
+      library(Matrix)
+    })
+    
+    # Verify input files exist
+    if (!file.exists("ld_data.txt.gz")) {
+      stop("Required input file 'ld_data.txt.gz' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ldblock_output.rds")
+    if (!file.exists("target_snps.txt")) {
+      stop("Required input file 'target_snps.txt' not found in the working directory.")
     }
+    
+    # 1. Import HapMap-formatted LD data using hmld
+    # We stage the input file in a temporary directory with the expected HapMap naming convention
+    # so that hmld can correctly identify it using poptag and chrom.
+    tmp_dir <- tempfile("hapmap_stage")
+    dir.create(tmp_dir, recursive = TRUE)
+    file.copy("ld_data.txt.gz", file.path(tmp_dir, "ld_chr17_CEU.txt.gz"))
+    
+    path = dir(tmp_dir, full=TRUE)
+    ceu17 = hmld(path, poptag="CEU", chrom="chr17")
+    
+    # 2. Define the target SNP set
+    # Read the target SNPs from the user-provided file
+    rsh17 = scan("target_snps.txt", what = character(), quiet = TRUE)
+    rsh17 = unique(rsh17)
+    
+    # 3. Expand the SNP set based on an LD threshold using expandSnpSet
+    exset = ldblock::expandSnpSet( rsh17, ldstruct= ceu17, lb=.9 )
+    
+    # Save meaningful results
+    # Save the expanded SNP set as a text file and CSV
+    writeLines(exset, "expanded_snps.txt")
+    write.csv(data.frame(SNP = exset), "expanded_snps.csv", row.names = FALSE)
+    
+    # Save the ldstruct object
+    saveRDS(ceu17, "ceu17_ldstruct.rds")
+    
+    # Generate and save the LD block plot
+    pdf("ld_block_plot.pdf")
+    n_limit <- min(400, nrow(ceu17@ldmat))
+    if (n_limit > 0) {
+      image(ceu17@ldmat[1:n_limit, 1:n_limit], 
+            col.reg=heat.colors(120), colorkey=TRUE, useRaster=TRUE)
+    }
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to 'expanded_snps.txt', 'expanded_snps.csv', 'ceu17_ldstruct.rds', and 'ld_block_plot.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LDBLOCK:", paste0("    ldblock: ", packageVersion("ldblock"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LDBLOCK_SNP_SET_EXPANSION":',
+        paste0('    ldblock: ', as.character(packageVersion('ldblock')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ldblock_results.csv
-    touch ${prefix}_ldblock_output.rds
-    echo "BIOC_LDBLOCK:" > versions.yml
-    echo "    ldblock: 0.0.0" >> versions.yml
+    touch ${prefix}_snp_set_expansion.csv versions.yml
     """
 }
 
-
-workflow BIOC_LDBLOCK_WORKFLOW {
+workflow BIOC_LDBLOCK_SNP_SET_EXPANSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ld_data.txt.gz, target_snps.txt ] ]
 
     main:
-    BIOC_LDBLOCK(ch_input)
+    BIOC_LDBLOCK_SNP_SET_EXPANSION(ch_input)
 
     emit:
-    results  = BIOC_LDBLOCK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LDBLOCK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LDBLOCK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LDBLOCK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LDBLOCK_SNP_SET_EXPANSION.out.tables
+    plots    = BIOC_LDBLOCK_SNP_SET_EXPANSION.out.plots
+    objects  = BIOC_LDBLOCK_SNP_SET_EXPANSION.out.objects
+    versions = BIOC_LDBLOCK_SNP_SET_EXPANSION.out.versions
 }

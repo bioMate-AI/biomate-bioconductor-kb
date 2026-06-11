@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: vcf_path=path to a decompressed VCF file for tLOHDataImport ;; df=the output dataframe from tLOHCalc used in plotting functions ;; sample_name=a string representing the sample name used as a title in plotting functions\n- alternatives: None mentioned\n- when_to_use: Use when analyzing 10X Genomics Visium Spatial Gene Expression data that has been processed to obtain a VCF with per-cluster allele count information at heterozygous SNP positions to assess LOH.\n- pitfalls: The input VCF file must be decompressed before running tLOHDataImport().",
+  "workflows": [
+    {
+      "name": "spatial_loh_analysis",
+      "intent": "Import spatial transcriptomics VCF data, calculate Bayes factors for LOH, and generate visualization plots.",
+      "input": [
+        "Example.vcf (decompressed VCF file with per-cluster allele count information at heterozygous SNP positions)"
+      ],
+      "stages": "1. Import VCF data using tLOHDataImport ;; 2. Perform Bayes calculations using tLOHCalc ;; 3. Generate allele frequency plots using alleleFrequencyPlot ;; 4. Generate aggregate chromosome plots using aggregateCHRPlot",
+      "code": "exampleData <- tLOHDataImport('../inst/extdata/Example.vcf')\ndf <- tLOHCalc(humanGBMsampleAC)\nalleleFrequencyPlot(df, \"Example\")\naggregateCHRPlot(df, \"Example\")"
+    }
+  ]
+}

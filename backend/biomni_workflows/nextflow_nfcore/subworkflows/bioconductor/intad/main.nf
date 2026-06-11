@@ -1,139 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: InTAD
-// The package is focused on the detection of correlation between expressed genes and selected epigenom
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/InTAD/inst/doc/InTAD.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("InTAD")
+// Bioconductor workflow: InTAD — tad_based_correlation
+// Correlate gene expression and epigenetic signals within topologically associating domains (TADs).
+// Input: enhSel, enhSelGR, rpkmCountsSel, txsSel, mbAnnData, tadGR
+// Container: quay.io/biocontainers/bioconductor-intad:1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, InTAD
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize the InTADSig object
+//  * 2. [Core Analysis] Filter low-expressed genes
+//  * 3. [Core Analysis] Combine signals and genes within TADs
+//  * 4. [Core Analysis] Perform correlation analysis
+//  * 5. [Visualization & Output] Visualize correlation for a specific pair or across a genomic region
 
 nextflow.enable.dsl = 2
 
-process BIOC_INTAD {
+process BIOC_INTAD_TAD_BASED_CORRELATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-intad"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-intad:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-intad:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_intad_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_intad_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_intad_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(InTAD)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(InTAD)
+        library(GenomicRanges)
+        
+        # Read user input files from the working directory
+        enhSel <- readRDS("enhSel.rds")
+        enhSelGR <- readRDS("enhSelGR.rds")
+        rpkmCountsSel <- readRDS("rpkmCountsSel.rds")
+        txsSel <- readRDS("txsSel.rds")
+        mbAnnData <- readRDS("mbAnnData.rds")
+        tadGR <- readRDS("tadGR.rds")
+        
+        # 1. Initialize the InTADSig object
+        inTadSig <- newSigInTAD(enhSel, enhSelGR, rpkmCountsSel, txsSel, mbAnnData)
+        
+        # 2. Filter low-expressed genes
+        inTadSig <- filterGeneExpr(inTadSig, checkExprDistr = TRUE)
+        
+        # 3. Combine signals and genes within TADs
+        inTadSig <- combineInTAD(inTadSig, tadGR)
+        
+        # Save the combined InTADSig object
+        saveRDS(inTadSig, "inTadSig_combined.rds")
+        
+        # Open PDF device to capture all generated plots
+        pdf("InTAD_analysis_plots.pdf", width = 12, height = 8)
+        
+        # 4. Perform correlation analysis
+        par(mfrow=c(1,2))
+        corData <- findCorrelation(inTadSig, plot.proportions = TRUE)
+        
+        # Save correlation results
+        write.csv(corData, "corData_results.csv", row.names = FALSE)
+        
+        # Filter correlation data for specific region and gene
+        best_idx <- which.min(corData\$pvalue)
+        cID <- corData\$peakid[best_idx]
+        gName <- corData\$name[best_idx]
+        
+        selCorData <- corData[corData\$peakid == cID, ]
+        top_cor <- selCorData[selCorData\$name == gName, ]
+        write.csv(top_cor, "top_correlation_results.csv", row.names = FALSE)
+        
+        # 5. Visualize correlation for a specific pair or across a genomic region
+        pheno_col <- colnames(mbAnnData)[1]
+        
+        plotCorrelation(inTadSig, cID, gName,
+                        xLabel = "RPKM gene expr log2",
+                        yLabel = "H3K27ac enrichment log2", 
+                        colByPhenotype = pheno_col)
+        
+        target_region <- GRanges(corData\$tad[best_idx])
+        
+        plotCorAcrossRef(inTadSig, corData,
+                         targetRegion = target_region, 
+                         tads = tadGR)
+        
+        plotCorAcrossRef(inTadSig, corData,
+                         targetRegion = target_region, 
+                         showCorVals = TRUE, tads = tadGR)
+        
+        plotCorAcrossRef(inTadSig, corData,
+                         targetRegion = target_region, 
+                         showCorVals = TRUE, symmetric = TRUE, tads = tadGR)
+        
+        # Close the PDF device
+        dev.off()
 
-    # --- Filter Gene Expression [] ---
-    # Key functions: filterGeneExpr
-    inTadSig <- filterGeneExpr(
-        inTadSig,
-        checkExprDistr = TRUE
-    )
-
-
-    # --- Integrate TAD Regions [] ---
-    # Key functions: combineInTAD
-    inTadSig <- combineInTAD(
-        inTadSig,
-        tadGR
-    )
-
-
-    # --- Enhancer-Gene Correlation Analysis [] ---
-    # Key functions: findCorrelation
-    corData <- findCorrelation(
-        inTadSig,
-        plot.proportions = TRUE
-    )
-
-
-    # --- Integrate Chromatin Loops [] ---
-    # Key functions: combineWithLoops, findCorFromLoops
-    inTadSig <- combineWithLoops(
-        inTadSig,
-        loopsDfSel
-    )
-    loopEag <- findCorFromLoops(
-        inTadSig,
-        method = "spearman"
-    )
-
-
-    # --- Visualization of Correlations [] ---
-    # Key functions: plotCorrelation, plotCorAcrossRef
-    plotCorrelation(
-        inTadSig,
-        "chr15:26372163-26398073",
-        "GABRA5",
-        xLabel = "RPKM gene expr log2",
-        yLabel = "H3K27ac enrichment log2",
-        colByPhenotype = "Subgroup"
-    )
-    plotCorAcrossRef(
-        inTadSig,
-        corData,
-        targetRegion = GRanges("chr15:25000000-28000000"),
-        showCorVals = TRUE,
-        symmetric = TRUE,
-        tads = tadGR
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_intad_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_intad_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_intad_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_INTAD:", paste0("    intad: ", packageVersion("InTAD"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_INTAD_TAD_BASED_CORRELATION":',
+        paste0('    InTAD: ', as.character(packageVersion('InTAD')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_intad_results.csv
-    touch ${prefix}_intad_output.rds
-    echo "BIOC_INTAD:" > versions.yml
-    echo "    intad: 0.0.0" >> versions.yml
+    touch ${prefix}_tad_based_correlation.csv versions.yml
     """
 }
 
-
-workflow BIOC_INTAD_WORKFLOW {
+workflow BIOC_INTAD_TAD_BASED_CORRELATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ enhSel, enhSelGR, rpkmCountsSel, txsSel, mbAnnData, tadGR ] ]
 
     main:
-    BIOC_INTAD(ch_input)
+    BIOC_INTAD_TAD_BASED_CORRELATION(ch_input)
 
     emit:
-    results  = BIOC_INTAD.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_INTAD.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_INTAD.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_INTAD.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_INTAD_TAD_BASED_CORRELATION.out.tables
+    plots    = BIOC_INTAD_TAD_BASED_CORRELATION.out.plots
+    objects  = BIOC_INTAD_TAD_BASED_CORRELATION.out.objects
+    versions = BIOC_INTAD_TAD_BASED_CORRELATION.out.versions
 }

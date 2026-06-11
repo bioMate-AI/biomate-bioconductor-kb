@@ -1,97 +1,120 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ontoProc
-// Support harvesting of diverse bioinformatic ontologies, making particular use of the ontologyIndex p
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ontoProc/inst/doc/owlents.R
-// Upstream  : none
-// Downstream: SingleRBook
-//
-// Install: BiocManager::install("ontoProc")
+// Bioconductor workflow: ontoProc — map_and_subset_single_cell_data
+// Map informal cell type labels in a SingleCellExperiment to formal Cell Ontology tags and subset the dataset to descendants of a specific cell type.
+// Input: hpca_sce, hpca.csv
+// Container: quay.io/biocontainers/bioconductor-ontoproc:2.4.0--r45hdfd78af_0
+// R packages: SingleCellExperiment, SummarizedExperiment, ontoProc
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, SummarizedExperiment, ontoProc
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the mapping file and rename columns to "informal" and "formal". 2. Bind formal ontology tags to the SingleCellExperiment obje
 
 nextflow.enable.dsl = 2
 
-process BIOC_ONTOPROC {
+process BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ontoproc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ontoproc:2.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ontoproc:2.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ontoproc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ontoproc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ontoproc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "SummarizedExperiment", "ontoProc")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(ontoProc)
-    library(jsonlite)
-
-    # --- Cell Ontology Visualization [] ---
-    # Key functions: onto_plot2
-    sel <- c("CL_0000492", "CL_0001054", "CL_0000236", "CL_0000625")
-    onto_plot2(cle, sel)
-
-
-    # --- Human Phenotype Ontology Processing [] ---
-    # Key functions: owl2cache, setup_entities2, onto_plot2
-    hpont_path <- owl2cache(url = "http://purl.obolibrary.org/obo/hp.owl")
-    hpents <- setup_entities2(hpont_path)
-    kp <- grep("UBER", names(hpents$name), value = TRUE)[21:30]
-    onto_plot2(hpents, kp)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ontoproc_results.csv", row.names = TRUE)
+    
+    # 1. Load the mapping file from the working directory
+    if (file.exists("hpca.csv")) {
+      hpca_map = read.csv("hpca.csv", stringsAsFactors = FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ontoproc_results.csv")
+      stop("Required input file 'hpca.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ontoproc_output.rds")
+    
+    # Rename columns to "informal" and "formal" as required by bind_formal_tags
+    names(hpca_map) = c("informal", "formal")
+    
+    # 2. Load the SingleCellExperiment object from the working directory
+    if (file.exists("hpca_sce")) {
+      hpca_sce = readRDS("hpca_sce")
+    } else if (file.exists("hpca_sce.rds")) {
+      hpca_sce = readRDS("hpca_sce.rds")
+    } else {
+      stop("Required input file 'hpca_sce' or 'hpca_sce.rds' not found in the working directory.")
     }
+    
+    # Bind formal ontology tags to the SingleCellExperiment object
+    hpca_sce = bind_formal_tags(hpca_sce, "label.fine", hpca_map)
+    
+    # 3. Load the Cell Ontology (2023 version)
+    cell_onto = ontoProc::getOnto("cellOnto", "2023")
+    
+    # 4. Subset the SingleCellExperiment to descendants of the target term ("^monocyte\$")
+    hpca_mono = subset_descendants( hpca_sce, cell_onto, "^monocyte\$" )
+    
+    # Save the resulting subsetted SingleCellExperiment object
+    saveRDS(hpca_mono, "hpca_mono.rds")
+    
+    # Save the metadata of the subsetted cells as a CSV table
+    write.csv(as.data.frame(SummarizedExperiment::colData(hpca_mono)), "hpca_mono_metadata.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ONTOPROC:", paste0("    ontoproc: ", packageVersion("ontoProc"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA":',
+        paste0('    ontoProc: ', as.character(packageVersion('ontoProc')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ontoproc_results.csv
-    touch ${prefix}_ontoproc_output.rds
-    echo "BIOC_ONTOPROC:" > versions.yml
-    echo "    ontoproc: 0.0.0" >> versions.yml
+    touch ${prefix}_map_and_subset_single_cell_data.csv versions.yml
     """
 }
 
-
-workflow BIOC_ONTOPROC_WORKFLOW {
+workflow BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ hpca_sce, hpca.csv ] ]
 
     main:
-    BIOC_ONTOPROC(ch_input)
+    BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA(ch_input)
 
     emit:
-    results  = BIOC_ONTOPROC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ONTOPROC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ONTOPROC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ONTOPROC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA.out.tables
+    plots    = BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA.out.plots
+    objects  = BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA.out.objects
+    versions = BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA.out.versions
 }

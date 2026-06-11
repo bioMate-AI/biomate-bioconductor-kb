@@ -1,145 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PADOG
-// This package implements a general purpose gene set analysis method called PADOG that downplays the i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PADOG/inst/doc/PADOG.R
-// Upstream  : none
-// Downstream: BLMA
-//
-// Install: BiocManager::install("PADOG")
+// Bioconductor workflow: PADOG — pathway_analysis_with_padog
+// Run PADOG pathway analysis on a gene expression matrix with group labels.
+// Input: esetm, group, annotation
+// Container: quay.io/biocontainers/bioconductor-padog:1.52.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: PADOG, doParallel
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run padog with specified parameters (permutations, annotation, organism, parallel processing) to compute pathway scores and p-valu
 
 nextflow.enable.dsl = 2
 
-process BIOC_PADOG {
+process BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-padog"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-padog:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-padog:1.48.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_padog_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_padog_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_padog_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(PADOG)
-    library(jsonlite)
-
-    # --- Data Extraction and Preparation ---
-    # Key functions: exprs, pData, annotation
-    exp_matrix <- Biobase::exprs(eset)
-    group_info <- Biobase::pData(eset)$Group
-    block_info <- Biobase::pData(eset)$Block
-    annotation_pkg <- paste0(Biobase::annotation(eset), ".db")
-    target_gs <- Biobase::notes(Biobase::experimentData(eset))$targetGeneSets
-
-    # --- Pathway Analysis with PADOG ---
-    # Key functions: padog
-    padog_results <- padog(
-        esetm = exp_matrix,
-        group = group_info,
-        paired = FALSE,
-        block = block_info,
-        targetgs = target_gs,
-        annotation = annotation_pkg,
-        gslist = "KEGGRESTpathway",
-        organism = "hsa",
-        verbose = FALSE,
-        Nmin = 3,
-        NI = 50,
-        plots = FALSE
-    )
-
-    # --- Comparison with GSEA ---
-    # Key functions: compGseapre
-    gsea_comparison <- compGseapre(
-        esetm = exp_matrix,
-        group = group_info,
-        paired = FALSE,
-        block = block_info,
-        targetgs = target_gs,
-        annotation = annotation_pkg,
-        gslist = "KEGGRESTpathway",
-        organism = "hsa",
-        verbose = FALSE,
-        Nmin = 3,
-        NI = 50
-    )
-
-    # --- Pathway Visualisation and Filtering ---
-    # Key functions: padog
-    top_pathways <- padog_results[order(padog_results$padog), ]
-    significant_pathways <- top_pathways[top_pathways$padog < 0.05, ]
-    padog_with_plots <- padog(
-        esetm = exp_matrix,
-        group = group_info,
-        paired = FALSE,
-        block = block_info,
-        targetgs = target_gs,
-        annotation = annotation_pkg,
-        gslist = "KEGGRESTpathway",
-        organism = "hsa",
-        verbose = FALSE,
-        Nmin = 3,
-        NI = 50,
-        plots = TRUE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_padog_results.csv", row.names = TRUE)
+    
+    # Read user inputs
+    # 1. esetm (gene expression matrix)
+    if (file.exists("esetm.csv")) {
+      esetm <- as.matrix(read.csv("esetm.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("esetm.tsv")) {
+      esetm <- as.matrix(read.delim("esetm.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("esetm.txt")) {
+      esetm <- as.matrix(read.table("esetm.txt", header = TRUE, row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_padog_results.csv")
+      stop("Error: esetm file not found (expected esetm.csv, esetm.tsv, or esetm.txt)")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_padog_output.rds")
+    
+    # 2. group (vector of class labels)
+    if (file.exists("group.txt")) {
+      group <- readLines("group.txt")
+    } else if (file.exists("group.csv")) {
+      group <- read.csv("group.csv", header = FALSE)[[1]]
+    } else {
+      stop("Error: group file not found (expected group.txt or group.csv)")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PADOG:", paste0("    padog: ", packageVersion("PADOG"))),
-        "versions.yml"
+    
+    # 3. annotation (annotation package name)
+    if (file.exists("annotation.txt")) {
+      annotation <- trimws(readLines("annotation.txt")[1])
+    } else {
+      stop("Error: annotation file not found (expected annotation.txt)")
+    }
+    
+    # Optional inputs with defaults
+    paired <- FALSE
+    if (file.exists("paired.txt")) {
+      paired <- as.logical(trimws(readLines("paired.txt")[1]))
+    }
+    
+    block <- NULL
+    if (file.exists("block.txt")) {
+      block <- readLines("block.txt")
+    }
+    
+    targetgs <- NULL
+    if (file.exists("targetgs.txt")) {
+      targetgs <- readLines("targetgs.txt")
+    }
+    
+    # Construct the dlist object to match the documented code structure
+    dlist <- list(
+      dat.m = esetm,
+      ano = list(
+        Group = group,
+        Block = block
+      ),
+      design = if (paired) "Paired" else "Unpaired",
+      annotation = annotation,
+      targetGeneSets = targetgs
     )
+    
+    # Set up parallel backend if available
+    if (requireNamespace("doParallel", quietly = TRUE)) {
+      library(doParallel)
+      cores <- min(2, parallel::detectCores() - 1)
+      if (is.na(cores) || cores < 1) cores <- 1
+      registerDoParallel(cores = cores)
+    }
+    
+    # Run PADOG
+    pdf("padog_plots.pdf")
+    myr = padog(
+        esetm = dlist\$dat.m,
+        group = dlist\$ano\$Group,
+        paired = dlist\$design == "Paired",
+        block = dlist\$ano\$Block,
+        targetgs = dlist\$targetGeneSets,
+        annotation = dlist\$annotation,
+        gslist = "KEGGRESTpathway",
+        organism = "hsa",
+        verbose = FALSE,
+        Nmin = 3,
+        NI = 1000,
+        plots = TRUE,
+        dseed = 1,
+        parallel = requireNamespace("doParallel", quietly = TRUE)
+    )
+    dev.off()
+    
+    # Save results
+    write.csv(myr, "padog_results.csv", row.names = TRUE)
+    saveRDS(myr, "padog_results.rds")
+
+    writeLines(c(
+        '"BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG":',
+        paste0('    PADOG: ', as.character(packageVersion('PADOG')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_padog_results.csv
-    touch ${prefix}_padog_output.rds
-    echo "BIOC_PADOG:" > versions.yml
-    echo "    padog: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_analysis_with_padog.csv versions.yml
     """
 }
 
-
-workflow BIOC_PADOG_WORKFLOW {
+workflow BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ esetm, group, annotation ] ]
 
     main:
-    BIOC_PADOG(ch_input)
+    BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG(ch_input)
 
     emit:
-    results  = BIOC_PADOG.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PADOG.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PADOG.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PADOG.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG.out.tables
+    plots    = BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG.out.plots
+    objects  = BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG.out.objects
+    versions = BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG.out.versions
 }

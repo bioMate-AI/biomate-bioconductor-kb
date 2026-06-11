@@ -1,101 +1,134 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GUIDEseq
-// The package implements GUIDE-seq and PEtag-seq analysis workflow including functions for filtering U
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GUIDEseq/inst/doc/GUIDEseq.R
-// Upstream  : knitr
-// Downstream: none
-//
-// Install: BiocManager::install("GUIDEseq")
+// Bioconductor workflow: guideseq — step_by_step_guideseq
+// Perform GUIDE-seq analysis step-by-step to remove PCR bias, identify peaks, merge strands, and analyze off-targets.
+// Input: bowtie2.HEK293_site4_chr13.sort.bam, UMI-HEK293_site4_chr13.txt, T2.fa, T2plus100OffTargets.bed
+// Container: quay.io/biocontainers/bioconductor-guideseq:1.40.0--r45hdfd78af_0
+// R packages: BSgenome.Hsapiens.UCSC.hg19, GUIDEseq, knitr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GUIDESEQ {
+process BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-guideseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-guideseq:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-guideseq:1.36.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-guideseq:1.40.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_guideseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_guideseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_guideseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "GUIDEseq", "knitr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(GUIDEseq)
-    library(jsonlite)
-
-    # --- Getuniquecleavageevents [] ---
-    # Key functions: getUniqueCleavageEvents
-    uniqueCleavageEvents <- getUniqueCleavageEvents(bamfile, umifile, n.cores.max =1)
-    #uniqueCleavageEventsOld <- getUniqueCleavageEvents(bedfile, umifile)
-    uniqueCleavageEvents$cleavage.gr
-    # --- Getpeaks [] ---
-    # Key functions: getPeaks
-    peaks <- getPeaks(uniqueCleavageEvents$cleavage.gr, min.reads = 80)
-    peaks.gr <- peaks$peaks
-    peaks.gr
-    # --- Mergeplusminuspeaks [] ---
-    # Key functions: mergePlusMinusPeaks
-    mergedPeaks <- mergePlusMinusPeaks(peaks.gr = peaks.gr,
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    
+    # Define input files from the working directory
+    bamfile <- "bowtie2.HEK293_site4_chr13.sort.bam"
+    umifile <- "UMI-HEK293_site4_chr13.txt"
+    gRNAs <- "T2.fa"
+    peaks_file <- "T2plus100OffTargets.bed"
+    
+    # Verify input files exist
+    inputs <- c(bamfile, umifile, gRNAs, peaks_file)
+    missing_files <- inputs[!file.exists(inputs)]
+    if (length(missing_files) > 0) {
+      stop(paste("Missing required input files in the working directory:", paste(missing_files, collapse = ", ")))
+    }
+    
+    # Step 1: Remove PCR bias and obtain unique cleavage events
+    message("Step 1: Removing PCR bias and obtaining unique cleavage events...")
+    uniqueCleavageEvents <- getUniqueCleavageEvents(bamfile, umifile, n.cores.max = 1)
+    saveRDS(uniqueCleavageEvents, "uniqueCleavageEvents.rds")
+    
+    # Step 2: Summarize cleavage events into peaks
+    message("Step 2: Summarizing cleavage events into peaks...")
+    peaks <- getPeaks(uniqueCleavageEvents\$cleavage.gr, min.reads = 80)
+    peaks.gr <- peaks\$peaks
+    saveRDS(peaks, "peaks.rds")
+    
+    # Step 3: Merge peaks from plus and minus strands
+    message("Step 3: Merging plus and minus peaks...")
+    mergedPeaks <- mergePlusMinusPeaks(peaks.gr = peaks.gr,  
         output.bedfile = "mergedPeaks.bed")
-    mergedPeaks$mergedPeaks.gr
-    head(mergedPeaks$mergedPeaks.bed)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_guideseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_guideseq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_guideseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GUIDESEQ:", paste0("    guideseq: ", packageVersion("GUIDEseq"))),
-        "versions.yml"
+    saveRDS(mergedPeaks, "mergedPeaks.rds")
+    
+    # Step 4: Perform off-target analysis of extended regions around identified cleavage sites
+    message("Step 4: Performing off-target analysis of peak regions...")
+    outputDir <- getwd() 
+    
+    # Reassign peaks variable to the BED file path as in the documented code
+    peaks <- peaks_file
+    
+    offTargets <- offTargetAnalysisOfPeakRegions(gRNA = gRNAs, peaks = peaks,
+        format=c("fasta", "bed"),
+        peaks.withHeader = TRUE, BSgenomeName = Hsapiens,
+        upstream = 50, downstream = 50, PAM.size = 3, gRNA.size = 20,
+        PAM = "NGG", PAM.pattern = "(NAG|NGG|NGA)\$", max.mismatch = 2,
+        outputDir = outputDir,
+        orderOfftargetsBy = "predicted_cleavage_score",
+        allowed.mismatch.PAM = 2, overwrite = TRUE
     )
+    saveRDS(offTargets, "offTargets.rds")
+    
+    message("GUIDE-seq step-by-step pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ":',
+        paste0('        guideseq: ', as.character(packageVersion("guideseq")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_guideseq_results.csv
-    touch ${prefix}_guideseq_output.rds
-    echo "BIOC_GUIDESEQ:" > versions.yml
-    echo "    guideseq: 0.0.0" >> versions.yml
+    touch ${prefix}_step_by_step_guideseq.csv versions.yml
     """
 }
 
-
-workflow BIOC_GUIDESEQ_WORKFLOW {
+workflow BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bowtie2.HEK293_site4_chr13.sort.bam, UMI-HEK293_site4_chr13.txt, T2.fa, T2plus100OffTargets.bed ] ]
 
     main:
-    BIOC_GUIDESEQ(ch_input)
+    BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ(ch_input)
 
     emit:
-    results  = BIOC_GUIDESEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GUIDESEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GUIDESEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GUIDESEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ.out.tables
+    plots    = BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ.out.plots
+    objects  = BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ.out.objects
+    versions = BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ.out.versions
 }

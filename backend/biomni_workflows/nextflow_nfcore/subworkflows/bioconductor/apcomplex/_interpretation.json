@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sensitivity=Believed sensitivity of the AP-MS technology (used to model false negatives) ;; specificity=Believed specificity of the AP-MS technology (used to model false positives) ;; simMat=Optional similarity matrix of external data to incorporate in an extended logistic regression model ;; Beta=Weight parameter for the contribution of the similarity measure (simMat) to the model ;; adjMat=Adjacency matrix of AP-MS data used to sort estimated complexes\n- alternatives: yTAP=The original heuristic compilation method used by Gavin et al. (2002) to define complexes\n- when_to_use: When analyzing AP-MS proteomics data to reconstruct protein complexes while accounting for experimental noise (false positives and false negatives) and the bait/hit status of proteins.\n- pitfalls: Unreciprocated bait-bait edges are estimated to exist only when sensitivity is less than specificity; incorrect parameter specification can affect this likelihood maximization. Single-bait-multi-hit (SBMH) complexes and unreciprocated bait-bait (UnRBB) complexes are less reliable than multi-bait-multi-edge (MBME) complexes and may contain false positives that require further experimental validation. Hit-only proteins (never used as baits) have unknown topology among themselves because interactions between them are never tested.",
+  "workflows": [
+    {
+      "name": "protein_complex_estimation",
+      "intent": "Estimate protein complex membership from AP-MS bait-hit data, merge initial subgraphs using sensitivity/specificity parameters, and sort them into topological categories.",
+      "input": [
+        "apEX (An adjacency matrix of AP-MS data where rows represent baits, columns represent hits, and entries are 0 or 1)"
+      ],
+      "stages": "1. Find initial maximal BH-complete subgraphs using bhmaxSubgraph ;; 2. Merge complexes using mergeComplexes based on sensitivity and specificity parameters ;; 3. Alternatively, run both steps together using findComplexes ;; 4. Sort the estimated complexes into MBME, SBMH, and UnRBB components using sortComplexes",
+      "code": "PCMG0 <- bhmaxSubgraph(apEX)\nPCMG1 <- mergeComplexes(PCMG0,apEX,sensitivity=.7,specificity=.75)\nPCMG2 <- findComplexes(apEX,sensitivity=.7,specificity=.75)\nsortComplexes(PCMG2,adjMat=apEX)"
+    }
+  ]
+}

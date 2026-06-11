@@ -1,0 +1,33 @@
+{
+  "package": "genvisr",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GenVisR",
+    "GenomicRanges",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "ggplot2",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "copy_number_profiling.nf": [
+      "GenVisR"
+    ],
+    "loss_of_heterozygosity.nf": [
+      "GenVisR"
+    ],
+    "main.nf": [
+      "GenVisR",
+      "reshape2"
+    ],
+    "sequence_coverage_gencov.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenVisR",
+      "GenomicRanges",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene"
+    ],
+    "transition_transversion_tvti.nf": [
+      "GenVisR",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,97 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MGFR
-// The package is designed to detect marker genes from RNA-seq data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MGFR/inst/doc/MGFR.R
-// Upstream  : none
-// Downstream: sampleClassifier
-//
-// Install: BiocManager::install("MGFR")
+// Bioconductor workflow: MGFR — marker_detection_rnaseq
+// Detect tissue- or cell-type-specific marker genes from normalized RNA-seq expression data and return them as an R list.
+// Input: expression_matrix.tsv, sample_classes.txt
+// Container: quay.io/biocontainers/bioconductor-mgfr:1.32.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MGFR
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the MGFR package and the normalized expression matrix. 2. Run marker gene detection and annotation using getMarkerGenes.rnase
 
 nextflow.enable.dsl = 2
 
-process BIOC_MGFR {
+process BIOC_MGFR_MARKER_DETECTION_RNASEQ {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mgfr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mgfr:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mgfr:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mgfr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mgfr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mgfr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(MGFR)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    data("ref.mat")
-    dim(ref.mat)
-    colnames(ref.mat)
-    # --- Reference [] ---
-    # Key functions: rnaseq
-    library(MGFR)
-    data("ref.mat")
-    markers.list <- getMarkerGenes.rnaseq(ref.mat, class.vec = colnames(ref.mat),samples2compare="all", annotate=TRUE, gene.ids.type="ensembl", score.cutoff=1)
-    names(markers.list)
-    # show the first 20 markers of liver
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mgfr_results.csv", row.names = TRUE)
+    
+    # 1. Load the normalized expression matrix and sample classes from user input files
+    if (!file.exists("expression_matrix.tsv")) {
+      stop("Error: expression_matrix.tsv not found in the working directory.")
+    }
+    if (!file.exists("sample_classes.txt")) {
+      stop("Error: sample_classes.txt not found in the working directory.")
+    }
+    
+    # Read expression matrix
+    ref.mat <- as.matrix(read.table(
+      "expression_matrix.tsv",
+      header = TRUE,
+      sep = "\t",
+      row.names = 1,
+      check.names = FALSE
+    ))
+    
+    # Read sample classes
+    classes <- readLines("sample_classes.txt")
+    classes <- classes[classes != ""]
+    
+    if (length(classes) != ncol(ref.mat)) {
+      stop(sprintf(
+        "Error: Number of classes in sample_classes.txt (%d) does not match the number of columns in expression_matrix.tsv (%d).",
+        length(classes),
+        ncol(ref.mat)
+      ))
+    }
+    
+    # Assign classes to colnames to match the vignette's class.vec specification
+    colnames(ref.mat) <- classes
+    
+    # 2. Run marker gene detection and annotation using getMarkerGenes.rnaseq()
+    # Wrap in tryCatch to handle potential biomaRt connectivity issues when annotate=TRUE
+    markers.list <- tryCatch({
+      message("Attempting marker gene detection with biomaRt annotation...")
+      getMarkerGenes.rnaseq(
+        ref.mat,
+        class.vec = colnames(ref.mat),
+        samples2compare = "all",
+        annotate = TRUE,
+        gene.ids.type = "ensembl",
+        score.cutoff = 1
+      )
+    }, error = function(e) {
+      message("Warning: Annotation failed (likely due to biomaRt/internet connectivity issues).")
+      message("Error details: ", e\$message)
+      message("Retrying marker gene detection with annotate=FALSE...")
+      getMarkerGenes.rnaseq(
+        ref.mat,
+        class.vec = colnames(ref.mat),
+        samples2compare = "all",
+        annotate = FALSE,
+        gene.ids.type = "ensembl",
+        score.cutoff = 1
+      )
+    })
+    
+    # 3. Retrieve and inspect the identified marker genes
+    message("Identified marker groups:")
+    print(names(markers.list))
+    
+    # Save the raw list object
+    saveRDS(markers.list, "markers_list.rds")
+    
+    # Format and export the marker genes to a structured CSV file
+    export_list <- list()
+    for (class_name in names(markers.list)) {
+      markers <- markers.list[[class_name]]
+      if (length(markers) > 0) {
+        # Split the colon-separated output format: "GeneID : Symbol : EntrezID : Score"
+        parts <- strsplit(markers, " : ")
+        df <- do.call(rbind, lapply(parts, function(x) {
+          if (length(x) < 4) {
+            x <- c(x, rep(NA, 4 - length(x)))
+          }
+          x[1:4]
+        }))
+        df <- as.data.frame(df, stringsAsFactors = FALSE)
+        colnames(df) <- c("Gene_ID", "Gene_Symbol", "Entrez_ID", "Specificity_Score")
+        df\$Class <- class_name
+        export_list[[class_name]] <- df
+      }
+    }
+    
+    if (length(export_list) > 0) {
+      all_markers_df <- do.call(rbind, export_list)
+      write.csv(all_markers_df, "marker_genes_identified.csv", row.names = FALSE)
+      message("Successfully saved marker genes to 'marker_genes_identified.csv' and 'markers_list.rds'.")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mgfr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mgfr_output.rds")
+      message("No marker genes were identified matching the criteria.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MGFR:", paste0("    mgfr: ", packageVersion("MGFR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MGFR_MARKER_DETECTION_RNASEQ":',
+        paste0('    MGFR: ', as.character(packageVersion('MGFR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mgfr_results.csv
-    touch ${prefix}_mgfr_output.rds
-    echo "BIOC_MGFR:" > versions.yml
-    echo "    mgfr: 0.0.0" >> versions.yml
+    touch ${prefix}_marker_detection_rnaseq.csv versions.yml
     """
 }
 
-
-workflow BIOC_MGFR_WORKFLOW {
+workflow BIOC_MGFR_MARKER_DETECTION_RNASEQ_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.tsv, sample_classes.txt ] ]
 
     main:
-    BIOC_MGFR(ch_input)
+    BIOC_MGFR_MARKER_DETECTION_RNASEQ(ch_input)
 
     emit:
-    results  = BIOC_MGFR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MGFR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MGFR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MGFR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MGFR_MARKER_DETECTION_RNASEQ.out.tables
+    plots    = BIOC_MGFR_MARKER_DETECTION_RNASEQ.out.plots
+    objects  = BIOC_MGFR_MARKER_DETECTION_RNASEQ.out.objects
+    versions = BIOC_MGFR_MARKER_DETECTION_RNASEQ.out.versions
 }

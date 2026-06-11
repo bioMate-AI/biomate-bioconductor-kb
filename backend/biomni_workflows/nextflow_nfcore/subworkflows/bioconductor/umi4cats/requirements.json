@@ -1,0 +1,21 @@
+{
+  "package": "umi4cats",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "UMI4Cats",
+    "cowplot",
+    "org.Hs.eg.db",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "UMI4Cats",
+      "cowplot",
+      "org.Hs.eg.db",
+      "tidyr"
+    ]
+  }
+}

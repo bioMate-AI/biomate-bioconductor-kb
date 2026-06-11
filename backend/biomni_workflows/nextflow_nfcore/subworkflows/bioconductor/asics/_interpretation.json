@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exclusion.areas=A matrix specifying ppm regions to exclude from quantification (e.g., water and urea regions) ;; joint.align=Logical; if TRUE, performs joint alignment of the reference library to the spectra ;; quantif.method=Character; \"FWER\" for independent quantification, \"Lasso\" for joint quantification, or \"both\" for a two-step approach ;; clean.thres=Numeric; threshold percentage (e.g., 10) of spectra in which a metabolite must be identified during the first step to be kept in joint quantification ;; zero.threshold=Numeric; percentage threshold of null values above which a metabolite or bucket is removed during formatting ;; zero.group=Character; grouping variable in the design data frame to apply the zero threshold within groups ;; outliers=Character vector; sample names to exclude during formatting ;; type.data=Character; set to \"buckets\" when performing downstream statistical analyses on binned spectra instead of quantified metabolites ;; ncores=Numeric; number of cores to use for parallel processing (unix-like OS only)\n- alternatives: Normalization can be performed using methods implemented in the PepsNMR package (e.g., type.norm = \"pqn\") instead of the default constant sum (\"CS\") method.\n- when_to_use: Use this workflow when you have 1D 1H NMR spectra of complex biological mixtures and want to automatically identify and quantify metabolites using a reference library, or when you want to perform statistical comparisons on spectral buckets.\n- pitfalls: Only metabolites present in the reference library (PureLibrary object) can be identified and quantified. Water and urea regions must be explicitly excluded using exclusion.areas to prevent quantification bias. The first column of the design data frame must correspond exactly to the sample names of the spectra.",
+  "workflows": [
+    {
+      "name": "metabolite_quantification_and_analysis",
+      "intent": "Preprocess raw 1D 1H NMR spectra, identify and quantify metabolites using a reference library, and perform downstream statistical analyses (PCA, OPLS-DA, Kruskal-Wallis) on the relative concentrations.",
+      "input": [
+        "raw_spectra_directory (directory containing Bruker spectral files) or spectra_file.txt (text file with spectra in columns and chemical shifts in rows)",
+        "design_file.txt (text file containing sample metadata with sample names in the first column)"
+      ],
+      "stages": "1. Import raw spectra using importSpectraBruker or importSpectra ;; 2. Perform baseline correction using baselineCorrection (if using text input) ;; 3. Create a Spectra object using createSpectra ;; 4. Identify and quantify metabolites using ASICS ;; 5. Format the quantification results and merge with design metadata using formatForAnalysis ;; 6. Perform PCA using pca, OPLS-DA using oplsda, and Kruskal-Wallis tests using kruskalWallis ;; 7. Visualize results using plot",
+      "code": "spectra_data <- importSpectraBruker(system.file(\"extdata\", \"Human_diabetes_example\", package = \"ASICSdata\"))\nspectra_obj <- createSpectra(spectra_data)\nto_exclude <- matrix(c(4.5, 5.1, 5.5, 6.5), ncol = 2, byrow = TRUE)\nASICS_results <- ASICS(spectra_obj, exclusion.areas = to_exclude)\nplot(ASICS_results, idx = 1, xlim = c(2.8, 3.3), add.metab = \"Creatinine\")\ngetQuantification(ASICS_results)\ndesign <- read.table(system.file(\"extdata\", \"design_diabete_example.txt\", package = \"ASICSdata\"), header = TRUE)\nanalysis_data <- formatForAnalysis(getQuantification(ASICS_results), design = design, zero.threshold = 75, zero.group = \"condition\", outliers = c(\"ADG10003u_007\", \"ADG19007u_163\"))\nresPCA <- pca(analysis_data)\nplot(resPCA, graph = \"ind\", col.ind = \"condition\")\nplot(resPCA, graph = \"var\")\nresOPLSDA <- oplsda(analysis_data, condition = \"condition\", orthoI = 1)\nplot(resOPLSDA)\nresTests <- kruskalWallis(analysis_data, \"condition\")\nplot(resTests)"
+    },
+    {
+      "name": "spectral_bucket_analysis",
+      "intent": "Align and bin 1D 1H NMR spectra into buckets, and perform downstream statistical analysis directly on the bucketed intensities.",
+      "input": [
+        "spectra_file.txt (text file with spectra in columns and chemical shifts in rows)",
+        "design_file.txt (text file containing sample metadata with sample names in the first column)"
+      ],
+      "stages": "1. Align spectra using alignment ;; 2. Bin spectra into buckets using binning ;; 3. Format bucketed data and merge with design metadata using formatForAnalysis ;; 4. Perform OPLS-DA on buckets using oplsda with type.data = \"buckets\" ;; 5. Visualize bucket-level OPLS-DA results using plot with graph = \"buckets\"",
+      "code": "spectra_align <- alignment(spectra_data_txt)\nspectra_bucket <- binning(spectra_align)\nanalysis_data_bucket <- formatForAnalysis(spectra_bucket, design = design, zero.threshold = 75)\nresOPLSDA_buckets <- oplsda(analysis_data_bucket, condition = \"condition\", type.data = \"buckets\")\nplot(resOPLSDA_buckets, graph = \"buckets\")"
+    },
+    {
+      "name": "custom_reference_library_creation",
+      "intent": "Create a custom reference library of pure metabolite spectra or merge new pure spectra with the default library for use in quantification.",
+      "input": [
+        "pure_spectra_directory (directory containing Bruker spectral files of pure metabolites)"
+      ],
+      "stages": "1. Import pure spectra using importSpectraBruker ;; 2. Create a new PureLibrary object using createPureLibrary ;; 3. Combine the new library with the default library using c()",
+      "code": "pure_spectra <- importSpectraBruker(system.file(\"extdata\", \"example_library\", package = \"ASICS\"))\nnew_pure_library <- createPureLibrary(pure_spectra, nb.protons = c(5, 4))\nmerged_pure_library <- c(pure_library[1:10], new_pure_library)"
+    }
+  ]
+}

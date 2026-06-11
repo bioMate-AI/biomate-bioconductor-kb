@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: norm=Specifies the normalization method (e.g., \"p\" for print-tip loess normalization) ;; n=Specifies the plate size (e.g., 384 or 96 wells) in maCompPlate ;; targets=An marrayInfo object containing target sample information ;; path=The directory path containing the data files ;; xvar=The variable to plot on the x-axis (e.g., \"maPrintTip\") ;; yvar=The variable to plot on the y-axis (e.g., \"maM\")\n- alternatives: None mentioned in the provided documentation\n- when_to_use: When analyzing raw two-color (dual-channel) microarray data to perform quality control, diagnostic plotting, and normalization (such as print-tip loess)\n- pitfalls: Attempting to perform scale normalization (maNormScale) without first performing location normalization (maNorm), or forgetting to assign plate metadata (maCompPlate) before downstream plate-level diagnostics",
+  "workflows": [
+    {
+      "name": "two_color_microarray_preprocessing",
+      "intent": "Load raw two-color microarray data, assign layout and plate metadata, perform diagnostic plotting, and normalize intensity data.",
+      "input": [
+        "SwirlSample.txt (targets file describing samples and dye assignments)",
+        "fish.gal (Gene Pix Array List file containing layout and gene names)",
+        "Spot/raw intensity files (raw data files in the specified directory)"
+      ],
+      "stages": "1. Read target information ;; 2. Read raw intensity data ;; 3. Read layout and gene information from GAL file and assign to raw object ;; 4. Compute and assign plate metadata ;; 5. Perform pre-normalization diagnostic plotting ;; 6. Normalize intensity data ;; 7. Perform post-normalization diagnostic plotting",
+      "code": "datadir <- system.file(\"swirldata\", package=\"marray\")\nswirlTargets <- read.marrayInfo(file.path(datadir, \"SwirlSample.txt\"))\nmraw <- read.Spot(targets = swirlTargets, path=datadir)\ngalinfo <- read.Galfile(\"fish.gal\", path=datadir)\nmraw@maLayout <- galinfo$layout\nmraw@maGnames <- galinfo$gnames\nmaPlate(swirl)<-maCompPlate(swirl,n=384)\nboxplot(swirl[,3], xvar=\"maPrintTip\", yvar=\"maM\", main=\"Swirl array 93: pre--normalization\")\nboxplot(swirl, yvar=\"maM\", main=\"Swirl arrays: pre--normalization\")\nplot(swirl[,3], main=\"Swirl array 93: pre--normalization MA--plot\")\nswirl.norm <- maNorm(swirl, norm=\"p\")\nsummary(swirl.norm)\nswirl.norm1 <- maNorm(swirl, norm=\"p\")\nswirl.norm2 <- maNormScale(swirl.norm1, norm=\"p\")\nboxplot(swirl.norm[,3], xvar=\"maPrintTip\", yvar=\"maM\", main=\"Swirl array 93: post--normalization\")\nboxplot(swirl.norm, yvar=\"maM\", main=\"Swirl arrays: post--normalization\")\nplot(swirl.norm[,3], main=\"Swirl array 93: post--normalization MA--plot\")"
+    }
+  ]
+}

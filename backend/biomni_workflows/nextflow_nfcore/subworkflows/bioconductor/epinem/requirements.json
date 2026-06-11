@@ -1,0 +1,14 @@
+{
+  "package": "epinem",
+  "requirements": [
+    "epiNEM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "epiNEM"
+    ],
+    "systematic_modulator_screening.nf": [
+      "epiNEM"
+    ]
+  }
+}

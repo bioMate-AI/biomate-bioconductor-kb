@@ -17,9 +17,7 @@ process BIOC_MSBACKENDMETABOLIGHTS {
     label 'process_medium'
 
     conda "bioconductor-msbackendmetabolights"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msbackendmetabolights:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msbackendmetabolights:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -42,6 +40,18 @@ process BIOC_MSBACKENDMETABOLIGHTS {
     library(Spectra)
     library(jsonlite)
 
+    # --- Query MetaboLights Repository [] ---
+    # Key functions: mtbls_list_files, mtbls_ftp_path
+    all_files <- mtbls_list_files("MTBLS39")
+    ftp_url <- mtbls_ftp_path("MTBLS39")
+    assay_files <- grep("^a_", all_files, value = TRUE)
+    assay_data <- read.table(
+        file = paste0(ftp_url, assay_files[1]),
+        sep = "\t",
+        header = TRUE,
+        check.names = FALSE
+    )
+
     # --- Initialize Spectra Backend [] ---
     # Key functions: MsBackendMetaboLights, Spectra
     be <- MsBackendMetaboLights()
@@ -50,7 +60,6 @@ process BIOC_MSBACKENDMETABOLIGHTS {
         filePattern = "63A.cdf",
         source = be
     )
-
 
     # --- Extract Spectra Metadata [] ---
     # Key functions: spectraVariables, spectraData
@@ -64,26 +73,35 @@ process BIOC_MSBACKENDMETABOLIGHTS {
         )
     )
 
-
     # --- Synchronize and Cache Data [] ---
     # Key functions: mtbls_sync, mtbls_sync_data_files, mtbls_cached_data_files
     synced_be <- mtbls_sync(s@backend)
     res <- mtbls_sync_data_files("MTBLS39", fileName = "AM063A.cdf")
     cached_files <- mtbls_cached_data_files()
 
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msbackendmetabolights_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_msbackendmetabolights_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msbackendmetabolights_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_msbackendmetabolights_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msbackendmetabolights_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_msbackendmetabolights_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_MSBACKENDMETABOLIGHTS:", paste0("    msbackendmetabolights: ", packageVersion("MsBackendMetaboLights"))),
+        c("BIOC_MSBACKENDMETABOLIGHTS:", paste0("    msbackendmetabolights: ", as.character(packageVersion("MsBackendMetaboLights")))),
         "versions.yml"
     )
     """

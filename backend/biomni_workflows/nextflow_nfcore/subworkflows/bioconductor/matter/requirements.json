@@ -1,0 +1,17 @@
+{
+  "package": "matter",
+  "requirements": [
+    "matter"
+  ],
+  "by_workflow": {
+    "image_processing_and_alignment.nf": [
+      "matter"
+    ],
+    "main.nf": [
+      "matter"
+    ],
+    "nonuniform_spectral_signal_processing.nf": [
+      "matter"
+    ]
+  }
+}

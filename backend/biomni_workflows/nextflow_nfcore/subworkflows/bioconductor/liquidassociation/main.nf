@@ -1,122 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: LiquidAssociation
-// The package contains functions for calculate direct and model-based estimators for liquid associatio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/LiquidAssociation/inst/doc/LiquidAssociation.R
-// Upstream  : yeastCC
-// Downstream: fastLiquidAssociation
-//
-// Install: BiocManager::install("LiquidAssociation")
+// Bioconductor workflow: LiquidAssociation — triplet_liquid_association_analysis
+// Estimate and test liquid association for a specific gene triplet of interest.
+// Input: data, eSetdata
+// Container: quay.io/biocontainers/bioconductor-liquidassociation:1.64.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, LiquidAssociation
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Plot conditional distributions using plotGLA
+//  * 2. [Core Analysis] Calculate direct estimates using LA and GLA
+//  * 3. [Core Analysis] Fit the conditional normal model using CNM.full
+//  * 4. [Core Analysis] Perform hypothesis testing using getsGLA and getsLA
 
 nextflow.enable.dsl = 2
 
-process BIOC_LIQUIDASSOCIATION {
+process BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-liquidassociation"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-liquidassociation:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-liquidassociation:1.60.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_liquidassociation_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_liquidassociation_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_liquidassociation_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(LiquidAssociation)
-    library(GLA)
-    library(LA)
-    library(jsonlite)
-
-    # --- Data Preprocessing and Standardization [Preprocessing] ---
-    # Key functions: qqnorm2, stand
-    # Standardize and normalize the triplet expression data
-    # Input 'data' is a matrix of gene expression triplets
-    norm_data <- apply(data, 2, qqnorm2)
-    std_data <- apply(norm_data, 2, stand)
-    colnames(std_data) <- colnames(data)
-    saveRDS(std_data, file = "standardized_data.rds")
-
-    # --- Liquid Association Estimation [Estimation] ---
-    # Key functions: GLA
-    # Calculate Liquid Association (LA) score for ExpressionSet
-    # 'eSetdata' is an ExpressionSet, 'geneMap' is a named vector mapping probes
-    la_result <- GLA(eSetdata, cut = 4, dim = 3, geneMap = geneMap)
-    saveRDS(la_result, file = "gla_expression_set_results.rds")
-
-    # --- Conditional Normal Model Fitting [Model Fitting] ---
-    # Key functions: CNM.full
-    # Fit the Conditional Normal Model (CNM) to the standardized triplet data
-    # This model tests the liquid association of the gene triplet
-    cnm_fit <- CNM.full(std_data)
-    saveRDS(cnm_fit, file = "cnm_model_fit.rds")
-
-    # --- Significance Testing [Significance] ---
-    # Key functions: getsGLA
-    # Estimate the significance of the GLA score using bootstrap and permutation
-    sgla_res <- getsGLA(std_data, boots = 20, perm = 50, cut = 4, dim = 3)
-    saveRDS(sgla_res, file = "sgla_significance_testing.rds")
-
-    # --- Visualization [Visualisation] ---
-    # Key functions: plotGLA
-    # Generate a 3D plot of the liquid association for the gene triplet
-    # Saves the plot to a file named 'GLA_plot'
-    plotGLA(std_data, cut = 3, dim = 3, pch = 16, filen = "GLA_plot", save = TRUE)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_liquidassociation_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_liquidassociation_results.csv")
+    library(Biobase)
+    
+    # Read user input files from the working directory
+    data <- readRDS("data.rds")
+    eSetdata <- readRDS("eSetdata.rds")
+    
+    # Dynamically construct geneMap from the input data
+    # geneMap maps gene names (colnames of data) to probe IDs (rownames of eSetdata)
+    geneMap <- rownames(eSetdata)
+    names(geneMap) <- colnames(data)
+    
+    # Stage 1: Plot conditional distributions using plotGLA
+    # This will save a plot file named "GLAplot.pdf" (or similar format depending on the package's device defaults)
+    plotGLA(data, cut=3, dim=3, pch=16, filen="GLAplot", save=TRUE)
+    
+    # Stage 2: Calculate direct estimates using LA and GLA
+    LAest <- LA(data)
+    GLAest <- rep(0, 3)
+    for (dim in 1:3) {
+      GLAest[dim] <- GLA(data, cut=4, dim=dim)		
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_liquidassociation_output.rds")
-    }
+    eSetGLA <- GLA(eSetdata, cut=4, dim=3, geneMap=geneMap)
+    
+    # Stage 3: Fit the conditional normal model using CNM.full
+    FitCNM.full <- CNM.full(data)
+    
+    # Stage 4: Perform hypothesis testing using getsGLA and getsLA
+    sGLAest <- getsGLA(data, boots=20, perm=50, cut=4, dim=3)
+    sLAest <- getsLA(data, boots=20, perm=50)
+    
+    # Save meaningful results to output files
+    saveRDS(LAest, "LAest.rds")
+    saveRDS(GLAest, "GLAest.rds")
+    saveRDS(eSetGLA, "eSetGLA.rds")
+    saveRDS(FitCNM.full, "FitCNM_full.rds")
+    saveRDS(sGLAest, "sGLAest.rds")
+    saveRDS(sLAest, "sLAest.rds")
+    
+    # Write a comprehensive text summary of the results
+    sink("liquid_association_summary.txt")
+    cat("=========================================================\n")
+    # Write a comprehensive text summary of the results
+    cat("Liquid Association Analysis Summary\n")
+    cat("=========================================================\n\n")
+    
+    cat("1. Direct LA Estimate:\n")
+    print(LAest)
+    cat("\n")
+    
+    cat("2. Generalized LA (GLA) Estimates (dim 1 to 3):\n")
+    print(GLAest)
+    cat("\n")
+    
+    cat("3. ExpressionSet GLA Estimate:\n")
+    print(eSetGLA)
+    cat("\n")
+    
+    cat("4. Conditional Normal Model (CNM.full) Fit:\n")
+    print(FitCNM.full)
+    cat("\n")
+    
+    cat("5. Hypothesis Testing (sGLA):\n")
+    print(sGLAest)
+    cat("\n")
+    
+    cat("6. Hypothesis Testing (sLA):\n")
+    print(sLAest)
+    cat("\n")
+    sink()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LIQUIDASSOCIATION:", paste0("    liquidassociation: ", packageVersion("LiquidAssociation"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS":',
+        paste0('    LiquidAssociation: ', as.character(packageVersion('LiquidAssociation')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_liquidassociation_results.csv
-    touch ${prefix}_liquidassociation_output.rds
-    echo "BIOC_LIQUIDASSOCIATION:" > versions.yml
-    echo "    liquidassociation: 0.0.0" >> versions.yml
+    touch ${prefix}_triplet_liquid_association_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_LIQUIDASSOCIATION_WORKFLOW {
+workflow BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data, eSetdata ] ]
 
     main:
-    BIOC_LIQUIDASSOCIATION(ch_input)
+    BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_LIQUIDASSOCIATION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LIQUIDASSOCIATION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LIQUIDASSOCIATION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LIQUIDASSOCIATION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS.out.tables
+    plots    = BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS.out.plots
+    objects  = BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS.out.objects
+    versions = BIOC_LIQUIDASSOCIATION_TRIPLET_LIQUID_ASSOCIATION_ANALYSIS.out.versions
 }

@@ -1,0 +1,21 @@
+{
+  "package": "intact",
+  "requirements": [
+    "INTACT",
+    "ggplot2",
+    "jsonlite"
+  ],
+  "by_workflow": {
+    "intact_gse.nf": [
+      "INTACT",
+      "jsonlite"
+    ],
+    "main.nf": [
+      "INTACT"
+    ],
+    "multi_intact.nf": [
+      "INTACT",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "cosnet",
+  "requirements": [
+    "COSNet",
+    "PerfMeas"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "COSNet",
+      "PerfMeas"
+    ],
+    "parameter_optimization_and_prediction.nf": [
+      "COSNet",
+      "PerfMeas"
+    ]
+  }
+}

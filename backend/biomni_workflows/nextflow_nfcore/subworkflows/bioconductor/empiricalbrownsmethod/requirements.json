@@ -1,0 +1,11 @@
+{
+  "package": "empiricalbrownsmethod",
+  "requirements": [
+    "EmpiricalBrownsMethod"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EmpiricalBrownsMethod"
+    ]
+  }
+}

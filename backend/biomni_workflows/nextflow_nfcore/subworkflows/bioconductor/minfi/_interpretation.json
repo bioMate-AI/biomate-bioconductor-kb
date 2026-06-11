@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: targets=A data.frame containing a Basename column pointing to the path of the IDAT files (without the _Red.idat or _Grn.idat suffix) ;; base=The directory path containing the IDAT files when reading without a targets sheet ;; recursive=Logical indicating whether to search subdirectories for IDAT files ;; skip=Number of lines to skip when reading a sample sheet manually using read.csv\n- alternatives: Genome Studio=Mentioned as an alternative for loading files, but inferior because it lacks control probe information and uses less advanced normalization methods ;; shinyMethyl=Mentioned under Quality Control section for interactive visualization\n- when_to_use: Appropriate when analyzing raw Illumina Infinium DNA methylation microarrays (27k, 450k, EPIC/850k) to perform preprocessing, normalization, quality control, and differential methylation analysis.\n- pitfalls: Genome Studio output files lack control probe information, which limits the available functionality in minfi (e.g., some preprocessing/QC methods) ;; The Basename column in the sample sheet must contain the correct path prefix to the IDAT files without the _Red.idat or _Grn.idat extensions ;; Different preprocessing functions return different classes (e.g., MethylSet vs GenomicMethylSet), which can cause compatibility issues if downstream functions expect a specific class.",
+  "workflows": [
+    {
+      "name": "methylation_preprocessing_and_mapping",
+      "intent": "Read raw Illumina IDAT files using a sample sheet, perform basic preprocessing, and map the data to the genome.",
+      "input": [
+        "SampleSheet.csv (Illumina sample sheet describing the experiment layout)",
+        "*.idat (Raw Red and Green channel intensity files for each sample)"
+      ],
+      "stages": "1. Find the directory containing the sample sheet and IDAT files ;; 2. Read the sample sheet using read.metharray.sheet() ;; 3. Read the raw IDAT files into an RGChannelSet using read.metharray.exp() ;; 4. Preprocess the raw data to a MethylSet using preprocessRaw() ;; 5. Map the preprocessed data to genomic coordinates to create a GenomicMethylSet using mapToGenome()",
+      "code": "MsetEx <- preprocessRaw(RGsetEx)\nGMsetEx <- mapToGenome(MsetEx)\nbaseDir <- system.file(\"extdata\", package = \"minfiData\")\ntargets <- read.metharray.sheet(baseDir)\nRGset <- read.metharray.exp(targets = targets)\nRGset2 <- read.metharray.exp(file.path(baseDir, \"5723646052\"))\nRGset3 <- read.metharray.exp(baseDir, recursive = TRUE)\ntargets2 <- read.csv(file.path(baseDir, \"SampleSheet.csv\"), \n                     stringsAsFactors = FALSE, skip = 7)\ntargets2$Basename <- file.path(baseDir, targets2$Sentrix_ID, \n                               paste0(targets2$Sentrix_ID, \n                                      targets2$Sentrix_Position))"
+    }
+  ]
+}

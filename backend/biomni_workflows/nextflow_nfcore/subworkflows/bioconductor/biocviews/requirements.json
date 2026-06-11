@@ -1,0 +1,17 @@
+{
+  "package": "biocviews",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "biocViews",
+    "graph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "biocViews",
+      "graph"
+    ]
+  }
+}

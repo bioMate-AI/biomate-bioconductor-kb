@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: perturbations=A vector of known perturbation targets (only used in standard/vanilla CARNIVAL) ;; measurements=A named vector of transcription factor or pathway activities (discretized or continuous) ;; priorKnowledgeNetwork=A data frame representing signed and directed protein-protein interactions ;; carnivalOptions=A list of optimization parameters, solver paths, and output directories (typically initialized via defaultLpSolveCarnivalOptions) ;; lpFile=Path to the generated LP file for optimization ;; parsedDataFile=Path to the parsed RData file containing data for the LP solver\n- alternatives: The package is an upgraded extension of the Causal Reasoning method from Melas et al., adding continuous TF/pathway weights (e.g., from PROGENy/DoRothEA). It supports four solvers: lpSolve (R-CRAN, free, for small networks), Cbc (open-source), CPLEX (IBM, academic free), and Gurobi (academic free, supports remote cluster services).\n- when_to_use: Use when you have downstream gene expression data (from which TF/pathway activities can be inferred) and want to reconstruct the upstream causal signaling pathways that explain these activities, either with known perturbation targets (Standard CARNIVAL) or without them (Inverse CARNIVAL).\n- pitfalls: lpSolve only works for small toy examples and can only return a single optimal solution; larger real-case networks require external solvers (Cbc, CPLEX, or Gurobi) which must be downloaded and configured separately. The path to the CPLEX executable is OS-dependent and version-dependent. For Inverse CARNIVAL, the prior knowledge network columns must be explicitly named 'source', 'interaction', and 'target'.",
+  "workflows": [
+    {
+      "name": "standard_carnival",
+      "intent": "Contextualize a signaling network when the upstream perturbation targets are known.",
+      "input": [
+        "toy_perturbations_ex1.RData (vector of known perturbation targets)",
+        "toy_measurements_ex1.RData (named vector of measured TF/pathway activities)",
+        "toy_network_ex1.RData (data frame of prior knowledge network interactions)"
+      ],
+      "stages": "1. Load input data and prior knowledge network ;; 2. Initialize solver options using defaultLpSolveCarnivalOptions ;; 3. Set output folder ;; 4. Run standard pipeline using runVanillaCarnival ;; 5. Save results using saveRDS",
+      "code": "library(CARNIVAL)\nload(file = system.file(\"toy_perturbations_ex1.RData\",\n                        package = \"CARNIVAL\"))\nload(file = system.file(\"toy_measurements_ex1.RData\",\n                        package = \"CARNIVAL\"))\nload(file = system.file(\"toy_network_ex1.RData\",\n                        package = \"CARNIVAL\"))\n\ncarnivalOptions <- defaultLpSolveCarnivalOptions()\n\n# Output dir\ndir.create(\"ToyExample1\", showWarnings = FALSE)\ncarnivalOptions$outputFolder <- \"ToyExample1\"\n\n# lpSolve\nresultsLpSolve <- runVanillaCarnival( perturbations = toy_perturbations_ex1, \n                                      measurements = toy_measurements_ex1,\n                                      priorKnowledgeNetwork = toy_network_ex1, \n                                      carnivalOptions = carnivalOptions)"
+    },
+    {
+      "name": "inverse_carnival",
+      "intent": "Contextualize a signaling network when the upstream perturbation targets are unknown.",
+      "input": [
+        "toy_measurements_ex2.RData (named vector of measured TF/pathway activities)",
+        "toy_network_ex2.RData (data frame of prior knowledge network interactions)"
+      ],
+      "stages": "1. Load measurements and prior knowledge network ;; 2. Format prior knowledge network columns to 'source', 'interaction', and 'target' ;; 3. Initialize solver options ;; 4. Run inverse pipeline using runInverseCarnival",
+      "code": "load(file = system.file(\"toy_measurements_ex2.RData\",\n                        package=\"CARNIVAL\"))\nload(file = system.file(\"toy_network_ex2.RData\",\n                        package=\"CARNIVAL\"))\n\ncarnivalOptions <- defaultLpSolveCarnivalOptions()\n\n# Output dir\ndir.create(\"ToyExample2\", showWarnings = FALSE)\ncarnivalOptions$outputFolder <- \"ToyExample2\"\n\n# lpSolve\ntoy_network_ex2 <- as.data.frame(toy_network_ex2)\ncolnames(toy_network_ex2) <- c(\"source\", \"interaction\", \"target\")\ntoy_measurements_ex2 <- c(\"M1\" = 1, \"M2\" = 1, \"M3\" = 1)\n\ninverseCarnivalResults <- runInverseCarnival( measurements = c(toy_measurements_ex2), \n                                              priorKnowledgeNetwork = toy_network_ex2, \n                                              carnivalOptions = carnivalOptions)"
+    },
+    {
+      "name": "two_step_carnival",
+      "intent": "Generate an LP file first to inspect or modify, and then run the optimization pipeline from the generated LP file.",
+      "input": [
+        "toy_perturbations_ex1.RData (vector of known perturbation targets)",
+        "toy_measurements_ex1.RData (named vector of measured TF/pathway activities)",
+        "toy_network_ex1.RData (data frame of prior knowledge network interactions)"
+      ],
+      "stages": "1. Load input data ;; 2. Initialize solver options ;; 3. Generate LP and parsed data files using generateLpFileCarnival ;; 4. Run CARNIVAL optimization from the generated files using runFromLpCarnival",
+      "code": "load(file = system.file(\"toy_perturbations_ex1.RData\",\n                        package = \"CARNIVAL\"))\nload(file = system.file(\"toy_measurements_ex1.RData\",\n                        package = \"CARNIVAL\"))\nload(file = system.file(\"toy_network_ex1.RData\",\n                        package = \"CARNIVAL\"))\n\ncarnivalOptions <- defaultLpSolveCarnivalOptions()\n\n# Output dir\ndir.create(\"ToyExample3\", showWarnings = FALSE)\ncarnivalOptions$outputFolder <- \"ToyExample3\"\n\n# lpSolve\ngenerateLpFileCarnival(perturbations = toy_perturbations_ex1,\n                       measurements = toy_measurements_ex1, \n                       priorKnowledgeNetwork = toy_network_ex1, \n                       carnivalOptions = carnivalOptions)\n\nlpFilename <- \"toy_files_vignettes/lpFile_t18_01_53d28_04_2021n4.lp\"\nparsedDataFile <- \"toy_files_vignettes/parsedData_t18_01_53d28_04_2021n4.RData\"\nresultsFromLp <- runFromLpCarnival(lpFile = lpFilename,\n                                   parsedDataFile = parsedDataFile,\n                                   carnivalOptions = defaultLpSolveCarnivalOptions())"
+    }
+  ]
+}

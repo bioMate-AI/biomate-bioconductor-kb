@@ -1,0 +1,23 @@
+{
+  "package": "diffustats",
+  "requirements": [
+    "diffuStats",
+    "ggplot2",
+    "ggsci",
+    "igraph",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "grid_diffusion_and_benchmarking.nf": [
+      "diffuStats",
+      "ggplot2",
+      "ggsci",
+      "igraph",
+      "reshape2"
+    ],
+    "main.nf": [
+      "diffuStats",
+      "igraph"
+    ]
+  }
+}

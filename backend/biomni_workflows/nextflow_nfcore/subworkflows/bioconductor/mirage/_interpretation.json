@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: species=Specifies target species, either \"HS\" (human) or \"MM\" (mouse, default) ;; ID=Specifies gene ID type, e.g., \"refseq\" (default), \"ensembl_gene_id\", \"affy_hg_u133a_2\", or \"illumina_humanwg_6_v3\" ;; method=Specifies replicate treatment: \"mean\" (average expression, default), \"mixed\" (use replicates as-is in tests), or \"one_by_one\" (all pairwise combinations) ;; test=Statistical method to evaluate regulation significance: \"ks\" (Kolmogorov-Smirnov, default), \"t\" (t-test), or \"wilcox\" (Wilcoxon test) ;; conv=miRNA conservation level based on TargetScan: \"conserved\" (default), \"weak_conserv\", or \"all\" ;; location=Set to \"web\" to download the latest target gene tables from the MiRaGE server, or \"local\" (default) to use the miRNATarget package ;; species_force=Logical (default TRUE); set to FALSE along with ID_force or conv_force to skip downloading and use locally saved/loaded tables\n- alternatives: miRNATarget=An experimental Bioconductor package that can be installed for offline use to avoid downloading tables from the web\n- when_to_use: Use when you have mRNA expression data from two distinct biological states (e.g., control vs. treatment, or undifferentiated vs. differentiated cells) and want to infer which miRNAs are actively regulating those target genes without direct miRNA expression measurements.\n- pitfalls: P-values returned by MiRaGE are underestimated and must be adjusted for multiple comparisons using p.adjust with the \"BH\" method ;; Input ExpressionSet sample names must strictly follow the \"group.n\" format (e.g., neg.1, neg.2, pos.1, pos.2) where n is an integer starting from 1 ;; Generating target tables from scratch using functions like TBL2_HS_gen() is extremely time-consuming and highly discouraged; users should download them or use the miRNATarget package.",
+  "workflows": [
+    {
+      "name": "mirna_regulation_inference",
+      "intent": "Infer miRNA target gene regulation from mRNA expression profiles and identify significantly active miRNAs.",
+      "input": [
+        "x_all_7a.csv (Tab-delimited gene expression matrix file with gene IDs in the first column and expression values for replicates of two groups in subsequent columns)"
+      ],
+      "stages": "1. Load the gene expression data and format it into an ExpressionSet object with required sample_name and gene_id metadata ;; 2. Run the MiRaGE analysis to compute P-values for miRNA target regulation ;; 3. Perform multiple comparison correction on the resulting P-values to identify significantly active miRNAs.",
+      "code": "x_gene <- read.csv(system.file(\"extdata/x_all_7a.csv\",package=\"MiRaGE\"),sep=\"\\t\")\ngene_exp <- new(\"ExpressionSet\",expr=data.matrix(x_gene[,-1]))\nfData(gene_exp)[[\"gene_id\"]] <- x_gene[,1]\npData(gene_exp)[[\"sample_name\"]] <- colnames(x_gene)[-1]\nresult <- MiRaGE(gene_exp,species=\"HS\")\np.adjust(result$P1[,2],method=\"BH\")\nresult$P1[,1][p.adjust(result$P1[,2],method=\"BH\")<0.05]"
+    }
+  ]
+}

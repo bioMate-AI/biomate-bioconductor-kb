@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: logscale=logical indicating if the input data is already log-transformed (set to TRUE to log-transform during object building) ;; normmethod=normalization method to apply, such as 'Between' for between-array normalization ;; impute=logical indicating whether to perform K-nearest neighbors (K-nn) imputation for missing values in getLR ;; gene.level=logical indicating whether to collapse probe-level data into gene-level summaries using a robust Tukey Biweight estimator ;; clusterallsamples=logical indicating whether to cluster genes/probes to select cluster-specific optimal models ;; model=optional precomputed model object, such as one calculated via GCV, to bypass power-based model selection ;; fdr=False Discovery Rate threshold percentage (e.g., 5) used to filter top-performing genes in topData\n- alternatives: Rnits.gcv=generalized cross-validation model selection, which minimizes cross-validated error on top eigenvectors and is preferred when clustering is not desired ;; Rnits.power=power-based model selection, which selects models based on the distribution of p-values to maximize statistical power ;; ANOVA or empirical Bayes methods=such as those in limma or betr, which do not model continuous temporal profiles using spline basis functions\n- when_to_use: Appropriate for analyzing gene expression datasets collected over a time series across two or more conditions, where the distinct time series have been sampled at the exact same time points.\n- pitfalls: All distinct time series experiments must be sampled at the exact same time points ;; Complex models with too many basis functions may get heavily penalized during heteroskedasticity correction, leading to low statistical power ;; Insufficiently complex models may fail to capture expression trajectories, also reducing power ;; Missing values should be handled (e.g., via K-nn imputation) to avoid downstream fitting issues",
+  "workflows": [
+    {
+      "name": "expressionset_workflow",
+      "intent": "Analyze time-course gene expression data starting from an ExpressionSet object.",
+      "input": [
+        "ExpressionSet_object (Bioconductor ExpressionSet containing expression data and metadata with 'Time', 'Sample', and 'Gene Symbol' or 'ORF' columns)"
+      ],
+      "stages": "1. Build Rnits object and normalize using build.Rnits ;; 2. Impute missing values using getLR ;; 3. Fit B-spline models using fit ;; 4. Extract p-values and statistics using getPval, getStat, getCID, and getFitModel ;; 5. Summarize top genes using summary and topData ;; 6. Plot gene trajectories using plotResults",
+      "code": "rnitsobj = build.Rnits(dat[, sample(ncol(dat))], logscale = TRUE, normmethod = \"Between\")\nlr <- getLR(rnitsobj, impute = TRUE)\nrnitsobj <- fit(rnitsobj0, gene.level = TRUE, clusterallsamples = TRUE)\npval <- getPval(rnitsobj)\nstat <- getStat(rnitsobj)\ntable(getCID(rnitsobj))\nfitdata <- getFitModel(rnitsobj)\nsummary(rnitsobj, top = 10)\ntd <- topData(rnitsobj, fdr = 5)\nplotResults(rnitsobj, top = 16)"
+    },
+    {
+      "name": "data_matrix_workflow",
+      "intent": "Analyze time-course gene expression data starting from a raw data matrix and separate metadata data frames.",
+      "input": [
+        "expression_matrix (numeric matrix of expression values)",
+        "probedata_df (data frame containing ProbeID and GeneName columns)",
+        "phenodata_df (data frame containing Sample and Time columns)"
+      ],
+      "stages": "1. Build Rnits object from data matrix and metadata using build.Rnits ;; 2. Fit B-spline models using fit ;; 3. Extract p-values and statistics using getPval, getStat, getCID, and getFitModel ;; 4. Summarize top genes using summary and topData ;; 5. Plot gene trajectories using plotResults",
+      "code": "rnitsobj0 = build.Rnits(datdf, probedata = probedata, phenodata = phenodata, logscale = TRUE, normmethod = 'Between')\nrnitsobj <- fit(rnitsobj0, gene.level = TRUE, clusterallsamples = TRUE)\npval <- getPval(rnitsobj)\nstat <- getStat(rnitsobj)\ntable(getCID(rnitsobj))\nfitdata <- getFitModel(rnitsobj)\nsummary(rnitsobj, top = 10)\ntd <- topData(rnitsobj, fdr = 5)\nplotResults(rnitsobj, top = 16)"
+    }
+  ]
+}

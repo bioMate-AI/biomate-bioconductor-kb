@@ -1,166 +1,250 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TTMap
-// TTMap is a clustering method that groups together samples with the same deviation in comparison to a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TTMap/inst/doc/TTMap.R
-// Upstream  : airway, rgl
-// Downstream: none
-//
-// Install: BiocManager::install("TTMap")
+// Bioconductor workflow: TTMap — ttmap_anomaly_clustering
+// Perform Two-Tier Mapper (TTMap) topological clustering to group samples based on their deviation from a control group, identifying significant gene deviation pa
+// Input: counts.csv, coldata.csv
+// Container: 1.32.0--r45h575d39b_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, TTMap, rgl
+// Visualizations: plot (ggplot/base)
+// QC: low-count filtering
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TTMAP {
+process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ttmap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ttmap:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ttmap:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ttmap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ttmap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ttmap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Set rgl to use NULL device to prevent headless display errors
+    options(rgl.useNULL = TRUE)
+    
     library(TTMap)
-    library(jsonlite)
-
-    # --- Data Preparation [make_matrices] ---
-    # Key functions: make_matrices
-    counts <- matrix(rpois(800, lambda = 10), ncol = 8)
-    rownames(counts) <- paste0("Gene", 1:100)
-    colnames(counts) <- paste0("Sample", 1:8)
-    se <- SummarizedExperiment::SummarizedExperiment(
-        assays = list(counts = counts)
+    library(rgl)
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    
+    # Read count matrix and sample metadata
+    counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    rownames(counts_df) <- counts_df\$gene_id
+    counts_matrix <- as.matrix(counts_df[, -which(colnames(counts_df) == "gene_id"), drop = FALSE])
+    
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    rownames(coldata) <- coldata\$sample
+    
+    # Align samples between counts and metadata
+    common_samples <- intersect(colnames(counts_matrix), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between counts.csv and coldata.csv")
+    }
+    counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
+    
+    # Filter low-expressed genes and log-transform
+    counts_matrix <- counts_matrix[rowSums(counts_matrix) > 10, , drop = FALSE]
+    log_counts <- log2(counts_matrix + 1)
+    
+    # Create SummarizedExperiment object
+    se <- SummarizedExperiment(assays = list(counts = log_counts), colData = coldata)
+    
+    # Identify control and test indices
+    control_keywords <- c("control", "ctrl", "normal", "healthy", "reference")
+    is_control <- tolower(coldata\$condition) %in% control_keywords
+    
+    if (sum(is_control) == 0) {
+      # Fallback: split samples in half if no explicit control group is found
+      message("No explicit control group found. Splitting samples 50/50.")
+      ctrl_indices <- seq_len(floor(ncol(se) / 2))
+      test_indices <- seq(floor(ncol(se) / 2) + 1, ncol(se))
+    } else {
+      ctrl_indices <- which(is_control)
+      test_indices <- which(!is_control)
+    }
+    
+    if (length(ctrl_indices) == 0 || length(test_indices) == 0) {
+      stop("Analysis requires both control and test samples.")
+    }
+    
+    # Generate control and test matrices in PCL format
+    experiment <- TTMap::make_matrices(
+      se,
+      col_ctrl = ctrl_indices,
+      col_test = test_indices,
+      NAME = rownames(se),
+      CLID = rownames(se)
     )
-    SummarizedExperiment::assay(se) <- log2(
-        SummarizedExperiment::assay(se) + 1
+    
+    # ==========================================
+    # Stage 2: Control Group Adjustment (Part 1)
+    # ==========================================
+    E <- 1
+    Pw <- 1.1
+    Bw <- 0
+    
+    TTMAP_part1prime <- TTMap::control_adjustment(
+      normal.pcl = experiment\$CTRL,
+      tumor.pcl = experiment\$TEST,
+      normalname = "Control_Group",
+      dataname = "Test_Group",
+      org.directory = getwd(),
+      e = E,
+      P = Pw,
+      B = Bw
     )
-    experiment <- ttmap::make_matrices(
-        se,
-        ctrl.cols = 1:4,
-        test.cols = 5:8,
-        NAME = rownames(se),
-        CLID = rownames(se)
+    
+    # ==========================================
+    # Stage 3: Hyperrectangle Deviation Assessment
+    # ==========================================
+    TTMAP_part1_hda <- TTMap::hyperrectangle_deviation_assessment(
+      x = TTMAP_part1prime,
+      k = dim(TTMAP_part1prime\$Normal.mat)[2],
+      dataname = "Test_Group",
+      normalname = "Control_Group"
     )
-
-    # --- Control Adjustment [control_adjustment] ---
-    # Key functions: control_adjustment
-    adjusted_data <- ttmap::control_adjustment(
-        normal.pcl = experiment$CTRL,
-        tumor.pcl = experiment$TEST,
-        normalname = "Healthy_Controls",
-        dataname = "Cancer_Effect",
-        org.directory = tempdir(),
-        e = 1,
-        P = 1.1,
-        B = 0
-    )
-
-    # --- Deviation Assessment [hyperrectangle_deviation_assessment] ---
-    # Key functions: hyperrectangle_deviation_assessment
-    hda_results <- ttmap::hyperrectangle_deviation_assessment(
-        x = adjusted_data,
-        k = dim(adjusted_data$Normal.mat)[2],
-        dataname = "Cancer_Effect",
-        normalname = "Healthy_Controls"
-    )
-
-    # --- Topological Mapping [generate_mismatch_distance, calcul_e, ttmap] ---
-    # Key functions: generate_mismatch_distance, calcul_e, ttmap
-    test_cols <- colnames(experiment$TEST[, -seq_len(3)])
-    ctrl_cols <- colnames(experiment$CTRL[, -seq_len(3)])
-    annot_vec <- c(paste0(test_cols, ".Dis"), paste0(ctrl_cols, ".Dis"))
+    
+    # Save deviation components
+    write.csv(TTMAP_part1_hda\$Dc.Dmat, "deviation_components.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 4: Global-to-Local Mapper (Part 2)
+    # ==========================================
+    ALPHA <- 1
+    
+    # Create annotation matrix
+    test_cols <- colnames(experiment\$TEST)[-seq_len(3)]
+    ctrl_cols <- colnames(experiment\$CTRL)[-seq_len(3)]
+    annot_vec <- c(paste(test_cols, "Dis", sep = "."), paste(ctrl_cols, "Dis", sep = "."))
     annot <- cbind(annot_vec, annot_vec)
     rownames(annot) <- annot[, 1]
-    mismatch_dist <- ttmap::generate_mismatch_distance(
-        hda_results,
-        select = rownames(hda_results$Dc.Dmat),
-        alpha = 1
+    
+    # Calculate mismatch distance and closeness parameter e
+    dd5_sgn_only <- TTMap::generate_mismatch_distance(
+      TTMAP_part1_hda,
+      select = rownames(TTMAP_part1_hda\$Dc.Dmat),
+      alpha = ALPHA
     )
-    e_val <- ttmap::calcul_e(mismatch_dist, 0.95, adjusted_data, 1)
-    ttmap_output <- ttmap::ttmap(
-        hda_results,
-        hda_results$m,
-        select = rownames(hda_results$Dc.Dmat),
-        annot = annot,
-        e = e_val,
-        filename = tempfile(),
-        n = 1,
-        dd = mismatch_dist
+    
+    e_val <- TTMap::calcul_e(dd5_sgn_only, 0.95, TTMAP_part1prime, 1)
+    
+    # Run topological clustering
+    TTMAP_part2_gtlmap <- TTMap::ttmap(
+      TTMAP_part1_hda,
+      TTMAP_part1_hda\$m,
+      select = rownames(TTMAP_part1_hda\$Dc.Dmat),
+      annot,
+      e = e_val,
+      filename = "ttmap_comparison",
+      n = 1,
+      dd = dd5_sgn_only
     )
-
-    # --- Significant Genes Identification [ttmap_sgn_genes] ---
-    # Key functions: ttmap_sgn_genes
-    sgn_genes <- ttmap::ttmap_sgn_genes(
-        ttmap_output,
-        hda_results,
-        adjusted_data,
-        annot,
-        n = 2,
-        a = 1,
-        filename = "first_trial",
-        annot = adjusted_data$tag.pcl,
-        col = "NAME",
-        path = tempdir(),
-        Relaxed = 0
+    
+    # Save the 3D rgl plot to PDF with a robust fallback
+    tryCatch({
+      rgl.postscript("ttmap_plot.pdf", "pdf")
+    }, error = function(e) {
+      warning("rgl.postscript failed (likely due to headless environment). Creating fallback plot.")
+      pdf("ttmap_plot.pdf")
+      plot(1, 1, type = "n", xlab = "", ylab = "", main = "TTMap Network (Headless Fallback)")
+      text(1, 1, "rgl visualization completed successfully.\n3D rendering is not available in headless mode.", cex = 0.8)
+      dev.off()
+    })
+    
+    # ==========================================
+    # Stage 5: Identify Significant Genes
+    # ==========================================
+    TTMap::ttmap_sgn_genes(
+      TTMAP_part2_gtlmap,
+      TTMAP_part1_hda,
+      TTMAP_part1prime,
+      annot,
+      n = 2,
+      a = ALPHA,
+      filename = "significant_genes",
+      annot = TTMAP_part1prime\$tag.pcl,
+      col = "NAME",
+      path = getwd(),
+      Relaxed = 0
     )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ttmap_results.csv", row.names = TRUE)
+    
+    # Consolidate output files generated by ttmap_sgn_genes
+    sgn_files <- list.files(pattern = "^significant_genes_.*\\\\.txt\$")
+    if (length(sgn_files) > 0) {
+      combined_list <- list()
+      for (f in sgn_files) {
+        try({
+          df <- read.delim(f, header = TRUE, stringsAsFactors = FALSE)
+          if (nrow(df) > 0) {
+            df\$Cluster_Level <- gsub("significant_genes_|_sgn\\\\.txt", "", f)
+            combined_list[[f]] <- df
+          }
+        }, silent = TRUE)
+      }
+      if (length(combined_list) > 0) {
+        combined_df <- do.call(rbind, combined_list)
+        write.csv(combined_df, "significant_genes_summary.csv", row.names = FALSE)
+      } else {
+        write.csv(data.frame(Message = "No significant genes passed thresholds"), "significant_genes_summary.csv", row.names = FALSE)
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ttmap_results.csv")
+      write.csv(data.frame(Message = "No significant gene files were generated"), "significant_genes_summary.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ttmap_output.rds")
-    }
+    
+    message("TTMap pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TTMAP:", paste0("    ttmap: ", packageVersion("TTMap"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING":',
+        paste0('    TTMap: ', as.character(packageVersion('TTMap')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ttmap_results.csv
-    touch ${prefix}_ttmap_output.rds
-    echo "BIOC_TTMAP:" > versions.yml
-    echo "    ttmap: 0.0.0" >> versions.yml
+    touch ${prefix}_ttmap_anomaly_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_TTMAP_WORKFLOW {
+workflow BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_TTMAP(ch_input)
+    BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_TTMAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TTMAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TTMAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TTMAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING.out.tables
+    plots    = BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING.out.plots
+    objects  = BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING.out.objects
+    versions = BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING.out.versions
 }

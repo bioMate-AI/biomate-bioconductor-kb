@@ -1,0 +1,21 @@
+{
+  "package": "pcaexplorer",
+  "requirements": [
+    "DESeq2",
+    "org.Hs.eg.db",
+    "pcaExplorer",
+    "scales"
+  ],
+  "by_workflow": {
+    "gene_level_pca_and_profiling.nf": [
+      "DESeq2",
+      "pcaExplorer",
+      "scales"
+    ],
+    "main.nf": [
+      "DESeq2",
+      "org.Hs.eg.db",
+      "pcaExplorer"
+    ]
+  }
+}

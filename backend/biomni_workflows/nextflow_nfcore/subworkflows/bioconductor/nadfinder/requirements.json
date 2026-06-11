@@ -1,0 +1,24 @@
+{
+  "package": "nadfinder",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "GenomicAlignments",
+    "NADfinder",
+    "SummarizedExperiment",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "GenomicAlignments",
+      "NADfinder",
+      "SummarizedExperiment",
+      "rtracklayer"
+    ],
+    "replicated_nad_seq.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "NADfinder",
+      "SummarizedExperiment"
+    ]
+  }
+}

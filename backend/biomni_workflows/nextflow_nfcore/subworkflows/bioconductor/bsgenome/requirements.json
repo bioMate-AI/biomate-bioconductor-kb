@@ -1,0 +1,26 @@
+{
+  "package": "bsgenome",
+  "requirements": [
+    "BSgenome",
+    "BSgenome.Celegans.UCSC.ce2",
+    "BSgenome.Hsapiens.UCSC.hg38.masked",
+    "Biostrings"
+  ],
+  "by_workflow": {
+    "constant_width_dict_search.nf": [
+      "BSgenome",
+      "BSgenome.Celegans.UCSC.ce2",
+      "Biostrings"
+    ],
+    "main.nf": [
+      "BSgenome",
+      "BSgenome.Celegans.UCSC.ce2",
+      "Biostrings"
+    ],
+    "masked_sequence_analysis.nf": [
+      "BSgenome",
+      "BSgenome.Hsapiens.UCSC.hg38.masked",
+      "Biostrings"
+    ]
+  }
+}

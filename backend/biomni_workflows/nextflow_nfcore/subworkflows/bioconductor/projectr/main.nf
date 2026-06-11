@@ -1,139 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: projectR
-// Functions for the projection of data into the spaces defined by PCA, CoGAPS, NMF, correlation, and c
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/projectR/inst/doc/projectR.R
-// Upstream  : cowplot, fgsea, ggplot2, gplots, gridExtra
-// Downstream: none
-//
-// Install: BiocManager::install("projectR")
+// Bioconductor workflow: projectR — pca_nmf_projection
+// Project a target expression matrix into a latent space defined by PCA eigenvectors or NMF/CoGAPS amplitude loadings.
+// Input: target_expression.csv, training_expression.csv
+// Container: quay.io/biocontainers/bioconductor-projectr:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: projectR
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Perform PCA on the training dataset using prcomp or load pre-computed CoGAPS amplitude loadings
+//  * 2. [Core Analysis] Project the target dataset into the defined loadings space using projectR
 
 nextflow.enable.dsl = 2
 
-process BIOC_PROJECTR {
+process BIOC_PROJECTR_PCA_NMF_PROJECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-projectr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-projectr:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-projectr:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_projectr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_projectr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_projectr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(projectR)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(projectR)
+        
+        # ----------------------------------------------------------------------
+        # 1. Read User Input Files
+        # ----------------------------------------------------------------------
+        # Read training expression matrix (genes as rows, samples as columns)
+        train_data <- read.csv("training_expression.csv", check.names = FALSE)
+        if (is.character(train_data[[1]]) || is.factor(train_data[[1]])) {
+          rownames(train_data) <- train_data[[1]]
+          train_data <- train_data[, -1, drop = FALSE]
+        }
+        p.RNAseq6l3c3t <- as.matrix(train_data)
+        
+        # Read target expression matrix (genes as rows, samples as columns)
+        target_data <- read.csv("target_expression.csv", check.names = FALSE)
+        if (is.character(target_data[[1]]) || is.factor(target_data[[1]])) {
+          rownames(target_data) <- target_data[[1]]
+          target_data <- target_data[, -1, drop = FALSE]
+        }
+        p.ESepiGen4c1l <- list(mRNA.Seq = as.matrix(target_data))
+        
+        # Define the gene symbols mapping vector for the target dataset
+        map.ESepiGen4c1l <- list(GeneSymbols = rownames(p.ESepiGen4c1l\$mRNA.Seq))
+        
+        # ----------------------------------------------------------------------
+        # 2. Perform PCA on Training Dataset & Define Loadings
+        # ----------------------------------------------------------------------
+        # Perform PCA on the training dataset
+        pc.RNAseq6l3c3t <- prcomp(t(p.RNAseq6l3c3t))
+        
+        # ----------------------------------------------------------------------
+        # 3. Project Target Dataset into Latent Spaces (Documented Code)
+        # ----------------------------------------------------------------------
+        # Project target dataset into PCA space
+        PCA2ESepi <- projectR(data = p.ESepiGen4c1l\$mRNA.Seq, loadings = pc.RNAseq6l3c3t, full = TRUE, dataNames = map.ESepiGen4c1l[["GeneSymbols"]])
+        
+        # ----------------------------------------------------------------------
+        # 4. Save Outputs
+        # ----------------------------------------------------------------------
+        # Save full projection fit objects as RDS
+        saveRDS(PCA2ESepi, "pca_projection_full.rds")
+        
+        # Save projected patterns (sample coordinates in latent space) as CSV
+        write.csv(as.data.frame(PCA2ESepi[[1]]), "pca_projection_patterns.csv", row.names = TRUE)
+        
+        # Generate and save visualization plots
+        pdf("projection_plots.pdf", width = 5, height = 5)
+        par(mfrow = c(1, 1))
+        
+        # Plot PCA projection (first two components)
+        plot(t(PCA2ESepi[[1]])[, 1:2], col = "blue", pch = 19,
+             main = "PCA Projection", xlab = "Projected PC1", ylab = "Projected PC2")
+        text(t(PCA2ESepi[[1]])[, 1:2], labels = colnames(p.ESepiGen4c1l\$mRNA.Seq), pos = 3, cex = 0.7)
+        
+        dev.off()
+        
+        cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    # --- PCA Projection [PCA Projection] ---
-    # Key functions: projectR
-    data(p.RNAseq6l3c3t)
-    data(p.ESepiGen4c1l)
-    pc_source <- prcomp(t(p.RNAseq6l3c3t))
-    PCA2ESepi <- projectR(
-        data = p.ESepiGen4c1l$mRNA.Seq,
-        loadings = pc_source,
-        full = TRUE,
-        dataNames = map.ESepiGen4c1l[["GeneSymbols"]]
-    )
-
-    # --- CoGAPS Pattern Projection [CoGAPS Pattern Projection] ---
-    # Key functions: projectR
-    data(p.ESepiGen4c1l)
-    AP_data <- get(data("AP.RNAseq6l3c3t"))
-    AP_matrix <- AP_data$Amean
-    NMF2ESepi <- projectR(
-        data = p.ESepiGen4c1l$mRNA.Seq,
-        loadings = AP_matrix,
-        full = TRUE,
-        dataNames = map.ESepiGen4c1l[["GeneSymbols"]]
-    )
-
-    # --- Gene Correlation Analysis [Gene Correlation Analysis] ---
-    # Key functions: correlateR
-    data(p.RNAseq6l3c3t)
-    cor2T <- correlateR(
-        genes = "T",
-        dat = p.RNAseq6l3c3t,
-        threshtype = "N",
-        threshold = 10,
-        absR = TRUE
-    )
-    cor_matrix <- cor2T@corM
-
-    # --- Correlation Space Projection [Correlation Space Projection] ---
-    # Key functions: projectR, correlateR
-    data(p.RNAseq6l3c3t)
-    data(p.ESepiGen4c1l)
-    cor2T <- correlateR(
-        genes = "T",
-        dat = p.RNAseq6l3c3t,
-        threshtype = "N",
-        threshold = 10,
-        absR = TRUE
-    )
-    cor2ESepi <- projectR(
-        data = p.ESepiGen4c1l$mRNA.Seq,
-        loadings = cor2T[[1]],
-        full = FALSE,
-        dataNames = map.ESepiGen4c1l$GeneSymbols
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_projectr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_projectr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_projectr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PROJECTR:", paste0("    projectr: ", packageVersion("projectR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PROJECTR_PCA_NMF_PROJECTION":',
+        paste0('    projectR: ', as.character(packageVersion('projectR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_projectr_results.csv
-    touch ${prefix}_projectr_output.rds
-    echo "BIOC_PROJECTR:" > versions.yml
-    echo "    projectr: 0.0.0" >> versions.yml
+    touch ${prefix}_pca_nmf_projection.csv versions.yml
     """
 }
 
-
-workflow BIOC_PROJECTR_WORKFLOW {
+workflow BIOC_PROJECTR_PCA_NMF_PROJECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ target_expression.csv, training_expression.csv ] ]
 
     main:
-    BIOC_PROJECTR(ch_input)
+    BIOC_PROJECTR_PCA_NMF_PROJECTION(ch_input)
 
     emit:
-    results  = BIOC_PROJECTR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PROJECTR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PROJECTR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PROJECTR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PROJECTR_PCA_NMF_PROJECTION.out.tables
+    plots    = BIOC_PROJECTR_PCA_NMF_PROJECTION.out.plots
+    objects  = BIOC_PROJECTR_PCA_NMF_PROJECTION.out.objects
+    versions = BIOC_PROJECTR_PCA_NMF_PROJECTION.out.versions
 }

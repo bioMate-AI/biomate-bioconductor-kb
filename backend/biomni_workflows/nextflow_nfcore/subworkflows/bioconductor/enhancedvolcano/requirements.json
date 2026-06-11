@@ -1,0 +1,17 @@
+{
+  "package": "enhancedvolcano",
+  "requirements": [
+    "DESeq2",
+    "EnhancedVolcano",
+    "ggplot2",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "EnhancedVolcano",
+      "ggplot2",
+      "gridExtra"
+    ]
+  }
+}

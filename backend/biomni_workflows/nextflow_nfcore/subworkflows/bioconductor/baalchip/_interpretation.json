@@ -1,0 +1,32 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: samplesheet=Path to a tab-delimited file describing the samples, targets, replicates, BAM files, and BED files ;; hets=A named character vector of filenames containing heterozygous SNPs for each group ;; CorrectWithgDNA=An optional named list of genomic DNA (gDNA) BAM files used to calculate background allelic ratios directly ;; min_mapq=Minimum MAPQ alignment quality score to include a read in pileup (default 15) ;; min_base_quality=Minimum base quality score to include a nucleotide in pileup (default 10) ;; RegionsToFilter=A named list of GRanges objects containing genomic regions to exclude (e.g., blacklists, high-coverage repeats) ;; RegionsToKeep=A named list of GRanges objects containing genomic regions to keep (e.g., unique mappability regions) ;; Iter=Number of iterations for the MCMC/Bayesian model in getASB (default 5000) ;; conf_level=Confidence level for the credible interval to call ASB (default 0.95) ;; RMcorrection=Logical indicating whether to apply reference mapping bias correction (default TRUE) ;; RAFcorrection=Logical indicating whether to apply relative allele frequency bias correction (default TRUE) ;; skipScriptRun=Logical indicating whether to skip the simulation and alignment steps in filterIntbias and use pre-computed simulated datasets (default FALSE)\n- alternatives: None mentioned.\n- when_to_use: Use this package when you have ChIP-seq, FAIRE-seq, or similar functional genomic data and want to identify allele-specific binding or open chromatin events at heterozygous SNPs, particularly in cancer genomes where copy number alterations distort allele frequencies.\n- pitfalls: Blacklist filters (e.g., blacklist_hg19) are designed for functional genomic data of short reads (20-100bp) and are not applicable to RNA-seq or other transcriptome data types. Unique mappability filters (e.g., UniqueMappability50bp_hg19) are specific to short reads (~50bp) and should not be applied to longer reads (>50bp). If both the RAF column in the hets files and the CorrectWithgDNA argument are missing, BaalChIP will not correct for copy-number bias.",
+  "workflows": [
+    {
+      "name": "asb_with_precomputed_raf",
+      "intent": "Identify allele-specific binding events using pre-computed relative allele frequency (RAF) scores from heterozygous variant files.",
+      "input": [
+        "exampleChIP1.tsv (tab-delimited sample sheet)",
+        "MCF7_hetSNP.txt (tab-delimited heterozygous variant file with RAF column)",
+        "GM12891_hetSNP.txt (tab-delimited heterozygous variant file with RAF column)",
+        "bamFiles/ (directory containing ChIP-seq BAM files)",
+        "bedFiles/ (directory containing ChIP-seq peak BED files)"
+      ],
+      "stages": "1. Construct BaalChIP object ;; 2. Compute allele counts ;; 3. Filter problematic regions ;; 4. Filter intrinsic bias ;; 5. Merge replicates ;; 6. Filter out homozygous SNPs ;; 7. Run Bayesian ASB detection ;; 8. Generate final report",
+      "code": "res <- BaalChIP(samplesheet=samplesheet, hets=hets)\nres <- alleleCounts(res, min_base_quality=10, min_mapq=15, verbose=FALSE)\nres <- QCfilter(res, RegionsToFilter=list(\"blacklist\"=blacklist_hg19, \"highcoverage\"=pickrell2011cov1_hg19), RegionsToKeep=list(\"UniqueMappability\"=UniqueMappability50bp_hg19), verbose=FALSE)\nres <- filterIntbias(res, simul_output=preComputed_output, tmpfile_prefix=\"c67c6ec6c433\", skipScriptRun=TRUE, verbose=FALSE)\nres <- mergePerGroup(res)\nres <- filter1allele(res)\nres <- getASB(res, Iter=5000, conf_level=0.95, cores = 4, RMcorrection = TRUE, RAFcorrection=TRUE)\nresult <- BaalChIP.report(res)"
+    },
+    {
+      "name": "asb_with_gdna_bams",
+      "intent": "Identify allele-specific binding events using genomic DNA (gDNA) BAM files to calculate relative allele frequency (RAF) scores.",
+      "input": [
+        "exampleChIP2.tsv (tab-delimited sample sheet)",
+        "TaT1_hetSNP.txt (tab-delimited heterozygous variant file)",
+        "AMOVC_hetSNP.txt (tab-delimited heterozygous variant file)",
+        "bamFiles/ (directory containing ChIP-seq and gDNA BAM files)",
+        "bedFiles/ (directory containing ChIP-seq peak BED files)"
+      ],
+      "stages": "1. Define gDNA BAM files list ;; 2. Construct BaalChIP object with CorrectWithgDNA ;; 3. Run the complete pipeline ;; 4. Generate final report",
+      "code": "gDNA <- list(\"TaT1\"= c(file.path(wd, \"bamFiles/TaT1_1_gDNA.test.bam\"), file.path(wd, \"bamFiles/TaT1_2_gDNA.test.bam\")), \"AMOVC\"= c(file.path(wd, \"bamFiles/AMOVC_1_gDNA.test.bam\"), file.path(wd, \"bamFiles/AMOVC_2_gDNA.test.bam\")))\nres2 <- BaalChIP(samplesheet=samplesheet, hets=hets, CorrectWithgDNA=gDNA)\nres2 <- BaalChIP.run(res2, cores=4, verbose=TRUE)\nresult <- BaalChIP.report(res2)"
+    }
+  ]
+}

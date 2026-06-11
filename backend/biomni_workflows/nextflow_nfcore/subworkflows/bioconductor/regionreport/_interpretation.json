@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pvalueVars=character vector (optionally named) of variables bound between 0 and 1 (e.g., p-values) to explore distributions ;; densityVars=character vector (optionally named) of numerical variables (e.g., area, scores) to explore via density plots ;; significantVar=logical vector indicating which regions are statistically significant to compare their widths against non-significant ones ;; device=graphical device for plots, set to 'pdf' for PDF reports and 'png' for HTML reports ;; nBestRegions=integer specifying the number of top regions to explore in detail ;; makeBestClusters=logical indicating whether to generate plots for the best clusters in derfinderReport ;; nBestClusters=integer specifying the number of best clusters to make (reduce if compilation is too slow)\n- alternatives: derfinderReport=use specifically for single base-level approach derfinder results ;; DESeq2Report=use for DESeq2 differential expression results ;; edgeReport=use for edgeR results (converts internally to DESeq2 format via DEFormats) ;; renderReport=use for general genomic regions from other tools like bumphunter or DiffBind\n- when_to_use: Use when you have identified a set of genomic regions of interest (from ChIP-seq, RNA-seq, or methylation data) or performed differential expression analysis and want to generate a comprehensive, shareable, and reproducible HTML or PDF report.\n- pitfalls: Requires an active internet connection to render the HTML reports correctly ;; Report compilation can take several hours if there are many regions; mitigate this by reducing nBestClusters or setting makeBestClusters to FALSE ;; Default PNG figures look blurry in PDF reports; always set device to 'pdf' when generating PDF reports",
+  "workflows": [
+    {
+      "name": "general_region_report",
+      "intent": "Generate an HTML or PDF report to explore a general set of genomic regions stored as a GRanges object.",
+      "input": [
+        "regions (GRanges object containing genomic coordinates and metadata columns like p-values, q-values, area, or coverage)"
+      ],
+      "stages": "1. Load regionReport and GenomicRanges ;; 2. Assign chromosome lengths to the GRanges object ;; 3. Run renderReport() to compile the HTML report",
+      "code": "library(\"regionReport\")\nlibrary(\"GenomicRanges\")\n\nreport <- renderReport(regions, \"Example run\",\n    pvalueVars = c(\n        \"Q-values\" = \"qvalues\", \"P-values\" = \"pvalues\"\n    ), densityVars = c(\n        \"Area\" = \"area\", \"Mean coverage\" = \"meanCoverage\"\n    ),\n    significantVar = regions$qvalues <= 0.05, nBestRegions = 20,\n    outdir = \"renderReport-example\"\n)"
+    },
+    {
+      "name": "derfinder_base_level_report",
+      "intent": "Generate a specialized HTML report for exploring single base-level results from a derfinder analysis.",
+      "input": [
+        "prefix (character path to the directory containing merged derfinder results)",
+        "optionsStats (Rdata file containing options used during the derfinder statistical analysis)",
+        "fullCov (list containing raw coverage data)"
+      ],
+      "stages": "1. Merge chromosome-level derfinder results using mergeResults() ;; 2. Load the optionsStats.Rdata file ;; 3. Run derfinderReport() to compile the HTML report ;; 4. Open the report in a web browser using browseURL()",
+      "code": "library(\"regionReport\")\nlibrary(\"derfinder\")\n\nmergeResults(\n    chrs = \"chr21\", prefix = \"derfinderReport-example\",\n    genomicState = genomicState$fullGenome\n)\n\nload(file.path(\"derfinderReport-example\", \"chr21\", \"optionsStats.Rdata\"), verbose = TRUE)\n\nreport <- derfinderReport(\n    prefix = \"derfinderReport-example\", browse = FALSE,\n    nBestRegions = 15, makeBestClusters = TRUE,\n    fullCov = list(\"21\" = genomeDataRaw$coverage), optionsStats = optionsStats\n)\n\nbrowseURL(report)"
+    }
+  ]
+}

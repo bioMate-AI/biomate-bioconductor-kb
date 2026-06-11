@@ -1,0 +1,17 @@
+{
+  "package": "agimicrorna",
+  "requirements": [
+    "AgiMicroRna",
+    "limma"
+  ],
+  "by_workflow": {
+    "agilent_microrna_rma_workflow.nf": [
+      "AgiMicroRna",
+      "limma"
+    ],
+    "main.nf": [
+      "AgiMicroRna",
+      "limma"
+    ]
+  }
+}

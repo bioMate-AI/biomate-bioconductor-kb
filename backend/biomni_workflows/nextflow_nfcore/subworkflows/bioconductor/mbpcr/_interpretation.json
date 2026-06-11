@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxProbeNumber=The maximum number of probes on a chromosome or arm, used to pre-allocate a vector of size (maxProbeNumber+1)*(maxProbeNumber+2)/2 to verify RAM limits ;; chrToBeAnalyzed=Vector of chromosome names to analyze (e.g., integers 1 to 22, \"X\", \"Y\") ;; regr=Regression method, set to 'BRC' to estimate the profile with a Bayesian Regression Curve ;; rhoSquare=Variance of the segment levels (estimated globally or on a highly aberrant sample) ;; nu=Mean parameter of the segments ;; sigmaSquare=Variance of the noise ;; ifLogRatio=Set to 0 if the input copy number data are not in log2 ratio scale\n- alternatives: BPCR (the original algorithm, which mBPCR improves upon) ;; BRC (Bayesian Regression Curve with K_2, which can be run alongside or instead of mBPCR)\n- when_to_use: When estimating copy number profiles (log2 ratio of copy number data) to identify genomic copy number aberrations (gains, losses, breakpoints) from microarray data (e.g., Affymetrix 10K or 250K).\n- pitfalls: Memory allocation: Large maxProbeNumber values require significant RAM because a vector of size (maxProbeNumber+1)*(maxProbeNumber+2)/2 is allocated. Users should test allocation with array(1, dim=(maxProbeNumber+1)*(maxProbeNumber+2)/2) first ;; Parameter estimation: Global parameters (especially rhoSquare) should be estimated on the whole genome, even if analyzing only a part of it ;; Patient samples: For patient samples, it is recommended to estimate rhoSquare on a cell line or a sample with many aberrations (since many aberrations are needed to estimate rhoSquare well) and use that value for all patients.",
+  "workflows": [
+    {
+      "name": "profile_estimation_from_text_file",
+      "intent": "Import tab-delimited copy number data, estimate global parameters, perform mBPCR profile estimation, and export/plot the results.",
+      "input": [
+        "rec10k.txt (tab-delimited text file containing columns for probe names, chromosome, physical position, and copy number/log2 ratio data)"
+      ],
+      "stages": "1. Import data using importCNData ;; 2. Estimate global parameters using estGlobParam ;; 3. Verify memory allocation for maxProbeNumber ;; 4. Estimate copy number profile using estProfileWithMBPCR ;; 5. Export estimated profile and breakpoints using writeEstProfile ;; 6. Plot estimated profile using plotEstProfile",
+      "code": "path <- system.file(\"extdata\", \"rec10k.txt\", package = \"mBPCR\")\nrec10k <- importCNData(path, NRowSkip=1)\nestGlobParam(rec10k$log2ratio)\nmaxProbeNumber <- 1000\nA <- array(1, dim=(maxProbeNumber+1)*(maxProbeNumber+2)/2)\nremove(A)\nresults <- estProfileWithMBPCR(rec10k$SNPname, rec10k$Chromosome, rec10k$PhysicalPosition, rec10k$log2ratio, chrToBeAnalyzed=c(3,5), maxProbeNumber=1000)\nwriteEstProfile(path='', sampleName='rec10k',rec10k$SNPname, rec10k$Chromosome, rec10k$PhysicalPosition, rec10k$log2ratio, chrToBeWritten=c(3,5), results$estPC, results$estBoundaries)\nresults <- estProfileWithMBPCR(rec10k$SNPname, rec10k$Chromosome, rec10k$PhysicalPosition, rec10k$log2ratio, chrToBeAnalyzed=3, regr='BRC', maxProbeNumber=1000)\nplotEstProfile(sampleName='rec10k', rec10k$Chromosome, rec10k$PhysicalPosition, rec10k$log2ratio, chrToBePlotted=3, results$estPC, maxProbeNumber=2000, regrCurve=results$regrCurve, regr='BRC')"
+    },
+    {
+      "name": "profile_estimation_for_oligosnpset",
+      "intent": "Estimate copy number profiles directly from an oligoSnpSet object.",
+      "input": [
+        "oligoSet (an oligoSnpSet object containing copy number data)"
+      ],
+      "stages": "1. Run profile estimation using estProfileWithMBPCRforOligoSnpSet ;; 2. Extract and plot the estimated copy number profile",
+      "code": "library(mBPCR)\nr <-estProfileWithMBPCRforOligoSnpSet(oligoSet, sampleToBeAnalyzed=1, chrToBeAnalyzed=2, maxProbeNumber=1000, ifLogRatio=0, rhoSquare=0.0889637)\ncc <- r$estPC\ncc1 <- cc[chromosome(cc) == \"2\",1]\npar(las=1)\nplot(position(cc1), copyNumber(cc1), ylim=c(-0.23, 0.1), ylab=\"copy number\", xlab=\"base position\")"
+    },
+    {
+      "name": "direct_mbpcr_computation",
+      "intent": "Directly estimate the profile of a specific chromosome subregion or simulated vector without whole-genome overhead.",
+      "input": [
+        "jekoChr11Array250Knsp (a dataset containing log2 ratio and physical position vectors)"
+      ],
+      "stages": "1. Extract the copy number vector y and position vector p ;; 2. Compute the profile directly using computeMBPCR ;; 3. Plot the raw data and the estimated curves",
+      "code": "y <- jekoChr11Array250Knsp$log2ratio[10600:11200]\np <- jekoChr11Array250Knsp$PhysicalPosition[10600:11200]\nresults <- computeMBPCR(y, nu=-3.012772e-10, rhoSquare=0.0479, sigmaSquare=0.0699, regr='BRC')\nplot(p,y)\npoints(p, results$estPC, type='l', col='red')\npoints(p, results$regrCurve, type='l', col='green')\nlegend(x='bottomleft', legend=c('mBPCR', 'BRC with K_2'), lty=c(1, 1), col=c(4, 2))"
+    }
+  ]
+}

@@ -1,95 +1,151 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: deepSNV
-// This package provides provides quantitative variant callers for detecting subclonal mutations in ult
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/deepSNV/inst/doc/deepSNV.R
-// Upstream  : RColorBrewer
-// Downstream: none
-//
-// Install: BiocManager::install("deepSNV")
+// Bioconductor workflow: deepsnv — pairwise_deepsnv
+// Call subclonal single nucleotide variants by comparing a single test BAM file to a matched control BAM file.
+// Input: test.bam, control.bam
+// Container: quay.io/biocontainers/bioconductor-deepsnv:1.56.0--r45ha27e39d_0
+// R packages: Rsamtools, deepSNV, RColorBrewer
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEEPSNV {
+process BIOC_DEEPSNV_PAIRWISE_DEEPSNV {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-deepsnv"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-deepsnv:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-deepsnv:1.52.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-deepsnv:1.56.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_deepsnv_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_deepsnv_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_deepsnv_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "deepSNV", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(deepSNV)
-    library(jsonlite)
-
-    # --- normalize [] ---
-    # Key functions: normalize
-    data(phiX, package="deepSNV")
-    plot(phiX, cex.min=.5)
-    phiN <- normalize(phiX, round=TRUE)
-    # --- qqplot [] ---
-    # Key functions: qqplot
-    p.norm <- p.val(phiN)
-    n <- sum(!is.na(p.norm))
-    qqplot(p.norm, seq(1/n,1, length.out=n), log="xy", type="S", xlab="P-value", ylab="CDF")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_deepsnv_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_deepsnv_results.csv")
+    library(Rsamtools)
+    
+    # === 1. Define genomic regions of interest ===
+    # Dynamically extract the first chromosome and a reasonable region from the test BAM file
+    test_bam <- "test.bam"
+    control_bam <- "control.bam"
+    
+    if (!file.exists(test_bam)) {
+      stop("Error: test.bam not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_deepsnv_output.rds")
+    if (!file.exists(control_bam)) {
+      stop("Error: control.bam not found in the working directory.")
     }
+    
+    header <- scanBamHeader(test_bam)
+    targets <- header[[1]]\$targets
+    if (length(targets) == 0) {
+      stop("Error: No sequences found in the BAM header.")
+    }
+    
+    chr_name <- names(targets)[1]
+    chr_len <- targets[1]
+    
+    # Define the region of interest (e.g., first 5000 bp or the whole chromosome if shorter)
+    regions <- data.frame(chr = chr_name, start = 1, stop = min(chr_len, 5000))
+    
+    # === 2. Run deepSNV to compare test and control BAM files ===
+    HIVmix <- deepSNV(test = test_bam, control = control_bam, regions = regions, q = 10)
+    show(HIVmix)
+    
+    # Safely access rows 100:110 of control and test counts
+    tryCatch({
+      print(control(HIVmix)[100:110, ])
+    }, error = function(e) {
+      message("Note: Could not subset rows 100:110 from control (fewer rows than expected). Printing head instead:")
+      print(head(control(HIVmix)))
+    })
+    
+    tryCatch({
+      print(test(HIVmix)[100:110, ])
+    }, error = function(e) {
+      message("Note: Could not subset rows 100:110 from test (fewer rows than expected). Printing head instead:")
+      print(head(test(HIVmix)))
+    })
+    
+    # Generate and save the diagnostic plot
+    pdf("deepSNV_plot.pdf")
+    plot(HIVmix)
+    dev.off()
+    
+    # === 3. Normalize the data to correct for systematic biases ===
+    phiN <- normalize(HIVmix, round = TRUE)
+    
+    # === 4. Estimate dispersion using a beta-binomial model ===
+    RCC.bb <- estimateDispersion(phiN, alternative = "two.sided")
+    
+    # === 5. Summarize significant SNVs ===
+    SNVs <- summary(HIVmix, sig.level = 0.05, adjust.method = "BH")
+    tab <- summary(RCC.bb, adjust.method = "bonferroni")[, 1:6]
+    
+    # Save meaningful results to files
+    write.csv(SNVs, "significant_SNVs.csv", row.names = FALSE)
+    write.csv(tab, "dispersion_summary.csv", row.names = TRUE)
+    saveRDS(HIVmix, "HIVmix.rds")
+    saveRDS(phiN, "phiN.rds")
+    saveRDS(RCC.bb, "RCC_bb.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEEPSNV:", paste0("    deepsnv: ", packageVersion("deepSNV"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEEPSNV_PAIRWISE_DEEPSNV":',
+        paste0('        deepsnv: ', as.character(packageVersion("deepsnv")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_deepsnv_results.csv
-    touch ${prefix}_deepsnv_output.rds
-    echo "BIOC_DEEPSNV:" > versions.yml
-    echo "    deepsnv: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_deepsnv.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEEPSNV_WORKFLOW {
+workflow BIOC_DEEPSNV_PAIRWISE_DEEPSNV_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ test.bam, control.bam ] ]
 
     main:
-    BIOC_DEEPSNV(ch_input)
+    BIOC_DEEPSNV_PAIRWISE_DEEPSNV(ch_input)
 
     emit:
-    results  = BIOC_DEEPSNV.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEEPSNV.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEEPSNV.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEEPSNV.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEEPSNV_PAIRWISE_DEEPSNV.out.tables
+    plots    = BIOC_DEEPSNV_PAIRWISE_DEEPSNV.out.plots
+    objects  = BIOC_DEEPSNV_PAIRWISE_DEEPSNV.out.objects
+    versions = BIOC_DEEPSNV_PAIRWISE_DEEPSNV.out.versions
 }

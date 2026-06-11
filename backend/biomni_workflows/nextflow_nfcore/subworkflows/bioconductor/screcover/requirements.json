@@ -1,0 +1,18 @@
+{
+  "package": "screcover",
+  "requirements": [
+    "BiocParallel",
+    "SingleCellExperiment",
+    "scRecover"
+  ],
+  "by_workflow": {
+    "dropout_estimation.nf": [
+      "scRecover"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "scRecover"
+    ]
+  }
+}

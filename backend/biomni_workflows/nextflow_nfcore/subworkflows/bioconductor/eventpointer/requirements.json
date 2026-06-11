@@ -1,0 +1,23 @@
+{
+  "package": "eventpointer",
+  "requirements": [
+    "EventPointer",
+    "R.utils",
+    "SGSeq",
+    "aroma.affymetrix"
+  ],
+  "by_workflow": {
+    "junction_array_pipeline.nf": [
+      "EventPointer",
+      "R.utils",
+      "aroma.affymetrix"
+    ],
+    "main.nf": [
+      "EventPointer",
+      "SGSeq"
+    ],
+    "rna_seq_transcriptome_pipeline.nf": [
+      "EventPointer"
+    ]
+  }
+}

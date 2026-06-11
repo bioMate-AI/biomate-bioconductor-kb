@@ -1,0 +1,15 @@
+{
+  "package": "coregx",
+  "requirements": [
+    "CoreGx",
+    "SummarizedExperiment",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CoreGx",
+      "SummarizedExperiment",
+      "data.table"
+    ]
+  }
+}

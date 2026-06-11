@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=The input data.frame when using the generic data.frame method ;; .x=The column or vector representing the x-coordinate (e.g., first dimension of PCA) when using a data.frame ;; .y=The column or vector representing the y-coordinate (e.g., second dimension of PCA) when using a data.frame ;; dimred=A character string specifying the dimensionality reduction slot (e.g., \"PCA\") to use instead of spatial coordinates ;; var=The metadata column name in colData or the data.frame to map to the visual layer ;; stroke=Numeric value to adjust the border stroke of the ground layer ;; size=Numeric value to adjust the size of the symbol layer\n- alternatives: schex=Mentioned as the package that originally proposed the binning strategy to avoid overplotting, which escheR implements via add_ground_bin and add_fill_bin ;; Seurat/Giotto=Other single-cell/spatial analysis pipelines; users must manually export data to a data.frame or use tidyseurat to pipe data into escheR as there is no direct seamless interface\n- when_to_use: Use when you need to visualize multi-dimensional spatially-resolved transcriptomics data (e.g., 10x Visium, seqFISH, Slide-seq V2) or dimensionality-reduced single-cell embeddings in a 2D space, particularly when overlaying multiple variables (such as gene expression and spatial domains) on the same plot.\n- pitfalls: binning_strategy=The binning strategy (add_ground_bin and add_fill_bin) can lead to intermixing of cluster memberships because the majority membership of the data points in a bin is selected as the label; interpret carefully ;; layer_ordering=Always apply add_fill() as the first step before other add_* functions to achieve the best visual effect due to the layering mechanism ;; bin_ordering=add_fill_bin() should be applied after add_ground_bin() for the best visualization outcome ;; large_categories=It is intrinsically difficult to construct a clear visualization when the number of categories/levels is large; use symbols (add_symbol()) to annotate specific levels to avoid clutter in the color space ;; performance=Trimming down colData(spe) before piping into make_escheR is recommended to reduce computation time when it contains an extremely large number of irrelevant columns",
+  "workflows": [
+    {
+      "name": "spatial_experiment_visualization",
+      "intent": "Visualize multi-dimensional spatial transcriptomics data from a SpatialExperiment or SingleCellExperiment object by adding layered fill, ground, and symbol aesthetics.",
+      "input": [
+        "spe.rds (SpatialExperiment object containing spatial coordinates, assays, and colData metadata)"
+      ],
+      "stages": "1. Initialize the plot using make_escheR(), optionally specifying a dimensionality reduction slot.\n2. Add a fill layer using add_fill().\n3. Add a ground layer using add_ground().\n4. Add a symbol layer using add_symbol().\n5. Customize aesthetics using standard ggplot2 scales (e.g., scale_fill_gradient(), scale_color_manual()).",
+      "code": "# Set up an escheR plot\np <- make_escheR(spe)\n\n# Adding fill layer\n(p1 <- p |>\n   add_fill(var = \"cell_count\"))\n\n# Adding ground layer\n(p2 <- p |>\n   add_ground(var = \"ground_truth\"))\n\n# Adding symbol layer\np2 |>\n  add_symbol(var = \"ground_truth\", size = 0.2)\n\n# Visualizing dimensionality reduced embedding\nmake_escheR(\n  spe,\n  dimred = \"PCA\"\n) |> \n  add_fill(var = \"ground_truth\") +\n  theme_minimal()\n\n# Customizing color palettes for multi-dimensional visualization\n(p <- make_escheR(spe) |> \n    add_fill(var = \"counts_MOBP\") |> \n    add_ground(var = \"ground_truth\", stroke = 0.5))\n\n(p2 <- p + \n   scale_fill_gradient(low = \"white\", high = \"black\"))"
+    },
+    {
+      "name": "binned_spatial_visualization",
+      "intent": "Visualize high-density spatial transcriptomics data using point binning to avoid overplotting.",
+      "input": [
+        "spe.rds (SpatialExperiment object with spatial coordinates or dimensionality reduction embeddings)"
+      ],
+      "stages": "1. Initialize the plot with make_escheR(), optionally specifying dimred.\n2. Add a binned ground layer using add_ground_bin().\n3. Add a binned fill layer using add_fill_bin().\n4. Customize scales using scale_fill_gradient() and scale_color_discrete().",
+      "code": "# Point Binning version\nmake_escheR(\n  spe,\n  dimred = \"PCA\"\n) |> \n  add_ground_bin(\n    var = \"ground_truth\"\n    ) |> \n  add_fill_bin(\n    var = \"counts_MOBP\"\n    ) +\n  # Customize aesthetics\n   scale_fill_gradient(low = \"white\", high = \"black\", name = \"MOBP Count\")+\n  scale_color_discrete(name = \"Spatial Domains\") +\n  theme_minimal()"
+    },
+    {
+      "name": "dataframe_visualization",
+      "intent": "Visualize multi-dimensional data from a generic R data.frame (e.g., exported from Seurat) using custom x and y coordinates.",
+      "input": [
+        "pbmc_meta.rds (data.frame containing metadata)",
+        "pbmc_2pc.rds (matrix or data.frame containing 2D coordinates like PCA embeddings)"
+      ],
+      "stages": "1. Initialize the plot using make_escheR() with object, .x, and .y arguments.\n2. Add a fill layer using add_fill().",
+      "code": "# Call generic function for make_escheR.data.frame\nmake_escheR(\n  object = pbmc_meta,\n  .x = pbmc_2pc[,1],\n  .y = pbmc_2pc[,2]) |>\n  add_fill(var = \"groups\")"
+    }
+  ]
+}

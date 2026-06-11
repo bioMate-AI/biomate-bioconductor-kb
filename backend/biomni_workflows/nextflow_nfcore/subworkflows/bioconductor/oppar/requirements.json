@@ -1,0 +1,19 @@
+{
+  "package": "oppar",
+  "requirements": [
+    "Biobase",
+    "GO.db",
+    "limma",
+    "oppar",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GO.db",
+      "limma",
+      "oppar",
+      "org.Hs.eg.db"
+    ]
+  }
+}

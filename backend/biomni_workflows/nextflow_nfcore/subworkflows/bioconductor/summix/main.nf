@@ -1,116 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Summix
-// This package contains the Summix2 method for estimating and adjusting for substructure in genetic su
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Summix/inst/doc/Summix.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Summix")
+// Bioconductor workflow: Summix — global_ancestry_estimation
+// Estimate reference group proportions (global ancestry) in genetic summary allele frequency data.
+// Input: ancestryData
+// Container: quay.io/biocontainers/bioconductor-summix:2.16.0--r45hdfd78af_0
+// R packages: Summix
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Summix
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and data. 2. Run summix() to estimate reference ancestry proportions
 
 nextflow.enable.dsl = 2
 
-process BIOC_SUMMIX {
+process BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-summix"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-summix:2.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-summix:2.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_summix_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_summix_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_summix_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Summix")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # 1. Load the package
     library(Summix)
-    library(jsonlite)
-
-    # --- Allele Frequency Adjustment [] ---
-    # Key functions: adjAF
-    data("ancestryData")
-    adjusted_data <- adjAF(
-        data = ancestryData,
-        reference = c("reference_AF_afr", "reference_AF_eur"),
-        observed = "gnomad_AF_afr",
-        pi.target = c(1, 0),
-        pi.observed = c(0.85, 0.15),
-        adj_method = "average",
-        N_reference = c(704, 741),
-        N_observed = 20744,
-        filter = TRUE
-    )
-
-
-    # --- Multi-Ancestry Adjustment [] ---
-    # Key functions: adjAF
-    data("ancestryData")
-    adjusted_multi <- adjAF(
-        data = ancestryData,
-        reference = c("reference_AF_afr", "reference_AF_eur",
-                      "reference_AF_iam"),
-        observed = "gnomad_AF_afr",
-        pi.target = c(1, 0, 0),
-        pi.observed = c(0.812, 0.170, 0.018),
-        adj_method = "average",
-        N_reference = c(704, 741, 47),
-        N_observed = 20744,
-        filter = TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_summix_results.csv", row.names = TRUE)
+    
+    # 2. Read the user input file 'ancestryData'
+    # We check for common formats: CSV, TSV, or RDS
+    if (file.exists("ancestryData.csv")) {
+      ancestryData <- read.csv("ancestryData.csv", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+    } else if (file.exists("ancestryData.tsv")) {
+      ancestryData <- read.delim("ancestryData.tsv", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+    } else if (file.exists("ancestryData.rds")) {
+      ancestryData <- readRDS("ancestryData.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_summix_results.csv")
+      stop("Required input file 'ancestryData' (CSV, TSV, or RDS) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_summix_output.rds")
+    
+    # Print head of the input data as documented
+    print(head(ancestryData))
+    
+    # Dynamically identify reference and observed columns
+    # Identify numeric columns to find allele frequencies
+    is_num <- sapply(ancestryData, is.numeric)
+    num_cols <- colnames(ancestryData)[is_num]
+    
+    # Exclude common numeric metadata columns
+    meta_cols <- c("POS", "CHR", "CHROM", "BP", "position", "SNP", "ID")
+    af_cols <- setdiff(num_cols, meta_cols)
+    
+    if (length(af_cols) < 2) {
+      stop("Not enough numeric columns found for reference and observed data.")
     }
+    
+    # Assume the last allele frequency column is the observed group, and the rest are reference groups
+    reference_cols <- af_cols[1:(length(af_cols) - 1)]
+    observed_col <- af_cols[length(af_cols)]
+    
+    # 3. Run summix to estimate reference ancestry proportions
+    results <- summix(data = ancestryData,
+        reference = reference_cols,
+        observed = observed_col)
+    
+    # Print the results to console
+    print(results)
+    
+    # 4. Write named output files
+    write.csv(results, "global_ancestry_proportions.csv", row.names = FALSE)
+    saveRDS(results, "global_ancestry_proportions.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SUMMIX:", paste0("    summix: ", packageVersion("Summix"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION":',
+        paste0('    Summix: ', as.character(packageVersion('Summix')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_summix_results.csv
-    touch ${prefix}_summix_output.rds
-    echo "BIOC_SUMMIX:" > versions.yml
-    echo "    summix: 0.0.0" >> versions.yml
+    touch ${prefix}_global_ancestry_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SUMMIX_WORKFLOW {
+workflow BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ancestryData ] ]
 
     main:
-    BIOC_SUMMIX(ch_input)
+    BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_SUMMIX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SUMMIX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SUMMIX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SUMMIX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION.out.tables
+    plots    = BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION.out.plots
+    objects  = BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION.out.objects
+    versions = BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION.out.versions
 }

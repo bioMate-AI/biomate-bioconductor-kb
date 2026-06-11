@@ -1,105 +1,168 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mbkmeans
-// Implements the mini-batch k-means algorithm for large datasets, including support for on-disk data r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mbkmeans/inst/doc/Vignette.R
-// Upstream  : DelayedMatrixStats, SingleCellExperiment, TENxPBMCData, bluster, scater
-// Downstream: OSCA.basic
-//
-// Install: BiocManager::install("mbkmeans")
+// Bioconductor workflow: mbkmeans — mbkmeans_direct_clustering
+// Cluster single-cell data represented as a SingleCellExperiment or matrix-like object using the mini-batch k-means algorithm, including batch size estimation and
+// Input: sce_object.rds
+// Container: quay.io/biocontainers/bioconductor-mbkmeans:1.26.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, mbkmeans, scater
+// Visualizations: elbow plot
+// QC: cell QC metrics, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run mbkmeans on a specific assay of the SingleCellExperiment
+//  * 2. [Core Analysis] Estimate optimal batch size using blocksize()
+//  * 3. [Core Analysis] Run mbkmeans with random initialization
+//  * 4. [Core Analysis] Perform PCA and run mbkmeans across multiple k values to find the optimal number of clusters using WCSS
 
 nextflow.enable.dsl = 2
 
-process BIOC_MBKMEANS {
+process BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mbkmeans"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mbkmeans:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mbkmeans:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(singlecellexperiment)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mbkmeans_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mbkmeans_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mbkmeans_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(TENxPBMCData)
-    library(scater)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-
-    # --- Packages [] ---
-    # Key functions: TENxPBMCData, sample, logNormCounts, pbmc4k
-    library(TENxPBMCData)
-    library(scater)
-    library(SingleCellExperiment)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(mbkmeans)
-    library(DelayedMatrixStats)
-
-    ## -----------------------------------------------------------------------------
-    tenx_pbmc4k <- TENxPBMCData(dataset = "pbmc4k")
-
-    set.seed(1034)
-    idx <- sample(seq_len(NCOL(tenx_pbmc4k)), 100)
-    sce <- tenx_pbmc4k[, idx]
-
-    #normalization
-    sce <- logNormCounts(sce)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mbkmeans_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mbkmeans_results.csv")
+    library(scater)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 0: Load User Input and Prepare Data
+    # -----------------------------------------------------------------------------
+    # Read the user-provided SingleCellExperiment object
+    if (!file.exists("sce_object.rds")) {
+      stop("Error: 'sce_object.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mbkmeans_output.rds")
+    
+    sce1000 <- readRDS("sce_object.rds")
+    
+    # Ensure the object is a SingleCellExperiment
+    if (!inherits(sce1000, "SingleCellExperiment")) {
+      stop("Error: The loaded object is not a SingleCellExperiment.")
     }
+    
+    # Ensure logcounts assay exists; if not, compute it
+    if (!"logcounts" %in% assayNames(sce1000)) {
+      message("'logcounts' assay not found. Computing log-normalized counts...")
+      sce1000 <- scater::logNormCounts(sce1000)
+    }
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Run mbkmeans on a specific assay of the SingleCellExperiment
+    # -----------------------------------------------------------------------------
+    res <- mbkmeans(sce1000, clusters = 5,
+                    reduceMethod = NA,
+                    whichAssay = "logcounts")
+    
+    # Save Stage 1 results
+    saveRDS(res, "mbkmeans_res_k5.rds")
+    write.csv(as.data.frame(res\$Clusters), "cluster_assignments_k5.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Estimate optimal batch size using blocksize()
+    # -----------------------------------------------------------------------------
+    batchsize <- blocksize(sce1000)
+    
+    # Save batch size estimation
+    writeLines(as.character(batchsize), "estimated_batch_size.txt")
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Run mbkmeans with random initialization
+    # -----------------------------------------------------------------------------
+    res_random <- mbkmeans(sce1000, clusters = 5, 
+                    reduceMethod = NA,
+                    whichAssay = "logcounts",
+                    initializer = "random")
+    
+    # Save Stage 3 results
+    saveRDS(res_random, "mbkmeans_res_random_k5.rds")
+    
+    # Compare initializations and save comparison table
+    init_comparison <- table(res\$Clusters, res_random\$Clusters)
+    write.csv(as.data.frame.matrix(init_comparison), "initialization_comparison.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Perform PCA and run mbkmeans across multiple k values (optimal k selection)
+    # -----------------------------------------------------------------------------
+    sce1000 <- runPCA(sce1000, ncomponents=20)
+    
+    ks <- seq(5, 15)
+    res <- lapply(ks, function(k) {
+        mbkmeans(sce1000, clusters = k,
+                 reduceMethod = "PCA",
+                 calc_wcss = TRUE, num_init=10)
+    })
+    
+    wcss <- sapply(res, function(x) sum(x\$WCSS_per_cluster))
+    
+    # Save WCSS results
+    wcss_df <- data.frame(k = ks, WCSS = wcss)
+    write.csv(wcss_df, "wcss_results.csv", row.names = FALSE)
+    saveRDS(res, "mbkmeans_res_multi_k.rds")
+    
+    # Plot the elbow curve and save as PDF
+    pdf("wcss_elbow_plot.pdf", width = 7, height = 5)
+    plot(ks, wcss, type = "b", xlab = "Number of Clusters (k)", ylab = "Within-Cluster Sum of Squares (WCSS)",
+         main = "Elbow Method for Optimal k Selection")
+    dev.off()
+    
+    # Save the final updated SingleCellExperiment object
+    saveRDS(sce1000, "sce_processed.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MBKMEANS:", paste0("    mbkmeans: ", packageVersion("mbkmeans"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING":',
+        paste0('    mbkmeans: ', as.character(packageVersion('mbkmeans')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mbkmeans_results.csv
-    touch ${prefix}_mbkmeans_output.rds
-    echo "BIOC_MBKMEANS:" > versions.yml
-    echo "    mbkmeans: 0.0.0" >> versions.yml
+    touch ${prefix}_mbkmeans_direct_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_MBKMEANS_WORKFLOW {
+workflow BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(singlecellexperiment) ]
+    ch_input  // channel: [ val(meta), [ sce_object.rds ] ]
 
     main:
-    BIOC_MBKMEANS(ch_input)
+    BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_MBKMEANS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MBKMEANS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MBKMEANS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MBKMEANS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING.out.tables
+    plots    = BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING.out.plots
+    objects  = BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING.out.objects
+    versions = BIOC_MBKMEANS_MBKMEANS_DIRECT_CLUSTERING.out.versions
 }

@@ -1,0 +1,13 @@
+{
+  "package": "hippo",
+  "requirements": [
+    "HIPPO",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HIPPO",
+      "SingleCellExperiment"
+    ]
+  }
+}

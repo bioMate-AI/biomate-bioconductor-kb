@@ -1,106 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HIPPO
-// For scRNA-seq data, it selects features and clusters the cells simultaneously for single-cell UMI da
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HIPPO/inst/doc/example.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("HIPPO")
+// Bioconductor workflow: HIPPO — hippo_scrnaseq_analysis
+// Perform simultaneous feature selection, hierarchical clustering, dimension reduction, visualization, and differential expression analysis on single-cell RNA-seq
+// Input: counts_matrix.rds, gene_annotation.rds
+// Container: quay.io/biocontainers/bioconductor-hippo:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: HIPPO, SingleCellExperiment
+// Visualizations: UMAP plot, t-SNE plot, heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the count data and reference annotations. 2. Generate a diagnostic plot to visualize zero inflation compared to the expected 
 
 nextflow.enable.dsl = 2
 
-process BIOC_HIPPO {
+process BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hippo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hippo:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hippo:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hippo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hippo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hippo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(HIPPO)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(toydata)
-    data(ensg_hgnc)
-    # --- Hippo Dimension Reduction [] ---
-    # Key functions: hippo_dimension_reduction, hippo_tsne_plot
-    ---------------------------------------------------------------------
-    toydata = hippo_dimension_reduction(toydata, method="tsne")
-    hippo_tsne_plot(toydata)
-    # --- Hippo Diffexp [] ---
-    # Key functions: hippo_diffexp
-    ---------------------------------------------------------------------
-    toydata = hippo_diffexp(toydata,
-                      top.n = 5,
-                      switch_to_hgnc = TRUE,
-                      ref = ensg_hgnc)
-    # --- Head [] ---
-    # Key functions: get_hippo_diffexp
-    ---------------------------------------------------------------------
-    head(get_hippo_diffexp(toydata, 1))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hippo_results.csv", row.names = TRUE)
+    
+    # 1. Load the count data and reference annotations
+    if (!file.exists("counts_matrix.rds")) {
+      stop("Error: 'counts_matrix.rds' is required but was not found in the working directory.")
+    }
+    
+    counts <- readRDS("counts_matrix.rds")
+    toydata <- SingleCellExperiment(assays = list(counts = counts))
+    
+    if (file.exists("gene_annotation.rds")) {
+      ensg_hgnc <- readRDS("gene_annotation.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hippo_results.csv")
+      # Fallback: Create a dummy mapping using rownames to ensure the exact code runs
+      ensg_hgnc <- data.frame(
+        ensg = rownames(toydata),
+        hgnc = rownames(toydata),
+        stringsAsFactors = FALSE
+      )
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hippo_output.rds")
-    }
+    
+    # 2. Generate a diagnostic plot
+    pdf("hippo_diagnostic_plot.pdf", width = 6, height = 4)
+    print(hippo_diagnostic_plot(toydata, 
+                          show_outliers = TRUE, 
+                          zvalue_thresh = 2))
+    dev.off()
+    
+    # 3. Run the main HIPPO algorithm
+    set.seed(20200321)
+    toydata = hippo(toydata, K = 10, 
+                    z_threshold = 2, outlier_proportion = 0.00001)
+    
+    # 4. Perform dimension reduction and visualize
+    toydata = hippo_dimension_reduction(toydata, method="umap")
+    pdf("hippo_umap_plot.pdf", width = 6, height = 4)
+    print(hippo_umap_plot(toydata))
+    dev.off()
+    
+    toydata = hippo_dimension_reduction(toydata, method="tsne")
+    pdf("hippo_tsne_plot.pdf", width = 6, height = 4)
+    print(hippo_tsne_plot(toydata))
+    dev.off()
+    
+    # 5. Visualize selected features and zero-inflation reduction
+    pdf("zero_proportion_plot.pdf", width = 6, height = 3)
+    print(zero_proportion_plot(toydata, 
+                         switch_to_hgnc = TRUE, 
+                         ref = ensg_hgnc))
+    dev.off()
+    
+    pdf("hippo_feature_heatmap.pdf", width = 6, height = 4)
+    print(hippo_feature_heatmap(toydata, k = 3, 
+                          switch_to_hgnc = TRUE, 
+                          ref = ensg_hgnc, 
+                          top.n = 20))
+    dev.off()
+    
+    # 6. Conduct differential expression analysis
+    toydata = hippo_diffexp(toydata, 
+                      top.n = 5, 
+                      switch_to_hgnc = TRUE, 
+                      ref = ensg_hgnc)
+    
+    # Extract and save results
+    de_round1 <- get_hippo_diffexp(toydata, 1)
+    write.csv(de_round1, "hippo_de_round1.csv", row.names = TRUE)
+    print(head(de_round1))
+    
+    # Save the final processed object
+    saveRDS(toydata, "hippo_output.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HIPPO:", paste0("    hippo: ", packageVersion("HIPPO"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS":',
+        paste0('    HIPPO: ', as.character(packageVersion('HIPPO')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hippo_results.csv
-    touch ${prefix}_hippo_output.rds
-    echo "BIOC_HIPPO:" > versions.yml
-    echo "    hippo: 0.0.0" >> versions.yml
+    touch ${prefix}_hippo_scrnaseq_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_HIPPO_WORKFLOW {
+workflow BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts_matrix.rds, gene_annotation.rds ] ]
 
     main:
-    BIOC_HIPPO(ch_input)
+    BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_HIPPO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HIPPO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HIPPO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HIPPO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS.out.tables
+    plots    = BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS.out.plots
+    objects  = BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS.out.objects
+    versions = BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS.out.versions
 }

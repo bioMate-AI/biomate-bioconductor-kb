@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genome=The input genome sequence, which can be a BSgenome object or a DNAStringSet ;; directory=The path where the GMAP/GSNAP genome index files will be created and stored ;; create=Logical; if TRUE, the genome index is built ;; k=The k-mer size for the genomic index (e.g., 12L) ;; spliceSites<-=Used to insert known splice sites (as a GRangesList of exons) into the GmapGenome index ;; unique_only=Logical; whether to restrict alignments or tallies to uniquely mapping reads ;; novelsplicing=Logical; whether to enable novel splice site detection ;; splicing=Name of the known splicing database to use (e.g., \"knownGene\") ;; minimum_mapq=Minimum mapping quality for a read to be included in the tally ;; min_base_quality=Minimum base quality for a nucleotide to be tallied\n- alternatives: GMAP=Mentioned as particularly suited for relatively long mRNA and EST sequences (e.g., Roche 454, PacBio), whereas GSNAP is optimized for short reads (Illumina, SOLiD)\n- when_to_use: Use when you need to align short-read sequencing data (RNA-seq or DNA-seq) using GSNAP directly from R, or when you want to perform nucleotide-level summarization (coverage, allele counts, indels) on BAM files using bam_tally\n- pitfalls: Building a genome index can be computationally intensive; the documentation recommends saving and packaging the index using makeGmapGenomePackage to avoid rebuilding it ;; bam_tally returns an opaque pointer to a C-level data structure, which must be processed with a summarization function like variantSummary to get a usable R object (VRanges)",
+  "workflows": [
+    {
+      "name": "short_read_alignment_gsnap",
+      "intent": "Build a genome index (with optional splice sites) and align paired-end short reads (FASTQ) using GSNAP.",
+      "input": [
+        "p53Seq (DNAStringSet of genome sequence)",
+        "fastqs[\"H1993.first\"] (FASTQ file of forward reads)",
+        "fastqs[\"H1993.last\"] (FASTQ file of reverse reads)"
+      ],
+      "stages": "1. Create a GmapGenome index ;; 2. Extract and assign known splice sites ;; 3. Configure alignment parameters using GsnapParam ;; 4. Align reads using gsnap",
+      "code": "gmapGenome <- GmapGenome(genome = p53Seq, \n                         name = paste0(\"TP53_demo_\", \n                           packageVersion(\"TxDb.Hsapiens.UCSC.hg19.knownGene\")), \n                         create = TRUE, \n                         k = 12L)\nexons <- gmapR:::subsetRegion(exonsBy(txdb), roi, \"TP53\")\nspliceSites(gmapGenome, \"knownGene\") <- exons\ngsnapParam <- GsnapParam(genome=gmapGenome,\n                         unique_only=FALSE,\n                         suboptimal_levels=2L, \n                         npaths=10L,\n                         novelsplicing=TRUE,\n                         splicing=\"knownGene\",\n                         indel_penalty=1L,\n                         distant_splice_penalty=1L,\n                         clip_overlap=TRUE)\ngsnapOutput <- gsnap(input_a=fastqs[\"H1993.first\"],\n                     input_b=fastqs[\"H1993.last\"],\n                     params=gsnapParam)"
+    },
+    {
+      "name": "variant_tallying_bam_tally",
+      "intent": "Tally nucleotide-level coverage and allele counts from a BAM file to identify variants.",
+      "input": [
+        "bam_file (BAM file of aligned reads)",
+        "genome (GmapGenome object)"
+      ],
+      "stages": "1. Load or create the GmapGenome object ;; 2. Configure tally parameters using BamTallyParam ;; 3. Run bam_tally on the BAM file ;; 4. Summarize the tallies into a VRanges object using variantSummary",
+      "code": "genome <- TP53Genome()\nparam <- BamTallyParam(genome,\n                       minimum_mapq = mapq,\n                       concordant_only = FALSE, unique_only = FALSE,\n                       primary_only = FALSE,\n                       min_depth = 0L, variant_strand = 1L,\n                       ignore_query_Ns = TRUE,\n                       indels = FALSE, include_soft_clips = 1L, xs=TRUE,\n                       min_base_quality = 23L)\ntallies <-bam_tally(bam_file,\n                    param)\nvariantSummary(tallies)"
+    },
+    {
+      "name": "create_gmap_genome_package",
+      "intent": "Package a GmapGenome index into a reusable R package for distribution and reproducibility.",
+      "input": [
+        "gmapGenome (GmapGenome object)"
+      ],
+      "stages": "1. Package the genome using makeGmapGenomePackage",
+      "code": "makeGmapGenomePackage(gmapGenome=gmapGenome,\n                      version=\"1.0.0\",\n                      maintainer=\"<your.name@somewhere.com>\",\n                      author=\"Your Name\",\n                      destDir=\"myDestDir\",\n                      license=\"Artistic-2.0\",\n                      pkgName=\"GmapGenome.Dmelanogaster.UCSC.dm3\")"
+    }
+  ]
+}

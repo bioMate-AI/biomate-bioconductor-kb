@@ -1,111 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: randRotation
-// A collection of methods for performing random rotations on high-dimensional, normally distributed da
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/randRotation/inst/doc/randRotationIntro.R
-// Upstream  : limma, nlme, sva
-// Downstream: none
-//
-// Install: BiocManager::install("randRotation")
+// Bioconductor workflow: randRotation — linear_model_batch_correction
+// Perform batch effect correction and linear model analysis while obtaining unskewed, rotation-based p-values and false discovery rates (FDR).
+// Input: edata, pdata
+// Container: quay.io/biocontainers/bioconductor-randrotation:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: limma, randRotation, sva
+// Visualizations: plot (ggplot/base)
+// QC: batch-effect correction
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create the design model matrix using model.matrix. 2. Initialize the batch random rotation object using initBatchRandrot, specifyi
 
 nextflow.enable.dsl = 2
 
-process BIOC_RANDROTATION {
+process BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-randrotation"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-randrotation:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-randrotation:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_randrotation_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_randrotation_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_randrotation_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(randRotation)
-    library(ComBat)
-    library(jsonlite)
-
-    # --- Random Rotation and Statistical Testing [] ---
-    # Key functions: rotateStat, pFdr
-    statistic <- function(Y, batch, mod) {
-        Y <- sva::ComBat(dat = Y, batch = batch, mod = mod)
-        fit1 <- limma::lmFit(Y, design = mod)
-        fit1 <- limma::eBayes(fit1)
-        abs(fit1$t[, 2])
-    }
-    rs1 <- rotateStat(
-        initialised.obj = rr, R = 10, statistic = statistic,
-        batch = pdata$batch, mod = mod1
-    )
-    p.vals <- pFdr(rs1)
-
-
-    # --- Null Hypothesis Model Rotation [] ---
-    # Key functions: initRandrot, randrot
-    mod1 <- model.matrix(~1 + phenotype, pdata)
-    rr <- initRandrot(Y = edata, X = mod1, coef.h = 2)
-    coefs <- function(Y, mod) {
-        t(coef(lm.fit(x = mod, y = t(Y))))
-    }
-    mod0 <- model.matrix(~1, pdata)
-    coef01 <- coefs(edata, mod0)
-    coef02 <- coefs(randrot(rr), mod0)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_randrotation_results.csv", row.names = TRUE)
+    library(sva)
+    library(limma)
+    
+    # 1. Load User Input Files
+    if (file.exists("pdata.rds")) {
+      pdata <- readRDS("pdata.rds")
+    } else if (file.exists("pdata.csv")) {
+      pdata <- read.csv("pdata.csv", row.names = 1, stringsAsFactors = TRUE)
+    } else if (file.exists("pdata.tsv")) {
+      pdata <- read.delim("pdata.tsv", row.names = 1, stringsAsFactors = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_randrotation_results.csv")
+      stop("pdata file not found (pdata.rds, pdata.csv, or pdata.tsv)")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_randrotation_output.rds")
+    
+    if (file.exists("edata.rds")) {
+      edata <- readRDS("edata.rds")
+    } else if (file.exists("edata.csv")) {
+      edata <- as.matrix(read.csv("edata.csv", row.names = 1))
+    } else if (file.exists("edata.tsv")) {
+      edata <- as.matrix(read.delim("edata.tsv", row.names = 1))
+    } else {
+      stop("edata file not found (edata.rds, edata.csv, or edata.tsv)")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RANDROTATION:", paste0("    randrotation: ", packageVersion("randRotation"))),
-        "versions.yml"
+    
+    # Ensure correct types and structures
+    pdata\$batch <- as.factor(pdata\$batch)
+    pdata\$phenotype <- as.factor(pdata\$phenotype)
+    edata <- as.matrix(edata)
+    
+    # 2. Execute Documented Workflow
+    mod1 <- model.matrix(~1+phenotype, pdata)
+    rr <- initBatchRandrot(Y = edata, X = mod1, coef.h = 2, batch = pdata\$batch)
+    
+    statistic <- function(Y, batch, mod){
+      Y <- sva::ComBat(dat = Y, batch = batch, mod = mod)
+      fit1 <- limma::lmFit(Y, design = mod)
+      fit1 <- limma::eBayes(fit1)
+      abs(fit1\$t[,2])
+    }
+    
+    rs1 <- rotateStat(initialised.obj = rr, R = 10, statistic = statistic,
+                       batch = pdata\$batch, mod = mod1)
+    
+    p.vals <- pFdr(rs1)
+    fdr.q  <- pFdr(rs1, "fdr.q")
+    fdr.qu <- pFdr(rs1, "fdr.qu")
+    fdr.BH <- pFdr(rs1, "BH")
+    
+    # 3. Save Outputs
+    # Save RDS of the rotation statistics object
+    saveRDS(rs1, "rotate_stat_results.rds")
+    
+    # Save CSV of the results
+    results_df <- data.frame(
+      Feature = rownames(edata),
+      p_value = as.vector(p.vals),
+      fdr_q = as.vector(fdr.q),
+      fdr_qu = as.vector(fdr.qu),
+      fdr_BH = as.vector(fdr.BH),
+      stringsAsFactors = FALSE
     )
+    write.csv(results_df, "randRotation_results.csv", row.names = FALSE)
+    
+    # Save PDF plots
+    pdf("randRotation_plots.pdf", width = 10, height = 5)
+    par(mfrow = c(1, 2))
+    hist(p.vals, col = "lightgreen", main = "Histogram of Rotation p-values", xlab = "p-values")
+    abline(h = nrow(edata)/10, col = "blue", lty = 2)
+    qqunif(p.vals)
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION":',
+        paste0('    randRotation: ', as.character(packageVersion('randRotation')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_randrotation_results.csv
-    touch ${prefix}_randrotation_output.rds
-    echo "BIOC_RANDROTATION:" > versions.yml
-    echo "    randrotation: 0.0.0" >> versions.yml
+    touch ${prefix}_linear_model_batch_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_RANDROTATION_WORKFLOW {
+workflow BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ edata, pdata ] ]
 
     main:
-    BIOC_RANDROTATION(ch_input)
+    BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_RANDROTATION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RANDROTATION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RANDROTATION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RANDROTATION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION.out.tables
+    plots    = BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION.out.plots
+    objects  = BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION.out.objects
+    versions = BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION.out.versions
 }

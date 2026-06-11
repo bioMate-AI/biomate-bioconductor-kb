@@ -1,99 +1,117 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GenomicAlignments
-// Provides efficient containers for storing and manipulating short genomic alignments (typically obtai
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GenomicAlignments/inst/doc/GenomicAlignmentsIntroduction.R
-// Upstream  : BiocManager, GenomicFeatures, Rsamtools, pasillaBamSubset
-// Downstream: AllelicImbalance, Basic4Cseq, ChIPexoQual, groHMM, HelloRanges
-//
-// Install: BiocManager::install("GenomicAlignments")
+// Bioconductor workflow: genomicalignments — read_counting_for_differential_expression
+// Count aligned reads overlapping genomic features to prepare a count matrix for downstream differential expression analysis.
+// Input: bamfiles, features
+// Container: quay.io/biocontainers/bioconductor-genomicalignments:1.46.0--r45h01b2380_0
+// R packages: DESeq2, biocmanager, edgeR, GenomicAlignments, GenomicFeatures, pasillabamsubset, Rsamtools
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENOMICALIGNMENTS {
+process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genomicalignments"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomicalignments:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomicalignments:1.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-genomicalignments:1.46.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genomicalignments_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genomicalignments_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genomicalignments_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GenomicAlignments)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DESeq2", "biocmanager", "edgeR", "GenomicAlignments", "GenomicFeatures", "pasillabamsubset", "Rsamtools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Readgalignments [] ---
-    # Key functions: readGAlignments
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # 1. Load GenomicAlignments and downstream analysis packages
     library(GenomicAlignments)
-    aln1_file <- system.file("extdata", "ex1.bam", package="Rsamtools")
-    aln1 <- readGAlignments(aln1_file)
-    aln1
-    length(aln1)
-    # --- Accessors [] ---
-    # Key functions: seqnames, seqlevels, strand, cigar, qwidth, start, end
-    head(seqnames(aln1))
-    seqlevels(aln1)
-    head(strand(aln1))
-    head(cigar(aln1))
-    head(qwidth(aln1))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomicalignments_results.csv", row.names = TRUE)
+    library(DESeq2)
+    library(edgeR)
+    
+    # 2. Define genomic features of interest and BAM files from user input
+    if (file.exists("features.rds")) {
+        features <- readRDS("features.rds")
+    } else if (file.exists("features")) {
+        features <- readRDS("features")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomicalignments_results.csv")
+        stop("Error: Genomic features file ('features.rds' or 'features') not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomicalignments_output.rds")
+    
+    fls <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
+    if (length(fls) == 0) {
+        stop("Error: No BAM files (*.bam) found in the working directory.")
     }
+    
+    # Assign names to the file list to ensure the overlap object has valid sample names
+    names(fls) <- tools::file_path_sans_ext(basename(fls))
+    
+    # 3. Count overlaps between reads and features using summarizeOverlaps
+    olap <- summarizeOverlaps(features, fls)
+    
+    # 4. Convert the overlap object into a DESeqDataSet or DGEList for differential expression analysis
+    deseq <- DESeqDataSet(olap, design= ~ 1)
+    edger <- DGEList(assay(olap), group=rownames(colData(olap)))
+    
+    # 5. Save outputs to the working directory
+    write.csv(assay(olap), file = "read_counts.csv", row.names = TRUE)
+    saveRDS(olap, file = "summarized_overlaps.rds")
+    saveRDS(deseq, file = "deseq_dataset.rds")
+    saveRDS(edger, file = "edger_dgelist.rds")
+    
+    cat("Pipeline completed successfully. Outputs saved: read_counts.csv, summarized_overlaps.rds, deseq_dataset.rds, edger_dgelist.rds\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENOMICALIGNMENTS:", paste0("    genomicalignments: ", packageVersion("GenomicAlignments"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION":',
+        paste0('        genomicalignments: ', as.character(packageVersion("genomicalignments")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genomicalignments_results.csv
-    touch ${prefix}_genomicalignments_output.rds
-    echo "BIOC_GENOMICALIGNMENTS:" > versions.yml
-    echo "    genomicalignments: 0.0.0" >> versions.yml
+    touch ${prefix}_read_counting_for_differential_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENOMICALIGNMENTS_WORKFLOW {
+workflow BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bamfiles, features ] ]
 
     main:
-    BIOC_GENOMICALIGNMENTS(ch_input)
+    BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_GENOMICALIGNMENTS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENOMICALIGNMENTS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENOMICALIGNMENTS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENOMICALIGNMENTS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION.out.tables
+    plots    = BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION.out.plots
+    objects  = BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION.out.objects
+    versions = BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION.out.versions
 }

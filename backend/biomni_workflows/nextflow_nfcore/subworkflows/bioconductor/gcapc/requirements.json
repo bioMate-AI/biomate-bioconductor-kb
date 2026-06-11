@@ -1,0 +1,13 @@
+{
+  "package": "gcapc",
+  "requirements": [
+    "GenomicRanges",
+    "gcapc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "gcapc"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Strandtype=Specifies the strand of the sequencing (e.g., \"forward\", \"invert\") in PASEXP_3UTR, PASEXP_IPA, and GENEXP_CDS ;; nts=Number of threads passed to Rsubread::featureCounts in PASEXP_IPA to increase calculation speed ;; conKET=Control group condition name in APAdiff ;; trtKEY=Treatment group condition name in APAdiff ;; PAS=Type of PAS analyzed ('3UTR' or 'IPA') in APAdiff ;; CUTreads=Read count cutoff for filtering in APAdiff (default 0) ;; p_adjust_methods=P-value correction method in APAdiff (default \"fdr\") ;; MultiTest=Statistical method for replicate designs in APAdiff ('unpaired t-test', 'paired t-test', or 'ANOVA') ;; AnnoMethod=Annotation method in PAS2GEF ('legacy' or 'V2') ;; StrandType=Strand type for paired-end BAM extraction in ThreeMostPairBam ('forward-reverse', 'reverse-forward', or 'NONE') ;; SeqType=Set to 'ThreeMostPairEnd' in PASEXP_IPA when using 3'-most extracted alignments\n- alternatives: DEXSeq=Mentioned as an alternative tool based on negative binomial data distribution for significance analysis of replicate designs\n- when_to_use: Appropriate when analyzing alternative polyadenylation (APA) events (3'UTR lengthening/shortening or intronic polyadenylation) and gene expression changes from RNA-seq BAM files\n- pitfalls: makeTxDbFromUCSC=Can throw errors; the docs suggest upgrading Bioconductor, loading genome annotation via GTF, or using prebuilt '.R.DB' files ;; Strandtype=Must be correctly specified based on the RNA-seq library preparation to avoid incorrect read counting ;; Paired-end data=Standard paired-end BAM files should have their 3'-most alignments extracted using ThreeMostPairBam before running PASEXP_3UTR and PASEXP_IPA (with SeqType='ThreeMostPairEnd') to ensure accurate APA analysis",
+  "workflows": [
+    {
+      "name": "apa_analysis_workflow",
+      "intent": "Quantify and analyze differential alternative polyadenylation (APA) in 3'UTRs and introns from RNA-seq BAM files.",
+      "input": [
+        "flsall (named vector of paths to BAM files)",
+        "refUTRraw (data frame of 3'UTR PAS genomic information)",
+        "dfIPA (data frame of intronic PAS genomic information)",
+        "dfLE (data frame of 3' least exon genomic information)"
+      ],
+      "stages": "1. Build PAS reference regions using REF4PAS ;; 2. Build 3'UTR aUTR and cUTR references using REF3UTR ;; 3. Calculate relative expression of 3'UTR APA using PASEXP_3UTR ;; 4. Calculate relative expression of intronic PAS (IPA) using PASEXP_IPA ;; 5. Perform differential APA analysis using APAdiff ;; 6. Visualize results using APAVolcano and APABox",
+      "code": "PASREF=REF4PAS(refUTRraw,dfIPAraw,dfLEraw)\nUTRdbraw=PASREF$UTRdbraw\ndfIPA=PASREF$dfIPA\ndfLE=PASREF$dfLE\nUTRdbraw=REF3UTR(refUTRraw)\nDFUTRraw=PASEXP_3UTR(UTRdbraw, flsall, Strandtype=\"forward\")\nIPA_OUTraw=PASEXP_IPA(dfIPA, dfLE, flsall, Strandtype=\"forward\", nts=1)\nsampleTable1 = data.frame(samplename = c(names(flsall)), condition = c(rep(\"NT\",3),rep(\"KD\",3)))\nsampleTable2 = data.frame(samplename = c(\"SRR316184\",\"SRR316187\"), condition = c(\"NT\",\"KD\"))\ntest_3UTRsing=APAdiff(sampleTable2,DFUTRraw, \n                        conKET='NT',\n                        trtKEY='KD',\n                        PAS='3UTR',\n                        CUTreads=0,\n                        p_adjust_methods=\"fdr\")\ntest_3UTRmuti=APAdiff(sampleTable1,\n                        DFUTRraw, \n                        conKET='NT',\n                        trtKEY='KD',\n                        PAS='3UTR',\n                        CUTreads=0,\n                        p_adjust_methods=\"fdr\",\n                        MultiTest='unpaired t-test')\ntest_IPAsing=APAdiff(sampleTable2,\n                        IPA_OUTraw, \n                        conKET='NT',\n                        trtKEY='KD',\n                        PAS='IPA',\n                        CUTreads=0,\n                        p_adjust_methods=\"fdr\") \ntest_IPAmuti=APAdiff(sampleTable1,\n                        IPA_OUTraw, \n                        conKET='NT',\n                        trtKEY='KD',\n                        PAS='IPA',\n                        CUTreads=0,\n                        p_adjust_methods=\"fdr\",\n                        MultiTest='unpaired t-test')\nAPAVolcano(test_3UTRsing, PAS='3UTR', Pcol = \"pvalue\", top=5, main='3UTR APA')\nAPABox(test_3UTRsing, xlab = \"APAreg\", ylab = \"RED\", plot_title = NULL)"
+    },
+    {
+      "name": "paired_end_3most_extraction",
+      "intent": "Extract the 3'-most alignment from paired-end BAM files to prepare them for accurate APA analysis.",
+      "input": [
+        "Bamfile (path to input paired-end BAM file)",
+        "Outdir (path to output directory)"
+      ],
+      "stages": "1. Extract 3'-most alignments using ThreeMostPairBam ;; 2. Use the extracted BAM file in PASEXP_IPA with SeqType set to 'ThreeMostPairEnd'",
+      "code": "ThreeMostPairBam (BamfilePath=Bamfile,\n\t\t\t\t\tOutDirPath=Outdir,\n\t\t\t\t\tStrandType='forward-reverse')\nIPA_OUTraw=PASEXP_IPA(dfIPA, dfLE, ThreemostBamfile, Strandtype=\"forward\", SeqType=\"ThreeMostPairEnd\")"
+    },
+    {
+      "name": "gene_expression_analysis",
+      "intent": "Assess gene expression changes using RNA-seq reads mapped to coding sequences (CDS).",
+      "input": [
+        "txdb (TxDb object loaded from annotation)",
+        "IDDB (org.Db object for gene identifier mapping)",
+        "flsall (named vector of paths to BAM files)"
+      ],
+      "stages": "1. Build coding region references using REFCDS ;; 2. Calculate gene expression using GENEXP_CDS",
+      "code": "CDSdbraw=REFCDS(txdb,IDDB)\nDFGENEraw=GENEXP_CDS(CDSdbraw, flsall, Strandtype=\"forward\")"
+    }
+  ]
+}

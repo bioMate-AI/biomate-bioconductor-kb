@@ -1,0 +1,17 @@
+{
+  "package": "moonlight2r",
+  "requirements": [
+    "Moonlight2R",
+    "dplyr",
+    "limma",
+    "magrittr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Moonlight2R",
+      "dplyr",
+      "limma",
+      "magrittr"
+    ]
+  }
+}

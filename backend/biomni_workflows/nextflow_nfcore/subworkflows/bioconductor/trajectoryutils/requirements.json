@@ -1,0 +1,15 @@
+{
+  "package": "trajectoryutils",
+  "requirements": [
+    "BiocGenerics",
+    "S4Vectors",
+    "TrajectoryUtils"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "S4Vectors",
+      "TrajectoryUtils"
+    ]
+  }
+}

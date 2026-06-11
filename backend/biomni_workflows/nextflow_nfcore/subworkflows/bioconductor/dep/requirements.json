@@ -1,0 +1,13 @@
+{
+  "package": "dep",
+  "requirements": [
+    "DEP",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DEP",
+      "SummarizedExperiment"
+    ]
+  }
+}

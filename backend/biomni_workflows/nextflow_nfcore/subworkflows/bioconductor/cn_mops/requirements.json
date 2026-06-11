@@ -1,0 +1,17 @@
+{
+  "package": "cn_mops",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "cn.mops",
+    "cn_mops"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "cn.mops",
+      "cn_mops"
+    ]
+  }
+}

@@ -1,102 +1,124 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RGSEA
-// Combining bootstrap aggregating and Gene set enrichment analysis (GSEA), RGSEA is a classfication al
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RGSEA/inst/doc/RGSEA.R
-// Upstream  : GEOquery
-// Downstream: none
-//
-// Install: BiocManager::install("RGSEA")
+// Bioconductor workflow: RGSEA — rgsea_fixed_features
+// Classify query transcriptome samples against a reference dataset using a fixed number of top/bottom features and predict class probabilities.
+// Input: query_matrix.csv, reference_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-rgsea:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RGSEA
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run RGSEAfix to calculate similarity scores using a fixed number of features
+//  * 2. [Core Analysis] View the classification matrix
+//  * 3. [Core Analysis] Predict relative class probabilities using RGSEApredict
 
 nextflow.enable.dsl = 2
 
-process BIOC_RGSEA {
+process BIOC_RGSEA_RGSEA_FIXED_FEATURES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rgsea"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rgsea:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rgsea:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rgsea_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rgsea_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rgsea_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GDS2eSet)
-    library(RGSEAfix)
-    library(RGSEApredict)
-    library(RGSEAsd)
-    library(jsonlite)
-
-    # --- G D S2e Set [] ---
-    # Key functions: GDS2eSet
-    library(GEOquery)
-    g4100 <- GDS2eSet(getGEO("GDS4100"))
-    g4102 <- GDS2eSet(getGEO("GDS4102"))
-    # --- exprs [] ---
-    # Key functions: exprs
-    e4102<-exprs(g4102)
-    e4100<-exprs(g4100)
-    # --- R G S E Afix [] ---
-    # Key functions: RGSEAfix, RGSEApredict, RGSEAsd
-    e1<-e4102[,c(1,51)]
-    e2<-e4100[,c(1,2,23,24)]
-    colnames(e1)<-c("tumor", "normal")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rgsea_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rgsea_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
+    library(RGSEA)
+    
+    # Verify that the required user input files exist in the working directory
+    if (!file.exists("query_matrix.csv")) {
+      stop("Error: 'query_matrix.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rgsea_output.rds")
+    if (!file.exists("reference_matrix.csv")) {
+      stop("Error: 'reference_matrix.csv' not found in the working directory.")
     }
+    
+    # Read the expression matrices
+    e1 <- as.matrix(read.csv("query_matrix.csv", row.names = 1, check.names = FALSE))
+    e2 <- as.matrix(read.csv("reference_matrix.csv", row.names = 1, check.names = FALSE))
+    
+    # Align features (rows) between query and reference datasets
+    common_features <- intersect(rownames(e1), rownames(e2))
+    if (length(common_features) == 0) {
+      stop("Error: No common features (row names) found between query and reference matrices.")
+    }
+    e1 <- e1[common_features, , drop = FALSE]
+    e2 <- e2[common_features, , drop = FALSE]
+    
+    # Determine robust parameters based on the actual number of common features
+    num_features <- length(common_features)
+    random_val <- min(20000, num_features)
+    featurenum_val <- min(1000, floor(random_val / 2))
+    
+    # Ensure featurenum_val is at least 1
+    if (featurenum_val < 1) {
+      featurenum_val <- 1
+    }
+    
+    # 1. Run RGSEAfix to calculate similarity scores using a fixed number of features
+    RGSEAfix(e1, e2, queryclasses=colnames(e1), refclasses=colnames(e2), random=random_val, 
+             featurenum=featurenum_val, iteration=100)->test
+    
+    # 2. View and save the classification matrix
+    classification_matrix <- test[[1]]
+    write.csv(classification_matrix, "classification_matrix.csv", row.names = TRUE)
+    
+    # 3. Predict relative class probabilities using RGSEApredict
+    RGSEApredict(test[[1]], colnames(e2))->predictions
+    write.csv(predictions, "predicted_probabilities.csv", row.names = TRUE)
+    
+    # Save the full RGSEA result object
+    saveRDS(test, "rgsea_result.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RGSEA:", paste0("    rgsea: ", packageVersion("RGSEA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RGSEA_RGSEA_FIXED_FEATURES":',
+        paste0('    RGSEA: ', as.character(packageVersion('RGSEA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rgsea_results.csv
-    touch ${prefix}_rgsea_output.rds
-    echo "BIOC_RGSEA:" > versions.yml
-    echo "    rgsea: 0.0.0" >> versions.yml
+    touch ${prefix}_rgsea_fixed_features.csv versions.yml
     """
 }
 
-
-workflow BIOC_RGSEA_WORKFLOW {
+workflow BIOC_RGSEA_RGSEA_FIXED_FEATURES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ query_matrix.csv, reference_matrix.csv ] ]
 
     main:
-    BIOC_RGSEA(ch_input)
+    BIOC_RGSEA_RGSEA_FIXED_FEATURES(ch_input)
 
     emit:
-    results  = BIOC_RGSEA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RGSEA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RGSEA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RGSEA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RGSEA_RGSEA_FIXED_FEATURES.out.tables
+    plots    = BIOC_RGSEA_RGSEA_FIXED_FEATURES.out.plots
+    objects  = BIOC_RGSEA_RGSEA_FIXED_FEATURES.out.objects
+    versions = BIOC_RGSEA_RGSEA_FIXED_FEATURES.out.versions
 }

@@ -1,185 +1,118 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: treeio
-// 'treeio' is an R package to make it easier to import and store phylogenetic tree with associated dat
-//
-// Source : https://yulab-smu.top/treedata-book/chapter1.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("treeio")
+// Bioconductor workflow: treeio — treeio_transcriptome_phylogeny
+// Build a sample-level phylogenetic tree from transcriptomic profiles, link sample metadata and QC metrics to the tree nodes using treeio, and export the annotate
+// Input: counts.csv, coldata.csv
+// Container: 1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: treeio
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TREEIO {
+process BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-treeio"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-treeio:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-treeio:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_treeio_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_treeio_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_treeio_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(treeio)
-    library(jsonlite)
-
-    # --- Parsing BEAST output [] ---
-    # Key functions: read.beast
-    file <- system.file("extdata/BEAST", "beast_mcc.tree", package="treeio")
-    beast <- read.beast(file)
-    beast
-    # --- Parsing MEGA output [] ---
-    # Key functions: read.mega, read.mega_tabular
-    file <- system.file("extdata/MEGA7", "mtCDNA_timetree.nex",
-                        package = "treeio")
-    read.mega(file)
+    library(stats)
     
-    file <- system.file("extdata/MEGA7", "mtCDNA_timetree_tabular.txt",
-                        package = "treeio")
-    read.mega_tabular(file)
-    # --- Parsing MrBayes output [] ---
-    # Key functions: read.mrbayes
-    file <- system.file("extdata/MrBayes", "Gq_nxs.tre", package="treeio")
-    read.mrbayes(file)
-    # --- Parsing PAML output [] ---
-    # Key functions: read.paml_rst, read.codeml_mlc, read.codeml
-    brstfile <- system.file("extdata/PAML_Baseml", "rst", package="treeio")
-    brst <- read.paml_rst(brstfile)
-    brst
+    # Stage 1: Read input transcriptomics data
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    crstfile <- system.file("extdata/PAML_Codeml", "rst", package="treeio")
-    ## type can be one of "Marginal" or "Joint"
-    crst <- read.paml_rst(crstfile, type = "Joint")
-    crst
+    # Stage 2: Preprocess and compute distance matrix
+    # Log-transform counts to stabilize variance across samples
+    log_counts <- log2(counts + 1)
     
-    mlcfile <- system.file("extdata/PAML_Codeml", "mlc", package="treeio")
-    mlc <- read.codeml_mlc(mlcfile)
-    mlc
-    # --- Parsing HyPhy output [] ---
-    # Key functions: read.hyphy.seq, read.hyphy
-    ancseq <- system.file("extdata/HYPHY", "ancseq.nex", package="treeio")
-    read.hyphy.seq(ancseq)
+    # Compute sample-to-sample Euclidean distance based on expression profiles
+    sample_dist <- dist(t(log_counts))
     
-    nwk <- system.file("extdata/HYPHY", "labelledtree.tree", package="treeio")
-    tipfas <- system.file("extdata", "pa.fas", package="treeio")
-    hy <- read.hyphy(nwk, ancseq, tipfas)
-    hy
-    # --- Parsing r8s output [] ---
-    # Key functions: read.r8s
-    r8s <- read.r8s(system.file("extdata/r8s", "H3_r8s_output.log", package="treeio"))
-    r8s
-    # --- Parsing output of RAxML bootstrap analysis [] ---
-    # Key functions: read.raxml
-    raxml_file <- system.file("extdata/RAxML",
-                              "RAxML_bipartitionsBranchLabels.H3",
-                              package="treeio")
-    raxml <- read.raxml(raxml_file)
-    raxml
-    # --- Parsing NHX tree [] ---
-    # Key functions: read.nhx
-    nhxfile <- system.file("extdata/NHX", "phyldog.nhx", package="treeio")
-    nhx <- read.nhx(nhxfile)
-    nhx
-    # --- Parsing Phylip tree [] ---
-    # Key functions: read.phylip
-    phyfile <- system.file("extdata", "sample.phy", package="treeio")
-    phylip <- read.phylip(phyfile)
-    phylip
-    # --- Parsing EPA and pplacer output [] ---
-    # Key functions: read.jplace
-    jpf <- system.file("extdata/EPA.jplace",  package="treeio")
-    jp <- read.jplace(jpf)
-    print(jp)
-    # --- Parsing jtree format [] ---
-    # Key functions: tempfile, write.jtree, read.jtree
-    jtree_file <- tempfile(fileext = '.jtree')
-    write.jtree(beast, file = jtree_file)
-    read.jtree(file = jtree_file)
-    # --- Converting other tree-like objects to phylo or treedata objects [] ---
-    # Key functions: read.tree, read.phyDat, pml, optim.pml, pml.control, as.treedata, ggtree, geom_text
-    library(phangorn)
-    treefile <- system.file("extdata", "pa.nwk", package="treeio")
-    tre <- read.tree(treefile)
-    tipseqfile <- system.file("extdata", "pa.fas", package="treeio")
-    tipseq <- read.phyDat(tipseqfile,format="fasta")
-    fit <- pml(tre, tipseq, k=4)
-    fit <- optim.pml(fit, optNni=FALSE, optBf=T, optQ=T,
-                     optInv=T, optGamma=T, optEdge=TRUE,
-                     optRooted=FALSE, model = "GTR",
-                     control = pml.control(trace =0))
+    # Stage 3: Build hierarchical clustering tree and convert to phylo
+    hc <- hclust(sample_dist, method = "average")
+    # Convert hclust object to a phylo object using treeio's imported/exported methods
+    phylo_tree <- treeio::as.phylo(hc)
     
-    pmltree <- as.treedata(fit)
-    # --- Getting information from treedata object [] ---
-    # Key functions: read.beast, as.phylo, get.fields, get.data
-    beast_file <- system.file("examples/MCC_FluA_H3.tree", package="ggtree")
-    beast_tree <- read.beast(beast_file)
-    # or get.tree
-    as.phylo(beast_tree)
-    
-    beast_file <- system.file("examples/MCC_FluA_H3.tree", package="ggtree")
-    beast_tree <- read.beast(beast_file)
-    # or get.tree
-    print(as.phylo(beast_tree), printlen=3)
-    
-    get.fields(beast_tree)
-    
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_treeio_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_treeio_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_treeio_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TREEIO:", paste0("    treeio: ", packageVersion("treeio"))),
-        "versions.yml"
+    # Stage 4: Prepare metadata and QC metrics to link with the tree
+    sample_summary <- data.frame(
+      sample = colnames(counts),
+      total_counts = colSums(counts),
+      detected_genes = colSums(counts > 0),
+      stringsAsFactors = FALSE
     )
+    
+    # Merge experimental design metadata with computed QC metrics
+    metadata <- merge(coldata, sample_summary, by = "sample")
+    
+    # Stage 5: Link metadata to the phylogenetic tree using treeio
+    # treeio::full_join merges the data frame with the phylo object by matching tip labels
+    annotated_tree <- treeio::full_join(
+      phylo_tree, 
+      metadata, 
+      by = c("label" = "sample")
+    )
+    
+    # Stage 6: Export the annotated tree and association table
+    # Write the tree with its associated node/tip data in BEAST NEXUS format
+    treeio::write.beast(annotated_tree, file = "annotated_tree.beast")
+    
+    # Convert the treedata object to a tibble/dataframe to export as a flat table
+    tree_df <- as.data.frame(treeio::as_tibble(annotated_tree))
+    write.csv(tree_df, "tree_metadata_association.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY":',
+        paste0('    treeio: ', as.character(packageVersion('treeio')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_treeio_results.csv
-    touch ${prefix}_treeio_output.rds
-    echo "BIOC_TREEIO:" > versions.yml
-    echo "    treeio: 0.0.0" >> versions.yml
+    touch ${prefix}_treeio_transcriptome_phylogeny.csv versions.yml
     """
 }
 
-
-workflow BIOC_TREEIO_WORKFLOW {
+workflow BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_TREEIO(ch_input)
+    BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY(ch_input)
 
     emit:
-    results  = BIOC_TREEIO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TREEIO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TREEIO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TREEIO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY.out.tables
+    plots    = BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY.out.plots
+    objects  = BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY.out.objects
+    versions = BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY.out.versions
 }

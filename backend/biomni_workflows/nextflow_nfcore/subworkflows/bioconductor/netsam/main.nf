@@ -1,99 +1,127 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NetSAM
-// The NetSAM (Network Seriation and Modularization) package takes an edge-list representation of a wei
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NetSAM/inst/doc/NetSAM.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("NetSAM")
+// Bioconductor workflow: netsam — network_seriation_and_modularization
+// Perform network seriation and modularization on an existing network file or object to identify hierarchical modules and optimal leaf ordering, and optionally an
+// Input: network.net
+// Container: quay.io/biocontainers/bioconductor-netsam:1.50.0--r45hdfd78af_0
+// R packages: NetSAM
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NETSAM {
+process BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-netsam"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-netsam:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-netsam:1.46.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-netsam:1.50.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_netsam_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_netsam_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_netsam_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GOAssociation)
-    library(jsonlite)
-
-    # --- Packages [] ---
-    # Key functions: packages
-    ---------------------------------------------------------------------
-    #  install.packages("igraph")
-    #  install.packages("seriation")
-    #  install.packages("WGCNA")
-    #  install.packages("snow")
-    # --- Data [] ---
-    # Key functions: GOAssociation
-    ---------------------------------------------------------------------
-    #  library("NetSAM")
-    #  data(NetSAMOutput_Example)
-    #  outputHtmlFile <- paste(getwd(),"/GOAsso_HTML",sep="")
-    #  GOAsso <- GOAssociation(NetSAMOutput=netsam_output, outputHtmlFile=outputHtmlFile, organism="hsapiens", fdrmethod="BH", fdrth=0.05, topNum=5)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_netsam_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_netsam_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_netsam_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("NetSAM")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NETSAM:", paste0("    netsam: ", packageVersion("NetSAM"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required library
+    library("NetSAM")
+    
+    # Define input file path (must read EXACTLY network.net from the working directory)
+    inputNetworkDir <- "network.net"
+    
+    # Check if the input file exists
+    if (!file.exists(inputNetworkDir)) {
+      stop("Error: Input file 'network.net' not found in the working directory.")
+    }
+    
+    # Define output file path prefix
+    outputFileName <- paste(getwd(), "/NetSAM", sep="")
+    
+    # Stage 1: Run NetSAM to identify hierarchical modules and optimal leaf ordering
+    message("Running NetSAM...")
+    result <- NetSAM(
+      inputNetwork = inputNetworkDir, 
+      outputFileName = outputFileName, 
+      outputFormat = "nsm",
+      edgeType = "unweighted", 
+      map_to_genesymbol = FALSE, 
+      organism = "hsapiens", 
+      idType = "auto", 
+      minModule = 0.003,
+      stepIte = FALSE, 
+      maxStep = 4, 
+      moduleSigMethod = "cutoff", 
+      modularityThr = 0.2, 
+      ZRanNum = 10,
+      PerRanNum = 100, 
+      ranSig = 0.05, 
+      edgeThr = (-1), 
+      nodeThr = (-1), 
+      nThreads = 3
     )
+    
+    # Save the result object to an RDS file
+    saveRDS(result, file = "NetSAM_result.rds")
+    message("NetSAM analysis complete. Result saved to 'NetSAM_result.rds'.")
+    
+    # Stage 2: Run NetAnalyzer to calculate network centrality measurements and plot their distributions
+    message("Running NetAnalyzer...")
+    inputNetwork <- "network.net"
+    NetAnalyzer(inputNetwork, outputFileName, "unweighted")
+    message("NetAnalyzer analysis complete. Outputs saved with prefix 'NetSAM'.")
+
+    writeLines(c(
+        '"BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION":',
+        paste0('        netsam: ', as.character(packageVersion("netsam")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_netsam_results.csv
-    touch ${prefix}_netsam_output.rds
-    echo "BIOC_NETSAM:" > versions.yml
-    echo "    netsam: 0.0.0" >> versions.yml
+    touch ${prefix}_network_seriation_and_modularization.csv versions.yml
     """
 }
 
-
-workflow BIOC_NETSAM_WORKFLOW {
+workflow BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ network.net ] ]
 
     main:
-    BIOC_NETSAM(ch_input)
+    BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION(ch_input)
 
     emit:
-    results  = BIOC_NETSAM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NETSAM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NETSAM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NETSAM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION.out.tables
+    plots    = BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION.out.plots
+    objects  = BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION.out.objects
+    versions = BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION.out.versions
 }

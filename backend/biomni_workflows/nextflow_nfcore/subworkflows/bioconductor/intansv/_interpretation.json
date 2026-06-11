@@ -1,0 +1,23 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genomeAnnotation=A data frame containing genomic annotations with exactly 6 columns (chr, tag, start, end, strand, ID) used to annotate SVs ;; genome=A data frame containing chromosome lengths (chromosome, length) used to plot whole-genome SV distribution ;; binSize=The window size in base pairs (e.g., 1000000) used to bin SVs for whole-genome visualization\n- alternatives: The package integrates predictions from BreakDancer, CNVnator, SVseq2, DELLY, Pindel, Lumpy, and softSearch, noting that combining multiple callers is superior to relying on any single method.\n- when_to_use: Use this package when you have structural variation predictions from one or more supported callers and want to merge them into a consensus set, annotate their impact on genes, and visualize their genomic distribution.\n- pitfalls: The directory provided to readCnvnator must only contain the final output files of CNVnator. ;; The files containing predicted deletions for readSvseq must have the suffix .del. ;; The files containing predicted deletions, inversions, and duplications for readPindel must have the suffixes _D, _INV, and _TD respectively. ;; svAnnotation only accepts a data frame, so you must apply it to each component of the merged list (e.g., using llply or lapply). ;; Custom predictions from unsupported programs must be manually formatted into a data frame with exactly six columns: chromosome, pos1, pos2, size, type, and methods.",
+  "workflows": [
+    {
+      "name": "sv_integration_annotation_visualization",
+      "intent": "Read structural variation predictions from multiple callers, merge them into a consensus set, annotate their genomic effects, and visualize their distribution.",
+      "input": [
+        "ZS97.breakdancer.sv (BreakDancer output file)",
+        "cnvnator (Directory containing CNVnator output files)",
+        "svseq2 (Directory containing SVseq2 output files with .del suffix)",
+        "ZS97.DELLY.vcf (DELLY VCF output file)",
+        "pindel (Directory containing Pindel output files with _D, _INV, _TD suffixes)",
+        "ZS97.LUMPY.vcf (Lumpy VCF output file)",
+        "ZS97.softsearch (softSearch output file)",
+        "chr05_chr10.anno.txt (Plain text genomic annotation file with 6 columns)",
+        "chr05_chr10.genome.txt (Plain text genome chromosome length file)"
+      ],
+      "stages": "1. Read predictions from individual SV callers using readBreakDancer, readCnvnator, readSvseq, readDelly, readPindel, readLumpy, and readSoftSearch. ;; 2. Integrate predictions from multiple programs using methodsMerge. ;; 3. Load genomic annotation and annotate SV effects using svAnnotation. ;; 4. Load genome chromosome lengths and plot whole-genome SV distribution using plotChromosome. ;; 5. Visualize SVs in a specific genomic region using plotRegion.",
+      "code": "breakdancer.file.path <- system.file(\"extdata/ZS97.breakdancer.sv\",\n                               package=\"intansv\")\nbreakdancer <- readBreakDancer(breakdancer.file.path)\ncnvnator.dir.path <- system.file(\"extdata/cnvnator\", package=\"intansv\")\ncnvnator <- readCnvnator(cnvnator.dir.path)\nsvseq.dir.path <- system.file(\"extdata/svseq2\", package=\"intansv\")\nsvseq <- readSvseq(svseq.dir.path)\ndelly.file.path <- system.file(\"extdata/ZS97.DELLY.vcf\", package=\"intansv\")\ndelly <- readDelly(delly.file.path)\npindel.dir.path <- system.file(\"extdata/pindel\", package=\"intansv\")\npindel <- readPindel(pindel.dir.path)\nlumpy.file.path <- system.file(\"extdata/ZS97.LUMPY.vcf\",\n                   package=\"intansv\")\nlumpy <- readLumpy(lumpy.file.path)\nsoftSearch.file.path <- system.file(\"extdata/ZS97.softsearch\", package=\"intansv\")\nsoftSearch <- readSoftSearch(softSearch.file.path)\nsv_all_methods <- methodsMerge(breakdancer, pindel, cnvnator, delly, svseq)\nanno.file.path <- system.file(\"extdata/chr05_chr10.anno.txt\", package=\"intansv\")\nmsu_gff_v7 <- read.table(anno.file.path, head=TRUE, as.is=TRUE)\nsv_all_methods.anno <- llply(sv_all_methods,svAnnotation,\n                             genomeAnnotation=msu_gff_v7)\ngenome.file.path <- system.file(\"extdata/chr05_chr10.genome.txt\", package=\"intansv\")\ngenome <- read.table(genome.file.path, head=TRUE, as.is=TRUE)\nplotChromosome(genome, sv_all_methods,1000000)\nplotRegion(sv_all_methods,msu_gff_v7, \"chr05\", 1, 200000)"
+    }
+  ]
+}

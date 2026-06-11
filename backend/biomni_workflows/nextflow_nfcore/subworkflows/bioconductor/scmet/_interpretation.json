@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=A data.table in long format containing single-cell methylation data with columns Feature, Cell, total_reads (total covered CpGs), and met_reads (methylated CpGs) ;; X=An optional matrix containing feature-specific covariates (e.g., CpG density) where the first column is the intercept (vector of 1s) ;; L=Number of radial basis functions (RBFs) used to model the mean-overdispersion relationship (e.g., L = 4) ;; iter=Total number of variational Bayes (VB) iterations (recommend ~20,000 for convergence; default/demo uses smaller values like 300 or 1000) ;; use_mcmc=Logical flag; set to TRUE for small datasets to use MCMC instead of VB for more stable and accurate results ;; delta_e=Percentile threshold of variable genes used in HVF analysis (e.g., 0.75) ;; evidence_thresh=Posterior evidence threshold for calling highly variable features (e.g., 0.8) ;; efdr=Expected False Discovery Rate target (e.g., 0.1) ;; evidence_thresh_m=Evidence threshold for differential mean testing ;; evidence_thresh_e=Evidence threshold for differential residual overdispersion testing\n- alternatives: bb_mle=Maximum likelihood estimation of a simple beta-binomial model. scMET is preferred because it shrinks estimates towards the population average, providing more robust overdispersion estimates and overcoming data sparsity.\n- when_to_use: When analyzing single-cell DNA methylation data (e.g., scBS-seq) to quantify cell-to-cell methylation heterogeneity, identify highly variable features (HVFs), or perform differential methylation/variability analysis between two cell populations while accounting for technical noise and sparse coverage.\n- pitfalls: Running VB with too few iterations (e.g., iter = 1000 or 300 in examples) may lead to non-convergence; users should use a much higher value (e.g., ~20,000) ;; For small datasets, VB can be unstable; MCMC (use_mcmc = TRUE) is recommended instead ;; Using overdispersion parameter gamma directly for HVF analysis can be confounded by mean methylation levels; using residual overdispersion epsilon is the recommended approach ;; Interoperability: Ensure zero methylated CpGs are distinguished from missing coverage by checking if total_reads is also zero.",
+  "workflows": [
+    {
+      "name": "single_population_hvf_analysis",
+      "intent": "Fit the scMET model on a single cell population to estimate methylation parameters and identify highly variable features (HVFs).",
+      "input": [
+        "single_cell_methylation.csv (long-format table with columns Feature, Cell, total_reads, met_reads)",
+        "covariates.csv (optional matrix of feature-specific covariates like CpG density)"
+      ],
+      "stages": "1. Convert SingleCellExperiment to scMET format (optional) ;; 2. Run Bayesian inference using scmet to estimate mean and overdispersion parameters ;; 3. Identify highly variable features (HVFs) using scmet_hvf ;; 4. Plot diagnostic and results figures using scmet_plot_mean_var, scmet_plot_efdr_efnr_grid, and scmet_plot_vf_tail_prob.",
+      "code": "Y_sce <- scmet_to_sce(Y = Y_scmet, X = X)\nscmet_obj <- sce_to_scmet(sce = Y_sce)\nfit_obj <- scmet(Y = scmet_dt$Y, X = scmet_dt$X, L = 4, iter = 1000, seed = 12)\ngg1 <- scmet_plot_mean_var(obj = fit_obj, y = \"gamma\", task = NULL, show_fit = TRUE)\ngg2 <- scmet_plot_mean_var(obj = fit_obj, y = \"epsilon\", task = NULL, show_fit = TRUE)\nfit_obj <- scmet_hvf(scmet_obj = fit_obj, delta_e = 0.75, evidence_thresh = 0.8, efdr = 0.1)\nscmet_plot_efdr_efnr_grid(obj = fit_obj, task = \"hvf\")\ngg1 <- scmet_plot_vf_tail_prob(obj = fit_obj, x = \"mu\", task = \"hvf\")\ngg2 <- scmet_plot_mean_var(obj = fit_obj, y = \"gamma\", task = \"hvf\")"
+    },
+    {
+      "name": "differential_methylation_analysis",
+      "intent": "Perform differential methylation (DM) and differential variability (DV) testing between two cell populations.",
+      "input": [
+        "group_A_methylation.csv (long-format table for Group A)",
+        "group_B_methylation.csv (long-format table for Group B)",
+        "group_A_covariates.csv (optional covariates for Group A)",
+        "group_B_covariates.csv (optional covariates for Group B)"
+      ],
+      "stages": "1. Run Bayesian inference independently for Group A using scmet ;; 2. Run Bayesian inference independently for Group B using scmet ;; 3. Perform differential testing using scmet_differential ;; 4. Plot differential results using scmet_plot_efdr_efnr_grid, scmet_plot_volcano, and scmet_plot_ma.",
+      "code": "fit_A <- scmet(Y = scmet_diff_dt$scmet_dt_A$Y, X = scmet_diff_dt$scmet_dt_A$X, L = 4, iter = 300, seed = 12)\nfit_B <- scmet(Y = scmet_diff_dt$scmet_dt_B$Y, X = scmet_diff_dt$scmet_dt_B$X, L = 4, iter = 300, seed = 12)\ndiff_obj <- scmet_differential(obj_A = fit_A, obj_B = fit_B, evidence_thresh_m = 0.65, evidence_thresh_e = 0.65, group_label_A = \"A\", group_label_B = \"B\")\ngg1 <- scmet_plot_efdr_efnr_grid(obj = diff_obj, task = \"diff_mu\")\ngg2 <- scmet_plot_efdr_efnr_grid(obj = diff_obj, task = \"diff_epsilon\")\nscmet_plot_volcano(diff_obj, task = \"diff_mu\")\nscmet_plot_volcano(diff_obj, task = \"diff_epsilon\")\ngg1 <- scmet_plot_ma(diff_obj, task = \"diff_mu\", x = \"mu\")\ngg2 <- scmet_plot_ma(diff_obj, task = \"diff_epsilon\", x = \"mu\")"
+    }
+  ]
+}

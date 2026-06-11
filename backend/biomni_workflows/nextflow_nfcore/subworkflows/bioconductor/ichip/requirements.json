@@ -1,0 +1,14 @@
+{
+  "package": "ichip",
+  "requirements": [
+    "iChip"
+  ],
+  "by_workflow": {
+    "ichip1_first_order_ising.nf": [
+      "iChip"
+    ],
+    "main.nf": [
+      "iChip"
+    ]
+  }
+}

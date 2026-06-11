@@ -1,0 +1,13 @@
+{
+  "package": "repviz",
+  "requirements": [
+    "GenomicRanges",
+    "RepViz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "RepViz"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "mosbi",
+  "requirements": [
+    "mosbi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mosbi"
+    ]
+  }
+}

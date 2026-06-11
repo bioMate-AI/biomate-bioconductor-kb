@@ -1,89 +1,211 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: makecdfenv
-// This package has two functions. One reads a Affymetrix chip description file (CDF) and creates a has
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/makecdfenv/inst/doc/makecdfenv.R
-// Upstream  : none
-// Downstream: altcdfenvs
-//
-// Install: BiocManager::install("makecdfenv")
+// Bioconductor workflow: makecdfenv — makecdfenv_custom_chip
+// Create a custom Affymetrix CDF environment and package from feature IDs in a matrix, and visualize probe coordinates.
+// Input: matrix.csv, coldata.csv
+// Container: 1.86.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: affy, makecdfenv
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MAKECDFENV {
+process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-makecdfenv"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-makecdfenv:1.82.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-makecdfenv:1.82.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_makecdfenv_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_makecdfenv_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_makecdfenv_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(makecdfenv)
-    library(jsonlite)
-
-    # --- Cleancdfname [] ---
-    # Key functions: cleancdfname
-    cat("HG_U95Av2 is",cleancdfname("HG_U95Av2"),"\n")
-    cat("HG-133A is",cleancdfname("HG-133A"),"\n")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_makecdfenv_results.csv", row.names = TRUE)
+    library(affy)
+    
+    # Stage 1: Read input files
+    message("Stage 1: Reading input files...")
+    matrix_data <- read.csv("matrix.csv", stringsAsFactors = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    message("Loaded matrix with ", nrow(matrix_data), " features.")
+    message("Loaded coldata with ", nrow(coldata), " samples.")
+    
+    # Stage 2: Extract and sanitize feature IDs
+    message("Stage 2: Extracting and sanitizing feature IDs...")
+    if ("feature_id" %in% colnames(matrix_data)) {
+      feature_ids <- matrix_data\$feature_id
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_makecdfenv_results.csv")
+      feature_ids <- matrix_data[, 1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_makecdfenv_output.rds")
+    
+    # Sanitize feature IDs to be valid CDF unit names (alphanumeric and underscores only)
+    sanitized_features <- gsub("[^A-Za-z0-9_]", "_", feature_ids)
+    sanitized_features <- make.unique(sanitized_features)
+    
+    # Limit to a reasonable number of features to keep CDF generation fast and lightweight
+    max_features <- min(length(sanitized_features), 200)
+    sanitized_features <- sanitized_features[1:max_features]
+    message("Using ", max_features, " features for custom CDF generation.")
+    
+    # Stage 3: Generate ASCII CDF file
+    message("Stage 3: Generating ASCII CDF file...")
+    cdf_filename <- "CustomChip.cdf"
+    grid_size <- as.integer(ceiling(sqrt(max_features * 2)) + 5) # Ensure enough space for coordinates
+    
+    con <- file(cdf_filename, "w")
+    writeLines("[CDF]", con)
+    writeLines("Version=GC3.0", con)
+    writeLines("", con)
+    writeLines("[Chip]", con)
+    writeLines("Name=CustomChip", con)
+    writeLines(paste0("Rows=", grid_size), con)
+    writeLines(paste0("Cols=", grid_size), con)
+    writeLines(paste0("NumberOfUnits=", max_features), con)
+    writeLines("NumQCUnits=0", con)
+    writeLines("", con)
+    
+    for (i in seq_len(max_features)) {
+      fid <- sanitized_features[i]
+      writeLines(paste0("[Unit", i, "]"), con)
+      writeLines(paste0("Name=", fid), con)
+      writeLines("Direction=1", con)
+      writeLines("NumBlocks=1", con)
+      writeLines("NumCells=1", con)
+      writeLines("UnitType=1", con)
+      writeLines(paste0("Number=", i), con)
+      writeLines("", con)
+      
+      writeLines(paste0("[Unit", i, "_Block1]"), con)
+      writeLines(paste0("Name=", fid, "_block"), con)
+      writeLines("NumAtoms=1", con)
+      writeLines("NumCells=1", con)
+      writeLines("StartPosition=0", con)
+      writeLines("StopPosition=0", con)
+      
+      # Calculate unique X and Y coordinates
+      x <- (i - 1) %% grid_size
+      y <- (i - 1) %/% grid_size
+      
+      # Cell1=X,Y,ProbeSeq,TargetSeq,Exon,etc.
+      writeLines(paste0("Cell1=", x, ",", y, ",A,T,1,0,0,0,0,0"), con)
+      writeLines("", con)
     }
+    close(con)
+    message("ASCII CDF file written to ", cdf_filename)
+    
+    # Stage 4: Create CDF Environment
+    message("Stage 4: Creating CDF environment...")
+    custom_env <- make.cdf.env(cdf_filename)
+    message("CDF environment successfully created.")
+    
+    # Stage 5: Create CDF Package
+    message("Stage 5: Creating CDF package...")
+    # Clean package name using cleancdfname
+    pkg_name <- cleancdfname("CustomChip")
+    make.cdf.package(cdf_filename, 
+                     packagename = pkg_name, 
+                     species = "Homo_sapiens", 
+                     author = "Bioconductor Expert", 
+                     maintainer = "Expert <expert@example.com>", 
+                     version = "1.0.0")
+    message("CDF package directory created: ", pkg_name)
+    
+    # Stage 6: Export Summary and Diagnostics
+    message("Stage 6: Exporting summary and diagnostics...")
+    env_list <- as.list(custom_env)
+    probe_sets <- names(env_list)
+    
+    summary_list <- list()
+    for (ps in probe_sets) {
+      val <- env_list[[ps]]
+      nr <- if (is.matrix(val) || is.data.frame(val)) nrow(val) else length(val)
+      summary_list[[ps]] <- data.frame(
+        ProbeSet = ps,
+        NumProbes = nr,
+        stringsAsFactors = FALSE
+      )
+    }
+    summary_df <- do.call(rbind, summary_list)
+    write.csv(summary_df, "cdf_env_summary.csv", row.names = FALSE)
+    
+    # List package files to verify package creation
+    pkg_files <- list.files(pkg_name, recursive = TRUE)
+    write.csv(data.frame(FilePath = pkg_files), "package_files.csv", row.names = FALSE)
+    
+    # Plot probe coordinates
+    pdf("probe_pos_plot.pdf", width = 7, height = 7)
+    plot(1, type = "n", xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlim = c(0, grid_size), ylim = c(0, grid_size),
+         main = "Probe Locations on Custom Chip")
+    
+    xs <- c()
+    ys <- c()
+    for (ps in names(env_list)) {
+      val <- env_list[[ps]]
+      indices <- as.vector(val)
+      indices <- indices[!is.na(indices)]
+      # Convert 1-based index to x, y using the side length (grid_size)
+      x_coords <- (indices - 1) %% grid_size
+      y_coords <- (indices - 1) %/% grid_size
+      xs <- c(xs, x_coords)
+      ys <- c(ys, y_coords)
+    }
+    
+    points(xs, ys, col = "darkblue", pch = 19, cex = 0.8)
+    grid()
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MAKECDFENV:", paste0("    makecdfenv: ", packageVersion("makecdfenv"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP":',
+        paste0('    makecdfenv: ', as.character(packageVersion('makecdfenv')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_makecdfenv_results.csv
-    touch ${prefix}_makecdfenv_output.rds
-    echo "BIOC_MAKECDFENV:" > versions.yml
-    echo "    makecdfenv: 0.0.0" >> versions.yml
+    touch ${prefix}_makecdfenv_custom_chip.csv versions.yml
     """
 }
 
-
-workflow BIOC_MAKECDFENV_WORKFLOW {
+workflow BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MAKECDFENV(ch_input)
+    BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP(ch_input)
 
     emit:
-    results  = BIOC_MAKECDFENV.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MAKECDFENV.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MAKECDFENV.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MAKECDFENV.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP.out.tables
+    plots    = BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP.out.plots
+    objects  = BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP.out.objects
+    versions = BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP.out.versions
 }

@@ -1,0 +1,18 @@
+{
+  "package": "psmatch",
+  "requirements": [
+    "PSMatch",
+    "PTMods",
+    "Spectra"
+  ],
+  "by_workflow": {
+    "fragment_ion_calculation_and_visualization.nf": [
+      "PSMatch",
+      "PTMods",
+      "Spectra"
+    ],
+    "main.nf": [
+      "PSMatch"
+    ]
+  }
+}

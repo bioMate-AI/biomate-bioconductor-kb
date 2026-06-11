@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: coverage=Minimum coverage threshold for extracting methylation per SNP in extract_bams ;; pvalAssign=Method to calculate cluster p-values in find_dames, either \"Simes\" (default, clusters by closeness) or \"empirical\" (bumphunting with permutations) ;; maxGap=Maximum distance between CpG sites to be clustered in find_dames ;; smooth=Logical parameter in find_dames to smooth moderated t-statistics ;; plotSNP=Logical parameter in dame_track to plot the SNPs involved in the ASM calculation ;; window=Number of CpG positions to add to the plot up and down-stream in dame_track ;; positions=Number of base pairs to add to the plot up and down-stream in dame_track\n- alternatives: bismark_methylation_extractor=Standard tool for methylation calls, but extract_bams is preferred here because it specifically extracts allele-specific methylation for CpG sites falling within reads containing a heterozygous SNP ;; methtuple=External tool used to generate tuple files for the fast-mode workflow ;; Bis-SNP=Recommended for variant calling from bisulfite-converted reads to obtain the VCF file needed for the SNP-based mode\n- when_to_use: Use when analyzing bisulfite-sequencing (BS-seq) data across multiple samples to detect loss or gain of allele-specific methylation (e.g., genomic imprinting, X chromosome inactivation, or cancer-related loss of imprinting). Use the SNP-based mode when interested in sequence-dependent ASM linked to heterozygous SNPs. Use the tuple-based mode when SNP information is unavailable, or for exploratory analysis of intermediate methylation levels representing ASM.\n- pitfalls: SNP-based mode requires a VCF file with heterozygous SNPs per sample; without it, the tuple-based mode must be used. For the tuple-based mode, BAM files must be sorted by query name (samtools sort -n) before running methtuple. The empirical p-value assignment method (pvalAssign = \"empirical\") in find_dames can take longer depending on the number of samples and permutations. Ensure the colData of the SummarizedExperiment contains group and samples columns before running dame_track.",
+  "workflows": [
+    {
+      "name": "snp_based_dame_detection",
+      "intent": "Extract allele-specific methylation using BAM and VCF files, calculate derived ASM, and find DAMEs.",
+      "input": [
+        "bam_files (aligned BS-seq reads)",
+        "vcf_files (heterozygous SNPs per sample)",
+        "reference_file (reference genome FASTA)"
+      ],
+      "stages": "1. Extract allele-based methylation calls using extract_bams() ;; 2. Summarize methylation calls across samples using calc_derivedasm() ;; 3. Define design matrix and find DAMEs using find_dames()",
+      "code": "bam_files <- c(system.file(\"extdata\", \"NORM1_chr19_trim.bam\", \n                           package = \"DAMEfinder\"),\n               system.file(\"extdata\", \"CRC1_chr19_trim.bam\", \n                           package = \"DAMEfinder\"))\n\nvcf_files <- c(system.file(\"extdata\", \"NORM1.chr19.trim.vcf\", \n                           package = \"DAMEfinder\"),\n               system.file(\"extdata\", \"CRC1.chr19.trim.vcf\", \n                           package = \"DAMEfinder\"))\n\nsample_names <- c(\"NORM1\", \"CRC1\")\n\n#Use another reference file for demonstration, and fix the seqnames\ngenome <- BSgenome.Hsapiens.UCSC.hg19\nseqnames(genome) <- gsub(\"chr\",\"\",seqnames(genome))\nreference_file <- DNAStringSet(genome[[19]], use.names = TRUE)\nnames(reference_file) <- 19\n\n#Extract reads and extract methylation according to allele\nsnp.list <- extract_bams(bam_files, vcf_files, sample_names, reference_file,\n                       coverage = 2)\n\nderASM <- calc_derivedasm(snp.list)\n\n#We remove all CpG sites with any NA values, but not 0s\nfilt <- rowSums(!is.na(assay(derASM, \"der.ASM\"))) == 8 \nderASM <- derASM[filt,]\n\n#set the design matrix\ngrp <- factor(c(rep(\"CRC\",4),rep(\"NORM\",4)), levels = c(\"NORM\", \"CRC\"))\nmod <- model.matrix(~grp)\n\n#Run default\ndames <- find_dames(derASM, mod)\n\n#Run empirical method\ndames <- find_dames(derASM, mod, pvalAssign = \"empirical\")"
+    },
+    {
+      "name": "tuple_based_dame_detection",
+      "intent": "Read methtuple outputs, calculate tuple-based ASM scores, and find DAMEs without SNP information.",
+      "input": [
+        "tuple_files (methtuple TSV files)"
+      ],
+      "stages": "1. Read methtuple files using read_tuples() ;; 2. Calculate ASM scores using calc_asm() ;; 3. Define design matrix and find DAMEs using find_dames()",
+      "code": "tuple_files <- c(system.file(\"extdata\", \"NORM1_chr19.qs.CG.2.tsv.gz\", \n                             package = \"DAMEfinder\"),\n                 system.file(\"extdata\", \"CRC1_chr19.qs.CG.2.tsv.gz\", \n                             package = \"DAMEfinder\"))\n\nsample_names <- c(\"NORM1\", \"CRC1\")\n\ntuple_list <- read_tuples(tuple_files, sample_names)\n\nASM_mat <- calc_asm(tuple_list)\n\n#load package data\ndata(readtuples_output)\n\n#run calc_asm and filter object\nASMscore <- calc_asm(readtuples_output)\nfilt <- rowSums(!is.na(assay(ASMscore, \"asm\"))) == 5 #filt to avoid warnings\nASMscore <- ASMscore[filt,]\n\n#make design matrix (or specify a contrast)\ngrp <- factor(c(rep(\"CRC\",3),rep(\"NORM\",2)), levels = c(\"NORM\", \"CRC\"))\nmod <- model.matrix(~grp)\n\n#run default and increase maxGap to get longer, more sparse regions\ndames <- find_dames(ASMscore, mod, maxGap = 300)\n\n#run alternative mode\ndames <- find_dames(ASMscore, mod,  maxGap = 300, pvalAssign = \"empirical\")"
+    },
+    {
+      "name": "methyl_circle_visualization",
+      "intent": "Visualize the methylation state of individual reads overlapping a specific SNP or CpG site.",
+      "input": [
+        "bam.file (aligned BS-seq reads)",
+        "vcf.file (heterozygous SNPs per sample)",
+        "reference_file (reference genome FASTA)"
+      ],
+      "stages": "1. Define SNP or CpG site as a GRanges object ;; 2. Plot methyl-circle plot using methyl_circle_plot() or methyl_circle_plotCpG()",
+      "code": "#put SNP in GRanges (you can find the SNP with the dame_track function)\nsnp <- GRanges(19, IRanges(267039, width = 1)) #always set the width if your \n#GRanges has 1 site\n\nbam.file <- system.file(\"extdata\", \"CRC1_chr19_trim.bam\", \n                        package = \"DAMEfinder\")\n\nvcf.file <- system.file(\"extdata\", \"CRC1.chr19.trim.vcf\", \n                        package = \"DAMEfinder\")\n\nmethyl_circle_plot(snp = snp, vcfFile = vcf.file, bamFile = bam.file, \n                   refFile = reference_file)\n\ncpgsite <- GRanges(19, IRanges(266998, width = 1))\n\nmethyl_circle_plot(snp = snp, vcfFile = vcf.file, bamFile = bam.file, \n                   refFile = reference_file, cpgsite = cpgsite)\n\nmethyl_circle_plotCpG(cpgsite = cpgsite, bamFile = bam.file, \n                      refFile = reference_file)\n\n#a random region\ndame <- GRanges(19, IRanges(266998,267100))\n\nmethyl_circle_plot(snp = snp, vcfFile = vcf.file, bamFile = bam.file, \n                   refFile = reference_file, dame = dame)"
+    }
+  ]
+}

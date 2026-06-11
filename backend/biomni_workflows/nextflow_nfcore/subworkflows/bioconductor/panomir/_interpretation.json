@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: id=Gene representation type matching the rownames of the expression data (default is \"ENSEMBL\") ;; method=Method used to calculate pathway summaries (default is \"x2\") ;; zNormalize=Logical indicating whether to center and scale pathway summaries across samples (default is TRUE) ;; condition=The covariate column name in the covariates table to contrast (must be formatted as a factor) ;; clusteringFunction=The community detection algorithm used to cluster pathways (e.g., \"cluster_louvain\") ;; correlationCutOff=The correlation coefficient threshold for filtering edges in the pathway co-expression network ;; sampRate=The number of sampling repeats to empirically obtain the null distribution for miRNA prioritization (recommended between 500-1000) ;; saveSampling=Logical; if TRUE, saves the null distribution sampling to avoid re-running when testing different clustering outputs or thresholds ;; fromID=The input gene ID format for custom enrichment (e.g., \"ENSEMBL\") ;; toID=The target gene ID format for custom enrichment (e.g., \"ENTREZID\")\n- alternatives: pcxn and pcxnData=Bioconductor packages to access the Pathway Coexpression Network database ;; msigdb=An R package providing a programmatic interface to download different gene set collections, including KEGG and mouse gene sets\n- when_to_use: Use this workflow when you have transcriptomics (gene expression) data and want to identify key miRNA regulators that coordinate multiple functionally related pathways, rather than analyzing single miRNA-pathway interactions.\n- pitfalls: Ensure that the gene representation type (e.g., ENSEMBL, ENTREZID) matches the rownames of your expression data, otherwise pathway summarization will fail ;; The contrast covariate specified in the condition argument of differentialPathwayAnalysis must be explicitly formatted as a factor ;; Using a low sampling rate (sampRate) in prioritizeMicroRNA can lead to inaccurate empirical p-values; use the recommended 500-1000 range for final analyses ;; KEGG pathways cannot be distributed by third parties due to licensing; users must download them directly from MSigDB in GMT format and import them.",
+  "workflows": [
+    {
+      "name": "panomir_complete_analysis",
+      "intent": "Run the complete PanomiR workflow to identify and prioritize miRNAs targeting coordinated pathway clusters from gene expression data.",
+      "input": [
+        "gene_expression.csv (matrix of gene expression counts/values with genes as rows and samples as columns)",
+        "covariates.csv (sample metadata table containing experimental conditions and covariates)"
+      ],
+      "stages": "1. Summarize pathway activity from gene expression data using pathwaySummary ;; 2. Perform differential pathway activity analysis using differentialPathwayAnalysis ;; 3. Map pathways to clusters using a pathway co-expression network with mappingPathwaysClusters ;; 4. Prioritize miRNAs targeting the pathway clusters using prioritizeMicroRNA",
+      "code": "library(PanomiR)\n\n# Pathway reference from the PanomiR package\ndata(\"path_gene_table\")\ndata(\"miniTestsPanomiR\")\n# Generating pathway summary statistics \n\nsummaries <- pathwaySummary(miniTestsPanomiR$mini_LIHC_Exp,\n                            path_gene_table, method = \"x2\",\n                            zNormalize = TRUE, id = \"ENSEMBL\")\n\nhead(summaries)[,1:2]\n\noutput0 <- differentialPathwayAnalysis(\n                        geneCounts = miniTestsPanomiR$mini_LIHC_Exp,\n                        pathways =  path_gene_table,\n                        covariates = miniTestsPanomiR$mini_LIHC_Cov,\n                        condition = 'shortLetterCode')\n\nde.paths <- output0$DEP\n\nhead(de.paths,3)\n\n# using an updated version of pcxn \n\nset.seed(2)\npathwayClustsLIHC <- mappingPathwaysClusters(\n                            pcxn = miniTestsPanomiR$miniPCXN, \n                            dePathways = de.paths[1:300,],\n                            topPathways = 200,\n                            outDir=\".\",\n                            plot = FALSE,\n                            subplot = FALSE,\n                            prefix='',\n                            clusteringFunction = \"cluster_louvain\",\n                            correlationCutOff = 0.1)\n\nhead(pathwayClustsLIHC$Clustering)\n\nset.seed(1)\noutput2 <- prioritizeMicroRNA(enriches0 = miniTestsPanomiR$miniEnrich,\n                    pathClust = miniTestsPanomiR$miniPathClusts$Clustering,\n                    topClust = 1,\n                    sampRate = 50, \n                    method = c(\"aggInv\"),\n                    outDir = \"Output/\",\n                    dataDir = \"outData/\",\n                    saveSampling = FALSE,\n                    runJackKnife = FALSE,\n                    numCores = 1,\n                    prefix = \"outmiR\",\n                    saveCSV = FALSE)\n\nhead(output2$Cluster1)"
+    },
+    {
+      "name": "custom_mirna_pathway_enrichment",
+      "intent": "Generate a customized miRNA-pathway enrichment reference table tailored to the user's expressed genes and miRNAs.",
+      "input": [
+        "expressed_genes.txt (list of genes expressed in the experiment)",
+        "selected_mirnas.txt (list of miRNAs of interest)"
+      ],
+      "stages": "1. Load target scan and MSigDB databases ;; 2. Run Fisher's exact test enrichment using miRNAPathwayEnrichment ;; 3. Generate a simplified publication-ready report using reportEnrichment",
+      "code": "# using an updated version of pcxn\ndata(\"msigdb_c2\")\ndata(\"targetScan_03\")\n\n\ncustomeTableEnrich <- miRNAPathwayEnrichment(mirSets = targetScan_03,\n                                              pathwaySets = msigdb_c2,\n                                              geneSelection = yourGenes,\n                                              mirSelection = yourMicroRNAs,\n                                              fromID = \"ENSEMBL\",\n                                              toID = \"ENTREZID\",\n                                              minPathSize = 9,\n                                              numCores = 1,\n                                              outDir = \".\",\n                                              saveOutName = NULL)"
+    },
+    {
+      "name": "custom_pathway_table_from_gmt",
+      "intent": "Create a customized pathway-gene association table from an external GMT file or GeneSetCollection.",
+      "input": [
+        "pathways.gmt (external pathway definitions in GMT format)"
+      ],
+      "stages": "1. Read GMT file into a GeneSetCollection using GSEABase::getGmt ;; 2. Convert the GeneSetCollection to a pathway-gene association table using tableFromGSC",
+      "code": "library(GSEABase)\n\nyourGeneSetCollection <- getGmt(\"YOUR GMT FILE\")\nnewPathGeneTable      <- tableFromGSC(yourGeneSetCollection)"
+    }
+  ]
+}

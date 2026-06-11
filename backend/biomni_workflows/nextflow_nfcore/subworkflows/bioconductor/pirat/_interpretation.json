@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: extension=Specifies the extension to handle singleton peptide groups (\"2\" for 2-peptide rule, \"S\" for sample-wise correlations, \"T\" for transcriptomic integration) ;; rna.cond.mask=Vector mapping transcriptomic samples to experimental/biological conditions (used with extension \"T\") ;; pep.cond.mask=Vector mapping proteomic samples to experimental/biological conditions (used with extension \"T\") ;; max.pg.size.pirat.t=Maximum peptide group size up to which transcriptomic integration is applied (used with extension \"T\") ;; titlename=Title for the correlation plot in plot_pep_correlations\n- alternatives: The documentation mentions Chen, Prentice, and Wang (2014) parameters, but notes that no automated, heuristic-free methods were previously proposed to find them. No other specific R packages are mentioned as alternatives.\n- when_to_use: Use this package when you need to impute missing values (either MNAR or MCAR) in bottom-up LC-MS/MS proteomics data, especially when peptide-to-protein adjacency information is available to leverage peptide groups (PGs).\n- pitfalls: Slight imputation variations may occur for peptides belonging to very large PGs because they are randomly split into smaller PGs to reduce computational costs; setting a seed is recommended to ensure reproducibility. Using a small subset of data to fit the prior variance distribution in Sigma (e.g., for the -T extension) is not ideal; it is preferable to use the full dataset for both hyperparameter and Gamma estimation.",
+  "workflows": [
+    {
+      "name": "standard_imputation_and_diagnostics",
+      "intent": "Perform diagnostic correlation analysis and standard imputation on proteomics data.",
+      "input": [
+        "subbouyssie (list containing peptides_ab, a matrix of peptide log-2-abundances, and adj, the adjacency matrix between peptides and proteins)",
+        "ropers (proteomics dataset list containing peptides_ab and adj)"
+      ],
+      "stages": "1. Load the package and dataset ;; 2. Set seed for reproducibility ;; 3. Run standard imputation using my_pipeline_llkimpute ;; 4. Inspect imputed values and parameters ;; 5. Run diagnostic correlation analysis using plot_pep_correlations",
+      "code": "library(Pirat)\nlibrary(utils)\ndata(subbouyssie)\nset.seed(12345)\nimp.res <- my_pipeline_llkimpute(subbouyssie)\nhead(imp.res$data.imputed[ ,seq(5)])\nimp.res$params\ndata(ropers)\nplot_pep_correlations(ropers, titlename = \"Ropers2021\")"
+    },
+    {
+      "name": "imputation_with_extensions",
+      "intent": "Impute proteomics data using extensions (2-peptide rule, sample-wise correlations, or transcriptomic integration) to handle singleton peptide groups.",
+      "input": [
+        "subropers (list containing peptides_ab, adj, and optionally rnas_ab and adj_rna_pg for transcriptomic integration)"
+      ],
+      "stages": "1. Load the dataset ;; 2. Run imputation with the 2-peptide rule extension using pipeline_llkimpute ;; 3. Run imputation with sample-wise correlations extension using my_pipeline_llkimpute ;; 4. Run imputation with transcriptomic integration extension using my_pipeline_llkimpute with paired or condition-masked samples",
+      "code": "data(subropers)\nimp.res = pipeline_llkimpute(subropers, extension = \"2\")\nmask.sing.pg = colSums(subropers$adj) == 1\nmask.sing.pep = rowSums(subropers$adj[, mask.sing.pg]) >= 1\nimp.res$data.imputed[, mask.sing.pep]\nimp.res = my_pipeline_llkimpute(subropers, extension = \"S\")\nmask.sing.pg = colSums(subropers$adj) == 1\nmask.sing.pep = rowSums(subropers$adj[, mask.sing.pg]) >= 1\nimp.res$data.imputed[, mask.sing.pep]\nimp.res = my_pipeline_llkimpute(subropers,\n    extension = \"T\",\n    rna.cond.mask = seq(nrow(subropers$peptides_ab)),\n    pep.cond.mask = seq(nrow(subropers$peptides_ab)),\n    max.pg.size.pirat.t = 1)\nmask.sing.pg = colSums(subropers$adj) == 1\nmask.sing.pep = rowSums(subropers$adj[, mask.sing.pg]) >= 1\nimp.res$data.imputed[, mask.sing.pep]\nimp.res = my_pipeline_llkimpute(subropers,\n                             extension = \"T\",\n                             rna.cond.mask = rep(seq(6), each = 3),\n                             pep.cond.mask = rep(seq(6), each = 3),\n                             max.pg.size.pirat.t = 1)"
+    }
+  ]
+}

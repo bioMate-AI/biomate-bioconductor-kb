@@ -1,0 +1,41 @@
+{
+  "package": "banksy",
+  "requirements": [
+    "Banksy",
+    "SingleCellExperiment",
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "cowplot",
+    "data.table",
+    "ggplot2",
+    "harmony",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Banksy",
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "data.table",
+      "ggplot2",
+      "scater"
+    ],
+    "multi_sample_joint_clustering.nf": [
+      "Banksy",
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "cowplot",
+      "ggplot2",
+      "scater"
+    ],
+    "spatial_integration_with_harmony.nf": [
+      "Banksy",
+      "SingleCellExperiment",
+      "SpatialExperiment",
+      "cowplot",
+      "ggplot2",
+      "harmony",
+      "scater"
+    ]
+  }
+}

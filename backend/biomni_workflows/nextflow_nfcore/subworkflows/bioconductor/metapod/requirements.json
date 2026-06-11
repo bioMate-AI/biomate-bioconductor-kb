@@ -1,0 +1,11 @@
+{
+  "package": "metapod",
+  "requirements": [
+    "metapod"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metapod"
+    ]
+  }
+}

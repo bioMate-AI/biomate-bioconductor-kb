@@ -1,0 +1,15 @@
+{
+  "package": "gwena",
+  "requirements": [
+    "GWENA",
+    "dplyr",
+    "magrittr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GWENA",
+      "dplyr",
+      "magrittr"
+    ]
+  }
+}

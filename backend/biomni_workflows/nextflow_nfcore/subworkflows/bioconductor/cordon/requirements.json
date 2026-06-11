@@ -1,0 +1,17 @@
+{
+  "package": "cordon",
+  "requirements": [
+    "Biobase",
+    "Biostrings",
+    "coRdon",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "Biostrings",
+      "coRdon",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: getparam=Set to TRUE in HMMsegment to retrieve default parameters without running the segmentation ;; e=Suggested probability of staying in a segment; set to a high value (e.g., 0.999999999999999) to reduce the number of segments ;; strength=Strength of the suggestion to stay in a segment; set to a high value (e.g., 1e30) to reduce segments ;; mu=Suggested median values for the six copy number states (HOMD, HETD, NEUT, GAIN, AMPL, HLAMP) ;; m=Prior mean of the state medians; set equal to mu to override parameter convergence and force the algorithm to respect custom state medians ;; verbose=Set to FALSE to suppress console output during segmentation\n- alternatives: Matched sample normalization alone (i.e., dividing tumour copy by matched normal reference) is insufficient to eliminate bias because libraries prepared from the same DNA source show different biases.\n- when_to_use: Use when analyzing whole-genome sequencing (WGS) data to detect copy number alterations (CNAs) in single or matched tumour-normal samples, specifically when correcting for GC content and mappability biases is required.\n- pitfalls: Automated segmentation can fail to find biologically likely state assignments, requiring manual parameter tuning. Setting mu alone might have no effect because the optimization algorithm can converge back to default values; users must also set m (prior mean) to the same values as mu to prevent this convergence. Raw input files (WIG format) must be pre-computed using external tools from the HMMcopy Suite.",
+  "workflows": [
+    {
+      "name": "single_sample_correction_and_segmentation",
+      "intent": "Correct GC and mappability biases in a single sample and segment the copy number profile.",
+      "input": [
+        "tumour.wig (tumour read counts)",
+        "gc.wig (GC content)",
+        "map.wig (mappability)"
+      ],
+      "stages": "1. Load and correct read counts using wigsToRangedData and correctReadcount ;; 2. Segment the corrected copy number profile using HMMsegment ;; 3. Visualize the segments and states using plotSegments and stateCols",
+      "code": "options(stringsAsFactors = TRUE)\nlibrary(HMMcopy)\ngfile <- system.file(\"extdata\", \"gc.wig\", package = \"HMMcopy\")\nmfile <- system.file(\"extdata\", \"map.wig\", package = \"HMMcopy\")\ntfile <- system.file(\"extdata\", \"tumour.wig\", package = \"HMMcopy\")\ntumour_copy <- correctReadcount(wigsToRangedData(tfile, gfile, mfile))\ntumour_segments <- HMMsegment(tumour_copy)\nplotSegments(tumour_copy, tumour_segments, pch = \".\", ylab = \"Tumour Copy Number\", xlab = \"Chromosome Position\")\ncols <- stateCols()\nlegend(\"topleft\", c(\"HOMD\", \"HETD\", \"NEUT\", \"GAIN\", \"AMPL\", \"HLAMP\"), fill = cols, horiz = TRUE, bty = \"n\", cex = 0.5)"
+    },
+    {
+      "name": "matched_tumour_normal_correction",
+      "intent": "Normalize a tumour copy number profile against a matched normal profile to eliminate germline CNVs and reduce noise, followed by segmentation.",
+      "input": [
+        "tumour.wig (tumour read counts)",
+        "normal.wig (normal read counts)",
+        "gc.wig (GC content)",
+        "map.wig (mappability)"
+      ],
+      "stages": "1. Load and correct normal read counts ;; 2. Load and correct tumour read counts ;; 3. Subtract normal copy number from tumour copy number in log space to obtain somatic copy number ;; 4. Retrieve and adjust HMM parameters to prevent convergence ;; 5. Segment the somatic copy number profile using HMMsegment ;; 6. Visualize the somatic segments using plotSegments",
+      "code": "options(stringsAsFactors = TRUE)\nlibrary(HMMcopy)\nrfile <- system.file(\"extdata\", \"normal.wig\", package = \"HMMcopy\")\ngfile <- system.file(\"extdata\", \"gc.wig\", package = \"HMMcopy\")\nmfile <- system.file(\"extdata\", \"map.wig\", package = \"HMMcopy\")\nnormal_reads <- wigsToRangedData(rfile, gfile, mfile)\nnormal_copy <- correctReadcount(normal_reads)\ntfile <- system.file(\"extdata\", \"tumour.wig\", package = \"HMMcopy\")\ntumour_copy <- correctReadcount(wigsToRangedData(tfile, gfile, mfile))\nsomatic_copy <- tumour_copy\nsomatic_copy$copy <- tumour_copy$copy - normal_copy$copy\ndefault_param <- HMMsegment(tumour_copy, getparam = TRUE)\nlongseg_param <- default_param\nlongseg_param$e <- 0.999999999999999\nlongseg_param$strength <- 1e30\nnewmu_param <- longseg_param\nnewmu_param$mu <- c(-0.5, -0.4, -0.15, 0.1, 0.4, 0.7)\nnewmu_param$m <- newmu_param$mu\nsomatic_segments <- HMMsegment(somatic_copy, newmu_param, verbose = FALSE)\nplotSegments(somatic_copy, somatic_segments, pch = \".\", ylab = \"Tumour Copy Number\", xlab = \"Chromosome Position\")"
+    }
+  ]
+}

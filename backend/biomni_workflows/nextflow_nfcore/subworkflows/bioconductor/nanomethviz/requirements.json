@@ -1,0 +1,23 @@
+{
+  "package": "nanomethviz",
+  "requirements": [
+    "NanoMethViz",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "downstream_export_and_dim_reduction.nf": [
+      "NanoMethViz",
+      "dplyr",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "NanoMethViz",
+      "dplyr"
+    ],
+    "modbam_direct_plotting.nf": [
+      "NanoMethViz",
+      "dplyr"
+    ]
+  }
+}

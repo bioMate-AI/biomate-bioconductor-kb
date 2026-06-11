@@ -1,147 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: massiR
-// Predicts the sex of samples in gene expression microarray datasets
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/massiR/inst/doc/massiR_Vignette.R
-// Upstream  : biomaRt
-// Downstream: none
-//
-// Install: BiocManager::install("massiR")
+// Bioconductor workflow: massiR — microarray_dataframe_workflow
+// Predict sample sex from a normalized microarray expression data.frame using Y chromosome probes.
+// Input: expression_data.csv, y_probes.csv
+// Container: quay.io/biocontainers/bioconductor-massir:1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: massiR
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Extract Y chromosome probe data and calculate CV using massi_y
+//  * 2. [Visualization & Output] Plot probe variation using massi_y_plot
+//  * 3. [Core Analysis] Select informative probes using massi_select
+//  * 4. [Core Analysis] Predict sample sex using massi_cluster
+//  * 5. [Visualization & Output] Plot clustering results using massi_cluster_plot
+//  * 6. [Core Analysis] Check for sex bias using massi_dip
 
 nextflow.enable.dsl = 2
 
-process BIOC_MASSIR {
+process BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-massir"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-massir:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-massir:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_massir_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_massir_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_massir_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CV)
-    library(Threshold)
-    library(jsonlite)
-
-    # --- Load The Example Data [] ---
-    # Key functions: data
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(massiR)
-    data(massi.test.dataset)
-    # --- Load The Test Probe List [] ---
-    # Key functions: data
-    data(massi.test.probes)
-    # --- Extract Y From Test Dataset Calculate Cv [] ---
-    # Key functions: massi_y
+    
+    # Read user input files from the working directory
+    # expression_data.csv: normalized and log-transformed probe values (samples as columns, probes as rows)
+    # y_probes.csv: Y chromosome probe identifiers as row names
+    massi.test.dataset <- read.csv("expression_data.csv", row.names = 1, check.names = FALSE)
+    massi.test.probes <- read.csv("y_probes.csv", row.names = 1, check.names = FALSE)
+    
+    # 1. Extract Y chromosome probe data and calculate CV using massi_y
     massi.y.out <- massi_y(massi.test.dataset, massi.test.probes)
-    # --- Plot The Results From Massi.Y [] ---
-    # Key functions: massi_y_plot
+    saveRDS(massi.y.out, "massi_y_out.rds")
+    
+    # 2. Plot probe variation using massi_y_plot
+    pdf("massi_y_plot.pdf")
     massi_y_plot(massi.y.out)
-    # --- massi_y [] ---
-    # Key functions: massi_y
-    massi.y.out <- massi_y(massi.test.dataset, massi.test.probes)
-    # --- Fig1 [] ---
-    # Key functions: CV, Threshold, 1, 2
-    barplot(height=massi.y.out[[2]], names.arg=massi.y.out[[1]], xpd=T,
-              cex.names=0.5, las=2, ylab="Probe CV (%)")
-      # Get the quantile values from the massi.y output
-      quantiles <- massi.y.out[[3]]
-      # add lines for the 0%, 25%, 50%, and 75% quartiles
-    # --- Run Massi.Select [] ---
-    # Key functions: massi_select
-    massi.select.out <-
+    dev.off()
+    
+    # 3. Select informative probes using massi_select
+    massi.select.out <- 
       massi_select(massi.test.dataset, massi.test.probes, threshold=4)
-    # --- Massi Cluster [] ---
-    # Key functions: massi_cluster
+    write.csv(massi.select.out, "massi_select_out.csv")
+    
+    # 4. Predict sample sex using massi_cluster
     results <- massi_cluster(massi.select.out)
-    # --- Frame [] ---
-    # Key functions: frame
     sample.results <- data.frame(results[[2]])
-    # --- Massi Cluster Plot [] ---
-    # Key functions: massi_cluster_plot
-    ## massi_cluster_plot(massi.select.out, results)
-    # --- Fig2 [] ---
-    # Key functions: rowSums, 2, redgreen
-    ord <- order(rowSums(abs(massi.select.out)),decreasing=T)
-      heatmap.2(x=as.matrix(massi.select.out[ord,]), keysize=2, cexRow=0.7,
-                key=T, trace="none", dendrogram="row", col=redgreen(75), scale="row")
-    # --- Fig3 [] ---
-    # Key functions: frame
-    massi.cluster.results <- data.frame(results[[2]])
-      massi.cluster.results.sort <- massi.cluster.results[order(massi.cluster.results$sex),] # sort data by sex
-      probe.means <- massi.cluster.results.sort$mean_y_probes_value # samples probe mean values
-      probe.sd <- massi.cluster.results.sort$y_probes_sd # sample probe sd values
-      sample.names <- massi.cluster.results.sort$ID # set x-axis names
-    # --- Fig4 [] ---
-    # Key functions: clusplot
-    ## generate PC plot of clusters
-      k.medoids.results <- results[[1]]
-      clusplot(t(massi.select.out), k.medoids.results$clustering, color=TRUE, shade=FALSE, main="",cex.txt=0.5,
-               labels=2, lines=0)
-    # --- massi_dip [] ---
-    # Key functions: massi_dip
+    write.csv(sample.results, "sample_results.csv", row.names = FALSE)
+    saveRDS(results, "massi_cluster_results.rds")
+    
+    # 5. Plot clustering results using massi_cluster_plot
+    pdf("massi_cluster_plot.pdf")
+    massi_cluster_plot(massi.select.out, results)
+    dev.off()
+    
+    # 6. Check for sex bias using massi_dip
     dip.result <- massi_dip(massi.select.out)
-    # --- Fig5 [] ---
-    # Key functions: massi_dip
-    dip.result <- massi_dip(massi.select.out)
-    plot(dip.result[[3]])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_massir_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_massir_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_massir_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MASSIR:", paste0("    massir: ", packageVersion("massiR"))),
-        "versions.yml"
+    saveRDS(dip.result, "dip_result.rds")
+    
+    # Save a summary of the dip test results
+    dip.summary <- data.frame(
+      statistic = dip.result[[1]]\$statistic,
+      p_value = dip.result[[1]]\$p.value
     )
+    write.csv(dip.summary, "dip_summary.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW":',
+        paste0('    massiR: ', as.character(packageVersion('massiR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_massir_results.csv
-    touch ${prefix}_massir_output.rds
-    echo "BIOC_MASSIR:" > versions.yml
-    echo "    massir: 0.0.0" >> versions.yml
+    touch ${prefix}_microarray_dataframe_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_MASSIR_WORKFLOW {
+workflow BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_data.csv, y_probes.csv ] ]
 
     main:
-    BIOC_MASSIR(ch_input)
+    BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_MASSIR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MASSIR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MASSIR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MASSIR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW.out.tables
+    plots    = BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW.out.plots
+    objects  = BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW.out.objects
+    versions = BIOC_MASSIR_MICROARRAY_DATAFRAME_WORKFLOW.out.versions
 }

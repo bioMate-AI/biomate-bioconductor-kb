@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fdr.cutoff=Used in estimateBackground to set the False Discovery Rate threshold for identifying regions expressed significantly above background noise ;; gap.dist.range=A vector of gap distances tested in estimateGapDistance to find the optimal distance for merging adjacent transcribed fragments ;; min.overlap=Used in annotateTranscripts to control the minimal proportion of overlap required to associate a detected transcript with a reference annotation ;; reduce.peaks=Logical parameter in constructCDS; if TRUE, merges neighboring peaks to prevent artificial transcript truncation caused by peak-calling algorithms splitting broad peaks ;; gapwidth=Used in constructCDS to define the minimum gap distance below which neighboring ChIP-seq peaks are merged ;; quant.cutoff=Used in predictStrand to filter out ChIP-seq peaks with RNA-seq coverage below the specified quantile threshold ;; win.size=Flanking region size used in predictStrand to calculate RNA-seq read densities upstream and downstream of the TSS\n- alternatives: mRNA-seq is mentioned as an alternative sequencing method, but it is preferred for steady-state mature transcript levels and splice variants, whereas GRO-seq, nucRNA-seq, and chrRNA-seq are preferred for primary de novo transcription profiling. Peak calling algorithms like MACS2 are used externally to generate the input peak files for the ChIP-seq workflow.\n- when_to_use: Use this package when you have strand-specific nascent or nuclear RNA-seq data (GRO-seq, nucRNA-seq, chrRNA-seq) and want to computationally identify and quantify primary transcripts, especially when you also have complementary ChIP-seq data (e.g., H3K4me3 or H3K9ac) to resolve overlapping or closely spaced transcription units.\n- pitfalls: Low mappability and repeat regions can create artificial gaps in RNA-seq coverage, segmenting single transcripts into multiple fragments; this must be corrected by tuning the gap distance parameter. Peak-calling algorithms often split broad ChIP-seq peaks into multiple narrow peaks, which can lead to false positives and unnecessary transcript truncation if reduce.peaks is not set to TRUE. Not all ChIP-seq peaks represent active transcription; a classification model (predictTssOverlap) must be used to filter out background peaks.",
+  "workflows": [
+    {
+      "name": "rna_seq_only_transcript_detection",
+      "intent": "Detect, annotate, and quantify de novo primary transcripts from strand-specific RNA-seq data alone.",
+      "input": [
+        "path.to.Bam (strand-specific RNA-seq BAM file)",
+        "knownGene (TxDb reference annotation object)"
+      ],
+      "stages": "1. Initialize the TranscriptionDataSet object ;; 2. Estimate expression background noise level ;; 3. Estimate the optimal gap distance for merging fragmented transcripts ;; 4. Call transcripts using the estimated parameters ;; 5. Annotate detected transcripts against reference genes ;; 6. Retrieve and export transcripts to BED format",
+      "code": "tds <- constructTDS(file = path.to.Bam, region = region, fragment.size = 250, unique = FALSE, paired.end = FALSE, swap.strand = TRUE)\nestimateBackground(tds, fdr.cutoff = 0.01)\ngd <- seq(from = 0, to = 10000, by = 100)\nestimateGapDistance(object = tds, annot = knownGene.genes, filter.annot = TRUE, fpkm.quantile = 0.25, gap.dist.range = gd)\ndetectTranscripts(tds, estimate.params = TRUE)\nannotateTranscripts(object = tds, annot = knownGene.genes, min.overlap = 0.5)\ntrx <- getTranscripts(tds, min.length = 250, min.fpkm = 0.5)\ntranscriptsToBed(object = trx, file = \"transcripts.bed\", strand.color = c(\"blue\", \"red\"))"
+    },
+    {
+      "name": "integrated_rna_and_chip_seq_demarcation",
+      "intent": "Integrate RNA-seq and ChIP-seq data to classify active transcription start sites and demarcate individual transcript boundaries.",
+      "input": [
+        "path.to.Bam (strand-specific RNA-seq BAM file)",
+        "path.to.peaks (ChIP-seq peak file, e.g., MACS2 output)",
+        "path.to.reads (ChIP-seq alignment BAM file)",
+        "knownGene (TxDb reference annotation object)"
+      ],
+      "stages": "1. Initialize and run the RNA-seq transcript detection workflow ;; 2. Construct the ChipDataSet object and evaluate peak genomic distribution ;; 3. Predict gene-associated ChIP-seq peaks using a logistic regression model ;; 4. Predict peak strandedness by analyzing upstream/downstream RNA-seq read densities ;; 5. Demarcate transcript boundaries by breaking closely spaced transcripts using active peaks ;; 6. Re-annotate and retrieve the final set of resolved transcripts",
+      "code": "tds <- constructTDS(file = path.to.Bam, region = region, fragment.size = 250, unique = FALSE, paired.end = FALSE, swap.strand = TRUE)\nestimateBackground(tds, fdr.cutoff = 0.01)\ngd <- seq(from = 0, to = 10000, by = 100)\nestimateGapDistance(object = tds, annot = knownGene.genes, filter.annot = TRUE, fpkm.quantile = 0.25, gap.dist.range = gd)\ndetectTranscripts(tds, estimate.params = TRUE)\ncds <- constructCDS(peaks = path.to.peaks, reads = path.to.reads, region = region, TxDb = knownGene, tssOf = \"transcript\", tss.region = c(-2000, 2000), reduce.peaks = TRUE, gapwidth = 500, unique = TRUE, swap.strand = FALSE)\npredictTssOverlap(object = cds, feature = \"pileup\", p = 0.75)\npredictStrand(cdsObj = cds, tdsObj = tds, quant.cutoff = 0.1, win.size = 2000)\nbreakTranscriptsByPeaks(tdsObj = tds, cdsObj = cds, estimate.params = TRUE)\nannotateTranscripts(object = tds, annot = knownGene.genes, min.overlap = 0.5)\ntrx.final <- getTranscripts(tds)\ntranscriptsToBed(object = trx.final, file = \"transcripts_final.bed\")"
+    }
+  ]
+}

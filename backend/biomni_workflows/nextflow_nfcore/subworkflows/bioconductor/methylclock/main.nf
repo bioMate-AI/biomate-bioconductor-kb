@@ -1,112 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: methylclock
-// This package allows to estimate chronological and gestational DNA methylation (DNAm) age as well as 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/methylclock/inst/doc/methylclock.R
-// Upstream  : methylclockData, Biobase, tibble, impute, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("methylclock")
+// Bioconductor workflow: methylclock — chronological_and_biological_age_estimation
+// Estimate chronological and biological DNAm age and age acceleration from methylation data.
+// Input: MethylationData, covariates
+// Container: quay.io/biocontainers/bioconductor-methylclock:1.16.0--r45ha27e39d_0
+// R packages: Biobase, ggplot2, ggpmisc, impute, methylclock, methylclockData, readr, tibble
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, ggplot2, ggpmisc, impute, methylclock, methylclockData, readr, tibble
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Check missing CpGs for chronological clocks using checkClocks. 2. Identify specific missing CpGs using commonClockCpgs. 3. Estimat
 
 nextflow.enable.dsl = 2
 
-process BIOC_METHYLCLOCK {
+process BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-methylclock"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-methylclock:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-methylclock:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_methylclock_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_methylclock_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_methylclock_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "ggplot2", "ggpmisc", "impute", "methylclock", "methylclockData", "readr", "tibble")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(methylclockData)
     library(methylclock)
-    library(jsonlite)
-
-    # --- DNA Methylation Age Estimation [] ---
-    # Key functions: DNAmAge
-    age_est <- methylclock::DNAmAge(
-        MethylationData,
-        clocks = c("Horvath", "BNN"),
-        min.perc = 0.25
-    )
-
-
-    # --- Gestational Age Estimation [] ---
-    # Key functions: DNAmGA
-    ga_est <- methylclock::DNAmGA(
-        progress_data,
-        age = progress_vars$EGA,
-        cell.count = FALSE
-    )
-
-
-    # --- Visualization of Epigenetic Clocks [] ---
-    # Key functions: plotDNAmAge, plotCorClocks
-    methylclock::plotDNAmAge(
-        ga_est$Knight,
-        progress_vars$EGA,
-        tit = "GA Knight's method",
-        clock = "GA"
-    )
-    methylclock::plotCorClocks(age_gse58045)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_methylclock_results.csv", row.names = TRUE)
+    library(Biobase)
+    library(tibble)
+    library(impute)
+    library(ggplot2)
+    library(ggpmisc)
+    library(readr)
+    
+    # Helper function to find files in the working directory
+    find_file <- function(base_name) {
+      files <- list.files(pattern = paste0("^", base_name, "(\\\\..+)?\$"), ignore.case = TRUE)
+      if (length(files) == 0) {
+        stop(paste("Required file not found:", base_name))
+      }
+      return(files[1])
+    }
+    
+    # Read user input files
+    meth_file <- find_file("MethylationData")
+    cov_file <- find_file("covariates")
+    
+    # Load MethylationData
+    ext <- tolower(tools::file_ext(meth_file))
+    if (ext == "rds") {
+      MethylationData <- readRDS(meth_file)
+    } else if (ext == "csv") {
+      MethylationData <- readr::read_csv(meth_file)
+    } else if (ext %in% c("tsv", "txt")) {
+      MethylationData <- readr::read_tsv(meth_file)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_methylclock_results.csv")
+      MethylationData <- tryCatch(readRDS(meth_file), error = function(e) readr::read_csv(meth_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_methylclock_output.rds")
+    
+    # Ensure first column contains CpG names if it's a data frame/tibble
+    if (is.data.frame(MethylationData) || tibble::is_tibble(MethylationData)) {
+      MethylationData[[1]] <- as.character(MethylationData[[1]])
     }
+    
+    # Load covariates
+    covariates <- readr::read_csv(cov_file)
+    
+    # Extract chronological age
+    age_col <- grep("^age\$", colnames(covariates), ignore.case = TRUE, value = TRUE)
+    if (length(age_col) == 0) {
+      age_col <- grep("age", colnames(covariates), ignore.case = TRUE, value = TRUE)[1]
+    }
+    if (is.na(age_col) || length(age_col) == 0) {
+      stop("Could not find an 'age' column in covariates.")
+    }
+    age <- as.numeric(covariates[[age_col]])
+    
+    # Map variables for exact documented code execution
+    TestDataset <- MethylationData
+    
+    # 1. Check missing CpGs for chronological clocks using checkClocks
+    cpgs.missing <- checkClocks(TestDataset)
+    saveRDS(cpgs.missing, "cpgs_missing.rds")
+    
+    # 2. Identify specific missing CpGs using commonClockCpgs
+    hannum_missing <- commonClockCpgs(cpgs.missing, "Hannum" )
+    writeLines(hannum_missing, "hannum_missing_cpgs.txt")
+    
+    # 3. Estimate DNAm age using DNAmAge
+    age.example55 <- DNAmAge(MethylationData)
+    readr::write_csv(age.example55, "age_example55_basic.csv")
+    
+    age.example55.2 <- DNAmAge(MethylationData, min.perc = 0.25)
+    readr::write_csv(age.example55.2, "age_example55_min_perc_0.25.csv")
+    
+    age.example55.sel <- DNAmAge(MethylationData, clocks=c("Horvath", "BNN"))
+    readr::write_csv(age.example55.sel, "age_example55_selected_clocks.csv")
+    
+    # 4. Estimate DNAm age and age acceleration adjusted for cell counts by providing chronological age to DNAmAge
+    age.example55 <- DNAmAge(MethylationData, age=age, cell.count=TRUE)
+    readr::write_csv(age.example55, "age_example55_with_age_and_cell_counts.csv")
+    
+    # Map variables for plotting
+    age.gse58045 <- age.example55
+    age.gse <- age.example55
+    
+    # 5. Plot correlation between estimated DNAm age and chronological age using plotDNAmAge
+    # 6. Plot correlation among different clocks using plotCorClocks
+    pdf("plots_combined.pdf")
+    print(plotDNAmAge(age.gse58045\$Horvath, age))
+    print(plotDNAmAge(age.gse58045\$BNN, age, tit="Bayesian Neural Network"))
+    print(plotCorClocks(age.gse))
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METHYLCLOCK:", paste0("    methylclock: ", packageVersion("methylclock"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION":',
+        paste0('    methylclock: ', as.character(packageVersion('methylclock')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_methylclock_results.csv
-    touch ${prefix}_methylclock_output.rds
-    echo "BIOC_METHYLCLOCK:" > versions.yml
-    echo "    methylclock: 0.0.0" >> versions.yml
+    touch ${prefix}_chronological_and_biological_age_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_METHYLCLOCK_WORKFLOW {
+workflow BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ MethylationData, covariates ] ]
 
     main:
-    BIOC_METHYLCLOCK(ch_input)
+    BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_METHYLCLOCK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METHYLCLOCK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METHYLCLOCK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METHYLCLOCK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION.out.tables
+    plots    = BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION.out.plots
+    objects  = BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION.out.objects
+    versions = BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION.out.versions
 }

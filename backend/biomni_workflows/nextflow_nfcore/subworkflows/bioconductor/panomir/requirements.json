@@ -1,0 +1,19 @@
+{
+  "package": "panomir",
+  "requirements": [
+    "GSEABase",
+    "PanomiR"
+  ],
+  "by_workflow": {
+    "custom_mirna_pathway_enrichment.nf": [
+      "PanomiR"
+    ],
+    "custom_pathway_table_generation.nf": [
+      "GSEABase",
+      "PanomiR"
+    ],
+    "main.nf": [
+      "PanomiR"
+    ]
+  }
+}

@@ -4,6 +4,8 @@
 // Score gene signatures (including positive/negative markers), adjust algorithm parameters, and perform nearest-neighbor smoothing directly within a Seurat object
 // Input: seurat.object
 // Container: quay.io/biocontainers/bioconductor-ucell:2.14.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, Seurat, UCell, ggplot2
 // Visualizations: feature plot, violin plot
 // QC: missing-value handling, count normalization, highly-variable feature selection
@@ -40,9 +42,12 @@ process BIOC_UCELL_SEURAT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries

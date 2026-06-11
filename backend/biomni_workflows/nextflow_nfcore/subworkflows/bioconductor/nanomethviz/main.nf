@@ -1,138 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NanoMethViz
-// NanoMethViz is a toolkit for visualising methylation data from Oxford Nanopore sequencing. It can be
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NanoMethViz/inst/doc/UsersGuide.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("NanoMethViz")
+// Bioconductor workflow: NanoMethViz — tabular_data_import_and_plotting
+// Import tabular methylation calls, convert them to tabix format, construct a NanoMethResult object, and plot gene-level methylation.
+// Input: methy_calls.tsv.gz, sample_anno.csv
+// Container: quay.io/biocontainers/bioconductor-nanomethviz:2.8.1--r43hf17093f_0
+// R packages: dplyr, NanoMethViz
+// Bioconductor: 3.20 | R: 4.4
+// Requires: NanoMethViz, dplyr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert tabular files to tabix format using create_tabix_file()
+//  * 2. [Core Analysis] Retrieve exon annotations using get_exons_mm10() or get_exons_hg19()
+//  * 3. [Input & Preparation] Define sample annotations
+//  * 4. [Input & Preparation] Construct the NanoMethResult object
+//  * 5. [Visualization & Output] Plot methylation patterns using plot_gene()
 
 nextflow.enable.dsl = 2
 
-process BIOC_NANOMETHVIZ {
+process BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nanomethviz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nanomethviz:3.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nanomethviz:3.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nanomethviz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nanomethviz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nanomethviz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dplyr", "NanoMethViz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(NanoMethViz)
-    library(ModBamFiles)
-    library(ModBamResult)
-    library(NanoMethResult)
-    library(jsonlite)
-
-    # --- Data Import and Tabix Conversion ---
-    # Key functions: create_tabix_file, methy_col_names
-    methy_calls <- system.file(
-        package = "NanoMethViz",
-        c("sample1_nanopolish.tsv.gz", "sample2_nanopolish.tsv.gz")
-    )
-    methy_tabix <- file.path(tempdir(), "methy_data.bgz")
-    samples <- c("sample1", "sample2")
-    create_tabix_file(methy_calls, methy_tabix, samples)
-    methy_cols <- methy_col_names()
-
-    # --- Object Construction ---
-    # Key functions: NanoMethResult, get_exons_mm10
-    methy <- system.file(package = "NanoMethViz", "methy_subset.tsv.bgz")
+    library(dplyr)
+    
+    # 1. Read user input files
+    # The pipeline reads exactly these files from the working directory:
+    # - methy_calls.tsv.gz (tabular methylation calls)
+    # - sample_anno.csv (sample annotation table with sample and group columns)
+    methy_calls <- "methy_calls.tsv.gz"
+    sample_anno <- read.csv("sample_anno.csv", stringsAsFactors = FALSE)
+    
+    # Extract sample names from the annotation table
+    samples <- sample_anno\$sample
+    
+    # Define the output path for the tabix file
+    methy_tabix <- "methy_data.bgz"
+    
+    # 2. Convert tabular files to tabix format
+    # FIX: Do not pass the 'samples' vector when providing a single input file 
+    # to avoid length mismatch errors. The single file already contains sample names.
+    create_tabix_file(methy_calls, methy_tabix)
+    
+    # 3. Retrieve exon annotations
     exon_tibble <- get_exons_mm10()
-    sample_anno <- data.frame(
-        sample = c("B6Cast_Prom_1_bl6", "B6Cast_Prom_1_cast"),
-        group = c("bl6", "cast"),
-        stringsAsFactors = FALSE
-    )
+    
+    # Define 'methy' as the path to the tabix file to match the documented constructor call
+    methy <- methy_tabix
+    
+    # 4. Construct the NanoMethResult object
     nmr <- NanoMethResult(methy, sample_anno, exon_tibble)
-
-    # --- Format Conversion for Differential Methylation ---
-    # Key functions: load_example_nanomethresult, methy_to_bsseq, exons_to_genes, bsseq_to_edger
-    nmr <- load_example_nanomethresult()
-    bss <- methy_to_bsseq(nmr)
-    gene_regions <- exons_to_genes(NanoMethViz::exons(nmr))
-    edger_mat <- bsseq_to_edger(bss, gene_regions)
-
-    # --- Dimensionality Reduction and QC ---
-    # Key functions: load_example_nanomethresult, methy_to_bsseq, exons_to_genes, bsseq_to_log_methy_ratio, plot_mds
-    nmr <- load_example_nanomethresult()
-    bss <- methy_to_bsseq(nmr)
-    gene_anno <- exons_to_genes(NanoMethViz::exons(nmr))
-    lmr <- bsseq_to_log_methy_ratio(bss, regions = gene_anno)
-    mds_plot <- plot_mds(lmr)
-    pca_plot <- plot_pca(lmr)
-
-    # --- Methylation Profile Visualisation ---
-    # Key functions: load_example_nanomethresult, plot_gene
-    nmr <- load_example_nanomethresult()
-    bsseq_dmr <- read.table(
-        system.file(package = "NanoMethViz", "dmr_subset.tsv.gz"),
-        sep = "\t",
-        header = TRUE,
-        stringsAsFactors = FALSE
-    )
-    plot_gene(nmr, "Peg3", anno_regions = bsseq_dmr, heatmap = TRUE)
-    plot_gene(nmr, "Peg3", anno_regions = bsseq_dmr, spaghetti = TRUE)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nanomethviz_results.csv", row.names = TRUE)
+    
+    # Save the constructed NanoMethResult object
+    saveRDS(nmr, "nanometh_result.rds")
+    
+    # 5. Plot gene-level methylation patterns
+    # FIX: Dynamically select a gene present in the user's data instead of hardcoding 'Peg3'
+    methy_data_sample <- read.table(gzfile(methy_tabix), col.names = methy_col_names(), nrows = 1000)
+    
+    if (nrow(methy_data_sample) > 0) {
+        data_chr <- methy_data_sample\$chr[1]
+        data_pos <- methy_data_sample\$pos[1]
+        
+        possible_exons <- exon_tibble[exon_tibble\$chr == data_chr, ]
+        if (nrow(possible_exons) > 0) {
+            distances <- abs(possible_exons\$start - data_pos)
+            target_gene <- possible_exons\$symbol[which.min(distances)]
+        } else {
+            target_gene <- exon_tibble\$symbol[1]
+        }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nanomethviz_results.csv")
+        target_gene <- exon_tibble\$symbol[1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nanomethviz_output.rds")
+    
+    # Plot 1: Basic gene plot
+    pdf("plot_gene_dynamic.pdf", width = 7, height = 5)
+    plot_gene(nmr, target_gene)
+    dev.off()
+    
+    # Define bsseq_dmr dynamically based on target_gene coordinates to avoid system.file/demo data
+    target_exons <- exon_tibble[exon_tibble\$symbol == target_gene, ]
+    if (nrow(target_exons) > 0) {
+        bsseq_dmr <- data.frame(
+            chr = target_exons\$chr[1],
+            start = min(target_exons\$start),
+            end = max(target_exons\$end),
+            stringsAsFactors = FALSE
+        )
+    } else {
+        # Fallback coordinates if target_gene is not found in the annotation
+        bsseq_dmr <- data.frame(
+            chr = "chr11",
+            start = 101463000,
+            end = 101464000,
+            stringsAsFactors = FALSE
+        )
     }
+    
+    # Plot 2: Gene plot with annotated regions highlighted
+    pdf("plot_gene_dynamic_dmr.pdf", width = 7, height = 5)
+    plot_gene(nmr, target_gene, anno_regions = bsseq_dmr)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NANOMETHVIZ:", paste0("    nanomethviz: ", packageVersion("NanoMethViz"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING":',
+        paste0('    NanoMethViz: ', as.character(packageVersion('NanoMethViz')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nanomethviz_results.csv
-    touch ${prefix}_nanomethviz_output.rds
-    echo "BIOC_NANOMETHVIZ:" > versions.yml
-    echo "    nanomethviz: 0.0.0" >> versions.yml
+    touch ${prefix}_tabular_data_import_and_plotting.csv versions.yml
     """
 }
 
-
-workflow BIOC_NANOMETHVIZ_WORKFLOW {
+workflow BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ methy_calls.tsv.gz, sample_anno.csv ] ]
 
     main:
-    BIOC_NANOMETHVIZ(ch_input)
+    BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING(ch_input)
 
     emit:
-    results  = BIOC_NANOMETHVIZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NANOMETHVIZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NANOMETHVIZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NANOMETHVIZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING.out.tables
+    plots    = BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING.out.plots
+    objects  = BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING.out.objects
+    versions = BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING.out.versions
 }

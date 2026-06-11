@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: path=The path to the directory containing cohort sub-folders with Picard txt or BAM files ;; order=A character vector specifying the factor levels/order of cohorts along the plot axes ;; limit=A numeric vector of length 2 specifying the fragment size range (e.g., c(50, 135)) for peak/valley distance calculations ;; mode_partition=A list specifying how to group/stratify modes in plotModeSummary ;; vline=A parameter in plotSingleGroup to control vertical lines (can be set to NULL to disable default lines)\n- alternatives: Picard CollectInsertSizeMetrics is mentioned as the standard upstream command-line tool used to generate the input insert size metrics text files.\n- when_to_use: Use this package when analyzing cfDNA whole-genome sequencing (WGS) data (specifically Illumina NGS data) to characterize fragment size distributions, identify 10bp periodic oscillations, and compare fragmentation metrics (like median size, modal size, and peak/valley distances) across multiple cohorts or samples.\n- pitfalls: Input files (Picard txt or BAM) must be organized into sub-folders named by cohort name, even if there is only one cohort in the study ;; BAM files must be Illumina NGS data and must meet specific criteria: proper pair flag, mapping quality >= 30, and CIGAR string without \"I\" or \"D\" ;; Fragment sizes below 30bp are noisy and above 500bp are too low to be useful, so the default analysis focuses on the 30bp-500bp range.",
+  "workflows": [
+    {
+      "name": "single_cohort_analysis",
+      "intent": "Characterize and visualize fragment size distribution (proportions and cumulative distribution functions) for a single cohort.",
+      "input": [
+        "data_path (directory containing sub-folders named by cohort, each containing Picard insert size metrics .txt files or BAM files)"
+      ],
+      "stages": "1. Retrieve the path to the input data directory using examplePath ;; 2. Extract fragment size distribution data using callSize ;; 3. Filter the dataset for the target cohort ;; 4. Generate proportion and cumulative distribution plots using plotSingleGroup",
+      "code": "data_path <- examplePath(\"groups_picard\")\ncohort1_plot <- cfDNAPro::callSize(path = data_path) %>%\n  dplyr::filter(group == as.character(\"cohort_1\")) %>%\n  cfDNAPro::plotSingleGroup()"
+    },
+    {
+      "name": "multi_cohort_comparison",
+      "intent": "Compare median size metrics, modal fragment sizes, and inter-peak/valley distances across multiple cohorts.",
+      "input": [
+        "data_path (directory containing sub-folders named by cohort, each containing Picard insert size metrics .txt files or BAM files)"
+      ],
+      "stages": "1. Calculate and plot median size metrics across cohorts using callMetrics and plotMetrics ;; 2. Calculate and plot modal fragment sizes using callMode, plotMode, and plotModeSummary ;; 3. Calculate and plot inter-peak distances using callPeakDistance and plotPeakDistance ;; 4. Calculate and plot inter-valley distances using callValleyDistance and plotValleyDistance",
+      "code": "data_path <- examplePath(\"groups_picard\")\norder <- c(\"cohort_1\", \"cohort_2\", \"cohort_3\", \"cohort_4\")\ncompare_grps<-callMetrics(data_path) %>% plotMetrics(order=order)\n\nmode_bin <- callMode(data_path) %>% plotMode(order=order,hline = c(167,111,81))\n\nmode_stacked <- \n  callMode(data_path) %>% \n  plotModeSummary(order=order,\n                  mode_partition = list(c(166,167)))\n\ninter_peak_dist<-callPeakDistance(path = data_path,  limit = c(50, 135)) %>%\n  plotPeakDistance(order = order)\n\ninter_valley_dist<-callValleyDistance(path = data_path,  \n                                      limit = c(50, 135)) %>%\n  plotValleyDistance(order = order)"
+    },
+    {
+      "name": "peak_valley_highlighting",
+      "intent": "Identify and visually highlight specific peak and valley locations on a single sample's fragmentation pattern.",
+      "input": [
+        "exam_path (directory containing Picard insert size metrics .txt files or BAM files for a specific sample)"
+      ],
+      "stages": "1. Calculate peak distances using callPeakDistance ;; 2. Calculate valley distances using callValleyDistance ;; 3. Generate the base fragmentation pattern plot using callSize and plotSingleGroup ;; 4. Overlay peak and valley locations as vertical lines or dots using ggplot2 layers",
+      "code": "exam_path <- examplePath(\"step6\")\npeaks <- callPeakDistance(path = exam_path) \nvalleys <- callValleyDistance(path = exam_path) \nexam_plot_all <- callSize(path=exam_path) %>% plotSingleGroup(vline = NULL)\nexam_plot_prop <- exam_plot_all$prop + \n  coord_cartesian(xlim = c(90,135),ylim = c(0,0.0065)) +\n  geom_vline(xintercept=peaks$insert_size, colour=\"red\",linetype=\"dashed\") +\n  geom_vline(xintercept = valleys$insert_size,colour=\"blue\")\n\nexam_plot_prop_dot<- exam_plot_all$prop + \n  coord_cartesian(xlim = c(90,135),ylim = c(0,0.0065)) +\n  geom_point(data= peaks, \n             mapping = aes(x= insert_size, y= prop),\n             color=\"blue\",alpha=0.5,size=3) +\n  geom_point(data= valleys, \n             mapping = aes(x= insert_size, y= prop),\n             color=\"red\",alpha=0.5,size=3)"
+    }
+  ]
+}

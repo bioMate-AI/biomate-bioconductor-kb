@@ -1,165 +1,161 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: safe
-// SAFE is a resampling-based method for testing functional categories in gene expression experiments. 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/safe/inst/doc/SAFEmanual3.R
-// Upstream  : breastCancerUPP, doParallel
-// Downstream: none
-//
-// Install: BiocManager::install("safe")
+// Bioconductor workflow: safe — standard_safe_analysis
+// Perform resampling-based pathway analysis on two-sample gene expression data using built-in annotations.
+// Input: e3.upp, p3.upp$p53
+// Container: quay.io/biocontainers/bioconductor-safe:3.50.0--r45hdfd78af_0
+// R packages: breastcancerupp, doParallel, hgu133a.db, safe
+// Bioconductor: 3.20 | R: 4.4
+// Requires: hgu133a.db, safe
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run safe with platform annotation
+//  * 2. [Core Analysis] Tabulate top results using safe.toptable
+//  * 3. [Core Analysis] Extract gene-specific results using gene.results
+//  * 4. [Visualization & Output] Plot pathway results using safeplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_SAFE {
+process BIOC_SAFE_STANDARD_SAFE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-safe"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-safe:3.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-safe:3.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(plot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_safe_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_safe_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_safe_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Surv)
-    library(Time)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: exprs, pData
-    data(upp)
-    ex.upp <- exprs(upp)
-    p.upp <- pData(upp)
-    data(p53.stat)
-    p.upp <- cbind(p.upp, p53 = p53.stat$p53)
-    # --- Which [] ---
-    # Key functions: unlist
-    grade.3 <- which(p.upp$grade == 3)
-    p3.upp <- p.upp[grade.3,]
-    genes <- unlist(as.list(hgu133aSYMBOL))
-    drop <- grep("AFFX", names(genes))
-    genes <- genes[-drop]
-    # --- Toptable [] ---
-    # Key functions: toptable
-    ## safe.toptable(results, number = 10)
-    # --- Results [] ---
-    # Key functions: results
-    gene.results(results, cat.name = "REACTOME:R-HSA-69183", gene.names = genes)
-    # --- Plot0 [] ---
-    # Key functions: safeplot
-    safeplot(results, cat.name = "REACTOME:R-HSA-69183", gene.names = genes)
-    # --- Unlist [] ---
-    # Key functions: unlist, mget, getCmatrix, safe
-    entrez <- unlist(mget(names(genes),hgu133aENTREZID))
-    C.mat <- getCmatrix(gene.list = as.list(reactomeEXTID2PATHID),
-                        present.genes = entrez,prefix = "REACTOME:",
-                        min.size = 10, max.size = 500)
-    results <- safe(e3.upp, p3.upp$p53, C.mat, print.it = FALSE)
-    # --- Getcmatrix [] ---
-    # Key functions: getCmatrix
-    ## C.mat2 <- getCmatrix(gene.list = as.list(hgu133aPFAM),
-    ##                      present.genes = rownames(e3.upp))
-    # --- List [] ---
-    # Key functions: getCmatrix
-    ## GO.list <- as.list(hgu133aGO2ALLPROBES)
-    ## C.mat2 <- getCmatrix(keyword.list = GO.list, GO.ont = "CC",
-    ##             present.genes = rownames(e3.upp))
-    # --- Safe [] ---
-    # Key functions: safe
-    results2 <- safe(e3.upp, p3.upp$p53, C.mat, local = "t.Welch",
-                     Pi.mat = 1, print.it = FALSE)
-    cbind(Student = round(results@local.stat[1:3], 3),
-          Welch   = round(results2@local.stat[1:3], 3))
-    # --- Rep [] ---
-    # Key functions: safe
-    y.vec <- rep(1:27,2)*rep(c(-1,1), each = 27)
-    results2 <- safe(e3.upp, y.vec, C.mat, local = "t.paired",
-                     Pi.mat = 1, print.it = FALSE)
-    # --- Safe [] ---
-    # Key functions: safe
-    results3 <-  safe(e3.upp, y.vec, C.mat, local = "WilcoxSignRank",
-                      Pi.mat = 1, print.it = FALSE)
-    cbind(Paired.t  = round(results2@local.stat[1:3], 3),
-          Sign.Rank = results3@local.stat[1:3])
-    # --- Surv [] ---
-    # Key functions: survfit, Surv, Time
-    layout(matrix(1:2,2,1), heights=c(4,2))
-    plot(survfit(Surv(p3.upp$t.rfs, p3.upp$e.rfs) ~ 1),
-         xlab = "Time (days)", ylim = c(.4,1))
-    # --- Na [] ---
-    # Key functions: na, getCOXresiduals, safe
-    drop <- is.na(p3.upp$t.rfs)
-    Xy <- getCOXresiduals(e3.upp[,!drop], p3.upp$t.rfs[!drop],
-                          p3.upp$e.rfs[!drop])
-    results2 <- safe(Xy$X.star, Xy$y.star, C.mat,
-                     Pi.mat = 1, print.it = FALSE)
-    # --- Table [] ---
-    # Key functions: getXYresiduals, safe
-    table(ER = p3.upp$er, p53 = p3.upp$p53)
-    Xy <- getXYresiduals(e3.upp, p3.upp$p53, Z.mat = p3.upp$er)
-    results2 <- safe(Xy$X.star, Xy$y.star, C.mat,
-                     Pi.mat = 1, print.it = FALSE)
-    # --- Safe [] ---
-    # Key functions: safe
-    results2 <- safe(e3.upp, p3.upp$p53, C.mat,
-                     global = "AveDiff", print.it = FALSE)
-    cor(results@global.pval, results2@global.pval, method = "spearman")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_safe_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_safe_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("breastcancerupp", "doParallel", "hgu133a.db", "safe")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_safe_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(safe)
+        library(hgu133a.db)
+        
+        # Set seed for reproducibility
+        set.seed(12345)
+        
+        # Helper function to robustly read user input files
+        read_input <- function(file_path) {
+          if (!file.exists(file_path)) {
+            stop(paste("Error: Required input file missing:", file_path))
+          }
+          
+          # Try reading as RDS
+          obj <- tryCatch({
+            readRDS(file_path)
+          }, error = function(e) {
+            NULL
+          })
+          if (!is.null(obj)) return(obj)
+          
+          # Try reading as table (matrix/data.frame)
+          obj <- tryCatch({
+            as.matrix(read.table(file_path, header = TRUE, row.names = 1, check.names = FALSE))
+          }, error = function(e) {
+            NULL
+          })
+          if (!is.null(obj)) return(obj)
+          
+          # Try reading as simple vector
+          obj <- tryCatch({
+            scan(file_path, quiet = TRUE)
+          }, error = function(e) {
+            stop(paste("Error: Failed to read file", file_path))
+          })
+          return(obj)
+        }
+        
+        # Read user input files from the working directory
+        e3.upp <- read_input("e3.upp")
+        p53_vector <- read_input("p3.upp\$p53")
+        
+        # Construct the p3.upp object to match the documented code structure
+        p3.upp <- list(p53 = p53_vector)
+        
+        # Define the genes annotation object as specified in the package documentation
+        genes <- unlist(as.list(hgu133aSYMBOL))
+        drop <- grep("AFFX", names(genes))
+        genes <- genes[-drop]
+        
+        # === DOCUMENTED CODE STAGES ===
+        
+        # Stage 1: Run safe with platform annotation
+        results <- safe(e3.upp, p3.upp\$p53, platform = "hgu133a.db",
+                        annotate = "REACTOME", print.it = FALSE)
+        saveRDS(results, "safe_results.rds")
+        
+        # Stage 2: Tabulate top results using safe.toptable
+        top_table <- safe.toptable(results, number = 10)
+        write.csv(top_table, "safe_toptable.csv", row.names = TRUE)
+        
+        # Stage 3: Extract gene-specific results using gene.results
+        top_pathway <- as.character(top_table\$GenesetID[1])
+        gene.results(results, cat.name = top_pathway, gene.names = genes)
+        
+        # Also save the gene-specific results to an RDS file for downstream use
+        gene_res_list <- gene.results(results, cat.name = top_pathway, gene.names = genes, print.it = FALSE)
+        saveRDS(gene_res_list, "gene_results_top_pathway.rds")
+        
+        # Stage 4: Plot pathway results using safeplot
+        pdf("safeplot_top_pathway.pdf", width = 10, height = 8)
+        safeplot(results, cat.name = top_pathway, gene.names = genes)
+        dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SAFE:", paste0("    safe: ", packageVersion("safe"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SAFE_STANDARD_SAFE_ANALYSIS":',
+        paste0('    safe: ', as.character(packageVersion('safe')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_safe_results.csv
-    touch ${prefix}_safe_output.rds
-    echo "BIOC_SAFE:" > versions.yml
-    echo "    safe: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_safe_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SAFE_WORKFLOW {
+workflow BIOC_SAFE_STANDARD_SAFE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(plot_object) ]
+    ch_input  // channel: [ val(meta), [ e3.upp, p3.upp$p53 ] ]
 
     main:
-    BIOC_SAFE(ch_input)
+    BIOC_SAFE_STANDARD_SAFE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SAFE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SAFE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SAFE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SAFE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SAFE_STANDARD_SAFE_ANALYSIS.out.tables
+    plots    = BIOC_SAFE_STANDARD_SAFE_ANALYSIS.out.plots
+    objects  = BIOC_SAFE_STANDARD_SAFE_ANALYSIS.out.objects
+    versions = BIOC_SAFE_STANDARD_SAFE_ANALYSIS.out.versions
 }

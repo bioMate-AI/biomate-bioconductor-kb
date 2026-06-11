@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fragsfile=Path to the fragment file containing chromosome names, midpoints, and hit counts ;; intersfile=Path to the interaction file containing chromosome names, midpoints, and raw contact counts ;; outdir=Path to the directory where output files will be stored ;; biasfile=Optional path to the bias file containing normalization bias values per locus ;; libname=String used as a prefix for output files ;; distUpThres=Upper bound on genomic distance for interactions to be considered ;; distLowThres=Lower bound on genomic distance for interactions to be considered ;; noOfBins=Number of equal-occupancy bins to use for spline fitting ;; visual=Logical indicating whether to generate plots ;; useHiCPro=Logical indicating whether the input files are in HiC-Pro format\n- alternatives: Original Python implementation of Fit-Hi-C (the R package is more efficient due to C/C++ rewrites and has bug fixes for \"nan\" errors in q-value computation)\n- when_to_use: When analyzing intra-chromosomal contact maps from Hi-C, PLAC-seq, HiChIP, or region capture Hi-C to identify statistically significant chromatin interactions by assigning p-values and q-values\n- pitfalls: Using normalized contact counts instead of RAW contact counts (normalization must be handled via the biasfile parameter, not by pre-normalizing the counts) ;; Mismatching midpoints between the fragsfile, intersfile, and biasfile ;; Not centering the bias values on 1 (matrix balancing-based normalization methods like ICE/KR should provide bias values centered on 1)",
+  "workflows": [
+    {
+      "name": "fithic_standard_analysis",
+      "intent": "Run Fit-Hi-C on raw Hi-C contact maps without normalization bias files to estimate interaction significance.",
+      "input": [
+        "fragsfile.gz (fragment midpoints and hit counts)",
+        "intersfile.gz (raw contact counts between fragment pairs)"
+      ],
+      "stages": "1. Define paths to input files and output directory ;; 2. Run the FitHiC function to perform spline fitting and calculate p-values/q-values",
+      "code": "library(\"FitHiC\")\nfragsfile <- system.file(\"extdata\",\n    \"fragmentLists/Dixon_hESC_HindIII_hg18_w40000_chr1.gz\",\n    package = \"FitHiC\")\nintersfile <- system.file(\"extdata\",\n    \"contactCounts/Dixon_hESC_HindIII_hg18_w40000_chr1.gz\",\n    package = \"FitHiC\")\noutdir <- file.path(getwd(), \"Dixon_hESC_HindIII_hg18_w40000_chr1\")\nFitHiC(fragsfile, intersfile, outdir,\n    libname=\"Dixon_hESC_HindIII_hg18_w40000_chr1\", noOfBins=50,\n    distUpThres=5000000, distLowThres=50000, visual=TRUE)"
+    },
+    {
+      "name": "fithic_normalized_analysis",
+      "intent": "Run Fit-Hi-C on raw Hi-C contact maps incorporating matrix balancing-based normalization bias values (e.g., ICE or KR) to control for experimental biases.",
+      "input": [
+        "fragsfile.gz (fragment midpoints)",
+        "intersfile.gz (raw contact counts)",
+        "biasfile.gz (bias values per locus centered on 1)"
+      ],
+      "stages": "1. Define paths to input files, bias file, and output directory ;; 2. Run the FitHiC function with the bias file specified to calculate normalized interaction significance",
+      "code": "library(\"FitHiC\")\nfragsfile <- system.file(\"extdata\",\n    \"fragmentLists/Dixon_hESC_HindIII_hg18_w40000_chr1.gz\",\n    package = \"FitHiC\")\nintersfile <- system.file(\"extdata\",\n    \"contactCounts/Dixon_hESC_HindIII_hg18_w40000_chr1.gz\",\n    package = \"FitHiC\")\noutdir <- file.path(getwd(), \"Dixon_hESC_HindIII_hg18_w40000_chr1.afterICE\")\nbiasfile <- system.file(\"extdata\",\n    \"biasPerLocus/Dixon_hESC_HindIII_hg18_w40000_chr1.gz\",\n    package = \"FitHiC\")\nFitHiC(fragsfile, intersfile, outdir, biasfile,\n    libname=\"Dixon_hESC_HindIII_hg18_w40000_chr1\", noOfBins=50,\n    distUpThres=5000000, distLowThres=50000, visual=TRUE)"
+    },
+    {
+      "name": "fithic_hicpro_analysis",
+      "intent": "Run Fit-Hi-C on HiC-Pro pipeline outputs incorporating ICE bias values.",
+      "input": [
+        "data_5000000_abs.bed.gz (HiC-Pro fragment bed file)",
+        "data_5000000.matrix.gz (HiC-Pro raw interaction matrix file)",
+        "data_5000000_iced.matrix.biases.gz (HiC-Pro ICE bias file)"
+      ],
+      "stages": "1. Define paths to HiC-Pro input files and output directory ;; 2. Run the FitHiC function with useHiCPro=TRUE and the bias file specified",
+      "code": "library(\"FitHiC\")\nfragsfile <- system.file(\"extdata\", \"fragmentLists/data_5000000_abs.bed.gz\",\n    package = \"FitHiC\")\nintersfile <- system.file(\"extdata\", \"contactCounts/data_5000000.matrix.gz\",\n    package = \"FitHiC\")\nbiasfile <- system.file(\"extdata\",\n    \"biasPerLocus/data_5000000_iced.matrix.biases.gz\", package = \"FitHiC\")\noutdir <- file.path(getwd(), \"data_5000000\")\nFitHiC(fragsfile, intersfile, outdir, biasfile, libname=\"data_5000000\",\n    distUpThres=500000000, distLowThres=5000000, visual=TRUE, useHiCPro=TRUE)"
+    }
+  ]
+}

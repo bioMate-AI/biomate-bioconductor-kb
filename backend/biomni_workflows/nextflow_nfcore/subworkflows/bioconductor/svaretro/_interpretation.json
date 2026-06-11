@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxgap=Maximum allowable distance (in base pairs) between a breakpoint and an exon-intron boundary to be considered a match ;; minscore=Minimum score threshold for identifying retrotransposed transcripts ;; nominalPosition=Logical parameter for breakpointRanges indicating whether to use nominal positions\n- alternatives: None mentioned; the package relies on VariantAnnotation for VCF parsing and StructuralVariantAnnotation for breakend-centric GRanges conversion.\n- when_to_use: Use this package when you have structural variant calls (e.g., from Manta) and want to identify retrotransposed transcripts and their genomic insertion sites.\n- pitfalls: StructuralVariantAnnotation requires the input GRanges object to consist entirely of valid, consistent breakpoints. Additionally, insertion sites can be complex and may only be detected on one side, both sides, or not at all.",
+  "workflows": [
+    {
+      "name": "detect_and_visualize_rts",
+      "intent": "Detect retrotransposed transcripts from structural variant calls and visualize the resulting junctions and insertion sites.",
+      "input": [
+        "diploidSV.vcf (VCF file containing structural variant calls)",
+        "TxDb.Hsapiens.UCSC.hg19.knownGene (Transcript database for gene/exon annotations)"
+      ],
+      "stages": "1. Load VCF data and convert to breakend-centric GRanges.\n2. Identify retrotransposed transcripts using rtDetect.\n3. Format the detected breakends into pairs using breakpointgr2pairs.\n4. Visualize the breakpoint pairs using circlize.",
+      "code": "library(StructuralVariantAnnotation)\nlibrary(VariantAnnotation)\nlibrary(svaRetro)\n\nRT_vcf <- readVcf(system.file(\"extdata\", \"diploidSV.vcf\", package = \"svaRetro\"))\nRT_gr <- StructuralVariantAnnotation::breakpointRanges(RT_vcf,\n  nominalPosition = TRUE\n)\nhead(RT_gr)\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene)\nlibrary(dplyr)\nhg19.genes <- TxDb.Hsapiens.UCSC.hg19.knownGene\n\nRT <- rtDetect(RT_gr, hg19.genes, maxgap = 10, minscore = 0.8)\nRT$SKA3\nlibrary(circlize)\nrt_chr_prefix <- c(RT$SKA3$junctions, RT$SKA3$insSite)\nGenomeInfoDb::seqlevelsStyle(rt_chr_prefix) <- \"UCSC\"\npairs <- breakpointgr2pairs(rt_chr_prefix)\npairs\ncircos.initializeWithIdeogram(\n  data.frame(\n    V1 = c(\"chr13\", \"chr11\"),\n    V2 = c(21720000, 108585000),\n    V3 = c(21755000, 108586000),\n    V4 = c(\"q12.11\", \"q24.3\"),\n    V5 = c(\"gneg\", \"gpos50\")\n  )\n)\ncircos.genomicLink(\n  as.data.frame(S4Vectors::first(pairs)),\n  as.data.frame(S4Vectors::second(pairs))\n)\ncircos.clear()"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "package": "transcriptr",
+  "requirements": [
+    "AnnotationDbi",
+    "GenomicFeatures",
+    "transcriptR"
+  ],
+  "by_workflow": {
+    "integrated_rna_and_chip_seq_demarcation.nf": [
+      "AnnotationDbi",
+      "GenomicFeatures",
+      "transcriptR"
+    ],
+    "main.nf": [
+      "GenomicFeatures",
+      "transcriptR"
+    ]
+  }
+}

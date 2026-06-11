@@ -1,0 +1,15 @@
+{
+  "package": "derfinderhelper",
+  "requirements": [
+    "IRanges",
+    "S4Vectors",
+    "derfinderHelper"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IRanges",
+      "S4Vectors",
+      "derfinderHelper"
+    ]
+  }
+}

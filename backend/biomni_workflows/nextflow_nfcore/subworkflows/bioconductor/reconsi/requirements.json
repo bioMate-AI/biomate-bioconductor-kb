@@ -1,0 +1,18 @@
+{
+  "package": "reconsi",
+  "requirements": [
+    "ggplot2",
+    "phyloseq",
+    "reconsi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "reconsi"
+    ],
+    "phyloseq_differential_abundance.nf": [
+      "ggplot2",
+      "phyloseq",
+      "reconsi"
+    ]
+  }
+}

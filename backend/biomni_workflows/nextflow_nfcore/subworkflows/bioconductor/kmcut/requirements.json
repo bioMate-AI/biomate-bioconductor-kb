@@ -1,0 +1,23 @@
+{
+  "package": "kmcut",
+  "requirements": [
+    "kmcut"
+  ],
+  "by_workflow": {
+    "cox_regression_and_prediction.nf": [
+      "kmcut"
+    ],
+    "cutoff_validation.nf": [
+      "kmcut"
+    ],
+    "fast_exploratory_cutoff.nf": [
+      "kmcut"
+    ],
+    "fixed_or_quantile_cutoff.nf": [
+      "kmcut"
+    ],
+    "main.nf": [
+      "kmcut"
+    ]
+  }
+}

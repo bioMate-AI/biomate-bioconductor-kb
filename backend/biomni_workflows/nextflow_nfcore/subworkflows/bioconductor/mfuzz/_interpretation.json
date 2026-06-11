@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: thres=Threshold fraction of missing values allowed per gene/protein (e.g., 0.25 to exclude genes with >25% missing values) ;; mode=Method to replace missing values in fill.NA (\"mean\", \"knn\", or \"wknn\") ;; min.std=Minimum standard deviation threshold for filtering low-variation genes in filter.std ;; c=Number of clusters to target in mfuzz ;; m=Fuzzifier parameter in mfuzz determining the soft boundary of clusters (can be estimated using mestimate) ;; alpha=Membership value threshold used in acore to define the core of a cluster (e.g., 0.7)\n- alternatives: kmeans2=Standard hard k-means clustering, which can be used when clusters are well-separated and noise is low, though it is highly sensitive to noise and forces genes into a single cluster ;; knn/wknn modes in fill.NA=Weighted k-nearest neighbor methods for missing value imputation, which are recommended over \"mean\" as they perform more favorably, though they are computationally intensive\n- when_to_use: Appropriate for time-series or longitudinal transcriptomic, proteomic, or metabolomic datasets where genes/proteins exhibit gradual regulatory patterns, clusters overlap, and noise robustness is required to avoid arbitrary a priori filtering of biologically relevant molecules.\n- pitfalls: Fuzzy c-means does not allow missing values, so users must run filter.NA and fill.NA before clustering ;; standardise is used to make transcripts/proteins comparable (mean 0, SD 1) and does not replace normalisation (which makes samples comparable) ;; Replicated arrays in the expression matrix are treated as independent by mfuzz and must be averaged beforehand or split into distinct ExpressionSet objects ;; Sample ordering is strictly based on the columns of the expression matrix; phenoData or optional time rows in uploaded tables are ignored during clustering.",
+  "workflows": [
+    {
+      "name": "soft_clustering_pipeline",
+      "intent": "Pre-process time-series omics data, estimate the optimal fuzzifier parameter, perform fuzzy c-means clustering, and visualize the resulting soft clusters.",
+      "input": [
+        "yeast.txt (Tab-delimited text file containing time-series expression data)",
+        "yeast (ExpressionSet object containing time-series expression data)"
+      ],
+      "stages": "1. Filter genes/proteins with excessive missing values using filter.NA ;; 2. Impute remaining missing values using fill.NA ;; 3. Filter low-variation genes using filter.std ;; 4. Standardise expression profiles using standardise ;; 5. Estimate the fuzzifier parameter m using mestimate ;; 6. Run fuzzy c-means clustering using mfuzz ;; 7. Plot the soft clusters using mfuzz.plot",
+      "code": "yeast.r <- filter.NA(yeast, thres=0.25)\nyeast.f <- fill.NA(yeast.r,mode=\"mean\")\ntmp <- filter.std(yeast.f,min.std=0)  \nyeast.s <- standardise(yeast.f)\ncl <- mfuzz(yeast.s,c=16,m=1.25)\nmfuzz.plot(yeast.s,cl=cl,mfrow=c(4,4),time.labels=seq(0,160,10))\nm1 <- mestimate(yeast.s)\nm1"
+    },
+    {
+      "name": "global_cluster_structure_analysis",
+      "intent": "Analyze the overlap, coupling, and global relationships between clusters to evaluate cluster stability and sub-cluster emergence across different cluster numbers.",
+      "input": [
+        "yeast.s (Standardised ExpressionSet object)",
+        "cl (Clustering result object from mfuzz)"
+      ],
+      "stages": "1. Calculate the overlap/coupling matrix between clusters using overlap ;; 2. Visualise the cluster overlap structure using overlap.plot ;; 3. Perform clustering with alternative cluster numbers (c) to examine sub-cluster emergence and global structures",
+      "code": "O <- overlap(cl)\nPtmp <- overlap.plot(cl,over=O,thres=0.05)\ncl3 <- mfuzz(yeast.s,c=10,m=1.25)\nmfuzz.plot(yeast.s,cl=cl3,mfrow=c(3,4))\nO3 <- overlap(cl3)\noverlap.plot(cl3,over=O3,P=Ptmp,thres=0.05)\ncl4 <- mfuzz(yeast.s,c=25,m=1.25)\nmfuzz.plot(yeast.s,cl=cl4,mfrow=c(5,5))\nO4 <- overlap(cl4)\noverlap.plot(cl4,over=O4,P=Ptmp,thres=0.05)"
+    }
+  ]
+}

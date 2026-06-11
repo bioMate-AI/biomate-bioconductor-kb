@@ -1,0 +1,21 @@
+{
+  "package": "rvs",
+  "requirements": [
+    "RVS",
+    "VariantAnnotation",
+    "kinship2",
+    "snpStats"
+  ],
+  "by_workflow": {
+    "gene_based_partial_sharing.nf": [
+      "RVS",
+      "VariantAnnotation",
+      "kinship2"
+    ],
+    "main.nf": [
+      "RVS",
+      "kinship2",
+      "snpStats"
+    ]
+  }
+}

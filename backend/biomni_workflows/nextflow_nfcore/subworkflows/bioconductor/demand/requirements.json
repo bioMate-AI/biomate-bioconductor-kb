@@ -1,0 +1,11 @@
+{
+  "package": "demand",
+  "requirements": [
+    "DeMAND"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DeMAND"
+    ]
+  }
+}

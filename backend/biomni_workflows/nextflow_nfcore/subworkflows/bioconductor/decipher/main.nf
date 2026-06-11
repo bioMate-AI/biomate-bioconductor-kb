@@ -1,144 +1,255 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DECIPHER
-// A toolset for deciphering and managing biological sequences.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DECIPHER/inst/doc/ArtOfAlignmentInR.R
-// Upstream  : none
-// Downstream: AssessORF, sangeranalyseR, SynExtend
-//
-// Install: BiocManager::install("DECIPHER")
+// Bioconductor workflow: decipher — taxonomic_classification
+// Train a taxonomic classifier on reference sequences and classify query sequences (DNA or Amino Acids).
+// Input: seqs_path, rank_path, fas
+// Container: quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0
+// R packages: DECIPHER
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DECIPHER {
+process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-decipher"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-decipher:3.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-decipher:3.2.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_decipher_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_decipher_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_decipher_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DECIPHER")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(DECIPHER)
-    library(AdjustAlignment)
-    library(AlignDB)
-    library(AlignProfiles)
-    library(AlignSeqs)
-    library(AlignSynteny)
-    library(AlignTranslation)
-    library(BrowseDB)
-    library(BrowseSeqs)
-    library(FindSynteny)
-    library(RNAStringSet)
-    library(jsonlite)
-
-    # --- Multiple Sequence Alignment [] ---
-    # Key functions: AlignSeqs
-    aligned_dna <- AlignSeqs(
-        dna_oriented,
-        guideTree = NULL,
-        gapOpening = -18,
-        gapExtension = -2,
-        verbose = FALSE
-    )
-
-
-    # --- Distance Matrix Computation [] ---
-    # Key functions: DistanceMatrix
-    dist_matrix <- DistanceMatrix(
-        aligned_dna,
-        correction = "Jukes-Cantor",
-        processors = 1,
-        verbose = FALSE
-    )
-
-
-    # --- Sequence Clustering and Tree Construction [] ---
-    # Key functions: IdClusters, TreeLine
-    clusters <- IdClusters(
-        dist_matrix,
-        method = "NJ",
-        cutoff = 0.05,
-        processors = 1,
-        verbose = FALSE
-    )
-    tree <- TreeLine(
-        myDistMatrix = dist_matrix,
-        method = "NJ",
-        showPlot = FALSE,
-        verbose = FALSE
-    )
-
-
-    # --- Alignment Visualization and Export [] ---
-    # Key functions: BrowseSeqs, writeXStringSet
-    BrowseSeqs(
-        aligned_dna,
-        htmlFile = "aligned_sequences.html",
-        openURL = FALSE
-    )
-    writeXStringSet(
-        aligned_dna,
-        filepath = "aligned_sequences.fasta"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_decipher_results.csv", row.names = TRUE)
+    
+    # Set seed for reproducibility
+    set.seed(123)
+    
+    # Define input file paths from command line arguments or default working directory files
+    args <- commandArgs(trailingOnly = TRUE)
+    seqs_path <- if (length(args) >= 1) args[1] else "training_seqs.fasta"
+    rank_path <- if (length(args) >= 2) args[2] else "taxid.txt"
+    fas       <- if (length(args) >= 3) args[3] else "query_seqs.fasta"
+    
+    # Validate mandatory inputs
+    if (!file.exists(seqs_path)) {
+      stop(paste("Error: Training sequences file not found at:", seqs_path))
+    }
+    if (!file.exists(fas)) {
+      stop(paste("Error: Query sequences file not found at:", fas))
+    }
+    
+    # ==========================================
+    # Stage 1: Read training sequences and optional taxid file
+    # ==========================================
+    cat("Reading training sequences...\n")
+    seqs <- readDNAStringSet(seqs_path)
+    
+    # Read optional taxid file if it exists
+    if (file.exists(rank_path) && rank_path != "") {
+      cat("Reading taxonomic rank file...\n")
+      taxid <- read.table(rank_path,
+                          header=FALSE,
+                          col.names=c('Index', 'Name', 'Parent', 'Level', 'Rank'),
+                          sep="*", # asterisks delimited
+                          quote="", # preserve quotes
+                          stringsAsFactors=FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_decipher_results.csv")
+      cat("No taxonomic rank file provided or found. Proceeding with taxid = NULL.\n")
+      taxid <- NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_decipher_output.rds")
+    
+    # ==========================================
+    # Stage 2: Remove gaps and orient nucleotides
+    # ==========================================
+    cat("Cleaning and orienting training sequences...\n")
+    seqs <- RemoveGaps(seqs)
+    seqs <- OrientNucleotides(seqs)
+    
+    # ==========================================
+    # Stage 3: Extract taxonomic group labels and subsample
+    # ==========================================
+    cat("Extracting taxonomic group labels...\n")
+    groups <- names(seqs) # sequence names
+    # Assume the taxonomy begins with 'Root;'
+    groups <- gsub("(.*)(Root;)", "\\2", groups) # extract the group label
+    groupCounts <- table(groups)
+    u_groups <- names(groupCounts) # unique groups
+    
+    # Subsample groups to prevent bias (max 10 sequences per label)
+    maxGroupSize <- 10 # max sequences per label (>= 1)
+    remove <- logical(length(seqs))
+    for (i in which(groupCounts > maxGroupSize)) {
+      index <- which(groups==u_groups[i])
+      keep <- sample(length(index), maxGroupSize)
+      remove[index[-keep]] <- TRUE
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DECIPHER:", paste0("    decipher: ", packageVersion("DECIPHER"))),
-        "versions.yml"
+    cat("Eliminated", sum(remove), "sequences during initial group size normalization.\n")
+    
+    # ==========================================
+    # Stage 4: Iteratively train the classifier and remove problem sequences
+    # ==========================================
+    maxIterations <- 3 # must be >= 1
+    allowGroupRemoval <- FALSE
+    
+    probSeqsPrev <- integer() # suspected problem sequences from prior iteration
+    for (i in seq_len(maxIterations)) {
+      cat("Training iteration: ", i, "\n", sep="")
+      
+      # Train the classifier
+      trainingSet <- LearnTaxa(seqs[!remove],
+                               names(seqs)[!remove],
+                               taxid)
+      
+      # Look for problem sequences
+      probSeqs <- trainingSet\$problemSequences\$Index
+      if (length(probSeqs)==0) {
+        cat("No problem sequences remaining.\n")
+        break
+      } else if (length(probSeqs)==length(probSeqsPrev) && all(probSeqsPrev==probSeqs)) {
+        cat("Iterations converged.\n")
+        break
+      }
+      if (i==maxIterations) {
+        break
+      }
+      probSeqsPrev <- probSeqs
+      
+      # Remove any problem sequences
+      index <- which(!remove)[probSeqs]
+      remove[index] <- TRUE # remove all problem sequences
+      if (!allowGroupRemoval) {
+        # Replace any removed groups
+        missing <- !(u_groups %in% groups[!remove])
+        missing <- u_groups[missing]
+        if (length(missing) > 0) {
+          index <- index[groups[index] %in% missing]
+          remove[index] <- FALSE # don't remove
+        }
+      }
+    }
+    
+    cat("Total sequences eliminated during training:", sum(remove), "\n")
+    cat("Number of remaining problem sequences:", length(probSeqs), "\n")
+    
+    # Save the trained classifier object
+    saveRDS(trainingSet, file="trained_classifier.rds")
+    cat("Trained classifier saved to 'trained_classifier.rds'.\n")
+    
+    # ==========================================
+    # Stage 5: Read and clean query sequences
+    # ==========================================
+    cat("Reading and cleaning query sequences...\n")
+    test <- readDNAStringSet(fas)
+    test <- RemoveGaps(test)
+    
+    # ==========================================
+    # Stage 6: Classify query sequences using IdTaxa
+    # ==========================================
+    cat("Classifying query sequences...\n")
+    ids <- IdTaxa(test,
+                  trainingSet,
+                  type="extended",
+                  strand="top",
+                  threshold=60,
+                  processors=1)
+    
+    # Save raw classification results
+    saveRDS(ids, file="classification_results.rds")
+    cat("Raw classification results saved to 'classification_results.rds'.\n")
+    
+    # ==========================================
+    # Stage 7: Plot and analyze taxonomic assignments
+    # ==========================================
+    cat("Generating taxonomic assignment plots and reports...\n")
+    
+    # Save plot to PDF
+    pdf("taxonomic_classification_plots.pdf", width=10, height=8)
+    plot(ids, trainingSet)
+    dev.off()
+    cat("Taxonomic classification plot saved to 'taxonomic_classification_plots.pdf'.\n")
+    
+    # Format and write output text file
+    output <- sapply(ids, function (id) {
+      paste(id\$taxon,
+            " (",
+            round(id\$confidence, digits=1),
+            "%)",
+            sep="",
+            collapse="; ")
+    })
+    writeLines(output, "classification_assignments.txt")
+    cat("Formatted assignments saved to 'classification_assignments.txt'.\n")
+    
+    # Create a structured CSV summary
+    assignment <- sapply(ids, function(x) paste(x\$taxon, collapse=";"))
+    results_df <- data.frame(
+      Sequence_ID = names(test),
+      Assignment = assignment,
+      Detailed_Assignment = output,
+      stringsAsFactors = FALSE
     )
+    write.csv(results_df, "classification_results.csv", row.names=FALSE)
+    cat("Structured classification table saved to 'classification_results.csv'.\n")
+    
+    cat("Pipeline completed successfully.\n")
+
+    writeLines(c(
+        '"BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION":',
+        paste0('        decipher: ', as.character(packageVersion("decipher")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_decipher_results.csv
-    touch ${prefix}_decipher_output.rds
-    echo "BIOC_DECIPHER:" > versions.yml
-    echo "    decipher: 0.0.0" >> versions.yml
+    touch ${prefix}_taxonomic_classification.csv versions.yml
     """
 }
 
-
-workflow BIOC_DECIPHER_WORKFLOW {
+workflow BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ seqs_path, rank_path, fas ] ]
 
     main:
-    BIOC_DECIPHER(ch_input)
+    BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION(ch_input)
 
     emit:
-    results  = BIOC_DECIPHER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DECIPHER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DECIPHER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DECIPHER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION.out.tables
+    plots    = BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION.out.plots
+    objects  = BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION.out.objects
+    versions = BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION.out.versions
 }

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: edgeNodePattern=Regular expression used in graphBPH() to identify edge-nodes in a graphNEL object ;; arrowLoc=Whole-graph attribute controlling arrow placement ('middle', 'end', 'start', 'both', or 'none') ;; margin=Node attribute controlling space around the label, must evaluate to a grid unit object (e.g., 'unit(3, \"mm\")') ;; lwd=Edge attribute controlling the width of the edge ;; shape=Node attribute controlling node shape (supports 'circle', 'box', and 'plain')\n- alternatives: Rgraphviz (used internally for layout but does not support the specialized hypergraph rendering style of hyperdraw) ;; hypergraph (used to construct Hypergraph and DirectedHyperedge objects before converting them to graphBPH)\n- when_to_use: Use when you need to visualize directed hypergraphs where edges connect more than two nodes, using a bipartite representation where normal nodes connect to edge-nodes.\n- pitfalls: Calculation and trimming of bezier curves is currently slow ;; No automatic scaling of text is performed ;; Only 'circle', 'box', and 'plain' shapes are supported ;; Input Hypergraph objects must contain only DirectedHyperedge objects ;; All edges in the bipartite graph representation must connect a normal node to an edge-node.",
+  "workflows": [
+    {
+      "name": "hypergraph_visualization",
+      "intent": "Create, lay out, customize, and render a directed hypergraph visualization from a graphNEL or Hypergraph object.",
+      "input": [
+        "testgnel (a graphNEL object representing a bipartite graph where edges connect normal nodes to edge-nodes)",
+        "hg (a Hypergraph object containing DirectedHyperedge objects)"
+      ],
+      "stages": "1. Convert the input graph representation to a graphBPH object using graphBPH() ;; 2. Compute the graph layout using graphLayout() to produce an RagraphBPH object ;; 3. Customize rendering attributes (such as lwd, color, margin, and shape) using edgeDataDefaults(), edgeData(), nodeDataDefaults(), and nodeData() ;; 4. Render the final layout using plot()",
+      "code": "testbph <- graphBPH(testgnel, edgeNodePattern=\"^R\")\n\nlibrary(hypergraph)\n\ndh1 <- DirectedHyperedge(\"A\", \"B\", \"R1\")\ndh2 <- DirectedHyperedge(c(\"A\", \"B\"), c(\"C\", \"D\"), \"R2\")\ndh3 <- DirectedHyperedge(\"D\", \"E\", \"R3\")\nhg <- Hypergraph(LETTERS[1:5], list(dh1, dh2, dh3))\nhgbph <- graphBPH(hg)\n\ntestrabph <- graphLayout(testbph)\n\nedgeDataDefaults(testrabph, \"lwd\") <- 1\nedgeData(testrabph, c(\"A\", \"R1\"), \n                    c(\"R1\", \"B\"), \"lwd\") <- c(\"5\", \"3\")\nedgeDataDefaults(testrabph, \"color\") <- \"black\"\nedgeData(testrabph, c(\"A\", \"R1\"), \n                    c(\"R1\", \"B\"), \"color\") <- \"red\"\nnodeDataDefaults(testrabph, \"margin\") <- 'unit(3, \"mm\")'\nnodeDataDefaults(testrabph, \"shape\") <- \"box\"\nplot(testrabph)"
+    }
+  ]
+}

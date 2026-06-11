@@ -1,112 +1,213 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NetActivity
-// #' NetActivity enables to compute gene set scores from previously trained sparsely-connected autoenc
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NetActivity/inst/doc/NetActivity.R
-// Upstream  : DESeq2, Fletcher2013a, airway, limma, tidyverse
-// Downstream: none
-//
-// Install: BiocManager::install("NetActivity")
+// Bioconductor workflow: NetActivity — netactivity_gene_set_scores
+// Compute gene set activity scores from RNA-seq count data using NetActivity's pre-trained autoencoder models and perform differential gene set activity analysis.
+// Input: counts.csv, coldata.csv
+// Container: 1.12.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DESeq2, NetActivity, SummarizedExperiment, ggplot2, limma
+// Visualizations: box plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NETACTIVITY {
+process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-netactivity"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-netactivity:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-netactivity:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_netactivity_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_netactivity_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_netactivity_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(NetActivity)
-    library(jsonlite)
-
-    # --- Gene Set Scoring [] ---
-    # Key functions: computeGeneSetScores
-    scores <- computeGeneSetScores(out_array, "gtex_gokegg")
-    scores_meta <- rowData(scores)
-
-
-    # --- Differential Activity Analysis [] ---
-    # Key functions: computeGeneSetScores
-    mod <- model.matrix(~ Treatment + Time, colData(scores))
-    fit <- limma::lmFit(assay(scores), mod)
-    fit <- limma::eBayes(fit)
-    topTab <- limma::topTable(fit, coef = 2:4, n = Inf)
-    topTab$GeneSetName <- rowData(scores)[rownames(topTab), "Term"]
-
-
-    # --- Visualisation of Scores and Weights [] ---
-    # Key functions: computeGeneSetScores
-    weights <- rowData(scores)["GO:1990440", ]$Weights_SYMBOL[[1]]
-    df_weights <- data.frame(
-        weight = weights,
-        gene = names(weights)
+    library(DESeq2)
+    library(limma)
+    library(ggplot2)
+    
+    # ==========================================
+    # Stage 1: Load and Align Input Data
+    # ==========================================
+    message("Loading input datasets...")
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # Ensure sample alignment
+    if (!"sample" %in% colnames(coldata) || !"condition" %in% colnames(coldata)) {
+      stop("coldata.csv must contain 'sample' and 'condition' columns.")
+    }
+    rownames(coldata) <- coldata\$sample
+    
+    common_samples <- intersect(colnames(counts), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between counts.csv and coldata.csv.")
+    }
+    
+    counts <- as.matrix(counts[, common_samples, drop = FALSE])
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # ==========================================
+    # Stage 2: Normalization (DESeq2 VST)
+    # ==========================================
+    message("Normalizing count data using Variance Stabilizing Transformation...")
+    dds <- DESeqDataSetFromMatrix(
+      countData = counts,
+      colData = coldata,
+      design = ~ condition
     )
-    df_weights$Direction <- ifelse(
-        df_weights$weight > 0,
-        "Positive",
-        "Negative"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_netactivity_results.csv", row.names = TRUE)
+    vst_data <- varianceStabilizingTransformation(dds, blind = TRUE)
+    
+    # ==========================================
+    # Stage 3: Prepare SummarizedExperiment
+    # ==========================================
+    message("Preparing SummarizedExperiment for NetActivity...")
+    # Using the default "gtex_gokegg" model (GO Biological Processes and KEGG pathways)
+    model_name <- "gtex_gokegg"
+    prepared_se <- prepareSummarizedExperiment(vst_data, model_name)
+    
+    # ==========================================
+    # Stage 4: Compute Gene Set Scores
+    # ==========================================
+    message("Computing gene set activity scores...")
+    scores_se <- computeGeneSetScores(prepared_se, model_name)
+    
+    # Save raw gene set scores
+    write.csv(assay(scores_se), "gene_set_scores.csv", row.names = TRUE)
+    message("Saved gene set scores to 'gene_set_scores.csv'.")
+    
+    # ==========================================
+    # Stage 5: Differential Gene Set Score Analysis
+    # ==========================================
+    message("Performing differential gene set activity analysis...")
+    design <- model.matrix(~ condition, data = colData(scores_se))
+    fit <- lmFit(assay(scores_se), design)
+    fit <- eBayes(fit)
+    
+    # Extract top table for the condition coefficient
+    coef_name <- colnames(design)[2]
+    top_tab <- topTable(fit, coef = coef_name, n = Inf)
+    
+    # Add descriptive gene set names from rowData
+    top_tab\$GeneSetName <- rowData(scores_se)[rownames(top_tab), "Term"]
+    write.csv(top_tab, "differential_gene_sets.csv", row.names = TRUE)
+    message("Saved differential analysis results to 'differential_gene_sets.csv'.")
+    
+    # ==========================================
+    # Stage 6: Visualization of Top Gene Set
+    # ==========================================
+    if (nrow(top_tab) > 0) {
+      top_gs_id <- rownames(top_tab)[1]
+      top_gs_name <- top_tab\$GeneSetName[1]
+      message(sprintf("Plotting results for top gene set: %s (%s)", top_gs_id, top_gs_name))
+      
+      # 1. Boxplot of scores across conditions
+      df_plot <- data.frame(
+        Score = as.vector(assay(scores_se[top_gs_id, ])),
+        Condition = colData(scores_se)\$condition
+      )
+      
+      p1 <- ggplot(df_plot, aes(x = Condition, y = Score, fill = Condition)) +
+        geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+        geom_jitter(width = 0.2, size = 2) +
+        theme_bw() +
+        labs(
+          title = paste("Activity Scores:", top_gs_name),
+          subtitle = paste("ID:", top_gs_id),
+          y = "NetActivity Score",
+          x = "Condition"
+        ) +
+        theme(legend.position = "none")
+      
+      ggsave("top_geneset_boxplot.pdf", plot = p1, width = 7, height = 5)
+      
+      # 2. Barplot of gene weights contributing to this gene set
+      weights <- rowData(scores_se)[top_gs_id, ]\$Weights_SYMBOL[[1]]
+      if (!is.null(weights) && length(weights) > 0) {
+        df_weights <- data.frame(
+          Weight = weights,
+          Gene = names(weights)
+        )
+        df_weights\$Direction <- ifelse(df_weights\$Weight > 0, "Positive", "Negative")
+        
+        # Limit to top 30 genes by absolute weight for readability if there are too many
+        if (nrow(df_weights) > 30) {
+          df_weights <- df_weights[order(-abs(df_weights\$Weight)), ][1:30, ]
+        }
+        
+        p2 <- ggplot(df_weights, aes(x = reorder(Gene, abs(Weight)), y = abs(Weight), fill = Direction)) +
+          geom_bar(stat = "identity", width = 0.7) +
+          coord_flip() +
+          theme_bw() +
+          labs(
+            title = "Gene Weights Contribution",
+            subtitle = paste("Gene Set:", top_gs_name),
+            x = "Gene",
+            y = "Absolute Weight"
+          ) +
+          scale_fill_manual(values = c("Positive" = "#377eb8", "Negative" = "#e41a1c"))
+        
+        ggsave("top_geneset_weights.pdf", plot = p2, width = 8, height = 6)
+      } else {
+        # Fallback empty plot if weights are unavailable
+        pdf("top_geneset_weights.pdf")
+        plot(1, type = "n", axes = FALSE, xlab = "", ylab = "")
+        text(1, 1, "No gene weights available for this gene set")
+        dev.off()
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_netactivity_results.csv")
+      message("No differential gene sets found to plot.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_netactivity_output.rds")
-    }
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NETACTIVITY:", paste0("    netactivity: ", packageVersion("NetActivity"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES":',
+        paste0('    NetActivity: ', as.character(packageVersion('NetActivity')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_netactivity_results.csv
-    touch ${prefix}_netactivity_output.rds
-    echo "BIOC_NETACTIVITY:" > versions.yml
-    echo "    netactivity: 0.0.0" >> versions.yml
+    touch ${prefix}_netactivity_gene_set_scores.csv versions.yml
     """
 }
 
-
-workflow BIOC_NETACTIVITY_WORKFLOW {
+workflow BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_NETACTIVITY(ch_input)
+    BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES(ch_input)
 
     emit:
-    results  = BIOC_NETACTIVITY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NETACTIVITY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NETACTIVITY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NETACTIVITY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES.out.tables
+    plots    = BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES.out.plots
+    objects  = BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES.out.objects
+    versions = BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES.out.versions
 }

@@ -1,0 +1,18 @@
+{
+  "package": "metahdep",
+  "requirements": [
+    "affy",
+    "affyPLM",
+    "metahdep"
+  ],
+  "by_workflow": {
+    "custom_meta_analysis.nf": [
+      "metahdep"
+    ],
+    "main.nf": [
+      "affy",
+      "affyPLM",
+      "metahdep"
+    ]
+  }
+}

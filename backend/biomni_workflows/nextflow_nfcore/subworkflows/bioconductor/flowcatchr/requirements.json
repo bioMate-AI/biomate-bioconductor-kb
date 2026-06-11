@@ -1,0 +1,11 @@
+{
+  "package": "flowcatchr",
+  "requirements": [
+    "flowcatchR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowcatchR"
+    ]
+  }
+}

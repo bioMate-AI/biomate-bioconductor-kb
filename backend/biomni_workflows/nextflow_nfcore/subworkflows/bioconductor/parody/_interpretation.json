@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: alpha=significance level for outlier detection boundaries ;; method=the outlier detection algorithm to use (e.g., \"boxplot\", \"GESD\", \"medmad\", \"shorth\") ;; scaling=a scaling function or multiplier for outlier boundaries depending on sample size and alpha ;; ftype=set to \"ideal\" for theoretical calibration of the boxplot rule ;; k=the number of possibly outlying points to prespecify in GESD (must be less than half the sample size)\n- alternatives: Standard R boxplot visualization, which uses a fixed 1.5 IQR whisker rule without formal parametric calibration.\n- when_to_use: Use when formal, calibrated statistical testing for outliers is required in univariate or multivariate genomic and general datasets, rather than relying on simple heuristic visualization thresholds.\n- pitfalls: Specifying ftype=\"ideal\" or using the \"shorth\" method may result in no data values falling in the outlier region, which triggers a warning and returns NA for indices and values. GESD requires a pre-specified maximum number of outliers (k) which must be carefully chosen.",
+  "workflows": [
+    {
+      "name": "univariate_outlier_detection",
+      "intent": "Detect outliers in a univariate numeric vector using various parametric and resistant methods.",
+      "input": [
+        "lead (a numeric vector of univariate measurements, such as tapping frequencies)"
+      ],
+      "stages": "1. Load the package and define the univariate dataset ;; 2. Visualize the distribution using a standard boxplot ;; 3. Detect outliers using the boxplot method with custom scaling ;; 4. Detect outliers using the boxplot method with ideal calibration ;; 5. Detect outliers using the Generalized Extreme Studentized Deviate (GESD) procedure ;; 6. Detect outliers using the median and MAD (medmad) method with Hampel scaling ;; 7. Detect outliers using the shorth-based detector",
+      "code": "library(parody)\nlead <- c(83, 70, 62, 55, 56, 57, 57, 58, 59, 50, 51, \n        52, 52, 52, 54, 54, 45, 46, 48,\n        48, 49, 40, 40, 41, 42, 42, 44, \n        44, 35, 37, 38, 38, 34, 13, 14)\nboxplot(lead)\ncalout.detect(lead,alpha=.05,method=\"boxplot\", scaling=\nfunction(n,alpha)1.5)\ncalout.detect(lead,alpha=.05,method=\"boxplot\",ftype=\"ideal\")\ncalout.detect(lead,alpha=.05,method=\"GESD\",k=5)\ncalout.detect(lead,alpha=.05,method=\"medmad\",scaling=hamp.scale.3)\ncalout.detect(lead,alpha=.05,method=\"shorth\")"
+    },
+    {
+      "name": "multivariate_outlier_detection",
+      "intent": "Detect and visualize outliers in a multivariate dataset using Caroni and Prescott's generalized GESD method.",
+      "input": [
+        "tcost (a multivariate data frame or matrix of numeric features)"
+      ],
+      "stages": "1. Load the multivariate dataset ;; 2. Run multivariate outlier detection using mv.calout.detect ;; 3. Visualize identified outliers using a colored pairs plot ;; 4. Perform principal component analysis (PCA) and visualize with a biplot ;; 5. Remove identified outliers and re-run PCA to assess robustness",
+      "code": "data(tcost)\nostr = mv.calout.detect(tcost)\nostr\nthecol = rep(\"black\", nrow(tcost))\nthecol[ostr$ind] = \"red\"\npairs(tcost, col=thecol, pch=19)\npc = prcomp(tcost)\nbiplot(pc)\nftcost = tcost[-c(9,21),]\nfpc = prcomp(ftcost)\nbiplot(fpc)"
+    }
+  ]
+}

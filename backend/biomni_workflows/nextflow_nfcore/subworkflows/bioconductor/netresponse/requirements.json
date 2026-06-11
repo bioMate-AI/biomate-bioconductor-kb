@@ -1,0 +1,16 @@
+{
+  "package": "netresponse",
+  "requirements": [
+    "ggplot2",
+    "netresponse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "netresponse"
+    ],
+    "nonparametric_gaussian_mixture_modeling.nf": [
+      "netresponse"
+    ]
+  }
+}

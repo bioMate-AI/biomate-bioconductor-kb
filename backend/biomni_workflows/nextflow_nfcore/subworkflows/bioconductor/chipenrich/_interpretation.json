@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: peaks=Path to a peak file (.bed, .broadPeak, .narrowPeak, .gff, etc.) or a data.frame with genomic coordinates ;; genome=Supported genome build (e.g., 'hg19', 'hg38', 'mm9', 'mm10', 'rn6', 'danRer10', 'dm6') ;; genesets=Path to a custom gene set text file or a built-in gene set name (e.g., 'GOBP', 'kegg_pathway') ;; locusdef=Locus definition to associate peaks with genes (e.g., 'nearest_tss', 'nearest_gene', '1kb', '5kb', 'enhancer', 'enhancer_plus5kb', or a custom file path) ;; mappability=Read length for built-in mappability correction (e.g., 24, 36, 40, 50, 75, 100) or path to a custom mappability file ;; qc_plots=Logical indicating whether to generate diagnostic QC plots ;; out_name=Prefix for output files written to disk, or NULL to skip writing ;; n_cores=Number of cores to use for parallel processing ;; method=For polyenrich, either 'polyenrich' or 'polyenrich_weighted' ;; randomization=Type of randomization to assess Type I error ('complete', 'bylength', 'bylocation', or NULL) ;; reglocation=For proxReg, either 'tss' or 'enhancer'\n- alternatives: broadenrich=Use for broad peaks (e.g., histone modifications) covering >5% of the genome ;; chipenrich=Use for narrow peaks (e.g., transcription factors) with 1,000s to 10,000s of regions ;; polyenrich=Use for narrow peaks with >50,000 regions or when peak count per gene is biologically important ;; hybridenrich=Use when unsure whether chipenrich or polyenrich is more appropriate\n- when_to_use: When analyzing ChIP-seq, ATAC-seq, DNA methylation, or other genomic region datasets to identify enriched biological pathways while statistically adjusting for locus length and mappability biases.\n- pitfalls: Using chipenrich instead of broadenrich for broad peaks, which violates model assumptions ;; Using polyenrich without setting multiAssign=TRUE when using enhancer locus definitions (only polyenrich can properly split weights of regions assigned to multiple genes) ;; Mismatched gene IDs between custom locus definitions and custom mappability files (must overlap by at least 95%) ;; Using proxReg with reglocation='enhancer' on genomes other than hg19 (only hg19 is supported for enhancer proximity).",
+  "workflows": [
+    {
+      "name": "broad_peak_enrichment",
+      "intent": "Perform gene set enrichment testing for broad genomic regions (e.g., histone modifications) using Broad-Enrich.",
+      "input": [
+        "peaks_H3K4me3_GM12878.bed (broad genomic regions/peaks)",
+        "vignette_genesets.txt (tab-delimited gene sets file)"
+      ],
+      "stages": "1. Define the path to the gene sets file ;; 2. Run broadenrich() to perform enrichment testing using cumulative peak coverage ;; 3. Extract and inspect the enrichment results ;; 4. Generate a diagnostic plot of gene coverage versus locus length using plot_gene_coverage()",
+      "code": "gs_path = system.file('extdata','vignette_genesets.txt', package='chipenrich')\nresults = broadenrich(peaks = peaks_H3K4me3_GM12878, genome = 'hg19', genesets = gs_path, locusdef = \"nearest_tss\", qc_plots = FALSE, out_name = NULL, n_cores=1)\nresults.be = results$results\nprint(results.be[1:5,1:5])\nplot_gene_coverage(peaks = peaks_H3K4me3_GM12878, locusdef = 'nearest_tss',  genome = 'hg19')"
+    },
+    {
+      "name": "narrow_peak_enrichment",
+      "intent": "Perform gene set enrichment testing for narrow genomic regions (e.g., transcription factors) using ChIP-Enrich, Poly-Enrich, or Hybrid-Enrich.",
+      "input": [
+        "peaks_E2F4.bed (narrow genomic regions/peaks)",
+        "vignette_genesets.txt (tab-delimited gene sets file)"
+      ],
+      "stages": "1. Define the path to the gene sets file ;; 2. Run chipenrich() (with or without mappability correction), polyenrich() (standard or weighted), or hybridenrich() ;; 3. Extract and inspect the enrichment results ;; 4. Generate diagnostic QC plots for peak distance to TSS, presence of peak versus locus length, or number of peaks versus locus length",
+      "code": "gs_path = system.file('extdata','vignette_genesets.txt', package='chipenrich')\nresults = chipenrich(peaks = peaks_E2F4, genome = 'hg19', genesets = gs_path,locusdef = \"nearest_tss\", qc_plots = FALSE, out_name = NULL, n_cores = 1)\nresults.ce = results$results\nprint(results.ce[1:5,1:5])\nresults = chipenrich(peaks = peaks_E2F4, genome = 'hg19', genesets = gs_path, locusdef = \"nearest_tss\", mappability=24, qc_plots = FALSE,out_name = NULL,n_cores=1)\nresults.cem = results$results\nprint(results.cem[1:5,1:5])\nresults = polyenrich(peaks = peaks_E2F4, genome = 'hg19', genesets = gs_path, method = 'polyenrich', locusdef = \"nearest_tss\", qc_plots = FALSE, out_name = NULL, n_cores = 1)\nresults.pe = results$results\nprint(results.pe[1:5,1:5])\nresults = polyenrich(peaks = peaks_E2F4, genome = 'hg19', genesets = gs_path, method=\"polyenrich_weighted\", locusdef = \"enhancer_plus5kb\", qc_plots = FALSE, out_name = NULL, n_cores = 1)\nresults.pe = results$results\nprint(results.pe[1:5,1:5])\nresults = hybridenrich(peaks = peaks_E2F4, genome = 'hg19', genesets = gs_path, locusdef = \"nearest_tss\", qc_plots = F, out_name = NULL, n_cores = 1)\nresults.hybrid = results$results\nprint(results.hybrid[1:5,1:5])\nplot_dist_to_tss(peaks = peaks_E2F4, genome = 'hg19')\nplot_chipenrich_spline(peaks = peaks_E2F4, locusdef = 'nearest_tss', genome = 'hg19')\nplot_polyenrich_spline(peaks = peaks_E2F4, locusdef = 'nearest_tss', genome = 'hg19')"
+    },
+    {
+      "name": "proximity_analysis",
+      "intent": "Test if genomic regions tend to be closer to or farther from transcription start sites or enhancer regions for each gene set.",
+      "input": [
+        "peaks_E2F4.bed (genomic regions/peaks)",
+        "vignette_genesets.txt (tab-delimited gene sets file)"
+      ],
+      "stages": "1. Define the path to the gene sets file ;; 2. Run proxReg() to calculate peak-to-TSS/enhancer distances and perform a signed Wilcoxon rank-sum test ;; 3. Extract and inspect the proximity results",
+      "code": "gs_path = system.file('extdata','vignette_genesets.txt', package='chipenrich')\nresults.prox = proxReg(peaks_E2F4, reglocation = 'tss',\tgenome = 'hg19', genesets=gs_path, out_name=NULL)\nresults.prox = results.prox$results\nprint(results.prox[1:5,1:7])"
+    }
+  ]
+}

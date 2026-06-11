@@ -1,0 +1,11 @@
+{
+  "package": "selex",
+  "requirements": [
+    "SELEX"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SELEX"
+    ]
+  }
+}

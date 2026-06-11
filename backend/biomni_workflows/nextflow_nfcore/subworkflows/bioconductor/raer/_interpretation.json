@@ -1,0 +1,52 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: library_type=Specifies the strandedness of the sequencing library (e.g., \"fr-second-strand\", \"fr-first-strand\", \"unstranded\") in FilterParam(). Crucial for strand-sensitive pileup ;; umi_tag=BAM tag for UMI sequence (e.g., \"UB\") in pileup_cells() to collapse PCR duplicates ;; cb_tag=BAM tag for cell barcode (e.g., \"CB\") in pileup_cells() ;; min_mapq=Minimum MAPQ alignment score to retain reads in FilterParam() ;; only_keep_variants=Logical in FilterParam() indicating whether to only report sites with variants ;; trim_5p/trim_3p=Number of bases to trim from the 5' or 3' ends of alignments in FilterParam() to avoid end-repair artifacts ;; min_splice_overhang=Minimum required splice site overhang in FilterParam() to filter out false positives near splice junctions ;; test=Statistical test framework to use in find_de_sites() (e.g., \"DESeq2\" or \"edgeR\")\n- alternatives: VariantAnnotation=Mentioned as a complementary Bioconductor package to determine the genomic context and potential molecular consequences of editing events once sites are identified\n- when_to_use: Use when analyzing A-to-I (or other) RNA editing frequencies in droplet-based (e.g., 10x Genomics) or plate-based (e.g., Smart-seq2) single-cell RNA-seq, identifying differential RNA editing sites across conditions/genotypes in bulk RNA-seq, calculating global editing activity via the Alu Editing Index (AEI), or predicting novel RNA editing sites from matched RNA-seq and DNA-seq (WGS) datasets.\n- pitfalls: BAM flags and duplicates=Droplet scRNA-seq has multiple fragments per UMI due to fragmentation. If duplicates are removed based on the \"Not primary alignment\" BAM flag, valid regions are excluded. By default, FilterParam includes duplicate reads for pileup_cells() ;; Strand sensitivity=pileup_cells() is strand-sensitive by default. Ensure the strand of input sites is correctly annotated and library_type matches the library prep. For unstranded data (like Smart-seq2), set library_type = \"unstranded\" and convert minus-strand sites to the plus strand (e.g., T->C instead of A->G) ;; Multiallelic sites=Must be filtered out (using filter_multiallelic()) to avoid false positives ;; Clustered variants=True editing sites can be confounded by clustered SNPs or sequencing errors; use filter_clustered_variants() to remove them",
+  "workflows": [
+    {
+      "name": "single_cell_editing",
+      "intent": "Quantify RNA editing sites in single-cell RNA-seq data (droplet or Smart-seq2) and calculate editing frequencies.",
+      "input": [
+        "bamfile.bam (scRNA-seq alignments)",
+        "editing_sites.gr (GRanges object of known editing sites)"
+      ],
+      "stages": "1. Format editing sites with REF and ALT metadata columns ;; 2. Configure filtering parameters using FilterParam() ;; 3. Quantify reference and alternate alleles per cell using pileup_cells() ;; 4. Calculate editing frequencies using calc_edit_frequency()",
+      "code": "editing_sites$REF <- Rle(\"A\")\nediting_sites$ALT <- Rle(\"G\")\nparams <- FilterParam(\n    min_mapq = 255, # required alignment MAPQ score\n    library_type = \"fr-second-strand\", # library type\n    min_variant_reads = 1\n)\ne_sce <- pileup_cells(\n    bamfile = pbmc_bam,\n    sites = editing_sites,\n    cell_barcodes = cbs,\n    output_directory = outdir,\n    cb_tag = \"CB\",\n    umi_tag = \"UB\",\n    param = params\n)\ne_sce <- e_sce[rowSums(assays(e_sce)$nAlt > 0) >= 5, ]\ne_sce <- calc_edit_frequency(e_sce,\n    edit_from = \"Ref\",\n    edit_to = \"Alt\",\n    replace_na = FALSE\n)"
+    },
+    {
+      "name": "bulk_differential_editing",
+      "intent": "Quantify editing sites in bulk RNA-seq and identify condition-specific differential editing events.",
+      "input": [
+        "bam_files.bam (bulk RNA-seq alignments)",
+        "fafn.fasta (reference genome FASTA)",
+        "chr_18_editing_sites.gr (GRanges object of known editing sites)"
+      ],
+      "stages": "1. Configure filtering parameters using FilterParam() ;; 2. Quantify base counts at editing sites across samples using pileup_sites() ;; 3. Calculate editing frequencies and depth using calc_edit_frequency() ;; 4. Filter out low-frequency or low-depth sites ;; 5. Create a differential editing object using make_de_object() ;; 6. Identify differentially edited sites using find_de_sites()",
+      "code": "fp <- FilterParam(\n    only_keep_variants = TRUE, # only report sites with variants\n    trim_5p = 5, # bases to remove from 5' or 3' end\n    trim_3p = 5,\n    min_base_quality = 30, # minimum base quality score\n    min_mapq = 255, # minimum MAPQ read score\n    library_type = \"fr-first-strand\", # library type\n    min_splice_overhang = 10 # minimum required splice site overhang\n)\nrse <- pileup_sites(bam_files,\n    fasta = fafn,\n    sites = chr_18_editing_sites,\n    chroms = \"chr18\",\n    param = fp\n)\nrse <- calc_edit_frequency(rse,\n    edit_from = \"A\",\n    edit_to = \"G\",\n    drop = TRUE\n)\nhas_editing <- rowSums(assay(rse, \"edit_freq\") > 0) >= 1\nhas_depth <- rowSums(assay(rse, \"depth\") >= 5) == ncol(rse)\nrse <- rse[has_editing & has_depth, ]\ndeobj <- make_de_object(rse, min_prop = 0.05, min_samples = 3)\ndeobj$sample <- factor(deobj$sample)\nde_results <- find_de_sites(deobj,\n    test = \"DESeq2\",\n    sample_col = \"sample\",\n    condition_col = \"genotype\",\n    condition_control = \"Wildtype\",\n    condition_treatment = \"ADAR1KO\"\n)"
+    },
+    {
+      "name": "alu_editing_index",
+      "intent": "Calculate the Alu Editing Index (AEI) to summarize global ADAR editing activity.",
+      "input": [
+        "bam_files.bam (bulk RNA-seq alignments)",
+        "fafn.fasta (reference genome FASTA)",
+        "alus.gr (GRanges object of Alu element coordinates)",
+        "alu_snps.gr (GRanges/GPos object of known SNPs to exclude)"
+      ],
+      "stages": "1. Obtain and format Alu coordinates and overlapping SNPs ;; 2. Configure filtering parameters using FilterParam() ;; 3. Calculate the Alu Editing Index using calc_AEI()",
+      "code": "alu_index <- calc_AEI(bam_files,\n    fasta = fafn,\n    snp_db = alu_snps,\n    alu_ranges = alus,\n    param = fp\n)"
+    },
+    {
+      "name": "novel_editing_detection",
+      "intent": "Identify novel RNA editing sites using matched RNA-seq and DNA-seq (WGS) data.",
+      "input": [
+        "bams.bam (matched RNA-seq and DNA-seq alignments)",
+        "fasta.fasta (reference genome FASTA)",
+        "txdb.sqlite (TxDb object of transcript models)",
+        "chr4snps.gr (GRanges object of known SNPs to exclude)",
+        "rmsk_hg38.gr (GRanges object of RepeatMasker annotations)"
+      ],
+      "stages": "1. Configure distinct filtering parameters for RNA and DNA BAMs using FilterParam() ;; 2. Quantify base counts across RNA and DNA samples using pileup_sites() ;; 3. Filter out sites with variants in DNA-seq or low DNA-seq depth ;; 4. Filter multiallelic sites using filter_multiallelic() ;; 5. Calculate editing frequencies using calc_edit_frequency() ;; 6. Annotate and filter out simple repeats using annot_from_gr() ;; 7. Filter out clustered variants using filter_clustered_variants() ;; 8. Annotate and filter out known SNPs using annot_from_gr()",
+      "code": "fp <- FilterParam(\n    min_depth = 1, # minimum read depth across all samples\n    min_base_quality = 30, # minimum base quality\n    min_mapq = c(255, 30), # minimum MAPQ for each BAM file\n    library_type = c(\"fr-first-strand\", \"unstranded\"), # sample library-types\n    trim_5p = 5, # bases to trim from 5' end of alignment\n    trim_3p = 5, # bases to trim from 3' end of alignment\n    indel_dist = 4, # ignore read if contains an indel within distance from site\n    min_splice_overhang = 10, # required spliced alignment overhang\n    read_bqual = c(0.25, 20), # fraction of the read with base quality\n    only_keep_variants = c(TRUE, FALSE), # report site if rnaseq BAM has variant\n    report_multiallelic = FALSE, # exclude sites with multiple variant alleles\n)\nrse <- pileup_sites(bams,\n    fasta = rna_wgs$fasta,\n    chroms = \"chr4\",\n    param = fp\n)\nto_keep <- (assay(rse, \"nRef\")[, \"dna\"] >= 5 &\n    assay(rse, \"ALT\")[, \"dna\"] == \"-\")\nrse <- subsetByOverlaps(rse, rse[to_keep, ], ignore.strand = TRUE)\nrse <- filter_multiallelic(rse)\nrse <- calc_edit_frequency(rse)\nrse <- annot_from_gr(rse,\n    rmsk_hg38,\n    cols_to_map = c(\"repName\", \"repClass\", \"repFamily\")\n)\nrse <- rse[!rowData(rse)$repFamily %in% c(\"Simple_repeat\", \"Low_complexity\")]\nrse <- filter_clustered_variants(rse, txdb, variant_dist = 100)\nrse <- annot_from_gr(rse, chr4snps, \"name\")\nrse <- rse[is.na(rowData(rse)$name), ]\nto_keep <- assay(rse, \"edit_freq\")[, 1] > 0.05\nrse <- rse[to_keep, ]\nrse <- rse[assay(rse, \"nAlt\")[, 1] >= 2]"
+    }
+  ]
+}

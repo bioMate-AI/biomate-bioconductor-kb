@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rowData=GRanges object representing partitioned genome bins ;; contacts=list of square contact matrices ;; colData=DataFrame of sample-level covariates ;; h=bandwidth for boxSmoother ;; radius=radius for gaussSmoother ;; sigma=standard deviation for gaussSmoother ;; batch=batch covariate vector for bnbc ;; threshold=maximum genomic distance to consider in bnbc ;; step=bin size/resolution of Hi-C data ;; nbands=number of matrix bands to normalize in bnbc\n- alternatives: InteractionSet package (InteractionSet class) which is not restricted to square matrices, but ContactGroup is preferred in bnbc for speed due to optimized Rcpp-based band operations.\n- when_to_use: When you need to perform cross-sample normalization and batch effect correction on Hi-C contact matrices from multiple replicates, operating on matrix bands (diagonals) representing specific interaction distances.\n- pitfalls: Contact matrices must be square with no missing values. If matrices are distributed as upper/lower triangular, they must be converted to symmetric matrices before creating a ContactGroup. The contacts list must have the same names as the rownames of colData. The cooler import function getChrCGFromCools assumes the same interactions are observed in all samples and does not handle trans-interactions.",
+  "workflows": [
+    {
+      "name": "hic_normalization_from_matrices",
+      "intent": "Normalize and batch-correct Hi-C replicates starting from a list of contact matrices.",
+      "input": [
+        "upper.mats.list (list of upper triangular or square contact matrices)",
+        "LociData (GenomicRanges of bins)",
+        "SampleData (DataFrame of sample covariates)"
+      ],
+      "stages": "1. Convert upper triangular matrices to symmetric matrices ;; 2. Create a ContactGroup object using ContactGroup() ;; 3. Apply logCPM transformation using logCPM() ;; 4. Smooth contact matrices using boxSmoother() ;; 5. Perform cross-sample normalization and batch correction using bnbc()",
+      "code": "MatsList <- lapply(upper.mats.list, function(M) {\n    M[lower.tri(M)] <- M[upper.tri(M)]\n})\ncg <- ContactGroup(rowData = LociData, contacts = MatsList, colData = SampleData)\ncgEx.cpm <- logCPM(cgEx)\ncgEx.smooth <- boxSmoother(cgEx.cpm, h=5)\ncgEx.bnbc <- bnbc(cgEx.smooth, batch=colData(cgEx.smooth)$Batch,\n                  threshold=1e7, step=4e4, nbands=11, verbose=FALSE)"
+    },
+    {
+      "name": "hic_normalization_from_cooler",
+      "intent": "Import Hi-C data from .cooler/.mcool files and perform normalization and batch correction.",
+      "input": [
+        "cools (list of .mcool files)",
+        "hg19 (BSgenome or genome seqlengths)",
+        "colData(cgEx) (DataFrame of sample covariates)"
+      ],
+      "stages": "1. Generate genomic index using bnbc:::getChrIdx() ;; 2. Load chromosome interaction matrices into a ContactGroup using bnbc:::getChrCGFromCools() ;; 3. Apply logCPM transformation using logCPM() ;; 4. Smooth contact matrices using boxSmoother() ;; 5. Perform cross-sample normalization and batch correction using bnbc()",
+      "code": "coolerDir <- system.file(\"cooler\", package = \"bnbc\")\ncools <- list.files(coolerDir, pattern=\"mcool$\", full.names=TRUE)\nstep <- 4e4\nixns <- bnbc:::getChrIdx(seqlengths(hg19)[\"chr22\"], \"chr22\", step)\ndir.create(\"tmp\")\ncool.cg <- bnbc:::getChrCGFromCools(files = cools,\n                                    chr = \"chr22\",\n                                    step = step,\n                                    index.gr = ixns,\n                                    work.dir = \"tmp\",\n                                    exp.name = \"example\",\n                                    coldata = colData(cgEx)[1:2,])\ncgEx.cpm <- logCPM(cgEx)\ncgEx.smooth <- boxSmoother(cgEx.cpm, h=5)\ncgEx.bnbc <- bnbc(cgEx.smooth, batch=colData(cgEx.smooth)$Batch,\n                  threshold=1e7, step=4e4, nbands=11, verbose=FALSE)"
+    }
+  ]
+}

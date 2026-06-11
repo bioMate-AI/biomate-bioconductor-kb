@@ -1,0 +1,17 @@
+{
+  "package": "tpsvg",
+  "requirements": [
+    "SpatialExperiment",
+    "tpSVG"
+  ],
+  "by_workflow": {
+    "covariate_adjusted_model.nf": [
+      "SpatialExperiment",
+      "tpSVG"
+    ],
+    "main.nf": [
+      "SpatialExperiment",
+      "tpSVG"
+    ]
+  }
+}

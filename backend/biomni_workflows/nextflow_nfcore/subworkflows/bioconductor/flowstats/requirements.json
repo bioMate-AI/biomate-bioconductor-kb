@@ -1,0 +1,24 @@
+{
+  "package": "flowstats",
+  "requirements": [
+    "flowCore",
+    "flowStats",
+    "flowWorkspace",
+    "ggcyto",
+    "scales"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCore",
+      "flowStats",
+      "flowWorkspace",
+      "ggcyto",
+      "scales"
+    ],
+    "probability_binning_comparison.nf": [
+      "flowCore",
+      "flowStats",
+      "flowWorkspace"
+    ]
+  }
+}

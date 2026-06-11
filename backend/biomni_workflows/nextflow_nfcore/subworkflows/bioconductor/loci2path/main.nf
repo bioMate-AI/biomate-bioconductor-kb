@@ -1,149 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: loci2path
-// loci2path performs statistics-rigorous enrichment analysis of eQTLs in genomic regions of interest. 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/loci2path/inst/doc/loci2path-vignette.R
-// Upstream  : GenomicRanges
-// Downstream: none
-//
-// Install: BiocManager::install("loci2path")
+// Bioconductor workflow: loci2path — pathway_enrichment_analysis
+// Perform pathway enrichment analysis on genomic intervals using tissue-specific eQTL sets and gene set collections.
+// Input: query/Psoriasis.BED, eqtl/brain.gtex.txt, eqtl/skin.gtex.txt, eqtl/blood.gtex.txt, geneSet/biocarta.txt, geneSet/biocarta.set.txt
+// Container: quay.io/biocontainers/bioconductor-loci2path:1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, loci2path
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load query regions as GenomicRanges
+//  * 2. [Input & Preparation] Construct eQTL sets and list
+//  * 3. [Input & Preparation] Prepare gene set collection
+//  * 4. [Core Analysis] Perform query (single or multiple tissues, optionally in parallel)
+//  * 5. [Visualization & Output] Explore results (extract tables, covered genes, tissue degrees, and generate visualizations like heatmaps, word clouds, and p-valu
 
 nextflow.enable.dsl = 2
 
-process BIOC_LOCI2PATH {
+process BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-loci2path"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-loci2path:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-loci2path:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_loci2path_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_loci2path_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_loci2path_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(loci2path)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(GenomicRanges)
+        library(loci2path)
+        
+        # 1. Load query regions as GenomicRanges
+        bed.file <- "query/Psoriasis.BED"
+        query.bed <- read.table(bed.file, header=FALSE)
+        colnames(query.bed) <- c("chr","start","end")
+        query.gr <- makeGRangesFromDataFrame(query.bed)
+        
+        # 2. Construct eQTL sets and list
+        brain.file <- "eqtl/brain.gtex.txt"
+        tab <- read.table(brain.file, stringsAsFactors=FALSE, header=TRUE)
+        snp.gr <- GRanges(seqnames=Rle(tab\$snp.chr), ranges=IRanges(start=tab\$snp.pos, width=1))
+        brain.eset <- eqtlSet(tissue="brain", eqtlId=tab\$snp.id, eqtlRange=snp.gr, gene=as.character(tab\$gene.entrez.id))
+        
+        skin.file <- "eqtl/skin.gtex.txt"
+        tab <- read.table(skin.file, stringsAsFactors=FALSE, header=TRUE)
+        snp.gr <- GRanges(seqnames=Rle(tab\$snp.chr), ranges=IRanges(start=tab\$snp.pos, width=1))
+        skin.eset <- eqtlSet(tissue="skin", eqtlId=tab\$snp.id, eqtlRange=snp.gr, gene=as.character(tab\$gene.entrez.id))
+        
+        blood.file <- "eqtl/blood.gtex.txt"
+        tab <- read.table(blood.file, stringsAsFactors=FALSE, header=TRUE)
+        snp.gr <- GRanges(seqnames=Rle(tab\$snp.chr), ranges=IRanges(start=tab\$snp.pos, width=1))
+        blood.eset <- eqtlSet(tissue="blood", eqtlId=tab\$snp.id, eqtlRange=snp.gr, gene=as.character(tab\$gene.entrez.id))
+        
+        eset.list <- list(Brain=brain.eset, Skin=skin.eset, Blood=blood.eset)
+        
+        # 3. Prepare gene set collection
+        biocarta.link.file <- "geneSet/biocarta.txt"
+        biocarta.set.file <- "geneSet/biocarta.set.txt"
+        
+        biocarta.link <- read.delim(biocarta.link.file, header=FALSE, stringsAsFactors=FALSE)
+        set.geneid <- read.table(biocarta.set.file, stringsAsFactors=FALSE)
+        set.geneid <- strsplit(set.geneid[,1], split=",")
+        names(set.geneid) <- biocarta.link[,1]
+        
+        biocarta <- geneSet(numGene=31847, description=biocarta.link[,2], geneSetList=set.geneid)
+        
+        # 4. Perform query (single, multiple, and parallel)
+        res.one <- query(query.gr=query.gr, loci=skin.eset, path=biocarta)
+        
+        res.esetlist <- query(query.gr=query.gr, loci=eset.list, path=biocarta)
+        
+        res.paral <- query(query.gr=query.gr, loci=eset.list, path=biocarta, parallel=TRUE)
+        
+        # 5. Explore results
+        resultTable(res.esetlist)
+        coveredGene(res.esetlist)
+        
+        tissue.degree <- getTissueDegree(res.esetlist, eset.list)
+        res.tissue <- data.frame(resultTable(res.esetlist), t.degree=tissue.degree\$mean.tissue.degree)
+        
+        gr.tissue <- query(query.gr, loci=eset.list)
+        
+        mat <- getMat(res.esetlist, test.method="gene")
+        
+        # Generate and save visualizations safely
+        tryCatch({
+          pdf("heatmap.pdf")
+          heatmap.para <- getHeatmap(res.esetlist)
+          dev.off()
+        }, error = function(e) {
+          message("Could not generate heatmap: ", e\$message)
+        })
+        
+        tryCatch({
+          pdf("wordcloud.pdf")
+          wc <- getWordcloud(res.esetlist)
+          dev.off()
+        }, error = function(e) {
+          message("Could not generate wordcloud: ", e\$message)
+        })
+        
+        tryCatch({
+          pdf("pval_plot.pdf")
+          pval <- getPval(res.esetlist, test.method="gene")
+          dev.off()
+        }, error = function(e) {
+          message("Could not generate p-value plot: ", e\$message)
+        })
+        
+        description <- getPathDescription(res.esetlist, biocarta)
+        
+        # Write output files
+        write.csv(res.one\$result.table, "res_one_result_table.csv", row.names=FALSE)
+        write.csv(resultTable(res.esetlist), "res_esetlist_result_table.csv", row.names=FALSE)
+        write.csv(res.tissue, "res_tissue_table.csv", row.names=FALSE)
+        write.csv(gr.tissue, "gr_tissue_table.csv", row.names=TRUE)
+        write.csv(mat, "tissue_pathway_matrix.csv")
+        writeLines(description, "pathway_descriptions.txt")
+        saveRDS(res.esetlist, "res_esetlist.rds")
 
-    # --- Gene Set Construction [] ---
-    # Key functions: geneSet
-    biocarta.link.file <- system.file(
-        "extdata", "geneSet/biocarta.txt", 
-        package="loci2path"
-    )
-    biocarta.set.file <- system.file(
-        "extdata", "geneSet/biocarta.set.txt", 
-        package="loci2path"
-    )
-    biocarta.link <- read.delim(
-        biocarta.link.file, 
-        header=FALSE, 
-        stringsAsFactors=FALSE
-    )
-    set.geneid <- read.table(biocarta.set.file, stringsAsFactors=FALSE)
-    set.geneid <- strsplit(set.geneid[,1], split=",")
-    names(set.geneid) <- biocarta.link[,1]
-    biocarta <- geneSet(
-        numGene=31847,
-        description=biocarta.link[,2],
-        geneSetList=set.geneid
-    )
-
-
-    # --- Pathway Enrichment Query [] ---
-    # Key functions: query, resultTable, coveredGene
-    bed.file <- system.file(
-        "extdata", "query/Psoriasis.BED", 
-        package="loci2path"
-    )
-    query.bed <- read.table(bed.file, header=FALSE)
-    colnames(query.bed) <- c("chr", "start", "end")
-    query.gr <- GenomicRanges::makeGRangesFromDataFrame(query.bed)
-    res.esetlist <- query(
-        query.gr=query.gr, 
-        loci=eset.list, 
-        path=biocarta,
-        parallel=FALSE
-    )  
-    result <- resultTable(res.esetlist)
-    genes.covered <- coveredGene(res.esetlist)
-
-
-    # --- Tissue Specificity Analysis [] ---
-    # Key functions: getTissueDegree, query
-    tissue.degree <- getTissueDegree(res.esetlist, eset.list)
-    gene.map <- tissue.degree$gene.tissue.map
-    gene.deg <- tissue.degree$gene.tissue.degree
-    mean.deg <- tissue.degree$mean.tissue.degree
-    res.tissue <- data.frame(
-        resultTable(res.esetlist),
-        t.degree=mean.deg
-    )
-    gr.tissue <- query(query.gr, loci=eset.list)
-
-
-    # --- Visualisation and Reporting [] ---
-    # Key functions: getMat, getHeatmap, getWordcloud, getPval, getPathDescription
-    mat <- getMat(res.esetlist, test.method="gene")
-    heatmap.para <- getHeatmap(res.esetlist)
-    wc <- getWordcloud(res.esetlist)
-    pval <- getPval(res.esetlist, test.method="gene")
-    description <- getPathDescription(res.esetlist, biocarta)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_loci2path_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_loci2path_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_loci2path_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LOCI2PATH:", paste0("    loci2path: ", packageVersion("loci2path"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS":',
+        paste0('    loci2path: ', as.character(packageVersion('loci2path')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_loci2path_results.csv
-    touch ${prefix}_loci2path_output.rds
-    echo "BIOC_LOCI2PATH:" > versions.yml
-    echo "    loci2path: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_enrichment_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_LOCI2PATH_WORKFLOW {
+workflow BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ query/Psoriasis.BED, eqtl/brain.gtex.txt, eqtl/skin.gtex.txt, eqtl/blood.gtex.txt, geneSet/biocarta.txt, geneSet/biocarta.set.txt ] ]
 
     main:
-    BIOC_LOCI2PATH(ch_input)
+    BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_LOCI2PATH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LOCI2PATH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LOCI2PATH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LOCI2PATH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS.out.tables
+    plots    = BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS.out.plots
+    objects  = BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS.out.objects
+    versions = BIOC_LOCI2PATH_PATHWAY_ENRICHMENT_ANALYSIS.out.versions
 }

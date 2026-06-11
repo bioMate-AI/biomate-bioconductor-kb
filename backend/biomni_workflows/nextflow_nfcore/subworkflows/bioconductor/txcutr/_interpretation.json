@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxTxLength=The maximum length in nucleotides to restrict transcripts to from their 3' ends ;; minDistance=The minimum distance between 3' ends below which transcripts are merged ;; genome=A BSgenome object corresponding to the genome of the TxDb object ;; file=Output file path; ending with .gz automatically enables gzip compression ;; BPPARAM=An optional BiocParallel parameter (e.g., MulticoreParam) to parallelize the truncation step\n- alternatives: txdbmaker::makeTxDbFromGFF=Used to create custom TxDb objects from GTF/GFF3 files before using txcutr ;; txdbmaker::makeTxDbFromBiomart=Used to retrieve and build TxDb objects from BioMart resources\n- when_to_use: When analyzing RNA-sequencing libraries generated from specific transcript ends (such as Lexogen Quant-Seq or 10X Chromium Single Cell 3') and quantifying alternative cleavage and polyadenylation (APA) site usage.\n- pitfalls: High memory usage=Truncation can be computationally intensive and memory-heavy, requiring 3-4GB RAM per core when using parallel processing on mammalian transcriptomes ;; Incomplete annotations=GENCODE annotations may contain transcripts without validated 3' ends; the documentation recommends pre-filtering entries with the tag mRNA_end_NF before running txcutr",
+  "workflows": [
+    {
+      "name": "transcriptome_truncation_and_export",
+      "intent": "Truncate a transcriptome annotation from the 3' end and export the resulting GTF, FASTA, and merge table for downstream alignment and quantification.",
+      "input": [
+        "txdb (A TxDb annotation object)",
+        "sacCer3 (A BSgenome object matching the TxDb genome)"
+      ],
+      "stages": "1. Load the TxDb object and optionally restrict to specific chromosomes ;; 2. Truncate the transcriptome using truncateTxome ;; 3. Export the truncated annotation to a GTF file using exportGTF ;; 4. Export the truncated transcript sequences to a FASTA file using exportFASTA ;; 5. Generate a merge table using generateMergeTable to map input transcripts to output transcripts or genes",
+      "code": "library(GenomicFeatures)\nlibrary(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene)\ntxdb <- TxDb.Scerevisiae.UCSC.sacCer3.sgdGene\n\n## constrain to \"chrI\"\nseqlevels(txdb) <- \"chrI\"\n\n## view the lengths of first ten transcripts\ntranscriptLengths(txdb)[1:10,]\n\nlibrary(txcutr)\n\ntxdb_w500 <- truncateTxome(txdb, maxTxLength=500)\n\ntranscriptLengths(txdb_w500)[1:10,]\n\ngtf_file <- tempfile(\"sacCer3_chrI.sgd.txcutr_w500\", fileext=\".gtf.gz\")\nexportGTF(txdb_w500, file=gtf_file)\n\nlibrary(BSgenome.Scerevisiae.UCSC.sacCer3)\nsacCer3 <- BSgenome.Scerevisiae.UCSC.sacCer3\n\nfasta_file <- tempfile(\"sacCer3_chrI.sgd.txcutr_w500\", fileext=\".fa.gz\")\nexportFASTA(txdb_w500, genome=sacCer3, file=fasta_file)\n\ndf_merge <- generateMergeTable(txdb_w500, minDistance=500)\n\nhead(df_merge, 10)\n\ndf_merge[df_merge$tx_in != df_merge$tx_out,]\n\ntranscripts(txdb_w500, columns=c(\"tx_name\", \"gene_id\"),\n            filter=list(gene_id=c(\"YAL026C\")))"
+    }
+  ]
+}

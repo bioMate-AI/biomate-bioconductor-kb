@@ -1,0 +1,15 @@
+{
+  "package": "barcodetrackr",
+  "requirements": [
+    "SummarizedExperiment",
+    "barcodetrackR",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "barcodetrackR",
+      "ggplot2"
+    ]
+  }
+}

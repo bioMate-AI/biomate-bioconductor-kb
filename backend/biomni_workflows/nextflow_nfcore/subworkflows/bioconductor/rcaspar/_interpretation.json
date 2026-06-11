@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: geDataT/geDataS/geData=Matrix of high-dimensional covariates (e.g., gene expression) where rows are patients and columns are covariates. Missing values must be represented as zeros ;; survDataT/survDataS/survData=Data frame containing survival information with exact column names 'True_STs' (survival times) and 'censored' (0 for uncensored, 1 for censored) ;; q, s=Parameters defining the prior distribution on covariate weights to minimize the effect of irrelevant covariates ;; a, b=Shape and scale parameters for the gamma distribution prior on baseline hazards ;; groups=Number of equally spaced intervals along the timeline expected to have different baseline hazard values ;; cut.off=Threshold value (e.g., in years) used to split predicted survival times into long and short survivor groups ;; method=Optimization method (e.g., 'CG', 'BFGS', 'L-BFGS-B', 'SANN') ;; noprior=Number of initial optimization steps run without a prior to prevent the algorithm from terminating at the peaked origin\n- alternatives: None mentioned in the documentation\n- when_to_use: Appropriate when predicting survival times using high-dimensional biological data (such as microarray gene expression, aCGH, or protein microarray data) as covariates, utilizing a step-wise Cox model with prior distributions on weights and baseline hazards\n- pitfalls: All subjects must have the exact same number of covariates ;; Missing covariates for some patients must be explicitly filled with zeros ;; Training and validation sets must be representative of each other (e.g., similar proportions of long survivors and censored patients) ;; The optimization algorithm might terminate at the peaked origin if 'noprior' is not set to run at least one step without a prior ;; Survival data frames must contain exact column names: 'True_STs' and 'censored'",
+  "workflows": [
+    {
+      "name": "survival_prediction_with_split_sets",
+      "intent": "Train a survival prediction model on a training dataset and predict survival times on an independent validation dataset using high-dimensional covariates.",
+      "input": [
+        "geDataT (matrix of training covariates)",
+        "survDataT (data frame of training survival times and censorship)",
+        "geDataS (matrix of validation covariates)",
+        "survDataS (data frame of validation survival times and censorship)"
+      ],
+      "stages": "1. Visualize the prior distribution for weights ;; 2. Visualize the gamma prior distribution for baseline hazards ;; 3. Train the model and predict survival times on the validation set ;; 4. Plot Kaplan-Meier survival curves for predicted long and short survivors ;; 5. Calculate and plot the Area Under the ROC Curve (AURC) ;; 6. Perform a log-rank test to compare the predicted survivor groups",
+      "code": "library(RCASPAR)\npltprior(q=1, s=1)\npltgamma(a=1.558,b=0.179)\ndata(Bergamaschi)\ndata(survData)\nresult <- STpredictor_BLH(geDataS=Bergamaschi[1:27, 1:2], survDataS=survData[1:27, 9:10], geDataT=Bergamaschi[28:82, 1:2], survDataT=survData[28:82, 9:10], q = 1, s = 1, a = 1.558, b = 0.179, cut.off=15, groups = 3, method = \"CG\", noprior = 1, extras = list(reltol=1))\nkmplt_svrl(long=result$long_survivors, short=result$short_survivors,title=\"KM plot of long and short survivors\")\nsurvivAURC(Stime=result$predicted_STs$True_STs,status=result$predicted_STs$censored, marker=result$predicted_STs$Predicted_STs, time.max=20)\nlogrnk(dataL=result$long_survivors, dataS=result$short_survivors)"
+    },
+    {
+      "name": "survival_prediction_with_cross_validation",
+      "intent": "Perform k-fold cross-validation on a single dataset to train and predict survival times using high-dimensional covariates.",
+      "input": [
+        "geData (matrix of covariates for all patients)",
+        "survData (data frame of survival times and censorship for all patients)"
+      ],
+      "stages": "1. Perform k-fold cross-validation to predict survival times ;; 2. Plot Kaplan-Meier survival curves for predicted long and short survivors ;; 3. Calculate and plot the Area Under the ROC Curve (AURC) ;; 4. Perform a log-rank test to compare the predicted survivor groups",
+      "code": "library(RCASPAR)\nSTpredictor_xvBLH(geData, survData, k , cut.off , q, s, a , b, groups, method , noprior, extras)"
+    }
+  ]
+}

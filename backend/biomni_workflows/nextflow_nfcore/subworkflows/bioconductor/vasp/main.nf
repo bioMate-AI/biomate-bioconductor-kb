@@ -1,117 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: VaSP
-// Discovery of genome-wide variable alternative splicing events from short-read RNA-seq data and visua
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/VaSP/inst/doc/VaSP.R
-// Upstream  : Sushi
-// Downstream: none
-//
-// Install: BiocManager::install("VaSP")
+// Bioconductor workflow: VaSP — splicing_quantification_and_gss_discovery
+// Calculate Single Splicing Strength (3S) scores and identify genotype-specific splicing (GSS) events from a Ballgown object.
+// Input: rice.bg, Sample_027.bam
+// Container: quay.io/biocontainers/bioconductor-vasp:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, VaSP
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate 3S scores or junction counts for a specific gene using spliceGene, or genome-wide using spliceGenome
+//  * 2. [Core Analysis] Identify bimodal distribution features (GSS events) using BMfinder
+//  * 3. [Core Analysis] Extract genomic coordinates of the identified GSS introns using structure
+//  * 4. [Input & Preparation] Extract read depth from BAM files using getDepth and gene information using getGeneinfo
 
 nextflow.enable.dsl = 2
 
-process BIOC_VASP {
+process BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-vasp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-vasp:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-vasp:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_vasp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_vasp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_vasp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(VaSP)
-    library(jsonlite)
-
-    # --- Genome-wide Splicing Quantification [] ---
-    # Key functions: spliceGenome
-    data(rice.bg)
-    splice <- spliceGenome(rice.bg, gene.select = NA, intron.select = NA)
-    scores <- splice$score
-    introns <- splice$intron
-
-
-    # --- Bimodal Splicing Feature Discovery [] ---
-    # Key functions: BMfinder, spliceGene
-    data(rice.bg)
-    score <- spliceGene(rice.bg, gene = "MSTRG.183", junc.type = "score")
+    library(GenomicRanges)
+    
+    # 1. Load the Ballgown object from the user-provided 'rice.bg' file
+    if (!file.exists("rice.bg")) {
+      stop("Error: 'rice.bg' file not found in the working directory.")
+    }
+    
+    rice.bg <- tryCatch({
+      readRDS("rice.bg")
+    }, error = function(e) {
+      tmp_env <- new.env()
+      load("rice.bg", envir = tmp_env)
+      bg_objs <- sapply(ls(tmp_env), function(x) inherits(tmp_env[[x]], "ballgown"))
+      if (any(bg_objs)) {
+        tmp_env[[names(bg_objs)[which(bg_objs)[1]]]]
+      } else {
+        tmp_env[[ls(tmp_env)[1]]]
+      }
+    })
+    
+    # 2. Calculate 3S scores and junction counts for a specific gene
+    score <- spliceGene(rice.bg, gene="MSTRG.183", junc.type = "score")
+    count <- spliceGene(rice.bg, "MSTRG.183", junc.type = "count")
+    
+    # Save gene-specific splicing scores and counts
+    write.csv(as.data.frame(score), "splicing_score_MSTRG.183.csv", row.names = TRUE)
+    write.csv(as.data.frame(count), "splicing_count_MSTRG.183.csv", row.names = TRUE)
+    
+    # 3. Identify bimodal distribution features (GSS events)
     gss <- BMfinder(score, cores = 1)
-
-
-    # --- Read Depth Extraction [] ---
-    # Key functions: getDepth
-    path <- system.file("extdata", package = "VaSP")
-    bam_files <- list.files(path, "*.bam$")
-    depth <- getDepth(
-        file.path(path, bam_files[1]), 
-        "Chr1", 
-        start = 1171800, 
-        end = 1179400
-    )
-
-
-    # --- Gene Structure Information Retrieval [] ---
-    # Key functions: getGeneinfo
-    data(rice.bg)
-    gene_ids <- c("MSTRG.181", "MSTRG.182", "MSTRG.183")
-    geneinfo <- getGeneinfo(genes = gene_ids, rice.bg)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_vasp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_vasp_results.csv")
+    write.csv(as.data.frame(gss), "gss_events.csv", row.names = TRUE)
+    
+    # 4. Extract genomic coordinates of the identified GSS introns
+    gss_intron <- structure(rice.bg)\$intron
+    gss_intron <- gss_intron[gss_intron\$id %in% rownames(gss)]
+    gss_intron_range <- range(gss_intron)
+    
+    # Save GSS intron information
+    saveRDS(gss_intron, "gss_introns.rds")
+    write.csv(as.data.frame(gss_intron), "gss_introns.csv", row.names = FALSE)
+    
+    # 5. Calculate genome-wide splicing scores
+    splice <- spliceGenome(rice.bg, gene.select = NA, intron.select = NA)
+    saveRDS(splice, "genome_wide_splice.rds")
+    write.csv(as.data.frame(splice\$score), "genome_wide_splice_scores.csv", row.names = TRUE)
+    
+    # 6. Extract read depth from BAM file
+    bam_file <- "Sample_027.bam"
+    if (!file.exists(bam_file)) {
+      stop("Error: 'Sample_027.bam' file not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_vasp_output.rds")
-    }
+    depth <- getDepth(bam_file, "Chr1", start = 1171800, end = 1179400)
+    write.csv(depth, "read_depth_Chr1.csv", row.names = FALSE)
+    
+    # 7. Extract gene information
+    gene_id <- c("MSTRG.181", "MSTRG.182", "MSTRG.183")
+    geneinfo <- getGeneinfo(genes = gene_id, rice.bg)
+    write.csv(geneinfo, "gene_info.csv", row.names = FALSE)
+    
+    cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VASP:", paste0("    vasp: ", packageVersion("VaSP"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY":',
+        paste0('    VaSP: ', as.character(packageVersion('VaSP')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_vasp_results.csv
-    touch ${prefix}_vasp_output.rds
-    echo "BIOC_VASP:" > versions.yml
-    echo "    vasp: 0.0.0" >> versions.yml
+    touch ${prefix}_splicing_quantification_and_gss_discovery.csv versions.yml
     """
 }
 
-
-workflow BIOC_VASP_WORKFLOW {
+workflow BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rice.bg, Sample_027.bam ] ]
 
     main:
-    BIOC_VASP(ch_input)
+    BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY(ch_input)
 
     emit:
-    results  = BIOC_VASP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VASP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VASP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VASP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY.out.tables
+    plots    = BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY.out.plots
+    objects  = BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY.out.objects
+    versions = BIOC_VASP_SPLICING_QUANTIFICATION_AND_GSS_DISCOVERY.out.versions
 }

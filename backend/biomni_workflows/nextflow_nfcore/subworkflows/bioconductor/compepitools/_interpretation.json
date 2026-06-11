@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Object=The input GRanges object containing genomic regions of interest ;; bam=Path to the BAM file containing aligned reads ;; Nnorm=Logical indicating whether to normalize counts by the total number of aligned reads ;; Snorm=Logical indicating whether to normalize counts by the size of the regions ;; Nbins=Number of bins to divide each genomic region into for coverage calculation ;; txdb=A TranscriptDb object containing gene and transcript annotations ;; EG2GS=An Entrez Gene to Gene Symbol mapping database (e.g., org.Mm.eg.db) ;; userAnn=A GRangesList containing user-defined annotations (e.g., CpG Islands) ;; grl=A list of GRanges objects representing data tracks for heatmap generation ;; refgr=Reference GRanges object defining the regions of interest (ROIs) to plot ;; sigMat=Matrix of p-values or significance scores used to dim heatmap colors based on significance\n- alternatives: methylPipe=Mentioned as a complementary package to include support for DNA methylation data (GElist or GEcollection objects) in heatmaps ;; pileup=Mentioned in Rsamtools warnings as the modern replacement for the deprecated applyPileups function used internally by compEpiTools\n- when_to_use: Use this package when integrating heterogeneous epigenomics data (such as ChIP-seq, RNA-seq, and DNA methylation) across multiple genomic regions, calculating PolII stalling indices, identifying enhancers and matching them to target TSSs, predicting lncRNAs, or classifying promoters by CpG content.\n- pitfalls: The coverage functions (GRbaseCoverage, GRcoverage, etc.) internally call the deprecated applyPileups function, which triggers deprecation warnings. When identifying enhancers, they must not overlap with CpG Islands to avoid false positives from unannotated promoters. findLncRNA is restricted to distal intergenic regions to avoid false positives from overlapping coding transcriptional units.",
+  "workflows": [
+    {
+      "name": "read_counting_and_coverage",
+      "intent": "Calculate base-level coverage, total coverage, binned coverage, and identify peak summits within genomic regions of interest from aligned BAM files.",
+      "input": [
+        "user_regions.RData (GRanges object of genomic regions)",
+        "aligned_reads.bam (BAM file of aligned sequencing reads)"
+      ],
+      "stages": "1. Calculate base-level coverage using GRbaseCoverage ;; 2. Calculate total coverage using GRcoverage ;; 3. Calculate binned coverage using GRcoverageInbins ;; 4. Identify peak summits using GRcoverageSummit ;; 5. Plot coverage and highlight the summit",
+      "code": "bampath <- system.file(\"extdata\", \"ex1.bam\", package=\"Rsamtools\")\nir <- IRanges(start=c(1000, 100), end=c(2000, 1000))\ngr <- GRanges(seqnames=Rle(c('seq1','seq2')), ranges=ir)\nres <- GRbaseCoverage(Object=gr, bam=bampath)\nGRcoverage(Object=gr, bam=bampath, Nnorm=FALSE, Snorm=FALSE)[1]\nGRcoverageInbins(Object=gr, bam=bampath, Nnorm=FALSE, Snorm=FALSE, Nbins=5)[1,]\nsummit <- GRcoverageSummit(Object=gr, bam=bampath)\nplot(res[[1]], type='l', xlab='bp', ylab='reads count')\nabline(v=start(summit[1])-start(gr[1])+1, lty=2, lwd=2)"
+    },
+    {
+      "name": "genomic_region_annotation",
+      "intent": "Annotate genomic regions of interest with proximity to nearest Transcription Start Sites (TSS), gene models, and user-defined genomic features like CpG Islands.",
+      "input": [
+        "user_regions.RData (GRanges object of genomic regions)",
+        "user_annotations.RData (GRangesList of custom annotations like CpG islands)"
+      ],
+      "stages": "1. Define TSS positions using TSS ;; 2. Find midpoints of genomic regions using GRmidpoint ;; 3. Annotate regions with gene models and custom annotations using GRannotate",
+      "code": "TSSpos <- TSS(txdb)\ngr <- TSSpos[1:5]\nstart(gr) <- start(gr) - 1000\nend(gr) <- end(gr) - 600\nmcols(gr) <- NULL\ncgipath <- system.file(\"extdata\", \"CGIgr_mm9.Rdata\", package=\"compEpiTools\")\nload(cgipath)\nres <- GRannotate(Object=GRmidpoint(gr), txdb=txdb, EG2GS=org.Mm.eg.db, \n\tupstream=2000, downstream=1000, userAnn=GRangesList(CGI=CGIgr_mm9))\nshow(res)"
+    },
+    {
+      "name": "epigenomic_heatmap_visualization",
+      "intent": "Prepare and plot multi-track heatmaps of epigenomic data across genomic regions of interest, optionally scaling colors by statistical significance.",
+      "input": [
+        "user_regions.RData (GRanges object of genomic regions)",
+        "pvalues.txt (matrix of significance values for regions)"
+      ],
+      "stages": "1. Define reference genomic regions ;; 2. Prepare heatmap matrix data using heatmapData ;; 3. Plot standard heatmap using heatmapPlot ;; 4. Plot significance-dimmed heatmap using heatmapPlot with sigMat",
+      "code": "gr <- TSSpos[1:50]\nstart(gr) <- start(gr) - 1000\nend(gr) <- end(gr) - 600\nextgr <- GRanges(seqnames(gr), ranges=IRanges(start(gr) - 1000, end(gr) + 1000))\ndata <- heatmapData(grl=list(ChIPseq=gr), refgr=extgr, type='gr', nbins=20, txdb=txdb)\npvalues <- c(runif(20,1e-20,1e-8), runif(15,1e-4,1e-2), runif(15,0.5,1))\npvalues <- cbind(pvalues, rep(0, 50), rep(0, 50))\nrownames(data[[1]][[1]]) <- paste(1:50, signif(pvalues[,1],1), sep=' # ')\nheatmapPlot(matList=data[[1]], clusterInds=1:3)\nheatmapPlot(matList=data[[1]], sigMat=pvalues, clusterInds=1:3)"
+    }
+  ]
+}

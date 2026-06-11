@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=In backgroundCorrect(), options include \"normexp\" (recommended with offset=50 to avoid negative/zero intensities and stabilize variance) or \"subtract\". In normalizeWithinArrays(), options include \"printtiploess\" (default for spotted arrays), \"loess\" (global loess, for Agilent arrays), \"robustspline\" (empirical Bayes compromise), or \"control\" (using control spots). ;; green.only=In read.maimages(), set to TRUE to read single-channel data and output an EListRaw/EList object instead of an RGList. ;; wt.fun=In read.maimages(), a function to compute spot quality weights (e.g., wtflags() or wtarea()) to downweight unreliable spots. ;; trend=In eBayes(), set to TRUE to model a prior variance trend, which is highly recommended for RNA-seq or single-channel data. ;; robust=In eBayes(), set to TRUE to protect hyperparameter estimation against hypervariable genes.\n- alternatives: marray=Mentioned as an alternative package for reading and normalizing spotted two-color microarray data; objects can be converted to limma classes using the convert package. ;; affy/gcrma/aroma.affymetrix=Recommended for reading and normalizing Affymetrix GeneChip data before using limma. ;; vst/beadarray=Can be used in conjunction with limma for pre-processing Illumina data. ;; edgeR=Provides the filterByExpr function to identify genes or exons for filtering in RNA-seq workflows. ;; limmaGUI/affylmGUI=Graphical user interfaces for users who prefer menu-driven analysis.\n- when_to_use: Use when performing differential expression analysis on quantitative gene expression data (microarrays, RNA-seq, qPCR, proteomics) from designed experiments, especially those with complex multi-factor designs, batch effects, or small sample sizes.\n- pitfalls: print-tip loess on Agilent arrays=Agilent arrays do not have print-tip groups; using print-tip loess is inappropriate and global loess (\"loess\") should be used instead. ;; print-tip loess on small arrays=Unreliable for arrays with fewer than 150 spots per print-tip group or when many spots have missing values. ;; simple background subtraction=Can produce negative or zero corrected intensities, leading to missing values in log-ratios; \"normexp\" with an offset is preferred. ;; boutique arrays=Loess normalization assumes most probes are not differentially expressed; this fails on boutique arrays with specifically selected genes (use control/titration spots instead). ;; qualitative weights in lmFit=marray read functions populate weights with qualitative flags; these must not be used as quantitative weights in lmFit (set weights=NULL or convert them first).",
+  "workflows": [
+    {
+      "name": "two_color_microarray_analysis",
+      "intent": "Analyze two-color spotted microarray data to identify differentially expressed genes.",
+      "input": [
+        "targets.txt (tab-delimited metadata file listing array filenames and Cy3/Cy5 targets)",
+        ".gpr (or other image analysis output files containing raw intensity data per array)"
+      ],
+      "stages": "1. Read targets metadata using readTargets().\n2. Read raw intensities and apply spot quality weights using read.maimages().\n3. Perform background correction using backgroundCorrect() with the normexp method.\n4. Perform within-array normalization using normalizeWithinArrays().\n5. Fit gene-wise linear models using lmFit().\n6. Apply empirical Bayes smoothing using eBayes().\n7. Extract top differentially expressed genes using topTable().",
+      "code": "library(limma)\ntargets <- readTargets(\"targets.txt\")\nf <- function(x) as.numeric(x$Flags > -99)\nRG <- read.maimages(targets, source=\"genepix\", wt.fun=f)\nRG <- backgroundCorrect(RG, method=\"normexp\", offset=50)\nMA <- normalizeWithinArrays(RG)\nfit <- lmFit(MA, design=c(-1,1,-1,1))\nfit <- eBayes(fit)\ntopTable(fit)"
+    },
+    {
+      "name": "single_channel_microarray_analysis",
+      "intent": "Analyze single-channel microarray data (e.g., Affymetrix) to identify differentially expressed genes.",
+      "input": [
+        "targets.txt (tab-delimited metadata file listing filenames and genotypes/treatments)",
+        ".CEL (raw Affymetrix intensity files)"
+      ],
+      "stages": "1. Read targets metadata using readTargets().\n2. Read and pre-process raw data using ReadAffy() and gcrma() from the gcrma package.\n3. Construct a design matrix representing the experimental groups.\n4. Fit gene-wise linear models using lmFit().\n5. Apply empirical Bayes smoothing with robust and trend options using eBayes().\n6. Extract top differentially expressed genes using topTable().",
+      "code": "library(gcrma)\nlibrary(limma)\ntargets <- readTargets(\"targets.txt\")\nab <- ReadAffy(filenames=targets$FileName)\neset <- gcrma(ab)\ndesign <- cbind(WT=1, MUvsWT=targets$Genotype==\"mu\")\nfit <- lmFit(eset, design)\nfit <- eBayes(fit)\ntopTable(fit, coef=\"MUvsWT\")"
+    },
+    {
+      "name": "filtering_unexpressed_probes",
+      "intent": "Filter out unexpressed probes based on average log-expression values before empirical Bayes analysis.",
+      "input": [
+        "y (normalized expression object, e.g., EList or MAList)",
+        "design (design matrix)"
+      ],
+      "stages": "1. Fit initial linear model using lmFit().\n2. Inspect average expression distribution and residual variance using hist() and plotSA().\n3. Filter out probes below a threshold.\n4. Run empirical Bayes with trend on the filtered fit using eBayes().\n5. Inspect the final residual variance plot using plotSA().",
+      "code": "fit <- lmFit(y, design)\nhist(fit$Amean)\nplotSA(fit)\nkeep <- fit$Amean > CutOff\nfit2 <- eBayes(fit[keep,], trend=TRUE)\nplotSA(fit2)"
+    }
+  ]
+}

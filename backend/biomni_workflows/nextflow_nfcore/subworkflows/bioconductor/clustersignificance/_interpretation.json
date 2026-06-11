@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mat=The input matrix with data points (samples) in rows and dimensions (e.g., principal components) in columns ;; classes=A character vector without NA values specifying the class labels for each row of the input matrix ;; projmethod=The projection method to use during permutation, either \"pcp\" or \"mlp\" ;; iter=The number of iterations for permutation testing (10^4 is recommended as a starting point) ;; normalize=Logical parameter in pcp to normalize the data before projection ;; df=Degrees of freedom parameter in pcp to regulate the smoothness of the principal curve (must be identical in both pcp and permute functions) ;; userPermats=A user-defined list of permuted matrices to bypass automatic permutation generation\n- alternatives: Principal Curve Projection (pcp) should be preferred when analyzing more than 2 dimensions simultaneously and/or more than 2 class separations (requires >= 5 data points per class and > 5 unique values per dimension). Mean Line Projection (mlp) should be preferred for comparing a maximum of 2 classes in a maximum of 2 dimensions (works with as few as 2 data points per class).\n- when_to_use: Use this workflow downstream of dimensionality reduction (e.g., PCA) to determine if a subset of variables (such as genes in a specific pathway) can significantly separate samples into established classes.\n- pitfalls: The pcp method will fail if there are fewer than 5 data points per class or 5 or fewer unique values per dimension. If you alter the df parameter in pcp, you must supply the exact same df argument to permute, or the permutation results will be invalid. Because the permutation step is typically a Monte Carlo test, the resulting p-value is an estimate; always check the confidence interval using conf.int.",
+  "workflows": [
+    {
+      "name": "pcp_analysis",
+      "intent": "Assess class cluster separation in multi-dimensional space (or with more than 2 classes) using Principal Curve Projection.",
+      "input": [
+        "pcpMatrix (dimensionality-reduced matrix with samples as rows and dimensions as columns)",
+        "classes (character vector of class labels)"
+      ],
+      "stages": "1. Project data onto a principal curve using pcp ;; 2. Classify and score the separation using classify ;; 3. Run permutation testing using permute ;; 4. Extract p-values and confidence intervals using pvalue and conf.int",
+      "code": "classes <- rownames(pcpMatrix)\nprj <- pcp(pcpMatrix, classes)\nplot(prj)\ncl <- classify(prj)\nplot(cl)\ngetData(cl, \"AUC\")\niterations <- 100\npe <- permute(\n    mat = pcpMatrix, \n    iter = iterations, \n    classes = classes, \n    projmethod = \"pcp\"\n)\nplot(pe)\npvalue(pe)\nconf.int(pe, conf.level = .99)"
+    },
+    {
+      "name": "mlp_analysis",
+      "intent": "Assess class cluster separation in a maximum of 2 dimensions and 2 classes using Mean Line Projection.",
+      "input": [
+        "mlpMatrix (2D matrix with samples as rows and 2 dimensions as columns)",
+        "classes (character vector of 2 class labels)"
+      ],
+      "stages": "1. Project data onto a regression line using mlp ;; 2. Classify and score the separation using classify ;; 3. Run permutation testing using permute ;; 4. Extract p-values and confidence intervals using pvalue and conf.int",
+      "code": "classes <- rownames(mlpMatrix)\nprj <- mlp(mlpMatrix, classes)\nplot(prj)\ncl <- classify(prj)\nplot(cl)\niterations <- 500 \npe <- permute(\n    mat = mlpMatrix, \n    iter = iterations, \n    classes = classes, \n    projmethod = \"mlp\"\n)\nplot(pe)\npvalue(pe)\nconf.int(pe)"
+    },
+    {
+      "name": "pca_downstream_analysis",
+      "intent": "Assess class cluster separation downstream of Principal Component Analysis (PCA).",
+      "input": [
+        "expression (gene expression matrix with samples as rows and genes as columns)",
+        "classes (character vector of class labels)"
+      ],
+      "stages": "1. Perform PCA using prcomp ;; 2. Project PCA matrix using pcp with normalization ;; 3. Classify and score the separation using classify ;; 4. Run permutation testing using permute ;; 5. Extract p-values and confidence intervals using pvalue and conf.int",
+      "code": "pca <- prcomp(expression, scale = TRUE)\nmat <- pca$x\nob <- pcp(mat, classes, normalize = TRUE)\nplot(ob)\ncl <- classify(ob)\nplot(cl)\niterations <- 100\npe <- permute(mat = mat, iter = iterations, classes = classes, projmethod = \"pcp\")\npvalue(pe)\nconf.int(pe)"
+    }
+  ]
+}

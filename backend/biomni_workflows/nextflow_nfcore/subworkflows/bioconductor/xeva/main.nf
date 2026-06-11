@@ -1,90 +1,121 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Xeva
-// The Xeva package provides efficient and powerful functions for patient-drived xenograft (PDX) based 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Xeva/inst/doc/Xeva.R
-// Upstream  : Biobase
-// Downstream: none
-//
-// Install: BiocManager::install("Xeva")
+// Bioconductor workflow: Xeva — pdx_growth_and_response_analysis
+// Visualize PDX tumor growth curves and compute drug response metrics from a XevaSet object.
+// Input: brca, repdx
+// Container: quay.io/biocontainers/bioconductor-xeva:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, Xeva
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the XevaSet dataset. 2. Retrieve model metadata and individual experiment time-volume data. 3. Retrieve batch design informat
 
 nextflow.enable.dsl = 2
 
-process BIOC_XEVA {
+process BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-xeva"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-xeva:1.22.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-xeva:1.22.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_xeva_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_xeva_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_xeva_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(Xeva)
-    library(jsonlite)
+    library(Biobase)
+    
+    # 1. Load the XevaSet datasets from the working directory
+    # The user input files are 'brca' and 'repdx' (expected to be RDS files)
+    brca <- readRDS("brca")
+    repdx <- readRDS("repdx")
+    
+    # Stage 1: Metadata retrieval
+    brca.mod <- modelInfo(brca)
+    
+    # Planned Stage 2: Retrieve individual experiment time-volume data
+    brca_model_id <- brca.mod\$model.id[1]
+    model.data <- getExperiment(brca, model.id = brca_model_id)
+    
+    # Planned Stage 3: Retrieve batch design information
+    brca_batches <- batchInfo(brca)
+    brca_batch1 <- brca_batches[1]
+    batch.info <- batchInfo(brca, batch = brca_batch1)
+    
+    # Stage 2: Visualize PDX tumor growth curves
+    repdx_batches <- batchInfo(repdx)
+    repdx_batch1 <- repdx_batches[1]
+    
+    pdf("growth_curves.pdf")
+    print(plotPDX(brca, batch = brca_batch1))
+    print(plotPDX(repdx, vol.normal = TRUE, batch = repdx_batch1))
+    dev.off()
+    
+    # Stage 3: Summarizing response
+    brca.mr <- summarizeResponse(brca, response.measure = "mRECIST")
+    
+    # Planned Stage 5: Summarize drug response using angle or linear mixed-effects models
+    repdx_response <- response(repdx, batch = repdx_batch1, res.measure = "angle")
+    
+    # Stage 4: Generate waterfall plots
+    drug_name <- rownames(brca.mr)[1]
+    pdf("waterfall_plots.pdf")
+    print(waterfall(brca, drug=drug_name, res.measure="best.average.response"))
+    dev.off()
+    
+    # Write the meaningful results to output CSV files
+    write.csv(brca.mod, "model_info.csv", row.names = FALSE)
+    write.csv(brca.mr, "summarized_response.csv", row.names = TRUE)
 
-    # --- BatchInfo analysis [] ---
-    # Key functions: install_github, batchInfo, plotPDX, waterfall, summarizeMolecularProfiles, response, drugSensitivitySig
-    mut <- summarizeMolecularProfiles(brca,drug = "BYL719", mDataType="mutation")
-    model.type <- Biobase::exprs(mut)["CDK13", ]
-    model.type[grepl("Mut", model.type)] <- "mutation"
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_xeva_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_xeva_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_xeva_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_XEVA:", paste0("    xeva: ", packageVersion("Xeva"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS":',
+        paste0('    Xeva: ', as.character(packageVersion('Xeva')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_xeva_results.csv
-    touch ${prefix}_xeva_output.rds
-    echo "BIOC_XEVA:" > versions.yml
-    echo "    xeva: 0.0.0" >> versions.yml
+    touch ${prefix}_pdx_growth_and_response_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_XEVA_WORKFLOW {
+workflow BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ brca, repdx ] ]
 
     main:
-    BIOC_XEVA(ch_input)
+    BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_XEVA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_XEVA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_XEVA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_XEVA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS.out.tables
+    plots    = BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS.out.plots
+    objects  = BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS.out.objects
+    versions = BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS.out.versions
 }

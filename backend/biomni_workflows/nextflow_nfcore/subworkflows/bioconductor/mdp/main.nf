@@ -1,104 +1,123 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mdp
-// The Molecular Degree of Perturbation webtool quantifies the heterogeneity of samples. It takes a dat
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mdp/inst/doc/my-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("mdp")
+// Bioconductor workflow: mdp — standard_mdp_analysis
+// Quantify sample and gene perturbation scores relative to a control group using omic expression data.
+// Input: expression_data.csv, phenotype_data.csv
+// Container: quay.io/biocontainers/bioconductor-mdp:1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: mdp
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the mdp package and input datasets
+//  * 2. [Core Analysis] Run the main mdp function to calculate perturbation scores
+//  * 3. [Visualization & Output] Extract and plot sample scores for the perturbed genes
+//  * 4. [Core Analysis] Extract thresholded z-scores, gene scores, gene frequencies, and the list of perturbed genes
 
 nextflow.enable.dsl = 2
 
-process BIOC_MDP {
+process BIOC_MDP_STANDARD_MDP_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mdp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mdp:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mdp:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mdp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mdp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mdp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
     library(mdp)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: mdp
-    ---------------------------------------------------------------------
-    library(mdp)
-    data(example_data) # expression data has gene names in the rows
-    data(example_pheno) # pheno data needs a Sample and Class column
-    mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline")
-    # --- Head [] ---
-    # Key functions: sample_plot
-    ---------------------------------------------------------------------
-    sample_scores_list <- mdp.results$sample_scores
-    # select sample scores calculated using the perturbed genes
+    
+    # 1. Load the input datasets from the working directory
+    # The expression data must have gene names in the rows and samples in the columns.
+    example_data <- read.csv("expression_data.csv", row.names = 1, check.names = FALSE)
+    
+    # The phenotype data must contain 'Sample' and 'Class' columns.
+    example_pheno <- read.csv("phenotype_data.csv", stringsAsFactors = FALSE)
+    
+    # Dynamically determine the control label to avoid hardcoding
+    possible_controls <- c("baseline", "Baseline", "control", "Control", "WT", "wt", "Normal", "normal")
+    control_label <- intersect(possible_controls, example_pheno\$Class)[1]
+    if (is.na(control_label)) {
+      control_label <- unique(example_pheno\$Class)[1]
+    }
+    
+    # 2. Run the main mdp function to calculate perturbation scores
+    mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = control_label)
+    
+    # 3. Extract and plot sample scores for the perturbed genes
+    sample_scores_list <- mdp.results\$sample_scores
     sample_scores <- sample_scores_list[["perturbedgenes"]]
     head(sample_scores)
-    # --- Compute Zscore [] ---
-    # Key functions: compute_zscore
-    ---------------------------------------------------------------------
-    control_samples <- example_pheno[example_pheno$Class == "baseline","Sample"]
-    zscore <- compute_zscore(data = example_data,control_samples = control_samples,measure = "mean",std = 2)
+    
+    # Save the sample perturbation plot to a PDF file
+    pdf("sample_scores_plot.pdf", width = 10, height = 7)
+    print(sample_plot(sample_scores, control_lab = control_label, title="perturbed"))
+    dev.off()
+    
+    # 4. Extract thresholded z-scores, gene scores, gene frequencies, and the list of perturbed genes
+    zscore <- mdp.results\$zscore
+    gene_scores <- mdp.results\$gene_scores
+    gene_freq <- mdp.results\$gene_freq
+    head(gene_scores)
+    perturbed_genes <- mdp.results\$perturbed_genes
+    
+    # 5. Write meaningful results to output files
+    write.csv(sample_scores, "sample_scores.csv", row.names = TRUE)
+    write.csv(zscore, "zscore_matrix.csv", row.names = TRUE)
+    write.csv(gene_scores, "gene_scores.csv", row.names = TRUE)
+    write.csv(gene_freq, "gene_freq.csv", row.names = TRUE)
+    write.csv(data.frame(Perturbed_Genes = perturbed_genes), "perturbed_genes.csv", row.names = FALSE)
+    saveRDS(mdp.results, "mdp_results.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mdp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mdp_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mdp_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MDP:", paste0("    mdp: ", packageVersion("mdp"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MDP_STANDARD_MDP_ANALYSIS":',
+        paste0('    mdp: ', as.character(packageVersion('mdp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mdp_results.csv
-    touch ${prefix}_mdp_output.rds
-    echo "BIOC_MDP:" > versions.yml
-    echo "    mdp: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_mdp_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MDP_WORKFLOW {
+workflow BIOC_MDP_STANDARD_MDP_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_data.csv, phenotype_data.csv ] ]
 
     main:
-    BIOC_MDP(ch_input)
+    BIOC_MDP_STANDARD_MDP_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MDP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MDP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MDP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MDP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MDP_STANDARD_MDP_ANALYSIS.out.tables
+    plots    = BIOC_MDP_STANDARD_MDP_ANALYSIS.out.plots
+    objects  = BIOC_MDP_STANDARD_MDP_ANALYSIS.out.objects
+    versions = BIOC_MDP_STANDARD_MDP_ANALYSIS.out.versions
 }

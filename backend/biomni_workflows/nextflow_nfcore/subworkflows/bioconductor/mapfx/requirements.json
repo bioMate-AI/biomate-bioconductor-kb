@@ -1,0 +1,49 @@
+{
+  "package": "mapfx",
+  "requirements": [
+    "Biobase",
+    "ComplexHeatmap",
+    "MAPFX",
+    "RColorBrewer",
+    "Rfast",
+    "circlize",
+    "cowplot",
+    "e1071",
+    "flowCore",
+    "ggplot2",
+    "glmnetUtils",
+    "gtools",
+    "iCellR",
+    "igraph",
+    "pbapply",
+    "png",
+    "reshape2",
+    "stringr",
+    "uwot",
+    "xgboost"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "ComplexHeatmap",
+      "MAPFX",
+      "RColorBrewer",
+      "Rfast",
+      "circlize",
+      "cowplot",
+      "e1071",
+      "flowCore",
+      "ggplot2",
+      "glmnetUtils",
+      "gtools",
+      "iCellR",
+      "igraph",
+      "pbapply",
+      "png",
+      "reshape2",
+      "stringr",
+      "uwot",
+      "xgboost"
+    ]
+  }
+}

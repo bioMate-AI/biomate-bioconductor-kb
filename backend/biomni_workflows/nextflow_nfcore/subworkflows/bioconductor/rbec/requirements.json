@@ -1,0 +1,14 @@
+{
+  "package": "rbec",
+  "requirements": [
+    "Rbec"
+  ],
+  "by_workflow": {
+    "detect_contaminants.nf": [
+      "Rbec"
+    ],
+    "main.nf": [
+      "Rbec"
+    ]
+  }
+}

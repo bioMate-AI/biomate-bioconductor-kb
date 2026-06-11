@@ -1,117 +1,176 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Melissa
-// Melissa is a Baysian probabilistic model for jointly clustering and imputing single cell methylomes.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Melissa/inst/doc/process_files.R
-// Upstream  : BPRMeth, BiocStyle, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("Melissa")
+// Bioconductor workflow: Melissa — melissa_clustering_imputation
+// Jointly cluster single-cell methylomes and impute missing methylation states.
+// Input: single_cell_methylome_data
+// Container: quay.io/biocontainers/bioconductor-melissa:1.22.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BPRMeth, GenomicRanges, Melissa, ggplot2
+// Visualizations: bar plot, cluster plot
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Joint clustering and imputation of single-cell methylomes (no specific functions are documented in the provided text)
 
 nextflow.enable.dsl = 2
 
-process BIOC_MELISSA {
+process BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-melissa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-melissa:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-melissa:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_melissa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_melissa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_melissa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(Melissa)
-    library(jsonlite)
-
-    # --- Model Fitting and Clustering [] ---
-    # Key functions: melissa, create_rbf_basis
-    basis_obj <- create_rbf_basis(
-        M = 4,
-        min_val = -1,
-        max_val = 1
+    library(BPRMeth)
+    library(GenomicRanges)
+    library(ggplot2)
+    
+    # Define input file path
+    input_file <- "single_cell_methylome_data"
+    
+    # Read the single-cell DNA methylation profiles
+    # The input is expected to be an RDS file containing a list of cells,
+    # where each cell is a list of genomic regions (matrices/data.frames of CpG sites).
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
+    }
+    
+    message("Reading single-cell methylome data...")
+    X <- readRDS(input_file)
+    
+    # Create Radial Basis Function (RBF) object using BPRMeth
+    # M = 4 is a standard default for the number of basis functions
+    message("Creating basis functions...")
+    basis <- BPRMeth::create_rbf_object(M = 4)
+    
+    # Set the number of clusters (K)
+    # Defaulting to 2 clusters, but can be adjusted based on biological expectation
+    K <- 2
+    
+    # Run Melissa joint clustering and imputation model
+    message("Running Melissa joint clustering and imputation...")
+    res <- Melissa::melissa(
+      X = X,
+      K = K,
+      basis = basis,
+      max_iter = 100
     )
-    melissa_result <- melissa(
-        X = met_data,
-        K = 2,
-        basis = basis_obj,
-        max_iter = 100,
-        vb_init = TRUE
+    
+    # Perform imputation of missing methylation states using the trained model
+    message("Imputing missing methylation states...")
+    imputed_data <- Melissa::impute_methylome(
+      X = X,
+      obj = res
     )
-
-
-    # --- Methylation Imputation [] ---
-    # Key functions: impute_methylome
-    imputed_profiles <- impute_methylome(
-        model = melissa_result,
-        X = met_data,
-        basis = basis_obj
-    )
-
-
-    # --- Cluster Profiling and Visualization [] ---
-    # Key functions: plot_melissa_profiles
-    profile_plot <- plot_melissa_profiles(
-        model = melissa_result,
-        basis = basis_obj,
-        cluster = 1
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_melissa_results.csv", row.names = TRUE)
+    
+    # Save the complete model results and imputed methylomes
+    message("Saving results...")
+    saveRDS(res, "melissa_model_results.rds")
+    saveRDS(imputed_data, "imputed_methylomes.rds")
+    
+    # Extract cell names or generate default ones
+    cell_names <- names(X)
+    if (is.null(cell_names)) {
+      cell_names <- paste0("Cell_", seq_along(X))
+    }
+    
+    # Extract and save cluster assignments
+    clusters <- NULL
+    if (!is.null(res\$labels)) {
+      clusters <- res\$labels
+    } else if (!is.null(res\$r_nk)) {
+      clusters <- max.col(res\$r_nk)
+    }
+    
+    if (!is.null(clusters)) {
+      df_clusters <- data.frame(
+        Cell = cell_names,
+        Cluster = clusters,
+        stringsAsFactors = FALSE
+      )
+      write.csv(df_clusters, "cluster_assignments.csv", row.names = FALSE)
+    }
+    
+    # Extract and save posterior cluster probabilities (responsibilities)
+    if (!is.null(res\$r_nk)) {
+      df_resp <- as.data.frame(res\$r_nk)
+      colnames(df_resp) <- paste0("Cluster_", seq_len(ncol(df_resp)))
+      df_resp <- cbind(Cell = cell_names, df_resp)
+      write.csv(df_resp, "cluster_probabilities.csv", row.names = FALSE)
+    }
+    
+    # Generate diagnostic plot of cluster responsibilities
+    pdf("cluster_responsibilities_plot.pdf", width = 8, height = 6)
+    if (!is.null(res\$r_nk)) {
+      barplot(
+        t(res\$r_nk),
+        col = terrain.colors(K),
+        main = "Cell Cluster Responsibilities",
+        xlab = "Cells",
+        ylab = "Probability",
+        legend.text = paste("Cluster", seq_len(K)),
+        args.legend = list(x = "topright", bty = "n")
+      )
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_melissa_results.csv")
+      plot.new()
+      text(0.5, 0.5, "No responsibility data available to plot", cex = 1.2)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_melissa_output.rds")
-    }
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MELISSA:", paste0("    melissa: ", packageVersion("Melissa"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION":',
+        paste0('    Melissa: ', as.character(packageVersion('Melissa')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_melissa_results.csv
-    touch ${prefix}_melissa_output.rds
-    echo "BIOC_MELISSA:" > versions.yml
-    echo "    melissa: 0.0.0" >> versions.yml
+    touch ${prefix}_melissa_clustering_imputation.csv versions.yml
     """
 }
 
-
-workflow BIOC_MELISSA_WORKFLOW {
+workflow BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ single_cell_methylome_data ] ]
 
     main:
-    BIOC_MELISSA(ch_input)
+    BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION(ch_input)
 
     emit:
-    results  = BIOC_MELISSA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MELISSA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MELISSA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MELISSA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION.out.tables
+    plots    = BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION.out.plots
+    objects  = BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION.out.objects
+    versions = BIOC_MELISSA_MELISSA_CLUSTERING_IMPUTATION.out.versions
 }

@@ -1,0 +1,13 @@
+{
+  "package": "gatefinder",
+  "requirements": [
+    "GateFinder",
+    "flowCore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GateFinder",
+      "flowCore"
+    ]
+  }
+}

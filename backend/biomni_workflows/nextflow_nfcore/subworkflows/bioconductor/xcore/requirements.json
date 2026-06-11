@@ -1,0 +1,24 @@
+{
+  "package": "xcore",
+  "requirements": [
+    "BiocParallel",
+    "ExperimentHub",
+    "GenomicRanges",
+    "doParallel",
+    "pheatmap",
+    "xcore"
+  ],
+  "by_workflow": {
+    "construct_molecular_signatures.nf": [
+      "GenomicRanges",
+      "xcore"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "ExperimentHub",
+      "doParallel",
+      "pheatmap",
+      "xcore"
+    ]
+  }
+}

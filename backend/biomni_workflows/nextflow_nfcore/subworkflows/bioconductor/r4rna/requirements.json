@@ -1,0 +1,16 @@
+{
+  "package": "r4rna",
+  "requirements": [
+    "Biostrings",
+    "R4RNA"
+  ],
+  "by_workflow": {
+    "alignment_covariance_analysis.nf": [
+      "Biostrings",
+      "R4RNA"
+    ],
+    "main.nf": [
+      "R4RNA"
+    ]
+  }
+}

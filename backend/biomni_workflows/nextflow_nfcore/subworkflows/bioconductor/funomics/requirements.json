@@ -1,0 +1,13 @@
+{
+  "package": "funomics",
+  "requirements": [
+    "SummarizedExperiment",
+    "funOmics"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "funOmics"
+    ]
+  }
+}

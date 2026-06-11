@@ -1,0 +1,11 @@
+{
+  "package": "lintind",
+  "requirements": [
+    "LinTInd"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "LinTInd"
+    ]
+  }
+}

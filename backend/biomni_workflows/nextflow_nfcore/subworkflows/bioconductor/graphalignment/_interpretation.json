@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: psize=the size of the alignment permutation vector which must be large enough to accommodate dummy nodes to prevent forced incorrect alignments ;; lookupLink=a vector defining the bin boundaries for link weight scoring ;; lookupNode=a vector defining the bin boundaries for node similarity scoring ;; bStart=the starting inverse temperature for simulated annealing ;; bEnd=the ending inverse temperature for simulated annealing ;; maxNumSteps=the maximum number of iterations for the alignment algorithm ;; clamp=logical flag indicating whether out-of-range values should be clamped to the outermost bins ;; directed=logical flag indicating whether the networks are directed binary graphs\n- alternatives: Sequence-homology-only selection (which this package extends by incorporating link similarity based on network topology)\n- when_to_use: When aligning biological networks (such as protein-protein interaction networks) across different species to identify functional orthologs based on both sequence (node) similarity and interaction (link) similarity.\n- pitfalls: Setting psize too small forces node pairs to align even with negative scores due to a lack of dummy nodes ;; Disabling clamping (clamp=FALSE) causes errors if values fall outside the lookup range ;; Initial alignment parameter estimation may yield poor scoring parameters if no nodes without sequence similarity are aligned initially, requiring manual score adjustments or iterative updates.",
+  "workflows": [
+    {
+      "name": "weighted_undirected_network_alignment",
+      "intent": "Align two weighted undirected networks using node similarity and link weight similarity.",
+      "input": [
+        "ex$a (adjacency matrix of network A)",
+        "ex$b (adjacency matrix of network B)",
+        "ex$r (node similarity matrix between A and B)"
+      ],
+      "stages": "1. Generate example data and initial alignment ;; 2. Define link and node lookup bins ;; 3. Compute link and node scoring parameters ;; 4. Align networks using simulated annealing ;; 5. Compute alignment scores ;; 6. Analyze alignment characteristics",
+      "code": "ex<-GenerateExample(dimA=22, dimB=22, filling=.5, \n    covariance=.6, symmetric=TRUE, numOrths=10, correlated=seq(1,18))\npinitial<-InitialAlignment(psize=34, r=ex$r, mode=\"reciprocal\")\nlookupLink<-seq(-2,2,.5)\nlinkParams<-ComputeLinkParameters(ex$a, ex$b, pinitial, lookupLink)\nlookupNode<-c(-.5,.5,1.5)\nnodeParams<-ComputeNodeParameters(dimA=22, dimB=22, ex$r,\n    pinitial, lookupNode)\nal<-AlignNetworks(A=ex$a, B=ex$b, R=ex$r, P=pinitial, \n    linkScore=linkParams$ls,\n    selfLinkScore=linkParams$ls,\n    nodeScore1=nodeParams$s1, nodeScore0=nodeParams$s0,\n    lookupLink=lookupLink, lookupNode=lookupNode,\n    bStart=.1, bEnd=30,\n    maxNumSteps=50)\nComputeScores(A=ex$a, B=ex$b, R=ex$r, P=al, \n    linkScore=linkParams$ls,\n    selfLinkScore=linkParams$ls,\n    nodeScore1=nodeParams$s1, nodeScore0=nodeParams$s0,\n    lookupLink=lookupLink, lookupNode=lookupNode,\n    symmetric=TRUE)\nAnalyzeAlignment(A=ex$a, B=ex$b, R=ex$r, P=al, lookupNode,\n    epsilon=.5)"
+    },
+    {
+      "name": "directed_binary_network_alignment",
+      "intent": "Align two directed binary networks using node similarity and link similarity.",
+      "input": [
+        "ex$a (adjacency matrix of directed network A)",
+        "ex$b (adjacency matrix of directed network B)",
+        "ex$r (node similarity matrix between A and B)"
+      ],
+      "stages": "1. Generate example directed data and binarize matrices ;; 2. Generate initial alignment ;; 3. Define link and node lookup bins ;; 4. Compute link parameters with clamping disabled ;; 5. Align networks with directed mode enabled",
+      "code": "ex<-GenerateExample(30, 30, filling=1, covariance=.95,\n    numOrths=20, symmetric=FALSE)\na=ex$a;b=ex$b\na[a>.5]=1;a[a<=.5]=0\nb[b>.5]=1;b[b<=.5]=0\npinitial<-InitialAlignment(psize=40, r=ex$r, mode=\"reciprocal\")\nlookupLink<-c(-.5,.5,1.5)\nlinkParams<-ComputeLinkParameters(a, b, pinitial, lookupLink,\n    clamp=FALSE)\nlookupNode<-c(-.5,.5,1.5)\nnsS0<-c(.025,-.025)\nnsS1<-c(-.025,4)\nal<-AlignNetworks(A=a, B=b, R=ex$r, P=pinitial,\n    linkScore=linkParams$ls,\n    selfLinkScore=linkParams$lsSelf,\n    nodeScore1=nsS1, nodeScore0=nsS0,\n    lookupLink=lookupLink, lookupNode=lookupNode,\n    bStart=.1, bEnd=100,\n    maxNumSteps=500, clamp=FALSE, directed=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: reference_path=The directory where the SpliceWiz reference is built and stored ;; fasta=Path to the genome FASTA file or AnnotationHub record ID ;; gtf=Path to the gene annotation GTF file or AnnotationHub record ID ;; genome_type=Specifies pre-built mappability exclusions (accepts \"hg38\", \"hg19\", \"mm10\", \"mm9\") ;; ontologySpecies=Species name to generate gene ontology annotations ;; bamfiles=Character vector of paths to alignment BAM files ;; sample_names=Character vector of unique sample names corresponding to BAM files ;; output_path=Directory where processBAM or collateData outputs are written ;; n_threads=Number of threads to use for multi-threaded operations ;; Experiment=A 2- or 3-column data frame containing sample names and processed file paths ;; novelSplicing=Logical indicating whether to enable novel splicing detection ;; IRMode=Method to determine total spliced transcript abundance (\"SpliceOver\" or \"SpliceMax\") ;; lowMemoryMode=Logical to minimize RAM usage during collation at the cost of speed ;; realize=Logical to load all data into memory at construction of the NxtSE object ;; RemoveOverlapping=Logical to remove overlapping introns belonging to minor isoforms ;; test_factor=The colData column name representing the experimental condition ;; test_nom=The numerator condition level for pairwise contrast ;; test_denom=The denominator condition level for pairwise contrast ;; IRmode=Method to quantify intron retention in differential analysis (\"all\", \"annotated\", or \"annotated_binary\")\n- alternatives: ASE_DoubleExpSeq=Uses DoubleExpSeq (beta-binomial model); preferred for quick pairwise comparisons without batch factors ;; ASE_limma=Uses limma (log-normal model); fastest method, ideal for large datasets and supports time-series ;; ASE_edgeR=Uses edgeR (quasi-likelihood negative binomial); recommended for final analysis with batch correction and time-series, deals well with near-zero counts ;; ASE_DESeq=Uses DESeq2 (negative binomial); most computationally expensive but highly robust, supports batch correction and time-series\n- when_to_use: Use when performing alternative splicing analysis (including skipped exons, mutually exclusive exons, alternative splice sites, and intron retention) from RNA-seq BAM files, especially when dealing with large datasets requiring multi-threaded processing and interactive visualization.\n- pitfalls: High memory usage during collateData (can use 6-7 GB per thread; use lowMemoryMode=TRUE to limit to ~8 GB) ;; Over-calling intron retention due to overlapping introns (mitigated by default RemoveOverlapping=TRUE in makeSE) ;; MacOS users without OpenMP libraries will experience high RAM usage (5-10 GB per BAM) due to fallback multi-threading (install libomp via brew to resolve) ;; Conda environments using r-base=4.3 may fail (r-base=4.2.1 is recommended)",
+  "workflows": [
+    {
+      "name": "standard_alternative_splicing_analysis",
+      "intent": "Build a reference, process alignment BAM files, collate sample data, filter low-confidence events, and perform differential alternative splicing analysis.",
+      "input": [
+        "genome.fa (genome sequence FASTA file)",
+        "transcripts.gtf (gene annotation GTF file)",
+        "sample1.bam (RNA-seq alignment BAM files)"
+      ],
+      "stages": "1. Build the SpliceWiz reference using buildRef() ;; 2. Process BAM files to extract junction and intron coverage data using processBAM() ;; 3. Collate processed sample outputs into an experiment database using collateData() ;; 4. Import the collated experiment as an NxtSE object using makeSE() ;; 5. Filter out low-confidence alternative splicing events using applyFilters() ;; 6. Perform differential alternative splicing analysis using ASE_edgeR() (or other statistical wrappers)",
+      "code": "ref_path <- file.path ( tempdir (), \"Reference\" )\nbuildRef ( reference_path = ref_path, fasta = chrZ_genome (), gtf = chrZ_gtf (), ontologySpecies = \"Homo sapiens\" )\nbams <- SpliceWiz_example_bams ()\nbams <- findBAMS ( tempdir (), level = 0 )\npb_path <- file.path ( tempdir (), \"pb_output\" )\nprocessBAM ( bamfiles = bams $ path, sample_names = bams $ sample, reference_path = ref_path, output_path = pb_path )\nexpr <- findSpliceWizOutput (pb_path)\nnxtse_path <- file.path ( tempdir (), \"NxtSE_output\" )\ncollateData ( Experiment = expr, reference_path = ref_path, output_path = nxtse_path )\nse <- makeSE (nxtse_path)\nse <- realize_NxtSE (se)\ncolData (se) $ condition <- rep ( c ( \"A\" , \"B\" ), each = 3 )\ncolData (se) $ batch <- rep ( c ( \"K\" , \"L\" , \"M\" ), 2 )\nse.filtered <- se[ applyFilters (se),]\nrequire ( \"edgeR\" )\nres_edgeR <- ASE_edgeR ( se = se.filtered, test_factor = \"condition\" , test_nom = \"B\" , test_denom = \"A\" )\n<<<ENDWORKFLOW"
+    },
+    {
+      "name": "novel_splicing_detection",
+      "intent": "Detect and analyze novel alternative splicing events using unannotated junctions and tandem reads.",
+      "input": [
+        "genome.fa (genome sequence FASTA file)",
+        "transcripts.gtf (gene annotation GTF file)",
+        "sample1.bam (RNA-seq alignment BAM files)"
+      ],
+      "stages": "1. Build the SpliceWiz reference using buildRef() ;; 2. Process BAM files using processBAM() ;; 3. Collate data with novel splicing detection enabled using collateData() ;; 4. Import the collated experiment as an NxtSE object using makeSE() ;; 5. Filter and perform differential alternative splicing analysis",
+      "code": "ref_path <- file.path ( tempdir (), \"Reference\" )\nbuildRef ( reference_path = ref_path, fasta = chrZ_genome (), gtf = chrZ_gtf (), ontologySpecies = \"Homo sapiens\" )\nbams <- SpliceWiz_example_bams ()\nbams <- findBAMS ( tempdir (), level = 0 )\npb_path <- file.path ( tempdir (), \"pb_output\" )\nprocessBAM ( bamfiles = bams $ path, sample_names = bams $ sample, reference_path = ref_path, output_path = pb_path )\nexpr <- findSpliceWizOutput (pb_path)\nnxtse_path <- file.path ( tempdir (), \"NxtSE_output_novel\" )\ncollateData ( Experiment = expr, reference_path = ref_path, output_path = nxtse_path, novelSplicing = TRUE , novelSplicing_requireOneAnnotatedSJ = TRUE , novelSplicing_minSamples = 3 , novelSplicing_minSamplesAboveThreshold = 1 , novelSplicing_countThreshold = 10 , novelSplicing_useTJ = TRUE )\nse <- makeSE (nxtse_path)\nse.filtered <- se[ applyFilters (se),]\nrequire ( \"edgeR\" )\nres_edgeR <- ASE_edgeR ( se = se.filtered, test_factor = \"condition\" , test_nom = \"B\" , test_denom = \"A\" )\n<<<ENDWORKFLOW"
+    },
+    {
+      "name": "star_alignment_and_reference_generation",
+      "intent": "Build a STAR genome index and align FASTQ files to generate BAMs using SpliceWiz wrappers.",
+      "input": [
+        "genome.fa (genome sequence FASTA file)",
+        "transcripts.gtf (gene annotation GTF file)",
+        "sample_1.fastq (forward RNA-seq reads)",
+        "sample_2.fastq (reverse RNA-seq reads)"
+      ],
+      "stages": "1. Prepare genome resources using getResources() ;; 2. Build a STAR genome reference using STAR_BuildRef() ;; 3. Align FASTQ files using STAR_alignExperiment()",
+      "code": "ref_path = \"./Reference\"\nif ( ! dir.exists ( file.path (ref_path, \"resource\" ))) { getResources ( reference_path = ref_path, fasta = \"genome.fa\" , gtf = \"transcripts.gtf\" ) }\nSTAR_BuildRef ( reference_path = ref_path, n_threads = 8 )\nExperiment <- data.frame ( sample = c ( \"sample_A\" , \"sample_B\" ), forward = file.path ( \"raw_data\" , c ( \"sample_A\" , \"sample_B\" ), c ( \"sample_A_1.fastq\" , \"sample_B_1.fastq\" )), reverse = file.path ( \"raw_data\" , c ( \"sample_A\" , \"sample_B\" ), c ( \"sample_A_2.fastq\" , \"sample_B_2.fastq\" )) )\nSTAR_alignExperiment ( Experiment = Experiment, STAR_ref_path = file.path ( \"Reference_FTP\" , \"STAR\" ), BAM_output_path = \"./bams\" , n_threads = 8 , two_pass = FALSE )\n<<<ENDWORKFLOW"
+    }
+  ]
+}

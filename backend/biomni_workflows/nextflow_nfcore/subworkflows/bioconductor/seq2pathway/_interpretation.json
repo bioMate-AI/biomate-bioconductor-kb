@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - inputfile = An R data.frame or GRanges object containing genomic coordinates (ID, chromosome, start, end) to be mapped to genes.\n    - search_radius = A non-negative integer (default 150000 bp) defining the distance from the middle of a genomic region to search for neighboring genes.\n    - promoter_radius = A non-negative integer (default 200 bp) defining the upstream promoter region from the transcription start site (TSS).\n    - promoter_radius2 = A non-negative integer (default 100 bp) defining the downstream promoter region from the TSS.\n    - genome = A character string specifying the genome assembly (\"hg38\", \"hg19\", \"mm10\", or \"mm9\").\n    - adjacent = A Boolean (default FALSE); if TRUE, searches only for adjacent genes and ignores search_radius and SNP parameters.\n    - SNP = A Boolean (default FALSE); if TRUE, stops searching when the genomic region resides on a coding gene exon.\n    - PromoterStop = A Boolean (default FALSE); if TRUE, stops searching for neighboring genes if the region maps to a promoter.\n    - NearestTwoDirection = A Boolean (default TRUE); outputs the closest left and right coding genes with directions.\n    - dat = A data frame or matrix of gene-level measurements (e.g., expression values or peak scores) with official gene symbols as row names.\n    - DataBase = A GSA.genesets object defining the pathway database (defaults to GO terms if unspecified).\n    - FisherTest = A Boolean (default TRUE); executes Fisher's exact test in addition to the quantitative gene2pathway test.\n    - EmpiricalTest = A Boolean (default FALSE); if TRUE, calculates empirical p-values for gene-sets.\n    - method = A character string specifying the pathway scoring method (\"FAIME\", \"KS-rank\", or \"cumulative-rank\").\n    - alpha = A positive integer (default 5) used as a weighting parameter in the FAIME algorithm.\n    - B = A positive integer (default 100) specifying the number of random sampling permutations for empirical p-value calculation.\n- alternatives:\n    - FisherTest_GO_BP_MF_CC = Performs conditional Fisher's exact test specifically for GO terms (BP, MF, CC) using a corrected common background.\n    - FisherTest_MsigDB = Performs conditional Fisher's exact test for MSigDB gene-sets using a corrected common background.\n    - addDescription = Uses biomaRt to convert HGNC gene symbols to detailed gene descriptions.\n- when_to_use: Use this package when you want to perform pathway enrichment analysis on sequencing data, particularly when you need to link non-coding genomic regions (like intergenic ChIP-seq peaks or distal SNPs) to potential target genes via cis-regulation before running pathway analysis.\n- pitfalls:\n    - Requires Python v3.8 installed and configured on the system path, as the package wraps Python scripts to perform the genomic locus-to-gene annotations.\n    - The input data frame for runseq2gene must have its first four columns strictly ordered as: unique ID, chromosome, start site, and end site.\n    - Row names of the gene-level measurement matrix (dat) must be official gene symbols.\n    - For a valid empirical test, the permutation parameter B must be set to at least 100 (the default is 100, but demo examples use lower values like 2 for speed).",
+  "workflows": [
+    {
+      "name": "chip_seq_region_pathway",
+      "intent": "Map genomic regions (such as ChIP-seq peaks) to genes and perform quantitative pathway enrichment analysis.",
+      "input": [
+        "Chipseq_Peak_demo (data.frame of genomic regions with peak ID, chromosome, start, end, and signal value)",
+        "MsigDB_C5 (GSA.genesets object)",
+        "dat_chip (data.frame of gene-level measurements)"
+      ],
+      "stages": "1. Map genomic regions to genes using runseq2gene.\n2. Run pathway enrichment analysis using gene2pathway_test with FAIME and Fisher's exact test.\n3. Add detailed gene descriptions using addDescription.",
+      "code": "Chipseq_anno <- runseq2gene(\n                  inputfile=Chipseq_Peak_demo, \n                  genome=\"hg19\", adjacent=FALSE, SNP=FALSE, search_radius=1000, \n                  PromoterStop=FALSE,NearestTwoDirection=TRUE)\n\nresult_FAIME<-gene2pathway_test(dat= dat_chip, DataBase= MsigDB_C5,\n                FisherTest=TRUE, EmpiricalTest=FALSE, method=\"FAIME\",\n                alpha=5, logCheck=FALSE, na.rm=FALSE)\n\ngene_description<-addDescription(genome=\"hg38\",genevector=as.vector(rownames(dat_chip)))"
+    },
+    {
+      "name": "rna_seq_expression_pathway",
+      "intent": "Perform pathway enrichment analysis directly on a gene expression matrix (RNA-seq or microarray) without genomic region mapping.",
+      "input": [
+        "dat_RNA (data.frame of gene expression values with gene symbols as row names)",
+        "MsigDB_C5 (GSA.genesets object)"
+      ],
+      "stages": "1. Run pathway enrichment analysis directly using gene2pathway_test on the expression matrix.",
+      "code": "dat_gene2path_RNA <- gene2pathway_test(dat=dat_RNA, DataBase=MsigDB_C5,\n             EmpiricalTest=FALSE, alpha=5, logCheck=FALSE, method=\"FAIME\", na.rm=TRUE)"
+    },
+    {
+      "name": "fishers_exact_enrichment",
+      "intent": "Discover enriched GO terms or MSigDB gene-sets using Fisher's exact test with a corrected common background.",
+      "input": [
+        "dat_chip (data.frame of gene-level measurements to extract gene symbols)",
+        "MsigDB_C5 (GSA.genesets object)"
+      ],
+      "stages": "1. Run Fisher's exact test against MSigDB defined gene-sets using FisherTest_MsigDB.\n2. Run Fisher's exact test against GO defined gene-sets using FisherTest_GO_BP_MF_CC.",
+      "code": "FS_test<-FisherTest_MsigDB(gsmap=MsigDB_C5, gs=as.vector(rownames(dat_chip)))\n\nFS_test<- FisherTest_GO_BP_MF_CC(gs=as.vector(rownames(dat_chip)),Ontology=\"BP\")"
+    }
+  ]
+}

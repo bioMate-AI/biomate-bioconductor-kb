@@ -1,133 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChIPseqR
-// ChIPseqR identifies protein binding sites from ChIP-seq and nucleosome positioning experiments. The 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChIPseqR/inst/doc/Introduction.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ChIPseqR")
+// Bioconductor workflow: ChIPseqR — nucleosome_calling_and_analysis
+// Identify nucleosome positioning and binding sites from mapped ChIP-seq reads, estimate parameters, and visualize results.
+// Input: reads.csv
+// Container: quay.io/biocontainers/bioconductor-chipseqr:1.64.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ChIPseqR
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Pile up reads to count strand-specific coverage using strandPileup
+//  * 2. [Core Analysis] Estimate binding and support region lengths using getBindLen
+//  * 3. [Core Analysis] Call nucleosomes and identify binding sites using simpleNucCall
+//  * 4. [Visualization & Output] Plot diagnostic distributions to assess the null model
+//  * 5. [Core Analysis] Extract predicted peaks and filter overlapping predictions
+//  * 6. [Visualization & Output] Visualize read counts and predicted binding sites in a genomic window
+//  * 7. [Core Analysis] Decompress data if needed for downstream analysis
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIPSEQR {
+process BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chipseqr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chipseqr:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chipseqr:1.60.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(plot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chipseqr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chipseqr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chipseqr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ChIPseqR)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ChIPseqR)
+        
+        # Read user input file
+        if (!file.exists("reads.csv")) {
+          stop("Error: 'reads.csv' not found in the working directory.")
+        }
+        
+        reads <- read.csv("reads.csv", stringsAsFactors = FALSE)
+        
+        # Initialize 'pos' to an empty numeric vector to prevent "object not found" errors
+        # during the abline call if true simulated positions are not available.
+        pos <- numeric(0)
+        
+        # 1. Pile up reads to count strand-specific coverage
+        chr_len <- max(reads\$position) + 10000
+        counts <- strandPileup(reads, chrLen=chr_len, extend=1, plot=FALSE)
+        
+        # 2. Estimate binding and support region lengths
+        bLen <- getBindLen(counts, bind = c(100,200), support = c(5, 50))
+        saveRDS(bLen, "binding_length_estimate.rds")
+        
+        # 3. Call nucleosomes and identify binding sites
+        nucs <- simpleNucCall(counts, bind=147, support=15, plot=FALSE)
+        saveRDS(nucs, "nucleosome_calls.rds")
+        
+        # Open PDF device for diagnostic and visualization plots
+        pdf("nucleosome_analysis_plots.pdf", width=10, height=8)
+        
+        # 4. Plot diagnostic distributions to assess the null model
+        tryCatch({
+          plot(nucs, type="density")
+        }, error = function(e) {
+          warning("Failed to plot density: ", e\$message)
+        })
+        
+        tryCatch({
+          plot(nucs, type="qqplot")
+        }, error = function(e) {
+          warning("Failed to plot qqplot: ", e\$message)
+        })
+        
+        # 5. Extract predicted peaks and filter overlapping predictions
+        # 6. Visualize read counts and predicted binding sites in a genomic window
+        tryCatch({
+          target_chr <- names(peaks(nucs))[1]
+          predicted <- peaks(nucs)[[1]][1]
+          plot(counts, chr=target_chr, center=predicted, score=nucs, width=1000, type="window")
+          abline(v=pos[pos < predicted + 1000 & pos > predicted - 1000], col=3, lty=3)
+        }, error = function(e) {
+          warning("Failed to plot genomic window: ", e\$message)
+        })
+        
+        # Close PDF device
+        dev.off()
+        
+        # Filter overlapping predictions
+        tryCatch({
+          calls <- peaks(nucs)[[1]][c(1,which(diff(peaks(nucs)[[1]]) >= 170)+1)]
+          length(calls)
+          write.csv(data.frame(PeakPosition = calls), "predicted_nucleosomes.csv", row.names=FALSE)
+        }, error = function(e) {
+          warning("Failed to filter overlapping predictions: ", e\$message)
+        })
+        
+        # 7. Decompress data if needed for downstream analysis
+        counts2 <- decompress(counts)
+        saveRDS(counts2, "decompressed_counts.rds")
 
-    # --- Distances [] ---
-    # Key functions: sample, dnbinom
-    set.seed(1)
-    	dist <- sample(c(170:300, 400), 10100, prob=c(dnbinom(0:130, mu=30, size=5), 0.2), replace=TRUE)
-    	pos <- cumsum(dist)
-    	pos <- pos[pos < 2e6 - 200]
-    # --- Readpos1 [] ---
-    # Key functions: unlist
-    fwdRegion <- unlist(lapply(pos, function(x) (x-88):(x-68)))
-    	revRegion <- unlist(lapply(pos, function(x) (x+68):(x+88)))
-    # --- Readpos2 [] ---
-    # Key functions: sample
-    fwd <- sample(fwdRegion, 5e4, replace=TRUE)
-    	rev <- sample(revRegion, 5e4, replace=TRUE)
-    # --- Readpos3 [] ---
-    # Key functions: sample
-    fwd <- c(fwd, sample(25:(2e6-25), 2e5, replace=TRUE))
-    	rev <- c(rev, sample(25:(2e6-25), 2e5, replace=TRUE))
-    # --- Formatdata [] ---
-    # Key functions: frame
-    reads <- data.frame(chromosome="chr1", position=c(fwd, rev), length=25,
-    			strand=rep(c("+", "-"), each=250000))
-    # --- Simple [] ---
-    # Key functions: strandPileup, simpleNucCall
-    counts <- strandPileup(reads, chrLen=2e6, extend=1, plot=FALSE)
-    	nucs <- simpleNucCall(counts, bind=147, support=15, plot=FALSE)
-    # --- Plotwindowprint [] ---
-    # Key functions: peaks
-    ## 	predicted <- peaks(nucs)[[1]][911]
-    ## 	plot(counts, chr="chr1", center=predicted, score=nucs, width=1000, type="window")
-    # --- Plotwindow [] ---
-    # Key functions: peaks
-    predicted <- peaks(nucs)[[1]][911]
-    	plot(counts, chr="chr1", center=predicted, score=nucs, width=1000, type="window")
-    	abline(v=pos[pos < predicted + 1000 & pos > predicted - 1000], col=3, lty=3)
-    # --- Noover [] ---
-    # Key functions: peaks, diff
-    calls <- peaks(nucs)[[1]][c(1,which(diff(peaks(nucs)[[1]]) >= 170)+1)]
-    	length(calls)
-    # --- Getbindlen [] ---
-    # Key functions: getBindLen
-    bLen <- getBindLen(counts, bind = c(100,200), support = c(5, 50))
-    # --- Getbindlenprint [] ---
-    # Key functions: getBindLen
-    ## 	bLen <- getBindLen(counts, bind = c(100,200), support = c(5, 50))
-    # --- Decompress [] ---
-    # Key functions: decompress
-    counts2 <- decompress(counts)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chipseqr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chipseqr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chipseqr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIPSEQR:", paste0("    chipseqr: ", packageVersion("ChIPseqR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS":',
+        paste0('    ChIPseqR: ', as.character(packageVersion('ChIPseqR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chipseqr_results.csv
-    touch ${prefix}_chipseqr_output.rds
-    echo "BIOC_CHIPSEQR:" > versions.yml
-    echo "    chipseqr: 0.0.0" >> versions.yml
+    touch ${prefix}_nucleosome_calling_and_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIPSEQR_WORKFLOW {
+workflow BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(plot_object) ]
+    ch_input  // channel: [ val(meta), [ reads.csv ] ]
 
     main:
-    BIOC_CHIPSEQR(ch_input)
+    BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CHIPSEQR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIPSEQR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIPSEQR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIPSEQR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS.out.tables
+    plots    = BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS.out.plots
+    objects  = BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS.out.objects
+    versions = BIOC_CHIPSEQR_NUCLEOSOME_CALLING_AND_ANALYSIS.out.versions
 }

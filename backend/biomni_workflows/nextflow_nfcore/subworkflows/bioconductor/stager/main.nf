@@ -1,153 +1,124 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: stageR
-// The stageR package allows automated stage-wise analysis of high-throughput gene expression data. The
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/stageR/inst/doc/stageRVignette.R
-// Upstream  : Biobase, DEXSeq, edgeR, limma, utils
-// Downstream: rnaseqDTU
-//
-// Install: BiocManager::install("stageR")
+// Bioconductor workflow: stageR — differential_gene_expression
+// Perform stage-wise testing for differential gene expression with multiple contrasts using the stageR class.
+// Input: pScreen, pConfirmation
+// Container: quay.io/biocontainers/bioconductor-stager:1.32.0--r45hdfd78af_0
+// R packages: Biobase, DEXSeq, edgeR, limma, stageR
+// Bioconductor: 3.20 | R: 4.4
+// Requires: stageR
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Construct the stageR object using stageR()
+//  * 2. [Core Analysis] Perform stage-wise adjustment using stageWiseAdjustment()
+//  * 3. [Core Analysis] Retrieve adjusted p-values using getAdjustedPValues()
+//  * 4. [Core Analysis] Retrieve binary significance results using getResults()
 
 nextflow.enable.dsl = 2
 
-process BIOC_STAGER {
+process BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-stager"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-stager:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-stager:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_stager_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_stager_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_stager_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(stageR)
-    library(DEXSeqDataSet)
-    library(DGEList)
-    library(TestResults)
-    library(jsonlite)
-
-    # --- Stage-wise Object Creation ---
-    # Key functions: stageR
-    pScreen <- runif(100)
-    names(pScreen) <- paste0("gene", 1:100)
-    pConfirmation <- matrix(runif(300), ncol=3)
-    dimnames(pConfirmation) <- list(
-        paste0("gene", 1:100),
-        c("t1", "t2", "t3")
-    )
-    stageRObj <- stageR(
-        pScreen = pScreen,
-        pConfirmation = pConfirmation,
-        pScreenAdjusted = FALSE
-    )
-
-    # --- Stage-wise Adjustment ---
-    # Key functions: stageWiseAdjustment
-    stageRObj <- stageWiseAdjustment(
-        object = stageRObj,
-        method = "none",
-        alpha = 0.05
-    )
-
-    # --- Results Extraction ---
-    # Key functions: getAdjustedPValues, getResults
-    adjP <- getAdjustedPValues(
-        stageRObj,
-        onlySignificantGenes = FALSE,
-        order = FALSE
-    )
-    res <- getResults(stageRObj)
-    summary_results <- colSums(res)
-
-    # --- Transcript-level Stage-wise Object Creation ---
-    # Key functions: stageRTx
-    pScreenTx <- runif(50)
-    names(pScreenTx) <- paste0("gene", 1:50)
-    pConfirmationTx <- matrix(runif(150), ncol=1)
-    dimnames(pConfirmationTx) <- list(paste0("tx", 1:150), "transcript")
-    tx2gene <- data.frame(
-        transcript = paste0("tx", 1:150),
-        gene = rep(paste0("gene", 1:50), each=3)
-    )
-    stageRObjTx <- stageRTx(
-        pScreen = pScreenTx,
-        pConfirmation = pConfirmationTx,
-        pScreenAdjusted = TRUE,
-        tx2gene = tx2gene
-    )
-
-    # --- Transcript-level Stage-wise Adjustment and Significance ---
-    # Key functions: stageWiseAdjustment, getSignificantGenes, getSignificantTx, getAdjustedPValues
-    stageRObjTx <- stageWiseAdjustment(
-        object = stageRObjTx,
-        method = "dtu",
-        alpha = 0.05
-    )
-    sigGenes <- getSignificantGenes(stageRObjTx)
-    sigTx <- getSignificantTx(stageRObjTx)
-    padjTx <- getAdjustedPValues(
-        stageRObjTx,
-        order = TRUE,
-        onlySignificantGenes = FALSE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_stager_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_stager_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "DEXSeq", "edgeR", "limma", "stageR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_stager_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required library
+        library(stageR)
+        
+        # Read user input files from the working directory
+        # Supports both RDS and CSV formats for robustness
+        if (file.exists("pScreen.rds")) {
+          pScreen <- readRDS("pScreen.rds")
+        } else if (file.exists("pScreen.csv")) {
+          tmp_screen <- read.csv("pScreen.csv", row.names = 1, header = TRUE)
+          pScreen <- tmp_screen[[1]]
+          names(pScreen) <- rownames(tmp_screen)
+        } else {
+          stop("Error: pScreen file (pScreen.rds or pScreen.csv) not found in the working directory.")
+        }
+        
+        if (file.exists("pConfirmation.rds")) {
+          pConfirmation <- readRDS("pConfirmation.rds")
+        } else if (file.exists("pConfirmation.csv")) {
+          pConfirmation <- as.matrix(read.csv("pConfirmation.csv", row.names = 1, header = TRUE))
+        } else {
+          stop("Error: pConfirmation file (pConfirmation.rds or pConfirmation.csv) not found in the working directory.")
+        }
+        
+        # Execute the stageR workflow exactly as documented
+        stageRObj <- stageR(pScreen=pScreen, pConfirmation=pConfirmation, pScreenAdjusted=FALSE)
+        stageRObj <- stageWiseAdjustment(object=stageRObj, method="holm", alpha=0.05)
+        head(getAdjustedPValues(stageRObj, onlySignificantGenes=FALSE, order=FALSE))
+        head(getAdjustedPValues(stageRObj, onlySignificantGenes=TRUE, order=TRUE))
+        res <- getResults(stageRObj)
+        
+        # Save meaningful results to output files
+        write.csv(getAdjustedPValues(stageRObj, onlySignificantGenes=FALSE, order=FALSE), 
+                  file = "adjusted_pvalues_all.csv", row.names = TRUE)
+        write.csv(getAdjustedPValues(stageRObj, onlySignificantGenes=TRUE, order=TRUE), 
+                  file = "adjusted_pvalues_significant.csv", row.names = TRUE)
+        write.csv(res, file = "results_matrix.csv", row.names = TRUE)
+        saveRDS(stageRObj, file = "stageRObj.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_STAGER:", paste0("    stager: ", packageVersion("stageR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION":',
+        paste0('    stageR: ', as.character(packageVersion('stageR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_stager_results.csv
-    touch ${prefix}_stager_output.rds
-    echo "BIOC_STAGER:" > versions.yml
-    echo "    stager: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_gene_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_STAGER_WORKFLOW {
+workflow BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pScreen, pConfirmation ] ]
 
     main:
-    BIOC_STAGER(ch_input)
+    BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_STAGER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_STAGER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_STAGER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_STAGER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION.out.tables
+    plots    = BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION.out.plots
+    objects  = BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION.out.objects
+    versions = BIOC_STAGER_DIFFERENTIAL_GENE_EXPRESSION.out.versions
 }

@@ -1,0 +1,36 @@
+{
+  "package": "piuma",
+  "requirements": [
+    "PIUMA",
+    "Seurat",
+    "SummarizedExperiment",
+    "aricode",
+    "dplyr",
+    "ggplot2",
+    "ggrepel",
+    "mclust",
+    "patchwork",
+    "viridis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PIUMA",
+      "SummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "ggrepel"
+    ],
+    "seurat_integrated_tda.nf": [
+      "PIUMA",
+      "Seurat",
+      "SummarizedExperiment",
+      "aricode",
+      "dplyr",
+      "ggplot2",
+      "ggrepel",
+      "mclust",
+      "patchwork",
+      "viridis"
+    ]
+  }
+}

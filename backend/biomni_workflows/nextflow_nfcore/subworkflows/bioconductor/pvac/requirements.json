@@ -1,0 +1,13 @@
+{
+  "package": "pvac",
+  "requirements": [
+    "affy",
+    "pvac"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "affy",
+      "pvac"
+    ]
+  }
+}

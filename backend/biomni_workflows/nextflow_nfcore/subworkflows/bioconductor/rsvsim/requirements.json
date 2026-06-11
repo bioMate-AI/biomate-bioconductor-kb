@@ -1,0 +1,19 @@
+{
+  "package": "rsvsim",
+  "requirements": [
+    "Biostrings",
+    "RSVSim"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "RSVSim"
+    ],
+    "sv_detection_comparison.nf": [
+      "RSVSim"
+    ],
+    "sv_size_estimation.nf": [
+      "RSVSim"
+    ]
+  }
+}

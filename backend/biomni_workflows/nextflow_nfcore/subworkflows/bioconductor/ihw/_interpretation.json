@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: formula=A formula of the form `pvalue ~ covariate` specifying the p-value and covariate columns ;; data=A data frame containing the variables in the formula ;; alpha=The nominal significance level for FDR or FWER control (e.g., 0.1) ;; adjustment_type=Character string specifying the multiple testing procedure, such as \"bonferroni\" for FWER control (default is FDR control) ;; m_groups=A table or vector specifying the total number of hypotheses in each covariate bin, required when working with incomplete/truncated p-value lists\n- alternatives: p.adjust(..., method=\"BH\")=The standard Benjamini-Hochberg procedure, which does not use covariate information and has lower power ;; p.adjust(..., method=\"bonferroni\")=The standard Bonferroni correction for FWER control, which is less powerful than weighted Bonferroni\n- when_to_use: Use when performing high-dimensional hypothesis testing (e.g., RNA-Seq differential expression, eQTL, GWAS, proteomics) where an auxiliary covariate is available that is informative of test power or prior probability, independent of p-values under the null, and not driving the correlation structure of the tests.\n- pitfalls: Using a covariate that is dependent on the p-values under the null (e.g., using estimated log fold change instead of baseMean in RNA-Seq) which invalidates FDR control ;; Using a covariate that drives the correlation structure among tests (e.g., genomic coordinates in GWAS due to linkage disequilibrium) ;; Failing to check stratified p-value histograms to ensure they are well-calibrated (uniform distribution for large p-values across all strata).",
+  "workflows": [
+    {
+      "name": "standard_ihw_analysis",
+      "intent": "Perform independent hypothesis weighting for FDR or FWER control using a complete list of p-values and a continuous covariate.",
+      "input": [
+        "deRes.csv (a data frame containing p-values and a continuous covariate such as baseMean from differential expression analysis)"
+      ],
+      "stages": "1. Run the IHW procedure using the formula interface ;; 2. Retrieve the total number of rejections ;; 3. Extract adjusted p-values and weights ;; 4. Generate diagnostic plots of weights and decision boundaries ;; 5. Convert the results to a data frame for downstream analysis ;; 6. Optionally perform FWER control using the Bonferroni adjustment type.",
+      "code": "ihwRes <- ihw(pvalue ~ baseMean,  data = deRes, alpha = 0.1)\nrejections(ihwRes)\nhead(adj_pvalues(ihwRes))\nsum(adj_pvalues(ihwRes) <= 0.1, na.rm = TRUE) == rejections(ihwRes)\nhead(weights(ihwRes))\nc(nbins(ihwRes), nfolds(ihwRes))\nweights(ihwRes, levels_only = TRUE)\nplot(ihwRes)\nplot(ihwRes, what = \"decisionboundary\")\nihwResDf <- as.data.frame(ihwRes)\nihwBonferroni <- ihw(pvalue ~ baseMean, data = deRes, alpha = 0.1, adjustment_type = \"bonferroni\")"
+    },
+    {
+      "name": "incomplete_pvalues_ihw",
+      "intent": "Perform independent hypothesis weighting when only a subset of low p-values is reported or available.",
+      "input": [
+        "sim.csv (the full dataset containing the covariate to calculate group sizes)",
+        "simSub.csv (the filtered dataset containing only the reported low p-values)"
+      ],
+      "stages": "1. Discretize the continuous covariate into bins using groups_by_filter ;; 2. Calculate the total number of hypotheses per bin using table ;; 3. Run IHW on the filtered dataset by specifying the group factor and passing the table of group sizes to m_groups.",
+      "code": "nbins <- 20\nsim <- mutate(sim, group = groups_by_filter(X, nbins))\nm_groups  <- table(sim$group)\nihwS <- ihw(p ~ group, alpha = 0.1, data = filter(sim, reported), m_groups = m_groups)\nihwS"
+    }
+  ]
+}

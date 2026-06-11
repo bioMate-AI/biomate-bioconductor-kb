@@ -1,0 +1,19 @@
+{
+  "package": "alabaster_spatial",
+  "requirements": [
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "alabaster.base",
+    "alabaster.spatial",
+    "alabaster_spatial"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "alabaster.base",
+      "alabaster.spatial",
+      "alabaster_spatial"
+    ]
+  }
+}

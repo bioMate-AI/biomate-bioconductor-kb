@@ -1,0 +1,22 @@
+{
+  "package": "lisaclust",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggplot2",
+    "lisaClust",
+    "spicyR"
+  ],
+  "by_workflow": {
+    "custom_lisa_clustering.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "lisaClust"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "lisaClust",
+      "spicyR"
+    ]
+  }
+}

@@ -1,89 +1,122 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MesKit
-// MesKit provides commonly used analysis and visualization modules based on mutational data generated 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MesKit/inst/doc/MesKit.R
-// Upstream  : ComplexHeatmap, clusterProfiler
-// Downstream: none
-//
-// Install: BiocManager::install("MesKit")
+// Bioconductor workflow: MesKit — data_import_and_profiling
+// Import somatic mutation, clinical, CCF, and copy number segmentation data to classify mutations and visualize mutational and CNA landscapes.
+// Input: CRC_HZ.maf, CRC_HZ.clin.txt, CRC_HZ.ccf.tsv, CRC_HZ.seg.txt, COREAD_all_lesions.conf_99.txt, COREAD_amp_genes.conf_99.txt, COREAD_del_genes.conf_99.txt, IntOGen-DriverGenes_COREAD.tsv
+// Container: quay.io/biocontainers/bioconductor-meskit:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MesKit
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load somatic mutations, clinical data, and CCF data using readMaf to create a Maf object. 2. Classify mutations based on shared pa
 
 nextflow.enable.dsl = 2
 
-process BIOC_MESKIT {
+process BIOC_MESKIT_DATA_IMPORT_AND_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-meskit"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-meskit:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-meskit:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_meskit_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_meskit_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_meskit_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MesKit)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required library
+        library(MesKit)
+        
+        # Define input file paths (exactly as specified by user)
+        maf.File <- "CRC_HZ.maf"
+        ccf.File <- "CRC_HZ.ccf.tsv"
+        clin.File <- "CRC_HZ.clin.txt"
+        driverGene.file <- "IntOGen-DriverGenes_COREAD.tsv"
+        segCN <- "CRC_HZ.seg.txt"
+        all.lesions <- "COREAD_all_lesions.conf_99.txt"
+        amp.genes <- "COREAD_amp_genes.conf_99.txt"
+        del.genes <- "COREAD_del_genes.conf_99.txt"
+        
+        # 1. Load somatic mutations, clinical data, and CCF data using readMaf to create a Maf object
+        maf <- readMaf(mafFile = maf.File,
+                       ccfFile = ccf.File,
+                       clinicalFile  = clin.File,
+                       refBuild = "hg19")  
+        
+        # Save Maf object as RDS
+        saveRDS(maf, file = "maf_object.rds")
+        
+        # 2. Classify mutations based on shared patterns using classifyMut
+        driverGene <- as.character(read.table(driverGene.file)\$V1)
+        mut.class <- classifyMut(maf, class =  "SP", patient.id = 'V402')
+        
+        # Save classified mutations to CSV
+        write.csv(mut.class, file = "mut_class_V402.csv", row.names = FALSE)
+        
+        # 3. Visualize the mutational landscape of driver genes across regions using plotMutProfile
+        pdf("mut_profile_landscape.pdf", width = 11, height = 6.5)
+        print(plotMutProfile(maf, class =  "SP", geneList = driverGene, use.tumorSampleLabel = TRUE))
+        dev.off()
+        
+        # 4. Read copy number segmentation and GISTIC2 files using readSegment
+        seg <- readSegment(segFile = segCN, gisticAllLesionsFile = all.lesions,
+                           gisticAmpGenesFile = amp.genes, gisticDelGenesFile = del.genes)
+        
+        # Save segment data for V402 to CSV and save full segment object
+        write.csv(seg\$V402, file = "seg_V402.csv", row.names = FALSE)
+        saveRDS(seg, file = "segment_object.rds")
+        
+        # 5. Visualize the CNA landscape across samples using plotCNA
+        pdf("cna_landscape.pdf", width = 10, height = 5)
+        print(plotCNA(seg, patient.id = c("V402", "V750", "V824"), use.tumorSampleLabel = TRUE))
+        dev.off()
 
-    # --- Getphylotree [] ---
-    # Key functions: getPhyloTree
-    ---------------------------------------------------------------------
-    phyloTree <- getPhyloTree(maf, patient.id = "V402", method = "NJ", min.vaf = 0.06)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_meskit_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_meskit_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_meskit_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MESKIT:", paste0("    meskit: ", packageVersion("MesKit"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MESKIT_DATA_IMPORT_AND_PROFILING":',
+        paste0('    MesKit: ', as.character(packageVersion('MesKit')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_meskit_results.csv
-    touch ${prefix}_meskit_output.rds
-    echo "BIOC_MESKIT:" > versions.yml
-    echo "    meskit: 0.0.0" >> versions.yml
+    touch ${prefix}_data_import_and_profiling.csv versions.yml
     """
 }
 
-
-workflow BIOC_MESKIT_WORKFLOW {
+workflow BIOC_MESKIT_DATA_IMPORT_AND_PROFILING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ CRC_HZ.maf, CRC_HZ.clin.txt, CRC_HZ.ccf.tsv, CRC_HZ.seg.txt, COREAD_all_lesions.conf_99.txt, COREAD_amp_genes.conf_99.txt, COREAD_del_genes.conf_99.txt, IntOGen-DriverGenes_COREAD.tsv ] ]
 
     main:
-    BIOC_MESKIT(ch_input)
+    BIOC_MESKIT_DATA_IMPORT_AND_PROFILING(ch_input)
 
     emit:
-    results  = BIOC_MESKIT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MESKIT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MESKIT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MESKIT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MESKIT_DATA_IMPORT_AND_PROFILING.out.tables
+    plots    = BIOC_MESKIT_DATA_IMPORT_AND_PROFILING.out.plots
+    objects  = BIOC_MESKIT_DATA_IMPORT_AND_PROFILING.out.objects
+    versions = BIOC_MESKIT_DATA_IMPORT_AND_PROFILING.out.versions
 }

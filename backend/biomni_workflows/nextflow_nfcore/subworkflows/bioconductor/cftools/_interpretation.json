@@ -1,0 +1,49 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: lambda=adjusts the relative level of tumor burden in CancerDetector (default 0.5) ;; numTissues=positive integer representing the number of tissue types to classify reads into in cfDeconvolve ;; emAlgorithmType=type of EM algorithm to use in cfDeconvolve, options are \"em.global.unknown\" (default), \"em.global.known\", \"em.local.unknown\", \"em.local.known\" ;; likelihoodRatioThreshold=positive float threshold for filtering reads in cfDeconvolve (suggested/default is 2) ;; emMaxIterations=maximum iteration number for the EM algorithm in cfDeconvolve (default 100) ;; randomSeed=random seed to initialize the EM algorithm in cfDeconvolve (default 0) ;; id=unique sample ID string used in CancerDetector, cfDeconvolve, and cfSort\n- alternatives: cfSort() is a supervised deep learning-based tissue deconvolution method for 29 major human tissues, whereas cfDeconvolve() is an EM-based deconvolution method for custom tissue types (> 2 classes)\n- when_to_use: Use this package when analyzing cell-free DNA (cfDNA) bisulfite sequencing data to sensitively detect tumor-derived cfDNA or to deconvolve the tissue-of-origin composition of plasma samples\n- pitfalls: In GenerateMarkerParam(), parameter values of NA:NA or 0:0 in the output list may cause errors in downstream analyses and must be removed before using the file ;; For cfSort(), the input markerName column must be obtained by intersecting the fragment-level methylation states with the specific cfSort marker file using hg19 genomic coordinates, using the region_index column as the markerName",
+  "workflows": [
+    {
+      "name": "cfdna_data_preparation",
+      "intent": "Preprocess aligned paired-end reads and Bismark methylation extractor outputs to generate fragment-level methylation states and calculate marker beta distribution parameters.",
+      "input": [
+        "demo.sorted.bed.txt.gz (sorted BED file of paired-end sequencing reads)",
+        "CpG_OT_demo.txt.gz (Bismark methylation extractor OT strand file)",
+        "CpG_OB_demo.txt.gz (Bismark methylation extractor OB strand file)",
+        "beta_matrix.txt.gz (matrix of methylation levels/beta values)",
+        "sample_type.txt.gz (vector of sample types)",
+        "marker_index.txt.gz (vector of marker names)"
+      ],
+      "stages": "1. Merge paired-end sequencing reads to fragment-level using MergePEReads ;; 2. Merge CpG methylation states from top and bottom strands using MergeCpGs ;; 3. Combine fragment and methylation information using GenerateFragMeth ;; 4. Calculate paired shape parameters of beta distributions for markers using GenerateMarkerParam",
+      "code": "library(cfTools)\nlibrary(utils)\ndemo.dir <- system.file(\"data\", package=\"cfTools\")\nPEReads <- file.path(demo.dir, \"demo.sorted.bed.txt.gz\")\nhead(read.table(PEReads, header=FALSE), 2)\nfragInfo <- MergePEReads(PEReads)\nhead(fragInfo, 2)\nCpG_OT <- file.path(demo.dir, \"CpG_OT_demo.txt.gz\")\nCpG_OB <- file.path(demo.dir, \"CpG_OB_demo.txt.gz\")\nhead(read.table(CpG_OT, header=FALSE), 2)\nhead(read.table(CpG_OB, header=FALSE), 2)\nmethInfo <- MergeCpGs(CpG_OT, CpG_OB)\nhead(methInfo, 2)\nfragMeth <- GenerateFragMeth(fragInfo, methInfo)\nhead(fragMeth, 2)\nmethLevel <- read.table(file.path(demo.dir, \"beta_matrix.txt.gz\"), \n                      row.names=1, header = TRUE)\nsampleTypes <- read.table(file.path(demo.dir, \"sample_type.txt.gz\"), \n                        row.names=1, header = TRUE)$sampleType\nmarkerNames <- read.table(file.path(demo.dir, \"marker_index.txt.gz\"), \n                        row.names=1, header = TRUE)$markerIndex\nprint(methLevel)\nprint(sampleTypes)\nprint(markerNames)\nmarkerParam <- GenerateMarkerParam(methLevel, sampleTypes, markerNames)\nprint(markerParam)"
+    },
+    {
+      "name": "cancer_detection",
+      "intent": "Detect tumor-derived cfDNA fragments, estimate tumor burden, and visualize the resulting fractions.",
+      "input": [
+        "CancerDetector.reads.txt.gz (fragment-level methylation states of reads mapped to cancer-specific markers)",
+        "CancerDetector.markers.txt.gz (paired shape parameters of beta distributions for cancer-specific markers)"
+      ],
+      "stages": "1. Run CancerDetector to estimate tumor burden and normal cfDNA fraction ;; 2. Visualize the estimated fractions using PlotFractionPie",
+      "code": "fragMethFile <- file.path(demo.dir, \"CancerDetector.reads.txt.gz\")\nmarkerParamFile <- file.path(demo.dir, \"CancerDetector.markers.txt.gz\")\nhead(read.csv(fragMethFile, sep = \"\\t\", colClasses = \"character\"), 4)\nhead(read.csv(markerParamFile, sep = \"\\t\"), 4)\nCancerDetector(fragMethFile, markerParamFile, lambda=0.5, id=\"test\")\ncancer_normal_df <- CancerDetector(fragMethFile, markerParamFile, lambda=0.5, id=\"test\")\nPlotFractionPie(cancer_normal_df, title = \"cfDNA Composition\", class_colors = c(\"normal_cfDNA_fraction\" = \"blue\"), font_size = 1.2)"
+    },
+    {
+      "name": "tissue_deconvolution_em",
+      "intent": "Estimate fractions of cfDNA fragments from different tissues using an EM algorithm.",
+      "input": [
+        "cfDeconvolve.reads.txt.gz (fragment-level methylation states of reads mapped to tissue-specific markers)",
+        "cfDeconvolve.markers.txt.gz (paired shape parameters of beta distributions for tissue-specific markers)"
+      ],
+      "stages": "1. Define EM algorithm parameters ;; 2. Run cfDeconvolve to estimate tissue fractions and unknown class fraction",
+      "code": "fragMethFile2 <- file.path(demo.dir, \"cfDeconvolve.reads.txt.gz\")\nmarkerParamFile2 <- file.path(demo.dir, \"cfDeconvolve.markers.txt.gz\")\nhead(read.csv(fragMethFile2, header=TRUE, sep=\"\\t\", \n              colClasses = \"character\"), 4)\nhead(read.csv(markerParamFile2, header=TRUE, sep=\"\\t\", \n              colClasses = \"character\"), 4)\nnumTissues <- 7\nemAlgorithmType <- \"em.global.unknown\"\nlikelihoodRatioThreshold <- 2\nemMaxIterations <- 100\nrandomSeed <- 0\nid <- \"test\"\ntissueFraction <- cfDeconvolve(fragMethFile2, markerParamFile2, numTissues, \n                               emAlgorithmType, likelihoodRatioThreshold, \n                               emMaxIterations, randomSeed, id)\ntissueFraction"
+    },
+    {
+      "name": "tissue_deconvolution_cfsort",
+      "intent": "Estimate fractions of cfDNA fragments derived from 29 major human tissues using a supervised deep learning model.",
+      "input": [
+        "cfsort_reads.txt.gz (fragment-level methylation states of reads mapped to cfSort markers)"
+      ],
+      "stages": "1. Run cfSort to estimate fractions across 29 tissue types",
+      "code": "fragMethInfo <- file.path(demo.dir, \"cfsort_reads.txt.gz\")\nhead(read.csv(fragMethInfo, header=TRUE, sep=\"\\t\", \n              colClasses = \"character\"), 4)\ntissueFraction2 <- cfSort(fragMethInfo, id=\"demo\")\ntissueFraction2"
+    }
+  ]
+}

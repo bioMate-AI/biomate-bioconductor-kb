@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n=Number of samples in each group ;; power=Desired statistical power (e.g., 0.8) ;; rho=Minimal fold change between two groups ;; lambda0=Minimal average read counts ;; phi0=Maximal dispersion ;; f=False discovery rate (FDR) threshold ;; distributionObject=Prior distribution object (either a character string naming a built-in TCGA dataset or an object returned by est_count_dispersion) ;; repNumber=Number of random genes selected to perform power estimation (should be at least 100 in real analysis, though default examples use 5 for speed) ;; selectedGenes=A vector of specific gene names of interest ;; pathway=KEGG pathway ID to restrict estimation to genes in a specific pathway ;; storeProcess=Logical indicating whether to return details for all selected genes\n- alternatives: The documentation mentions a user-friendly web interface at https://cqs.app.vumc.org/shiny/RnaSeqSampleSize/ for users who prefer a GUI over R. It also mentions using recount or ExpressionAtlas packages to download public datasets to find realistic parameters.\n- when_to_use: Use this package when designing RNA-seq experiments to determine the required sample size per group or to estimate the statistical power of an existing design, especially when pilot data or relevant public datasets are available to model realistic gene read count and dispersion distributions.\n- pitfalls: Setting repNumber too low (e.g., 5) in distribution-based estimation yields fast but inaccurate results; it should be set to at least 100 for real applications. Relying on single conservative values for count and dispersion can lead to over-estimating sample sizes, so distribution-based estimation using real reference data is preferred.",
+  "workflows": [
+    {
+      "name": "single_parameter_estimation",
+      "intent": "Estimate power or sample size using single user-defined values for read count and dispersion.",
+      "input": [
+        "User-defined numeric parameters (no physical file)."
+      ],
+      "stages": "1. Estimate power using est_power ;; 2. Estimate sample size using sample_size.",
+      "code": "n<-63;rho<-2;lambda0<-5;phi0<-0.5;f<-0.01\nest_power(n=n, rho=rho, lambda0=lambda0, phi0=phi0,f=f)\npower<-0.8;rho<-2;lambda0<-5;phi0<-0.5;f<-0.01\nsample_size(power=power, f=f,rho=rho, lambda0=lambda0, phi0=phi0)"
+    },
+    {
+      "name": "reference_distribution_estimation",
+      "intent": "Estimate power or sample size using built-in TCGA reference datasets.",
+      "input": [
+        "TCGA dataset name (string) and user parameters."
+      ],
+      "stages": "1. Estimate power for random genes using est_power_distribution ;; 2. Estimate power for a specific list of genes using est_power_distribution with selectedGenes ;; 3. Estimate power for a specific pathway using est_power_distribution with pathway ;; 4. Estimate sample size using sample_size_distribution.",
+      "code": "est_power_distribution(n=65,f=0.01,rho=2,distributionObject=\"TCGA_READ\",repNumber=5)\nselectedGenes<-c(\"A1BG\",\"A2BP1\",\"A2M\",\"A4GALT\",\"AAAS\")\npowerDistribution<-est_power_distribution(n=65,f=0.01,rho=2,distributionObject=\"TCGA_READ\",selectedGenes=selectedGenes,storeProcess=TRUE)\nstr(powerDistribution)\nmean(powerDistribution$power)\npowerDistribution<-est_power_distribution(n=65,f=0.01,rho=2,distributionObject=\"TCGA_READ\",pathway=\"00010\",minAveCount=1,storeProcess=TRUE)\nmean(powerDistribution$power)\nsample_size_distribution(power=0.8,f=0.01,distributionObject=\"TCGA_READ\",repNumber=5,showMessage=TRUE)"
+    },
+    {
+      "name": "user_prior_data_estimation",
+      "intent": "Estimate power or sample size using the user's own pilot RNA-seq count matrix.",
+      "input": [
+        "dataMatrix (matrix of raw RNA-seq counts with genes as rows and samples as columns)."
+      ],
+      "stages": "1. Estimate gene read count and dispersion distribution using est_count_dispersion ;; 2. Estimate power using est_power_distribution with the estimated distribution object.",
+      "code": "set.seed(123)\ndataMatrix<-matrix(sample(0:3000,100000,replace=TRUE),nrow=10000,ncol=10)\ncolnames(dataMatrix)<-c(paste0(\"Control\",1:5),paste0(\"Treatment\",1:5))\nrow.names(dataMatrix)<-paste0(\"gene\",1:10000)\nhead(dataMatrix)\ndataMatrixDistribution<-est_count_dispersion(dataMatrix,group=c(rep(0,5),rep(1,5)))\nest_power_distribution(n=65,f=0.01,rho=2,distributionObject=dataMatrixDistribution,repNumber=5)"
+    },
+    {
+      "name": "visualization_and_optimization",
+      "intent": "Generate power curves for different FDR thresholds and optimize parameters (sample size vs. read depth).",
+      "input": [
+        "User-defined numeric parameters and ranges."
+      ],
+      "stages": "1. Generate power curves using est_power_curve ;; 2. Plot power curves using plot_power_curve ;; 3. Optimize parameters using optimize_parameter.",
+      "code": "result1<-est_power_curve(n=63, f=0.01, rho=2, lambda0=5, phi0=0.5)\nresult2<-est_power_curve(n=63, f=0.05, rho=2, lambda0=5, phi0=0.5)\nplot_power_curve(list(result1,result2))\nresult<-optimize_parameter(fun=est_power,opt1=\"n\",opt2=\"lambda0\",opt1Value=c(3,5,10,15,20),opt2Value=c(1:5,10,20))"
+    }
+  ]
+}

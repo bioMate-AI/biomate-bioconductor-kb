@@ -3,6 +3,8 @@
 // Bioconductor module: gDRutils
 // This package contains utility functions used throughout the gDR platform to fit data, manipulate dat
 //
+// Input: mae.rds (serialized MultiAssayExperiment from the gDR pipeline, with a "Metrics" assay)
+//
 // Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gDRutils/inst/doc/gDRutils.R
 // Upstream  : none
 // Downstream: gDR
@@ -12,14 +14,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_GDRUTILS {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-gdrutils"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gdrutils:1.4.10--r44_0' :
-        'quay.io/biocontainers/bioconductor-gdrutils:1.4.10--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -39,55 +40,70 @@ process BIOC_GDRUTILS {
     """
     #!/usr/bin/env Rscript
     library(gDRutils)
-    library(MAEpply)
+    library(MultiAssayExperiment)
     library(jsonlite)
 
-    # --- Identifier Validation [] ---
-    # Key functions: validate_identifiers, prettify_flat_metrics
-    dt <- data.table::data.table(
-        Barcode = c("A1", "A2", "A3"),
-        Duration = c(24, 48, 72),
-        Template = c("T1", "T2", "T3"),
-        clid = c("C1", "C2", "C3")
-    )
-    validated <- gDRutils::validate_identifiers(
-        dt,
-        req_ids = c("barcode", "duration", "template", "cellline")
-    )
-    prettified <- gDRutils::prettify_flat_metrics(
-        c("CellLineName", "Tissue"),
+    # --- Load user-provided input ---
+    # mae.rds: a serialized MultiAssayExperiment produced by the gDR pipeline
+    #          (gDRcore output), containing dose-response SummarizedExperiments
+    #          with a "Metrics" assay.
+    mae <- readRDS("mae.rds")
+
+    # --- Data Loading and Inspection [] ---
+    # Key functions: MAEpply
+    mae_dims <- MAEpply(mae, dim)
+    mae_rowdata <- MAEpply(mae, rowData, unify = TRUE)
+    se_obj <- mae[[1]]
+
+    # --- Format Conversion [] ---
+    # Key functions: convert_mae_assay_to_dt, convert_se_assay_to_dt
+    metrics_dt <- convert_mae_assay_to_dt(mae, "Metrics")
+    se_obj <- mae[[1]]
+    se_metrics_dt <- convert_se_assay_to_dt(se_obj, "Metrics")
+    dt_cols <- colnames(metrics_dt)
+
+    # --- Identifier Management [] ---
+    # Key functions: get_env_identifiers, set_env_identifier, reset_env_identifiers
+    current_ids <- get_env_identifiers()
+    set_env_identifier("concentration", "Dose")
+    updated_conc <- get_env_identifiers("concentration")
+    reset_env_identifiers()
+    restored_conc <- get_env_identifiers("concentration")
+
+    # --- Validation and Prettification [] ---
+    # Key functions: validate_MAE, validate_SE, prettify_flat_metrics
+    se_obj <- mae[[1]]
+    mae_valid <- validate_MAE(mae)
+    se_valid <- validate_SE(se_obj)
+    raw_names <- c("CellLineName", "Tissue", "Concentration_2")
+    pretty_names <- prettify_flat_metrics(
+        raw_names,
         human_readable = TRUE
     )
 
 
-    # --- Data Conversion [] ---
-    # Key functions: get_synthetic_data, convert_mae_assay_to_dt, convert_se_assay_to_dt
-    mae <- gDRutils::get_synthetic_data("finalMAE_combo_matrix_small")
-    mdt <- gDRutils::convert_mae_assay_to_dt(mae, "Metrics")
-    se <- mae[[1]]
-    sdt <- gDRutils::convert_se_assay_to_dt(se, "Metrics")
-
-
-    # --- Quality Control Validation [] ---
-    # Key functions: validate_MAE, validate_SE
-    mae <- gDRutils::get_synthetic_data("finalMAE_combo_matrix_small")
-    se <- mae[[1]]
-    mae_valid <- gDRutils::validate_MAE(mae)
-    se_valid <- gDRutils::validate_SE(se)
-
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gdrutils_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_gdrutils_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gdrutils_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_gdrutils_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gdrutils_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_gdrutils_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_GDRUTILS:", paste0("    gdrutils: ", packageVersion("gDRutils"))),
+        c("BIOC_GDRUTILS:", paste0("    gdrutils: ", as.character(packageVersion("gDRutils")))),
         "versions.yml"
     )
     """

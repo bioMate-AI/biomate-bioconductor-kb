@@ -1,0 +1,19 @@
+{
+  "package": "crisprball",
+  "requirements": [
+    "CRISPRball",
+    "ggplot2",
+    "htmltools",
+    "htmlwidgets",
+    "plotly"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CRISPRball",
+      "ggplot2",
+      "htmltools",
+      "htmlwidgets",
+      "plotly"
+    ]
+  }
+}

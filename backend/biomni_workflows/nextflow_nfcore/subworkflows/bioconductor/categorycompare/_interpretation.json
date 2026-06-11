@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ccType=Specifies the annotation categories to evaluate, such as \"BP\" (GO Biological Process) or \"KEGG\" ;; fdr=Sets the number of FDR runs to perform; setting to 0 disables FDR runs to speed up calculations ;; pvalueCutoff=Sets the significance threshold for category enrichment (e.g., 0.05 or 0.001) ;; graphType=Sets the layout type for GO annotations, such as \"hierarchical\" ;; outType=Specifies the output type (e.g., 'none') in ccOptions\n- alternatives: Traditional meta-analysis methods that focus on finding common and discordant genes directly across experiments, rather than comparing enriched categories.\n- when_to_use: When comparing multiple high-throughput experiments (e.g., different time points, treatments, or datasets) to identify functional similarities and differences at the systems/pathway level rather than individual gene level.\n- pitfalls: Deleting nodes or edges directly in Cytoscape is slow for large networks (~20,000 edges). Users should use breakEdges to remove low-weight edges before exporting the graph to Cytoscape ;; The hierarchical layout (graphType <- \"hierarchical\") in Cytoscape does not generate easy-to-follow layouts and should only be used when there are small numbers of GO annotations.",
+  "workflows": [
+    {
+      "name": "compare_gene_lists_by_annotation",
+      "intent": "Compare functional annotations (GO/KEGG) across multiple gene lists to identify shared and unique biological themes.",
+      "input": [
+        "gene_lists.RData (lists of Entrez gene IDs of interest and a background universe vector)"
+      ],
+      "stages": "1. Define gene lists, background universe, and annotation package ;; 2. Create a ccGeneList object specifying annotation types ;; 3. Perform enrichment analysis using ccEnrich ;; 4. Adjust significance cutoffs if necessary using pvalueCutoff ;; 5. Define comparison options using ccOptions ;; 6. Perform comparative analysis using ccCompare ;; 7. Filter low-weight edges using breakEdges and export to Cytoscape using ccOutCyt",
+      "code": "g10 <- unique(table10$Entrez[table10$adj.P.Val < 0.05])\ng48 <- unique(table48$Entrez[table48$adj.P.Val < 0.05])\nlist10 <- list(genes=g10, universe=gUniverse, annotation='org.Hs.eg.db')\nlist48 <- list(genes=g48, universe=gUniverse, annotation='org.Hs.eg.db')\ngeneLists <- list(T10=list10, T48=list48)\ngeneLists <- new(\"ccGeneList\", geneLists, ccType=c(\"BP\",\"KEGG\"))\nfdr(geneLists) <- 0\nenrichLists <- ccEnrich(geneLists)\npvalueCutoff(enrichLists$BP) <- 0.001\nccOpts <- new(\"ccOptions\", listNames=names(geneLists), outType='none')\nccResults <- ccCompare(enrichLists,ccOpts)\nccBP <- breakEdges(ccResults$BP, 0.2)\ncw.BP <- ccOutCyt(ccBP, ccOpts)\nbreakEdges(cw.BP,0.4)\nbreakEdges(cw.BP,0.6)\nbreakEdges(cw.BP,0.8)\ngraphType(enrichLists$BP) <- \"hierarchical\"\nccResultsBPHier <- ccCompare(enrichLists$BP, ccOpts)\ncw.BP2 <- ccOutCyt(ccResultsBPHier, ccOpts, \"BPHier\")\ncw.KEGG <- ccOutCyt(ccResults$KEGG,ccOpts)"
+    }
+  ]
+}

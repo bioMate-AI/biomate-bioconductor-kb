@@ -1,0 +1,19 @@
+# [biomate-fx-name] write targets matched to the workflow's declared input filenames
+# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
+.fx_deps <- c("DegCre", "GenomicRanges")
+.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+if (length(.fx_miss)) {
+  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
+}
+library(DegCre)
+library(GenomicRanges)
+
+data("DexNR3C1", package = "DegCre")
+
+subDegGR <- DexNR3C1$DegGR[which(seqnames(DexNR3C1$DegGR) == "chr1")]
+subCreGR <- DexNR3C1$CreGR[which(seqnames(DexNR3C1$CreGR) == "chr1")]
+
+saveRDS(subDegGR, "subDegGR.rds")
+saveRDS(subCreGR, "subCreGR.rds")

@@ -1,0 +1,17 @@
+{
+  "package": "rprimer",
+  "requirements": [
+    "Biostrings",
+    "rprimer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "rprimer"
+    ],
+    "mixed_primer_design_masked_alignment.nf": [
+      "Biostrings",
+      "rprimer"
+    ]
+  }
+}

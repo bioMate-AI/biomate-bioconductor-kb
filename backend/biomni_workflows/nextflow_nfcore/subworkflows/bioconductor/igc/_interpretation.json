@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: read_fun=A custom function passed to create_gene_exp, create_gene_cna, or direct_gene_cna to customize how sample data files are read ;; gain_threshold=The threshold value above which a CNA record is classified as a gain event ;; loss_threshold=The threshold value below which a CNA record is classified as a loss event ;; gain_prop=The minimum proportion of samples with copy number gain required to select a gene as gain-driven ;; loss_prop=The minimum proportion of samples with copy number loss required to select a gene as loss-driven ;; parallel=Logical flag to enable parallel processing in faster_gene_cna or find_cna_driven_gene\n- alternatives: Traditional CNA analysis methods that analyze different sample types separately and integrate results via Venn diagrams, which suffer from low reproducibility and inconsistency ;; direct_gene_cna can be used instead of create_gene_cna if the input CNA data already contains gene-level information rather than chromosome locations\n- when_to_use: Use this package when you have paired gene expression and copy number alteration (CNA) data for the same set of samples (from microarray or NGS) and want to identify genes whose expression changes are statistically driven by copy number gains or losses\n- pitfalls: Chromosome-location-based mapping via create_gene_cna currently supports the hg19 human genome reference only ;; Input data must undergo standard preprocessing to convert raw readings into gene-level or chromosome-location-based tables before running iGC",
+  "workflows": [
+    {
+      "name": "cna_driven_gene_analysis",
+      "intent": "Identify differentially expressed genes driven by copy number alterations from paired gene expression and CNA data.",
+      "input": [
+        "sample_desc.csv (CSV file mapping sample names to CNA and gene expression file paths)",
+        "CNA files (tab-separated files containing chromosome locations and segment mean values)",
+        "GE files (files containing gene expression values per sample)"
+      ],
+      "stages": "1. Create sample description table using create_sample_desc ;; 2. Read and join gene expression data across samples using create_gene_exp ;; 3. Read, map, and categorize CNA data into gain/loss/neutral states using create_gene_cna ;; 4. Identify CNA-driven differentially expressed genes using find_cna_driven_gene",
+      "code": "library(iGC)\nsample_desc_pth <- system.file(\"extdata\", \"sample_desc.csv\", package = \"iGC\")\nsample_desc <- create_sample_desc(sample_desc_pth)\ngene_exp <- create_gene_exp(sample_desc, progress = FALSE)\nmy_cna_reader <- function(cna_filepath) {\n  cna <- data.table::fread(cna_filepath, sep = '\\t', header = TRUE)\n  cna[, .(Chromosome, Start, End, Segment_Mean)]\n}\ngain_loss = log2(c(2.4, 1.6)) - 1\ngene_cna <- create_gene_cna(\n  sample_desc,\n  gain_threshold = gain_loss[1], loss_threshold = gain_loss[2],\n  read_fun = my_cna_reader,\n  progress = FALSE\n)\ncna_driven_genes <- find_cna_driven_gene(\n  gene_cna, gene_exp,\n  gain_prop = 0.15, loss_prop = 0.15,\n  progress = FALSE, parallel = FALSE\n)"
+    }
+  ]
+}

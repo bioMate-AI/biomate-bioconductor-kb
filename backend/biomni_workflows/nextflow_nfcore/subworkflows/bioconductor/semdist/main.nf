@@ -1,138 +1,117 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SemDist
-// This package implements methods to calculate information accretion for a given version of the gene o
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SemDist/inst/doc/introduction.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SemDist")
+// Bioconductor workflow: semdist — calculate_information_accretion
+// Calculate information accretion values for a custom ontology and annotation set.
+// Input: mfo_ontology.txt, MFO_LABELS_TEST.txt
+// Container: quay.io/biocontainers/bioconductor-semdist:1.44.0--r45hdfd78af_0
+// R packages: SemDist
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEMDIST {
+process BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-semdist"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-semdist:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-semdist:1.40.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-semdist:1.44.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_semdist_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_semdist_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_semdist_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RUMIcurve)
-    library(jsonlite)
-
-    # --- Introduction.Rnw:173 176 [] ---
-    # Key functions: data
-    # Examine built-in IA data
-    data("Info_Accretion_mouse_CC", package="SemDist")
-    head(IAccr)
-    # --- Introduction.Rnw:178 182 [] ---
-    # Key functions: computeIA
-    ## # Calculate IA, specify evidence codes
-    ## # Requires downloading annotation data package
-    ## BiocManager::install("org.Hs.eg.db")
-    ## IAccr <- computeIA("MF", "human", evcodes=c("EXP", "IC"))
-    # --- Introduction.Rnw:189 198 [] ---
-    # Key functions: computeIA
-    # Calculate IA, specify ontology and annotations
-    ontfile <- system.file("extdata", "mfo_ontology.txt",
-                            package="SemDist")
-    annotations <- system.file("extdata", "MFO_LABELS_TEST.txt",
-                                package="SemDist")
-    # --- Introduction.Rnw:204 207 [] ---
-    # Key functions: computeIA
-    ## # Calculate IA, specify ontology
-    ## IAccr <- computeIA("MF", "human", specify.ont=TRUE,
-    ##          myont=ontfile, specify.annotations=FALSE)
-    # --- Introduction.Rnw:229 236 [] ---
-    # Key functions: file
-    # Sample true, prediction files included with SemDist:
-    truefile <- system.file("extdata", "MFO_LABELS_TEST.txt",
-                            package="SemDist")
-    predfile <- system.file("extdata", "MFO_PREDS_TEST.txt",
-                            package="SemDist")
-    # --- Introduction.Rnw:245 248 [] ---
-    # Key functions: findRUMI
-    rumiTable <- findRUMI("MF", "human", 0.75, truefile, predfile)
-    avgRU <- mean(rumiTable$RU)
-    avgMI <- mean(rumiTable$MI)
-    # --- Introduction.Rnw:258 266 [] ---
-    # Key functions: findRUMI
-    # A sample IA file that comes with the SemDist package.
-    myIA <- system.file("extdata", "myIA.rda", package="SemDist")
-    load(myIA)
-    # "MF" and "human" are present only for naming purposes
-    # since IA is taken from myIA.rda
-    # --- Introduction.Rnw:278 281 [] ---
-    # Key functions: RUMIcurve
-    avgRUMIvals <- RUMIcurve("MF", "human", 0.05, truefile, predfile)
-    firstset <- avgRUMIvals[[1]]
-    plot(firstset$RU, firstset$MI)
-    # --- Introduction.Rnw:307 311 [] ---
-    # Key functions: RUMIcurve
-    rumiout <- RUMIcurve("MF", "human", 0.05, truefile, predfile,
-                         add.prec.rec=TRUE, add.weighted=TRUE)
-    firstset <- rumiout[[1]]
-    plot(firstset$WRU, firstset$WMI)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_semdist_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_semdist_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_semdist_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SemDist")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEMDIST:", paste0("    semdist: ", packageVersion("SemDist"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
+    library(SemDist)
+    
+    # 1. Define paths to the custom ontology and annotation files
+    ontfile <- "mfo_ontology.txt"
+    annotations <- "MFO_LABELS_TEST.txt"
+    
+    # Verify input files exist
+    if (!file.exists(ontfile)) {
+      stop(paste("Required ontology file not found in working directory:", ontfile))
+    }
+    if (!file.exists(annotations)) {
+      stop(paste("Required annotations file not found in working directory:", annotations))
+    }
+    
+    # 2. Compute information accretion values using computeIA with custom specifications
+    message("Computing information accretion values...")
+    IAccr <- computeIA("my", "values", specify.ont=TRUE, 
+                    myont=ontfile, specify.annotations=TRUE, 
+                    annotfile=annotations)
+    
+    # 3. Save the meaningful results to output files
+    message("Saving results...")
+    
+    # Save the raw numeric vector as an RDS object
+    saveRDS(IAccr, file = "information_accretion.rds")
+    
+    # Convert to a data frame and save as a CSV table
+    ia_df <- data.frame(
+      Term = names(IAccr),
+      InformationAccretion = as.numeric(IAccr),
+      stringsAsFactors = FALSE
     )
+    write.csv(ia_df, file = "information_accretion.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully. Outputs saved to 'information_accretion.rds' and 'information_accretion.csv'.")
+
+    writeLines(c(
+        '"BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION":',
+        paste0('        semdist: ', as.character(packageVersion("semdist")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_semdist_results.csv
-    touch ${prefix}_semdist_output.rds
-    echo "BIOC_SEMDIST:" > versions.yml
-    echo "    semdist: 0.0.0" >> versions.yml
+    touch ${prefix}_calculate_information_accretion.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEMDIST_WORKFLOW {
+workflow BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mfo_ontology.txt, MFO_LABELS_TEST.txt ] ]
 
     main:
-    BIOC_SEMDIST(ch_input)
+    BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION(ch_input)
 
     emit:
-    results  = BIOC_SEMDIST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEMDIST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEMDIST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEMDIST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION.out.tables
+    plots    = BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION.out.plots
+    objects  = BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION.out.objects
+    versions = BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION.out.versions
 }

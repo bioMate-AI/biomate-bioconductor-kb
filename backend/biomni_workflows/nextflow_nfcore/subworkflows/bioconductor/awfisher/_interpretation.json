@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pmatrix=A matrix of input p-values where rows represent genes/biomarkers and columns represent independent studies ;; studies=A list of lists, where each sublist contains 'data' (expression matrix) and 'label' (binary group labels) for a study ;; B=Number of permutations for biomarker categorization (set to at least 1,000 for real data applications) ;; DEindex=Vector of indices of differentially expressed genes (if NULL, it is automatically generated based on AW FDR < 0.05)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when performing meta-analysis across multiple independent genomic or transcriptomic studies to increase statistical power, avoid batch effects, and characterize study-specific contributions (meta-patterns) of biomarkers.\n- pitfalls: Setting the permutation size B too low in biomarkerCategorization (docs recommend B=1000 or more for real data) ;; Input gene names must match exactly across all studies before analysis ;; Zero sample variances in the input data can trigger warnings and require internal offsets during permutation.",
+  "workflows": [
+    {
+      "name": "aw_fisher_meta_analysis",
+      "intent": "Combine p-values from multiple independent studies to perform adaptively weighted Fisher's meta-analysis.",
+      "input": [
+        "pmatrix (matrix of p-values where rows are genes and columns are studies)"
+      ],
+      "stages": "1. Perform differential expression analysis in each study to generate a p-value matrix ;; 2. Run AWFisher_pvalue to perform the meta-analysis ;; 3. Adjust the resulting p-values for multiple testing.",
+      "code": "res <- AWFisher_pvalue(pmatrix)\nqvalue <- p.adjust(res$pvalue, \"BH\")\nsum(qvalue < 0.05)\nhead(res$weights)"
+    },
+    {
+      "name": "biomarker_categorization_and_pattern_detection",
+      "intent": "Detect differential expression patterns (meta-patterns) and calculate variability indices across studies.",
+      "input": [
+        "studies (list of lists, where each sublist contains 'data' expression matrix and 'label' binary group vector for each study)"
+      ],
+      "stages": "1. Prepare the list of studies with data and labels ;; 2. Run biomarkerCategorization with a user-defined differential expression function (e.g., function_limma) and permutation count B ;; 3. Extract the variability index and dissimilarity matrix.",
+      "code": "result <- biomarkerCategorization(studies,function_limma,B=100,DEindex=NULL)\nsum(result$DEindex)\nhead(result$varibility, n=2)\nprint(result$dissimilarity[1:4,1:4])"
+    }
+  ]
+}

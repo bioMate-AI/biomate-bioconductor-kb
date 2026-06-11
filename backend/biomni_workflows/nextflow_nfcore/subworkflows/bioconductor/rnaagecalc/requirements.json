@@ -1,0 +1,16 @@
+{
+  "package": "rnaagecalc",
+  "requirements": [
+    "RNAAgeCalc",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RNAAgeCalc"
+    ],
+    "predict_age_summarized_experiment.nf": [
+      "RNAAgeCalc",
+      "SummarizedExperiment"
+    ]
+  }
+}

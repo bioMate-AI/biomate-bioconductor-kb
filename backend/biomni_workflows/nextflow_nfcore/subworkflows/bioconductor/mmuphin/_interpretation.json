@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: feature_abd=A feature-by-sample abundance matrix where rows represent microbial features and columns represent samples ;; batch=A character string specifying the metadata column that identifies the study or batch ;; covariates=A character vector of metadata columns representing confounding variables to control for ;; data=A data frame containing sample metadata, where rownames must match the colnames of feature_abd ;; exposure=A character string specifying the primary metadata variable of interest for differential abundance testing ;; D=A distance or dissimilarity matrix used as the primary input for discrete structure discovery ;; control=A list of tuning parameters for the algorithms, such as verbose, k_max, or var_perc_cutoff\n- alternatives: maaslin3=Used internally by MMUPHin for individual batch regression before meta-analysis aggregation ;; vegan=Used for calculating dissimilarity matrices (vegdist) and performing PERMANOVA validation (adonis2)\n- when_to_use: Use this package when combining multiple independent microbiome datasets or batches to perform unified downstream analyses while controlling for technical batch effects and confounding clinical/demographic covariates.\n- pitfalls: Sample IDs must match exactly between the abundance matrix columns and metadata rows ;; Covariates that are constant or unmeasured within a specific batch will trigger warnings and be excluded from that batch's individual analysis ;; discrete_discover requires a distance matrix (D) as input, whereas other main functions require the feature abundance matrix (feature_abd) ;; Gut microbiome samples often exhibit continuous gradients rather than discrete clusters, which is indicated by a strictly decreasing trend in prediction strength across cluster numbers (K)",
+  "workflows": [
+    {
+      "name": "batch_effect_adjustment",
+      "intent": "Correct for technical study and batch effects in microbial feature abundance tables while preserving biological variation of interest.",
+      "input": [
+        "abundance_table.tsv (microbial feature-by-sample abundance matrix)",
+        "metadata.tsv (sample metadata containing batch and covariate variables)"
+      ],
+      "stages": "1. Run adjust_batch to generate batch-adjusted abundances ;; 2. Calculate sample dissimilarity matrices before and after adjustment using vegan::vegdist ;; 3. Evaluate batch effect reduction using PERMANOVA via vegan::adonis2",
+      "code": "fit_adjust_batch <- adjust_batch(feature_abd = CRC_abd,\n                                 batch = \"studyID\",\n                                 covariates = \"study_condition\",\n                                 data = CRC_meta,\n                                 control = list(verbose = FALSE))\n\nCRC_abd_adj <- fit_adjust_batch$feature_abd_adj"
+    },
+    {
+      "name": "differential_abundance_testing",
+      "intent": "Perform meta-analytic differential abundance and prevalence testing across multiple cohorts to identify consistent microbial associations.",
+      "input": [
+        "adjusted_abundance_table.tsv (batch-adjusted feature-by-sample abundance matrix)",
+        "metadata.tsv (sample metadata containing batch, exposure, and covariate variables)"
+      ],
+      "stages": "1. Run maaslin_meta to perform regression within individual batches and aggregate results ;; 2. Extract meta-analysis results for abundance and prevalence testing",
+      "code": "fit_maaslin_meta <- maaslin_meta(feature_abd = CRC_abd_adj,\n                       batch = \"studyID\",\n                       exposure = \"study_condition\",\n                       covariates = c(\"gender\", \"age\", \"BMI\"),\n                       data = CRC_meta,\n                       control = list(verbose = FALSE))\n\nmeta_fits_abundance <- fit_maaslin_meta$meta_fits_abundance\nmeta_fits_prevalence <- fit_maaslin_meta$meta_fits_prevalence"
+    },
+    {
+      "name": "discrete_structure_discovery",
+      "intent": "Identify and validate discrete population subgroups (clusters) consistently across multiple independent studies.",
+      "input": [
+        "adjusted_abundance_table.tsv (batch-adjusted feature-by-sample abundance matrix)",
+        "metadata.tsv (sample metadata containing batch and subsetting variables)"
+      ],
+      "stages": "1. Calculate a sample-by-sample dissimilarity matrix using vegan::vegdist ;; 2. Run discrete_discover to evaluate internal and external prediction strength across a range of cluster numbers (K)",
+      "code": "D_control <- vegdist(t(control_abd_adj))\nfit_discrete <- discrete_discover(D = D_control,\n                                  batch = \"studyID\",\n                                  data = control_meta,\n                                  control = list(k_max = 8,\n                                                 verbose = FALSE))"
+    },
+    {
+      "name": "continuous_structure_discovery",
+      "intent": "Identify and validate continuous population gradients (consensus loadings and scores) across multiple microbiome studies.",
+      "input": [
+        "adjusted_abundance_table.tsv (batch-adjusted feature-by-sample abundance matrix)",
+        "metadata.tsv (sample metadata containing batch and subsetting variables)"
+      ],
+      "stages": "1. Run continuous_discover to extract consensus loadings and scores across cohorts",
+      "code": "fit_continuous <- continuous_discover(feature_abd = control_abd_adj,\n                                      batch = \"studyID\",\n                                      data = control_meta,\n                                      control = list(var_perc_cutoff = 0.5,\n                                                     verbose = FALSE))"
+    }
+  ]
+}

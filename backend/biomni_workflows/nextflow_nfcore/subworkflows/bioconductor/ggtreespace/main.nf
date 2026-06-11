@@ -1,123 +1,134 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ggtreeSpace
-// This package is a comprehensive visualization tool specifically designed for exploring phylomorphosp
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ggtreeSpace/inst/doc/ggtreeSpace.R
-// Upstream  : BiocManager, ggtree, phytools, ggplot2, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("ggtreeSpace")
+// Bioconductor workflow: ggtreeSpace — basic_phylomorphospace
+// Create a basic 2D phylomorphospace plot or add it as a graphic layer to a ggplot object
+// Input: tree_file.nwk, trait_data.csv
+// Container: quay.io/biocontainers/bioconductor-ggtreespace:1.6.0--r45h84498cf_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ape, dplyr, ggplot2, ggtree, ggtreeSpace
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the phylogenetic tree and trait data
+//  * 2. [Visualization & Output] Generate the phylomorphospace plot using ggtreespace or add it as a layer using geom_treespace
+//  * 3. [Core Analysis] Add tip annotations using geom_tippoint
 
 nextflow.enable.dsl = 2
 
-process BIOC_GGTREESPACE {
+process BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ggtreespace"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ggtreespace:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ggtreespace:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ggtreespace_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ggtreespace_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ggtreespace_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(ape)
+    library(ggtree)
     library(ggtreeSpace)
-    library(jsonlite)
-
-    # --- Tree Space Initialization ---
-    # Key functions: ggtreespace
-    tr <- ape::rtree(15)
-    td <- phytools::fastBM(tr, nsim = 2)
-    p_space <- ggtreespace(tr, td)
-
-    # --- Visualizing Tree Space with Tip Points ---
-    # Key functions: ggtreespace, geom_tippoint
-    tr <- ape::rtree(15)
-    td <- phytools::fastBM(tr, nsim = 2)
-    p_tips <- ggtreespace(tr, td) +
-        geom_tippoint()
-
-    # --- Alternative ggplot Integration ---
-    # Key functions: geom_treespace
-    tr1 <- ape::rtree(15)
-    td1 <- phytools::fastBM(tr1, nsim = 2)
-    p_custom <- ggplot2::ggplot() +
-        geom_treespace(tr1, td1)
-
-    # --- Trait Heatmap Projection ---
-    # Key functions: ggtreespace, geom_tsheatmap, theme_treespace2
-    tr <- ape::rtree(15)
-    td <- phytools::fastBM(tr, nsim = 2, bounds = c(0, Inf))
-    tdex <- data.frame(
-        z = phytools::fastBM(tr, nsim = 1, bounds = c(0, Inf)),
-        node = 1:15
-    )
-    p_base <- ggtreespace(tr, td)
-    p_heatmap <- p_base %<+% tdex +
-        geom_tsheatmap(
-            trait = "z",
-            alpha = 0.7,
-            resolution = 0.01,
-            bin = 24
-        ) +
-        theme_treespace2()
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ggtreespace_results.csv", row.names = TRUE)
+    library(ggplot2)
+    library(dplyr)
+    
+    # 1. Load the phylogenetic tree and trait data
+    tr <- ape::read.tree("tree_file.nwk")
+    trait_data <- read.csv("trait_data.csv", stringsAsFactors = FALSE)
+    
+    # Identify the column containing the tree tip labels
+    tip_col_idx <- which(sapply(trait_data, function(col) any(col %in% tr\$tip.label)))
+    if (length(tip_col_idx) == 0) {
+      tip_col_idx <- 1
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ggtreespace_results.csv")
+      tip_col_idx <- tip_col_idx[1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ggtreespace_output.rds")
+    
+    rownames(trait_data) <- trait_data[, tip_col_idx]
+    
+    # Select the first two numeric columns for 2D morphospace coordinates
+    numeric_cols <- sapply(trait_data, is.numeric)
+    td_matrix <- as.matrix(trait_data[, numeric_cols, drop = FALSE])
+    
+    if (ncol(td_matrix) < 2) {
+      stop("Error: Trait data must contain at least 2 numeric columns for 2D morphospace.")
     }
+    td <- td_matrix[, 1:2]
+    
+    # Subset and align tree and trait data to matching tips
+    common_tips <- intersect(tr\$tip.label, rownames(td))
+    if (length(common_tips) == 0) {
+      stop("Error: No matching tip labels found between the tree and the trait data.")
+    }
+    
+    tr <- ape::keep.tip(tr, common_tips)
+    td <- td[tr\$tip.label, , drop = FALSE]
+    
+    # Assign tr1 and td1 for the second workflow stage
+    tr1 <- tr
+    td1 <- td
+    
+    # 2. Generate the phylomorphospace plot using ggtreespace and add tip annotations
+    p1 <- ggtreespace(tr, td) +
+        geom_tippoint()
+    
+    # Save the first plot
+    ggsave("phylomorphospace_ggtreespace.pdf", plot = p1, width = 8, height = 7)
+    
+    # 3. Add phylomorphospace as a graphic layer using geom_treespace
+    p2 <- ggplot() +
+        geom_treespace(tr1, td1)
+    
+    # Save the second plot
+    ggsave("phylomorphospace_geom_treespace.pdf", plot = p2, width = 8, height = 7)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GGTREESPACE:", paste0("    ggtreespace: ", packageVersion("ggtreeSpace"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE":',
+        paste0('    ggtreeSpace: ', as.character(packageVersion('ggtreeSpace')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ggtreespace_results.csv
-    touch ${prefix}_ggtreespace_output.rds
-    echo "BIOC_GGTREESPACE:" > versions.yml
-    echo "    ggtreespace: 0.0.0" >> versions.yml
+    touch ${prefix}_basic_phylomorphospace.csv versions.yml
     """
 }
 
-
-workflow BIOC_GGTREESPACE_WORKFLOW {
+workflow BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tree_file.nwk, trait_data.csv ] ]
 
     main:
-    BIOC_GGTREESPACE(ch_input)
+    BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE(ch_input)
 
     emit:
-    results  = BIOC_GGTREESPACE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GGTREESPACE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GGTREESPACE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GGTREESPACE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE.out.tables
+    plots    = BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE.out.plots
+    objects  = BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE.out.objects
+    versions = BIOC_GGTREESPACE_BASIC_PHYLOMORPHOSPACE.out.versions
 }

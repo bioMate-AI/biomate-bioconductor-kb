@@ -1,0 +1,13 @@
+{
+  "package": "mirintegrator",
+  "requirements": [
+    "graph",
+    "mirIntegrator"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "graph",
+      "mirIntegrator"
+    ]
+  }
+}

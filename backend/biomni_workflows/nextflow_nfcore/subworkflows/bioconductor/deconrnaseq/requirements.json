@@ -1,0 +1,11 @@
+{
+  "package": "deconrnaseq",
+  "requirements": [
+    "DeconRNASeq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DeconRNASeq"
+    ]
+  }
+}

@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_TREESUMMARIZEDEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-treesummarizedexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-treesummarizedexperiment:2.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-treesummarizedexperiment:2.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,43 +40,81 @@ process BIOC_TREESUMMARIZEDEXPERIMENT {
     library(TreeSummarizedExperiment)
     library(jsonlite)
 
-    # --- Tree Accessors and Replacement [] ---
+    # --- Object Construction [TreeSummarizedExperiment] ---
+    # Key functions: TreeSummarizedExperiment, assays, rowData, colData
+    assay_data <- rbind(rep(0, 4), matrix(1:20, nrow = 5))
+    colnames(assay_data) <- paste0("sample", 1:4)
+    rownames(assay_data) <- paste("entity", seq_len(6), sep = "")
+    row_data <- data.frame(Kingdom = "A",
+                           Phylum = rep(c("B1", "B2"), c(2, 4)),
+                           Class = rep(c("C1", "C2", "C3"), each = 2),
+                           OTU = paste0("D", 1:6),
+                           row.names = rownames(assay_data),
+                           stringsAsFactors = FALSE)
+    col_data <- data.frame(gg = c(1, 2, 3, 3),
+                           group = rep(LETTERS[1:2], each = 2), 
+                           row.names = colnames(assay_data),
+                           stringsAsFactors = FALSE)
+    row_tree <- ape::rtree(5)
+    col_tree <- ape::rtree(4)
+    col_tree\$tip.label <- colnames(assay_data)
+    col_tree\$node.label <- c("All", "GroupA", "GroupB")
+    row_lab <- row_tree\$tip.label[c(1, 1:5)]
+    both_tse <- TreeSummarizedExperiment(assays = list(Count = assay_data),
+                                         rowData = row_data,
+                                         colData = col_data,
+                                         rowTree = row_tree,
+                                         rowNodeLab = row_lab,
+                                         colTree = col_tree)
+
+    # --- Tree Management [TreeSummarizedExperiment] ---
     # Key functions: rowTree, colTree, rowTree<-
     r_tree <- rowTree(both_tse)
     c_tree <- colTree(both_tse)
+    new_tree <- ape::rtree(nrow(both_tse))
+    new_tree\$tip.label <- rownames(both_tse)
     new_tse <- both_tse
     rowTree(new_tse) <- new_tree
 
-
-    # --- Link and Reference Sequence Access [] ---
-    # Key functions: rowLinks, colLinks, referenceSeq<-, referenceSeq
+    # --- Link Data and Reference Sequences [TreeSummarizedExperiment] ---
+    # Key functions: rowLinks, colLinks, referenceSeq, referenceSeq<-
     r_link <- rowLinks(both_tse)
     c_link <- colLinks(both_tse)
+    refSeq <- Biostrings::DNAStringSet(rep("AGCT", nrow(both_tse)))
     referenceSeq(both_tse) <- refSeq
-    ref_seq <- referenceSeq(both_tse)
+    ref_seq_out <- referenceSeq(both_tse)
 
+    # --- Subsetting and Node Filtering [TreeSummarizedExperiment] ---
+    # Key functions: subsetByNode, rowLinks, colLinks
+    sub_tse <- both_tse[1:2, 1]
+    node_tse <- subsetByNode(x = both_tse, rowNode = "t3")
+    node_tse_sub <- subsetByNode(x = both_tse, rowNode = "t3", 
+                                 colNode = c("sample1", "sample2"))
+    sub_r_link <- rowLinks(node_tse_sub)
 
-    # --- Node-based Subsetting [] ---
-    # Key functions: subsetByNode
-    node_tse <- subsetByNode(
-        x = both_tse,
-        rowNode = "t3",
-        colNode = c("sample1", "sample2")
-    )
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_treesummarizedexperiment_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_treesummarizedexperiment_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_treesummarizedexperiment_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_treesummarizedexperiment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_treesummarizedexperiment_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_treesummarizedexperiment_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_TREESUMMARIZEDEXPERIMENT:", paste0("    treesummarizedexperiment: ", packageVersion("TreeSummarizedExperiment"))),
+        c("BIOC_TREESUMMARIZEDEXPERIMENT:", paste0("    treesummarizedexperiment: ", as.character(packageVersion("TreeSummarizedExperiment")))),
         "versions.yml"
     )
     """

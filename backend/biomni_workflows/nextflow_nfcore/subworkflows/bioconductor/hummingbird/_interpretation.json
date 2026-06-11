@@ -1,0 +1,19 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: experimentInfoControl=SummarizedExperiment object containing methylated and unmethylated read counts for the control group ;; experimentInfoCase=SummarizedExperiment object containing methylated and unmethylated read counts for the case group ;; binSize=The user-desired bin size in base pairs (default is 40; smaller leads to more accurate boundaries, larger leads to faster computation) ;; emInfo=The GRanges object output from hummingbirdEM containing bin-wise predictions ;; minCpGs=The minimum number of CpGs required in a DMR (default is 10) ;; minLength=The minimum length of a DMR in base pairs (default is 500) ;; maxGap=The maximum distance in base pairs between any two adjacent CpGs in a DMR (default is 300) ;; postAdjInfoDMRs=The refined DMRs (specifically postAdjInfo$DMRs) from hummingbirdPostAdjustment ;; coord1=The start genomic position for plotting ;; coord2=The end genomic position for plotting\n- alternatives: Existing methods that assume independence among genomic loci (no specific package names are mentioned in the documentation)\n- when_to_use: When analyzing whole genome bisulfite sequencing (WGBS) or reduced representative bisulfite sequencing (RRBS) data to identify differentially methylated regions (DMRs) between case and control groups, particularly when wanting to model spatial/location dependence among genomic loci.\n- pitfalls: Input matrices must only contain commonly shared CpGs at the same genomic positions; CpGs not shared by all biological replicates must be removed before analysis. The Bayesian HMM fits one chromosome at a time, so data must be organized and analyzed per chromosome. Input data must be formatted as SummarizedExperiment objects with specific assay names (e.g., normM, normUM, abnormM, abnormUM) and row ranges defined by GPos.",
+  "workflows": [
+    {
+      "name": "dmr_detection_and_visualization",
+      "intent": "Detect and visualize differentially methylated regions (DMRs) from WGBS or RRBS data using a Bayesian HMM.",
+      "input": [
+        "normM (matrix of methylated reads for control group)",
+        "normUM (matrix of unmethylated reads for control group)",
+        "abnormM (matrix of methylated reads for case group)",
+        "abnormUM (matrix of unmethylated reads for case group)",
+        "pos (vector of genomic positions of CpGs)"
+      ],
+      "stages": "1. Format input matrices and CpG positions into SummarizedExperiment objects for control and case groups. ;; 2. Execute the EM algorithm using hummingbirdEM to infer methylation states. ;; 3. Apply post-adjustment criteria (minimum length, minimum CpGs, maximum gap) using hummingbirdPostAdjustment to refine DMRs. ;; 4. Visualize the observations and predictions for a specific genomic region using hummingbirdGraph.",
+      "code": "library(GenomicRanges)\nlibrary(SummarizedExperiment)\nlibrary(hummingbird)\ndata(exampleHummingbird)\npos <- pos[,1]\nassaysControl <- list(normM = normM, normUM = normUM)\nassaysCase <- list(abnormM = abnormM, abnormUM = abnormUM)\nexampleSEControl <- SummarizedExperiment(assaysControl, \n                                        rowRanges = GPos(\"chr29\", pos))\nexampleSECase <- SummarizedExperiment(assaysCase, \n                                    rowRanges = GPos(\"chr29\", pos))\nemInfo <- hummingbirdEM(experimentInfoControl = exampleSEControl, \n                        experimentInfoCase = exampleSECase, binSize = 40)\npostAdjInfo <- hummingbirdPostAdjustment(\n    experimentInfoControl = exampleSEControl, \n    experimentInfoCase = exampleSECase, \n    emInfo = emInfo, minCpGs = 10, \n    minLength = 100, maxGap = 300)\nhummingbirdGraph(experimentInfoControl = exampleSEControl, \n                experimentInfoCase = exampleSECase, \n                postAdjInfoDMRs = postAdjInfo$DMRs, \n                coord1 = 107991, coord2 = 108350)"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sample.p=Proportion of spots/cells sampled to fit the model to speed up computation (default is 0.25) ;; tol=Tolerance parameter controlling the accuracy of the model fit (default is 1e-4) ;; adj.method=Adjustment method for count data, including \"logpac\" (percentile adjusted counts, default), \"pearson\" (Pearson residuals), \"meanbio\" (mean of biological component), and \"medbio\" (median of biological component) ;; df.tps=Degrees of freedom for thin plate splines determining spatial smoothing complexity (default is 6) ;; scale.factor=Constant factor to scale all means to increase signal for low-count genes (default is 1) ;; backend=Computation backend, such as \"cpu\" ;; overwrite=Logical indicating whether to force recomputation of the model even if a valid fit exists (default is FALSE)\n- alternatives: Standard single-cell library size normalisation approaches (e.g., standard log-normalisation), which are discouraged for spatial molecular datasets because library size confounds spatial biology and standard methods can remove true biological signals.\n- when_to_use: Use when normalising spatial transcriptomics datasets (such as 10x Visium) where library size variation is confounded with spatial biology, and when identifying spatially variable genes or performing dimension reduction on normalised spatial data.\n- pitfalls: Subsetting genes or spots/cells does not automatically subset the saved model in the metadata slot, causing SpaNorm to re-estimate the model if a mismatch is detected. Low-count genes can exhibit artifacts in adjusted counts, which can be mitigated by increasing the scale.factor parameter.",
+  "workflows": [
+    {
+      "name": "spanorm_spatialexperiment_workflow",
+      "intent": "Filter and normalise spatial transcriptomics data in a SpatialExperiment object, with options for alternative adjustments and signal scaling.",
+      "input": [
+        "SpatialExperiment object containing raw counts and spatial coordinates."
+      ],
+      "stages": "1. Filter lowly expressed genes using filterGenes; 2. Run SpaNorm to fit the model and normalise; 3. (Optional) Run SpaNorm with alternative adjustment methods (adj.method) or scale factors (scale.factor); 4. Plot covariates using plotCovariate.",
+      "code": "keep = filterGenes(HumanDLPFC, 0.2)\nHumanDLPFC = HumanDLPFC[keep, ]\nset.seed(36)\nHumanDLPFC = SpaNorm(HumanDLPFC)\nfit.spanorm = metadata(HumanDLPFC)$SpaNorm\nHumanDLPFC = SpaNorm(HumanDLPFC, adj.method = \"pearson\")\nHumanDLPFC = SpaNorm(HumanDLPFC, adj.method = \"meanbio\")\nHumanDLPFC = SpaNorm(HumanDLPFC, adj.method = \"medbio\")\nHumanDLPFC_df2 = SpaNorm(HumanDLPFC, df.tps = 2)\nHumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 1)\nHumanDLPFC = SpaNorm(HumanDLPFC, scale.factor = 4)\np1 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = \"biology\")\np2 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = \"ls\")"
+    },
+    {
+      "name": "spanorm_seurat_workflow",
+      "intent": "Normalise spatial transcriptomics data stored in a Seurat object.",
+      "input": [
+        "Seurat object containing raw counts and spatial coordinates in metadata."
+      ],
+      "stages": "1. Add spatial coordinates to Seurat metadata; 2. Run SpaNorm on the Seurat object.",
+      "code": "seurat_obj = HumanDLPFC\nlogcounts(seurat_obj) = counts(seurat_obj)\nseurat_obj = suppressWarnings(Seurat::as.Seurat(seurat_obj))  \ncoords = SpatialExperiment::spatialCoords(HumanDLPFC)\nseurat_obj@meta.data$x = coords[, 1]\nseurat_obj@meta.data$y = coords[, 2]\nseurat_obj <- SpaNorm(seurat_obj, sample.p = 0.1, df.tps = 2, backend = \"cpu\", verbose = TRUE)"
+    },
+    {
+      "name": "svg_and_dimension_reduction",
+      "intent": "Identify spatially variable genes (SVGs) and perform dimension reduction (PCA) on normalised spatial transcriptomics data.",
+      "input": [
+        "Normalised SpatialExperiment object."
+      ],
+      "stages": "1. Identify SVGs using SpaNormSVG; 2. Extract top SVGs using topSVGs; 3. Perform PCA using SpaNormPCA; 4. Run UMAP using runUMAP.",
+      "code": "HumanDLPFC = SpaNormSVG(HumanDLPFC)\nsvgs = topSVGs(HumanDLPFC, n = 10)\nrownames(HumanDLPFC) = gsub(\"-\", \".\", rownames(HumanDLPFC))\nrownames(svgs) = gsub(\"-\", \".\", rownames(svgs))\nHumanDLPFC = SpaNormPCA(HumanDLPFC, ncomponents = 50, svg.fdr = 0.2, nsvgs = Inf)\nHumanDLPFC = runUMAP(HumanDLPFC, n_neighbors = 20, min_dist = 0.3)\nplotUMAP(HumanDLPFC, colour_by = \"AnnotatedCluster\", size_by = \"cell_count\")"
+    }
+  ]
+}

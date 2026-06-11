@@ -1,0 +1,17 @@
+{
+  "package": "spiky",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "spiky"
+  ],
+  "by_workflow": {
+    "cfmedip_analysis_bedpe.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "spiky"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "spiky"
+    ]
+  }
+}

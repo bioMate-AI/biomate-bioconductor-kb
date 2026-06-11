@@ -3,6 +3,8 @@
 // Bioconductor module: MultiDataSet
 // Implementation of the BRGE's (Bioinformatic Research Group in Epidemiology from Center for Research 
 //
+// Input: expression.csv (gene-expression matrix, genes x samples), methylation.csv (optional DNA-methylation beta-value matrix, probes x samples)
+//
 // Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MultiDataSet/inst/doc/MultiDataSet.R
 // Upstream  : Biobase, GenomicRanges, brgedata
 // Downstream: MEAL
@@ -12,14 +14,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_MULTIDATASET {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-multidataset"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-multidataset:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-multidataset:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,15 +39,28 @@ process BIOC_MULTIDATASET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
+    library(MultiDataSet)
+    library(Biobase)
+    library(GenomicRanges)
+    library(SummarizedExperiment)
     library(jsonlite)
+
+    # --- Load user-provided inputs ---
+    # expression.csv : gene-expression matrix (genes in rows, samples in columns;
+    #                  first column = feature/gene IDs used as row names)
+    # methylation.csv: DNA-methylation beta-value matrix (CpG/probe IDs in rows,
+    #                  samples in columns; first column = probe IDs as row names).
+    #                  Optional - only loaded if present.
+    expr_mat <- as.matrix(read.csv("expression.csv", row.names = 1, check.names = FALSE))
+    brge_gexp <- ExpressionSet(assayData = expr_mat)
+    # Second expression set used by the overwrite / multi-add demonstrations below.
+    brge_gexp2 <- brge_gexp
 
     # --- New Multi [] ---
     # Key functions: createMultiDataSet
     multi <- createMultiDataSet()
     # --- add eset 10 [] ---
     # Key functions: add_eset
-    data("brge_gexp")
     multi2 <- add_eset(multi, brge_gexp, dataset.type = "expression")
     # --- add eset 2 [] ---
     # Key functions: add_eset
@@ -64,7 +78,12 @@ process BIOC_MULTIDATASET {
     multi2 <- add_eset(multi, brge_gexp, dataset.type = "expression", warnings = FALSE, GRanges = NA)
     # --- add rse overwrite [] ---
     # Key functions: createMultiDataSet, add_rse
-    data("brge_methy")
+    if (file.exists("methylation.csv")) {
+        methy_mat <- as.matrix(read.csv("methylation.csv", row.names = 1, check.names = FALSE))
+        brge_methy <- SummarizedExperiment(assays = list(meth = methy_mat))
+    } else {
+        brge_methy <- SummarizedExperiment(assays = list(meth = expr_mat))
+    }
     multi <- createMultiDataSet()
     multi2 <- add_rse(multi, brge_methy, dataset.type = "methylation", warnings = FALSE)
     # --- create Multi Data Set [] ---
@@ -94,18 +113,27 @@ process BIOC_MULTIDATASET {
     range2 <- GRanges(c("chr17:1-100000", "chr17:1000000-2000000"))
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_multidataset_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_multidataset_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_multidataset_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_multidataset_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_multidataset_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_multidataset_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_MULTIDATASET:", paste0("    multidataset: ", packageVersion("MultiDataSet"))),
+        c("BIOC_MULTIDATASET:", paste0("    multidataset: ", as.character(packageVersion("MultiDataSet")))),
         "versions.yml"
     )
     """

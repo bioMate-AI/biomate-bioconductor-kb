@@ -1,0 +1,21 @@
+{
+  "package": "rsemmed",
+  "requirements": [
+    "dplyr",
+    "igraph",
+    "magrittr",
+    "rsemmed"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "igraph",
+      "rsemmed"
+    ],
+    "node_neighborhood_expansion.nf": [
+      "igraph",
+      "magrittr",
+      "rsemmed"
+    ]
+  }
+}

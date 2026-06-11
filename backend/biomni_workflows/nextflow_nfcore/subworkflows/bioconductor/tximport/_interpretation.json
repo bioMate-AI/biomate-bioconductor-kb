@@ -1,0 +1,63 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: files=A named character vector of paths to the quantification files ;; type=The quantification software used, such as \"salmon\", \"sailfish\", \"kallisto\", \"rsem\", \"stringtie\", \"alevin\", \"oarfish\", or \"none\" ;; tx2gene=A two-column data.frame mapping transcript IDs (column 1) to gene IDs (column 2) ;; txIn=Logical, whether the input files are transcript-level (default TRUE) ;; txOut=Logical, whether to output transcript-level results instead of summarizing to gene-level (default FALSE) ;; countsFromAbundance=Character option to generate counts scaled from abundances (\"no\", \"scaledTPM\", \"lengthScaledTPM\", or \"dtuScaledTPM\") ;; ignoreAfterBar=Logical, whether to split transcript IDs at the first bar \"|\" character (useful for Gencode transcripts in Kallisto) ;; ignoreTxVersion=Logical, whether to ignore transcript version numbers during summarization ;; varReduce=Logical, whether to reduce inferential replicates to a single variance per transcript/gene and sample ;; dropInfReps=Logical, whether to skip importing inferential replicates ;; importer=A custom function to read in files, allowing advanced customization\n- alternatives: tximeta=An extension of tximport that automatically adds annotation metadata and outputs a SummarizedExperiment object with GRanges for commonly used human and mouse transcriptomes (GENCODE, Ensembl, RefSeq)\n- when_to_use: Use when you have transcript-level abundance estimates (TPM, estimated counts, effective lengths) from pseudo-aligners or quantifiers and want to perform gene-level or transcript-level differential expression analysis using DESeq2, edgeR, or limma-voom.\n- pitfalls: Do not manually pass the original gene-level counts (txi$counts with countsFromAbundance=\"no\") to downstream methods without an offset, as this fails to correct for differential isoform usage (unless using 3' tagged RNA-seq where gene length correction is not appropriate) ;; Ensure the column order of tx2gene is strictly: 1) transcript ID, 2) gene ID (column names do not matter, but order does) ;; Ensure transcript IDs in tx2gene match the IDs in the abundance files exactly (use ignoreAfterBar=TRUE or ignoreTxVersion=TRUE if needed to resolve mismatches) ;; Importing kallisto .h5 files requires the rhdf5 package to be installed",
+  "workflows": [
+    {
+      "name": "gene_level_import_and_deseq2",
+      "intent": "Import transcript-level estimates, summarize them to the gene level, and prepare a DESeqDataSet for downstream differential expression analysis with DESeq2.",
+      "input": [
+        "quant.sf.gz (Salmon quantification files)",
+        "tx2gene.gencode.v27.csv (Transcript-to-gene mapping file)"
+      ],
+      "stages": "1. Locate quantification files and define sample names ;; 2. Read transcript-to-gene mapping table ;; 3. Import and summarize transcript-level estimates to gene-level using tximport ;; 4. Create a DESeqDataSet object using DESeqDataSetFromTximport",
+      "code": "library(tximportData)\ndir <- system.file(\"extdata\", package=\"tximportData\")\nsamples <- read.table(file.path(dir,\"samples.txt\"), header=TRUE)\nfiles <- file.path(dir, \"salmon\", samples$run, \"quant.sf.gz\")\nnames(files) <- paste0(\"sample\",1:6)\nlibrary(readr)\ntx2gene <- read_csv(file.path(dir, \"tx2gene.gencode.v27.csv\"))\nlibrary(tximport)\ntxi <- tximport(files, type=\"salmon\", tx2gene=tx2gene)\nlibrary(DESeq2)\nsampleTable <- data.frame(condition=factor(rep(c(\"A\",\"B\"),each=3)))\nrownames(sampleTable) <- colnames(txi$counts)\ndds <- DESeqDataSetFromTximport(txi, sampleTable, ~ condition)"
+    },
+    {
+      "name": "gene_level_import_and_edger_limma",
+      "intent": "Import transcript-level estimates, summarize them to the gene level, and prepare a DGEList object for downstream analysis with edgeR or limma-voom.",
+      "input": [
+        "quant.sf.gz (Salmon quantification files)",
+        "tx2gene.gencode.v27.csv (Transcript-to-gene mapping file)"
+      ],
+      "stages": "1. Locate quantification files and define sample names ;; 2. Read transcript-to-gene mapping table ;; 3. Import and summarize transcript-level estimates to gene-level using tximport ;; 4. Create a DGEList object using DGEListFromTximport",
+      "code": "library(tximportData)\ndir <- system.file(\"extdata\", package=\"tximportData\")\nsamples <- read.table(file.path(dir,\"samples.txt\"), header=TRUE)\nfiles <- file.path(dir, \"salmon\", samples$run, \"quant.sf.gz\")\nnames(files) <- paste0(\"sample\",1:6)\nlibrary(readr)\ntx2gene <- read_csv(file.path(dir, \"tx2gene.gencode.v27.csv\"))\nlibrary(tximport)\ntxi <- tximport(files, type=\"salmon\", tx2gene=tx2gene)\nlibrary(edgeR)\ndge <- DGEListFromTximport(txi)"
+    },
+    {
+      "name": "transcript_level_import_and_summarization",
+      "intent": "Import transcript-level estimates without gene-level summarization, with the option to summarize to gene-level later or perform transcript-level differential expression.",
+      "input": [
+        "quant.sf.gz (Salmon quantification files)",
+        "tx2gene.gencode.v27.csv (Transcript-to-gene mapping file)"
+      ],
+      "stages": "1. Import transcript-level estimates with txOut=TRUE ;; 2. Summarize transcript-level matrices to gene-level using summarizeToGene ;; 3. Alternatively, create a transcript-level DGEList with divided counts for edgeR",
+      "code": "library(tximportData)\ndir <- system.file(\"extdata\", package=\"tximportData\")\nsamples <- read.table(file.path(dir,\"samples.txt\"), header=TRUE)\nfiles <- file.path(dir, \"salmon\", samples$run, \"quant.sf.gz\")\nnames(files) <- paste0(\"sample\",1:6)\nlibrary(tximport)\ntxi.tx <- tximport(files, type=\"salmon\", txOut=TRUE)\nlibrary(readr)\ntx2gene <- read_csv(file.path(dir, \"tx2gene.gencode.v27.csv\"))\ntxi.sum <- summarizeToGene(txi.tx, tx2gene)\nlibrary(edgeR)\ndge.tx <- DGEListFromTximport(txi.tx, divide=TRUE)"
+    },
+    {
+      "name": "rsem_import",
+      "intent": "Import gene-level or isoform-level quantification results from RSEM.",
+      "input": [
+        "sample.genes.results.gz (RSEM gene results) or sample.isoforms.results.gz (RSEM isoform results)"
+      ],
+      "stages": "1. Define paths to RSEM results files ;; 2. Import gene-level results with txIn=FALSE and txOut=FALSE, or import isoform-level results with txIn=TRUE and txOut=TRUE",
+      "code": "library(tximportData)\ndir <- system.file(\"extdata\", package=\"tximportData\")\nsamples <- read.table(file.path(dir,\"samples.txt\"), header=TRUE)\nfiles <- file.path(dir,\"rsem\", samples$run, paste0(samples$run, \".genes.results.gz\"))\nnames(files) <- paste0(\"sample\",1:6)\nlibrary(tximport)\ntxi.rsem <- tximport(files, type=\"rsem\", txIn=FALSE, txOut=FALSE)\nfiles <- file.path(dir,\"rsem\", samples$run, paste0(samples$run, \".isoforms.results.gz\"))\nnames(files) <- paste0(\"sample\",1:6)\ntxi.rsem <- tximport(files, type=\"rsem\", txIn=TRUE, txOut=TRUE)"
+    },
+    {
+      "name": "stringtie_import",
+      "intent": "Import transcript coverage and abundance estimates from StringTie.",
+      "input": [
+        "t_data.ctab (StringTie transcript abundance files)"
+      ],
+      "stages": "1. Read a sample file to extract transcript-to-gene mapping ;; 2. Import StringTie files using tximport with type=\"stringtie\"",
+      "code": "tmp <- read_tsv(files[1])\ntx2gene <- tmp[,c(\"t_name\",\"gene_name\")]\ntxi <- tximport(files, type=\"stringtie\", tx2gene=tx2gene)"
+    },
+    {
+      "name": "alevin_import",
+      "intent": "Import single-cell RNA-seq gene-by-cell count matrices quantified with Alevin.",
+      "input": [
+        "quants_mat.gz (Alevin quantification matrix file)"
+      ],
+      "stages": "1. Define path to the Alevin quants matrix file ;; 2. Import the matrix using tximport with type=\"alevin\"",
+      "code": "files <- \"path/to/alevin/quants_mat.gz\"\ntxi <- tximport(files, type=\"alevin\")"
+    }
+  ]
+}

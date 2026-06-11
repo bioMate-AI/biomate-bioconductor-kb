@@ -1,0 +1,14 @@
+{
+  "package": "moanin",
+  "requirements": [
+    "moanin"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "moanin"
+    ],
+    "spline_timecourse_de_and_clustering.nf": [
+      "moanin"
+    ]
+  }
+}

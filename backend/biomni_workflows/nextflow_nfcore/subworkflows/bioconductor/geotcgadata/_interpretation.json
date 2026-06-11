@@ -1,0 +1,68 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=A data frame, matrix, or SummarizedExperiment object containing RNA-seq count data ;; group=A vector specifying the group of each sample ;; groupCol=The column name in colData of SummarizedExperiment that contains sample group information ;; filte=Logical value indicating whether to filter low-expression genes in differential_RNA ;; method=Statistical method for differential RNA analysis (e.g., \"Wilcoxon\") ;; normMethod=Normalization method for methylation data in differential_methy (can be NULL) ;; cpg2gene=A data frame mapping CpG sites to gene symbols ;; keyType=The type of gene identifier (e.g., \"SYMBOL\") used in countToFpkm and countToTpm ;; gene_cov=Gene coverage data frame used for FPKM/TPM normalization\n- alternatives: TCGAbiolinks or GDCRNATools for downloading and analyzing TCGA gene expression data ;; edgeR, limma, or DESeq2 for identifying differentially expressed genes ;; CQN for correcting systematic gene length and GC-content biases ;; GOseq for correcting gene length bias in enrichment analysis ;; ChAMP for DNA methylation analysis (which differential_methy depends on) ;; clusterProfiler::bitr for gene ID conversion (planned for future versions of GeoTcgaData)\n- when_to_use: Use when performing differential analysis on RNA-seq, DNA methylation, CNV, or SNP data from TCGA or GEO, or when preprocessing GEO microarray data (averaging duplicate gene symbols, resolving multi-mapped probe IDs) and converting TCGA raw counts to FPKM/TPM.\n- pitfalls: Technical replicate RNA-seq data with small gene dispersions can show a strong read count bias where longer transcripts or higher read counts are more likely to be identified as differentially expressed ;; GOseq may overcorrect data that has no gene length bias but only expression bias, leading to reverse bias ;; For DNA methylation, using model = \"cpg\" (calculating difference CpGs first, then genes) can introduce CpG number bias, whereas model = \"gene\" (calculating gene methylation levels first, then differences) avoids this bias ;; ChAMP has a large number of dependent packages; if installation fails, they must be downloaded and installed locally.",
+  "workflows": [
+    {
+      "name": "rna_seq_differential_analysis",
+      "intent": "Perform differential expression analysis on RNA-seq count data using a Wilcoxon test or other methods.",
+      "input": [
+        "df (matrix or data frame of raw RNA-seq counts)",
+        "group (vector of sample group assignments)"
+      ],
+      "stages": "1. Prepare the count matrix and group vector (or construct a SummarizedExperiment object) ;; 2. Run differential_RNA to identify differentially expressed genes.",
+      "code": "df <- matrix ( rnbinom ( 400 , mu = 4 , size = 10 ), 25 , 16 )\ndf <- as.data.frame (df)\nrownames (df) <- paste0 ( \"gene\" , 1 : 25 )\ncolnames (df) <- paste0 ( \"sample\" , 1 : 16 )\ngroup <- sample ( c ( \"group1\" , \"group2\" ), 16 , replace = TRUE )\nresult <- differential_RNA ( counts = df, group = group, filte = FALSE , method = \"Wilcoxon\" )\n\ndf <- matrix ( rnbinom ( 400 , mu = 4 , size = 10 ), 25 , 16 )\nrownames (df) <- paste0 ( \"gene\" , 1 : 25 )\ncolnames (df) <- paste0 ( \"sample\" , 1 : 16 )\ngroup <- sample ( c ( \"group1\" , \"group2\" ), 16 , replace = TRUE )\nnrows <- 200 ; ncols <- 20\ncounts <- matrix ( runif (nrows * ncols, 1 , 1e4 ), nrows, dimnames = list ( paste0 ( \"cg\" , 1 : 200 ), paste0 ( \"S\" , 1 : 20 )) )\ncolData <- S4Vectors :: DataFrame ( row.names = paste0 ( \"sample\" , 1 : 16 ), group = group )\ndata <- SummarizedExperiment :: SummarizedExperiment ( assays= S4Vectors :: SimpleList ( counts= df), colData = colData)\nresult <- differential_RNA ( counts = data, groupCol = \"group\" , filte = FALSE , method = \"Wilcoxon\" )"
+    },
+    {
+      "name": "dna_methylation_differential_analysis",
+      "intent": "Identify differentially methylated genes from CpG methylation data.",
+      "input": [
+        "cpgData (matrix or SummarizedExperiment of CpG methylation levels)",
+        "sampleGroup (vector of sample group assignments)",
+        "cpg2gene (data frame mapping CpG probe IDs to gene symbols)"
+      ],
+      "stages": "1. Prepare CpG methylation matrix, sample groups, and CpG-to-gene mapping ;; 2. Run differential_methy to identify differentially methylated genes.",
+      "code": "library(ChAMP)\ncpgData <- matrix(runif(2000), nrow = 200, ncol = 10)\nrownames(cpgData) <- paste0(\"cpg\", seq_len(200))\ncolnames(cpgData) <- paste0(\"sample\", seq_len(10))\nsampleGroup <- c(rep(\"group1\", 5), rep(\"group2\", 5))\nnames(sampleGroup) <- colnames(cpgData)\ncpg2gene <- data.frame(cpg = rownames(cpgData), \n    gene = rep(paste0(\"gene\", seq_len(20)), 10))\nresult <- differential_methy(cpgData, sampleGroup, \n    cpg2gene = cpg2gene, normMethod = NULL)\n\nlibrary(ChAMP)\ncpgData <- matrix(runif(2000), nrow = 200, ncol = 10)\nrownames(cpgData) <- paste0(\"cpg\", seq_len(200))\ncolnames(cpgData) <- paste0(\"sample\", seq_len(10))\nsampleGroup <- c(rep(\"group1\", 5), rep(\"group2\", 5))\nnames(sampleGroup) <- colnames(cpgData)\ncpg2gene <- data.frame(cpg = rownames(cpgData), \n    gene = rep(paste0(\"gene\", seq_len(20)), 10))\ncolData <- S4Vectors::DataFrame(\n    row.names = colnames(cpgData),\n    group = sampleGroup\n)\ndata <- SummarizedExperiment::SummarizedExperiment(\n         assays=S4Vectors::SimpleList(counts=cpgData),\n         colData = colData)\nresult <- differential_methy(cpgData = data, \n    groupCol = \"group\", normMethod = NULL, \n    cpg2gene = cpg2gene)"
+    },
+    {
+      "name": "cnv_differential_analysis",
+      "intent": "Identify genes with differential copy number variations between groups.",
+      "input": [
+        "aa (matrix of gene-level copy number scores)",
+        "sampleGroup (vector of sample group assignments)"
+      ],
+      "stages": "1. Prepare the copy number score matrix and sample groups ;; 2. Run differential_CNV to extract differential CNV genes.",
+      "code": "aa <- matrix(sample(c(0, 1, -1), 200, replace = TRUE), 25, 8)\nrownames(aa) <- paste0(\"gene\", 1:25)\ncolnames(aa) <- paste0(\"sample\", 1:8)\nsampleGroup <- sample(c(\"A\", \"B\"), ncol(aa), replace = TRUE)\ndiffCnv <- differential_CNV(aa, sampleGroup)"
+    },
+    {
+      "name": "snp_qc_and_differential_analysis",
+      "intent": "Perform quality control and differential analysis on single nucleotide variation (SNP) data.",
+      "input": [
+        "snpDf (data frame of SNP mutation data)",
+        "sampleGroup (vector of sample group assignments)"
+      ],
+      "stages": "1. Run SNP_QC to perform quality control on the SNP data frame ;; 2. Run differential_SNP to identify differentially mutated SNPs.",
+      "code": "snpDf <- matrix(sample(c(\"AA\", \"Aa\", \"aa\"), 100, replace = TRUE), 10, 10)\nsnpDf <- as.data.frame(snpDf)\nsampleGroup <- sample(c(\"A\", \"B\"), 10, replace = TRUE)\nresult <- SNP_QC(snpDf)\n\nsnpDf <- matrix(sample(c(\"mutation\", NA), 100, replace = TRUE), 10, 10)\nsnpDf <- as.data.frame(snpDf)\nsampleGroup <- sample(c(\"A\", \"B\"), 10, replace = TRUE)\nresult <- differential_SNP(snpDf, sampleGroup)"
+    },
+    {
+      "name": "geo_chip_data_preprocessing",
+      "intent": "Preprocess GEO microarray data by averaging duplicate gene symbols and resolving multi-mapped probe IDs.",
+      "input": [
+        "file_gene_ave (data frame of gene expression with duplicate gene symbols)",
+        "input_file (data frame of expression data with multi-mapped probe IDs)"
+      ],
+      "stages": "1. Average expression values of different IDs for the same gene using gene_ave ;; 2. Resolve multi-mapped probe IDs by either assigning the expression to each gene using repAssign or deleting them using repRemove.",
+      "code": "aa <- c(\"MARCH1\",\"MARC1\",\"MARCH1\",\"MARCH1\",\"MARCH1\")\nbb <- c(2.969058399,4.722410064,8.165514853,8.24243893,8.60815086)\ncc <- c(3.969058399,5.722410064,7.165514853,6.24243893,7.60815086)\nfile_gene_ave <- data.frame(aa=aa,bb=bb,cc=cc)\ncolnames(file_gene_ave) <- c(\"Gene\", \"GSM1629982\", \"GSM1629983\")\nresult <- gene_ave(file_gene_ave, 1)\n\naa <- c(\"MARCH1 /// MMA\",\"MARC1\",\"MARCH2 /// MARCH3\",\n        \"MARCH3 /// MARCH4\",\"MARCH1\")\nbb <- c(\"2.969058399\",\"4.722410064\",\"8.165514853\",\"8.24243893\",\"8.60815086\")\ncc <- c(\"3.969058399\",\"5.722410064\",\"7.165514853\",\"6.24243893\",\"7.60815086\")\ninput_file <- data.frame(aa=aa,bb=bb,cc=cc)\nrepAssign_result <- repAssign(input_file,\" /// \")\nrepRemove_result <- repRemove(input_file,\" /// \")"
+    },
+    {
+      "name": "tcga_id_conversion_and_normalization",
+      "intent": "Convert TCGA ENSEMBL gene IDs to gene symbols and normalize raw counts to FPKM or TPM.",
+      "input": [
+        "profile (matrix or data frame of TCGA gene expression data with ENSEMBL IDs)",
+        "lung_squ_count2 (matrix of raw RNA-seq counts)",
+        "gene_cov (gene coverage metadata)"
+      ],
+      "stages": "1. Convert ENSEMBL gene IDs to gene symbols using id_conversion_TCGA ;; 2. Convert raw counts to FPKM using countToFpkm ;; 3. Convert raw counts to TPM using countToTpm.",
+      "code": "data(profile)\nresult <- id_conversion_TCGA(profile)\n\ndata(gene_cov)\nlung_squ_count2 <- matrix(c(1,2,3,4,5,6,7,8,9),ncol=3)\nrownames(lung_squ_count2) <- c(\"DISC1\",\"TCOF1\",\"SPPL3\")\ncolnames(lung_squ_count2) <- c(\"sample1\",\"sample2\",\"sample3\")\nresult <- countToFpkm(lung_squ_count2, keyType = \"SYMBOL\", \n    gene_cov = gene_cov)\n\ndata(gene_cov)\nlung_squ_count2 <- matrix(c(0.11,0.22,0.43,0.14,0.875,\n    0.66,0.77,0.18,0.29),ncol=3)\nrownames(lung_squ_count2) <- c(\"DISC1\",\"TCOF1\",\"SPPL3\")\ncolnames(lung_squ_count2) <- c(\"sample1\",\"sample2\",\"sample3\")\nresult <- countToTpm(lung_squ_count2, keyType = \"SYMBOL\", \n    gene_cov = gene_cov)"
+    }
+  ]
+}

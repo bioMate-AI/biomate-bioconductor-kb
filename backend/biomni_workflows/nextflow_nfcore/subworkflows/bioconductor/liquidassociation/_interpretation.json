@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dim=specifies which column in the data matrix (or which gene) acts as the third controller variable (X3) ;; cut=specifies the number of grid points over the third controller gene for GLA estimation and plotting ;; boots=number of bootstrap iterations for estimating the bootstrap standard error in hypothesis testing ;; perm=number of iterations to calculate the permuted p-value in hypothesis testing ;; geneMap=a character vector mapping gene names to probe IDs when using an ExpressionSet as input\n- alternatives: LA (three-product-moment estimator) vs GLA (generalized liquid association): GLA is more robust than LA because it correctly captures liquid association even when the marginal mean and variance depend on the third variable ;; getsGLA (direct estimate testing) vs CNM.full (model-based testing): CNM.full uses a conditional normal model with GEE-based estimation to test the b5 parameter, while getsGLA uses a direct bootstrap/permutation approach on the GLA statistic\n- when_to_use: Use this package when investigating three-way gene interactions (triplets) in transcriptomics data to determine if the correlation between two genes changes dynamically based on the expression level of a third controller gene.\n- pitfalls: The calculation of liquid association measures assumes all three variables are standardized (mean 0, variance 1) and the third variable is normally distributed. While functions like GLA, LA, CNM.full, getsGLA, and getsLA perform standardization and quantile normalization internally, users must ensure data is properly preprocessed (e.g., handling missing values and filtering low-variance genes) before running large-scale triplet searches. Additionally, using too few bootstrap (boots) or permutation (perm) iterations (e.g., boots=20, perm=50 used for demonstration) may lead to inaccurate p-values; larger numbers are needed for real applications.",
+  "workflows": [
+    {
+      "name": "triplet_liquid_association_analysis",
+      "intent": "Estimate and test liquid association for a specific gene triplet of interest.",
+      "input": [
+        "data (matrix of expression values with samples as rows and 3 genes as columns)",
+        "eSetdata (ExpressionSet containing expression values for the 3 genes)"
+      ],
+      "stages": "1. Plot conditional distributions using plotGLA ;; 2. Calculate direct estimates using LA and GLA ;; 3. Fit the conditional normal model using CNM.full ;; 4. Perform hypothesis testing using getsGLA and getsLA",
+      "code": "plotGLA(data, cut=3, dim=3, pch=16, filen=\"GLAplot\", save=TRUE)\nLAest<-LA(data)\nGLAest<-rep(0,3)\nfor ( dim in 1:3){\n\tGLAest[dim]<-GLA(data, cut=4, dim=dim)\t\t\n}\neSetGLA<-GLA(eSetdata, cut=4, dim=3, geneMap=geneMap)\nFitCNM.full<-CNM.full(data)\nsGLAest<-getsGLA(data, boots=20, perm=50, cut=4, dim=3)\nsLAest<-getsLA(data,boots=20, perm=50)"
+    },
+    {
+      "name": "genome_wide_triplet_screening",
+      "intent": "Screen a large set of genes to identify triplets with high liquid association and test the top candidates.",
+      "input": [
+        "lae (matrix of expression values with samples as rows and genes as columns)"
+      ],
+      "stages": "1. Filter genes with small variances ;; 2. Generate all triplet combinations and calculate GLA ;; 3. Identify triplets with large GLA estimates ;; 4. Standardize and normalize the top triplet data using qqnorm2 and stand ;; 5. Fit CNM and perform hypothesis testing on the selected triplet",
+      "code": "V<-apply(lae, 2, var, na.rm=TRUE)\nibig<-V > 0.5\nbig<-which(ibig)\nbigtriplet<-lae[,big]\nnum<-choose(ncol(bigtriplet),3)\npick<-t(combn(1:ncol(bigtriplet),3))\nGLAout<-matrix(0, nrow=100, 3)\nfor ( i in 1:100){\n\tdat1<-bigtriplet[,pick[i,]]\n\tfor ( dim in 1:3 ){\n\t\tGLAout[i,dim]<-GLA(dat1, cut=4, dim=dim)\n\t}\n}\nGLAmax<-apply(abs(GLAout),1, max)\nimax<-which(GLAmax > 0.20)\npickmax<-pick[imax,]\nGLAmax<-GLAout[imax,]\ntrip.order<-t(apply(t(abs(GLAmax)), 2, order, decreasing=TRUE))\nwhtrip<-1\ndata<-bigtriplet[,pickmax[whtrip,]]\ndata<-data[,trip.order[whtrip,]]\ndata<-data[!is.na(data[,1]) & !is.na(data[,2]) & !is.na(data[,3]),]\ndata<-apply(data,2,qqnorm2)\ndata<-apply(data,2, stand)\nFitCNM1<-CNM.full(data)\nsGLA1<-getsGLA(data, boots=20, perm=50, cut=4, dim=3)"
+    }
+  ]
+}

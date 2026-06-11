@@ -1,130 +1,176 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Oscope
-// Oscope is a statistical pipeline developed to identifying and recovering the base cycle profiles of 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Oscope/inst/doc/Oscope_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Oscope")
+// Bioconductor workflow: Oscope — oscillating_gene_pipeline
+// Identify co-regulated oscillating gene clusters and reconstruct the cyclic order of unsynchronized single-cell RNA-seq samples.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-oscope:1.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Oscope
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Library size normalization using MedianNorm and GetNormalizedMat
+//  * 2. [Core Analysis] Mean and variance estimation and gene filtering using CalcMV
+//  * 3. [Core Analysis] Rescaling expression measurements to [-1, 1] using NormForSine
+//  * 4. [Core Analysis] Paired-sine modeling using OscopeSine
+//  * 5. [Core Analysis] K-medoids clustering using OscopeKM
+//  * 6. [Core Analysis] Flagging and removing invalid clusters using FlagCluster
+//  * 7. [Core Analysis] Reconstructing base cycle cell orders using OscopeENI
 
 nextflow.enable.dsl = 2
 
-process BIOC_OSCOPE {
+process BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-oscope"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-oscope:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-oscope:1.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_oscope_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_oscope_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_oscope_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CalcMV)
-    library(FlagCluster)
-    library(GetNormalizedMat)
-    library(MedianNorm)
-    library(NormForSine)
-    library(OscopeENI)
-    library(OscopeKM)
-    library(OscopeSine)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(Oscope)
+        
+        # Set seed for reproducibility
+        set.seed(10)
+        
+        # 1. Read User Input
+        # The pipeline reads expression_matrix.csv from the working directory.
+        # This is a G-by-S matrix of raw gene expression values.
+        if (!file.exists("expression_matrix.csv")) {
+          stop("Error: 'expression_matrix.csv' not found in the working directory.")
+        }
+        
+        OscopeExampleData <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+        
+        # Open PDF device to capture all generated plots (Mean-Variance plot and recovered profiles)
+        pdf("oscope_pipeline_plots.pdf", width = 8, height = 10)
+        
+        # 2. Library size normalization
+        Sizes <- MedianNorm(OscopeExampleData)
+        DataNorm <- GetNormalizedMat(OscopeExampleData, Sizes)
+        
+        # 3. Mean and variance estimation and gene filtering
+        # This call automatically plots the Mean-Variance relationship to the active PDF device
+        MV <- CalcMV(Data = OscopeExampleData, Sizes = Sizes)
+        DataSubset <- DataNorm[MV\$GeneToUse,]
+        
+        # 4. Rescaling expression measurements to [-1, 1]
+        DataInput <- NormForSine(DataSubset)
+        
+        # 5. Paired-sine modeling
+        SineRes <- OscopeSine(DataInput, parallel=TRUE)
+        
+        # 6. K-medoids clustering
+        KMRes <- OscopeKM(SineRes, maxK = 10)
+        
+        # 7. Flagging and removing invalid clusters
+        ToRM <- FlagCluster(SineRes, KMRes, DataInput)
+        
+        # Handle flagging safely while preserving the exact documented code structure
+        if (length(ToRM\$FlagID) > 0) {
+          KMResUse <- KMRes[-ToRM\$FlagID]
+        } else {
+          KMResUse <- KMRes
+        }
+        
+        # 8. Reconstructing base cycle cell orders using Extended Nearest Insertion
+        ENIRes <- OscopeENI(KMRes = KMResUse, Data = DataInput, NCThre = 100, parallel=TRUE)
+        
+        # Reorder the normalized expression matrix based on the recovered order of cluster 2
+        if ("cluster2" %in% names(ENIRes)) {
+          DataNorm2 <- DataNorm[, ENIRes[["cluster2"]]]
+          write.csv(DataNorm2, "reordered_cluster2_expression.csv", row.names = TRUE)
+        }
+        
+        # 9. Visualization of recovered profiles
+        # Visualize cluster 2 profiles if available
+        if ("cluster2" %in% names(ENIRes) && "cluster2" %in% names(KMResUse)) {
+          genes_to_plot <- KMResUse[["cluster2"]]
+          n_plots <- min(6, length(genes_to_plot))
+          if (n_plots > 0) {
+            par(mfrow = c(3, 2))
+            for (i in 1:n_plots) {
+              plot(DataNorm[genes_to_plot[i], ENIRes[["cluster2"]]],
+                   xlab = "Recovered order", ylab = "Expression",
+                   main = genes_to_plot[i])
+            }
+          }
+        }
+        
+        # Visualize cluster 3 profiles if available
+        if ("cluster3" %in% names(ENIRes) && "cluster3" %in% names(KMResUse)) {
+          genes_to_plot <- KMResUse[["cluster3"]]
+          n_plots <- min(6, length(genes_to_plot))
+          if (n_plots > 0) {
+            par(mfrow = c(3, 2))
+            for (i in 1:n_plots) {
+              plot(DataNorm[genes_to_plot[i], ENIRes[["cluster3"]]],
+                   xlab = "Recovered order", ylab = "Expression",
+                   main = genes_to_plot[i])
+            }
+          }
+        }
+        
+        # Close the PDF device
+        dev.off()
+        
+        # 10. Save meaningful results to files
+        write.csv(DataNorm, "normalized_expression.csv", row.names = TRUE)
+        write.csv(DataSubset, "high_mv_expression_subset.csv", row.names = TRUE)
+        saveRDS(KMResUse, "oscope_clusters_retained.rds")
+        saveRDS(ENIRes, "oscope_eni_results.rds")
+        
+        message("Oscope pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- Data [] ---
-    # Key functions: data, seed
-    data(OscopeExampleData)
-    str(OscopeExampleData)
-    set.seed(10)
-    # --- Mediannorm [] ---
-    # Key functions: MedianNorm
-    Sizes <- MedianNorm(OscopeExampleData)
-    # --- Getnormalizedmat [] ---
-    # Key functions: GetNormalizedMat
-    DataNorm <- GetNormalizedMat(OscopeExampleData, Sizes)
-    # --- Calcmv [] ---
-    # Key functions: CalcMV
-    MV <- CalcMV(Data = OscopeExampleData, Sizes = Sizes)
-    str(MV$GeneToUse)
-    DataSubset <- DataNorm[MV$GeneToUse,]
-    # --- Normforsine [] ---
-    # Key functions: NormForSine
-    DataInput <- NormForSine(DataNorm)
-    # --- Oscopesine [] ---
-    # Key functions: OscopeSine
-    ## SineRes <- OscopeSine(DataInput)
-    ## str(SineRes)
-    # --- Normforsine [] ---
-    # Key functions: NormForSine, OscopeSine
-    ## DataInput2 <- NormForSine(DataSubset)
-    ## SineRes2 <- OscopeSine(DataInput2)
-    # --- Oscopekm [] ---
-    # Key functions: OscopeKM
-    KMRes <- OscopeKM(SineRes, maxK = 10)
-    print(KMRes)
-    # --- Flagcluster [] ---
-    # Key functions: FlagCluster
-    ToRM <- FlagCluster(SineRes, KMRes, DataInput)
-    # --- Oscopeeni [] ---
-    # Key functions: OscopeENI
-    ## ENIRes <- OscopeENI(KMRes = KMResUse, Data = DataInput, NCThre = 100)
-    ## print(ENIRes)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_oscope_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_oscope_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_oscope_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OSCOPE:", paste0("    oscope: ", packageVersion("Oscope"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE":',
+        paste0('    Oscope: ', as.character(packageVersion('Oscope')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_oscope_results.csv
-    touch ${prefix}_oscope_output.rds
-    echo "BIOC_OSCOPE:" > versions.yml
-    echo "    oscope: 0.0.0" >> versions.yml
+    touch ${prefix}_oscillating_gene_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_OSCOPE_WORKFLOW {
+workflow BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_OSCOPE(ch_input)
+    BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_OSCOPE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OSCOPE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OSCOPE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OSCOPE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE.out.tables
+    plots    = BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE.out.plots
+    objects  = BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE.out.objects
+    versions = BIOC_OSCOPE_OSCILLATING_GENE_PIPELINE.out.versions
 }

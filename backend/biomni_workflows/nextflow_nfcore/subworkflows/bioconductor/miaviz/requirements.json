@@ -1,0 +1,49 @@
+{
+  "package": "miaviz",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "mia",
+    "miaTime",
+    "miaViz",
+    "patchwork",
+    "scater"
+  ],
+  "by_workflow": {
+    "factor_and_dmn_plotting.nf": [
+      "ggplot2",
+      "miaViz"
+    ],
+    "graph_plotting.nf": [
+      "ggplot2",
+      "mia",
+      "miaViz",
+      "scater"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "mia",
+      "miaViz",
+      "patchwork"
+    ],
+    "prevalence_plotting.nf": [
+      "ggplot2",
+      "mia",
+      "miaViz"
+    ],
+    "serial_data_and_trajectories.nf": [
+      "dplyr",
+      "ggplot2",
+      "mia",
+      "miaTime",
+      "miaViz",
+      "scater"
+    ],
+    "tree_plotting.nf": [
+      "ggplot2",
+      "mia",
+      "miaViz",
+      "scater"
+    ]
+  }
+}

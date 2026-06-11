@@ -1,0 +1,11 @@
+{
+  "package": "msimpute",
+  "requirements": [
+    "msImpute"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "msImpute"
+    ]
+  }
+}

@@ -1,128 +1,239 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: findIPs
-// Feature rankings can be distorted by a single case in the context of high-dimensional data. The case
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/findIPs/inst/doc/findIPs.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("findIPs")
+// Bioconductor workflow: findIPs — binary_or_continuous_outcome_ip_detection
+// Detect influential points affecting feature rankings for binary or continuous outcomes using t-test, Kruskal-Wallis, or custom ranking functions.
+// Input: expression_matrix.csv, phenotype_labels.csv
+// Container: quay.io/biocontainers/bioconductor-findips:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: findIPs
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Generate original and leave-one-out rankings using getdrop1ranks()
+//  * 2. [Core Analysis] Calculate cumulative rank changes using sumRanks()
+//  * 3. [Core Analysis] Run the complete detection in one step using findIPs()
+//  * 4. [Visualization & Output] Visualize influential points, rank scatters, and adaptive weights using plotIPs(), plotRankScatters(), and plotAdaptiveWeights()
 
 nextflow.enable.dsl = 2
 
-process BIOC_FINDIPS {
+process BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-findips"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-findips:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-findips:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_findips_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_findips_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_findips_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(findIPs)
-    library(jsonlite)
-
-    # --- Rank Summation [] ---
-    # Key functions: sumRanks
-    data(miller05, package = "findIPs")
-    X <- miller05$X
-    y <- miller05$y
-    obj <- getdrop1ranks(X, y, fun = "t.test", decreasing = FALSE, topN = 100)
-    results <- sumRanks(
-        origRank = obj$origRank,
-        drop1Rank = obj$drop1Rank,
-        topN = 100,
-        method = "adaptive"
-    )
-
-
-    # --- Informative Parameter Selection [] ---
-    # Key functions: findIPs
-    data(miller05, package = "findIPs")
-    X <- miller05$X
-    y <- miller05$y
-    results.ipsr <- findIPs(
-        X, 
-        y, 
-        fun = "t.test",
-        decreasing = FALSE,
-        method = "adaptive"
-    )
-
-
-    # --- Visualisation [] ---
-    # Key functions: plotIPs, plotRankScatters, plotAdaptiveWeights
-    data(miller05, package = "findIPs")
-    X <- miller05$X
-    y <- miller05$y
-    results.ipsr <- findIPs(
-        X, 
-        y, 
-        fun = "t.test",
-        decreasing = FALSE,
-        method = "adaptive"
-    )
-    plotIPs(results.ipsr, topn = 5, ylim = c(0, 8))
-    plotRankScatters(results.ipsr)
-    plotAdaptiveWeights(results.ipsr$kappa, n = 100, type = "line")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_findips_results.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 0: Read User Input Files
+    # -----------------------------------------------------------------------------
+    if (!file.exists("expression_matrix.csv") || !file.exists("phenotype_labels.csv")) {
+      stop("Required input files 'expression_matrix.csv' and/or 'phenotype_labels.csv' are missing in the working directory.")
+    }
+    
+    # Read expression matrix (samples as rows, genes as columns)
+    X_df <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    X <- as.matrix(X_df)
+    
+    # Read phenotype labels
+    y_df <- read.csv("phenotype_labels.csv", header = TRUE)
+    if (ncol(y_df) >= 2) {
+      y <- y_df[[2]]
+      names(y) <- y_df[[1]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_findips_results.csv")
+      y <- y_df[[1]]
+      names(y) <- rownames(X)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_findips_output.rds")
+    
+    # Align samples between expression matrix and phenotype labels
+    common_samples <- intersect(rownames(X), names(y))
+    if (length(common_samples) == 0) {
+      stop("No matching sample IDs found between expression_matrix.csv and phenotype_labels.csv.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FINDIPS:", paste0("    findips: ", packageVersion("findIPs"))),
-        "versions.yml"
+    X <- X[common_samples, , drop = FALSE]
+    y <- y[common_samples]
+    
+    # Ensure y is a factor if it represents binary groups (required for t.test)
+    # Dynamically set the ranking function based on phenotype type
+    if (length(unique(y)) == 2) {
+      y <- as.factor(y)
+      my_fun <- "t.test"
+    } else {
+      my_fun <- function(x, y) { cor.test(x, y)\$p.value }
+    }
+    
+    # Dynamically set the number of top features to avoid errors with small datasets
+    n_features <- min(100, ncol(X))
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Generate original and leave-one-out rankings using getdrop1ranks()
+    # -----------------------------------------------------------------------------
+    obj <- getdrop1ranks(X, y,
+                         fun = my_fun,
+                         decreasing = FALSE,
+                         topN = n_features)
+    str(obj)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Calculate cumulative rank changes using sumRanks()
+    # -----------------------------------------------------------------------------
+    results <- sumRanks(origRank = obj\$origRank,
+                        drop1Rank = obj\$drop1Rank,
+                        topN = n_features,
+                        method = "adaptive")
+    str(results)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Run the complete detection in one step using findIPs()
+    # -----------------------------------------------------------------------------
+    results.ipsr <- findIPs(X, y, 
+                            fun = my_fun,
+                            decreasing = FALSE,
+                            method = "adaptive")
+    
+    # Verify consistency between two-step and one-step approaches
+    identical_check <- identical(results, results.ipsr)
+    message("Two-step and one-step results are identical: ", identical_check)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Visualize influential points, rank scatters, and adaptive weights
+    # -----------------------------------------------------------------------------
+    pdf("influential_points_plots.pdf", width = 8, height = 6)
+    
+    # Plot 1: Lollipop plot of influence scores
+    par(mar = c(4, 4, 2, 2))
+    plotIPs(results.ipsr, topn = 5)
+    
+    # Plot 2: Scatter plot of rank changes
+    par(mar = c(4, 4, 2, 2))
+    plotRankScatters(results.ipsr)
+    
+    # Plot 3: Adaptive weights function
+    par(mar = c(4, 4, 2, 2))
+    plotAdaptiveWeights(results.ipsr\$kappa, n = n_features, type = "line")
+    
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 5: Customize the rank criteria (Kruskal-Wallis)
+    # -----------------------------------------------------------------------------
+    fun <- function(x, y){
+      kruskal.test(x, y)\$p.value
+    }
+    
+    kruskal.test1 <- getdrop1ranks(X, y, 
+                                   fun = fun, 
+                                   decreasing = FALSE)
+    
+    kruskal.test2 <- getdrop1ranks(X, y, 
+                                   fun = "kruskal.test", 
+                                   decreasing = FALSE)
+    
+    identical_kruskal <- identical(kruskal.test1, kruskal.test2)
+    message("Custom Kruskal-Wallis and built-in Kruskal-Wallis results are identical: ", identical_kruskal)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 6: Comparison of rank comparison methods
+    # -----------------------------------------------------------------------------
+    re.unweighted <- findIPs(X, y, 
+                             fun = my_fun,
+                             decreasing = FALSE,
+                             method = "unweighted")
+    re.weighted <- findIPs(X, y, 
+                           fun = my_fun,
+                           decreasing = FALSE,
+                           method = "weightedSpearman")
+    re.adaptive <- findIPs(X, y, 
+                           fun = my_fun,
+                           decreasing = FALSE,
+                           method = "adaptive")
+    
+    pdf("method_comparison_plots.pdf", width = 12, height = 5)
+    par(mfrow = c(1, 3), mar = c(4, 4, 2, 2))
+    plotIPs(re.unweighted)
+    mtext("A, unweighted", side = 3, line = 0, adj = 0)
+    plotIPs(re.weighted)
+    mtext("B, weighted Spearman", side = 3, line = 0, adj = 0)
+    plotIPs(re.adaptive)
+    mtext("C, adaptive weights", side = 3, line = 0, adj = 0)
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 7: Save Outputs
+    # -----------------------------------------------------------------------------
+    # Save the main results object
+    saveRDS(results.ipsr, "findIPs_results.rds")
+    
+    # Save influence scores to CSV
+    scores_df <- data.frame(
+      Sample = names(results.ipsr\$score),
+      InfluenceScore = results.ipsr\$score,
+      stringsAsFactors = FALSE
     )
+    write.csv(scores_df, "influence_scores.csv", row.names = FALSE)
+    
+    # Save original feature rankings to CSV
+    ranks_df <- data.frame(
+      Rank = seq_along(results.ipsr\$origRank),
+      Feature = results.ipsr\$origRank,
+      stringsAsFactors = FALSE
+    )
+    write.csv(ranks_df, "original_feature_ranks.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
+
+    writeLines(c(
+        '"BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION":',
+        paste0('    findIPs: ', as.character(packageVersion('findIPs')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_findips_results.csv
-    touch ${prefix}_findips_output.rds
-    echo "BIOC_FINDIPS:" > versions.yml
-    echo "    findips: 0.0.0" >> versions.yml
+    touch ${prefix}_binary_or_continuous_outcome_ip_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_FINDIPS_WORKFLOW {
+workflow BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, phenotype_labels.csv ] ]
 
     main:
-    BIOC_FINDIPS(ch_input)
+    BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_FINDIPS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FINDIPS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FINDIPS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FINDIPS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION.out.tables
+    plots    = BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION.out.plots
+    objects  = BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION.out.objects
+    versions = BIOC_FINDIPS_BINARY_OR_CONTINUOUS_OUTCOME_IP_DETECTION.out.versions
 }

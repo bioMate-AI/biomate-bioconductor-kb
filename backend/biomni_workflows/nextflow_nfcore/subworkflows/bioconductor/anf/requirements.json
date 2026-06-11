@@ -1,0 +1,14 @@
+{
+  "package": "anf",
+  "requirements": [
+    "ANF"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ANF"
+    ],
+    "multi_view_affinity_network_fusion.nf": [
+      "ANF"
+    ]
+  }
+}

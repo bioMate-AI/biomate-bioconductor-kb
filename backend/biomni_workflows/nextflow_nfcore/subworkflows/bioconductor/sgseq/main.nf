@@ -1,123 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SGSeq
-// SGSeq is a software package for analyzing splice events from RNA-seq data. Input data are RNA-seq re
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SGSeq/inst/doc/SGSeq.R
-// Upstream  : knitr
-// Downstream: EventPointer
-//
-// Install: BiocManager::install("SGSeq")
+// Bioconductor workflow: SGSeq — annotation_guided_splice_analysis
+// Analyze and quantify splice features and variants using existing transcript annotations.
+// Input: file_bam, txdb
+// Container: quay.io/biocontainers/bioconductor-sgseq:1.44.0--r45hdfd78af_0
+// R packages: GenomeInfoDb, GenomicFeatures, Rsamtools, knitr, SGSeq
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, GenomeInfoDb, GenomicFeatures, Rsamtools, SGSeq
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert TxDb annotation to transcript features using convertToTxFeatures()
+//  * 2. [Core Analysis] Convert transcript features to splice graph features and count compatible fragments using analyzeFeatures()
+//  * 3. [Visualization & Output] Plot splice graph and feature expression using plotFeatures()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SGSEQ {
+process BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sgseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sgseq:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sgseq:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sgseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sgseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sgseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomeInfoDb", "GenomicFeatures", "Rsamtools", "knitr", "SGSeq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(SGSeq)
-    library(jsonlite)
-
-    # --- Transcript Feature Conversion ---
-    # Key functions: convertToTxFeatures, convertToSGFeatures, analyzeFeatures
-    txf_ucsc <- convertToTxFeatures(txdb)
-    txf_ucsc <- txf_ucsc[txf_ucsc %over% gr]
-    sgf_ucsc <- convertToSGFeatures(txf_ucsc)
-    sgfc_ucsc <- analyzeFeatures(si, features = txf_ucsc)
-
-    # --- Splice Graph Feature Prediction and Quantification ---
-    # Key functions: predictTxFeatures, convertToSGFeatures, annotate, getSGFeatureCounts
-    txf <- predictTxFeatures(si, gr)
-    sgf <- convertToSGFeatures(txf)
-    sgf <- annotate(sgf, txf_ucsc)
-    sgfc <- getSGFeatureCounts(si, sgf)
-
-    # --- Splice Variant Identification and Quantification ---
-    # Key functions: findSGVariants, getSGVariantCounts, variantFreq, counts
-    sgv <- findSGVariants(sgf)
-    sgvc <- getSGVariantCounts(sgv, sgfc)
-    v_freq <- variantFreq(sgvc)
-    v_counts <- counts(sgvc)
-
-    # --- Splice Variant Effect Prediction ---
-    # Key functions: predictVariantEffects
-    sgv_pred <- rowRanges(sgvc)
-    vep <- predictVariantEffects(sgv_pred, txdb, Hsapiens)
-
-    # --- Visualisation of Splice Graphs and Coverage ---
-    # Key functions: plotFeatures, plotVariants, plotSpliceGraph, plotCoverage
-    df_feat <- plotFeatures(sgfc, geneID = 1, color_novel = "red")
-    plotVariants(sgvc, eventID = 1, color_novel = "red")
-    plotSpliceGraph(
-        rowRanges(sgfc),
-        geneID = 1,
-        toscale = "none",
-        color_novel = "red"
+    library(GenomeInfoDb)
+    library(GenomicFeatures)
+    library(Rsamtools)
+    
+    # ==========================================
+    # 1. USER INPUT & SAMPLE INFO SETUP
+    # ==========================================
+    
+    # Locate BAM files in the working directory
+    bam_files <- list.files(pattern = "\\\\.bam\$")
+    if (length(bam_files) == 0) {
+      if (file.exists("file_bam")) {
+        bam_files <- "file_bam"
+      } else {
+        stop("Error: No BAM files found in the working directory.")
+      }
+    }
+    
+    # Construct sample information data frame
+    sample_info <- data.frame(
+      sample_name = paste0("Sample_", seq_along(bam_files)),
+      file_bam = bam_files,
+      stringsAsFactors = FALSE
     )
-    plotCoverage(sgfc[, 1], geneID = 1, toscale = "none")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sgseq_results.csv", row.names = TRUE)
+    
+    # Obtain BAM info automatically (paired-end, read length, etc.)
+    si <- getBamInfo(sample_info)
+    
+    # Locate and load the TxDb object
+    txdb <- NULL
+    if (file.exists("txdb")) {
+      txdb <- tryCatch({
+        AnnotationDbi::loadDb("txdb")
+      }, error = function(e) {
+        readRDS("txdb")
+      })
+    } else if (file.exists("txdb.rds")) {
+      txdb <- readRDS("txdb.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sgseq_results.csv")
+      # Fallback: search for any sqlite or rds file in the working directory
+      txdb_files <- list.files(pattern = "\\\\.(sqlite|sqlite3|db|rds)\$")
+      if (length(txdb_files) > 0) {
+        txdb <- tryCatch({
+          AnnotationDbi::loadDb(txdb_files[1])
+        }, error = function(e) {
+          readRDS(txdb_files[1])
+        })
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sgseq_output.rds")
+    
+    if (is.null(txdb)) {
+      stop("Error: TxDb annotation object/file not found in the working directory.")
+    }
+    
+    # ==========================================
+    # 2. EXECUTING THE DOCUMENTED WORKFLOW
+    # ==========================================
+    
+    txf_ucsc <- convertToTxFeatures(txdb)
+    
+    sgfc_ucsc <- analyzeFeatures(si, features = txf_ucsc)
+    
+    # Save plot to PDF and capture the returned data frame
+    pdf("splice_graph_features.pdf", width = 10, height = 8)
+    df <- NULL
+    if (length(rowRanges(sgfc_ucsc)) > 0) {
+      valid_geneID <- geneID(rowRanges(sgfc_ucsc))[1]
+      df <- plotFeatures(sgfc_ucsc, geneID = valid_geneID)
+    }
+    dev.off()
+    
+    # ==========================================
+    # 3. WRITE OUTPUTS
+    # ==========================================
+    
+    # Save the quantified splice features
+    saveRDS(sgfc_ucsc, "sgfc_ucsc.rds")
+    
+    # Save the details of the plotted features
+    if (!is.null(df)) {
+      write.csv(df, "plot_features_details.csv", row.names = FALSE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SGSEQ:", paste0("    sgseq: ", packageVersion("SGSeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS":',
+        paste0('    SGSeq: ', as.character(packageVersion('SGSeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sgseq_results.csv
-    touch ${prefix}_sgseq_output.rds
-    echo "BIOC_SGSEQ:" > versions.yml
-    echo "    sgseq: 0.0.0" >> versions.yml
+    touch ${prefix}_annotation_guided_splice_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SGSEQ_WORKFLOW {
+workflow BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file_bam, txdb ] ]
 
     main:
-    BIOC_SGSEQ(ch_input)
+    BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SGSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SGSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SGSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SGSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS.out.tables
+    plots    = BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS.out.plots
+    objects  = BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS.out.objects
+    versions = BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS.out.versions
 }

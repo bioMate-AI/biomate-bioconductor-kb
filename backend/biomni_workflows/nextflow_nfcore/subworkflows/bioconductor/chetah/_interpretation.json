@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: input=The input SingleCellExperiment object to be classified ;; ref_cells=The reference SingleCellExperiment object containing annotated cell types ;; interm=Logical parameter in PlotCHETAH; if TRUE, colors intermediate types instead of final types ;; return_col=Logical parameter in PlotCHETAH; if TRUE, returns the color mapping ;; tree=Logical parameter in PlotCHETAH; if FALSE, suppresses plotting of the classification tree ;; confidence threshold=Numeric value passed to Classify (default 0.1) controlling classification stringency ;; whichnode=Integer node number in RenameBelowNode to target for renaming ;; replacement=Character string in RenameBelowNode specifying the new name for the node's descendants ;; n_genes=Parameter in CHETAHclassifier (default 200) specifying the number of genes used for classification\n- alternatives: Seurat (mentioned for downstream visualization and color usage) ;; Other scRNA-seq classification methods (generic mention for optimization)\n- when_to_use: When classifying cell types in scRNA-seq query data using an annotated reference dataset, especially when hierarchical classification and intermediate/unassigned cell state assignments are desired.\n- pitfalls: Using unnormalized reference data (reference data must be normalized beforehand, unlike input data) ;; Retaining highly expressed housekeeping genes (e.g., ribosomal protein genes) which can bias classification ;; Insufficient reference cell counts for sparse data (e.g., 10X Genomics data typically requires 100+ cells per cell type, whereas Smart-Seq2 requires only 10-20) ;; Setting the confidence threshold to 0, which forces all cells to final types but introduces noise and false positives ;; Using a reference dataset from a different biological type or cell state than the input data",
+  "workflows": [
+    {
+      "name": "cell_type_classification",
+      "intent": "Classify single-cell RNA-seq query data using a reference dataset and explore or adjust the classification results.",
+      "input": [
+        "input_counts (matrix of raw scRNA-seq counts for query cells)",
+        "input_tsne (matrix of 2D reduced dimensions for query cells)",
+        "ref_counts (matrix of normalized scRNA-seq counts for reference cells)",
+        "ref_ct (named character vector of cell types for reference cells)"
+      ],
+      "stages": "1. Create SingleCellExperiment objects for both reference and input data ;; 2. Run the hierarchical classification using CHETAHclassifier ;; 3. Visualize the classification tree and t-SNE map using PlotCHETAH ;; 4. Adjust the classification confidence threshold using Classify ;; 5. Rename intermediate or final cell types using RenameBelowNode ;; 6. Launch the interactive Shiny application using CHETAHshiny",
+      "code": "reference <- SingleCellExperiment(assays = list(counts = ref_counts),\n                                     colData = DataFrame(celltypes = ref_ct))\n\ninput <- SingleCellExperiment(assays = list(counts = input_counts),\n                              reducedDims = SimpleList(TSNE = input_tsne))\n\ninput <- CHETAHclassifier(input = input, ref_cells = reference)\n\nPlotCHETAH(input)\n\ncelltypes <- input$celltype_CHETAH\n\nPlotCHETAH(input = input_mel, interm = TRUE)\n\ncolors <- PlotCHETAH(input = input_mel, return_col = TRUE)\n\nCHETAHshiny(input = input_mel)\n\ninput_mel <- Classify(input = input_mel, 0.8)\nPlotCHETAH(input = input_mel, tree = FALSE)\n\ninput_mel <- Classify(input_mel, 0)\nPlotCHETAH(input = input_mel, tree = FALSE)\n\ninput_mel <- RenameBelowNode(input_mel, whichnode = 6, replacement = \"T cell\")\nPlotCHETAH(input = input_mel, tree = FALSE)\n\ninput_mel <- Classify(input_mel)\nPlotCHETAH(input = input_mel, tree = FALSE)"
+    },
+    {
+      "name": "reference_qc_and_preparation",
+      "intent": "Prepare and evaluate the quality of a reference dataset to ensure optimal cell type classification performance.",
+      "input": [
+        "headneck_ref (SingleCellExperiment object containing reference counts and cell type metadata)",
+        "ribosomal.txt (text file containing ribosomal gene names to discard)"
+      ],
+      "stages": "1. Normalize the reference counts ;; 2. Filter out highly expressed housekeeping/ribosomal genes ;; 3. Correlate reference cell types using CorrelateReference to check distinguishability ;; 4. Perform self-classification of the reference using ClassifyReference to identify potential mix-ups",
+      "code": "assay(headneck_ref, \"counts\") <- apply(assay(headneck_ref, \"counts\"), 2, function(column) log2((column/sum(column) * 100000) + 1))\n\nribo <- read.table(\"~/ribosomal.txt\", header = FALSE, sep = '\\t')\nheadneck_ref <- headneck_ref[!rownames(headneck_ref) %in% ribo[,1], ]\n\nCorrelateReference(ref_cells = headneck_ref)\n\nClassifyReference(ref_cells = headneck_ref)"
+    }
+  ]
+}

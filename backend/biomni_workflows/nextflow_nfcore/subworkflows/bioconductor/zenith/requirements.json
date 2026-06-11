@@ -1,0 +1,19 @@
+{
+  "package": "zenith",
+  "requirements": [
+    "edgeR",
+    "kableExtra",
+    "tweeDEseqCountData",
+    "variancePartition",
+    "zenith"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "edgeR",
+      "kableExtra",
+      "tweeDEseqCountData",
+      "variancePartition",
+      "zenith"
+    ]
+  }
+}

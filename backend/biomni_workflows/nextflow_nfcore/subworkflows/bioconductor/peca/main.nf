@@ -1,105 +1,120 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PECA
-// Calculates Probe-level Expression Change Averages (PECA) to identify differential expression in Affy
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PECA/inst/doc/PECA.R
-// Upstream  : SpikeIn
-// Downstream: none
-//
-// Install: BiocManager::install("PECA")
+// Bioconductor workflow: PECA — peca_proteomics_tsv
+// Identify differential protein expression from peptide-level measurements in a TSV file.
+// Input: peptides.tsv
+// Container: quay.io/biocontainers/bioconductor-peca:1.42.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: PECA
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define sample groups
+//  * 2. [Core Analysis] Run PECA on the TSV file using PECA_tsv
 
 nextflow.enable.dsl = 2
 
-process BIOC_PECA {
+process BIOC_PECA_PECA_PROTEOMICS_TSV {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-peca"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-peca:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-peca:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_peca_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_peca_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_peca_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PECA_AffyBatch)
-    library(PECA_tsv)
-    library(jsonlite)
-
-    # --- Peptides Data [] ---
-    # Key functions: csv
-    filePath <- system.file("extdata", "peptides.tsv", package="PECA")
-    data <- read.csv(file=filePath, sep="\t")
-    head(data)
-    # --- Peptides Peca [] ---
-    # Key functions: PECA_tsv
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
     library(PECA)
-    group1 <- c("A1", "A2", "A3")
-    group2 <- c("B1", "B2", "B3")
+    
+    # Define the input file path as specified in the user input requirements
+    filePath <- "peptides.tsv"
+    
+    # Verify that the input file exists before proceeding
+    if (!file.exists(filePath)) {
+      stop(paste("Error: Input file", filePath, "not found in the working directory."))
+    }
+    
+    # Read a few rows to determine column names and types
+    data_sample <- read.csv(filePath, sep = "\t", nrows = 5)
+    
+    # Exclude the first column (Protein IDs)
+    potential_samples <- colnames(data_sample)[-1]
+    
+    # Keep only numeric columns as sample columns (ignores columns like 'Sequence')
+    is_num <- sapply(data_sample[potential_samples], is.numeric)
+    sample_cols <- potential_samples[is_num]
+    
+    # Split the sample columns into two groups for comparison
+    half <- length(sample_cols) %/% 2
+    group1 <- sample_cols[1:half]
+    group2 <- sample_cols[(half + 1):length(sample_cols)]
+    
+    # Run PECA on the TSV file
     results <- PECA_tsv(filePath, group1, group2)
-    # --- Microarray Data [] ---
-    # Key functions: data
-    library(SpikeIn)
-    data(SpikeIn133)
-    # --- Microarray Peca [] ---
-    # Key functions: PECA_AffyBatch
-    data <- SpikeIn133[,c(1,15,29,2,16,30)]
-    results <- PECA_AffyBatch(normalize="true", affy=data)
+    
+    # Write the meaningful results to output files
+    write.csv(results, file = "peca_results.csv", row.names = TRUE)
+    saveRDS(results, file = "peca_results.rds")
+    
+    # Generate a diagnostic plot of the p-value distribution
+    tryCatch({
+      pdf("peca_pvalues_histogram.pdf")
+      hist(results\$p, breaks = 50, col = "skyblue",
+           main = "Histogram of PECA p-values",
+           xlab = "p-value")
+      dev.off()
+    }, error = function(e) {
+      message("Could not generate PDF plot: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_peca_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_peca_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_peca_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PECA:", paste0("    peca: ", packageVersion("PECA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PECA_PECA_PROTEOMICS_TSV":',
+        paste0('    PECA: ', as.character(packageVersion('PECA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_peca_results.csv
-    touch ${prefix}_peca_output.rds
-    echo "BIOC_PECA:" > versions.yml
-    echo "    peca: 0.0.0" >> versions.yml
+    touch ${prefix}_peca_proteomics_tsv.csv versions.yml
     """
 }
 
-
-workflow BIOC_PECA_WORKFLOW {
+workflow BIOC_PECA_PECA_PROTEOMICS_TSV_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peptides.tsv ] ]
 
     main:
-    BIOC_PECA(ch_input)
+    BIOC_PECA_PECA_PROTEOMICS_TSV(ch_input)
 
     emit:
-    results  = BIOC_PECA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PECA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PECA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PECA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PECA_PECA_PROTEOMICS_TSV.out.tables
+    plots    = BIOC_PECA_PECA_PROTEOMICS_TSV.out.plots
+    objects  = BIOC_PECA_PECA_PROTEOMICS_TSV.out.objects
+    versions = BIOC_PECA_PECA_PROTEOMICS_TSV.out.versions
 }

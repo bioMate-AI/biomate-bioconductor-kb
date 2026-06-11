@@ -1,0 +1,13 @@
+{
+  "package": "clustall",
+  "requirements": [
+    "ClustAll",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ClustAll",
+      "htmlwidgets"
+    ]
+  }
+}

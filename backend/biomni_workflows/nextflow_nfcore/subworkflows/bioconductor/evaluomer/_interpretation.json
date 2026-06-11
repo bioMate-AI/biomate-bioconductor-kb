@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: k=The number of clusters for k-means (must be between 2 and 15) ;; bs=The number of bootstrap replicates for stability analysis ;; k.range=A vector of length 2 specifying the range of k values to evaluate ;; getImages=Logical to enable (TRUE) or disable (FALSE) plotting ;; seed=Random seed for reproducibility in stability and quality range calculations ;; margins=Margin sizes for correlation plotting in metricsCorrelations\n- alternatives: None mentioned in the documentation.\n- when_to_use: When you have a dataset of instances (such as ontologies, pathways, or RNA samples) and multiple metrics measured on them, and you want to evaluate which metrics are reliable, stable, and provide good classification structures.\n- pitfalls: The value of k must be inside the [2,15] range. The input SummarizedExperiment must follow a specific structure where the first column of the assay is the ID/name of the instance and the other columns contain the metric names. If the highest stability and highest goodness are obtained for different values of k, additional criteria (provided in the package's algorithm) are needed to select the optimal k.",
+  "workflows": [
+    {
+      "name": "metric_reliability_evaluation",
+      "intent": "Evaluate the reliability of bioinformatics metrics by analyzing their correlations, clustering stability, and classification goodness across a range of cluster numbers (k), and determine the optimal k.",
+      "input": [
+        "SummarizedExperiment (containing an assay where rows are instances and columns are metric measurements)"
+      ],
+      "stages": "1. Calculate Pearson correlation coefficients between metrics using metricsCorrelations ;; 2. Analyze clustering stability for a single k or a range of k values using stability or stabilityRange ;; 3. Assess goodness of classifications (silhouette width) for a single k or a range of k values using quality or qualityRange ;; 4. Retrieve specific data from quality range results using getDataQualityRange ;; 5. Determine the optimal value of k for each metric using getOptimalKValue",
+      "code": "correlationSE <- metricsCorrelations(rnaMetrics, margins =  c(4,4,12,10))\nstabilityData <- stability(rnaMetrics, k=2, bs = 100)\nstabilityRangeData = stabilityRange(rnaMetrics, k.range=c(2,4), bs = 100)\nqualityData = quality(rnaMetrics, k = 4)\nk.range = c(4,6)\nqualityRangeData = qualityRange(rnaMetrics, k.range)\nk5Data = getDataQualityRange(qualityRangeData, 5)\nstabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4), bs=20, getImages = FALSE, seed=100)\nqualityData <- qualityRange(data=ontMetrics, k.range=c(2,4), getImages = FALSE, seed=100)\nkOptTable <- getOptimalKValue(stabilityData, qualityData)\nkOptTable <- getOptimalKValue(stabilityData, qualityData, k.range=c(3,4))"
+    },
+    {
+      "name": "metric_distribution_analysis",
+      "intent": "Visualize and analyze the distribution, range, and hierarchical clustering of bioinformatics metrics.",
+      "input": [
+        "SummarizedExperiment (containing metric measurements)"
+      ],
+      "stages": "1. Plot the minimum, maximum, and standard deviation of metrics using plotMetricsMinMax ;; 2. Generate boxplots of metric values using plotMetricsBoxplot ;; 3. Cluster metrics hierarchically using euclidean distance and Ward's method with plotMetricsCluster ;; 4. Generate violin plots of metric values using plotMetricsViolin",
+      "code": "plotMetricsMinMax(ontMetrics)\nplotMetricsBoxplot(rnaMetrics)\nplotMetricsCluster(ontMetrics)\nplotMetricsViolin(rnaMetrics)"
+    }
+  ]
+}

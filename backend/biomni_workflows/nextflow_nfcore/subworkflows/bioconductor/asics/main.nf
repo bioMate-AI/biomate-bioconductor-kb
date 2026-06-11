@@ -1,101 +1,195 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ASICS
-// With a set of pure metabolite reference spectra, ASICS quantifies concentration of metabolites in a 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ASICS/inst/doc/ASICS.R
-// Upstream  : ASICSdata
-// Downstream: none
-//
-// Install: BiocManager::install("ASICS")
+// Bioconductor workflow: asics — metabolite_quantification_and_analysis
+// Preprocess raw 1D 1H NMR spectra, identify and quantify metabolites using a reference library, and perform downstream statistical analyses (PCA, OPLS-DA, Kruska
+// Input: raw_spectra_directory, design_file.txt
+// Container: quay.io/biocontainers/bioconductor-asics:2.26.0--r45hdfd78af_0
+// R packages: ASICS, asicsdata
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ASICS {
+process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-asics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-asics:2.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-asics:2.22.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-asics:2.26.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_asics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_asics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_asics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ASICS)
-    library(ASICSUsersGuide)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ASICS", "asicsdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- A S I C S Users Guide [] ---
-    # Key functions: ASICSUsersGuide
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(ASICS)
-    ASICSUsersGuide(view = FALSE)
-    # --- import Spectra Bruker [] ---
-    # Key functions: importSpectraBruker
-    current_path <- system.file("extdata", "example_spectra", package = "ASICS")
-    spectra_data <- importSpectraBruker(current_path)
-    # --- create Spectra [] ---
-    # Key functions: createSpectra
-    spectra_obj <- createSpectra(spectra_data)
-    # --- A S I C S [] ---
-    # Key functions: ASICS
-    to_exclude <- matrix(c(4.5, 10), ncol = 2)
-    resASICS <- ASICS(spectra_obj, exclusion.areas = to_exclude, verbose = FALSE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_asics_results.csv", row.names = TRUE)
+    
+    # ----------------------------------------------------------------------
+    # 1. Import raw spectra and design metadata
+    # ----------------------------------------------------------------------
+    design_file <- "design_file.txt"
+    if (!file.exists(design_file)) {
+      stop("Required design file 'design_file.txt' not found in the working directory.")
+    }
+    
+    # Read design metadata
+    design <- read.table(design_file, header = TRUE, stringsAsFactors = FALSE)
+    
+    # Ensure the grouping column "condition" exists in design.
+    # If not, rename the second column to "condition" to match the documented workflow.
+    if (!"condition" %in% colnames(design)) {
+      if (ncol(design) >= 2) {
+        colnames(design)[2] <- "condition"
+      } else {
+        stop("Design file must have at least two columns (Sample ID and Grouping/Condition).")
+      }
+    }
+    
+    # Import spectra based on available user input files
+    if (dir.exists("raw_spectra_directory")) {
+      message("Importing Bruker spectra from 'raw_spectra_directory'...")
+      spectra_data <- importSpectraBruker("raw_spectra_directory")
+      spectra_obj <- createSpectra(spectra_data)
+    } else if (file.exists("spectra_file.txt")) {
+      message("Importing spectra from 'spectra_file.txt'...")
+      spectra_data_txt <- read.table("spectra_file.txt", header = TRUE, row.names = 1)
+      spectra_base_cor <- baselineCorrection(spectra_data_txt)
+      spectra_obj <- createSpectra(spectra_base_cor)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_asics_results.csv")
+      stop("Neither 'raw_spectra_directory' nor 'spectra_file.txt' was found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_asics_output.rds")
+    
+    # ----------------------------------------------------------------------
+    # 2. Identify and quantify metabolites using ASICS
+    # ----------------------------------------------------------------------
+    # Define areas to exclude (e.g., water and urea regions)
+    to_exclude <- matrix(c(4.5, 5.1, 5.5, 6.5), ncol = 2, byrow = TRUE)
+    
+    # Run ASICS quantification
+    ASICS_results <- ASICS(spectra_obj, exclusion.areas = to_exclude)
+    
+    # Save quantification results to CSV
+    quant_df <- getQuantification(ASICS_results)
+    write.csv(quant_df, "quantification_results.csv", row.names = TRUE)
+    
+    # ----------------------------------------------------------------------
+    # 3. Format quantification results for downstream analysis
+    # ----------------------------------------------------------------------
+    # Safely handle specified outliers (only exclude if they exist in the dataset)
+    outliers_to_exclude <- c("ADG10003u_007", "ADG19007u_163")
+    outliers_to_exclude <- outliers_to_exclude[outliers_to_exclude %in% colnames(quant_df)]
+    if (length(outliers_to_exclude) == 0) {
+      outliers_to_exclude <- NULL
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ASICS:", paste0("    asics: ", packageVersion("ASICS"))),
-        "versions.yml"
+    
+    analysis_data <- formatForAnalysis(
+      getQuantification(ASICS_results), 
+      design = design, 
+      zero.threshold = 75, 
+      zero.group = "condition", 
+      outliers = outliers_to_exclude
     )
+    
+    # ----------------------------------------------------------------------
+    # 4. Downstream Statistical Analyses
+    # ----------------------------------------------------------------------
+    # PCA Analysis
+    resPCA <- pca(analysis_data)
+    
+    # OPLS-DA Analysis
+    resOPLSDA <- oplsda(analysis_data, condition = "condition", orthoI = 1)
+    
+    # Kruskal-Wallis Tests
+    resTests <- kruskalWallis(analysis_data, "condition")
+    
+    # Save analysis objects
+    saveRDS(ASICS_results, "ASICS_results.rds")
+    saveRDS(analysis_data, "analysis_data.rds")
+    saveRDS(resPCA, "resPCA.rds")
+    saveRDS(resOPLSDA, "resOPLSDA.rds")
+    saveRDS(resTests, "resTests.rds")
+    
+    # ----------------------------------------------------------------------
+    # 5. Visualization and Plotting
+    # ----------------------------------------------------------------------
+    pdf("asics_analysis_plots.pdf", width = 10, height = 8)
+    
+    # Plot ASICS quantification fit for the first spectrum
+    tryCatch({
+      plot(ASICS_results, idx = 1, xlim = c(2.8, 3.3), add.metab = "Creatinine")
+    }, error = function(e) {
+      warning("Could not plot with Creatinine; plotting default fit instead: ", e\$message)
+      plot(ASICS_results, idx = 1, xlim = c(2.8, 3.3))
+    })
+    
+    # Plot PCA results
+    plot(resPCA, graph = "ind", col.ind = "condition")
+    plot(resPCA, graph = "var")
+    
+    # Plot OPLS-DA results
+    plot(resOPLSDA)
+    
+    # Plot Kruskal-Wallis test results
+    plot(resTests)
+    
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
+
+    writeLines(c(
+        '"BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS":',
+        paste0('        asics: ', as.character(packageVersion("asics")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_asics_results.csv
-    touch ${prefix}_asics_output.rds
-    echo "BIOC_ASICS:" > versions.yml
-    echo "    asics: 0.0.0" >> versions.yml
+    touch ${prefix}_metabolite_quantification_and_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ASICS_WORKFLOW {
+workflow BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_spectra_directory, design_file.txt ] ]
 
     main:
-    BIOC_ASICS(ch_input)
+    BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ASICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ASICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ASICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ASICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS.out.tables
+    plots    = BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS.out.plots
+    objects  = BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS.out.objects
+    versions = BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS.out.versions
 }

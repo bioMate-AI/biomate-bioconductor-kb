@@ -1,0 +1,22 @@
+{
+  "package": "biosigner",
+  "requirements": [
+    "MultiAssayExperiment",
+    "SummarizedExperiment",
+    "biosigner"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biosigner"
+    ],
+    "multi_assay_experiment_analysis.nf": [
+      "MultiAssayExperiment",
+      "SummarizedExperiment",
+      "biosigner"
+    ],
+    "summarized_experiment_analysis.nf": [
+      "SummarizedExperiment",
+      "biosigner"
+    ]
+  }
+}

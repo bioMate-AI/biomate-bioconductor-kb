@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: network=The network matrix (e.g., adjacency matrix) or \"correlation\" to build it from data ;; family=Model family, such as \"cox\" for survival or \"binomial\" for classification ;; network.options/options=List of network options created by networkOptions(), containing parameters like minDegree (minimum degree threshold) and cutoff (correlation threshold) ;; foldid=Vector of values identifying the folds for cross-validation, which can be generated using glmSparseNet:::balancedCvFolds() ;; nlambda=Number of lambda values to use in cross-validation\n- alternatives: cv.glmnet from the glmnet package can be used as a baseline when network-based penalization is not desired or when no feature interaction network is available.\n- when_to_use: Use this package when performing high-dimensional sparse regression (e.g., transcriptomics or proteomics) where features have known biological relationships or network structures (like protein-protein interactions) that should guide feature selection.\n- pitfalls: Features not present in the network database will have a degree of 0 and must be handled manually (e.g., adding degree 0 to genes not in the network). Ensure feature names in the expression matrix match the identifiers in the network matrix. Discard individuals with survival time less than or equal to 0 before fitting Cox models.",
+  "workflows": [
+    {
+      "name": "survival_analysis_cox",
+      "intent": "Fit a network-penalized Cox proportional hazards model to survival data using a protein-protein interaction network.",
+      "input": [
+        "xdata (matrix of gene expression values where columns are genes and rows are samples)",
+        "ydata (data frame containing survival 'time' and 'status' columns)"
+      ],
+      "stages": "1. Retrieve and build the network matrix from STRING DB using stringDBhomoSapiens and buildStringNetwork ;; 2. Generate balanced cross-validation folds using glmSparseNet:::balancedCvFolds ;; 3. Fit the network-penalized Cox model using cv.glmHub or cv.glmOrphan ;; 4. Evaluate the model using Kaplan-Meier survival curves via separate2GroupsCox",
+      "code": "allInteractions700 <- stringDBhomoSapiens(scoreThreshold = 700)\nstringNetwork <- buildStringNetwork(allInteractions700, \"external\")\nstringNetworkUndirected <- stringNetwork + Matrix::t(stringNetwork)\nstringNetworkUndirected <- (stringNetworkUndirected != 0) * 1\nfoldid <- glmSparseNet:::balancedCvFolds(ydata$status)$output\nresultCVHub <- cv.glmHub(xdata, Surv(ydata$time, ydata$status), family = \"cox\", foldid = foldid, network = myString, network.options = networkOptions(minDegree = 0.2) )\nresultCVOrphan <- cv.glmOrphan(xdata, Surv(ydata$time, ydata$status), family = \"cox\", foldid = foldid, network = myString, network.options = networkOptions(minDegree = 0.2) )\ncoefsCV <- Filter(function(.x) .x != 0, coef(fitted, s = \"lambda.min\")[, 1])\nseparate2GroupsCox(as.vector(coefsCV), xdata[, names(coefsCV)], ydata, plotTitle = \"Full dataset\", legendOutside = FALSE )"
+    },
+    {
+      "name": "binary_classification_binomial",
+      "intent": "Fit a network-penalized binomial logistic regression model to classify samples using a correlation-based network.",
+      "input": [
+        "xdata (matrix of gene expression values where columns are genes and rows are samples)",
+        "ydata (factor vector of binary class labels for each sample)"
+      ],
+      "stages": "1. Fit the network-penalized binomial model using cv.glmHub with network = \"correlation\" ;; 2. Extract coefficients of the selected model at lambda.min",
+      "code": "fitted <- cv.glmHub(xdata, ydata, family = \"binomial\", network = \"correlation\", nlambda = 1000, options = networkOptions( cutoff = .6, minDegree = .2 ) )\ncoefsCV <- Filter(function(.x) .x != 0, coef(fitted, s = \"lambda.min\")[, 1])"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "package": "clusterprofiler",
+  "requirements": [
+    "clusterProfiler",
+    "enrichplot",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "biological_theme_comparison.nf": [
+      "clusterProfiler",
+      "enrichplot",
+      "org.Hs.eg.db"
+    ],
+    "gene_set_enrichment_analysis.nf": [
+      "clusterProfiler",
+      "enrichplot",
+      "org.Hs.eg.db"
+    ],
+    "main.nf": [
+      "clusterProfiler",
+      "enrichplot",
+      "org.Hs.eg.db"
+    ]
+  }
+}

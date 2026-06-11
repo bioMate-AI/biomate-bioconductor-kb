@@ -1,0 +1,11 @@
+{
+  "package": "quantsmooth",
+  "requirements": [
+    "quantsmooth"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "quantsmooth"
+    ]
+  }
+}

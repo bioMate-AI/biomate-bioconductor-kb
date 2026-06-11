@@ -1,0 +1,16 @@
+{
+  "package": "beclear",
+  "requirements": [
+    "BEclear",
+    "ids"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BEclear",
+      "ids"
+    ],
+    "one_step_batch_correction.nf": [
+      "BEclear"
+    ]
+  }
+}

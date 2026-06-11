@@ -1,104 +1,138 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HIBAG
-// Imputes HLA classical alleles using GWAS SNP data, and it relies on a training set of HLA and SNP ge
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HIBAG/inst/doc/HIBAG.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("HIBAG")
+// Bioconductor workflow: HIBAG — hla_imputation_prefit
+// Impute classical HLA alleles from user-provided PLINK SNP data using pre-fit published HIBAG models.
+// Input: ModelList.RData, .bed, .fam, .bim
+// Container: quay.io/biocontainers/bioconductor-hibag:1.46.0--r45ha27e39d_0
+// R packages: ggplot2, HIBAG
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_HIBAG {
+process BIOC_HIBAG_HLA_IMPUTATION_PREFIT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hibag"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hibag:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hibag:1.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-hibag:1.46.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hibag_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hibag_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hibag_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HIBAG)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: hlaAllele, hlaSplitAllele
-    ---------------------------------------------------------------------------------------------------
-    library(HIBAG)
-    # load HLA types and SNP genotypes in the package
-    data(HLA_Type_Table, package="HIBAG")
-    data(HapMap_CEU_Geno, package="HIBAG")
-    # --- Summary [] ---
-    # Key functions: hlaPredict, hlaCompareAllele
-    ---------------------------------------------------------------------------------------------------
-    summary(model)
-    # validation
-    pred <- hlaPredict(model, test.geno)
-    summary(pred)
-    # --- Hlareport [] ---
-    # Key functions: hlaReport
-    ---------------------------------------------------------------------------------------------------
-    # report overall accuracy, per-allele sensitivity, specificity, etc
-    hlaReport(comp, type="txt")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hibag_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hibag_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hibag_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggplot2", "HIBAG")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HIBAG:", paste0("    hibag: ", packageVersion("HIBAG"))),
-        "versions.yml"
-    )
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the HIBAG package
+    library(HIBAG)
+    
+    # Define the input file names as specified by the user
+    model_file <- "ModelList.RData"
+    bed_file <- ".bed"
+    fam_file <- ".fam"
+    bim_file <- ".bim"
+    
+    # Check for the presence of the required input files
+    if (!file.exists(model_file)) {
+      stop(paste("Error: Required model file", model_file, "is missing from the working directory."))
+    }
+    if (!file.exists(bed_file) || !file.exists(fam_file) || !file.exists(bim_file)) {
+      stop("Error: One or more PLINK files (.bed, .fam, .bim) are missing from the working directory.")
+    }
+    
+    # 1. Load the pre-fit model list and extract the model for the target HLA locus
+    filename <- model_file
+    model.list <- get ( load (filename))
+    hla.id <- "A"
+    model <- hlaModelFromObj (model.list[[hla.id]])
+    
+    # Display model summary
+    summary (model)
+    
+    # Save the model plot to a PDF file
+    pdf("model_plot.pdf", width=8, height=6)
+    plot (model)
+    dev.off()
+    
+    # Display SNP information from the model
+    head (model \$ snp.id)
+    head (model \$ snp.position)
+    
+    # 2. Import the user's PLINK BED files into HIBAG genotype format
+    yourgeno <- hlaBED2Geno ( bed.fn= ".bed" , fam.fn= ".fam" , bim.fn= ".bim" )
+    summary (yourgeno)
+    
+    # 3. Predict HLA genotypes and posterior probabilities using the model
+    pred.guess <- hlaPredict (model, yourgeno, type= "response+prob" )
+    summary (pred.guess)
+    
+    # Display prediction values and posterior probabilities in the console
+    pred.guess \$ value
+    pred.guess \$ postprob
+    
+    # Save meaningful results to output files
+    saveRDS(pred.guess, file = "prediction_results.rds")
+    write.csv(pred.guess\$value, file = "predicted_genotypes.csv", row.names = FALSE)
+    write.csv(pred.guess\$postprob, file = "posterior_probabilities.csv", row.names = FALSE)
+    
+    cat("\nPipeline completed successfully. Outputs saved:\n")
+    cat("- 'model_plot.pdf' (SNP frequency plot)\n")
+    cat("- 'prediction_results.rds' (Complete prediction object)\n")
+    cat("- 'predicted_genotypes.csv' (Best-guess HLA genotypes)\n")
+    cat("- 'posterior_probabilities.csv' (Posterior probabilities for all candidates)\n")
+
+    writeLines(c(
+        '"BIOC_HIBAG_HLA_IMPUTATION_PREFIT":',
+        paste0('        HIBAG: ', as.character(packageVersion("HIBAG")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hibag_results.csv
-    touch ${prefix}_hibag_output.rds
-    echo "BIOC_HIBAG:" > versions.yml
-    echo "    hibag: 0.0.0" >> versions.yml
+    touch ${prefix}_hla_imputation_prefit.csv versions.yml
     """
 }
 
-
-workflow BIOC_HIBAG_WORKFLOW {
+workflow BIOC_HIBAG_HLA_IMPUTATION_PREFIT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ModelList.RData, .bed, .fam, .bim ] ]
 
     main:
-    BIOC_HIBAG(ch_input)
+    BIOC_HIBAG_HLA_IMPUTATION_PREFIT(ch_input)
 
     emit:
-    results  = BIOC_HIBAG.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HIBAG.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HIBAG.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HIBAG.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HIBAG_HLA_IMPUTATION_PREFIT.out.tables
+    plots    = BIOC_HIBAG_HLA_IMPUTATION_PREFIT.out.plots
+    objects  = BIOC_HIBAG_HLA_IMPUTATION_PREFIT.out.objects
+    versions = BIOC_HIBAG_HLA_IMPUTATION_PREFIT.out.versions
 }

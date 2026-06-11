@@ -1,0 +1,24 @@
+{
+  "package": "acgh",
+  "requirements": [
+    "aCGH",
+    "multtest",
+    "survival"
+  ],
+  "by_workflow": {
+    "acgh_association_testing.nf": [
+      "aCGH",
+      "multtest",
+      "survival"
+    ],
+    "acgh_clustering.nf": [
+      "aCGH"
+    ],
+    "acgh_sproc_import.nf": [
+      "aCGH"
+    ],
+    "main.nf": [
+      "aCGH"
+    ]
+  }
+}

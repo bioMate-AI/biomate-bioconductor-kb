@@ -1,88 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChIPexoQual
-// Package with a quality control pipeline for ChIP-exo/nexus data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChIPexoQual/inst/doc/vignette.R
-// Upstream  : BiocParallel, BiocStyle, ChIPexoQualExample, gridExtra, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("ChIPexoQual")
+// Bioconductor workflow: chipexoqual — subsampling_qc_pipeline
+// Assess quality of deeply sequenced ChIP-exo/nexus experiments by subsampling reads to controlled depths.
+// Input: file.bam
+// Container: quay.io/biocontainers/bioconductor-chipexoqual:1.34.0--r45hdfd78af_0
+// R packages: BiocParallel, BiocStyle, ChIPexoQual, chipexoqualexample, ggplot2, gridExtra, knitr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIPEXOQUAL {
+process BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chipexoqual"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chipexoqual:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chipexoqual:1.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chipexoqual:1.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chipexoqual_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chipexoqual_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chipexoqual_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ARCvURCplot)
-    library(jsonlite)
-
-    # --- A R Cv U R Cplot [] ---
-    # Key functions: ARCvURCplot
-    ARCvURCplot(exampleExoData,names.input = paste("Rep",1:3,sep = "-"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chipexoqual_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chipexoqual_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chipexoqual_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocParallel", "BiocStyle", "ChIPexoQual", "chipexoqualexample", "ggplot2", "gridExtra", "knitr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIPEXOQUAL:", paste0("    chipexoqual: ", packageVersion("ChIPexoQual"))),
-        "versions.yml"
-    )
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(ChIPexoQual)
+    library(gridExtra)
+    library(ggplot2)
+    
+    # Define input file
+    input_bam <- "file.bam"
+    
+    # Check if input file exists
+    if (!file.exists(input_bam)) {
+      stop(paste("Required input file '", input_bam, "' not found in the working directory.", sep = ""))
+    }
+    
+    # 1. Subsample reads at specified depths using ExoDataSubsampling
+    message("Running ExoDataSubsampling on ", input_bam, "...")
+    sample.depth = seq(1e5,2e5,5e4)
+    exoList = ExoDataSubsampling(file = input_bam, sample.depth = sample.depth, verbose=FALSE)
+    
+    # Save the subsampled ExoData list object
+    saveRDS(exoList, "exoList_subsampled.rds")
+    message("Saved subsampled ExoData list to 'exoList_subsampled.rds'")
+    
+    # 2. Plot parameter distributions across subsampled depths using paramDistBoxplot
+    message("Generating parameter distribution plots...")
+    p1 = paramDistBoxplot(exoList,which.param = "beta1")
+    p2 = paramDistBoxplot(exoList,which.param = "beta2")
+    
+    # Save plots to PDF
+    pdf("subsampling_qc_plots.pdf", width = 10, height = 5)
+    gridExtra::grid.arrange(p1,p2,nrow = 1)
+    dev.off()
+    message("Saved QC plots to 'subsampling_qc_plots.pdf'")
+    
+    # Extract and save summary statistics
+    message("Extracting summary statistics...")
+    tryCatch({
+      beta1_medians = sapply(exoList, function(x) median(beta1(x)))
+      beta2_medians = sapply(exoList, function(x) median(-beta2(x)))
+      summary_df = data.frame(
+        Subsample_Depth = names(exoList),
+        Median_Beta1 = beta1_medians,
+        Median_Beta2 = beta2_medians
+      )
+      write.csv(summary_df, "subsampling_qc_summary.csv", row.names = FALSE)
+      message("Saved summary statistics to 'subsampling_qc_summary.csv'")
+    }, error = function(e) {
+      warning("Could not extract summary statistics: ", e\$message)
+    })
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE":',
+        paste0('        chipexoqual: ', as.character(packageVersion("chipexoqual")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chipexoqual_results.csv
-    touch ${prefix}_chipexoqual_output.rds
-    echo "BIOC_CHIPEXOQUAL:" > versions.yml
-    echo "    chipexoqual: 0.0.0" >> versions.yml
+    touch ${prefix}_subsampling_qc_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIPEXOQUAL_WORKFLOW {
+workflow BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file.bam ] ]
 
     main:
-    BIOC_CHIPEXOQUAL(ch_input)
+    BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_CHIPEXOQUAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIPEXOQUAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIPEXOQUAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIPEXOQUAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE.out.tables
+    plots    = BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE.out.plots
+    objects  = BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE.out.objects
+    versions = BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE.out.versions
 }

@@ -1,0 +1,25 @@
+{
+  "package": "crlmm",
+  "requirements": [
+    "VanillaICE",
+    "affyio",
+    "crlmm",
+    "ff",
+    "oligoClasses",
+    "snpStats"
+  ],
+  "by_workflow": {
+    "affy_simple_genotyping_gwas.nf": [
+      "crlmm",
+      "oligoClasses",
+      "snpStats"
+    ],
+    "main.nf": [
+      "VanillaICE",
+      "affyio",
+      "crlmm",
+      "ff",
+      "oligoClasses"
+    ]
+  }
+}

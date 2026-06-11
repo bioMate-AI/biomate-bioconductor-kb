@@ -1,0 +1,28 @@
+{
+  "package": "trajectorygeometry",
+  "requirements": [
+    "RColorBrewer",
+    "TrajectoryGeometry",
+    "dplyr",
+    "ggplot2",
+    "rgl"
+  ],
+  "by_workflow": {
+    "branch_point_analysis.nf": [
+      "RColorBrewer",
+      "TrajectoryGeometry",
+      "dplyr",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "RColorBrewer",
+      "TrajectoryGeometry",
+      "dplyr",
+      "ggplot2",
+      "rgl"
+    ],
+    "path_progression_and_randomization.nf": [
+      "TrajectoryGeometry"
+    ]
+  }
+}

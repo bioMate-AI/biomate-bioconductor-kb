@@ -1,0 +1,17 @@
+{
+  "package": "melissa",
+  "requirements": [
+    "BPRMeth",
+    "GenomicRanges",
+    "Melissa",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BPRMeth",
+      "GenomicRanges",
+      "Melissa",
+      "ggplot2"
+    ]
+  }
+}

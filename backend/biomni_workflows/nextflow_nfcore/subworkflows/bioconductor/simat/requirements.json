@@ -1,0 +1,14 @@
+{
+  "package": "simat",
+  "requirements": [
+    "SIMAT"
+  ],
+  "by_workflow": {
+    "fragment_optimization.nf": [
+      "SIMAT"
+    ],
+    "main.nf": [
+      "SIMAT"
+    ]
+  }
+}

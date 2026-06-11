@@ -1,0 +1,15 @@
+{
+  "package": "yarn",
+  "requirements": [
+    "Biobase",
+    "RColorBrewer",
+    "yarn"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "RColorBrewer",
+      "yarn"
+    ]
+  }
+}

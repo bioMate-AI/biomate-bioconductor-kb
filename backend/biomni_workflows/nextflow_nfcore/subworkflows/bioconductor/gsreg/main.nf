@@ -1,157 +1,209 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GSReg
-// A package for gene set analysis based on the variability of expressions as well as a method to detec
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GSReg/inst/doc/GSReg.R
-// Upstream  : GSBenchMark, GenomicRanges
-// Downstream: none
-//
-// Install: BiocManager::install("GSReg")
+// Bioconductor workflow: GSReg — pathway_variability_analysis
+// Identify dysregulated pathways between two phenotypes based on gene expression variability using DIRAC and EVA.
+// Input: exprsdata.csv, diracpathways.rds, phenotypes.csv
+// Container: quay.io/biocontainers/bioconductor-gsreg:1.44.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSReg
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run DIRAC analysis with permutation testing or normal approximation using GSReg.GeneSets.DIRAC
+//  * 2. [Core Analysis] Run EVA analysis using U-statistics theory approximation via GSReg.GeneSets.EVA
 
 nextflow.enable.dsl = 2
 
-process BIOC_GSREG {
+process BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gsreg"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gsreg:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gsreg:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gsreg_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gsreg_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gsreg_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GSReg)
-    library(DIRAC)
-    library(EVA)
-    library(SEVA)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(GSReg)
+        
+        # Check for input files
+        if (!file.exists("exprsdata.csv") || !file.exists("diracpathways.rds") || !file.exists("phenotypes.csv")) {
+          stop("Required input files (exprsdata.csv, diracpathways.rds, phenotypes.csv) are missing in the working directory.")
+        }
+        
+        # Read expression data
+        exprsdata <- as.matrix(read.csv("exprsdata.csv", row.names=1, check.names=FALSE))
+        
+        # Clean NA/NaN values
+        if (any(is.na(exprsdata)) || any(is.nan(exprsdata))) {
+          keep_rows <- apply(exprsdata, 1, function(x) !any(is.na(x) | is.nan(x)))
+          exprsdata <- exprsdata[keep_rows, , drop=FALSE]
+        }
+        
+        # Read pathways
+        diracpathways <- readRDS("diracpathways.rds")
+        
+        # Read phenotypes
+        phenotypes_raw <- read.csv("phenotypes.csv", header=FALSE, stringsAsFactors=FALSE)
+        if (nrow(phenotypes_raw) == ncol(exprsdata) + 1) {
+          phenotypes <- phenotypes_raw[-1, 1]
+        } else {
+          phenotypes <- phenotypes_raw[[1]]
+        }
+        phenotypes <- as.character(phenotypes)
+        
+        # Filter pathways to ensure they have enough genes present in the expression matrix
+        valid_genes <- rownames(exprsdata)
+        diracpathways <- lapply(diracpathways, function(p) intersect(p, valid_genes))
+        diracpathways <- diracpathways[sapply(diracpathways, length) >= 5]
+        
+        if (length(diracpathways) == 0) {
+          stop("No pathways have 5 or more genes represented in the expression data.")
+        }
+        
+        # Run DIRAC analysis with permutation testing and normal approximation
+        Nperm = 10
+        DIRACperm =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,as.factor(phenotypes),Nperm=Nperm)
+        DIRACAn =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,as.factor(phenotypes))
+        
+        # Run EVA analysis using U-statistics theory approximation
+        VarAnKendallV = GSReg.GeneSets.EVA(geneexpres=exprsdata, pathways=diracpathways, phenotypes=as.factor(phenotypes))
+        
+        # Save DIRAC results
+        dirac_df <- data.frame(
+          Pathway = names(DIRACAn\$pvalues),
+          pvalue = DIRACAn\$pvalues,
+          zscore = DIRACAn\$zscores,
+          mu1 = DIRACAn\$mu1,
+          mu2 = DIRACAn\$mu2,
+          stringsAsFactors = FALSE
+        )
+        write.csv(dirac_df, "dirac_results.csv", row.names=FALSE)
+        
+        # Save EVA results
+        eva_df <- data.frame(
+          Pathway = names(VarAnKendallV),
+          E1 = sapply(VarAnKendallV, function(x) x\$E1),
+          E2 = sapply(VarAnKendallV, function(x) x\$E2),
+          zscore = sapply(VarAnKendallV, function(x) x\$zscore),
+          pvalue = sapply(VarAnKendallV, function(x) x\$pvalue),
+          pvalueTotal = sapply(VarAnKendallV, function(x) x\$pvalueTotal),
+          stringsAsFactors = FALSE
+        )
+        write.csv(eva_df, "eva_results.csv", row.names=FALSE)
+        
+        # Generate plots
+        pdf("pathway_variability_plots.pdf", width=10, height=10)
+        par(mfrow=c(2,2))
+        
+        # Plot 1: Hist of DIRAC p-values
+        hist(DIRACAn\$pvalues, xlab="pvalue", main="Hist of pvalues applying DIRAC Analysis.")
+        
+        # Plot 2: DIRAC p-value comparisons
+        plot(x=abs(DIRACAn\$zscores), y=DIRACperm\$pvalues, xlab="|Z-score|",
+             ylab="p-value", col="red1", main="DIRAC p-value comparisons")
+        zscorelin <- seq(min(abs(DIRACAn\$zscores)), max(abs(DIRACAn\$zscores)), by = 0.1)
+        pvaltheoretic = (1-pnorm(zscorelin))*2
+        lines(x=zscorelin, y=pvaltheoretic, type="l", pch=50, lty=5, col="darkblue")
+        legend("topright", legend=c("permutation test", "Normal Approx."),
+               col=c("red1", "blue"), text.col=c("red1", "blue"),
+               lty=c(NA, 1), lwd=c(NA, 2.5), pch=c(21, NA))
+        
+        # Plot 3: P-value Hist of U-Stat
+        pvalustat = sapply(VarAnKendallV, function(x) x\$pvalue)
+        hist(x=pvalustat, breaks=20, main="P-value Hist of U-Stat", xlim=c(0,1))
+        
+        # Plot 4: P-value Comparison DIRAC vs EVA
+        correlation <- tryCatch(cor(x=DIRACAn\$pvalues, y=pvalustat, use="complete.obs"), error=function(e) NA)
+        plot(x=DIRACAn\$pvalues, y=pvalustat, xlab ="DIRAC",
+             ylab="EVA", main=sprintf("P-value Comparison corr=%2.2g", correlation))
+        lmfit = lm(pvalustat ~ DIRACAn\$pvalues - 1)
+        abline(lmfit)
+        
+        dev.off()
+        
+        # Generate dysregulated pathways plots
+        pdf("dysregulated_pathways_plots.pdf", width=12, height=6)
+        par(mfrow=c(1,2))
+        
+        # DIRAC dysregulated
+        significantPathwaysDIRAC = names(DIRACAn\$mu1)[which(DIRACAn\$pvalues < 0.05)]
+        if (length(significantPathwaysDIRAC) > 0) {
+          mu1 = DIRACAn\$mu1[significantPathwaysDIRAC]
+          mu2 = DIRACAn\$mu2[significantPathwaysDIRAC]
+          plot(x=mu1, y=mu2,
+               xlim=c(0, max(c(mu1, mu2), na.rm=TRUE)), ylim=c(0, max(c(mu1, mu2), na.rm=TRUE)),
+               xlab="normal", ylab="disease",
+               main="DIRAC significantly dysregulated pathways")
+          lines(x=c(0, max(c(mu1, mu2), na.rm=TRUE)), y=c(0, max(c(mu1, mu2), na.rm=TRUE)))
+        } else {
+          plot(1, type="n", axes=FALSE, xlab="", ylab="", main="No significant DIRAC pathways (p < 0.05)")
+        }
+        
+        # EVA dysregulated
+        significantPathwaysGSV = names(which(pvalustat < 0.05))
+        if (length(significantPathwaysGSV) > 0) {
+          eta1 = sapply(VarAnKendallV, function(x) x\$E1)[significantPathwaysGSV]
+          eta2 = sapply(VarAnKendallV, function(x) x\$E2)[significantPathwaysGSV]
+          plot(x=eta1, y=eta2,
+               xlim=c(0, max(c(eta1, eta2), na.rm=TRUE)), ylim=c(0, max(c(eta1, eta2), na.rm=TRUE)),
+               xlab="normal", ylab="disease",
+               main="EVA: Dysregulated pathways")
+          lines(x=c(0, max(c(eta1, eta2), na.rm=TRUE)), y=c(0, max(c(eta1, eta2), na.rm=TRUE)))
+        } else {
+          plot(1, type="n", axes=FALSE, xlab="", ylab="", main="No significant EVA pathways (p < 0.05)")
+        }
+        
+        dev.off()
 
-    # --- Differential Regulation Analysis ---
-    # Key functions: GSReg.GeneSets.DIR
-    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    rownames(control_matrix) <- paste0("Gene", 1:100)
-    rownames(disease_matrix) <- paste0("Gene", 1:100)
-    pathway_list <- list(
-        Pathway1 = paste0("Gene", 1:10),
-        Pathway2 = paste0("Gene", 11:20)
-    )
-    dir_results <- GSReg.GeneSets.DIR(
-        exprs1 = control_matrix,
-        exprs2 = disease_matrix,
-        pathways = pathway_list,
-        minSize = 2,
-        maxSize = 100
-    )
-
-    # --- Expression Variation Analysis ---
-    # Key functions: GSReg.GeneSets.EVA
-    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    rownames(control_matrix) <- paste0("Gene", 1:100)
-    rownames(disease_matrix) <- paste0("Gene", 1:100)
-    pathway_list <- list(
-        Pathway1 = paste0("Gene", 1:10),
-        Pathway2 = paste0("Gene", 11:20)
-    )
-    eva_results <- GSReg.GeneSets.EVA(
-        exprs1 = control_matrix,
-        exprs2 = disease_matrix,
-        pathways = pathway_list,
-        minSize = 2,
-        maxSize = 100
-    )
-
-    # --- Single Gene Set Analysis ---
-    # Key functions: GSReg.DIR, GSReg.EVA
-    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    rownames(control_matrix) <- paste0("Gene", 1:100)
-    rownames(disease_matrix) <- paste0("Gene", 1:100)
-    gene_set <- paste0("Gene", 1:15)
-    single_dir <- GSReg.DIR(
-        exprs1 = control_matrix[gene_set, ],
-        exprs2 = disease_matrix[gene_set, ]
-    )
-    single_eva <- GSReg.EVA(
-        exprs1 = control_matrix[gene_set, ],
-        exprs2 = disease_matrix[gene_set, ]
-    )
-
-    # --- Significance Testing via Permutations ---
-    # Key functions: GSReg.GeneSets.DIR
-    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
-    rownames(control_matrix) <- paste0("Gene", 1:100)
-    rownames(disease_matrix) <- paste0("Gene", 1:100)
-    pathway_list <- list(
-        Pathway1 = paste0("Gene", 1:10),
-        Pathway2 = paste0("Gene", 11:20)
-    )
-    dir_perm_results <- GSReg.GeneSets.DIR(
-        exprs1 = control_matrix,
-        exprs2 = disease_matrix,
-        pathways = pathway_list,
-        nperm = 100
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gsreg_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gsreg_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gsreg_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GSREG:", paste0("    gsreg: ", packageVersion("GSReg"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS":',
+        paste0('    GSReg: ', as.character(packageVersion('GSReg')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gsreg_results.csv
-    touch ${prefix}_gsreg_output.rds
-    echo "BIOC_GSREG:" > versions.yml
-    echo "    gsreg: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_variability_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GSREG_WORKFLOW {
+workflow BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprsdata.csv, diracpathways.rds, phenotypes.csv ] ]
 
     main:
-    BIOC_GSREG(ch_input)
+    BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GSREG.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GSREG.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GSREG.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GSREG.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS.out.tables
+    plots    = BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS.out.plots
+    objects  = BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS.out.objects
+    versions = BIOC_GSREG_PATHWAY_VARIABILITY_ANALYSIS.out.versions
 }

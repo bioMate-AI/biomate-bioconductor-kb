@@ -1,0 +1,21 @@
+{
+  "package": "gep2pep",
+  "requirements": [
+    "GSEABase",
+    "gep2pep"
+  ],
+  "by_workflow": {
+    "condition_set_enrichment_analysis.nf": [
+      "GSEABase",
+      "gep2pep"
+    ],
+    "main.nf": [
+      "GSEABase",
+      "gep2pep"
+    ],
+    "pathway_set_enrichment_analysis.nf": [
+      "GSEABase",
+      "gep2pep"
+    ]
+  }
+}

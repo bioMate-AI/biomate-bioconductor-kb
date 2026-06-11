@@ -1,0 +1,20 @@
+{
+  "package": "lea",
+  "requirements": [
+    "LEA"
+  ],
+  "by_workflow": {
+    "ecological_association_lfmm2_least_squares.nf": [
+      "LEA"
+    ],
+    "ecological_association_lfmm_mcmc.nf": [
+      "LEA"
+    ],
+    "main.nf": [
+      "LEA"
+    ],
+    "predictive_ecological_genomics_genetic_gap.nf": [
+      "LEA"
+    ]
+  }
+}

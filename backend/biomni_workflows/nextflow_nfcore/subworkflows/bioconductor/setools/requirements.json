@@ -1,0 +1,13 @@
+{
+  "package": "setools",
+  "requirements": [
+    "SEtools",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SEtools",
+      "SummarizedExperiment"
+    ]
+  }
+}

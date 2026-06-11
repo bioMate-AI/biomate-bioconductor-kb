@@ -1,0 +1,43 @@
+{
+  "package": "ribosomeprofilingqc",
+  "requirements": [
+    "AnnotationDbi",
+    "BSgenome.Drerio.UCSC.danRer10",
+    "Rsamtools",
+    "edgeR",
+    "ggplot2",
+    "limma",
+    "ribosomeProfilingQC",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "floss_analysis.nf": [
+      "BSgenome.Drerio.UCSC.danRer10",
+      "Rsamtools",
+      "ribosomeProfilingQC",
+      "txdbmaker"
+    ],
+    "main.nf": [
+      "AnnotationDbi",
+      "BSgenome.Drerio.UCSC.danRer10",
+      "Rsamtools",
+      "ggplot2",
+      "ribosomeProfilingQC",
+      "txdbmaker"
+    ],
+    "rpf_only_differential_analysis.nf": [
+      "AnnotationDbi",
+      "edgeR",
+      "ribosomeProfilingQC"
+    ],
+    "translational_efficiency_and_rrs.nf": [
+      "AnnotationDbi",
+      "BSgenome.Drerio.UCSC.danRer10",
+      "Rsamtools",
+      "edgeR",
+      "limma",
+      "ribosomeProfilingQC",
+      "txdbmaker"
+    ]
+  }
+}

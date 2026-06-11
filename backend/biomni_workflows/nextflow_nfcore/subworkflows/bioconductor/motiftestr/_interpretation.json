@@ -1,0 +1,41 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: min_score=threshold for matching PWMs, e.g., \"70%\" ;; best_only=if TRUE, subsets results to only the highest-scoring match per sequence ;; break_ties=controls tie-breaking for identical scores, with options \"random\", \"first\", \"last\", \"central\", or \"all\" ;; abs=if TRUE, assesses absolute distance from the sequence center (first bin starts at zero) ;; model=statistical model for enrichment testing, with options \"poisson\", \"quasi\", or \"iteration\" ;; exclude=genomic regions to exclude when generating background ranges (e.g., N-rich regions) ;; n_iter=number of iterations for generating background ranges (e.g., 100, 1000, 5000)\n- alternatives: centrimo (from MEME-Suite) is a popular tool for positional bias analysis; testMotifPos() is an R-native alternative that does not assume centrality and uses binomial tests with harmonic mean p-values ;; writeXStringSet (from Biostrings) can be used to export background sequences to a fasta file if performing enrichment testing outside of motifTestR\n- when_to_use: Use when analyzing transcription factor binding motifs (TFBMs) in genomic regions of interest (such as ChIP-Seq or ATAC-Seq peaks) within the R/Bioconductor environment, specifically to detect positional localization or overall enrichment compared to a matched background.\n- pitfalls: Sequences containing Ns (e.g., centromeres, telomeres) produce warning messages when matching PWMs; use exclude in makeRMRanges to avoid these regions ;; The Poisson model for enrichment can yield anti-conservative p-values if counts are over-dispersed ;; The Iterative model is the slowest and requires a large number of iterations (>1000) for reliable p-values (minimum p-value is 1/n_iterations) ;; Positional bias results are dependent on the pre-determined bin-size, unlike centrimo's adaptive methods.",
+  "workflows": [
+    {
+      "name": "positional_bias_analysis",
+      "intent": "Identify transcription factor binding motifs that show positional bias (localization) relative to the centers of a set of genomic sequences.",
+      "input": [
+        "ar_er_peaks (GRanges object of genomic peaks)",
+        "BSgenome.Hsapiens.UCSC.hg19 (BSgenome object for sequence extraction)",
+        "ex_pfm (List of position frequency matrices)"
+      ],
+      "stages": "1. Extract sequences from genomic peaks using getSeq() ;; 2. Find PWM matches in the sequences using getPwmMatches() ;; 3. Test for positional bias using testMotifPos() ;; 4. Visualize the positional distribution of matches using plotMatchPos()",
+      "code": "test_seq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, ar_er_peaks)\nnames(test_seq) <- as.character(ar_er_peaks)\nscore_thresh <- \"70%\"\ngetPwmMatches(ex_pfm$ESR1, test_seq, min_score = score_thresh)\ngetPwmMatches(ex_pfm$ESR1, test_seq, min_score = score_thresh, best_only = TRUE)\nbm_all <- getPwmMatches(\n  ex_pfm, test_seq, min_score = score_thresh, best_only = TRUE, break_ties = \"all\",\n  mc.cores = cores\n)\ncountPwmMatches(ex_pfm, test_seq, min_score = score_thresh, mc.cores = cores)\nres_pos <- testMotifPos(bm_all, mc.cores = cores)\nres_abs <- testMotifPos(bm_all, abs = TRUE, mc.cores = cores)\ntopMotifs <- res_pos |>\n    subset(fdr < 0.05) |>\n    rownames()\nA <- plotMatchPos(bm_all[topMotifs], binwidth = 10, se = FALSE)\nB <- plotMatchPos(\n    bm_all[topMotifs], binwidth = 10, geom = \"col\", use_totals = TRUE\n) +\n  geom_smooth(se = FALSE, show.legend = FALSE) +\n  facet_wrap(~name)\nA + B + plot_annotation(tag_levels = \"A\") & theme(legend.position = \"bottom\")"
+    },
+    {
+      "name": "motif_enrichment_analysis",
+      "intent": "Test for overall enrichment of motifs in a set of test sequences compared to a genomic-feature-matched background control set.",
+      "input": [
+        "ar_er_peaks (GRanges object of genomic peaks)",
+        "zr75_enh (GRanges object of candidate enhancers)",
+        "hg19_mask (GRanges object of masked genomic regions)",
+        "BSgenome.Hsapiens.UCSC.hg19 (BSgenome object)",
+        "ex_pfm (List of position frequency matrices)"
+      ],
+      "stages": "1. Annotate peaks by genomic features ;; 2. Define background ranges using GRangesList ;; 3. Generate randomly-selected, size-matched background ranges using makeRMRanges() ;; 4. Extract background sequences using getSeq() ;; 5. Test for motif enrichment using testMotifEnrich() with quasi or iteration models",
+      "code": "ar_er_peaks$feature <- ifelse(\n  overlapsAny(ar_er_peaks, zr75_enh), \"enhancer\", \"other\"\n)\nchr1 <- GRanges(sq)[1]\nbg_ranges <- GRangesList(\n  enhancer = zr75_enh,\n  other = GenomicRanges::setdiff(chr1, zr75_enh)\n)\nrm_ranges <- makeRMRanges(\n  splitAsList(ar_er_peaks, ar_er_peaks$feature),\n  bg_ranges, exclude = hg19_mask,\n  n_iter = 100\n)\nrm_seq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, rm_ranges)\nmcols(rm_seq) <- mcols(rm_ranges)\nenrich_res <- testMotifEnrich(\n  ex_pfm, test_seq, rm_seq, min_score = score_thresh, model = \"quasi\", mc.cores = cores\n)\niter_res <- testMotifEnrich(\n  ex_pfm, test_seq, rm_seq, min_score = score_thresh, mc.cores = cores, model = \"iteration\"\n)"
+    },
+    {
+      "name": "clustered_motif_analysis",
+      "intent": "Group highly similar motifs into clusters to reduce redundancy, and test the clusters for positional bias and enrichment.",
+      "input": [
+        "ex_pfm (List of position frequency matrices)",
+        "test_seq (DNAStringSet of test sequences)",
+        "rm_seq (DNAStringSet of background sequences)"
+      ],
+      "stages": "1. Cluster similar motifs using clusterMotifs() ;; 2. Split the PFMs into clusters ;; 3. Find matches for clustered motifs using getClusterMatches() ;; 4. Test clustered motifs for positional bias using testClusterPos() ;; 5. Test clustered motifs for enrichment using testClusterEnrich()",
+      "code": "cl <- clusterMotifs(ex_pfm, plot = TRUE, labels = NULL)\nex_cl <- split(ex_pfm, cl)\nnames(ex_cl) <- vapply(split(names(cl), cl), paste, character(1), collapse = \"/\")\ncl_matches <- getClusterMatches(\n    ex_cl, test_seq, min_score = score_thresh, best_only = TRUE\n)\ntestClusterPos(cl_matches, test_seq, abs = TRUE)\ntestClusterEnrich(\n  ex_cl, test_seq, rm_seq, min_score = score_thresh, model = \"quasi\", mc.cores = cores\n)"
+    }
+  ]
+}

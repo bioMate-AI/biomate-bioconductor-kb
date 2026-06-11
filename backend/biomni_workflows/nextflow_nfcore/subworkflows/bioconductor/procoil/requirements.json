@@ -1,0 +1,17 @@
+{
+  "package": "procoil",
+  "requirements": [
+    "Biostrings",
+    "procoil"
+  ],
+  "by_workflow": {
+    "comparative_mutation_analysis.nf": [
+      "Biostrings",
+      "procoil"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "procoil"
+    ]
+  }
+}

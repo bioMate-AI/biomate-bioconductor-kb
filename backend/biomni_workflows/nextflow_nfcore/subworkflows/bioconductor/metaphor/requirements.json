@@ -1,0 +1,17 @@
+{
+  "package": "metaphor",
+  "requirements": [
+    "MetaPhOR"
+  ],
+  "by_workflow": {
+    "cytoscape_pathway_modeling.nf": [
+      "MetaPhOR"
+    ],
+    "main.nf": [
+      "MetaPhOR"
+    ],
+    "multi_deg_metabolic_comparison.nf": [
+      "MetaPhOR"
+    ]
+  }
+}

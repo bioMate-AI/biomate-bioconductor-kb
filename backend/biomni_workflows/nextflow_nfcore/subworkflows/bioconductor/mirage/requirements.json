@@ -1,0 +1,13 @@
+{
+  "package": "mirage",
+  "requirements": [
+    "Biobase",
+    "MiRaGE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "MiRaGE"
+    ]
+  }
+}

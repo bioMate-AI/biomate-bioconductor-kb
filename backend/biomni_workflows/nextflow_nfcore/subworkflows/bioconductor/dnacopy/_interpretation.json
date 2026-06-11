@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data.type=specifies the type of copy number data (e.g., \"logratio\") ;; sampleid=identifier for the sample ;; verbose=controls progress output during segmentation ;; undo.splits=method to remove unnecessary splits (e.g., \"sdundo\") ;; undo.SD=number of standard deviations for the sdundo method ;; plot.type=type of plot (\"w\" for whole genome, \"s\" for single-study by chromosome, \"p\" for plateaus ordered by segment means, \"c\" for chromosome across studies) ;; p.method=method to calculate p-values (\"perm\" for full permutation, default is hybrid) ;; nperm=number of permutations for the hybrid method ;; alpha=significance level for accepting change-points\n- alternatives: p.method='perm'=runs the full permutation analysis instead of the default hybrid approach (recommended only if the hybrid approach is not desired, though the hybrid approach is much faster)\n- when_to_use: Appropriate for analyzing array DNA copy number data (such as array CGH) to identify genomic regions of gained and lost copy number by finding change-points.\n- pitfalls: Single point outliers can bias segmentation and should be smoothed using smooth.CNA before running segment ;; Local trends can cause false change-points, requiring an undo method like sdundo to remove unnecessary splits ;; Overlapping windows are no longer recommended for larger datasets ;; Lowering alpha requires more permutations (nperm), and the stopping boundary must be computed (automatically or via getbdry) if non-default nperm and alpha are used",
+  "workflows": [
+    {
+      "name": "dna_copy_number_segmentation",
+      "intent": "Segment DNA copy number data to identify genomic regions with abnormal copy number using circular binary segmentation (CBS).",
+      "input": [
+        "copy_number_data.txt (tab-delimited file containing sample log-ratios, chromosome numbers, and physical positions)"
+      ],
+      "stages": "1. Load the DNAcopy package and import data into a CNA object using CNA() ;; 2. Smooth single-point outliers using smooth.CNA() ;; 3. Segment the smoothed data using segment() ;; 4. Visualize the segmented data using plot() with different plot.type options ;; 5. Refine segmentation by undoing splits with segment() using undo.splits=\"sdundo\" and plot the results",
+      "code": "library(DNAcopy)\ndata(coriell)\nCNA.object <- CNA(cbind(coriell$Coriell.05296),\n                  coriell$Chromosome,coriell$Position,\n                  data.type=\"logratio\",sampleid=\"c05296\")\nsmoothed.CNA.object <- smooth.CNA(CNA.object)\nsegment.smoothed.CNA.object <- segment(smoothed.CNA.object, verbose=1)\nplot(segment.smoothed.CNA.object, plot.type=\"w\")\nplot(segment.smoothed.CNA.object, plot.type=\"s\") \nplot(segment.smoothed.CNA.object, plot.type=\"p\")\nsdundo.CNA.object <- segment(smoothed.CNA.object, \n                             undo.splits=\"sdundo\", \n                             undo.SD=3,verbose=1)\nplot(sdundo.CNA.object,plot.type=\"s\")"
+    }
+  ]
+}

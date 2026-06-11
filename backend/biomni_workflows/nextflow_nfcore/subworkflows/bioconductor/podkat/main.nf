@@ -1,98 +1,119 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: podkat
-// This package provides an association test that is capable of dealing with very rare and even private
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/podkat/inst/doc/podkat.R
-// Upstream  : GWASTools
-// Downstream: none
-//
-// Install: BiocManager::install("podkat")
+// Bioconductor workflow: podkat — continuous_trait_association_testing
+// Perform association testing between a continuous trait (with covariates) and genotype data across partitioned genomic windows.
+// Input: phenoFileLin.csv, example1.vcf.gz
+// Container: quay.io/biocontainers/bioconductor-podkat:1.42.0--r45ha27e39d_1
+// R packages: GenomicRanges, GWASTools, podkat
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, podkat
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load phenotype data and train a linear null model. 2. Load genomic regions and partition them into overlapping windows. 3. Load th
 
 nextflow.enable.dsl = 2
 
-process BIOC_PODKAT {
+process BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-podkat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-podkat:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-podkat:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_podkat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_podkat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_podkat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(jsonlite)
-
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, partitionRegions
-    gr <- GRanges(seqnames="chr1", ranges=IRanges(start=1, end=140000))
-    partitionRegions(gr, width=10000, overlap=0.5)
-    partitionRegions(gr, width=15000, overlap=0.8)
-    # --- Merge overlapping ranges [] ---
-    # Key functions: reduce
-    hg38all <- reduce(unlist(hg38Unmasked))
-    # --- Sequence information check [] ---
-    # Key functions: packageDescription, partitionRegions, readGenotypeMatrix, nullModel, attach, seqinfo, transcripts, strand
-    res.b.adj.sorted <- sort(res.b.adj, sortBy="p.value.adj")
-    Zi <- readGenotypeMatrix(vcfFile, regions=res.b.adj.sorted[1])
-    plot(Zi, y=factor(pheno.b$y), labRow=NA)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_podkat_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_podkat_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "GWASTools", "podkat")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_podkat_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(podkat)
+    library(GenomicRanges)
+    
+    # Define input file paths as specified by the user
+    phenoFileLin <- "phenoFileLin.csv"
+    vcfFile <- "example1.vcf.gz"
+    
+    # 1. Load phenotype data and train a linear null model
+    pheno.c <- read.table(phenoFileLin, header=TRUE, sep=",")
+    model.c <- nullModel(y ~ ., pheno.c)
+    
+    # 2. Load genomic regions and partition them into overlapping windows
+    # Extract the bounding genomic regions directly from the VCF file to generalize to any user data
+    vInfo <- readVariantInfo(vcfFile)
+    windows <- partitionRegions(range(vInfo))
+    
+    # 3. Load the genotype matrix from the VCF file
+    geno <- readGenotypeMatrix(vcfFile)
+    
+    # 4. Perform the association test
+    res.c <- assocTest(geno, model.c, windows)
+    
+    # 5. Adjust p-values for multiple testing
+    res.c <- p.adjust(res.c)
+    
+    # 6. Visualize adjusted p-values using a Manhattan plot and save to PDF
+    pdf("manhattan_plot.pdf", width=9, height=4.5)
+    plot(res.c, which="p.value.adj")
+    dev.off()
+    
+    # Save meaningful results to output files
+    write.csv(as.data.frame(res.c), "association_results.csv", row.names=FALSE)
+    saveRDS(res.c, "association_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PODKAT:", paste0("    podkat: ", packageVersion("podkat"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING":',
+        paste0('    podkat: ', as.character(packageVersion('podkat')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_podkat_results.csv
-    touch ${prefix}_podkat_output.rds
-    echo "BIOC_PODKAT:" > versions.yml
-    echo "    podkat: 0.0.0" >> versions.yml
+    touch ${prefix}_continuous_trait_association_testing.csv versions.yml
     """
 }
 
-
-workflow BIOC_PODKAT_WORKFLOW {
+workflow BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ phenoFileLin.csv, example1.vcf.gz ] ]
 
     main:
-    BIOC_PODKAT(ch_input)
+    BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING(ch_input)
 
     emit:
-    results  = BIOC_PODKAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PODKAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PODKAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PODKAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING.out.tables
+    plots    = BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING.out.plots
+    objects  = BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING.out.objects
+    versions = BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING.out.versions
 }

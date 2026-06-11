@@ -1,0 +1,15 @@
+{
+  "package": "progeny",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "progeny"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "progeny"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=An AffyBatch instance or a matrix of pre-computed QC features ;; alpha=Significance level for outlier detection (e.g., 0.01, 0.05) ;; qcOut=Optional pre-computed simpleaffy QC object to avoid recomputation ;; plmOut=Optional pre-computed PLM fit from affyPLM to avoid recomputation ;; degOut=Optional pre-computed RNA degradation object from affy to avoid recomputation\n- alternatives: ArrayQualityMetrics=A comprehensive package for general microarray quality assessment and visualization ;; mdqc=A package employing robust Mahalanobis distance (e.g., MVE robust covariance estimation) to identify outlying arrays, which can sometimes suffer from masking compared to arrayMvout\n- when_to_use: Use when conducting quality control on a large batch of Affymetrix microarrays (such as in clinical trials) to systematically and formally identify outlying arrays for potential exclusion.\n- pitfalls: Computing QA diagnostics (like PLM fits and RNA degradation) directly from raw AffyBatch objects within ArrayOutliers can be computationally slow ;; mdqc may suffer from masking, failing to detect all true outliers in contaminated datasets where arrayMvout succeeds.",
+  "workflows": [
+    {
+      "name": "outlier_detection_from_qc_matrix",
+      "intent": "Detect outlying microarrays using a pre-computed matrix of quality control metrics.",
+      "input": [
+        "qc_matrix.csv (matrix of QC features where rows are arrays and columns are metrics)"
+      ],
+      "stages": "1. Load the pre-computed QC feature data ;; 2. Run outlier detection using ArrayOutliers ;; 3. Plot the outlier detection results.",
+      "code": "library(arrayMvout)\ndata(maqcQA)\nmm = ArrayOutliers(maqcQA[, 3:11], alpha=.01)\nmm\ndata(itnQA)\nii = ArrayOutliers(itnQA, alpha=.01)\nii\nplot(ii, choices=c(1,3))"
+    },
+    {
+      "name": "outlier_detection_from_affybatch",
+      "intent": "Perform comprehensive outlier detection directly on a raw AffyBatch object by computing and utilizing intermediate QA diagnostics.",
+      "input": [
+        "raw_arrays.CEL (directory of raw Affymetrix CEL files loaded into an AffyBatch object)"
+      ],
+      "stages": "1. Load the AffyBatch object ;; 2. Compute RNA degradation using AffyRNAdeg ;; 3. Compute simpleaffy QC using qc ;; 4. Fit probe-level models using fitPLM ;; 5. Run outlier detection using ArrayOutliers with the pre-computed QA objects.",
+      "code": "library(arrayMvout)\nlibrary(MAQCsubset)\nif (!exists(\"afxsub\")) data(afxsub)\nsn = sampleNames(afxsub)\nif (nchar(sn)[1] > 6) {\n  sn = substr(sn, 3, 8)\n  sampleNames(afxsub) = sn\n}\nlibrary(arrayMvout)\ndata(afxsubDEG)\nplotAffyRNAdeg(afxsubDEG, \n  col=rep(c(\"green\", \"blue\", \"orange\"),c(8,8,8)))\ndata(afxsubQC)\nplot(afxsubQC)\nlibrary(affyPLM)\nsplm = fitPLM(afxsub)\nAO = ArrayOutliers(afxsub, alpha=0.05, qcOut=afxsubQC, \n  plmOut=splm, degOut=afxsubDEG)\nnrow(AO[[\"outl\"]])\nAO[[3]][1:2, ]"
+    },
+    {
+      "name": "direct_affybatch_outlier_detection",
+      "intent": "Detect outliers directly from an AffyBatch object without manually pre-computing intermediate QA objects.",
+      "input": [
+        "raw_arrays.CEL (directory of raw Affymetrix CEL files loaded into an AffyBatch object)"
+      ],
+      "stages": "1. Load the AffyBatch object ;; 2. Run outlier detection using ArrayOutliers directly on the AffyBatch object.",
+      "code": "require(mvoutData)\ndata(s12c)\naos12c = ArrayOutliers(s12c, alpha=0.05)\naos12c[[1]]\naos12c[[4]]"
+    }
+  ]
+}

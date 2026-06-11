@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Enrichment_Analysis=Logical determining whether to perform pathway enrichment analysis (default FALSE) ;; Contextual_Analysis=Logical determining whether to perform contextual association analysis between pathways (default FALSE) ;; DirectEvidence_info=A matrix where the first column contains NCBI Entrez Gene IDs and subsequent columns contain direct evidence values (e.g., negative log10 transformed p-values) ;; Adjacency=A square adjacency matrix representing gene connectivity in the pooled pathway ;; pathway=A dataframe representing edges in the pooled pathway with columns for connected gene IDs and pathway titles ;; Column_DirectEvidence=Integer specifying the column index in DirectEvidence_info containing the direct evidence of interest ;; n_perm=Number of permutations for significance testing (default 2000) ;; threshold=p-value cutoff used to identify differentially expressed genes (default 0.05) ;; use_sig_pathways=Logical indicating whether to restrict contextual analysis only to pathways identified as significant in enrichment analysis (default FALSE)\n- alternatives: Standard hypergeometric test (calculated and outputted alongside PathNet results as p_Hyper) ;; alternative statistical tests (e.g., ANOVA, SAM) can be used to generate the input p-values instead of a t-test\n- when_to_use: Use when analyzing transcriptomic data (e.g., microarray or RNA-seq converted to gene-level p-values) and you want to incorporate pathway topology (neighboring gene interactions) and pathway cross-talk (contextual association) rather than treating pathways as simple independent gene sets\n- pitfalls: DirectEvidence_info must be provided and its first column must always contain the NCBI Entrez Gene IDs, otherwise the program will fail ;; Indirect evidence is only calculated for genes present in the KEGG pathway with at least one edge (others will be NA and combined evidence will default to direct evidence) ;; Running contextual analysis with use_sig_pathways = FALSE on all pathways is computationally intensive and can take several hours",
+  "workflows": [
+    {
+      "name": "pathway_enrichment_analysis",
+      "intent": "Identify significantly enriched pathways by combining direct gene expression evidence with pathway topological neighbor information.",
+      "input": [
+        "brain_regions_data.txt (matrix of gene IDs and direct evidence p-values)",
+        "adjacency_data.txt (adjacency matrix of pooled pathway)",
+        "pathway_data.txt (pathway edge list and titles)"
+      ],
+      "stages": "1. Load the direct evidence, adjacency matrix, and pathway data ;; 2. Filter the adjacency matrix to match the gene IDs present in the direct evidence ;; 3. Run the PathNet function with Enrichment_Analysis set to TRUE ;; 4. Retrieve enrichment results and combined evidence from the output list",
+      "code": "library(\"PathNet\")\nlibrary(\"PathNetData\")\ndata(brain_regions)\ndata(A)\ngene_ID <- brain_regions[,1]\nA <- A [rownames(A) %in% gene_ID, rownames(A) %in% gene_ID]\ndata(pathway)\nresults <- PathNet(Enrichment_Analysis = TRUE, \n        DirectEvidence_info = brain_regions[1:2000,], \n        Adjacency = A, \n        pathway = pathway, \n        Column_DirectEvidence = 7,\n        n_perm = 10, threshold = 0.05) \nresults$enrichment_results[1:10,]\nresults$enrichment_combined_evidence[1:10,]"
+    },
+    {
+      "name": "pathway_contextual_analysis",
+      "intent": "Identify pathway contextual associations and overlap scores to find biologically related pathways based on the connectivity of differentially expressed genes.",
+      "input": [
+        "brain_regions_data.txt (matrix of gene IDs and direct evidence p-values)",
+        "adjacency_data.txt (adjacency matrix of pooled pathway)",
+        "pathway_data.txt (pathway edge list and titles)"
+      ],
+      "stages": "1. Load the direct evidence, adjacency matrix, and pathway data ;; 2. Filter the adjacency matrix to match the gene IDs present in the direct evidence ;; 3. Run the PathNet function with Contextual_Analysis set to TRUE ;; 4. Retrieve the contextual association p-values and pathway overlap scores from the output list",
+      "code": "library(\"PathNet\")\nlibrary(\"PathNetData\")\ndata(brain_regions)\ndata(A)\ngene_ID <- brain_regions[,1]\nA <- A [rownames(A) %in% gene_ID, rownames(A) %in% gene_ID]\ndata(pathway)\nresults <- PathNet(Enrichment_Analysis = FALSE, \n        Contextual_Analysis= TRUE, \n        DirectEvidence_info = brain_regions[1:500,], \n        Adjacency = A, \n        pathway = pathway, \n        Column_DirectEvidence = 7, \n        use_sig_pathways = FALSE, \n        n_perm = 10, threshold = 0.05)\nresults$conn_p_value[1:4, 1:2]\nresults$pathway_overlap[1:4, 1:2]"
+    }
+  ]
+}

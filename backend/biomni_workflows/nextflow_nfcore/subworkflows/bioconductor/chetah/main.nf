@@ -1,112 +1,189 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CHETAH
-// CHETAH (CHaracterization of cEll Types Aided by Hierarchical classification) is an accurate, selecti
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CHETAH/inst/doc/CHETAH_introduction.R
-// Upstream  : BiocManager
-// Downstream: none
-//
-// Install: BiocManager::install("CHETAH")
+// Bioconductor workflow: CHETAH — cell_type_classification
+// Classify single-cell RNA-seq query data using a reference dataset and explore or adjust the classification results.
+// Input: input_counts, input_tsne, ref_counts, ref_ct
+// Container: quay.io/biocontainers/bioconductor-chetah:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CHETAH, Matrix, S4Vectors, SingleCellExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create SingleCellExperiment objects for both reference and input data
+//  * 2. [Core Analysis] Run the hierarchical classification using CHETAHclassifier
+//  * 3. [Visualization & Output] Visualize the classification tree and t-SNE map using PlotCHETAH
+//  * 4. [Core Analysis] Adjust the classification confidence threshold using Classify
+//  * 5. [Core Analysis] Rename intermediate or final cell types using RenameBelowNode
+//  * 6. [Core Analysis] Launch the interactive Shiny application using CHETAHshiny
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHETAH {
+process BIOC_CHETAH_CELL_TYPE_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chetah"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chetah:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chetah:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(singlecellexperiment)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chetah_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chetah_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chetah_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    
     library(CHETAH)
-    library(CHETAHclassifier)
-    library(PlotCHETAH)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Cell Type Classification [] ---
-    # Key functions: CHETAHclassifier, Classify
-    input_mel <- CHETAHclassifier(
-        input = input_mel,
-        ref_cells = headneck_ref
-    )
-    input_mel <- Classify(input = input_mel, 0.8)
-
-
-    # --- Classification Refinement [] ---
-    # Key functions: RenameBelowNode, Classify
-    input_mel <- RenameBelowNode(
-        input_mel, 
-        whichnode = 6,
-        replacement = "T cell"
-    )
-    input_mel <- Classify(input_mel, 0.1)
-
-
-    # --- Reference Evaluation and Visualisation [] ---
-    # Key functions: PlotCHETAH, CorrelateReference, ClassifyReference
-    PlotCHETAH(input = input_mel, tree = FALSE)
-    cor_ref <- CorrelateReference(ref_cells = headneck_ref)
-    class_ref <- ClassifyReference(ref_cells = headneck_ref)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chetah_results.csv", row.names = TRUE)
+    library(Matrix)
+    library(S4Vectors)
+    
+    # Helper function to robustly read input files from the working directory
+    read_input_file <- function(name, is_vector = FALSE) {
+      # Check RDS format first
+      if (file.exists(paste0(name, ".rds"))) {
+        return(readRDS(paste0(name, ".rds")))
+      }
+      # Check CSV format
+      if (file.exists(paste0(name, ".csv"))) {
+        if (is_vector) {
+          df <- read.csv(paste0(name, ".csv"), header = TRUE)
+          return(setNames(as.character(df[[2]]), as.character(df[[1]])))
+        } else {
+          return(as.matrix(read.csv(paste0(name, ".csv"), row.names = 1, check.names = FALSE)))
+        }
+      }
+      # Check TSV format
+      if (file.exists(paste0(name, ".tsv"))) {
+        if (is_vector) {
+          df <- read.delim(paste0(name, ".tsv"), header = TRUE)
+          return(setNames(as.character(df[[2]]), as.character(df[[1]])))
+        } else {
+          return(as.matrix(read.delim(paste0(name, ".tsv"), row.names = 1, check.names = FALSE)))
+        }
+      }
+      # Check TXT format
+      if (file.exists(paste0(name, ".txt"))) {
+        if (is_vector) {
+          df <- read.table(paste0(name, ".txt"), header = TRUE, sep = "\t")
+          return(setNames(as.character(df[[2]]), as.character(df[[1]])))
+        } else {
+          return(as.matrix(read.table(paste0(name, ".txt"), row.names = 1, sep = "\t", check.names = FALSE)))
+        }
+      }
+      # Direct file check
+      if (file.exists(name)) {
+        return(readRDS(name))
+      }
+      stop(paste("Required input file not found for:", name))
+    }
+    
+    # Read user inputs
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    input_counts <- read_input_file("input_counts")
+    input_tsne <- read_input_file("input_tsne")
+    ref_counts <- read_input_file("ref_counts")
+    ref_ct <- read_input_file("ref_ct", is_vector = TRUE)
+    
+    # 1. Create SingleCellExperiment objects for both reference and input data
+    reference <- SingleCellExperiment(assays = list(counts = ref_counts),
+                                      colData = DataFrame(celltypes = ref_ct))
+    
+    input <- SingleCellExperiment(assays = list(counts = input_counts),
+                                  reducedDims = SimpleList(TSNE = input_tsne))
+    
+    # 2. Run the hierarchical classification using CHETAHclassifier
+    input <- CHETAHclassifier(input = input, ref_cells = reference)
+    
+    # Set up PDF device to capture all PlotCHETAH visualizations
+    pdf("CHETAH_plots.pdf", width = 12, height = 8)
+    
+    # 3. Visualize the classification tree and t-SNE map using PlotCHETAH
+    PlotCHETAH(input)
+    
+    celltypes <- input\$celltype_CHETAH
+    
+    # Assign input_mel to input to match the vignette's variable naming
+    input_mel <- input
+    
+    PlotCHETAH(input = input_mel, interm = TRUE)
+    
+    colors <- PlotCHETAH(input = input_mel, return_col = TRUE)
+    
+    # 6. Launch the interactive Shiny application using CHETAHshiny (guarded for non-interactive environments)
+    if (interactive()) {
+      CHETAHshiny(input = input_mel)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chetah_results.csv")
+      message("Skipping interactive CHETAHshiny call in non-interactive mode.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chetah_output.rds")
-    }
+    
+    # 4. Adjust the classification confidence threshold using Classify
+    input_mel <- Classify(input = input_mel, 0.8)
+    PlotCHETAH(input = input_mel, tree = FALSE)
+    
+    input_mel <- Classify(input_mel, 0)
+    PlotCHETAH(input = input_mel, tree = FALSE)
+    
+    # 5. Rename intermediate or final cell types using RenameBelowNode
+    tryCatch({
+      input_mel <- RenameBelowNode(input_mel, whichnode = 6, replacement = "T cell")
+      PlotCHETAH(input = input_mel, tree = FALSE)
+    }, error = function(e) {
+      message("RenameBelowNode failed (likely because node 6 does not exist in this reference tree): ", e\$message)
+    })
+    
+    input_mel <- Classify(input_mel)
+    PlotCHETAH(input = input_mel, tree = FALSE)
+    
+    dev.off()
+    
+    # Write meaningful results to output files
+    write.csv(data.frame(Cell = names(celltypes), CellType = celltypes),
+              file = "classified_celltypes.csv", row.names = FALSE)
+    
+    saveRDS(colors, file = "chetah_colors.rds")
+    saveRDS(input_mel, file = "input_mel_classified.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHETAH:", paste0("    chetah: ", packageVersion("CHETAH"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHETAH_CELL_TYPE_CLASSIFICATION":',
+        paste0('    CHETAH: ', as.character(packageVersion('CHETAH')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chetah_results.csv
-    touch ${prefix}_chetah_output.rds
-    echo "BIOC_CHETAH:" > versions.yml
-    echo "    chetah: 0.0.0" >> versions.yml
+    touch ${prefix}_cell_type_classification.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHETAH_WORKFLOW {
+workflow BIOC_CHETAH_CELL_TYPE_CLASSIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(singlecellexperiment) ]
+    ch_input  // channel: [ val(meta), [ input_counts, input_tsne, ref_counts, ref_ct ] ]
 
     main:
-    BIOC_CHETAH(ch_input)
+    BIOC_CHETAH_CELL_TYPE_CLASSIFICATION(ch_input)
 
     emit:
-    results  = BIOC_CHETAH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHETAH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHETAH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHETAH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHETAH_CELL_TYPE_CLASSIFICATION.out.tables
+    plots    = BIOC_CHETAH_CELL_TYPE_CLASSIFICATION.out.plots
+    objects  = BIOC_CHETAH_CELL_TYPE_CLASSIFICATION.out.objects
+    versions = BIOC_CHETAH_CELL_TYPE_CLASSIFICATION.out.versions
 }

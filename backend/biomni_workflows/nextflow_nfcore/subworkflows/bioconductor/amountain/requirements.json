@@ -1,0 +1,17 @@
+{
+  "package": "amountain",
+  "requirements": [
+    "AMOUNTAIN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AMOUNTAIN"
+    ],
+    "multi_layer_module_detection.nf": [
+      "AMOUNTAIN"
+    ],
+    "two_layer_module_detection.nf": [
+      "AMOUNTAIN"
+    ]
+  }
+}

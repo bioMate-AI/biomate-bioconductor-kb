@@ -1,0 +1,17 @@
+{
+  "package": "trio",
+  "requirements": [
+    "trio"
+  ],
+  "by_workflow": {
+    "ld_block_detection.nf": [
+      "trio"
+    ],
+    "main.nf": [
+      "trio"
+    ],
+    "trio_logic_regression_and_feature_selection.nf": [
+      "trio"
+    ]
+  }
+}

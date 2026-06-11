@@ -1,94 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GeneGeneInteR
-// The aim of this package is to propose several methods for testing gene-gene interaction in case-cont
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GeneGeneInteR/inst/doc/GenePair.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GeneGeneInteR")
+// Bioconductor workflow: GeneGeneInteR — gene_gene_interaction_testing
+// Test for statistical interaction between two genes represented by sets of SNPs in a case-control study.
+// Input: gene1_snps.csv, gene2_snps.csv, phenotype.csv
+// Container: quay.io/biocontainers/bioconductor-genegeneinter:1.32.0--r44he5774e6_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GeneGeneInteR, snpStats
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the genotype data and phenotype vector
+//  * 2. [Core Analysis] Run the gene-gene interaction test using the GGI function
+//  * 3. [Visualization & Output] Print and plot the interaction results
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENEGENEINTER {
+process BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genegeneinter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genegeneinter:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genegeneinter:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genegeneinter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genegeneinter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genegeneinter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+    # Load required library
     library(GeneGeneInteR)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ## library("GeneGeneInteR")
-    ## data("gene.pair")
-    ## head(gene.pair$Y)
-    # --- Test [] ---
-    # Key functions: test
-    ## PCA.test(Y=gene.pair$Y, G1=gene.pair$G1, G2=gene.pair$G2,threshold=0.7,
-    ## method="GenFreq")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genegeneinter_results.csv", row.names = TRUE)
+    library(snpStats)
+    
+    # ==========================================
+    # Stage 1: Load genotype data and phenotype
+    # ==========================================
+    
+    # Read the user input files
+    gene1_raw <- read.csv("gene1_snps.csv", stringsAsFactors = FALSE)
+    gene2_raw <- read.csv("gene2_snps.csv", stringsAsFactors = FALSE)
+    phenotype_raw <- read.csv("phenotype.csv", stringsAsFactors = FALSE)
+    
+    # Process phenotype to extract the response vector
+    if ("phenotype" %in% colnames(phenotype_raw)) {
+      response <- phenotype_raw\$phenotype
+    } else if ("Y" %in% colnames(phenotype_raw)) {
+      response <- phenotype_raw\$Y
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genegeneinter_results.csv")
+      response <- phenotype_raw[[ncol(phenotype_raw)]]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genegeneinter_output.rds")
+    
+    # Ensure response is numeric (typically 0/1 for case-control) or factor
+    response <- as.numeric(response)
+    
+    # Process Gene 1 SNPs: handle potential sample ID column
+    if (!is.numeric(gene1_raw[[1]])) {
+      gene1 <- gene1_raw[, -1, drop = FALSE]
+      rownames(gene1) <- gene1_raw[[1]]
+    } else {
+      gene1 <- gene1_raw
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENEGENEINTER:", paste0("    genegeneinter: ", packageVersion("GeneGeneInteR"))),
-        "versions.yml"
+    
+    # Process Gene 2 SNPs: handle potential sample ID column
+    if (!is.numeric(gene2_raw[[1]])) {
+      gene2 <- gene2_raw[, -1, drop = FALSE]
+      rownames(gene2) <- gene2_raw[[1]]
+    } else {
+      gene2 <- gene2_raw
+    }
+    
+    # Ensure data frames contain numeric genotype values (0, 1, 2)
+    gene1[] <- lapply(gene1, as.numeric)
+    gene2[] <- lapply(gene2, as.numeric)
+    
+    # ==========================================
+    # Stage 2: Run the gene-gene interaction test
+    # ==========================================
+    
+    # Combine SNPs into a single matrix
+    combined_snps <- cbind(gene1, gene2)
+    
+    # Convert to SnpMatrix object
+    # Add 1 to 0/1/2 genotypes so they become 1/2/3 (0 is reserved for missing in SnpMatrix)
+    mat <- as.matrix(combined_snps)
+    mat <- mat + 1
+    mat[is.na(mat)] <- 0
+    snpX <- as(mat, "SnpMatrix")
+    
+    # Create genes.info data frame mapping each SNP to its corresponding gene
+    genes.info <- data.frame(
+      SNP = c(colnames(gene1), colnames(gene2)),
+      Gene = c(rep("Gene1", ncol(gene1)), rep("Gene2", ncol(gene2))),
+      stringsAsFactors = FALSE
     )
+    
+    # Run the GGI function exactly as documented
+    result <- GGI(Y = response, snpX = snpX, genes.info = genes.info, method = "CCA")
+    
+    # ==========================================
+    # Stage 3: Print, plot, and save results
+    # ==========================================
+    
+    # Print the result to console
+    print(result)
+    
+    # Save the result object to an RDS file
+    saveRDS(result, file = "ggi_result.rds")
+    
+    # Save a text summary of the result
+    sink("ggi_summary.txt")
+    cat("=== GeneGeneInteR Analysis Summary ===\n")
+    print(result)
+    sink()
+    
+    # Attempt to plot the interaction results and save to PDF
+    pdf("ggi_plot.pdf")
+    tryCatch({
+      plot(result)
+    }, error = function(e) {
+      message("Plotting not supported for this result type or failed: ", e\$message)
+    })
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING":',
+        paste0('    GeneGeneInteR: ', as.character(packageVersion('GeneGeneInteR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genegeneinter_results.csv
-    touch ${prefix}_genegeneinter_output.rds
-    echo "BIOC_GENEGENEINTER:" > versions.yml
-    echo "    genegeneinter: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_gene_interaction_testing.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENEGENEINTER_WORKFLOW {
+workflow BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene1_snps.csv, gene2_snps.csv, phenotype.csv ] ]
 
     main:
-    BIOC_GENEGENEINTER(ch_input)
+    BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING(ch_input)
 
     emit:
-    results  = BIOC_GENEGENEINTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENEGENEINTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENEGENEINTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENEGENEINTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING.out.tables
+    plots    = BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING.out.plots
+    objects  = BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING.out.objects
+    versions = BIOC_GENEGENEINTER_GENE_GENE_INTERACTION_TESTING.out.versions
 }

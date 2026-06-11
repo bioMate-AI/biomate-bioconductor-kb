@@ -1,132 +1,195 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: multiMiR
-// A collection of microRNAs/targets from external resources, including validated microRNA-target datab
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/multiMiR/inst/doc/multiMiR.R
-// Upstream  : edgeR, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("multiMiR")
+// Bioconductor workflow: multiMiR — mirna_target_pipeline
+// Identify differentially expressed miRNAs from count data and retrieve their validated and predicted target genes using multiMiR.
+// Input: counts.csv, coldata.csv
+// Container: 1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: edgeR, multiMiR
+// QC: TMM normalization
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MULTIMIR {
+process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-multimir"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-multimir:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-multimir:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_multimir_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_multimir_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_multimir_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
+    library(edgeR)
     library(multiMiR)
-    library(DGEList)
-    library(jsonlite)
-
-    # --- Entity Exploration and Table Lookup [] ---
-    # Key functions: list_multimir, predicted_tables, validated_tables, reverse_table_lookup
-    sample_mirnas <- list_multimir("mirna", limit = 10)
-    sample_genes <- list_multimir("gene", limit = 10)
-    pred_tables <- predicted_tables()
-    val_tables <- validated_tables()
-    targetscan_source <- reverse_table_lookup("targetscan")
-
-
-    # --- MicroRNA Target Querying [] ---
-    # Key functions: get_multimir
-    multimir_results <- get_multimir(
-        org = "hsa",
-        mirna = "hsa-miR-18a-3p",
-        table = "validated",
-        summary = TRUE
-    )
-    result_data <- multimir_results@data
-    result_summary <- multimir_results@summary
-    luciferase_validated <- result_data[
-        grep("Luciferase", result_data[, "experiment"]), 
-    ]
-
-
-    # --- Disease and Drug Association Querying [] ---
-    # Key functions: get_multimir
-    drug_results <- get_multimir(
-        disease.drug = "cisplatin",
-        table = "disease.drug"
-    )
-    drug_data <- drug_results@data
-    association_types <- table(drug_data$type)
-
-
-    # --- Result Filtering and Selection [] ---
-    # Key functions: select, keys, columns
-    all_columns <- columns(multimir_results)
-    validated_subset <- select(
-        multimir_results,
-        keytype = "type",
-        keys = "validated",
-        columns = all_columns
-    )
-    unique_pairs <- validated_subset[
-        !duplicated(validated_subset[, c("mature_mirna_id", "target_entrez")]), 
-    ]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_multimir_results.csv", row.names = TRUE)
+    
+    # Stage 2: Read and preprocess input data
+    message("Reading input files...")
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Set row names for counts if 'gene_id' column exists
+    if ("gene_id" %in% colnames(counts_df)) {
+        rownames(counts_df) <- counts_df\$gene_id
+        counts_df\$gene_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_multimir_results.csv")
+        rownames(counts_df) <- counts_df[, 1]
+        counts_df <- counts_df[, -1, drop = FALSE]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_multimir_output.rds")
+    
+    # Align counts and coldata
+    common_samples <- intersect(colnames(counts_df), coldata\$sample)
+    if (length(common_samples) == 0) {
+        stop("No matching samples found between counts.csv and coldata.csv")
     }
+    counts_df <- counts_df[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # Stage 3: Differential Expression Analysis using edgeR
+    message("Performing differential expression analysis...")
+    design <- model.matrix(~ condition, data = coldata)
+    dge <- DGEList(counts = counts_df)
+    dge <- calcNormFactors(dge)
+    
+    # Estimate dispersions
+    dge <- estimateGLMCommonDisp(dge, design)
+    dge <- estimateGLMTrendedDisp(dge, design)
+    dge <- estimateGLMTagwiseDisp(dge, design)
+    
+    # Fit GLM model and perform Likelihood Ratio Test
+    fit <- glmFit(dge, design)
+    lrt <- glmLRT(fit, coef = 2)
+    
+    # Extract top differentially expressed miRNAs
+    p_val_DE <- topTags(lrt, adjust.method = "BH", n = Inf)
+    top_miRNAs <- rownames(p_val_DE\$table)[1:min(10, nrow(p_val_DE\$table))]
+    message("Top miRNAs identified: ", paste(top_miRNAs, collapse = ", "))
+    
+    # Detect organism from miRNA names (default to human 'hsa')
+    first_mirna <- top_miRNAs[1]
+    org <- "hsa"
+    if (startsWith(first_mirna, "mmu")) {
+        org <- "mmu"
+    } else if (startsWith(first_mirna, "rno")) {
+        org <- "rno"
+    }
+    message("Detected organism: ", org)
+    
+    # Stage 4: Query multiMiR for Validated Targets
+    message("Querying multiMiR for validated targets...")
+    validated_results <- tryCatch({
+        get_multimir(
+            org = org,
+            mirna = top_miRNAs,
+            table = "validated",
+            summary = TRUE
+        )
+    }, error = function(e) {
+        message("Warning: multiMiR validated query failed or timed out: ", e\$message)
+        NULL
+    })
+    
+    # Stage 5: Query multiMiR for Predicted Targets
+    message("Querying multiMiR for predicted targets...")
+    predicted_results <- tryCatch({
+        get_multimir(
+            org = org,
+            mirna = top_miRNAs,
+            table = "predicted",
+            predicted.cutoff = 20,
+            predicted.cutoff.type = "p",
+            summary = TRUE
+        )
+    }, error = function(e) {
+        message("Warning: multiMiR predicted query failed or timed out: ", e\$message)
+        NULL
+    })
+    
+    # Stage 6: Process and Save Outputs
+    # 1. Validated Targets
+    if (!is.null(validated_results) && !is.null(validated_results@data) && nrow(validated_results@data) > 0) {
+        write.csv(validated_results@data, "validated_targets.csv", row.names = FALSE)
+        write.csv(validated_results@summary, "multimir_summary.csv", row.names = FALSE)
+        
+        # Demonstrate AnnotationDbi select method on the S4 object
+        tryCatch({
+            val_keys <- keys(validated_results, keytype = "mature_mirna_id")
+            if (length(val_keys) > 0) {
+                selected_data <- select(
+                    validated_results,
+                    keys = val_keys[1:min(5, length(val_keys))],
+                    keytype = "mature_mirna_id",
+                    columns = c("database", "target_symbol", "type")
+                )
+                message("Successfully ran AnnotationDbi select on validated results.")
+            }
+        }, error = function(e) {
+            message("AnnotationDbi select helper failed: ", e\$message)
+        })
+    } else {
+        message("No validated targets found or query failed. Writing empty placeholder.")
+        write.csv(data.frame(Message = "No validated targets found or query failed"), "validated_targets.csv", row.names = FALSE)
+        write.csv(data.frame(Message = "No summary available"), "multimir_summary.csv", row.names = FALSE)
+    }
+    
+    # 2. Predicted Targets
+    if (!is.null(predicted_results) && !is.null(predicted_results@data) && nrow(predicted_results@data) > 0) {
+        write.csv(predicted_results@data, "predicted_targets.csv", row.names = FALSE)
+    } else {
+        message("No predicted targets found or query failed. Writing empty placeholder.")
+        write.csv(data.frame(Message = "No predicted targets found or query failed"), "predicted_targets.csv", row.names = FALSE)
+    }
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MULTIMIR:", paste0("    multimir: ", packageVersion("multiMiR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE":',
+        paste0('    multiMiR: ', as.character(packageVersion('multiMiR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_multimir_results.csv
-    touch ${prefix}_multimir_output.rds
-    echo "BIOC_MULTIMIR:" > versions.yml
-    echo "    multimir: 0.0.0" >> versions.yml
+    touch ${prefix}_mirna_target_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_MULTIMIR_WORKFLOW {
+workflow BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MULTIMIR(ch_input)
+    BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_MULTIMIR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MULTIMIR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MULTIMIR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MULTIMIR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE.out.tables
+    plots    = BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE.out.plots
+    objects  = BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE.out.objects
+    versions = BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE.out.versions
 }

@@ -1,0 +1,15 @@
+{
+  "package": "flowmerge",
+  "requirements": [
+    "Rgraphviz",
+    "flowCore",
+    "flowMerge"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rgraphviz",
+      "flowCore",
+      "flowMerge"
+    ]
+  }
+}

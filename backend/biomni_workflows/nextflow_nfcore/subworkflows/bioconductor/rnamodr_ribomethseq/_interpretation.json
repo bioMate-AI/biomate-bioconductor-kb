@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: files=A character vector of BAM file paths or a BamFileList representing the RiboMethSeq sequencing data ;; annotation=A GFF3/GTF file path, TxDb object, or GRanges object containing gene/transcript annotations ;; sequences=A FASTA file path or BSgenome/FaFile object containing the reference sequences\n- alternatives: Manual calculation of RiboMethSeq scores (Score A, B, C) using custom scripts. RNAmodR.RiboMethSeq is preferred for standardized, reproducible, and integrated workflow within the Bioconductor ecosystem.\n- when_to_use: Use this package when analyzing RiboMethSeq data to identify and quantify 2'-O-methylations (Nm) in RNA molecules (typically ribosomal RNA or transfer RNA) using high-throughput sequencing of randomly cleaved RNA fragments.\n- pitfalls: Low sequencing coverage at specific positions can lead to unreliable score calculations and false positives. The workflow heavily relies on precise alignment of read ends (5' and 3' ends), so poor quality trimming or incorrect alignment parameters will severely degrade performance.",
+  "workflows": [
+    {
+      "name": "ribomethseq_analysis",
+      "intent": "Detect and quantify 2'-O-methylations (Nm) from RiboMethSeq BAM files using the RNAmodR framework.",
+      "input": [
+        "alignments.bam (BAM files containing aligned RiboMethSeq reads)",
+        "annotation.gff3 (GFF3 annotation file for the reference genome/transcriptome)",
+        "reference.fasta (FASTA file containing reference sequences)"
+      ],
+      "stages": "1. Load the package and define input file paths ;; 2. Construct a ModSetRiboMethSeq object to process the BAM files against the reference genome and annotations ;; 3. Detect modifications using the detectModifications function ;; 4. Plot data for a specific gene/transcript using plotData",
+      "code": "library(RNAmodR.RiboMethSeq)\nfiles <- c(replicate1 = \"path/to/replicate1.bam\", replicate2 = \"path/to/replicate2.bam\")\nannotation <- \"path/to/annotation.gff3\"\nsequences <- \"path/to/reference.fasta\"\nmsr <- ModSetRiboMethSeq(files, annotation = annotation, sequences = sequences)\nmodifications <- detectModifications(msr)\nplotData(msr, name = \"transcript_id\")"
+    }
+  ]
+}

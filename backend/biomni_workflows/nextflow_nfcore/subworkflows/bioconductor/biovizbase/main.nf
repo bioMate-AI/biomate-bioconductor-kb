@@ -1,8 +1,9 @@
 #!/usr/bin/env nextflow
 // ============================================================
 // Bioconductor module: biovizBase
-// The biovizBase package is designed to provide a set of utilities, color schemes and conventions for 
+// The biovizBase package is designed to provide a set of utilities, color schemes and conventions for
 //
+// Input: genes.csv  (user-provided gene/feature coordinate table; columns: seqnames, start, end[, symbol/name])
 // Source : https://bioconductor.org/packages/3.20/bioc/vignettes/biovizBase/inst/doc/intro.R
 // Upstream  : GenomicRanges, Rsamtools, dichromat, rtracklayer, scales
 // Downstream: CAFE
@@ -12,14 +13,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_BIOVIZBASE {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-biovizbase"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biovizbase:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biovizbase:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -40,8 +40,7 @@ process BIOC_BIOVIZBASE {
     #!/usr/bin/env Rscript
     library(biovizBase)
     library(GCcontent)
-    library(GRanges)
-    library(IRanges)
+    library(GenomicRanges)
     library(jsonlite)
 
     # --- Gap Calculation [] ---
@@ -77,27 +76,61 @@ process BIOC_BIOVIZBASE {
     shrunk_gr2 <- shrink_fun(gr2)
 
 
-    # --- Gene Symbol Annotation [] ---
-    # Key functions: genesymbol
-    utils::data("genesymbol", package = "biovizBase")
-    rbm17_coords <- genesymbol["RBM17"]
-    all_symbols <- names(genesymbol)
-    subset_symbols <- genesymbol[1:10]
-    chromosomes <- GenomeInfoDb::seqnames(genesymbol)
+    # --- Gene/Feature Annotation from USER INPUT [] ---
+    # Read a user-provided coordinate table and build a named GRanges of features.
+    .gene_file <- if (file.exists("genes.csv")) "genes.csv" else if (file.exists("genes.tsv")) "genes.tsv" else NA_character_
+    if (is.na(.gene_file)) {
+        stop("Required input file 'genes.csv' (columns: seqnames, start, end[, symbol/name]) not found in the working directory.")
+    }
+    genes_df <- if (grepl("\\\\.tsv\$", .gene_file)) {
+        read.delim(.gene_file, header = TRUE, stringsAsFactors = FALSE, check.names = FALSE)
+    } else {
+        read.csv(.gene_file, header = TRUE, stringsAsFactors = FALSE, check.names = FALSE)
+    }
+    .seqcol   <- intersect(c("seqnames", "chrom", "chr"), tolower(colnames(genes_df)))
+    .startcol <- intersect(c("start"), tolower(colnames(genes_df)))
+    .endcol   <- intersect(c("end", "stop"), tolower(colnames(genes_df)))
+    .namecol  <- intersect(c("symbol", "name", "gene", "gene_name"), tolower(colnames(genes_df)))
+    colnames(genes_df) <- tolower(colnames(genes_df))
+    if (length(.seqcol) == 0 || length(.startcol) == 0 || length(.endcol) == 0) {
+        stop("Input table must contain at least 'seqnames', 'start', and 'end' columns.")
+    }
+    user_features <- GenomicRanges::GRanges(
+        seqnames = as.character(genes_df[[.seqcol[1]]]),
+        ranges   = IRanges::IRanges(start = as.integer(genes_df[[.startcol[1]]]),
+                                    end   = as.integer(genes_df[[.endcol[1]]]))
+    )
+    if (length(.namecol) > 0) {
+        names(user_features) <- as.character(genes_df[[.namecol[1]]])
+    }
+    # Key biovizBase/GenomicRanges accessors applied to the user features
+    first_feature   <- if (!is.null(names(user_features)) && length(user_features) > 0) user_features[1] else user_features
+    all_symbols     <- names(user_features)
+    subset_features <- user_features[seq_len(min(10, length(user_features)))]
+    chromosomes     <- GenomeInfoDb::seqnames(user_features)
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biovizbase_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_biovizbase_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biovizbase_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_biovizbase_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biovizbase_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_biovizbase_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_BIOVIZBASE:", paste0("    biovizbase: ", packageVersion("biovizBase"))),
+        c("BIOC_BIOVIZBASE:", paste0("    biovizbase: ", as.character(packageVersion("biovizBase")))),
         "versions.yml"
     )
     """
@@ -115,7 +148,7 @@ process BIOC_BIOVIZBASE {
 
 workflow BIOC_BIOVIZBASE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), path(genes_csv) ]
 
     main:
     BIOC_BIOVIZBASE(ch_input)

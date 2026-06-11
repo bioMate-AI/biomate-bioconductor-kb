@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data.Y=SummarizedExperiment object or matrix containing the mixed expression data (e.g., tumor samples) ;; data.N1=SummarizedExperiment object or matrix containing the first reference component (e.g., normal or stromal reference samples) ;; data.N2=SummarizedExperiment object or matrix containing the second reference component (e.g., immune reference samples, optional for three-component deconvolution) ;; nspikein=Number of simulated normal reference samples to add (spike-ins) to improve proportion estimation accuracy when true tumor proportions are skewed high ;; ngene.selected.for.pi=Number of genes selected for estimating the mixing proportions ;; gene.selection.method=Method for gene selection, either \"GS\" (profile likelihood-based) or \"DE\" (differential expression-based) ;; filter.sd=Standard deviation cutoff for filtering genes, recommended to use the upper bound of the normal reference standard deviation ;; nthread=Number of CPU cores to use for parallel computing (OpenMP)\n- alternatives: DeMixT_GS=Profile likelihood-based gene selection (default, recommended for standard data) ;; DeMixT_DE=Differential expression-based gene selection (automatically used as fallback when data is sparse and Hessian matrix calculation fails) ;; DeMixNB=Negative binomial-based deconvolution designed specifically for sparse count data (e.g., microRNA, spatially resolved transcriptomics) instead of the standard log-normal model\n- when_to_use: Use when deconvolving heterogeneous tissue expression data (such as bulk tumor RNA-seq, microarray, or spatial transcriptomics) to estimate both the mixing proportions of components and the sample-specific expression profiles of the unknown component (e.g., tumor cells) using reference samples for the non-tumor components.\n- pitfalls: R no longer supports OpenMP on MacOS starting from version 4.0.0, meaning DeMixT will run on only one core on MacOS; Linux is highly recommended for multi-core parallel computation ;; Sparse data can cause the Hessian matrix to contain infinite values during profile likelihood calculation in DeMixT_GS, which prevents confidence interval calculation (the package automatically falls back to DeMixT_DE in this case) ;; Skewed tumor proportions (skewed to the high end) can bias estimates; use spike-in normal samples (nspikein > 0) to mitigate this ;; Set a random seed (set.seed) before running to ensure reproducibility due to random initial values and spike-in generation.",
+  "workflows": [
+    {
+      "name": "demixt_bulk_deconvolution",
+      "intent": "Perform two- or three-component deconvolution on bulk transcriptomic data (RNA-seq or microarray) using the log-normal model to estimate proportions and deconvolved expression profiles.",
+      "input": [
+        "PRAD (raw count matrix of genes by samples)",
+        "Normal.id (vector of sample IDs for normal reference samples)",
+        "Tumor.id (vector of sample IDs for mixed tumor samples)"
+      ],
+      "stages": "1. Preprocess and filter the raw count matrix using standard deviation cutoffs with DeMixT_preprocessing.\n2. Create SummarizedExperiment objects for the mixed (tumor) and reference (normal) samples.\n3. Run DeMixT deconvolution across a grid of parameter combinations (varying spike-ins and selected genes) to find the optimal parameters.\n4. Extract the estimated proportions and deconvolved expression profiles.",
+      "code": "preprocessed_data = DeMixT_preprocessing(PRAD, Normal.id, Tumor.id, selected.genes, cutoff_normal_range, cutoff_tumor_range, cutoff_step)\nPRAD_filter = preprocessed_data$count.matrix\nsd_cutoff_normal = preprocessed_data$sd_cutoff_normal\nsd_cutoff_tumor = preprocessed_data$sd_cutoff_tumor\nset.seed(1234)\ndata.Y = SummarizedExperiment(assays = list(counts = PRAD_filter[, Tumor.id]))\ndata.N1 <- SummarizedExperiment(assays = list(counts = PRAD_filter[, Normal.id]))\nres = DeMixT(data.Y = data.Y, data.N1 = data.N1, ngene.selected.for.pi = ngene.selected, ngene.Profile.selected = ngene.selected, filter.sd = 0.7, gene.selection.method = \"GS\", nspikein = nspikesin)"
+    },
+    {
+      "name": "demixnb_spatial_deconvolution",
+      "intent": "Perform two-component deconvolution on sparse count data (such as spatially resolved transcriptomics) using the negative binomial model to estimate tumor proportions.",
+      "input": [
+        "count_matrix (raw spatial transcriptomics count matrix of genes by spots)",
+        "barcode_reference (vector of spot barcodes classified as reference/normal spots)",
+        "barcode_mixed (vector of spot barcodes classified as mixed/tumor spots)",
+        "top_genes (vector of selected spatially variable genes, e.g., from Moran's I analysis)"
+      ],
+      "stages": "1. Subset the count matrix to keep only the selected spatially variable genes.\n2. Separate the count matrix into reference (normal) and mixed (tumor) spot matrices.\n3. Wrap the reference and mixed matrices into SummarizedExperiment objects.\n4. Run DeMixNB deconvolution to estimate tumor proportions using a negative binomial model.",
+      "code": "filtered_mat <- count_matrix[gl, ]\ndata.N1 <- as.matrix(filtered_mat[, barcode_reference])\ndata.Y <- as.matrix(filtered_mat[, barcode_mixed])\nmatrix_data <- as.matrix(filtered_mat[, barcode_mixed])\ndata.Y <- SummarizedExperiment(assays = list(counts = matrix_data))\nmatrix_data <- as.matrix(filtered_mat[, barcode_reference])\ndata.N1 <- SummarizedExperiment(assays = list(counts = matrix_data))\ntest_simulation <- DeMixNB(data.Y = data.Y, data.N1 = data.N1, niter = 30, tol = 1e-3)"
+    }
+  ]
+}

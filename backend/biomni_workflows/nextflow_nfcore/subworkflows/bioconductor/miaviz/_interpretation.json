@@ -1,0 +1,63 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rank=The taxonomic rank to agglomerate or plot by (e.g., \"Kingdom\", \"Phylum\", \"Family\", \"Genus\") ;; assay.type=The name of the assay containing abundance data (e.g., \"counts\", \"relabundance\") ;; features=Specific features (taxa or sample metadata columns) to plot or subset ;; detections=Numeric vector of abundance thresholds to evaluate prevalence ;; prevalences=Numeric vector of prevalence thresholds to evaluate ;; tip.colour.by=Variable from rowData or metadata to map to tree tip colors ;; tip.size.by=Variable from rowData or metadata to map to tree tip sizes ;; edge.colour.by=Variable from rowData or metadata to map to tree edge colors ;; show.label=Logical or character vector specifying which tip/node labels to display ;; time.col=Column in colData representing the time or ordering variable for serial plots ;; type=Goodness of fit measure for DMN plots (e.g., \"laplace\")\n- alternatives: scater=Offers general plotting functions for SummarizedExperiment objects (e.g., plotColData, plotExpression, plotRowData) which can be used alongside miaViz ;; patchwork=Used to combine multiple plots (e.g., abundance and sample metadata) ;; ggtree=Used internally for tree plotting ;; tidygraph/ggraph=Used internally for graph plotting\n- when_to_use: Use when performing microbiome or metagenomic data analysis and needing to visualize taxonomic abundance distributions, prevalence landscapes, phylogenetic trees decorated with abundance/prevalence metadata, sample/feature networks, longitudinal trajectories, or DMN clustering diagnostics.\n- pitfalls: Plotting large trees rarely makes sense; users should subset trees (e.g., top 100 taxa) before plotting with plotRowTree ;; When plotting abundance without specifying a taxonomic rank, ensure the data is agglomerated to a certain taxonomic rank first to avoid overcomplicating the plot ;; ggtree can only plot node labels in a rectangular layout (e.g., layout=\"rectangular\") ;; plotSeries is not advised for a large number of features; a maximum of 20 features can be plotted at the same time ;; In trajectory plotting with geom_path, sorting data (e.g., by time) is crucial to prevent geom_path from picking up NA values and breaking the visualization",
+  "workflows": [
+    {
+      "name": "abundance_plotting",
+      "intent": "Plot taxonomic abundance by rank, subset by prevalence, and combine with sample metadata.",
+      "input": [
+        "GlobalPatterns (TreeSummarizedExperiment object containing taxonomic counts)"
+      ],
+      "stages": "1. Transform assay to relative abundance ;; 2. Plot abundance by taxonomic rank ;; 3. Agglomerate and plot abundance ;; 4. Filter by prevalent taxa and plot ;; 5. Combine abundance plot with sample metadata using patchwork",
+      "code": "GlobalPatterns <- transformAssay(GlobalPatterns, method = \"relabundance\")\nplotAbundance(GlobalPatterns, rank = \"Kingdom\", assay.type = \"relabundance\")\nGlobalPatterns_king <- agglomerateByRank(GlobalPatterns, \"Kingdom\")\nplotAbundance(GlobalPatterns_king, assay.type = \"relabundance\")\nprev_phylum <- getPrevalent(GlobalPatterns, rank = \"Phylum\", detection = 0.01)\nplotAbundance(\n    GlobalPatterns[rowData(GlobalPatterns)$Phylum %in% prev_phylum],\n    rank = \"Phylum\",\n    assay.type = \"relabundance\")\nlibrary(patchwork)\nplots <- plotAbundance(\n    GlobalPatterns[rowData(GlobalPatterns)$Phylum %in% prev_phylum],\n    features = \"SampleType\",\n    rank = \"Phylum\",\n    assay.type = \"relabundance\")\nplots$abundance / plots$SampleType + plot_layout(heights = c(9, 1))"
+    },
+    {
+      "name": "prevalence_plotting",
+      "intent": "Visualize feature prevalence across different abundance thresholds and relative abundances.",
+      "input": [
+        "GlobalPatterns (TreeSummarizedExperiment object containing taxonomic counts)"
+      ],
+      "stages": "1. Plot row prevalence across detection thresholds ;; 2. Plot prevalent abundance against mean relative abundance ;; 3. Plot sample prevalence across multiple detection and prevalence steps",
+      "code": "plotRowPrevalence(\n    GlobalPatterns, rank = \"Phylum\", detections = c(0, 0.001, 0.01, 0.1, 0.2))\nplotPrevalentAbundance(GlobalPatterns, rank = \"Family\", colour.by = \"Phylum\") +\n    scale_x_log10()\nplotPrevalence(\n    GlobalPatterns, rank = \"Phylum\",\n    detections = c(0.01, 0.1, 1, 2, 5, 10, 20)/100,\n    prevalences = seq(0.1, 1, 0.1))"
+    },
+    {
+      "name": "tree_plotting",
+      "intent": "Visualize phylogenetic trees decorated with taxonomic, abundance, and prevalence metadata.",
+      "input": [
+        "GlobalPatterns (TreeSummarizedExperiment object with a rowTree slot)"
+      ],
+      "stages": "1. Agglomerate to Genus level ;; 2. Calculate quality control metrics (mean, detection) ;; 3. Filter to top 100 taxa ;; 4. Plot row tree with decorated tips (color, size) ;; 5. Plot tree with specific node/tip labels and rectangular layout ;; 6. Plot tree with colored edges",
+      "code": "library(scater)\nlibrary(mia)\naltExp(GlobalPatterns,\"Genus\") <- agglomerateByRank(GlobalPatterns,\"Genus\")\naltExp(GlobalPatterns,\"Genus\") <- addPerFeatureQC(\n    altExp(GlobalPatterns,\"Genus\"))\nrowData(altExp(GlobalPatterns,\"Genus\"))$log_mean <- log(\n    rowData(altExp(GlobalPatterns,\"Genus\"))$mean)\nrowData(altExp(GlobalPatterns,\"Genus\"))$detected <- rowData(\n    altExp(GlobalPatterns,\"Genus\"))$detected / 100\ntop_taxa <- getTop(\n    altExp(GlobalPatterns,\"Genus\"),\n    method=\"mean\",\n    top=100L,\n    assay.type=\"counts\")\nplotRowTree(\n    altExp(GlobalPatterns,\"Genus\")[top_taxa,], tip.colour.by = \"log_mean\",\n    tip.size.by = \"detected\")\nplotRowTree(\n    altExp(GlobalPatterns,\"Genus\")[top_taxa,],\n    tip.colour.by = \"log_mean\", tip.size.by = \"detected\", show.label = TRUE)\nlabels <- c(\"Genus:Providencia\", \"Genus:Morganella\", \"0.961.60\")\nplotRowTree(\n    altExp(GlobalPatterns,\"Genus\")[top_taxa,],\n    tip.colour.by = \"log_mean\",\n    tip.size.by = \"detected\",\n    show.label = labels,\n    layout=\"rectangular\")\nplotRowTree(\n    altExp(GlobalPatterns,\"Genus\")[top_taxa,],\n    edge.colour.by = \"Phylum\",\n    tip.colour.by = \"log_mean\")"
+    },
+    {
+      "name": "graph_plotting",
+      "intent": "Plot sample or feature graphs integrated with metadata from a SummarizedExperiment.",
+      "input": [
+        "col_graph (igraph/tidygraph object representing sample connections)",
+        "GlobalPatterns (TreeSummarizedExperiment object)"
+      ],
+      "stages": "1. Load graph data ;; 2. Plot column graph mapping sample metadata to node colors and edge weights ;; 3. Store graph in metadata slot and plot",
+      "code": "data(col_graph)\nplotColGraph(\n    col_graph,\n    altExp(GlobalPatterns,\"Genus\"),\n    colour.by = \"SampleType\",\n    edge.colour.by = \"weight\",\n    edge.width.by = \"weight\",\n    show.label = TRUE)\nmetadata(altExp(GlobalPatterns,\"Genus\"))$graph <- col_graph\nplotColGraph(\n    altExp(GlobalPatterns,\"Genus\"),\n    name = \"graph\",\n    colour.by = \"SampleType\",\n    edge.colour.by = \"weight\",\n    edge.width.by = \"weight\",\n    show.label = TRUE)"
+    },
+    {
+      "name": "serial_data_and_trajectories",
+      "intent": "Visualize longitudinal/serial abundance data and plot subject trajectories on ordination space.",
+      "input": [
+        "SilvermanAGutData (TreeSummarizedExperiment object with longitudinal metadata)",
+        "hitchip1006 (TreeSummarizedExperiment object with longitudinal metadata)"
+      ],
+      "stages": "1. Transform assay to relative abundance ;; 2. Plot abundance series over time faceted by metadata ;; 3. Run MDS ordination ;; 4. Plot subject trajectories on ordination space ;; 5. Calculate stepwise divergence and plot top divergent trajectories",
+      "code": "library(\"miaTime\")\ndata(SilvermanAGutData, package=\"miaTime\")\ntse <- SilvermanAGutData\ntse <- transformAssay(tse, method = \"relabundance\")\ntaxa <- getTop(tse, 2)\nplotSeries(\n    tse,\n    assay.type = \"relabundance\",\n    time.col = \"DAY_ORDER\",\n    features = taxa,\n    colour.by = \"Family\",\n    facet.by = \"Vessel\"\n    )\nplotSeries(\n    tse[taxa,],\n    time.col = \"DAY_ORDER\",\n    colour.by = \"Family\",\n    linetype.by = \"Phylum\",\n    assay.type = \"relabundance\")\nplotSeries(\n    tse,\n    time.col = \"DAY_ORDER\",\n    features = getTop(tse, 5),\n    colour.by = \"Family\",\n    linetype.by = \"Phylum\",\n    assay.type = \"counts\")\nlibrary(miaTime)\ndata(hitchip1006, package = \"miaTime\")\ntse <- hitchip1006\ntse <- transformAssay(tse, method = \"relabundance\")\ntse <- runMDS(\n    tse, FUN = getDissimilarity, method = \"bray\", name = \"PCoA_BC\",\n    assay.type = \"relabundance\", na.rm = TRUE)\np <- plotReducedDim(tse, dimred = \"PCoA_BC\")\nlibrary(dplyr)\nselected.subjects <- names(which(table(tse$subject)==2))\ntable(table(tse$subject)) %>% as.data.frame() %>%\n    rename(Timepoints=Var1, Subjects=Freq)\np + geom_path(\n    aes(x=X1, y=X2, group=subject),\n    arrow=arrow(length = unit(0.1, \"inches\")),\n    data = subset(\n        data.frame(reducedDim(tse), colData(tse)),\n        subject %in% selected.subjects) %>% arrange(time)) +\n    labs(title = \"All trajectories with two time points\") +\n    theme(plot.title = element_text(hjust = 0.5))\ntse <- getStepwiseDivergence(tse, group = \"subject\", time_field = \"time\")\ntop.selected.subjects <- subset(\n    data.frame(reducedDim(tse), colData(tse)),\n    subject %in% selected.subjects) %>%\n    top_frac(0.1, time_divergence) %>% select(subject) %>% .[[1]]\np + geom_path(\n    aes(x=X1, y=X2, color=time_divergence, group=subject),\n    data = subset(\n        data.frame(reducedDim(tse), colData(tse)),\n        subject %in% top.selected.subjects) %>%\n    arrange(desc(time)),\n    arrow=arrow(length = unit(0.1, \"inches\"), ends = \"first\")) +\n    labs(title = \"Top 10%  divergent trajectories from time point one to two\") +\n    scale_color_gradient2(low=\"white\", high=\"red\")+\n    theme(plot.title = element_text(hjust = 0.5))\nselected.subject <- data.frame(reducedDim(tse), colData(tse)) %>%\n    group_by(subject) %>%\n    summarise(total_divergence = sum(time_divergence, na.rm = TRUE)) %>%\n    filter(total_divergence==max(total_divergence)) %>% select(subject) %>%\n    .[[1]]\np +  geom_path(\n    aes(x=X1, y=X2, group=subject),\n    data = subset(\n        data.frame(reducedDim(tse), colData(tse)),\n        subject %in% selected.subject) %>% arrange(time),\n    arrow=arrow(length = unit(0.1, \"inches\"))) +\n    labs(title = \"Longest trajectory by divergence\") +\n    theme(plot.title = element_text(hjust = 0.5))"
+    },
+    {
+      "name": "factor_and_dmn_plotting",
+      "intent": "Visualize relationships between categorical factors and evaluate Dirichlet Multinomial Mixtures (DMN) fit.",
+      "input": [
+        "GlobalPatterns (TreeSummarizedExperiment object)",
+        "dmn_se (TreeSummarizedExperiment object with pre-calculated DMN fit)"
+      ],
+      "stages": "1. Plot categorical factor relationships using column tiles ;; 2. Plot DMN fit diagnostics (e.g., Laplace goodness of fit)",
+      "code": "data(GlobalPatterns, package=\"mia\")\nse <- GlobalPatterns\nplotColTile(se,\"SampleType\",\"Primer\") +\n    theme(axis.text.x.top = element_text(angle = 45, hjust = 0))\ndata(dmn_se, package = \"mia\")\nnames(metadata(dmn_se))\nplotDMNFit(dmn_se, type = \"laplace\")"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "package": "scuttle",
+  "requirements": [
+    "SingleCellExperiment",
+    "scran",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "scuttle"
+    ],
+    "scaling_normalization.nf": [
+      "SingleCellExperiment",
+      "scran",
+      "scuttle"
+    ]
+  }
+}

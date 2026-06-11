@@ -1,0 +1,34 @@
+{
+  "package": "trackviewer",
+  "requirements": [
+    "GenomicRanges",
+    "InteractionSet",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "org.Hs.eg.db",
+    "rtracklayer",
+    "trackViewer"
+  ],
+  "by_workflow": {
+    "chromatin_interaction_visualization.nf": [
+      "GenomicRanges",
+      "InteractionSet",
+      "trackViewer"
+    ],
+    "dandelion_plot.nf": [
+      "GenomicRanges",
+      "rtracklayer",
+      "trackViewer"
+    ],
+    "lollipop_plot.nf": [
+      "GenomicRanges",
+      "trackViewer"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "org.Hs.eg.db",
+      "rtracklayer",
+      "trackViewer"
+    ]
+  }
+}

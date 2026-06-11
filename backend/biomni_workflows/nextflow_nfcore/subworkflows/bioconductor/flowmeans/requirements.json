@@ -1,0 +1,11 @@
+{
+  "package": "flowmeans",
+  "requirements": [
+    "flowMeans"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowMeans"
+    ]
+  }
+}

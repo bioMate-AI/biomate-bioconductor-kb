@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dbr=Expected doublet rate. If omitted, it is automatically estimated for 10x data based on cell count ;; dbr.per1k=Expected doublet rate per 1000 cells (default is 0.008 for standard 10x, use 0.004 for 10x HT) ;; dbr.sd=Standard deviation around dbr; setting dbr.sd=1 bases thresholding entirely on misclassification rate without assuming a fixed doublet rate ;; clusters=Vector of cluster labels, colData column name, or TRUE (uses fastcluster) to enable cluster-based doublet generation ;; samples=Vector of sample/capture IDs or colData column name; crucial for multi-sample datasets to prevent overestimating doublet rates ;; artificialDoublets=Number of artificial doublets to generate (defaults to roughly the number of cells) ;; BPPARAM=BiocParallel parameter for multithreading (e.g., MulticoreParam(3)) ;; processing=Custom function for normalization and PCA of combined real and artificial cells\n- alternatives: computeDoubletDensity=Density-based method (formerly scran::doubletCells) that scores cells based on the local density of simulated doublets in PCA space; use when a simple, fast, non-classifier approach is preferred ;; recoverDoublets=Use when some doublets are already known (e.g., via cell hashing or SNPs) to find neighboring intra-sample doublets ;; findDoubletClusters=Cluster-level doublet detection using differential expression and intermediacy testing; use when you want to identify entire clusters that are likely doublets ;; directDblClassification=Classifier trained directly on gene expression; generally worse and slower than scDblFinder, included chiefly for comparative purposes\n- when_to_use: Appropriate during the preprocessing/QC stage of single-cell RNA-seq or ATAC-seq analysis, after removing empty droplets but before downstream clustering and cell-type annotation, to identify and remove heterotypic doublets.\n- pitfalls: Not splitting multi-sample datasets using the samples argument, which causes scDblFinder to assume a single massive capture and overestimate the doublet rate ;; Running QC cell filtering (like removing low-quality cells) too stringently before doublet detection, which can skew the expected doublet rate and prevent detection of doublets formed by a high-quality and a low-quality cell ;; Using the cluster-based approach or leaving removeUnidentifiable=TRUE when trying to identify homotypic doublets (which are transcriptionally similar and typically filtered out of training) ;; Failing to pass the random seed to BPPARAM (e.g., RNGseed) when running multi-sample or multithreaded analyses, leading to non-reproducible results ;; Cells with zero or very low read counts causing \"Size factors should be positive\" errors; these must be filtered out first.",
+  "workflows": [
+    {
+      "name": "sc_dbl_finder",
+      "intent": "Run the main scDblFinder workflow on a SingleCellExperiment object to score and classify doublets.",
+      "input": [
+        "sce.rds (SingleCellExperiment object containing raw count matrix in 'counts' assay)"
+      ],
+      "stages": "1. Set random seed for reproducibility ;; 2. Run scDblFinder with optional doublet rate (dbr), cluster information (clusters), or sample splitting (samples) ;; 3. Inspect results in colData (scDblFinder.score and scDblFinder.class)",
+      "code": "set.seed(123)\nsuppressPackageStartupMessages(library(scDblFinder))\n# we create a dummy dataset; since it's small we set a higher doublet rate\nsce <- mockDoubletSCE(dbl.rate=0.1, ngenes=300 )\n# we run scDblFinder (providing the unusually high doublet rate)\nsce <- scDblFinder(sce, dbr=0.1)\nsce <- scDblFinder(sce, clusters=\"cluster\")\nlibrary(BiocParallel)\nsce <- scDblFinder(sce, samples=\"sample_id\", BPPARAM=MulticoreParam(3))\nbp <- MulticoreParam(3, RNGseed=1234)\nsce <- scDblFinder(sce, clusters=\"cluster\", samples=\"sample\", BPPARAM=bp)"
+    },
+    {
+      "name": "find_doublet_clusters",
+      "intent": "Identify entire clusters that are likely composed of doublets by testing for lack of intermediacy in expression profiles.",
+      "input": [
+        "sce.rds (SingleCellExperiment object with raw counts)"
+      ],
+      "stages": "1. Normalize counts using logNormCounts ;; 2. Model gene variance and run PCA ;; 3. Cluster cells using clusterRows ;; 4. Run findDoubletClusters to test each cluster against the doublet null hypothesis",
+      "code": "library(scRNAseq)\nsce <- BachMammaryData(samples=\"G_2\")\nset.seed(1000)\nsce <- sce[,sample(ncol(sce), 500)]\nlibrary(scuttle)\nsce <- logNormCounts(sce)\nlibrary(scran)\ndec <- modelGeneVar(sce)\nlibrary(scater)\nset.seed(1000)\nsce <- runPCA(sce, ncomponents=10, subset_row=getTopHVGs(dec, n=1000))\nlibrary(bluster)\nclusters <- clusterRows(reducedDim(sce, \"PCA\"), NNGraphParam())\nsce <- runTSNE(sce, dimred=\"PCA\")\nplotTSNE(sce, colour_by=I(clusters), text_by=I(clusters))\nlibrary(scDblFinder)\ntab <- findDoubletClusters(sce, clusters)"
+    },
+    {
+      "name": "compute_doublet_density",
+      "intent": "Score potential doublets based on the local density of simulated doublets in PCA space.",
+      "input": [
+        "sce.rds (SingleCellExperiment object with raw counts)"
+      ],
+      "stages": "1. Normalize counts and identify highly variable genes ;; 2. Run PCA ;; 3. Run computeDoubletDensity to calculate doublet scores",
+      "code": "library(scRNAseq)\nsce <- BachMammaryData(samples=\"G_1\")\nset.seed(1001)\nsce <- sce[,sample(ncol(sce), 1000)]\nlibrary(scuttle)\nsce <- logNormCounts(sce)\nlibrary(scran)\ndec <- modelGeneVar(sce)\nhvgs <- getTopHVGs(dec, n=1000)\nlibrary(scater)\nset.seed(1002)\nsce <- runPCA(sce, ncomponents=10, subset_row=hvgs)\nsce <- runTSNE(sce, dimred=\"PCA\")\nset.seed(1003)\nlibrary(scDblFinder)\nscores <- computeDoubletDensity(sce, subset.row=hvgs)\nplotTSNE(sce, colour_by=I(log1p(scores)))"
+    }
+  ]
+}

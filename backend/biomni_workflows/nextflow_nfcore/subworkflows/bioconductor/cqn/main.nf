@@ -1,104 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cqn
-// A normalization tool for RNA-Seq data, implementing the conditional quantile normalization method.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cqn/inst/doc/cqn.R
-// Upstream  : edgeR
-// Downstream: KnowSeq
-//
-// Install: BiocManager::install("cqn")
+// Bioconductor workflow: cqn — cqn_expression_normalization
+// Normalize RNA-Seq count data for GC-content and gene length to obtain corrected expression values (RPKM).
+// Input: count_matrix.tsv, gene_lengths.tsv, gc_content.tsv, size_factors.tsv
+// Container: quay.io/biocontainers/bioconductor-cqn:1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cqn
+// Visualizations: plot (ggplot/base)
+// QC: input validation
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run conditional quantile normalization using cqn
+//  * 2. [Visualization & Output] Plot systematic effects of GC content and length using cqnplot
+//  * 3. [Core Analysis] Calculate normalized expression values (RPKM) on the log2 scale
 
 nextflow.enable.dsl = 2
 
-process BIOC_CQN {
+process BIOC_CQN_CQN_EXPRESSION_NORMALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cqn"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cqn:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cqn:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cqn_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cqn_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cqn_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(cqn)
-    library(DGEList)
-    library(jsonlite)
-
-    # --- Normalisation Diagnostics and Plotting [] ---
-    # Key functions: cqnplot
-    par(mfrow = c(1, 2))
-    cqnplot(cqn.subset, n = 1, xlab = "GC content", lty = 1, ylim = c(1, 7))
-    cqnplot(cqn.subset, n = 2, xlab = "length", lty = 1, ylim = c(1, 7))
-
-
-    # --- Integration with Differential Expression [] ---
-    # Key functions: cqn
-    d.mont <- edgeR::DGEList(
-        counts = montgomery.subset,
-        lib.size = sizeFactors.subset,
-        group = rep(c("grp1", "grp2"), each = 5),
-        genes = uCovar
-    )
-    d.mont$offset <- cqn.subset$glm.offset
-    design <- model.matrix(~ d.mont$sample$group)
-    d.mont.cqn <- edgeR::estimateGLMCommonDisp(d.mont, design = design)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cqn_results.csv", row.names = TRUE)
+    
+    # 1. Read User Input Files
+    # Read count matrix
+    counts <- as.matrix(read.delim("count_matrix.tsv", row.names = 1, header = TRUE, check.names = FALSE))
+    
+    # Read gene lengths
+    gene_lengths_raw <- read.delim("gene_lengths.tsv", header = TRUE, check.names = FALSE)
+    if (ncol(gene_lengths_raw) >= 2 && any(gene_lengths_raw[,1] %in% rownames(counts))) {
+      rownames(gene_lengths_raw) <- gene_lengths_raw[,1]
+      gene_lengths <- gene_lengths_raw[rownames(counts), 2]
+    } else if (ncol(gene_lengths_raw) == 1) {
+      gene_lengths <- gene_lengths_raw[, 1]
+      names(gene_lengths) <- rownames(gene_lengths_raw)
+      if (all(names(gene_lengths) %in% rownames(counts))) {
+        gene_lengths <- gene_lengths[rownames(counts)]
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cqn_results.csv")
+      gene_lengths_raw <- read.delim("gene_lengths.tsv", row.names = 1, header = TRUE, check.names = FALSE)
+      gene_lengths <- gene_lengths_raw[rownames(counts), 1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cqn_output.rds")
+    
+    # Read GC content
+    gc_content_raw <- read.delim("gc_content.tsv", header = TRUE, check.names = FALSE)
+    if (ncol(gc_content_raw) >= 2 && any(gc_content_raw[,1] %in% rownames(counts))) {
+      rownames(gc_content_raw) <- gc_content_raw[,1]
+      gc_content <- gc_content_raw[rownames(counts), 2]
+    } else if (ncol(gc_content_raw) == 1) {
+      gc_content <- gc_content_raw[, 1]
+      names(gc_content) <- rownames(gc_content_raw)
+      if (all(names(gc_content) %in% rownames(counts))) {
+        gc_content <- gc_content[rownames(counts)]
+      }
+    } else {
+      gc_content_raw <- read.delim("gc_content.tsv", row.names = 1, header = TRUE, check.names = FALSE)
+      gc_content <- gc_content_raw[rownames(counts), 1]
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CQN:", paste0("    cqn: ", packageVersion("cqn"))),
-        "versions.yml"
+    
+    # Read size factors
+    size_factors_raw <- read.delim("size_factors.tsv", header = TRUE, check.names = FALSE)
+    if (ncol(size_factors_raw) >= 2 && any(size_factors_raw[,1] %in% colnames(counts))) {
+      rownames(size_factors_raw) <- size_factors_raw[,1]
+      size_factors <- size_factors_raw[colnames(counts), 2]
+    } else if (ncol(size_factors_raw) == 1) {
+      size_factors <- size_factors_raw[, 1]
+      names(size_factors) <- rownames(size_factors_raw)
+      if (all(names(size_factors) %in% colnames(counts))) {
+        size_factors <- size_factors[colnames(counts)]
+      }
+    } else {
+      size_factors_raw <- read.delim("size_factors.tsv", row.names = 1, header = TRUE, check.names = FALSE)
+      size_factors <- size_factors_raw[colnames(counts), 1]
+    }
+    
+    # Align and prepare variables to match documented code exactly
+    montgomery.subset <- counts
+    uCovar <- data.frame(
+      length = as.numeric(gene_lengths),
+      gccontent = as.numeric(gc_content),
+      row.names = rownames(counts)
     )
+    sizeFactors.subset <- as.numeric(size_factors)
+    names(sizeFactors.subset) <- colnames(counts)
+    
+    # Assertions to ensure data integrity (as in vignette)
+    stopifnot(all(rownames(montgomery.subset) == rownames(uCovar)))
+    stopifnot(colnames(montgomery.subset) == names(sizeFactors.subset))
+    
+    # 2. Run Conditional Quantile Normalization (CQN)
+    cqn.subset <- cqn(montgomery.subset, lengths = uCovar\$length, 
+                      x = uCovar\$gccontent, sizeFactors = sizeFactors.subset,
+                      verbose = TRUE)
+    
+    # 3. Plot systematic effects of GC content and length using cqnplot
+    pdf("cqn_plots.pdf", width = 10, height = 5)
+    par(mfrow=c(1,2))
+    cqnplot(cqn.subset, n = 1, xlab = "GC content", lty = 1)
+    cqnplot(cqn.subset, n = 2, xlab = "length", lty = 1)
+    dev.off()
+    
+    # 4. Calculate normalized expression values (RPKM) on the log2 scale
+    RPKM.cqn <- cqn.subset\$y + cqn.subset\$offset
+    
+    # 5. Save Outputs
+    write.table(RPKM.cqn, "cqn_normalized_rpkm.tsv", sep = "\t", quote = FALSE, col.names = NA)
+    saveRDS(cqn.subset, "cqn_object.rds")
+
+    writeLines(c(
+        '"BIOC_CQN_CQN_EXPRESSION_NORMALIZATION":',
+        paste0('    cqn: ', as.character(packageVersion('cqn')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cqn_results.csv
-    touch ${prefix}_cqn_output.rds
-    echo "BIOC_CQN:" > versions.yml
-    echo "    cqn: 0.0.0" >> versions.yml
+    touch ${prefix}_cqn_expression_normalization.csv versions.yml
     """
 }
 
-
-workflow BIOC_CQN_WORKFLOW {
+workflow BIOC_CQN_CQN_EXPRESSION_NORMALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ count_matrix.tsv, gene_lengths.tsv, gc_content.tsv, size_factors.tsv ] ]
 
     main:
-    BIOC_CQN(ch_input)
+    BIOC_CQN_CQN_EXPRESSION_NORMALIZATION(ch_input)
 
     emit:
-    results  = BIOC_CQN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CQN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CQN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CQN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CQN_CQN_EXPRESSION_NORMALIZATION.out.tables
+    plots    = BIOC_CQN_CQN_EXPRESSION_NORMALIZATION.out.plots
+    objects  = BIOC_CQN_CQN_EXPRESSION_NORMALIZATION.out.objects
+    versions = BIOC_CQN_CQN_EXPRESSION_NORMALIZATION.out.versions
 }

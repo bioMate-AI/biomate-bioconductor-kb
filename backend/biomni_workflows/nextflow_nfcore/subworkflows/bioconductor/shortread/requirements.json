@@ -1,0 +1,17 @@
+{
+  "package": "shortread",
+  "requirements": [
+    "ShortRead"
+  ],
+  "by_workflow": {
+    "custom_column_parsing.nf": [
+      "ShortRead"
+    ],
+    "fastq_filtering_and_trimming.nf": [
+      "ShortRead"
+    ],
+    "main.nf": [
+      "ShortRead"
+    ]
+  }
+}

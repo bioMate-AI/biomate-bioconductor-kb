@@ -1,188 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: chromPlot
-// Package designed to visualize genomic data along the chromosomes, where the vertical chromosomes are
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/chromPlot/inst/doc/chromPlot.R
-// Upstream  : GenomicFeatures, qtl
-// Downstream: none
-//
-// Install: BiocManager::install("chromPlot")
+// Bioconductor workflow: chromPlot — idiogram_and_synteny_mapping
+// Plot chromosome idiograms (G-banding) and highlight genomic elements or synteny blocks directly on the chromosome body.
+// Input: hg_gap, hg_cytoBandIdeo, refGeneHg, sinteny
+// Container: quay.io/biocontainers/bioconductor-chromplot:1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: chromPlot
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load coordinate gaps and cytoband data
+//  * 2. [Visualization & Output] Plot basic chromosome structures
+//  * 3. [Visualization & Output] Plot G-banding patterns
+//  * 4. [Core Analysis] Overlay genomic elements or synteny blocks on the chromosome body
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHROMPLOT {
+process BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chromplot"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chromplot:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chromplot:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chromplot_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chromplot_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chromplot_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(chromPlot)
-    library(jsonlite)
-
-    # --- Genomic Annotation Mapping [] ---
-    # Key functions: chromPlot
-    data(hg_gap)
-    data_file1 <- system.file(
-        "extdata", "hg19_refGeneChr19-21.txt",
-        package = "chromPlot"
-    )
-    refGeneHg <- read.table(
-        data_file1, sep = "\t", header = TRUE,
-        stringsAsFactors = FALSE
-    )
-    refGeneHg$Colors <- "red"
-    chromPlot(
-        gaps = hg_gap,
-        bands = refGeneHg,
-        chr = c(19, 20, 21),
-        figCols = 3
-    )
-
-
-    # --- Multi-Track Genomic Feature Visualization [] ---
-    # Key functions: chromPlot
-    data(mm10_gap)
-    data(mm10_cytoBandIdeo)
-    data_file4 <- system.file(
-        "extdata", "mm10_refGeneChr2-11-17-19.txt",
-        package = "chromPlot"
-    )
-    ref_mm10 <- read.table(
-        data_file4, sep = "\t", stringsAsFactors = FALSE,
-        header = TRUE
-    )
-    data_file5 <- system.file(
-        "extdata", "arrayChr17-19.txt",
-        package = "chromPlot"
-    )
-    array <- read.table(
-        data_file5, sep = "\t", header = TRUE,
-        stringsAsFactors = FALSE
-    )
-    chromPlot(
-        gaps = mm10_gap,
-        bands = mm10_cytoBandIdeo,
-        annot1 = ref_mm10,
-        annot2 = array,
-        chr = c("17", "18", "19"),
-        figCols = 3
-    )
-
-
-    # --- Statistical Data Plotting [] ---
-    # Key functions: chromPlot
-    data(hg_gap)
-    data(hg_cytoBandIdeo)
-    data_file2 <- system.file(
-        "extdata", "Fst_CEU-YRI-W200Chr19-21.bed",
-        package = "chromPlot"
-    )
-    fst <- read.table(
-        data_file2, sep = "\t", stringsAsFactors = FALSE,
-        header = TRUE
-    )
-    chromPlot(
-        bands = hg_cytoBandIdeo,
-        gaps = hg_gap,
-        stat = fst,
-        statCol = "win.FST",
-        statName = "win.FST",
-        statTyp = "p",
-        chr = c(19:21),
-        figCols = 3,
-        statSumm = "mean"
-    )
-
-
-    # --- QTL Mapping Integration [] ---
-    # Key functions: chromPlot
-    data(mm10_gap)
-    data(mm10_cytoBandIdeo)
-    data_file4 <- system.file(
-        "extdata", "mm10_refGeneChr2-11-17-19.txt",
-        package = "chromPlot"
-    )
-    ref_mm10 <- read.table(
-        data_file4, sep = "\t", stringsAsFactors = FALSE,
-        header = TRUE
-    )
-    QTLs <- data.frame(
-        Chrom = c(2, 17, 18),
-        Start = c(1000000, 2000000, 3000000),
-        End = c(1500000, 2500000, 3500000),
-        LOD = c(3.5, 4.2, 2.1)
-    )
-    chromPlot(
-        gaps = mm10_gap,
-        bands = mm10_cytoBandIdeo,
-        annot1 = ref_mm10,
-        stat = QTLs,
-        statCol = "LOD",
-        statTyp = "l",
-        chr = c(2, 17, 18),
-        figCols = 3
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chromplot_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chromplot_results.csv")
+    
+    # Helper function to read user input files from the working directory
+    read_input <- function(base_name) {
+      possible_files <- c(
+        paste0(base_name, ".rds"),
+        paste0(base_name, ".txt"),
+        paste0(base_name, ".tsv"),
+        paste0(base_name, ".csv"),
+        base_name
+      )
+      
+      for (f in possible_files) {
+        if (file.exists(f)) {
+          message(paste("Reading input file:", f))
+          if (grepl("\\\\.rds\$", f)) {
+            return(readRDS(f))
+          } else if (grepl("\\\\.csv\$", f)) {
+            return(read.csv(f, header = TRUE, stringsAsFactors = FALSE))
+          } else {
+            # Try reading as tab-separated, fallback to whitespace-delimited
+            df <- tryCatch(
+              read.table(f, sep = "\t", header = TRUE, stringsAsFactors = FALSE),
+              error = function(e) read.table(f, header = TRUE, stringsAsFactors = FALSE)
+            )
+            return(df)
+          }
+        }
+      }
+      stop(paste("Error: Required input file not found for:", base_name))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chromplot_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHROMPLOT:", paste0("    chromplot: ", packageVersion("chromPlot"))),
-        "versions.yml"
+    
+    # 1. Load coordinate gaps, cytoband data, genomic elements, and synteny blocks
+    message("Loading user input datasets...")
+    hg_gap          <- read_input("hg_gap")
+    hg_cytoBandIdeo <- read_input("hg_cytoBandIdeo")
+    refGeneHg       <- read_input("refGeneHg")
+    sinteny         <- read_input("sinteny")
+    
+    # Ensure refGeneHg has the Colors column set as in the documented workflow
+    refGeneHg\$Colors <- "red"
+    
+    # 2. Plot basic chromosome structures
+    message("Generating Plot 1: Basic chromosome structures...")
+    pdf("chromplot_basic_gaps.pdf", width = 10, height = 8)
+    chromPlot(gaps = hg_gap)
+    dev.off()
+    
+    # 3. Plot G-banding patterns
+    message("Generating Plot 2: G-banding patterns...")
+    pdf("chromplot_g_banding.pdf", width = 12, height = 8)
+    chromPlot(
+      bands = hg_cytoBandIdeo, 
+      gaps = hg_gap, 
+      chr = c("1", "2", "3", "4", "5", "6"), 
+      figCols = 6
     )
+    dev.off()
+    
+    # 4. Overlay genomic elements on the chromosome body
+    message("Generating Plot 3: Genomic elements overlay...")
+    pdf("chromplot_genomic_elements.pdf", width = 10, height = 8)
+    chromPlot(
+      gaps = hg_gap, 
+      bands = refGeneHg, 
+      chr = c(19, 20, 21), 
+      figCols = 3
+    )
+    dev.off()
+    
+    # 5. Overlay synteny blocks on the chromosome body
+    message("Generating Plot 4: Synteny mapping...")
+    pdf("chromplot_synteny.pdf", width = 10, height = 8)
+    chromPlot(
+      gaps = hg_gap, 
+      bands = sinteny, 
+      chr = c(19:21), 
+      figCols = 3
+    )
+    dev.off()
+    
+    # Save RDS objects of the loaded/processed data for downstream verification
+    message("Saving processed data objects...")
+    saveRDS(hg_gap, "processed_hg_gap.rds")
+    saveRDS(hg_cytoBandIdeo, "processed_hg_cytoBandIdeo.rds")
+    saveRDS(refGeneHg, "processed_refGeneHg.rds")
+    saveRDS(sinteny, "processed_sinteny.rds")
+    
+    message("Pipeline completed successfully. Outputs generated:
+      - chromplot_basic_gaps.pdf
+      - chromplot_g_banding.pdf
+      - chromplot_genomic_elements.pdf
+      - chromplot_synteny.pdf
+      - processed_hg_gap.rds
+      - processed_hg_cytoBandIdeo.rds
+      - processed_refGeneHg.rds
+      - processed_sinteny.rds")
+
+    writeLines(c(
+        '"BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING":',
+        paste0('    chromPlot: ', as.character(packageVersion('chromPlot')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chromplot_results.csv
-    touch ${prefix}_chromplot_output.rds
-    echo "BIOC_CHROMPLOT:" > versions.yml
-    echo "    chromplot: 0.0.0" >> versions.yml
+    touch ${prefix}_idiogram_and_synteny_mapping.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHROMPLOT_WORKFLOW {
+workflow BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ hg_gap, hg_cytoBandIdeo, refGeneHg, sinteny ] ]
 
     main:
-    BIOC_CHROMPLOT(ch_input)
+    BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING(ch_input)
 
     emit:
-    results  = BIOC_CHROMPLOT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHROMPLOT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHROMPLOT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHROMPLOT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING.out.tables
+    plots    = BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING.out.plots
+    objects  = BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING.out.objects
+    versions = BIOC_CHROMPLOT_IDIOGRAM_AND_SYNTENY_MAPPING.out.versions
 }

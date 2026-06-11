@@ -1,0 +1,27 @@
+{
+  "package": "dino",
+  "requirements": [
+    "Dino",
+    "Matrix",
+    "Seurat",
+    "SingleCellExperiment",
+    "scran"
+  ],
+  "by_workflow": {
+    "custom_depth_normalization.nf": [
+      "Dino",
+      "Matrix",
+      "scran"
+    ],
+    "main.nf": [
+      "Dino",
+      "Matrix",
+      "Seurat"
+    ],
+    "single_cell_experiment_normalization.nf": [
+      "Dino",
+      "Matrix",
+      "SingleCellExperiment"
+    ]
+  }
+}

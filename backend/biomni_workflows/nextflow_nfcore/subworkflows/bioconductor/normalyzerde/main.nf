@@ -1,140 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NormalyzerDE
-// NormalyzerDE provides screening of normalization methods for LC-MS based expression data. It calcula
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/NormalyzerDE/inst/doc/vignette.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("NormalyzerDE")
+// Bioconductor workflow: normalyzerde — normalization_evaluation
+// Evaluate multiple normalization methods on raw LC-MS expression data and generate performance plots.
+// Input: tiny_data.tsv, tiny_design.tsv
+// Container: quay.io/biocontainers/bioconductor-normalyzerde:1.28.0--r45hdfd78af_0
+// R packages: NormalyzerDE
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NORMALYZERDE {
+process BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-normalyzerde"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-normalyzerde:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-normalyzerde:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-normalyzerde:1.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_normalyzerde_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_normalyzerde_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_normalyzerde_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("NormalyzerDE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(NormalyzerDE)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Input Data Preparation ---
-    # Key functions: system.file
-    designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
-    dataFp <- system.file(package="NormalyzerDE", "extdata", "tiny_data.tsv")
-    designMatrix <- read.table(designFp, sep="\t", header=TRUE)
-    dataMatrix <- read.table(dataFp, sep="\t", header=TRUE)
-    sampleNames <- as.character(designMatrix$sample)
-    dataOnly <- dataMatrix[, sampleNames]
-    annotOnly <- dataMatrix[, !(colnames(dataMatrix) %in% sampleNames)]
-
-    # --- Normalization Evaluation ---
-    # Key functions: normalyzer
-    outDir <- tempdir()
-    designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
-    dataFp <- system.file(package="NormalyzerDE", "extdata", "tiny_data.tsv")
-    normalyzer(
-        jobName="vignette_run",
-        designPath=designFp,
-        dataPath=dataFp,
-        outputDir=outDir
-    )
-
-    # --- Differential Expression Analysis ---
-    # Key functions: normalyzerDE
-    outDir <- tempdir()
-    designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
-    normMatrixPath <- file.path(outDir, "vignette_run", "CycLoess-normalized.txt")
-    normalyzerDE(
-        jobName="vignette_run",
-        comparisons=c("4-5"),
-        designPath=designFp,
-        dataPath=normMatrixPath,
-        outputDir=outDir
-    )
-
-    # --- Retention Time Segmentation Normalization ---
-    # Key functions: getRTNormalizedMatrix
-    dataMat <- matrix(runif(1000), ncol=10)
-    colnames(dataMat) <- paste0("Sample", 1:10)
-    retentionTimes <- runif(100, min=1, max=30)
-    performCyclicLoess <- function(rawMatrix) {
-        log2Matrix <- log2(rawMatrix)
-        normMatrix <- limma::normalizeCyclicLoess(log2Matrix, method="fast")
-        colnames(normMatrix) <- colnames(rawMatrix)
-        return(normMatrix)
+    
+    # Define input file paths (must read EXACTLY these files from the working directory)
+    dataFp <- "tiny_data.tsv"
+    designFp <- "tiny_design.tsv"
+    
+    # Verify input files exist
+    if (!file.exists(dataFp)) {
+        stop(paste("Required input file missing:", dataFp))
     }
-    rtNormMat <- getRTNormalizedMatrix(
-        dataMat,
-        retentionTimes,
-        performCyclicLoess,
-        stepSizeMinutes=1,
-        windowMinCount=10
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_normalyzerde_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_normalyzerde_results.csv")
+    if (!file.exists(designFp)) {
+        stop(paste("Required input file missing:", designFp))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_normalyzerde_output.rds")
+    
+    # Step 1: Loading data and verifying input
+    jobName <- "vignette_run"
+    experimentObj <- setupRawDataObject(dataFp, designFp, "default", TRUE, "sample", "group")
+    normObj <- getVerifiedNormalyzerObject(jobName, experimentObj)
+    
+    # Step 2: Generate normalizations
+    normResults <- normMethods(normObj)
+    
+    # Step 3: Generate performance measures
+    normResultsWithEval <- analyzeNormalizations(normResults)
+    
+    # Step 4: Output matrices to file
+    jobDir <- setupJobDir("vignette_run", tempdir())
+    writeNormalizedDatasets(normResultsWithEval, jobDir)
+    
+    # Step 5: Generate evaluation plots
+    generatePlots(normResultsWithEval, jobDir)
+    
+    # Save meaningful results to the current working directory
+    # 1. Save the evaluation results object as RDS
+    saveRDS(normResultsWithEval, file = "normResultsWithEval.rds")
+    
+    # 2. Copy the generated normalized matrices and plots to the working directory
+    generated_files <- list.files(jobDir, full.names = TRUE, recursive = TRUE)
+    if (length(generated_files) > 0) {
+        local_out_dir <- "normalyzer_evaluation_results"
+        dir.create(local_out_dir, showWarnings = FALSE)
+        file.copy(generated_files, local_out_dir, recursive = TRUE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NORMALYZERDE:", paste0("    normalyzerde: ", packageVersion("NormalyzerDE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION":',
+        paste0('        normalyzerde: ', as.character(packageVersion("normalyzerde")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_normalyzerde_results.csv
-    touch ${prefix}_normalyzerde_output.rds
-    echo "BIOC_NORMALYZERDE:" > versions.yml
-    echo "    normalyzerde: 0.0.0" >> versions.yml
+    touch ${prefix}_normalization_evaluation.csv versions.yml
     """
 }
 
-
-workflow BIOC_NORMALYZERDE_WORKFLOW {
+workflow BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tiny_data.tsv, tiny_design.tsv ] ]
 
     main:
-    BIOC_NORMALYZERDE(ch_input)
+    BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION(ch_input)
 
     emit:
-    results  = BIOC_NORMALYZERDE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NORMALYZERDE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NORMALYZERDE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NORMALYZERDE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION.out.tables
+    plots    = BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION.out.plots
+    objects  = BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION.out.objects
+    versions = BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION.out.versions
 }

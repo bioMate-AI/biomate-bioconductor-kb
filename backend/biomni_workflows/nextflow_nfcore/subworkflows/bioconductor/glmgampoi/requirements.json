@@ -1,0 +1,22 @@
+{
+  "package": "glmgampoi",
+  "requirements": [
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "glmGamPoi"
+  ],
+  "by_workflow": {
+    "cell_level_marker_gene_identification.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "glmGamPoi"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "ggplot2",
+      "glmGamPoi"
+    ]
+  }
+}

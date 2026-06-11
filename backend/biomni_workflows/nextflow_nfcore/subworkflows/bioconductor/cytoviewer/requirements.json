@@ -1,0 +1,21 @@
+{
+  "package": "cytoviewer",
+  "requirements": [
+    "EBImage",
+    "S4Vectors",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "cytomapper",
+    "cytoviewer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "S4Vectors",
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "cytomapper",
+      "cytoviewer"
+    ]
+  }
+}

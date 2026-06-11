@@ -1,132 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DaMiRseq
-// The DaMiRseq package offers a tidy pipeline of data mining procedures to identify transcriptional bi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DaMiRseq/inst/doc/DaMiRseq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("DaMiRseq")
+// Bioconductor workflow: DaMiRseq — standard_pipeline_and_classification
+// Perform raw count normalization, sample filtering, surrogate variable adjustment, feature selection, and ensemble learning classification.
+// Input: count_data.txt, covariate_data.txt
+// Container: quay.io/biocontainers/bioconductor-damirseq:2.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DaMiRseq, SummarizedExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Import data and create a SummarizedExperiment object
+//  * 2. [Core Analysis] Filter and normalize counts
+//  * 3. [Core Analysis] Filter out low-correlation samples
+//  * 4. [Core Analysis] Identify and adjust for surrogate variables
+//  * 5. [Core Analysis] Transpose and perform feature selection and reduction
+//  * 6. [Core Analysis] Sort and select the best predictors
+//  * 7. [Core Analysis] Train and evaluate an ensemble classifier
 
 nextflow.enable.dsl = 2
 
-process BIOC_DAMIRSEQ {
+process BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-damirseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-damirseq:2.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-damirseq:2.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_damirseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_damirseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_damirseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DaMiRseq)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(DaMiRseq)
+        
+        # 1. Import data and create a SummarizedExperiment object
+        count_data <- read.delim("count_data.txt", header = TRUE, row.names = 1)
+        covariate_data <- read.delim("covariate_data.txt", header = TRUE, row.names = 1, stringsAsFactors = TRUE)
+        SE <- DaMiR.makeSE(count_data, covariate_data)
+        
+        # 2. Filter and normalize counts
+        data_norm <- DaMiR.normalization(SE, minCounts=10, fSample=0.7, hyper = "yes", th.cv=3)
+        
+        # 3. Filter out low-correlation samples
+        data_filt <- DaMiR.sampleFilt(data_norm, th.corr=0.9)
+        
+        # 4. Identify and adjust for surrogate variables
+        sv <- DaMiR.SV(data_filt)
+        data_adjust<-DaMiR.SVadjust(data_filt, sv, n.sv=ncol(sv))
+        
+        # Open PDF device to save all diagnostic and results plots
+        pdf("DaMiRseq_pipeline_plots.pdf", width = 10, height = 8)
+        
+        DaMiR.Allplot(data_adjust, colData(data_adjust))
+        
+        # 5. Transpose and perform feature selection and reduction
+        set.seed(12345)
+        data_clean<-DaMiR.transpose(assay(data_adjust))
+        df<-colData(data_adjust)
+        data_reduced <- DaMiR.FSelect(data_clean, df, th.corr=0.4)
+        data_reduced <- DaMiR.FReduct(data_reduced\$data)
+        
+        DaMiR.MDSplot(data_reduced, df)
+        
+        # 6. Sort and select the best predictors
+        df.importance <- DaMiR.FSort(data_reduced, df)
+        selected_features <- DaMiR.FBest(data_reduced, ranking=df.importance, n.pred = 5)
+        
+        DaMiR.Clustplot(selected_features\$data, df)
+        
+        # Close the PDF device
+        dev.off()
+        
+        # 7. Train and evaluate an ensemble classifier
+        Classification_res <- DaMiR.EnsembleLearning(selected_features\$data, classes=df\$class, fSample.tr = 0.5, fSample.tr.w = 0.5, iter = 30)
+        
+        # Save meaningful results to files
+        write.csv(df.importance, "feature_importance.csv", row.names = TRUE)
+        write.csv(selected_features\$data, "selected_features_data.csv", row.names = TRUE)
+        saveRDS(Classification_res, "classification_results.rds")
+        saveRDS(data_adjust, "normalized_adjusted_SE.rds")
 
-    # --- Batch Effect Correction [] ---
-    # Key functions: DaMiR.SV, DaMiR.SVadjust, DaMiR.Allplot
-    sv <- DaMiR.SV(data_filt)
-    data_adjust <- DaMiR.SVadjust(data_filt, sv, n.sv = 4)
-    DaMiR.Allplot(data_adjust, colData(data_adjust))
-
-
-    # --- Feature Selection and Dimension Reduction [] ---
-    # Key functions: DaMiR.transpose, DaMiR.FSelect, DaMiR.FReduct, DaMiR.MDSplot
-    data_clean <- DaMiR.transpose(assay(data_adjust))
-    df <- colData(data_adjust)
-    data_reduced <- DaMiR.FSelect(data_clean, df, th.corr = 0.4)
-    data_reduced_red <- DaMiR.FReduct(data_reduced$data)
-    DaMiR.MDSplot(data_reduced_red, df)
-
-
-    # --- Feature Ranking and Selection [] ---
-    # Key functions: DaMiR.FSort, DaMiR.FBest, DaMiR.Clustplot
-    df_importance <- DaMiR.FSort(data_reduced_red, df)
-    selected_features <- DaMiR.FBest(
-        data_reduced_red,
-        ranking = df_importance,
-        n.pred = 5
-    )
-    DaMiR.Clustplot(selected_features$data, df)
-
-
-    # --- Ensemble Learning Classification [] ---
-    # Key functions: DaMiR.EnsembleLearning
-    classification_res <- DaMiR.EnsembleLearning(
-        selected_features$data,
-        classes = df$class,
-        fSample.tr = 0.5,
-        fSample.tr.w = 0.5,
-        iter = 10
-    )
-
-
-    # --- Model Training and Prediction [] ---
-    # Key functions: DaMiR.EnsL_Train, DaMiR.EnsL_Predict
-    idx_test <- c(1:5, 21:25)
-    test_set <- data_adjust[, idx_test, drop = FALSE]
-    train_set <- data_adjust[, -idx_test, drop = FALSE]
-    train_features <- train_set[selected_features$predictors, , drop = FALSE]
-    test_features <- test_set[selected_features$predictors, , drop = FALSE]
-    ensl_model <- DaMiR.EnsL_Train(train_features, cl_type = c("RF", "LR"))
-    res_predict <- DaMiR.EnsL_Predict(test_features, bestModel = ensl_model)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_damirseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_damirseq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_damirseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DAMIRSEQ:", paste0("    damirseq: ", packageVersion("DaMiRseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION":',
+        paste0('    DaMiRseq: ', as.character(packageVersion('DaMiRseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_damirseq_results.csv
-    touch ${prefix}_damirseq_output.rds
-    echo "BIOC_DAMIRSEQ:" > versions.yml
-    echo "    damirseq: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_pipeline_and_classification.csv versions.yml
     """
 }
 
-
-workflow BIOC_DAMIRSEQ_WORKFLOW {
+workflow BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ count_data.txt, covariate_data.txt ] ]
 
     main:
-    BIOC_DAMIRSEQ(ch_input)
+    BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION(ch_input)
 
     emit:
-    results  = BIOC_DAMIRSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DAMIRSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DAMIRSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DAMIRSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION.out.tables
+    plots    = BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION.out.plots
+    objects  = BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION.out.objects
+    versions = BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION.out.versions
 }

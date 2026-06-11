@@ -1,0 +1,25 @@
+{
+  "package": "gcrisprtools",
+  "requirements": [
+    "Biobase",
+    "ComplexHeatmap",
+    "gCrisprTools",
+    "limma",
+    "sparrow"
+  ],
+  "by_workflow": {
+    "advanced_contrast_comparison.nf": [
+      "Biobase",
+      "ComplexHeatmap",
+      "gCrisprTools",
+      "limma",
+      "sparrow"
+    ],
+    "main.nf": [
+      "Biobase",
+      "gCrisprTools",
+      "limma",
+      "sparrow"
+    ]
+  }
+}

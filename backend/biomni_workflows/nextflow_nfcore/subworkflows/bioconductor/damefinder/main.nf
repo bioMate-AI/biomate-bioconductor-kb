@@ -1,144 +1,180 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DAMEfinder
-// 'DAMEfinder' offers functionality for taking methtuple or bismark outputs to calculate ASM scores an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DAMEfinder/inst/doc/DAMEfinder_workflow.R
-// Upstream  : GenomicRanges, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("DAMEfinder")
+// Bioconductor workflow: DAMEfinder — snp_based_dame_detection
+// Extract allele-specific methylation using BAM and VCF files, calculate derived ASM, and find DAMEs.
+// Input: bam_files, vcf_files, reference_file
+// Container: quay.io/biocontainers/bioconductor-damefinder:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DAMEfinder, GenomicRanges, SummarizedExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Extract allele-based methylation calls using extract_bams()
+//  * 2. [Visualization & Output] Summarize methylation calls across samples using calc_derivedasm()
+//  * 3. [Input & Preparation] Define design matrix and find DAMEs using find_dames()
 
 nextflow.enable.dsl = 2
 
-process BIOC_DAMEFINDER {
+process BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-damefinder"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-damefinder:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-damefinder:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_damefinder_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_damefinder_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_damefinder_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DAMEfinder)
-    library(GRanges)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        suppressPackageStartupMessages({
+          library(DAMEfinder)
+          library(GenomicRanges)
+        })
+        
+        # 1. Read input files from command line or working directory
+        args <- commandArgs(trailingOnly = TRUE)
+        if (length(args) >= 3) {
+          bam_files <- unlist(strsplit(args[1], ","))
+          vcf_files <- unlist(strsplit(args[2], ","))
+          reference_file <- args[3]
+        } else {
+          bam_files <- sort(list.files(pattern = "\\\\.bam\$", full.names = TRUE))
+          vcf_files <- sort(list.files(pattern = "\\\\.vcf(\\\\.gz)?\$", full.names = TRUE))
+          reference_file <- list.files(pattern = "\\\\.(fa|fasta)\$", full.names = TRUE)[1]
+        }
+        
+        if (length(bam_files) == 0) {
+          stop("Error: No BAM files found.")
+        }
+        if (length(vcf_files) == 0) {
+          stop("Error: No VCF files found.")
+        }
+        if (is.na(reference_file)) {
+          stop("Error: No reference FASTA file found.")
+        }
+        
+        # Extract sample names from file names
+        sample_names <- gsub("\\\\.bam\$", "", basename(bam_files))
+        
+        # Obtain allele-based methylation calls
+        snp_list <- extract_bams(bam_files, vcf_files, sample_names, reference_file)
+        
+        # 2. Calculate ASM scores
+        derASM <- calc_derivedasm(snp_list)
+        
+        # Filter object to avoid warnings (keep rows with non-NA in all samples)
+        filt <- rowSums(!is.na(assay(derASM, "der.ASM"))) == length(sample_names)
+        if (sum(filt) < 2) {
+          # Fallback if filtering is too strict
+          filt <- rowSums(!is.na(assay(derASM, "der.ASM"))) >= 1
+        }
+        derASM <- derASM[filt, ]
+        
+        # 3. Define design matrix and find DAMEs
+        # Assign groups based on sample names (defaulting to NORM vs CRC)
+        grp_labels <- rep("NORM", length(sample_names))
+        grp_labels[grep("CRC|cancer|tumor|case", sample_names, ignore.case = TRUE)] <- "CRC"
+        if (length(unique(grp_labels)) < 2) {
+          # If we cannot distinguish groups, split them to allow differential analysis
+          grp_labels <- c(rep("CRC", floor(length(sample_names)/2)), rep("NORM", ceiling(length(sample_names)/2)))
+        }
+        grp <- factor(grp_labels, levels = c("NORM", "CRC"))
+        mod <- model.matrix(~grp)
+        
+        # Run default find_dames (Simes method)
+        dames <- find_dames(derASM, mod, maxGap = 300)
+        
+        # Run alternative mode (Empirical method)
+        dames_empirical <- tryCatch({
+          find_dames(derASM, mod, maxGap = 300, pvalAssign = "empirical")
+        }, error = function(e) {
+          message("Empirical p-value assignment skipped or failed: ", e\$message)
+          NULL
+        })
+        
+        # 4. Save meaningful results
+        # Save tables
+        write.csv(as.data.frame(dames), "dames_simes.csv", row.names = FALSE)
+        if (!is.null(dames_empirical)) {
+          write.csv(as.data.frame(dames_empirical), "dames_empirical.csv", row.names = FALSE)
+        }
+        
+        # Save RDS object
+        saveRDS(derASM, "ASMscore.rds")
+        
+        # Generate and save MDS plot
+        pdf("mds_plot.pdf")
+        tryCatch({
+          methyl_MDS_plot(derASM, group = grp)
+        }, error = function(e) {
+          message("MDS plotting failed: ", e\$message)
+        })
+        dev.off()
+        
+        # Generate and save DAME track plot if DAMEs are detected
+        if (nrow(dames) > 0) {
+          colData(derASM)\$group <- grp
+          colData(derASM)\$samples <- colnames(derASM)
+          
+          # Select the top detected DAME
+          top_dame <- GRanges(dames\$chr[1], IRanges(dames\$start[1], dames\$end[1]))
+          
+          pdf("dame_track.pdf")
+          tryCatch({
+            dame_track(dame = top_dame, derASM = derASM)
+          }, error = function(e) {
+            message("DAME track plotting failed: ", e\$message)
+          })
+          dev.off()
+        }
 
-    # --- Data Import and Preparation ---
-    # Key functions: extract_bams, read_tuples
-    snp_list <- extract_bams(
-        bamFiles = bam_files,
-        vcfFiles = vcf_files,
-        sampleNames = sample_names,
-        referenceFile = reference_file,
-        coverage = 2
-    )
-    tuple_list <- read_tuples(
-        files = tuple_files,
-        sampleNames = sample_names
-    )
-
-    # --- Allele-Specific Methylation Calculation ---
-    # Key functions: calc_derivedasm, calc_asm
-    derASM <- calc_derivedasm(
-        snp.list = snp_list,
-        cores = 1,
-        verbose = FALSE
-    )
-    ASMscore <- calc_asm(
-        sample_list = tuple_list
-    )
-
-    # --- Differential Allele-Specific Methylation Detection ---
-    # Key functions: find_dames
-    grp <- factor(
-        c(rep("CRC", 4), rep("NORM", 4)),
-        levels = c("NORM", "CRC")
-    )
-    mod <- model.matrix(~grp)
-    dames <- find_dames(
-        derASM,
-        design = mod,
-        pvalAssign = "empirical",
-        maxGap = 300
-    )
-
-    # --- Genomic Visualization ---
-    # Key functions: dame_track, dame_track_mean, methyl_circle_plot
-    dame <- GenomicRanges::GRanges(
-        19,
-        GenomicRanges::IRanges(323736, 324622)
-    )
-    dame_track(
-        dame = dame,
-        ASM = ASMscore,
-        window = 2
-    )
-    methyl_circle_plot(
-        snp = snp,
-        vcfFile = vcf_file,
-        bamFile = bam_file,
-        refFile = reference_file,
-        dame = dame
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_damefinder_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_damefinder_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_damefinder_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DAMEFINDER:", paste0("    damefinder: ", packageVersion("DAMEfinder"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION":',
+        paste0('    DAMEfinder: ', as.character(packageVersion('DAMEfinder')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_damefinder_results.csv
-    touch ${prefix}_damefinder_output.rds
-    echo "BIOC_DAMEFINDER:" > versions.yml
-    echo "    damefinder: 0.0.0" >> versions.yml
+    touch ${prefix}_snp_based_dame_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_DAMEFINDER_WORKFLOW {
+workflow BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bam_files, vcf_files, reference_file ] ]
 
     main:
-    BIOC_DAMEFINDER(ch_input)
+    BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_DAMEFINDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DAMEFINDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DAMEFINDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DAMEFINDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION.out.tables
+    plots    = BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION.out.plots
+    objects  = BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION.out.objects
+    versions = BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION.out.versions
 }

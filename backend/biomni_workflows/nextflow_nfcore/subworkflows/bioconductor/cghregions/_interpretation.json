@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: averror=The maximum acceptable information loss or average error allowed when defining regions (e.g., 0.01 for 1% error)\n- alternatives: CGHcall=Used to perform the initial segmentation and calling of copy number states before running CGHregions\n- when_to_use: Use when you have multi-sample array CGH data that has already been segmented and called, and you need to simplify the dataset into discrete regions of gain, loss, or normality for downstream analysis.\n- pitfalls: Attempting to run CGHregions directly on raw log2-ratios or unsegmented data will fail; the input must be a called CGH object (such as a cghCall object).",
+  "workflows": [
+    {
+      "name": "cgh_dimension_reduction",
+      "intent": "Reduce segmented and called array CGH data into genomic regions of minimal information loss and visualize the results.",
+      "input": [
+        "called_cgh_data.RData (an object of class cghCall containing segmented and called array CGH data)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Run the CGHregions dimension reduction algorithm ;; 3. Inspect and plot the resulting genomic regions",
+      "code": "library(CGHregions)\ndata(WiltingCalled)\nWiltingCalled\nregions <- CGHregions(WiltingCalled, averror=0.01)\nregions\nplot(regions)"
+    }
+  ]
+}

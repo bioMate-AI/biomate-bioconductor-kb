@@ -1,0 +1,15 @@
+{
+  "package": "ctsv",
+  "requirements": [
+    "CTSV",
+    "S4Vectors",
+    "SpatialExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CTSV",
+      "S4Vectors",
+      "SpatialExperiment"
+    ]
+  }
+}

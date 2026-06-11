@@ -1,0 +1,25 @@
+{
+  "package": "protgear",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "gridExtra",
+    "pheatmap",
+    "plyr",
+    "protGear",
+    "purrr",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "gridExtra",
+      "pheatmap",
+      "plyr",
+      "protGear",
+      "purrr",
+      "tidyr"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "package": "geodiff",
+  "requirements": [
+    "Biobase",
+    "GeoDiff",
+    "GeomxTools",
+    "NanoStringNCTools",
+    "dplyr",
+    "ggplot2",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GeoDiff",
+      "GeomxTools",
+      "NanoStringNCTools",
+      "dplyr",
+      "ggplot2",
+      "reshape2"
+    ]
+  }
+}

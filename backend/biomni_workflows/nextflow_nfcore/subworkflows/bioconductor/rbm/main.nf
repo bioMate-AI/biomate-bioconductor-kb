@@ -1,114 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RBM
-// Use A Resampling-Based Empirical Bayes Approach to Assess Differential Expression in Two-Color Micro
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RBM/inst/doc/RBM.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("RBM")
+// Bioconductor workflow: RBM — two_group_comparison
+// Identify differentially expressed or methylated features between two groups using resampling-based moderated t-statistics.
+// Input: ovarian_cancer_methylation.csv, label.csv
+// Container: quay.io/biocontainers/bioconductor-rbm:1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RBM
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the RBM package and the input dataset
+//  * 2. [Input & Preparation] Extract the data matrix and define the group label vector
+//  * 3. [Core Analysis] Run RBM_T to compute moderated t-statistics, permutation p-values, and bootstrap p-values
+//  * 4. [Core Analysis] Adjust the resulting p-values using the Benjamini-Hochberg method
+//  * 5. [Core Analysis] Identify and print significant features based on adjusted p-values
 
 nextflow.enable.dsl = 2
 
-process BIOC_RBM {
+process BIOC_RBM_TWO_GROUP_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rbm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rbm:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rbm:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rbm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rbm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rbm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RBM_F)
-    library(RBM_T)
-    library(jsonlite)
-
-    # --- Matrix [] ---
-    # Key functions: rnorm, RBM_T
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required library
     library(RBM)
-    normdata <- matrix(rnorm(1000*6, 0, 1),1000,6)
-    mydesign <- c(0,0,0,1,1,1)
-    myresult <- RBM_T(normdata,mydesign,100,0.05)
-    summary(myresult)
-    # --- Matrix [] ---
-    # Key functions: runif, RBM_T, adjust
-    unifdata <- matrix(runif(1000*7,0.10, 0.95), 1000, 7)
-    mydesign2 <- c(0,0,0, 1,1,1,1)
-    myresult2 <- RBM_T(unifdata,mydesign2,100,0.05)
-    sum(myresult2$permutatioin_p<=0.05)
-    sum(myresult2$bootstrap_p<=0.05)
-    # --- Matrix [] ---
-    # Key functions: rnorm, RBM_F, adjust
-    normdata_F <- matrix(rnorm(1000*9,0,2), 1000, 9)
-    mydesign_F <- c(0, 0, 0, 1, 1, 1, 2, 2, 2)
-    aContrast <- c("X1-X0", "X2-X1", "X2-X0")
-    myresult_F <- RBM_F(normdata_F, mydesign_F, aContrast, 100, 0.05)
-    summary(myresult_F)
-    # --- Matrix [] ---
-    # Key functions: runif, RBM_F
-    unifdata_F <- matrix(runif(1000*18, 0.15, 0.98), 1000, 18)
-    mydesign2_F <- c(rep(0, 6), rep(1, 6), rep(2, 6))
-    aContrast <- c("X1-X0", "X2-X1", "X2-X0")
-    myresult2_F <- RBM_F(unifdata_F, mydesign2_F, aContrast, 100, 0.05)
-    summary(myresult2_F)
+    
+    # 1. Load the input datasets from the working directory
+    ovarian_cancer_methylation <- read.csv("ovarian_cancer_methylation.csv", header = TRUE, check.names = FALSE)
+    
+    # Read label vector
+    label_data <- read.csv("label.csv", header = FALSE)
+    label <- as.numeric(as.vector(t(label_data)))
+    
+    # 2. Extract the data matrix and define the group label vector
+    ovarian_cancer_data <- as.matrix(ovarian_cancer_methylation[, -1])
+    
+    # Print summaries to console as in the vignette
+    summary(ovarian_cancer_methylation)
+    
+    # 3. Run RBM_T to compute moderated t-statistics, permutation p-values, and bootstrap p-values
+    diff_results <- RBM_T(aData=ovarian_cancer_data, vec_trt=label, repetition=100, alpha=0.05)
+    summary(diff_results)
+    
+    cat("Number of ordinary fit p-values <= 0.05:", sum(diff_results\$ordfit_pvalue<=0.05), "\n")
+    cat("Number of permutation p-values <= 0.05:", sum(diff_results\$permutation_p<=0.05), "\n")
+    cat("Number of bootstrap p-values <= 0.05:", sum(diff_results\$bootstrap_p<=0.05), "\n")
+    
+    # 4. Adjust the resulting p-values using the Benjamini-Hochberg method
+    ordfit_adjp <- p.adjust(diff_results\$ordfit_pvalue, "BH")
+    cat("Number of adjusted ordinary fit p-values <= 0.05:", sum(ordfit_adjp<=0.05), "\n")
+    
+    perm_adjp <- p.adjust(diff_results\$permutation_p, "BH")
+    cat("Number of adjusted permutation p-values <= 0.05:", sum(perm_adjp<=0.05), "\n")
+    
+    boot_adjp <- p.adjust(diff_results\$bootstrap_p, "BH")
+    cat("Number of adjusted bootstrap p-values <= 0.05:", sum(boot_adjp<=0.05), "\n")
+    
+    # 5. Identify and print significant features based on adjusted p-values
+    diff_list_perm <- which(perm_adjp<=0.05)
+    diff_list_boot <- which(boot_adjp<=0.05)
+    
+    sig_results_perm <- cbind(ovarian_cancer_methylation[diff_list_perm, ], diff_results\$ordfit_t[diff_list_perm], diff_results\$permutation_p[diff_list_perm])
+    print(sig_results_perm)
+    
+    sig_results_boot <- cbind(ovarian_cancer_methylation[diff_list_boot, ], diff_results\$ordfit_t[diff_list_boot], diff_results\$bootstrap_p[diff_list_boot])
+    print(sig_results_boot)
+    
+    # Write outputs
+    write.csv(sig_results_perm, "sig_results_permutation.csv", row.names = FALSE)
+    write.csv(sig_results_boot, "sig_results_bootstrap.csv", row.names = FALSE)
+    saveRDS(diff_results, "rbm_t_results.rds")
+    
+    # Generate PDF plot of p-value distributions
+    pdf("pvalue_distributions.pdf", width = 10, height = 4)
+    par(mfrow = c(1, 3))
+    hist(diff_results\$ordfit_pvalue, main = "Ordinary Fit P-values", xlab = "P-value", col = "lightblue", breaks = 20)
+    hist(diff_results\$permutation_p, main = "Permutation P-values", xlab = "P-value", col = "lightgreen", breaks = 20)
+    hist(diff_results\$bootstrap_p, main = "Bootstrap P-values", xlab = "P-value", col = "lightpink", breaks = 20)
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rbm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rbm_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rbm_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RBM:", paste0("    rbm: ", packageVersion("RBM"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RBM_TWO_GROUP_COMPARISON":',
+        paste0('    RBM: ', as.character(packageVersion('RBM')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rbm_results.csv
-    touch ${prefix}_rbm_output.rds
-    echo "BIOC_RBM:" > versions.yml
-    echo "    rbm: 0.0.0" >> versions.yml
+    touch ${prefix}_two_group_comparison.csv versions.yml
     """
 }
 
-
-workflow BIOC_RBM_WORKFLOW {
+workflow BIOC_RBM_TWO_GROUP_COMPARISON_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ovarian_cancer_methylation.csv, label.csv ] ]
 
     main:
-    BIOC_RBM(ch_input)
+    BIOC_RBM_TWO_GROUP_COMPARISON(ch_input)
 
     emit:
-    results  = BIOC_RBM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RBM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RBM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RBM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RBM_TWO_GROUP_COMPARISON.out.tables
+    plots    = BIOC_RBM_TWO_GROUP_COMPARISON.out.plots
+    objects  = BIOC_RBM_TWO_GROUP_COMPARISON.out.objects
+    versions = BIOC_RBM_TWO_GROUP_COMPARISON.out.versions
 }

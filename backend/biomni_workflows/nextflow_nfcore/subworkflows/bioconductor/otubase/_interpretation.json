@@ -1,0 +1,31 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dirPath=The directory path containing the input files to be read ;; level=The OTU clustering/classification level desired (e.g., \"0.03\") in readOTUset ;; samplefile=The group file connecting read IDs to sample IDs (Mothur .groups format) ;; fastafile=Optional FASTA file containing sequences; inclusion may slow down reading ;; otufile=The OTU list file produced by Mothur ;; sampleADF=The sample metadata file in AnnotatedDataFrame format ;; taxfile=The RDP taxonomic classification file in 'fixed' format for readTAXset ;; namefile=The Mothur names file (mapping unique sequences to duplicates) for readTAXset ;; weighted=Logical parameter in abundance indicating whether to generate weighted abundance ;; collab=Column name in sample metadata to group/label samples in abundance or clusterSamples ;; taxCol=The taxonomic rank column (e.g., 'genus') to use for abundance or clustering in TAXset objects ;; distmethod=Distance method (e.g., 'jaccard') for clusterSamples ;; clustermethod=Clustering method (e.g., 'complete') for clusterSamples\n- alternatives: Mothur and RDP are used for upstream sequence preprocessing, trimming, unique sequence generation, and taxonomic classification before importing into R. The vegan package is used for ecological analysis; otubase integrates with it for richness estimation (estimateR) and clustering, but users can use vegan directly on the generated abundance tables for more advanced analyses.\n- when_to_use: Use when analyzing amplicon sequencing data (e.g., 16S rRNA) processed via Mothur or RDP, and you need to integrate sequence data, OTU/taxonomic assignments, and sample metadata into a unified R structure for downstream ecological analysis.\n- pitfalls: Including fastafile and quality files in readOTUset or readTAXset is optional and can significantly slow down the data import process. The abundance method for TAXset objects requires specifying the taxonomic column (taxCol), unlike OTUset objects. subOTUset is noted as having an incomplete implementation, with plans to replace it with traditional [ bracket notation.",
+  "workflows": [
+    {
+      "name": "otu_based_analysis",
+      "intent": "Import Mothur OTU files and metadata, generate an abundance table, estimate richness, cluster samples, and subset the dataset.",
+      "input": [
+        "sogin.groups (Mothur groups file linking read ID to sample ID)",
+        "sogin.unique.filter.fn.list (Mothur OTU list file)",
+        "sample_metadata.txt (Sample metadata in AnnotatedDataFrame format)",
+        "sogin.fasta (Optional FASTA file of sequences)"
+      ],
+      "stages": "1. Define directory path ;; 2. Read OTU data and metadata using readOTUset ;; 3. Access sequence and sample IDs ;; 4. Generate OTU abundance table ;; 5. Estimate richness using vegan::estimateR ;; 6. Cluster samples ;; 7. Subset the OTU set.",
+      "code": "dirPath <- system.file(\"extdata/Sogin_2006\", package=\"OTUbase\")\nsoginOTU <- readOTUset(dirPath=dirPath, level=\"0.03\", samplefile=\"sogin.groups\", fastafile=\"sogin.fasta\", otufile=\"sogin.unique.filter.fn.list\", sampleADF=\"sample_metadata.txt\")\nsoginOTU\nhead(id(soginOTU))\nhead(sread(soginOTU))\nhead(sampleID(soginOTU))\nhead(sData(soginOTU))\nhead(otuID(soginOTU))\nabundOTU <- abundance(soginOTU, weighted=F, collab='Site')\nhead(abundOTU)\nestrichOTU <- apply(abundOTU, 2, estimateR)\nestrichOTU\nclusterSamples(soginOTU, distmethod='jaccard', clustermethod='complete', collab='Site')\nsoginReduced <- subOTUset(soginOTU, samples=c(\"137\", \"138\", \"53R\", \"55R\"))\nsoginReduced"
+    },
+    {
+      "name": "taxonomy_based_analysis",
+      "intent": "Import RDP taxonomic classification files and metadata, generate a taxonomic abundance table, estimate richness, and cluster samples.",
+      "input": [
+        "sogin.groups (Mothur groups file)",
+        "sogin.unique.fix.tax (RDP fixed taxonomy file)",
+        "sogin.names (Mothur names file for unique sequences)",
+        "sample_metadata.txt (Sample metadata)",
+        "sogin.fasta (Optional FASTA file)"
+      ],
+      "stages": "1. Define directory path ;; 2. Read taxonomy data and metadata using readTAXset ;; 3. Access taxonomic classifications ;; 4. Generate taxonomic abundance table at a specific rank ;; 5. Estimate richness ;; 6. Cluster samples.",
+      "code": "dirPath <- system.file(\"extdata/Sogin_2006\", package=\"OTUbase\")\nsoginTAX <- readTAXset(dirPath=dirPath, fastafile='sogin.fasta', sampleADF='sample_metadata.txt', taxfile='sogin.unique.fix.tax', namefile='sogin.names', samplefile='sogin.groups')\nsoginTAX\nhead(tax(soginTAX))\nabundTAX <- abundance(soginTAX, weighted=F, taxCol='genus', collab='Site')\nhead(abundTAX)\nestrichTAX <- apply(abundTAX, 2, estimateR)\nestrichTAX\nclusterSamples(soginTAX, taxCol='genus', distmethod='jaccard', clustermethod='complete', collab='Site')"
+    }
+  ]
+}

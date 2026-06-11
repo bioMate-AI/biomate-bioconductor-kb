@@ -1,172 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pathview
-// Pathview is a tool set for pathway based data integration and visualization. It maps and renders a w
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pathview/inst/doc/pathview.R
-// Upstream  : gage
-// Downstream: EGSEA, SBGNview
-//
-// Install: BiocManager::install("pathview")
+// Bioconductor workflow: pathview — gene_data_visualization
+// Visualize a single sample of gene expression data on a signaling pathway using both native KEGG and Graphviz layouts.
+// Input: gene_expression.tsv
+// Container: quay.io/biocontainers/bioconductor-pathview:1.50.0--r45hdfd78af_0
+// R packages: gage, pathview
+// Bioconductor: 3.20 | R: 4.4
+// Requires: pathview
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load package and data
+//  * 2. [Visualization & Output] Render native KEGG view with default settings
+//  * 3. [Visualization & Output] Render native KEGG view with two layers (same.layer = FALSE)
+//  * 4. [Visualization & Output] Render Graphviz view with default settings
+//  * 5. [Visualization & Output] Render Graphviz view with two layers
+//  * 6. [Visualization & Output] Render Graphviz view with split node groups
+//  * 7. [Visualization & Output] Render Graphviz view with expanded multiple-gene nodes
 
 nextflow.enable.dsl = 2
 
-process BIOC_PATHVIEW {
+process BIOC_PATHVIEW_GENE_DATA_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pathview"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pathview:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pathview:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pathview_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pathview_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pathview_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gage", "pathview")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(pathview)
-    library(jsonlite)
-
-    # --- Synopsis1 [] ---
-    # Key functions: pathview
-    ## library(pathview)
-    ## data(gse16873.d)
-    ## pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = "04110",
-    ##                    species = "hsa", out.suffix = "gse16873")
-    # --- <Install [] ---
-    # Key functions: packages
-    ## install.packages("/your/local/directory/XML_3.95-0.2.zip", repos = NULL)
-    # --- Readin [] ---
-    # Key functions: delim
-    ## filename=system.file("extdata/gse16873.demo", package = "pathview")
-    ## gse16873=read.delim(filename, row.names=1)
-    ## gse16873.d=gse16873[,2*(1:6)]-gse16873[,2*(1:6)-1]
-    # --- data [] ---
-    # Key functions: data
-    data(paths.hsa)
-    head(paths.hsa,3)
-    # --- pathview [] ---
-    # Key functions: pathview, files
+    
+    # 1. Load package and data
+    gene_df <- read.delim("gene_expression.tsv", row.names = 1, check.names = FALSE)
+    gse16873.d <- as.matrix(gene_df)
+    
+    demo.paths <- list(
+      sel.paths = c("04110"),
+      spos = c("bottomleft")
+    )
     i <- 1
-    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths$sel.paths[i],
+    
+    # 2. Render native KEGG view with default settings
+    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths\$sel.paths[i],
                        species = "hsa", out.suffix = "gse16873", kegg.native = T)
-    list.files(pattern="hsa04110", full.names=T)
-    str(pv.out)
-    # --- Kegg.Native 2Layer [] ---
-    # Key functions: pathview
-    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths$sel.paths[i],
+    saveRDS(pv.out, "pv_out_native_default.rds")
+    if (!is.null(pv.out\$plot.data.gene)) {
+      write.csv(pv.out\$plot.data.gene, "plot_data_gene_native_default.csv", row.names = FALSE)
+    }
+    
+    # 3. Render native KEGG view with two layers (same.layer = FALSE)
+    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths\$sel.paths[i],
                        species = "hsa", out.suffix = "gse16873.2layer", kegg.native = T,
                        same.layer = F)
-    # --- Graphviz [] ---
-    # Key functions: pathview
-    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths$sel.paths[i],
+    saveRDS(pv.out, "pv_out_native_2layer.rds")
+    if (!is.null(pv.out\$plot.data.gene)) {
+      write.csv(pv.out\$plot.data.gene, "plot_data_gene_native_2layer.csv", row.names = FALSE)
+    }
+    
+    # 4. Render Graphviz view with default settings
+    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths\$sel.paths[i],
                        species = "hsa", out.suffix = "gse16873", kegg.native = F,
-                       sign.pos = demo.paths$spos[i])
-    #pv.out remains the same
-    dim(pv.out$plot.data.gene)
-    # --- pathview [] ---
-    # Key functions: pathview
-    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths$sel.paths[i],
-        species = "hsa", out.suffix = "gse16873.2layer", kegg.native = F,
-        sign.pos = demo.paths$spos[i], same.layer = F)
-    # --- Split [] ---
-    # Key functions: pathview
-    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths$sel.paths[i],
-        species = "hsa", out.suffix = "gse16873.split", kegg.native = F,
-        sign.pos = demo.paths$spos[i], split.group = T)
-    dim(pv.out$plot.data.gene)
-    head(pv.out$plot.data.gene)
-    # --- Expanded [] ---
-    # Key functions: pathview
-    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths$sel.paths[i],
+                       sign.pos = demo.paths\$spos[i])
+    saveRDS(pv.out, "pv_out_graphviz_default.rds")
+    if (!is.null(pv.out\$plot.data.gene)) {
+      write.csv(pv.out\$plot.data.gene, "plot_data_gene_graphviz_default.csv", row.names = FALSE)
+    }
+    
+    # 5. Render Graphviz view with two layers
+    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths\$sel.paths[i], 
+        species = "hsa", out.suffix = "gse16873.2layer", kegg.native = F, 
+        sign.pos = demo.paths\$spos[i], same.layer = F)
+    saveRDS(pv.out, "pv_out_graphviz_2layer.rds")
+    if (!is.null(pv.out\$plot.data.gene)) {
+      write.csv(pv.out\$plot.data.gene, "plot_data_gene_graphviz_2layer.csv", row.names = FALSE)
+    }
+    
+    # 6. Render Graphviz view with split node groups
+    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths\$sel.paths[i], 
+        species = "hsa", out.suffix = "gse16873.split", kegg.native = F, 
+        sign.pos = demo.paths\$spos[i], split.group = T)
+    saveRDS(pv.out, "pv_out_graphviz_split.rds")
+    if (!is.null(pv.out\$plot.data.gene)) {
+      write.csv(pv.out\$plot.data.gene, "plot_data_gene_graphviz_split.csv", row.names = FALSE)
+    }
+    
+    # 7. Render Graphviz view with expanded multiple-gene nodes
+    pv.out <- pathview(gene.data = gse16873.d[, 1], pathway.id = demo.paths\$sel.paths[i], 
         species = "hsa", out.suffix = "gse16873.split.expanded", kegg.native = F,
-        sign.pos = demo.paths$spos[i], split.group = T, expand.node = T)
-    dim(pv.out$plot.data.gene)
-    head(pv.out$plot.data.gene)
-    # --- data [] ---
-    # Key functions: data
-    sim.cpd.data=sim.mol.data(mol.type="cpd", nmol=3000)
-    data(cpd.simtypes)
-    # --- Gene Cpd.Data [] ---
-    # Key functions: pathview
-    i <- 3
-    print(demo.paths$sel.paths[i])
-    pv.out <- pathview(gene.data = gse16873.d[, 1], cpd.data = sim.cpd.data,
-        pathway.id = demo.paths$sel.paths[i], species = "hsa", out.suffix = "gse16873.cpd",
-        keys.align = "y", kegg.native = T, key.pos = demo.paths$kpos1[i])
-    # --- Graphviz.Gene Cpd.Data [] ---
-    # Key functions: pathview
-    pv.out <- pathview(gene.data = gse16873.d[, 1], cpd.data = sim.cpd.data,
-        pathway.id = demo.paths$sel.paths[i], species = "hsa", out.suffix = "gse16873.cpd",
-        keys.align = "y", kegg.native = F, key.pos = demo.paths$kpos2[i],
-        sign.pos = demo.paths$spos[i], cpd.lab.offset = demo.paths$offs[i])
-    # --- sample [] ---
-    # Key functions: sample
-    set.seed(10)
-    sim.cpd.data2 = matrix(sample(sim.cpd.data, 18000,
-        replace = T), ncol = 6)
-    rownames(sim.cpd.data2) = names(sim.cpd.data)
-    colnames(sim.cpd.data2) = paste("exp", 1:6, sep = "")
-    # --- Multisample.Gene Cpd.Data [] ---
-    # Key functions: pathview
-    #KEGG view
-    pv.out <- pathview(gene.data = gse16873.d[, 1:3],
-        cpd.data = sim.cpd.data2[, 1:2], pathway.id = demo.paths$sel.paths[i],
-        species = "hsa", out.suffix = "gse16873.cpd.3-2s", keys.align = "y",
-        kegg.native = T, match.data = F, multi.state = T, same.layer = T)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pathview_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pathview_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pathview_output.rds")
+        sign.pos = demo.paths\$spos[i], split.group = T, expand.node = T)
+    saveRDS(pv.out, "pv_out_graphviz_expanded.rds")
+    if (!is.null(pv.out\$plot.data.gene)) {
+      write.csv(pv.out\$plot.data.gene, "plot_data_gene_graphviz_expanded.csv", row.names = FALSE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PATHVIEW:", paste0("    pathview: ", packageVersion("pathview"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PATHVIEW_GENE_DATA_VISUALIZATION":',
+        paste0('    pathview: ', as.character(packageVersion('pathview')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pathview_results.csv
-    touch ${prefix}_pathview_output.rds
-    echo "BIOC_PATHVIEW:" > versions.yml
-    echo "    pathview: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_data_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_PATHVIEW_WORKFLOW {
+workflow BIOC_PATHVIEW_GENE_DATA_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_expression.tsv ] ]
 
     main:
-    BIOC_PATHVIEW(ch_input)
+    BIOC_PATHVIEW_GENE_DATA_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_PATHVIEW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PATHVIEW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PATHVIEW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PATHVIEW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PATHVIEW_GENE_DATA_VISUALIZATION.out.tables
+    plots    = BIOC_PATHVIEW_GENE_DATA_VISUALIZATION.out.plots
+    objects  = BIOC_PATHVIEW_GENE_DATA_VISUALIZATION.out.objects
+    versions = BIOC_PATHVIEW_GENE_DATA_VISUALIZATION.out.versions
 }

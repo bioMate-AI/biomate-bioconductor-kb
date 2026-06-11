@@ -1,131 +1,224 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GeneExpressionSignature
-// This package gives the implementations of the gene expression signature and its distance to each. Ge
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GeneExpressionSignature/inst/doc/GeneExpressionSignature.R
-// Upstream  : BiocStyle, GEOquery, apcluster
-// Downstream: none
-//
-// Install: BiocManager::install("GeneExpressionSignature")
+// Bioconductor workflow: GeneExpressionSignature — gene_expression_signature_pipeline
+// Perform rank-based gene expression signature analysis to compute pairwise distances between biological states using GSEA and PGSEA algorithms.
+// Input: counts.csv, coldata.csv
+// Container: 1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, GeneExpressionSignature
+// Visualizations: heatmap (ComplexHeatmap)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENEEXPRESSIONSIGNATURE {
+process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-geneexpressionsignature"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-geneexpressionsignature:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-geneexpressionsignature:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_geneexpressionsignature_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_geneexpressionsignature_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_geneexpressionsignature_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(GeneExpressionSignature)
-    library(RankMerging)
-    library(ScoreGSEA)
-    library(ScorePGSEA)
-    library(jsonlite)
-
-    # --- Rank Merging [] ---
-    # Key functions: RankMerging
-    data(exampleSet)
-    MergingSet <- RankMerging(
-        exampleSet,
-        "Spearman",
-        weighted = TRUE
-    )
-
-
-    # --- GSEA Scoring [] ---
-    # Key functions: RankMerging, ScoreGSEA
-    data(exampleSet)
-    MergingSet <- RankMerging(exampleSet, "Spearman", weighted = TRUE)
-    ds_gsea <- ScoreGSEA(
-        MergingSet,
-        SignatureLength = 250,
-        ScoringDistance = "avg"
-    )
-
-
-    # --- PGSEA Scoring [] ---
-    # Key functions: RankMerging, ScorePGSEA
-    data(exampleSet)
-    MergingSet <- RankMerging(exampleSet, "Spearman", weighted = TRUE)
-    ds_pgsea <- ScorePGSEA(
-        MergingSet,
-        SignatureLength = 250,
-        ScoringDistance = "avg"
-    )
-
-
-    # --- Signature Distance Calculation [] ---
-    # Key functions: SignatureDistance
-    data(exampleSet)
-    sig_dist <- SignatureDistance(
-        exampleSet,
-        SignatureLength = 250,
-        MergingDistance = "Spearman",
-        ScoringMethod = "GSEA",
-        ScoringDistance = "avg",
-        weighted = TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_geneexpressionsignature_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    message("Stage 1: Loading and preprocessing input data...")
+    
+    # Read expression matrix (counts.csv holds normalized probe/gene expression values)
+    counts <- read.csv("counts.csv", check.names = FALSE)
+    if ("gene_id" %in% colnames(counts)) {
+      rownames(counts) <- counts\$gene_id
+      counts\$gene_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_geneexpressionsignature_results.csv")
+      rownames(counts) <- counts[, 1]
+      counts <- counts[, -1, drop = FALSE]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_geneexpressionsignature_output.rds")
+    expression_matrix <- as.matrix(counts)
+    
+    # Read sample metadata
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # Align counts and coldata
+    common_samples <- intersect(coldata\$sample, colnames(expression_matrix))
+    if (length(common_samples) == 0) {
+      stop("Error: No matching samples found between counts.csv and coldata.csv")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENEEXPRESSIONSIGNATURE:", paste0("    geneexpressionsignature: ", packageVersion("GeneExpressionSignature"))),
-        "versions.yml"
+    expression_matrix <- expression_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
+    
+    # ==========================================
+    # Stage 2: Data Ranking (getRLs)
+    # ==========================================
+    message("Stage 2: Generating ranked lists of genes...")
+    
+    # Identify control samples to compute relative rankings
+    control_indices <- which(coldata\$condition %in% c("control", "Control", "untreated", "Untreated", "mock", "Mock", "WT", "wt"))
+    if (length(control_indices) == 0) {
+      # Fallback: use the first unique condition as control
+      control_cond <- coldata\$condition[1]
+      control_indices <- which(coldata\$condition == control_cond)
+    }
+    
+    # Generate ranked lists using getRLs or fallback to direct ranking
+    if (length(control_indices) > 0 && length(control_indices) < ncol(expression_matrix)) {
+      control_mat <- expression_matrix[, control_indices, drop = FALSE]
+      treatment_mat <- expression_matrix[, -control_indices, drop = FALSE]
+      treatment_coldata <- coldata[-control_indices, , drop = FALSE]
+      
+      control_profile <- as.matrix(rowMeans(control_mat))
+      
+      ranked_list <- tryCatch({
+        getRLs(control_profile, as.matrix(treatment_mat))
+      }, error = function(e) {
+        warning("getRLs failed, falling back to direct column-wise ranking: ", e\$message)
+        apply(treatment_mat, 2, function(x) rank(-x))
+      })
+    } else {
+      # Fallback if no valid control/treatment split is possible
+      warning("No distinct control/treatment split possible. Ranking all samples relative to global mean.")
+      global_mean <- as.matrix(rowMeans(expression_matrix))
+      ranked_list <- tryCatch({
+        getRLs(global_mean, expression_matrix)
+      }, error = function(e) {
+        apply(expression_matrix, 2, function(x) rank(-x))
+      })
+      treatment_coldata <- coldata
+    }
+    
+    # Construct ExpressionSet for downstream analysis
+    pheno_df <- data.frame(state = treatment_coldata\$condition)
+    rownames(pheno_df) <- colnames(ranked_list)
+    pheno_data <- AnnotatedDataFrame(pheno_df)
+    eset <- ExpressionSet(assayData = as.matrix(ranked_list), phenoData = pheno_data)
+    
+    # ==========================================
+    # Stage 3: Rank Merging
+    # ==========================================
+    message("Stage 3: Merging ranked lists by biological state...")
+    
+    # Merge multiple ranked lists belonging to the same biological state
+    MergingSet <- RankMerging(eset, "Spearman", weighted = TRUE)
+    
+    # ==========================================
+    # Stage 4: Similarity Measuring (GSEA & PGSEA)
+    # ==========================================
+    message("Stage 4: Measuring signature similarity...")
+    
+    # Dynamically determine signature length based on dataset size
+    num_genes <- nrow(eset)
+    sig_length <- max(10, min(250, floor(num_genes / 4)))
+    message(paste("Using signature length:", sig_length))
+    
+    # Compute similarity distance matrix using GSEA
+    ds_gsea <- ScoreGSEA(MergingSet, sig_length, "avg")
+    
+    # Compute similarity distance matrix using PGSEA
+    ds_pgsea <- ScorePGSEA(MergingSet, sig_length, "avg")
+    
+    # Compute similarity distance matrix using the unified SignatureDistance function
+    ds_sigdist <- SignatureDistance(
+      eset,
+      SignatureLength = sig_length,
+      MergingDistance = "Spearman",
+      ScoringMethod = "GSEA",
+      ScoringDistance = "avg",
+      weighted = TRUE
     )
+    
+    # ==========================================
+    # Stage 5: Export Results and Visualization
+    # ==========================================
+    message("Stage 5: Exporting results and generating plots...")
+    
+    # Save distance matrices to CSV
+    write.csv(as.matrix(ds_gsea), "gsea_distance_matrix.csv", row.names = TRUE)
+    write.csv(as.matrix(ds_pgsea), "pgsea_distance_matrix.csv", row.names = TRUE)
+    write.csv(as.matrix(ds_sigdist), "signature_distance_matrix.csv", row.names = TRUE)
+    
+    # Generate diagnostic plots
+    pdf("distance_analysis_plots.pdf", width = 12, height = 10)
+    par(mfrow = c(2, 2))
+    
+    # Heatmap of GSEA distances
+    if (nrow(ds_gsea) > 1) {
+      heatmap(as.matrix(ds_gsea), main = "GSEA Distance Heatmap", symm = TRUE, col = heat.colors(256))
+      
+      # Hierarchical clustering of GSEA distances
+      hc_gsea <- hclust(as.dist(ds_gsea))
+      plot(hc_gsea, main = "Hclust (GSEA Distance)", xlab = "Biological States", sub = "")
+    } else {
+      plot(1, type = "n", axes = FALSE, main = "GSEA Heatmap (Insufficient States)")
+      plot(1, type = "n", axes = FALSE, main = "GSEA Hclust (Insufficient States)")
+    }
+    
+    # Heatmap of PGSEA distances
+    if (nrow(ds_pgsea) > 1) {
+      heatmap(as.matrix(ds_pgsea), main = "PGSEA Distance Heatmap", symm = TRUE, col = terrain.colors(256))
+      
+      # Hierarchical clustering of PGSEA distances
+      hc_pgsea <- hclust(as.dist(ds_pgsea))
+      plot(hc_pgsea, main = "Hclust (PGSEA Distance)", xlab = "Biological States", sub = "")
+    } else {
+      plot(1, type = "n", axes = FALSE, main = "PGSEA Heatmap (Insufficient States)")
+      plot(1, type = "n", axes = FALSE, main = "PGSEA Hclust (Insufficient States)")
+    }
+    
+    dev.off()
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE":',
+        paste0('    GeneExpressionSignature: ', as.character(packageVersion('GeneExpressionSignature')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_geneexpressionsignature_results.csv
-    touch ${prefix}_geneexpressionsignature_output.rds
-    echo "BIOC_GENEEXPRESSIONSIGNATURE:" > versions.yml
-    echo "    geneexpressionsignature: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_expression_signature_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENEEXPRESSIONSIGNATURE_WORKFLOW {
+workflow BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GENEEXPRESSIONSIGNATURE(ch_input)
+    BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_GENEEXPRESSIONSIGNATURE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENEEXPRESSIONSIGNATURE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENEEXPRESSIONSIGNATURE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENEEXPRESSIONSIGNATURE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE.out.tables
+    plots    = BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE.out.plots
+    objects  = BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE.out.objects
+    versions = BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE.out.versions
 }

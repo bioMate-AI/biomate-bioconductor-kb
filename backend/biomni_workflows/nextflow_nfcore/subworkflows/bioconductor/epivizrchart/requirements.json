@@ -1,0 +1,19 @@
+{
+  "package": "epivizrchart",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "SummarizedExperiment",
+    "epivizrChart",
+    "htmltools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "SummarizedExperiment",
+      "epivizrChart",
+      "htmltools"
+    ]
+  }
+}

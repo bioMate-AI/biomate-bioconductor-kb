@@ -1,98 +1,134 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NewWave
-// A model designed for dimensionality reduction and batch effect removal for scRNA-seq data. It is des
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NewWave/inst/doc/vignette.R
-// Upstream  : Rtsne, SingleCellExperiment, ggplot2, irlba, mclust
-// Downstream: none
-//
-// Install: BiocManager::install("NewWave")
+// Bioconductor workflow: NewWave — scrna_dimensionality_reduction_batch_correction
+// Perform dimensionality reduction and batch effect correction on raw scRNA-seq count data using NewWave, followed by latent space extraction.
+// Input: data
+// Container: quay.io/biocontainers/bioconductor-newwave:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: NewWave, Rtsne, SingleCellExperiment, ggplot2
+// Visualizations: t-SNE plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert the batch covariate to a factor
+//  * 2. [Core Analysis] Run newWave to perform dimensionality reduction and batch correction (using standard, parallelized, or mini-batch configurations)
+//  * 3. [Core Analysis] Extract the low-dimensional latent representation using reducedDim
 
 nextflow.enable.dsl = 2
 
-process BIOC_NEWWAVE {
+process BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-newwave"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-newwave:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-newwave:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_newwave_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_newwave_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_newwave_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(NewWave)
     library(Rtsne)
-    library(jsonlite)
-
-    # --- Latent Space Extraction [] ---
-    # Key functions: newWave
-    latent <- SingleCellExperiment::reducedDim(res)
-    tsne_latent <- data.frame(Rtsne::Rtsne(latent)$Y)
-    tsne_latent$batch <- data$Batch
-    tsne_latent$group <- data$Group
-
-
-    # --- Clustering and Evaluation [] ---
-    # Key functions: newWave
-    cluster <- kmeans(latent, 10)
-    ari <- mclust::adjustedRandIndex(cluster$cluster, data$Group)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_newwave_results.csv", row.names = TRUE)
+    library(ggplot2)
+    
+    # Read the input SingleCellExperiment object from the working directory
+    if (!file.exists("data.rds")) {
+      stop("Error: Input file 'data.rds' not found in the working directory.")
+    }
+    data <- readRDS("data.rds")
+    
+    # Ensure the Batch covariate exists and is correctly named
+    if (!"Batch" %in% colnames(colData(data))) {
+      if ("batch" %in% colnames(colData(data))) {
+        data\$Batch <- data\$batch
+      } else {
+        stop("Error: The input SingleCellExperiment object must contain a 'Batch' or 'batch' covariate in colData.")
+      }
+    }
+    
+    # 1. Convert the batch covariate to a factor
+    data\$Batch <- as.factor(data\$Batch)
+    
+    # 2. Run newWave to perform dimensionality reduction and batch correction
+    # Using parallelized usage for better performance
+    message("Running parallelized NewWave (children=2)...")
+    res <- newWave(data, X = "~Batch", K=10, verbose = TRUE, children=2)
+    
+    # 3. Extract the low-dimensional latent representation
+    latent <- reducedDim(res)
+    
+    # Save the results to the working directory
+    saveRDS(res, "newwave_res.rds")
+    write.csv(latent, "latent_representation.csv", row.names = TRUE)
+    
+    # Generate and save a t-SNE visualization of the latent space
+    message("Generating t-SNE visualization of the latent space...")
+    tsne_latent <- data.frame(Rtsne(latent)\$Y)
+    colnames(tsne_latent) <- c("X1", "X2")
+    tsne_latent\$batch <- data\$Batch
+    
+    if ("Group" %in% colnames(colData(data))) {
+      tsne_latent\$group <- data\$Group
+      p <- ggplot(tsne_latent, aes(x=X1, y=X2, col=group, shape=batch)) + 
+        geom_point(alpha=0.8) +
+        theme_minimal() +
+        labs(title = "t-SNE of NewWave Latent Space", x = "t-SNE 1", y = "t-SNE 2")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_newwave_results.csv")
+      p <- ggplot(tsne_latent, aes(x=X1, y=X2, col=batch)) + 
+        geom_point(alpha=0.8) +
+        theme_minimal() +
+        labs(title = "t-SNE of NewWave Latent Space", x = "t-SNE 1", y = "t-SNE 2")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_newwave_output.rds")
-    }
+    
+    ggsave("latent_tsne_plot.pdf", plot = p, width = 7, height = 6)
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NEWWAVE:", paste0("    newwave: ", packageVersion("NewWave"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION":',
+        paste0('    NewWave: ', as.character(packageVersion('NewWave')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_newwave_results.csv
-    touch ${prefix}_newwave_output.rds
-    echo "BIOC_NEWWAVE:" > versions.yml
-    echo "    newwave: 0.0.0" >> versions.yml
+    touch ${prefix}_scrna_dimensionality_reduction_batch_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_NEWWAVE_WORKFLOW {
+workflow BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data ] ]
 
     main:
-    BIOC_NEWWAVE(ch_input)
+    BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_NEWWAVE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NEWWAVE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NEWWAVE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NEWWAVE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION.out.tables
+    plots    = BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION.out.plots
+    objects  = BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION.out.objects
+    versions = BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION.out.versions
 }

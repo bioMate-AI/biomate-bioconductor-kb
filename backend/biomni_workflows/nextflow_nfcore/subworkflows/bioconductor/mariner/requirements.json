@@ -1,0 +1,20 @@
+{
+  "package": "mariner",
+  "requirements": [
+    "GenomeInfoDb",
+    "InteractionSet",
+    "mariner"
+  ],
+  "by_workflow": {
+    "loop_enrichment_analysis.nf": [
+      "GenomeInfoDb",
+      "InteractionSet",
+      "mariner"
+    ],
+    "main.nf": [
+      "GenomeInfoDb",
+      "InteractionSet",
+      "mariner"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "cafe",
+  "requirements": [
+    "CAFE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CAFE"
+    ]
+  }
+}

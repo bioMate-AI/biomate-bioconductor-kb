@@ -1,0 +1,16 @@
+{
+  "package": "simffpe",
+  "requirements": [
+    "Biostrings",
+    "SimFFPE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "SimFFPE"
+    ],
+    "targeted_region_simulation.nf": [
+      "SimFFPE"
+    ]
+  }
+}

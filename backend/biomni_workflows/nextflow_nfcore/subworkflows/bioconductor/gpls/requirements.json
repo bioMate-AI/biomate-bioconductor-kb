@@ -1,0 +1,14 @@
+{
+  "package": "gpls",
+  "requirements": [
+    "gpls"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gpls"
+    ],
+    "multi_group_classification.nf": [
+      "gpls"
+    ]
+  }
+}

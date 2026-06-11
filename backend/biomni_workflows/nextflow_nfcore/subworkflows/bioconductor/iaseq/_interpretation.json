@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprs=A matrix of read counts for heterozygotic SNPs where rows represent SNPs and columns represent reference or non-reference allele counts for replicates across studies ;; studyid=A vector identifying the study group label for each column in the exprs matrix ;; repid=A vector identifying the replicate label for each column in the exprs matrix to pair reference and non-reference counts ;; refid=A vector indicating reference allele status (0 for reference allele columns, 1 for non-reference allele columns) ;; K=A vector of integers specifying the range of non-null motif patterns to fit (e.g., 1:5) ;; iter.max=The maximum number of EM iterations (should be set high enough for convergence in real analyses) ;; tol=The convergence tolerance for the EM algorithm ;; cutoff=The posterior probability threshold used to call SNPs for a given motif pattern in plotMotif\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you have multiple high-throughput sequencing datasets (ChIP-seq, RNA-seq, or MeDIP-seq) across different conditions, transcription factors, or histone modifications, and you want to jointly analyze them to identify shared patterns of allele-specific events (binding, expression, or methylation) while overcoming low signal-to-noise ratios.\n- pitfalls: Running too few EM iterations (the vignette uses iter.max=5 as a toy example, but warns that users must run enough iterations to get reasonable results) ;; Incorrectly coding refid (coding 0 for reference and 1 for non-reference is required to interpret over-bound/expressed events as skewing to the reference allele; reversing this flips the interpretation).",
+  "workflows": [
+    {
+      "name": "allele_specific_motif_analysis",
+      "intent": "Fit correlation motif models to multiple allele-specific sequencing studies to identify, select, and visualize joint allele-specific event patterns.",
+      "input": [
+        "sampleASE_exprs (matrix of read counts for heterozygotic SNPs)",
+        "sampleASE_studyid (vector of study group labels)",
+        "sampleASE_repid (vector of replicate labels)",
+        "sampleASE_refid (vector of reference/non-reference allele indicators)"
+      ],
+      "stages": "1. Load the package and the dataset ;; 2. Inspect the study, replicate, and reference allele structures ;; 3. Fit the iASeq motif model across a range of motif numbers (K) using iASeqmotif ;; 4. Evaluate model fit using BIC values and plot the BIC curve using plotBIC ;; 5. Visualize the learned motif patterns and SNP frequencies using plotMotif ;; 6. Extract posterior probabilities for allele-specific events from the best model",
+      "code": "library(iASeq)\ndata(sampleASE)\ncolnames(sampleASE_exprs)\nsampleASE_studyid\nsampleASE_repid\nsampleASE_refid\nmotif.fitted<-iASeqmotif(sampleASE_exprs,sampleASE_studyid,sampleASE_repid,\n\tsampleASE_refid,K=1:5,iter.max=5,tol=1e-3)\nmotif.fitted$bic\nplotBIC(motif.fitted)\nplotMotif(motif.fitted$bestmotif,cutoff=0.9)\nhead(motif.fitted$bestmotif$p.post)"
+    }
+  ]
+}

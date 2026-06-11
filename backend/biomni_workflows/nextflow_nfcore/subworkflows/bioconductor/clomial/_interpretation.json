@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Dc=Matrix of total read counts where rows correspond to genomic loci and columns to samples ;; Dt=Matrix of alternative allele counts where rows correspond to genomic loci and columns to samples ;; C=The assumed number of clones ;; maxIt=Maximum number of EM iterations ;; binomTryNum=Number of models to train with different initial values to escape local optima ;; models=A list of trained models passed to choose.best() ;; doTalk=Boolean parameter in choose.best() to print progress messages\n- alternatives: Upstream tools like BWA, Samtools, or DeepSNV are mentioned for mapping and computing counts, but no direct R package alternatives for clonal decomposition are named.\n- when_to_use: Use when you have allele counts and total coverage counts from multiple spatial or temporal samples of a single tumor and want to resolve the underlying clonal genotypes and their frequencies.\n- pitfalls: The EM algorithm is prone to local optima, requiring a large number of models (e.g., binomTryNum=1000) to be trained. Results of the Bayesian Information Criterion (BIC) analysis via compute.bic() to estimate clone numbers must be interpreted with great caution.",
+  "workflows": [
+    {
+      "name": "clonal_decomposition",
+      "intent": "Infer clonal genotypes and frequencies from multi-sample tumor NGS count data using binomial models.",
+      "input": [
+        "Dc (matrix of total read counts where rows are genomic loci and columns are samples)",
+        "Dt (matrix of alternative allele counts where rows are genomic loci and columns are samples)"
+      ],
+      "stages": "1. Load the Clomial package and input count matrices ;; 2. Run the Clomial EM algorithm to train multiple models ;; 3. Select the best model based on likelihood using choose.best() ;; 4. Extract and inspect the estimated clonal genotypes (Mu) and clone frequencies (P)",
+      "code": "library(Clomial)\nset.seed(1)\ndata(breastCancer)\nDc <- breastCancer$Dc\nDt <- breastCancer$Dt\nClomial2 <-Clomial(Dc=Dc,Dt=Dt,maxIt=20,C=4,binomTryNum=2)\nmodel1 <- Clomial2$models[[1]]\nround(model1$P,digits=2)\ndata(Clomial1000)\nmodels <- Clomial1000$models\nlength(models)\nchosen <- choose.best(models=models, doTalk=TRUE)\nM1 <- chosen$bestModel\nround(M1$Mu)\nround(M1$P[,1],digits=2)"
+    }
+  ]
+}

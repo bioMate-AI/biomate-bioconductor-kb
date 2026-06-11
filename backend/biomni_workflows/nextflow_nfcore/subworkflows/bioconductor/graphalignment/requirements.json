@@ -1,0 +1,14 @@
+{
+  "package": "graphalignment",
+  "requirements": [
+    "GraphAlignment"
+  ],
+  "by_workflow": {
+    "directed_binary_network_alignment.nf": [
+      "GraphAlignment"
+    ],
+    "main.nf": [
+      "GraphAlignment"
+    ]
+  }
+}

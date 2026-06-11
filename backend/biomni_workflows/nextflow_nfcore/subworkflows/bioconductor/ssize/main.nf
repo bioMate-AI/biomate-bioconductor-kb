@@ -1,108 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ssize
-// Functions for computing and displaying sample size information for gene expression arrays.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ssize/inst/doc/ssize.R
-// Upstream  : gdata, xtable
-// Downstream: none
-//
-// Install: BiocManager::install("ssize")
+// Bioconductor workflow: ssize — sample_size_calculation
+// Calculate and plot the sample size required to achieve a specified power and fold-change for a given proportion of genes.
+// Input: control_expression_data.csv
+// Container: quay.io/biocontainers/bioconductor-ssize:1.84.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: gdata, ssize, xtable
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and calculate gene-specific standard deviations from control samples
+//  * 2. [Core Analysis] Compute the required sample sizes using ssize
+//  * 3. [Visualization & Output] Plot the cumulative proportion of genes achieving the target power using ssize.plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_SSIZE {
+process BIOC_SSIZE_SAMPLE_SIZE_CALCULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ssize"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ssize:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ssize:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ssize_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ssize_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ssize_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ssize)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ssize)
+        library(xtable)
+        library(gdata) # for nobs()
+        options(width=30)
+        
+        # 1. Load the package and calculate gene-specific standard deviations from control samples
+        input_file <- "control_expression_data.csv"
+        if (!file.exists(input_file)) {
+          stop(paste("Required input file missing:", input_file))
+        }
+        
+        # Read the control expression matrix (genes as rows, samples as columns)
+        # Assumes the data is already normalized and log-transformed (e.g., RMA)
+        expr_data <- read.csv(input_file, row.names = 1, check.names = FALSE)
+        
+        # Calculate gene-specific standard deviations
+        exp.sd <- apply(expr_data, 1, sd, na.rm = TRUE)
+        
+        # Filter out NA or zero standard deviations to ensure stable calculations
+        exp.sd <- exp.sd[!is.na(exp.sd) & exp.sd > 0]
+        
+        # Save the calculated standard deviations to a CSV file
+        write.csv(data.frame(Gene = names(exp.sd), SD = exp.sd), 
+                  file = "calculated_gene_sd.csv", row.names = FALSE)
+        
+        # Define parameters
+        n <- 6
+        fold.change <- 2.0
+        power <- 0.8
+        sig.level <- 0.05
+        
+        # 2. Compute the required sample sizes using ssize
+        all.size  <- ssize(sd=exp.sd, delta=log2(fold.change),
+                           sig.level=sig.level, power=power)
+        
+        # Save the raw ssize results object
+        saveRDS(all.size, file = "ssize_results.rds")
+        
+        # Save the required sample sizes as a table
+        size_df <- data.frame(Gene = names(exp.sd), Required_Sample_Size = as.vector(all.size))
+        write.csv(size_df, file = "required_sample_sizes.csv", row.names = FALSE)
+        
+        # 3. Plot the cumulative proportion of genes achieving the target power using ssize.plot
+        pdf("ssize_plot.pdf", width = 7, height = 7)
+        par(cex=1)
+        ssize.plot(all.size, lwd=2, col="magenta", xlim=c(1,20))
+        
+        # Add legend and title matching the documented vignette code
+        xmax <- par("usr")[2]-1
+        ymin <- par("usr")[3] + 0.05
+        legend(x=xmax, y=ymin,
+               legend= strsplit( paste("fold change=",fold.change,",",
+                 "alpha=", sig.level, ",",
+                 "power=",power,",",
+                 "# genes=", nobs(exp.sd), sep=''), "," )[[1]],
+               xjust=1, yjust=0, cex=0.90)
+        title("Sample Size to Detect 2-Fold Change")
+        dev.off()
 
-    # --- Statistical Power Estimation [] ---
-    # Key functions: pow, power.plot
-    exp.sd <- runif(1000, 0.1, 1.5)
-    fold.change <- 2
-    sig.level <- 0.05
-    n <- 10
-    all.power <- pow(sd = exp.sd, n = n, delta = log2(fold.change),
-                     sig.level = sig.level)
-    power.plot(all.power, lwd = 2, col = "blue")
-    title("Power to Detect 2-Fold Change")
-
-
-    # --- Fold Change Estimation [] ---
-    # Key functions: delta, delta.plot
-    exp.sd <- runif(1000, 0.1, 1.5)
-    sig.level <- 0.05
-    power <- 0.8
-    n <- 10
-    all.delta <- delta(sd = exp.sd, power = power, n = n,
-                       sig.level = sig.level)
-    delta.plot(all.delta, lwd = 2, col = "magenta", xlim = c(1, 10),
-               ylab = "Proportion of Genes with Power >= 80%")
-    title("Fold Change to Achieve 80% Power")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ssize_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ssize_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ssize_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SSIZE:", paste0("    ssize: ", packageVersion("ssize"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SSIZE_SAMPLE_SIZE_CALCULATION":',
+        paste0('    ssize: ', as.character(packageVersion('ssize')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ssize_results.csv
-    touch ${prefix}_ssize_output.rds
-    echo "BIOC_SSIZE:" > versions.yml
-    echo "    ssize: 0.0.0" >> versions.yml
+    touch ${prefix}_sample_size_calculation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SSIZE_WORKFLOW {
+workflow BIOC_SSIZE_SAMPLE_SIZE_CALCULATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ control_expression_data.csv ] ]
 
     main:
-    BIOC_SSIZE(ch_input)
+    BIOC_SSIZE_SAMPLE_SIZE_CALCULATION(ch_input)
 
     emit:
-    results  = BIOC_SSIZE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SSIZE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SSIZE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SSIZE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SSIZE_SAMPLE_SIZE_CALCULATION.out.tables
+    plots    = BIOC_SSIZE_SAMPLE_SIZE_CALCULATION.out.plots
+    objects  = BIOC_SSIZE_SAMPLE_SIZE_CALCULATION.out.objects
+    versions = BIOC_SSIZE_SAMPLE_SIZE_CALCULATION.out.versions
 }

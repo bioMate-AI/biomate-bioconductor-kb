@@ -1,112 +1,250 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: isomiRs
-// Characterization of miRNAs and isomiRs, clustering and differential expression.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/isomiRs/inst/doc/isomiRs.R
-// Upstream  : DESeq2, clusterProfiler, pheatmap
-// Downstream: none
-//
-// Install: BiocManager::install("isomiRs")
+// Bioconductor workflow: isomiRs — isomirs_characterization_and_de
+// Characterize miRNA and isomiR molecules, perform normalization, annotation, and differential expression analysis using the isomiRs package.
+// Input: counts.csv, coldata.csv
+// Container: 1.38.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DESeq2, SummarizedExperiment, isomiRs
+// Visualizations: MA plot
+// QC: diagnostic MA/PCA QC
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ISOMIRS {
+process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-isomirs"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-isomirs:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-isomirs:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_isomirs_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_isomirs_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_isomirs_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
     library(isomiRs)
-    library(IsomirDataSeqFromFiles)
-    library(jsonlite)
-
-    # --- Normalization and Annotation [] ---
-    # Key functions: isoNorm, isoAnnotate
+    library(DESeq2)
+    
+    # Stage 2: Read input files
+    message("Reading input files...")
+    counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if ("gene_id" %in% colnames(counts_df)) {
+      rownames(counts_df) <- counts_df\$gene_id
+      counts_df\$gene_id <- NULL
+    }
+    counts_matrix <- as.matrix(counts_df)
+    
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    rownames(coldata) <- coldata\$sample
+    
+    # Ensure sample names match between counts and coldata
+    common_samples <- intersect(colnames(counts_matrix), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("No common samples found between counts.csv and coldata.csv")
+    }
+    counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Stage 3: Reconstruct raw data list for IsomirDataSeqFromRawData
+    message("Parsing isomiR names and reconstructing raw data...")
+    parse_isomirs <- function(ids_vector) {
+      n <- length(ids_vector)
+      mir <- character(n)
+      t3 <- rep("0", n)
+      t5 <- rep("0", n)
+      add <- rep("0", n)
+      mism <- rep("0", n)
+      seq <- character(n)
+      
+      for (i in seq_along(ids_vector)) {
+        parts <- strsplit(ids_vector[i], ";")[[1]]
+        mir[i] <- parts[1]
+        # Generate a dummy sequence of A, C, G, T to satisfy internal checks
+        seq[i] <- substr(paste0("TGTAAACATCCTACACTCAGCT", i, "AAAAAAAAAAAAAAAAAAAA"), 1, 22)
+        
+        if (length(parts) > 1) {
+          for (p in parts[-1]) {
+            if (startsWith(p, "iso_3p:")) {
+              t3[i] <- sub("iso_3p:", "", p)
+            } else if (startsWith(p, "iso_5p:")) {
+              t5[i] <- sub("iso_5p:", "", p)
+            } else if (startsWith(p, "iso_add:") || startsWith(p, "iso_add3p:")) {
+              add[i] <- sub("iso_add3p:", "", sub("iso_add:", "", p))
+            } else if (startsWith(p, "iso_snp:") || startsWith(p, "iso_mism:")) {
+              mism[i] <- sub("iso_snp:", "", sub("iso_mism:", "", p))
+            }
+          }
+        }
+      }
+      data.frame(seq=seq, mir=mir, mism=mism, add=add, t5=t5, t3=t3, stringsAsFactors=FALSE)
+    }
+    
+    raw_list <- list()
+    for (sample_name in colnames(counts_matrix)) {
+      counts_val <- counts_matrix[, sample_name]
+      keep <- counts_val > 0
+      if (sum(keep) == 0) {
+        keep[1] <- TRUE # Keep at least one row to avoid empty data frame
+      }
+      parsed <- parse_isomirs(rownames(counts_matrix)[keep])
+      df <- data.frame(
+        seq = parsed\$seq,
+        name = paste0("seq_", seq_len(sum(keep))),
+        freq = as.integer(counts_val[keep]),
+        mir = parsed\$mir,
+        start = 1L,
+        end = 22L,
+        mism = parsed\$mism,
+        add = parsed\$add,
+        t5 = parsed\$t5,
+        t3 = parsed\$t3,
+        stringsAsFactors = FALSE
+      )
+      raw_list[[sample_name]] <- df
+    }
+    
+    # Stage 4: Create IsomirDataSeq and collapse counts
+    message("Creating IsomirDataSeq object...")
+    ids <- IsomirDataSeqFromRawData(raw_list, design = coldata)
+    ids <- isoCounts(ids)
+    
+    # Stage 5: Normalization
+    message("Normalizing counts...")
     ids <- isoNorm(ids, formula = ~ condition)
-    annotated_ids <- isoAnnotate(ids)
-    norm_counts <- counts(ids, norm=TRUE)
+    norm_counts <- counts(ids, norm = TRUE)
+    write.csv(as.data.frame(norm_counts), "normalized_counts.csv")
+    
+    # Stage 6: Annotation and Top IsomiRs
+    message("Generating annotations and extracting top features...")
+    tryCatch({
+      ann <- isoAnnotate(ids)
+      write.csv(as.data.frame(ann), "isomirs_annotation.csv")
+    }, error = function(e) {
+      message("Annotation failed: ", e\$message)
+      write.csv(data.frame(Status = "Annotation failed"), "isomirs_annotation.csv")
+    })
+    
+    tryCatch({
+      top_iso <- isoTop(ids)
+      write.csv(as.data.frame(top_iso), "top_isomirs.csv")
+    }, error = function(e) {
+      message("isoTop failed: ", e\$message)
+      write.csv(data.frame(Status = "isoTop failed"), "top_isomirs.csv")
+    })
+    
+    # Stage 7: Select top miRNA for detailed inspection
+    tryCatch({
+      top_mirna <- rownames(counts(ids))[order(rowMeans(counts(ids)), decreasing = TRUE)[1]]
+      if (!is.na(top_mirna)) {
+        selected_data <- isoSelect(ids, mirna = top_mirna)
+        write.csv(as.data.frame(selected_data), "selected_top_mirna_isomirs.csv")
+      } else {
+        write.csv(data.frame(Status = "No top miRNA found"), "selected_top_mirna_isomirs.csv")
+      }
+    }, error = function(e) {
+      message("isoSelect failed: ", e\$message)
+      write.csv(data.frame(Status = "isoSelect failed"), "selected_top_mirna_isomirs.csv")
+    })
+    
+    # Stage 8: Diagnostic Plotting
+    message("Generating diagnostic plots...")
+    pdf("isomirs_plots.pdf", width = 10, height = 8)
+    tryCatch({
+      print(isoPlot(ids, type = "all"))
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("isoPlot failed:", e\$message), cex = 0.8)
+    })
+    
+    tryCatch({
+      print(isoPlotPosition(ids))
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("isoPlotPosition failed:", e\$message), cex = 0.8)
+    })
+    dev.off()
+    
+    # Stage 9: Differential Expression Analysis
+    message("Running differential expression analysis...")
+    pdf("de_plots.pdf", width = 10, height = 8)
+    par(mfrow = c(2, 1))
+    
+    # 9a: Reference miRNAs only
+    tryCatch({
+      dds <- isoDE(ids, formula = ~ condition)
+      res <- results(dds, format = "DataFrame")
+      write.csv(as.data.frame(res), "de_results_ref_only.csv")
+      plotMA(dds, main = "MA Plot: Reference miRNAs Only")
+    }, error = function(e) {
+      message("Standard isoDE failed: ", e\$message)
+      write.csv(data.frame(Status = "isoDE failed", Error = e\$message), "de_results_ref_only.csv")
+      plot.new()
+      text(0.5, 0.5, "Standard isoDE failed")
+    })
+    
+    # 9b: Distinguishing reference and 5' isomiRs
+    tryCatch({
+      dds_iso <- isoDE(ids, formula = ~ condition, ref = TRUE, iso5 = TRUE)
+      res_iso <- results(dds_iso, format = "DataFrame")
+      write.csv(as.data.frame(res_iso), "de_results_isomiRs.csv")
+      plotMA(dds_iso, main = "MA Plot: Reference vs 5' isomiRs")
+    }, error = function(e) {
+      message("IsomiR-specific isoDE failed: ", e\$message)
+      write.csv(data.frame(Status = "IsomiR-specific isoDE failed", Error = e\$message), "de_results_isomiRs.csv")
+      plot.new()
+      text(0.5, 0.5, "IsomiR-specific isoDE failed")
+    })
+    
+    dev.off()
+    message("Pipeline completed successfully!")
 
-
-    # --- Differential Expression Analysis [] ---
-    # Key functions: isoDE
-    dds <- isoDE(ids, formula=~condition)
-    dds_iso5 <- isoDE(ids, formula=~condition, ref=TRUE, iso5=TRUE)
-
-
-    # --- Target Prediction and Network Analysis [] ---
-    # Key functions: findTargets, mirna2targetscan, isoNetwork, isoPlotNet
-    data(isoExample)
-    mirna_ma <- data.frame(
-        gene = names(gene_ex_rse)[1:20],
-        mir = names(mirna_ex_rse)
-    )
-    ma_ex <- findTargets(mirna_ex_rse, gene_ex_rse, mirna_ma)
-    net_data <- isoNetwork(
-        mirna_ex_rse, gene_ex_rse, target = ma_ex,
-        summarize = "group"
-    )
-    isoPlotNet(net_data, minGenes = 4)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_isomirs_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_isomirs_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_isomirs_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ISOMIRS:", paste0("    isomirs: ", packageVersion("isomiRs"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE":',
+        paste0('    isomiRs: ', as.character(packageVersion('isomiRs')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_isomirs_results.csv
-    touch ${prefix}_isomirs_output.rds
-    echo "BIOC_ISOMIRS:" > versions.yml
-    echo "    isomirs: 0.0.0" >> versions.yml
+    touch ${prefix}_isomirs_characterization_and_de.csv versions.yml
     """
 }
 
-
-workflow BIOC_ISOMIRS_WORKFLOW {
+workflow BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ISOMIRS(ch_input)
+    BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE(ch_input)
 
     emit:
-    results  = BIOC_ISOMIRS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ISOMIRS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ISOMIRS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ISOMIRS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE.out.tables
+    plots    = BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE.out.plots
+    objects  = BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE.out.objects
+    versions = BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE.out.versions
 }

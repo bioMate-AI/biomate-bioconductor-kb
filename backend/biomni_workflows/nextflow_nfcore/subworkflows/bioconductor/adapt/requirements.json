@@ -1,0 +1,13 @@
+{
+  "package": "adapt",
+  "requirements": [
+    "ADAPT",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ADAPT",
+      "phyloseq"
+    ]
+  }
+}

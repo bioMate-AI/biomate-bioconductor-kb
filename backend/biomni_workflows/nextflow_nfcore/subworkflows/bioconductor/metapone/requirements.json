@@ -1,0 +1,11 @@
+{
+  "package": "metapone",
+  "requirements": [
+    "metapone"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metapone"
+    ]
+  }
+}

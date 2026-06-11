@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pfamResultFile=The path to the Pfam prediction result text file (from webserver or stand-alone runs) passed as the primary argument to pfamAnalyzeR()\n- alternatives: None mentioned\n- when_to_use: When analyzing transcriptomics or proteomics data with Pfam domain predictions to identify and classify domain isotypes (e.g., to study cell-, tissue-, or disease-specific domain variants)\n- pitfalls: The isotype analysis is performed regardless of the Pfam result type (Domain, Family, Repeat); users interested in only a specific annotation type must manually subset the output table themselves",
+  "workflows": [
+    {
+      "name": "pfam_domain_isotype_analysis",
+      "intent": "Read Pfam domain prediction results and classify them into domain isotypes.",
+      "input": [
+        "pfam_results.txt (Pfam prediction output file from webserver or stand-alone run)"
+      ],
+      "stages": "1. Load the pfamAnalyzeR library ;; 2. Define the path to the Pfam result file ;; 3. Run the isotype classification analysis using pfamAnalyzeR() ;; 4. Explore and summarize the results using dplyr and base R table functions",
+      "code": "library(pfamAnalyzeR)\npfamResultFile <- system.file(\n    \"extdata/pfam_results.txt\",\n    package = \"pfamAnalyzeR\"\n)\npfamRes <- pfamAnalyzeR(pfamResultFile)\npfamRes %>% \n    select(seq_id, hmm_name, type, domain_isotype, domain_isotype_simple) %>% \n    head()\ntable(pfamRes$domain_isotype)\ntable(pfamRes$domain_isotype_simple)\ntable(\n    pfamRes$type,\n    pfamRes$domain_isotype_simple\n)"
+    }
+  ]
+}

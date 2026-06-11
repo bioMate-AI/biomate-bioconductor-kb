@@ -1,97 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: flowMeans
-// Identifies cell populations in Flow Cytometry data using non-parametric clustering and segmented-reg
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/flowMeans/inst/doc/flowMeans.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("flowMeans")
+// Bioconductor workflow: flowMeans — flow_cytometry_gating
+// Identify and visualize cell populations in flow cytometry data using non-parametric clustering and change point detection.
+// Input: flow_data.csv
+// Container: quay.io/biocontainers/bioconductor-flowmeans:1.70.0--r45h575d39b_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: flowMeans
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and input data
+//  * 2. [Core Analysis] Run the flowMeans clustering algorithm on specified marker channels
+//  * 3. [Visualization & Output] Plot the minimum distances between merged clusters
+//  * 4. [Visualization & Output] Detect the optimal number of clusters using changepointDetection and plot the change point
+//  * 5. [Visualization & Output] Visualize the final cluster memberships in 2D and multi-dimensional plots
 
 nextflow.enable.dsl = 2
 
-process BIOC_FLOWMEANS {
+process BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-flowmeans"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-flowmeans:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-flowmeans:1.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_flowmeans_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_flowmeans_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_flowmeans_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(flowMeans)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # 1. Load the package and input data
+        library(flowMeans)
+        
+        if (!file.exists("flow_data.csv")) {
+          stop("Error: 'flow_data.csv' not found in the working directory.")
+        }
+        
+        # Read the user-provided flow cytometry data
+        df <- read.csv("flow_data.csv", check.names = FALSE)
+        x <- as.matrix(df)
+        
+        # 2. Run the flowMeans clustering algorithm on specified marker channels
+        res <- flowMeans(x, varNames=colnames(x), MaxN=10)
+        
+        # Open PDF device to save all visualizations
+        pdf("flowMeans_plots.pdf", width=8, height=8)
+        
+        # 3. Plot the minimum distances between merged clusters
+        plot(x[, 1:min(2, ncol(x))], col=res@Labels[[1]], pch=20)
+        plot(res@Mins, xlab='Iteration', ylab='Distance')
+        
+        # 4. Detect the optimal number of clusters using changepointDetection and plot the change point
+        plot(res@Mins, xlab=' ', ylab=' ', xlim=c(1, res@MaxN), ylim=c(0, max(res@Mins)))
+        ft<-changepointDetection(res@Mins)
+        abline(ft\$l1)
+        abline(ft\$l2)
+        par(new=TRUE)
+        plot(ft\$MinIndex+1, res@Mins[ft\$MinIndex+1], col='red', xlab='Iteration', ylab='Distance', xlim=c(1, res@MaxN), ylim=c(0, max(res@Mins)), pch=19)
+        
+        # 5. Visualize the final cluster memberships in 2D and multi-dimensional plots
+        plot(x, res, colnames(x)[1:min(2, ncol(x))])
+        plot(x, res, colnames(x), pch='.')
+        
+        dev.off()
+        
+        # Save meaningful results to files
+        saveRDS(res, "flowMeans_result.rds")
+        
+        # Save final cluster labels
+        labels_df <- data.frame(
+          RowID = seq_len(nrow(x)),
+          Cluster = res@Label
+        )
+        write.csv(labels_df, "cluster_labels.csv", row.names = FALSE)
+        
+        # Save changepoint detection summary
+        changepoint_df <- data.frame(
+          MinIndex = ft\$MinIndex,
+          OptimalNumberOfClusters = ft\$MinIndex + 1
+        )
+        write.csv(changepoint_df, "changepoint_results.csv", row.names = FALSE)
 
-    # --- Stage1 [] ---
-    # Key functions: flowMeans
-    data(x)
-    res <- flowMeans(x, varNames=c("FL1.H", "FL2.H", "FL3.H", "FL4.H"),
-                     MaxN=10)
-    # --- Stage4 [] ---
-    # Key functions: changepointDetection
-    plot(res@Mins, xlab=' ', ylab=' ', xlim=c(1, res@MaxN),
-         ylim=c(0, max(res@Mins)))
-    ft<-changepointDetection(res@Mins)
-    abline(ft$l1)
-    abline(ft$l2);
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_flowmeans_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_flowmeans_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_flowmeans_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FLOWMEANS:", paste0("    flowmeans: ", packageVersion("flowMeans"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING":',
+        paste0('    flowMeans: ', as.character(packageVersion('flowMeans')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_flowmeans_results.csv
-    touch ${prefix}_flowmeans_output.rds
-    echo "BIOC_FLOWMEANS:" > versions.yml
-    echo "    flowmeans: 0.0.0" >> versions.yml
+    touch ${prefix}_flow_cytometry_gating.csv versions.yml
     """
 }
 
-
-workflow BIOC_FLOWMEANS_WORKFLOW {
+workflow BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ flow_data.csv ] ]
 
     main:
-    BIOC_FLOWMEANS(ch_input)
+    BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING(ch_input)
 
     emit:
-    results  = BIOC_FLOWMEANS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FLOWMEANS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FLOWMEANS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FLOWMEANS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING.out.tables
+    plots    = BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING.out.plots
+    objects  = BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING.out.objects
+    versions = BIOC_FLOWMEANS_FLOW_CYTOMETRY_GATING.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "rgraph2js",
+  "requirements": [
+    "RGraph2js"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RGraph2js"
+    ]
+  }
+}

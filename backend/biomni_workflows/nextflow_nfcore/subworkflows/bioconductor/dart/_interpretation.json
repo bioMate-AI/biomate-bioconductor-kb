@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fdr=False discovery rate threshold for correlation significance in BuildRN, DoDART, and DoDARTCLQ (default is 0.000001, reflecting a conservative Bonferroni-corrected threshold for pairwise correlations). ;; modelSig=A named vector of gene weights/directions representing the prior perturbation signature.\n- alternatives: DoDARTCLQ is an enhanced wrapper that uses a smaller, more compact network (the union of maximal cliques) to estimate activity, which can be preferred over the standard DoDART wrapper for tighter, more robust signature estimation.\n- when_to_use: Use this package when you have a prior molecular signature (e.g., from an in-vitro perturbation experiment) and want to estimate its activation level across samples in a large, representative gene expression dataset or independent test datasets.\n- pitfalls: If the consistency score (Pval(consist)) evaluated by EvalConsNet is not statistically significant, the signature's directional changes do not reflect the variation in the dataset, and you should not proceed with predicting activity. ;; DART does not perform preprocessing or normalization; users must normalize gene expression data beforehand. ;; The training dataset must be sufficiently large and representative of the disease demographics to learn a robust pruned network. ;; Row identifiers of the gene expression matrix and the model signature must use the exact same type of identifier (e.g., Entrez Gene IDs).",
+  "workflows": [
+    {
+      "name": "step_by_step_dart",
+      "intent": "Build, evaluate, and prune a relevance network step-by-step to predict signature activity scores in training and independent datasets.",
+      "input": [
+        "vdx.data (normalized gene expression matrix with Entrez Gene IDs as rownames)",
+        "modelSig (named vector of model signature gene weights/directions)",
+        "mainz.data (independent normalized gene expression matrix with Entrez Gene IDs as rownames)"
+      ],
+      "stages": "1. Build the relevance network using BuildRN ;; 2. Evaluate network consistency using EvalConsNet ;; 3. Prune inconsistent edges using PruneNet ;; 4. Predict signature activity scores in the training dataset using PredActScore ;; 5. Predict signature activity scores in an independent dataset using PredActScore",
+      "code": "rn.o <- BuildRN(vdx.data, modelSig, fdr=0.000001)\nevalNet.o <- EvalConsNet(rn.o);\nprNet.o <- PruneNet(evalNet.o)\npred.o <- PredActScore(prNet.o, vdx.data)\npred.mainz.o <- PredActScore(prNet.o, mainz.data)"
+    },
+    {
+      "name": "wrapper_dart",
+      "intent": "Run the complete DART or clique-based DART pipeline using wrapper functions for rapid activity score estimation.",
+      "input": [
+        "vdx.data (normalized gene expression matrix with Entrez Gene IDs as rownames)",
+        "modelSig (named vector of model signature gene weights/directions)",
+        "mainz.data (independent normalized gene expression matrix with Entrez Gene IDs as rownames)"
+      ],
+      "stages": "1. Run standard DART wrapper using DoDART ;; 2. Run enhanced clique-based DART wrapper using DoDARTCLQ ;; 3. Predict activity in an independent dataset using PredActScore with the clique network",
+      "code": "res.vdx <- DoDART(vdx.data, modelSig, fdr=0.000001)\nres2.vdx <- DoDARTCLQ(vdx.data, modelSig, fdr=0.000001)\npred.mainz2.o <- PredActScore(res2.vdx$clq, mainz.data)"
+    }
+  ]
+}

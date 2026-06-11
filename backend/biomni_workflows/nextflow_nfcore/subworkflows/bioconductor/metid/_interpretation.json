@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies the format of the input data (e.g., 'data.frame' or file paths) ;; na=Character used to represent missing values in the dataset (e.g., '-') ;; mode=Ionization mode, such as 'POS' (positive) or 'NEG' (negative)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when analyzing LC-MS metabolomics data with putative metabolite identifications and you want to prioritize these candidates using biological pathway/network knowledge. It is appropriate when you have a large dataset, as scores are only meaningful with a large number of compounds.\n- pitfalls: Column names of the input dataset must exactly match the required names ('metid', 'query_m.z', 'exact_m.z', 'kegg_id', 'pubchem_cid'). If the input is not a .csv or .txt file, it must be pre-loaded into R as a 'data.frame'. Running the analysis on very small datasets (like the 3-compound demo1) will not yield meaningful scores.",
+  "workflows": [
+    {
+      "name": "lc_ms_metabolite_id_scoring",
+      "intent": "Score and prioritize putative metabolite identifications from LC-MS data using a network-based probabilistic framework.",
+      "input": [
+        "metabolomics_data.csv (CSV file containing query m/z, exact m/z, PubChem CID, KEGG ID, and peak IDs)"
+      ],
+      "stages": "1. Load the MetID package and the input dataset ;; 2. Format the column names of the dataset to meet the package's strict requirements ;; 3. Run get_scores_for_LC_MS to build the network, perform random sampling, and calculate identification scores.",
+      "code": "library(MetID)\ndata(\"demo1\")\ncolnames(demo1) <- c('query_m.z','name','formula','exact_m.z','pubchem_cid','kegg_id')\nout <- get_scores_for_LC_MS(demo1, type = 'data.frame', na='-', mode='POS')\nhead(out)"
+    }
+  ]
+}

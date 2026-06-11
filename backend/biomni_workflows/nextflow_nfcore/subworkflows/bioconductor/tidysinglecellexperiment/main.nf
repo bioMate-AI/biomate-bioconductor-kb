@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_TIDYSINGLECELLEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-tidysinglecellexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tidysinglecellexperiment:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tidysinglecellexperiment:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -64,29 +63,38 @@ process BIOC_TIDYSINGLECELLEXPERIMENT {
     # Key functions: colLabels, buildSNNGraph, cluster_walktrap
     colLabels(pbmc_small_cluster) <-
     buildSNNGraph(use.dimred="PCA") %>%
-    igraph::cluster_walktrap() %$%
+    igraph::cluster_walktrap() %\$%
     # --- count [] ---
     # Key functions: count, findMarkers, map, unlist, join_features
     count(groups, label)
-    findMarkers(groups=pbmc_small_cluster$label) %>%
+    findMarkers(groups=pbmc_small_cluster\$label) %>%
     as.list() %>%
     # --- Run UMAP embedding [] ---
     # Key functions: runUMAP
     runUMAP(ncomponents=3)
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tidysinglecellexperiment_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_tidysinglecellexperiment_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tidysinglecellexperiment_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_tidysinglecellexperiment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tidysinglecellexperiment_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_tidysinglecellexperiment_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_TIDYSINGLECELLEXPERIMENT:", paste0("    tidysinglecellexperiment: ", packageVersion("tidySingleCellExperiment"))),
+        c("BIOC_TIDYSINGLECELLEXPERIMENT:", paste0("    tidysinglecellexperiment: ", as.character(packageVersion("tidySingleCellExperiment")))),
         "versions.yml"
     )
     """

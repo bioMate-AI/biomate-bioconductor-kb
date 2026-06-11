@@ -1,0 +1,21 @@
+{
+  "package": "gsgalgor",
+  "requirements": [
+    "Biobase",
+    "GSgalgoR",
+    "genefu",
+    "survival"
+  ],
+  "by_workflow": {
+    "custom_callback_execution.nf": [
+      "GSgalgoR",
+      "survival"
+    ],
+    "main.nf": [
+      "Biobase",
+      "GSgalgoR",
+      "genefu",
+      "survival"
+    ]
+  }
+}

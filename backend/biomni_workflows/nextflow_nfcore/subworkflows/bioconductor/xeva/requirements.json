@@ -1,0 +1,17 @@
+{
+  "package": "xeva",
+  "requirements": [
+    "Biobase",
+    "Xeva"
+  ],
+  "by_workflow": {
+    "create_xeva_object.nf": [
+      "Biobase",
+      "Xeva"
+    ],
+    "main.nf": [
+      "Biobase",
+      "Xeva"
+    ]
+  }
+}

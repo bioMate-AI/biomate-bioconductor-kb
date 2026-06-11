@@ -1,0 +1,20 @@
+{
+  "package": "sponge",
+  "requirements": [
+    "SPONGE",
+    "caret",
+    "dplyr",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SPONGE",
+      "htmlwidgets"
+    ],
+    "sponge_effects_classification.nf": [
+      "SPONGE",
+      "caret",
+      "dplyr"
+    ]
+  }
+}

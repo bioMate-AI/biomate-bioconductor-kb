@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ExprSet=An ExpressionSet object containing assayData (expression), phenoData (sample covariates), and featureData (gene covariates) ;; L=Matrix or data frame containing gene expression data ;; R=Matrix or data frame containing gene covariates ;; Q=Matrix or data frame containing sample covariates ;; npermut=Number of permutations for the fourthcorner analysis ;; padjust=Multiple testing correction method (e.g., \"BH\") ;; nrcor=Number of cores for parallelized calculation ;; exprvar=Unsupervised gene filtering parameter ;; feature=Character string specifying the feature of the ord object to plot (e.g., \"variance\") ;; Stat=A stat object representing statistical analysis results ;; Ord=An ord object representing ordination results ;; rangex=Scaling factor for the x-axis in the vis plot ;; rangey=Scaling factor for the y-axis in the vis plot\n- alternatives: Traditional enrichment methods like hypergeometric test (HG), Mann-Whitney rank test (RANK), and gene set enrichment analysis (GSEA) via the BOG package. Prefer covRNA when you want to simultaneously analyze and visualize the complex, multi-dimensional relationships between both sample and gene covariates mediated by gene expression, rather than testing single gene sets against single contrasts.\n- when_to_use: Use when analyzing transcriptomic data (RNA-Seq read counts or microarray intensities) where you have both sample covariates (e.g., treatment conditions) and gene covariates (e.g., functional annotations like COG or GO terms) and want to test and visualize their mediated associations.\n- pitfalls: If gene identifiers in the expression dataset and the annotation database do not correspond, users must use mapping packages like annotate to assign suitable identifiers before running covRNA. For high-quality plots, it is advised to use the default setting pdf=TRUE in the plot function.",
+  "workflows": [
+    {
+      "name": "covrna_analysis_workflow",
+      "intent": "Perform fourthcorner statistical testing and RLQ ordination to analyze and visualize associations between sample and gene covariates mediated by gene expression data.",
+      "input": [
+        "expression_set.RData (An ExpressionSet object containing gene expression data, sample covariates, and gene covariates)",
+        "L_matrix.csv (gene expression matrix)",
+        "R_df.csv (gene covariates data frame)",
+        "Q_df.csv (sample covariates data frame)"
+      ],
+      "stages": "1. Load the package and dataset ;; 2. Run fourthcorner analysis using stat to calculate statistical associations ;; 3. Plot the statistical results using plot ;; 4. Run RLQ ordination using ord ;; 5. Plot the ordination variance using plot ;; 6. Combine and visualize both statistical and ordination results using vis",
+      "code": "library(covRNA)\ndata(Baca)\nstatBaca <- stat(ExprSet = Baca, npermut = 999, padjust = \"BH\", nrcor = 2, exprvar = 1)\n# or\nstatBaca <- stat(L = exprs(Baca), R = fData(Baca), Q = pData(Baca), npermut = 999, \n                 padjust = \"BH\", nrcor = 2, exprvar = 1)\nplot(statBaca, xnames = c('cold','ctrl','etoh','salt'), shiftx = -0.1)\nordBaca <- ord(Baca)\nplot(ordBaca, feature = \"variance\")\nvis(Stat = statBaca, Ord = ordBaca, rangex=1.5, rangey=1.5)"
+    }
+  ]
+}

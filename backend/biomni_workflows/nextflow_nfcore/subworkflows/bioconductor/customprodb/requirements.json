@@ -1,0 +1,21 @@
+{
+  "package": "customprodb",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biostrings",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "S4Vectors",
+    "customProDB"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "Biostrings",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "S4Vectors",
+      "customProDB"
+    ]
+  }
+}

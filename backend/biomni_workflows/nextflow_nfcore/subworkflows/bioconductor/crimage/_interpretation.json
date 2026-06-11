@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=In createBinaryImage, specifies the thresholding algorithm (\"otsu\" or \"phansalkar\") ;; maxShape=In segmentImage/classifyCells/calculateCellularity, the maximum size of cell nuclei above which objects are re-segmented ;; minShape=In segmentImage/classifyCells/calculateCellularity, the minimum size of cell nuclei below which objects are discarded ;; failureRegion=In segmentImage/classifyCells/calculateCellularity, the size threshold above which dark artifact regions are deleted ;; KS=In classifyCells/calculateCellularity, a boolean indicating whether to use kernel smoothing for classification ;; cancerIdentifier=In calculateCellularity/processAperio, the class label representing tumor cells ;; numSections=In processAperio, the number of tissue sections to automatically cluster and analyze separately\n- alternatives: EBImage package is recommended for general image reading, writing, and basic manipulation (e.g., readImage, channel, display) before or after CRImage processing\n- when_to_use: Use when you need to segment and classify cell nuclei in tissue images, calculate tumor cellularity from H&E slides, process large-scale Aperio scanner images, or adjust DNA copy number data for tumor purity/cellularity\n- pitfalls: When manually editing the training set table in external spreadsheet software, be extremely careful not to shift columns ;; The classification system supports a maximum of 10 classes ;; If using the kernel smoothing (KS=TRUE) approach, you must either have exactly two classes or explicitly specify the cancer class",
+  "workflows": [
+    {
+      "name": "cell_classification_and_cellularity",
+      "intent": "Segment cells, classify cell types using a trained classifier, and calculate tumor cellularity from a tissue image.",
+      "input": [
+        "trainingData.txt (tab-separated table of cell features and class labels)",
+        "exImg2.jpg (biological image file to analyze)"
+      ],
+      "stages": "1. Load training data and train an SVM classifier using createClassifier ;; 2. Classify cells in the target image using classifyCells ;; 3. Calculate tumor cellularity using calculateCellularity",
+      "code": "t = system.file(\"extdata\", \"trainingData.txt\", package=\"CRImage\")\ntrainingData=read.table(t,header=TRUE)\nclassifier=createClassifier(trainingData)[[1]]\nf = system.file(\"extdata\", \"exImg2.jpg\", package=\"CRImage\")\nclassValues=classifyCells(classifier,filename=f,KS=TRUE,maxShape=800,minShape=40,failureRegion=2000)\ncellularity=calculateCellularity(classifier=classifier,filename=f,KS=TRUE,maxShape=800,minShape=40,failureRegion=2000,classifyStructures=FALSE,cancerIdentifier=\"1\",numDensityWindows=2,colors=c(\"green\",\"red\"))"
+    },
+    {
+      "name": "aperio_slide_processing",
+      "intent": "Process large-scale pathological images from Aperio scanners by analyzing subimages in parallel and calculating section-specific cellularity.",
+      "input": [
+        "trainingData.txt (tab-separated table of cell features and class labels)",
+        "inputFolder (directory containing Aperio subimages)"
+      ],
+      "stages": "1. Train the classifier using createClassifier ;; 2. Create an output directory ;; 3. Process subimages, perform automatic section clustering, and output cellularity values and heatmaps using processAperio",
+      "code": "t = system.file(\"extdata\", \"trainingData.txt\", package=\"CRImage\")\ntrainingData=read.table(t,header=TRUE)\nclassifier=createClassifier(trainingData)[[1]]\ndir.create(\"AperiOutput\")\nf = system.file(\"extdata\",  package=\"CRImage\")\nprocessAperio(classifier=classifier,inputFolder=f,outputFolder=\"AperiOutput\",identifier=\"Da\",numSections=2,cancerIdentifier=\"c\",maxShape=800,minShape=40,failureRegion=2000)"
+    },
+    {
+      "name": "copy_number_correction",
+      "intent": "Correct DNA copy number log-ratios (LRR) and beta allele frequencies (BAF) for tumor cellularity.",
+      "input": [
+        "z (data frame containing genomic coordinates, LRR, and BAF values)"
+      ],
+      "stages": "1. Correct copy number values for a given tumor purity/cellularity using correctCopyNumber ;; 2. Plot the corrected copy number profiles using plotCorrectedCN",
+      "code": "LRR <- c(rnorm(100, 0, 1), rnorm(10, -2, 1), rnorm(20, 3, 1), rnorm(100,0, 1)) \nBAF <- c(rnorm(100, 0.5, 0.1), rnorm(5, 0.2, 0.01), rnorm(5, 0.8, 0.01), rnorm(10, 0.25, 0.1), rnorm(10, 0.75, 0.1), rnorm(100,0.5, 0.1)) \nPos <- sample(x=1:500, size=230, replace=TRUE)\nPos <- cumsum(Pos)\nChrom <- rep(1, length(LRR))\nz <- data.frame(Name=1:length(LRR), Chrom=Chrom, Pos=Pos, LRR=LRR, BAF=BAF)\nres <- correctCopyNumber(arr=\"Sample1\", chr=1, p=0.75, z=z)\nplotCorrectedCN(res, chr=1)"
+    }
+  ]
+}

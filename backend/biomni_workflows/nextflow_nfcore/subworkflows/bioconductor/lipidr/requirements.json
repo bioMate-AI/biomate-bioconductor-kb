@@ -1,0 +1,15 @@
+{
+  "package": "lipidr",
+  "requirements": [
+    "SummarizedExperiment",
+    "ggplot2",
+    "lipidr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "lipidr"
+    ]
+  }
+}

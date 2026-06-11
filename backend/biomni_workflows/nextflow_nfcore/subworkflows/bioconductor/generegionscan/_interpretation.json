@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: transcriptClustersFile=Path to the transcript CSV file containing metaprobeset info ;; mpsToPsFile=Path to the MPS file containing probeset mappings ;; aptCelExtractPath=Path to the Affymetrix Power Tools apt-cel-extract binary ;; pgfPath=Path to the PGF library file ;; clfPath=Path to the CLF library file ;; summaryType=Controls how probe intensities are summarized in plotOnGene (e.g., \"dots\") ;; interval=Genomic/sequence coordinates to zoom in on a specific region ;; label=Column name in pData to group samples ;; testType=Statistical test to identify significant probes (e.g., \"wilcoxon\", \"linear model\") ;; correlationCutoff=Threshold for Pearson correlation coefficient in plotCoexpression\n- alternatives: readCelIntensities from the affxparser package can extract intensities, but using Affymetrix Power Tools via getLocalProbeIntensities is preferred because it drastically reduces memory requirements during normalization. For 3'IVT arrays, standard Bioconductor .db annotation databases can be used instead of downloading external CSV/MPS files.\n- when_to_use: Use this package when investigating specific, small genomic regions (one or a few genes) at probe-level resolution to detect alternative splicing, transcript isoforms, or genotype-expression associations.\n- pitfalls: ProbeLevelSets can become extremely large and memory-intensive if the genomic region of interest is too large. getLocalProbeIntensities requires external Affymetrix Power Tools (apt-cel-extract) binaries, which must be correctly pathed. plotCoexpression can take a long time to calculate correlations for all pairwise probe combinations in long genes; using a subset of the gene is recommended.",
+  "workflows": [
+    {
+      "name": "build_probe_level_set",
+      "intent": "Extract probe-level intensities from raw CEL files for a specific genomic region and build a ProbeLevelSet object.",
+      "input": [
+        "~/HuEx-1-0-st-v2.na26.hg18.transcript.csv (transcript clusters file)",
+        "~/HuEx-1-0-st-v2.r2.dt1.hg18.full.mps (metaprobeset to probeset mapping file)",
+        "~/test-cels (directory containing raw CEL files)",
+        "~/HuEx-1-0-st-v2.r2.clf (CLF file)",
+        "~/HuEx-1-0-st-v2.r2.pgf (PGF file)"
+      ],
+      "stages": "1. Find probesets of interest in a genomic region using getProbesetsFromRegionOfInterest ;; 2. Extract and normalize probe intensities from CEL files using getLocalProbeIntensities ;; 3. Retrieve probe sequences using getSequence",
+      "code": "library(GeneRegionScan)\ntranscriptClustersFile<-\"~/HuEx-1-0-st-v2.na26.hg18.transcript.csv\"\nmpsToPsFile<-\"~/HuEx-1-0-st-v2.r2.dt1.hg18.full.mps\"\nlistOfProbesets<-getProbesetsFromRegionOfInterest(\"HuEx-1-0-st-v2\", \"chr2\", 215889955,216106710, transcriptClustersFile=transcriptClustersFile, mpsToPsFile=mpsToPsFile)\naptCelExtractPath<-\"~/apt-bin/apt-cel-extract\"\nclfPath<-\"~/HuEx-1-0-st-v2.r2.clf\"\npgfPath<-\"~/HuEx-1-0-st-v2.r2.pgf\"\nmyProbeLevelSet<-getLocalProbeIntensities(listOfProbesets,\"~/test-cels\", aptCelExtractPath=aptCelExtractPath, pgfPath=pgfPath, clfPath=clfPath)\ngetSequence(myProbeLevelSet,1:5)"
+    },
+    {
+      "name": "analyze_and_visualize_probe_level_data",
+      "intent": "Plot probe-level expression along a gene, test for group differences, and analyze coexpression.",
+      "input": [
+        "exampleProbeLevelSet (ProbeLevelSet object)",
+        "mrna (mRNA sequence as DNAStringSet)",
+        "genomic (genomic sequence with one FASTA entry per exon)"
+      ],
+      "stages": "1. Plot median probe expression along the gene using plotOnGene ;; 2. Zoom in on specific intervals and display individual sample dots using plotOnGene with summaryType and interval ;; 3. Add exon structure to the plot using exonStructure ;; 4. Test for group differences (e.g., Wilcoxon or linear model) and highlight significant probes using plotOnGene with label and testType ;; 5. Analyze probe coexpression using plotCoexpression ;; 6. Perform a comprehensive region scan across multiple genes using geneRegionScan",
+      "code": "data(exampleProbeLevelSet)\npData(exampleProbeLevelSet)[1:3,]\nplotOnGene(exampleProbeLevelSet, mrna)\nplotOnGene(exampleProbeLevelSet, mrna, summaryType=\"dots\", interval=c(500,1000))\nexonStructure(mrna, genomic)\nplotOnGene(exampleProbeLevelSet, mrna, label=\"gender\", testType=\"wilcoxon\", verbose=FALSE)\nexonStructure(mrna, genomic)\nplotOnGene(exampleProbeLevelSet, mrna, label=\"genotype1\", testType=\"linear model\", verbose=FALSE)\nexonStructure(mrna, genomic)\nmrna_subset<-mrna[[1]]\nmrna_subset<-mrna_subset[500:1000]\nplotCoexpression(exampleProbeLevelSet, gene=mrna_subset, correlationCutoff=0.5, probeLevelInfo=c(\"probeid\",\"sequence\"), verbose=FALSE)\ngeneRegionScan(exampleProbeLevelSet, gene=mrna, genomicData=genomic, label=\"genotype3\", testType=\"linear model\", correlationCutoff=0.5, probeLevelInfo=c(\"probeid\",\"sequence\"), verbose=FALSE)"
+    }
+  ]
+}

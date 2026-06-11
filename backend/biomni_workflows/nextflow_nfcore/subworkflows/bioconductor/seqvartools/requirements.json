@@ -1,0 +1,19 @@
+{
+  "package": "seqvartools",
+  "requirements": [
+    "Biobase",
+    "GenomicRanges",
+    "SeqVarTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "SeqVarTools"
+    ],
+    "variant_iteration.nf": [
+      "GenomicRanges",
+      "SeqVarTools"
+    ]
+  }
+}

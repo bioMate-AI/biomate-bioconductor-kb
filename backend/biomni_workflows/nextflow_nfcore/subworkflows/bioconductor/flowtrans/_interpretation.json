@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dat=A flowFrame object containing the flow cytometry data to be transformed ;; fun=The transformation function to apply, which must be one of \"mclMultivBoxCox\", \"mclMultivArcSinh\", \"mclMultivBiexp\", or \"mclMultivLinLog\" ;; dims=A character vector specifying the dimensions/channels of the flowFrame to transform ;; n2f=A logical value indicating whether to perform negative-to-figure conversion (typically FALSE) ;; parameters.only=A logical value; if TRUE, only the optimized transformation parameters are returned; if FALSE, both the transformed flowFrame and the parameters are returned\n- alternatives: Using default transformation parameters in flowCore, which do not adapt to the specific dataset and can result in higher variability in cell population locations across samples\n- when_to_use: Use this package when preparing flow cytometry data for gating or clustering, especially in high-throughput experiments where sample-to-sample variation in optimal transformation parameters needs to be minimized by data-dependent optimization\n- pitfalls: Optimal transformation parameters are highly data-dependent and can vary significantly between samples; inverse transformations are not fully integrated as S4 classes in this version, requiring manual tracking of parameters if inverse operations are needed",
+  "workflows": [
+    {
+      "name": "flow_cytometry_transformation_optimization",
+      "intent": "Optimize transformation parameters for flow cytometry channels to achieve multivariate normality and transform the data.",
+      "input": [
+        "flowFrame.rds (A flowFrame object containing flow cytometry measurements)"
+      ],
+      "stages": "1. Load the flow cytometry data ;; 2. Run flowTrans to optimize parameters and transform the selected dimensions ;; 3. Extract the optimized parameters for downstream use ;; 4. Plot the untransformed and transformed data to visually inspect the results ;; 5. Run flowTrans with parameters.only=TRUE to obtain parameters for integration into flowCore workflows",
+      "code": "library(flowTrans)\ndata(GvHD)\ntransformed<-lapply(as(GvHD[1:4],\"list\"),function(x)flowTrans(dat=x,fun=\"mclMultivArcSinh\",dims=c(\"FSC-H\",\"SSC-H\"),n2f=FALSE,parameters.only=FALSE));\nparameters<-do.call(rbind,lapply(transformed,function(x)extractParams(x)[[1]]))\nparameters;\npar(mfrow = c(2, 2))\nplot(GvHD[[2]], c(\"FSC-H\", \"SSC-H\"), main = \"Untransformed sample\")\ncontour(GvHD[[2]], c(\"FSC-H\",\"SSC-H\"),add=TRUE);\nplot(transformed[[2]]$result, c(\"FSC-H\", \"SSC-H\"), main = \"Transformed sample\")\ncontour(transformed[[2]]$result,c(\"FSC-H\",\"SSC-H\"),add=TRUE);\nplot(GvHD[[4]], c(\"FSC-H\", \"SSC-H\"), main = \"Untransformed sample\")\ncontour(GvHD[[4]], c(\"FSC-H\",\"SSC-H\"),add=TRUE);\nplot(transformed[[4]]$result, c(\"FSC-H\", \"SSC-H\"), main = \"Transformed sample\")\ncontour(transformed[[4]]$result, c(\"FSC-H\",\"SSC-H\"),add=TRUE);\ntransformed2<-flowTrans(dat=GvHD[[2]],fun=\"mclMultivArcSinh\",dims=c(\"FSC-H\",\"SSC-H\"),n2f=FALSE,parameters.only=TRUE)\ntransformed2"
+    }
+  ]
+}

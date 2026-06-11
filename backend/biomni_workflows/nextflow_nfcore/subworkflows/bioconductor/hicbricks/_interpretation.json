@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: remove_existing=Set to TRUE to allow overwriting of existing Brick files during creation ;; remove_prior=Set to TRUE to allow overwriting of loaded matrix data inside an existing Brick ;; resolution=The bin size of the Hi-C matrix (e.g., 100000 for 100Kb) ;; distance=Limits the maximum diagonal distance (in bins) to load or plot ;; x_coords=Genomic coordinates for plotting/subsetting, must strictly use ':' as the delimiter (e.g., \"chr3R:1:10000000\") ;; y_coords=Genomic coordinates for plotting/subsetting, must strictly use ':' as the delimiter ;; norm_factor=Normalization factor to load from mcool (e.g., \"Iterative-Correction\", or NULL for raw counts) ;; cut_corners=Set to TRUE in rotated plots to truncate TAD boundary lines at the corners\n- alternatives: The docs mention using the external 'hic2cool' command-line utility (version > 0.7) to convert '.hic' files to '.mcool' before importing into HiCBricks, and using the 'cooler' command-line tool to convert exported sparse matrices back to '.mcool' format.\n- when_to_use: Use this package when handling very large, high-resolution Hi-C datasets that exceed system memory, when calling TADs using the Local Score Differentiator (LSD) algorithm, or when creating publication-quality 1-sample or bipartite (2-sample) heatmaps with TAD annotations.\n- pitfalls: HiCBricks will not overwrite existing files or data unless 'remove_existing=TRUE' or 'remove_prior=TRUE' are explicitly passed ;; Human-readable coordinates must strictly use ':' as the delimiter; other delimiters will cause failures ;; Continuous bin tables (where the end of one bin overlaps the start of the next) cause width offsets in GenomicRanges; start coordinates must be offset by +1bp to make the bin table discontinuous before loading ;; 'Brick_return_region_position' may fail if the query region is smaller than a single genomic bin; use 'Brick_fetch_range_index' for finer control ;; In bipartite plots with overlapping TADs, the TAD plotted last will visually obscure any overlapping TADs underneath.",
+  "workflows": [
+    {
+      "name": "import_from_2d_text",
+      "intent": "Create a Brick container and load cis/trans contact matrices from 2D text files.",
+      "input": [
+        "Bintable_100kb.bins (space-delimited bin table file)",
+        "Sexton2012_yaffetanay_CisTrans_100000_corrected_chr2L.txt.gz (gzipped 2D matrix text file)"
+      ],
+      "stages": "1. Create the project directory and initialize the Brick objects using the bin table with `Create_many_Bricks`.\n2. Load the BrickContainer using `load_BrickContainer`.\n3. Populate the Brick objects with contact frequencies from the 2D matrix files using `Brick_load_matrix` or `Brick_load_cis_matrix_till_distance`.",
+      "code": "library(\"HiCBricks\")\nBintable_path <- system.file(file.path(\"extdata\", \"Bintable_100kb.bins\"), package = \"HiCBricks\")\nout_dir <- file.path(tempdir(), \"HiCBricks_vignette_test\")\ndir.create(out_dir)\nCreate_many_Bricks(BinTable = Bintable_path, bin_delim=\" \", output_directory = out_dir, file_prefix = \"HiCBricks_vignette_test\", remove_existing=TRUE, experiment_name = \"HiCBricks vignette test\", resolution = 100000)\nBrickContainer_dir <- file.path(tempdir(), \"HiCBricks_vignette_test\")\nMy_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)\nExample_dataset_dir <- system.file(\"extdata\", package = \"HiCBricks\")\nChromosomes <- c(\"chr2L\", \"chr3L\", \"chr3R\", \"chrX\")\nfor (chr in Chromosomes) {\n    Matrix_file <- file.path(Example_dataset_dir, paste(paste(\"Sexton2012_yaffetanay_CisTrans_100000_corrected\", chr, sep = \"_\"), \"txt.gz\", sep = \".\"))\n    Brick_load_matrix(Brick = My_BrickContainer, chr1 = chr, chr2 = chr, resolution = 100000, matrix_file = Matrix_file, delim = \" \", remove_prior = TRUE)\n}"
+    },
+    {
+      "name": "import_from_sparse_matrix",
+      "intent": "Create a Brick container and load contact matrices from sparse 3-column text files.",
+      "input": [
+        "GSE104427_c2c12_40000_abs_discontinuous.bed (discontinuous bin table file)",
+        "GSE104427_c2c12_40000_iced_uppertri.matrix (upper-triangle sparse matrix file)"
+      ],
+      "stages": "1. Initialize the Brick objects using the discontinuous bin table with `Create_many_Bricks`.\n2. Load the sparse matrix data into the Brick objects using `Brick_load_data_from_sparse`.",
+      "code": "Bintable_path <- file.path(sparse_out_dir, \"GSE104427_c2c12_40000_abs_discontinuous.bed\")\nMy_sparse_brick_object <- Create_many_Bricks(BinTable = Bintable_path, bin_delim=\" \", output_directory = out_dir, file_prefix = \"HiCBricks_vignette_test\", remove_existing=TRUE, experiment_name = \"HiCBricks vignette test\", resolution = 40000)\nMatrix_path <- file.path(sparse_out_dir, \"GSE104427_c2c12_40000_iced_uppertri.matrix\")\nLoad_all_sparse <- Brick_load_data_from_sparse(Brick = My_sparse_brick_object, table_file = Matrix_path, delim = \" \", resolution = 40000)"
+    },
+    {
+      "name": "import_from_mcool",
+      "intent": "Create a Brick container and load contact matrices directly from an .mcool binary file.",
+      "input": [
+        "H1-hESC-HiC-4DNFI7JNCNFB.mcool (mcool binary file)"
+      ],
+      "stages": "1. Initialize the Brick objects directly from the mcool file metadata using `Create_many_Bricks_from_mcool`.\n2. Load the BrickContainer using `load_BrickContainer`.\n3. Populate the Brick objects with normalized values from the mcool file using `Brick_load_data_from_mcool`.",
+      "code": "Create_many_Bricks_from_mcool(output_directory = out_dir, file_prefix = \"mcool_to_Brick_test\", mcool = mcool_path, resolution = 10000, experiment_name = \"Testing mcool creation\", remove_existing = TRUE)\nMy_BrickContainer <- load_BrickContainer(project_dir = out_dir)\nBrick_load_data_from_mcool(Brick = My_BrickContainer, mcool = mcool_path, resolution = 10000, cooler_read_limit = 10000000, matrix_chunk = 2000, remove_prior = TRUE, norm_factor = \"Iterative-Correction\")"
+    },
+    {
+      "name": "tad_calling_and_visualization",
+      "intent": "Call Topologically Associated Domains (TADs) using the LSD algorithm and plot a rotated heatmap with TAD borders.",
+      "input": [
+        "My_BrickContainer (populated BrickContainer object)"
+      ],
+      "stages": "1. Call TADs across chromosomes using `Brick_local_score_differentiator`.\n2. Save the called TAD ranges into the Brick container using `Brick_add_ranges`.\n3. Retrieve the saved TAD ranges using `Brick_get_ranges`.\n4. Define a custom log-transformation function.\n5. Plot a 45-degree rotated heatmap with overlaid TAD borders using `Brick_vizart_plot_heatmap`.",
+      "code": "BrickContainer_dir <- file.path(tempdir(), \"HiCBricks_vignette_test\")\nMy_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)\nChromosome <- c(\"chr2L\", \"chr3L\", \"chr3R\", \"chrX\")\ndi_window <- 10\nlookup_window <- 30\nTAD_ranges <- Brick_local_score_differentiator(Brick = My_BrickContainer, chrs = Chromosome, resolution = 100000, di_window = di_window, lookup_window = lookup_window, strict = TRUE, fill_gaps = TRUE, chunk_size = 500)\nName <- paste(\"LSD\", di_window, lookup_window, sep = \"_\")\nBrick_add_ranges(Brick = My_BrickContainer, ranges = TAD_ranges, rangekey = Name, resolution = 100000)\nTAD_ranges <- Brick_get_ranges(Brick = My_BrickContainer, rangekey = Name, resolution = 100000)\nFailsafe_log10 <- function(x){\n    x[is.na(x) | is.nan(x) | is.infinite(x)] <- 0\n    return(log10(x+1))\n}\nBrick_vizart_plot_heatmap(File = file.path(tempdir(), \"chr3R-1-10MB-normal-colours-log10-rotate-3-tads.pdf\"), Bricks = list(My_BrickContainer), tad_ranges = TAD_ranges, x_coords = \"chr3R:1:10000000\", y_coords = \"chr3R:1:10000000\", resolution = 100000, colours = \"#230C0F\", FUN = Failsafe_log10, value_cap = 0.99, distance = 60, legend_title = \"Log10 Hi-C signal\", palette = \"Reds\", width = 15, height = 5, line_width = 0.8, cut_corners = TRUE, rotate = TRUE, return_object=TRUE)"
+    }
+  ]
+}

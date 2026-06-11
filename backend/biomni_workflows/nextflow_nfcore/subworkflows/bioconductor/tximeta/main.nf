@@ -1,162 +1,240 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tximeta
-// Transcript quantification import from Salmon and other quantifiers with automatic attachment of tran
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tximeta/inst/doc/tximeta.R
-// Upstream  : BiocFileCache, DESeq2, SummarizedExperiment, devtools, edgeR
-// Downstream: rnaseqGene
-//
-// Install: BiocManager::install("tximeta")
+// Bioconductor workflow: tximeta — salmon_import_and_summarization
+// Import Salmon transcript quantifications, automatically attach metadata/ranges, and summarize to gene-level for downstream differential expression.
+// Input: quant.sf, coldata
+// Container: quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0
+// R packages: BiocFileCache, DESeq2, devtools, edgeR, org.Dm.eg.db, SummarizedExperiment, tximeta
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TXIMETA {
+process BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tximeta"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tximeta:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tximeta:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tximeta_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tximeta_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tximeta_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BiocFileCache)
-    library(DGEList)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocFileCache", "DESeq2", "devtools", "edgeR", "org.Dm.eg.db", "SummarizedExperiment", "tximeta")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Tximeta [] ---
-    # Key functions: tximeta
-    ---------------------------------------------------------------------
-    se <- tximeta(coldata)
-    # --- Assaynames [] ---
-    # Key functions: assayNames
-    ---------------------------------------------------------------------
-    assayNames(se)
-    # --- Rowranges [] ---
-    # Key functions: rowRanges
-    ---------------------------------------------------------------------
-    rowRanges(se)
-    # --- Seqinfo [] ---
-    # Key functions: seqinfo
-    ---------------------------------------------------------------------
-    seqinfo(se)
-    # --- Retrievedb [] ---
-    # Key functions: retrieveDb
-    ---------------------------------------------------------------------
-    edb <- retrieveDb(se)
-    class(edb)
-    # --- Addexons [] ---
-    # Key functions: addExons, rowRanges
-    ---------------------------------------------------------------------
-    se.exons <- addExons(se)
-    rowRanges(se.exons)[[1]]
-    # --- Summarizetogene [] ---
-    # Key functions: summarizeToGene, rowRanges
-    ---------------------------------------------------------------------
-    gse <- summarizeToGene(se)
-    rowRanges(gse)
-    # --- Addids [] ---
-    # Key functions: addIds, mcols
-    ---------------------------------------------------------------------
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(tximeta)
+    library(SummarizedExperiment)
     library(org.Dm.eg.db)
-    gse <- addIds(gse, "REFSEQ", gene=TRUE)
-    mcols(gse)
-    # --- Scaleinfreps [] ---
-    # Key functions: scaleInfReps, labelKeep, swish
-    ---------------------------------------------------------------------
-    library(fishpond)
-    y <- se
-    # y <- scaleInfReps(y)
-    # y <- labelKeep(y)
-    # --- Assays [] ---
-    # Key functions: assays, rowMeans, calcNormFactors, colSums, DGEList, scaleOffset
-    ---------------------------------------------------------------------
-    cts <- assays(gse)[["counts"]]
-    normMat <- assays(gse)[["length"]]
-    normMat <- normMat / exp(rowMeans(log(normMat)))
-    o <- log(calcNormFactors(cts/normMat)) + log(colSums(cts/normMat))
-    # --- Summarizetogene [] ---
-    # Key functions: summarizeToGene, DGEList, assays
-    ---------------------------------------------------------------------
-    gse <- summarizeToGene(se, countsFromAbundance="lengthScaledTPM")
-    library(limma)
-    y <- DGEList(assays(gse)[["counts"]])
-    # see limma User's Guide for further steps
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    metadata(gse)$countsFromAbundance
-    # --- Biocfilecache [] ---
-    # Key functions: BiocFileCache
-    ---------------------------------------------------------------------
-    library(BiocFileCache)
-    bfc <- BiocFileCache()
-    # --- Tximeta [] ---
-    # Key functions: tximeta
-    ---------------------------------------------------------------------
-    se <- tximeta(coldata)
-    # --- Rowranges [] ---
-    # Key functions: rowRanges, seqinfo
-    ---------------------------------------------------------------------
-    rowRanges(se)
-    seqinfo(se)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tximeta_results.csv", row.names = TRUE)
+    library(edgeR)
+    
+    # ==========================================
+    # 1. Prepare sample table (coldata)
+    # ==========================================
+    
+    # Locate and read the coldata file from the working directory
+    coldata_path <- NULL
+    for (f in c("coldata.csv", "coldata.tsv", "coldata")) {
+      if (file.exists(f)) {
+        coldata_path <- f
+        break
+      }
+    }
+    
+    if (!is.null(coldata_path)) {
+      message("Reading coldata from: ", coldata_path)
+      if (grepl("\\\\.csv\$", coldata_path)) {
+        coldata <- read.csv(coldata_path, stringsAsFactors = FALSE)
+      } else if (grepl("\\\\.tsv\$", coldata_path)) {
+        coldata <- read.delim(coldata_path, stringsAsFactors = FALSE)
+      } else {
+        coldata <- tryCatch(
+          read.csv(coldata_path, stringsAsFactors = FALSE),
+          error = function(e) read.table(coldata_path, header = TRUE, stringsAsFactors = FALSE)
+        )
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tximeta_results.csv")
+      # Fallback if coldata is missing but quant.sf is present
+      if (file.exists("quant.sf")) {
+        message("coldata file not found. Creating a default coldata data frame using 'quant.sf'.")
+        coldata <- data.frame(files = "quant.sf", names = "sample1", condition = "A", stringsAsFactors = FALSE)
+      } else {
+        stop("Required input files 'coldata' and 'quant.sf' not found in the working directory.")
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tximeta_output.rds")
+    
+    # Ensure 'files' column exists and points to valid paths
+    if (!"files" %in% colnames(coldata)) {
+      if (file.exists("quant.sf")) {
+        coldata\$files <- "quant.sf"
+      } else {
+        stop("The 'files' column is missing from coldata and 'quant.sf' is not in the working directory.")
+      }
+    } else {
+      # Adjust paths if they don't exist but the files are in the working directory
+      coldata\$files <- sapply(coldata\$files, function(f) {
+        if (file.exists(f)) {
+          return(f)
+        } else if (file.exists(basename(f))) {
+          return(basename(f))
+        } else if (file.exists("quant.sf")) {
+          return("quant.sf")
+        } else {
+          return(f)
+        }
+      })
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TXIMETA:", paste0("    tximeta: ", packageVersion("tximeta"))),
-        "versions.yml"
+    
+    # Ensure 'names' column exists
+    if (!"names" %in% colnames(coldata)) {
+      coldata\$names <- paste0("sample", seq_len(nrow(coldata)))
+    }
+    
+    # ==========================================
+    # 2. Link custom transcriptome
+    # ==========================================
+    
+    # Locate GTF path in the working directory
+    gtf_files <- list.files(pattern = "\\\\.gtf(\\\\.gz)?\$", ignore.case = TRUE)
+    if (length(gtf_files) > 0) {
+      gtfPath <- gtf_files[1]
+      message("Using GTF file: ", gtfPath)
+    } else {
+      gtfPath <- "Drosophila_melanogaster.BDGP6.22.98.gtf.gz"
+      message("GTF file not found in working directory. Defaulting path to: ", gtfPath)
+    }
+    
+    # Locate Salmon index directory
+    all_dirs <- list.dirs(recursive = FALSE)
+    indexDir <- NULL
+    for (d in all_dirs) {
+      if (file.exists(file.path(d, "versionInfo.txt")) || file.exists(file.path(d, "header.json"))) {
+        indexDir <- d
+        break
+      }
+    }
+    if (!is.null(indexDir)) {
+      message("Using Salmon index directory: ", indexDir)
+    } else {
+      indexDir <- "Dm.BDGP6.22.98_salmon-0.14.1"
+      message("Salmon index directory not found. Defaulting path to: ", indexDir)
+    }
+    
+    fastaFTP <- c(
+      "ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/cdna/Drosophila_melanogaster.BDGP6.22.cdna.all.fa.gz",
+      "ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/ncrna/Drosophila_melanogaster.BDGP6.22.ncrna.fa.gz"
     )
+    
+    # Call makeLinkedTxome exactly as documented
+    makeLinkedTxome(
+      indexDir = indexDir,
+      source = "LocalEnsembl",
+      organism = "Drosophila melanogaster",
+      release = "98",
+      genome = "BDGP6.22",
+      fasta = fastaFTP,
+      gtf = gtfPath,
+      write = FALSE
+    )
+    
+    # ==========================================
+    # 3. Import data using tximeta
+    # ==========================================
+    se <- tximeta(coldata)
+    
+    # ==========================================
+    # 4. Retrieve database using retrieveDb
+    # ==========================================
+    edb <- retrieveDb(se)
+    
+    # ==========================================
+    # 5. Add exons using addExons
+    # ==========================================
+    se.exons <- addExons(se)
+    
+    # ==========================================
+    # 6. Summarize to gene-level
+    # ==========================================
+    gse <- summarizeToGene(se)
+    
+    # ==========================================
+    # 7. Add alternative identifiers
+    # ==========================================
+    gse <- addIds(gse, "REFSEQ", gene = TRUE)
+    
+    # ==========================================
+    # 8. Convert to downstream analysis objects
+    # ==========================================
+    y <- DGEListFromTximeta(gse)
+    
+    # ==========================================
+    # Write Outputs
+    # ==========================================
+    message("Saving results...")
+    saveRDS(se, "se_transcript.rds")
+    saveRDS(se.exons, "se_exons.rds")
+    saveRDS(gse, "gse_gene.rds")
+    saveRDS(y, "dgelist.rds")
+    
+    # Export gene counts as CSV
+    gene_counts <- assay(gse, "counts")
+    write.csv(gene_counts, "gene_counts.csv", row.names = TRUE)
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION":',
+        paste0('        tximeta: ', as.character(packageVersion("tximeta")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tximeta_results.csv
-    touch ${prefix}_tximeta_output.rds
-    echo "BIOC_TXIMETA:" > versions.yml
-    echo "    tximeta: 0.0.0" >> versions.yml
+    touch ${prefix}_salmon_import_and_summarization.csv versions.yml
     """
 }
 
-
-workflow BIOC_TXIMETA_WORKFLOW {
+workflow BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ quant.sf, coldata ] ]
 
     main:
-    BIOC_TXIMETA(ch_input)
+    BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION(ch_input)
 
     emit:
-    results  = BIOC_TXIMETA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TXIMETA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TXIMETA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TXIMETA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION.out.tables
+    plots    = BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION.out.plots
+    objects  = BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION.out.objects
+    versions = BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION.out.versions
 }

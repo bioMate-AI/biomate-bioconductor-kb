@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - affinity_matrix: `d` is a distance matrix; the second argument (e.g., `10`) is the number of nearest neighbors to use for affinity matrix construction.\n    - spectral_clustering: `A` is the affinity matrix; `k` is the number of clusters to find.\n    - ANF: `Wall` (or a list of matrices) is the list of affinity matrices to fuse; `K` is the number of nearest neighbors used in the fusion process.\n    - eval_clu: `true_class` is a vector of true labels; `w` is the affinity matrix; `surv` is an optional data frame containing patient survival data for p-value calculation.\n- alternatives:\n    - Similarity Network Fusion (SNF): The popular method upon which ANF is based and improves.\n    - KMeans clustering: A standard clustering method (e.g., `kmeans(feature, 2)`) used as a baseline, which can be applied to single views or concatenated features but typically yields lower performance than ANF.\n- when_to_use:\n    - Use when you have multi-view or multi-omic datasets (e.g., gene expression, miRNA expression, and DNA methylation) for the same set of patients and want to perform integrative clustering to identify robust patient subtypes.\n- pitfalls:\n    - Direct concatenation of heterogeneous features (e.g., using `cbind`) before clustering often performs worse than analyzing each feature space individually and fusing them with ANF.\n    - Clustering based on a single view/affinity matrix can sometimes perform very poorly (e.g., near-zero NMI) compared to the fused multi-view approach.\n    - Ensure that the rows of different feature matrices have a one-to-one correspondence (representing the same patients/objects) before fusion.",
+  "workflows": [
+    {
+      "name": "single_view_spectral_clustering",
+      "intent": "Perform spectral clustering on a single feature matrix by constructing an affinity matrix from distances.",
+      "input": [
+        "feature1 (a matrix where rows represent objects/patients and columns represent features)"
+      ],
+      "stages": "1. Compute the distance matrix using `dist` and convert it to a matrix.\n2. Construct the affinity matrix using `affinity_matrix`.\n3. Perform spectral clustering using `spectral_clustering`.",
+      "code": "d = dist(feature1)\nd = as.matrix(d)\nA1 = affinity_matrix(d, 10)\nlabels = spectral_clustering(A1, 2)"
+    },
+    {
+      "name": "multi_view_affinity_network_fusion",
+      "intent": "Fuse multiple affinity matrices representing different views (e.g., multi-omic data) and perform spectral clustering on the fused matrix.",
+      "input": [
+        "Wall (a list of affinity matrices for different views, such as gene expression, miRNA, and methylation)",
+        "project_ids (a named vector of true class labels for evaluation)"
+      ],
+      "stages": "1. Fuse multiple affinity matrices using `ANF`.\n2. Perform spectral clustering on the fused affinity matrix using `spectral_clustering`.\n3. Evaluate the clustering results against true classes using `eval_clu`.",
+      "code": "fused.mat <- ANF(Wall = Wall$uterus$raw.all)\nlabels <- spectral_clustering(A = fused.mat, k = 2)\nres <- eval_clu(true_class = project_ids[rownames(fused.mat)], w = fused.mat)"
+    }
+  ]
+}

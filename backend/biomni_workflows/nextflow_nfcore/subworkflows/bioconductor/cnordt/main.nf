@@ -1,127 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNORdt
-// This add-on to the package CellNOptR handles time-course data, as opposed to steady state data in Ce
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNORdt/inst/doc/CNORdt-vignette.R
-// Upstream  : CellNOptR
-// Downstream: none
-//
-// Install: BiocManager::install("CNORdt")
+// Bioconductor workflow: CNORdt — time_course_logic_modeling
+// Train and optimize a boolean logic model of a signaling network using time-course experimental data.
+// Input: CNOlistPB, modelPB
+// Container: quay.io/biocontainers/bioconductor-cnordt:1.52.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNORdt, CellNOptR
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load libraries and data
+//  * 2. [Core Analysis] Preprocess the model against the dataset
+//  * 3. [Core Analysis] Run genetic algorithm optimization with time-scaling parameters
+//  * 4. [Visualization & Output] Plot and visualize the fit of the optimized model
+//  * 5. [Visualization & Output] Export the optimized network and scaffold files
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNORDT {
+process BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cnordt"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cnordt:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cnordt:1.48.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cnordt_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cnordt_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cnordt_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load libraries and data
+    library(CellNOptR)
     library(CNORdt)
-    library(jsonlite)
-
-    # --- Genetic Algorithm Optimization [] ---
-    # Key functions: gaBinaryDT
-    opt1 <- gaBinaryDT(
-        CNOlist = CNOlistPB, 
-        model = model, 
-        initBstring = initBstring,
-        verbose = FALSE, 
-        boolUpdates = 10, 
-        maxTime = 30, 
-        lowerB = 0.8, 
-        upperB = 10
-    )
-
-
-    # --- Results Visualization [] ---
-    # Key functions: cutAndPlotResultsDT
-    cutAndPlotResultsDT(
-        model = model,
-        CNOlist = CNOlistPB,
-        bString = opt1$bString,
-        plotPDF = FALSE,
-        boolUpdates = 10,
-        lowerB = 0.8,
-        upperB = 10
-    )
-
-
-    # --- Export Network and Scaffold [] ---
-    # Key functions: writeScaffold, writeNetwork
-    writeScaffold(
-        modelComprExpanded = model,
-        optimResT1 = opt1,
-        optimResT2 = NA,
-        modelOriginal = modelPB,
-        CNOlist = CNOlistPB
-    )
-    writeNetwork(
-        modelOriginal = modelPB,
-        modelComprExpanded = model,
-        optimResT1 = opt1,
-        CNOlist = CNOlistPB
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cnordt_results.csv", row.names = TRUE)
+    
+    # Read the user-provided input files from the working directory
+    if (file.exists("CNOlistPB.rds")) {
+      CNOlistPB <- readRDS("CNOlistPB.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cnordt_results.csv")
+      stop("Required input file 'CNOlistPB.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cnordt_output.rds")
+    
+    if (file.exists("modelPB.rds")) {
+      modelPB <- readRDS("modelPB.rds")
+    } else {
+      stop("Required input file 'modelPB.rds' not found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNORDT:", paste0("    cnordt: ", packageVersion("CNORdt"))),
-        "versions.yml"
+    
+    # 2. Preprocess the model against the dataset
+    model = preprocessing(CNOlistPB, modelPB)
+    initBstring <- rep(1, length(model\$reacID))
+    
+    # Save preprocessed model
+    saveRDS(model, "preprocessed_model.rds")
+    
+    # 3. Run genetic algorithm optimization with time-scaling parameters
+    opt1 <- gaBinaryDT(CNOlist=CNOlistPB, model=model, initBstring=initBstring,
+    verbose=FALSE, boolUpdates=10, maxTime=30, lowerB=0.8, upperB=10)
+    
+    # Save optimization results
+    saveRDS(opt1, "optimization_results.rds")
+    
+    # 4. Plot and visualize the fit of the optimized model
+    pdf("optimized_fit_plot.pdf", width=11, height=8)
+    cutAndPlotResultsDT(
+    	model=model,
+    	CNOlist=CNOlistPB,
+    	bString=opt1\$bString,
+    	plotPDF=FALSE,
+    	boolUpdates=10,
+    	lowerB=0.8,
+    	upperB=10
     )
+    dev.off()
+    
+    # 5. Export the optimized network and scaffold files
+    writeScaffold(
+    	modelComprExpanded=model,
+    	optimResT1=opt1,
+    	optimResT2=NA,
+    	modelOriginal=modelPB,
+    	CNOlist=CNOlistPB
+    )
+    
+    writeNetwork(
+    	modelOriginal=modelPB,
+    	modelComprExpanded=model,
+    	optimResT1=opt1,
+    	CNOlist=CNOlistPB
+    )
+
+    writeLines(c(
+        '"BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING":',
+        paste0('    CNORdt: ', as.character(packageVersion('CNORdt')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cnordt_results.csv
-    touch ${prefix}_cnordt_output.rds
-    echo "BIOC_CNORDT:" > versions.yml
-    echo "    cnordt: 0.0.0" >> versions.yml
+    touch ${prefix}_time_course_logic_modeling.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNORDT_WORKFLOW {
+workflow BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ CNOlistPB, modelPB ] ]
 
     main:
-    BIOC_CNORDT(ch_input)
+    BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING(ch_input)
 
     emit:
-    results  = BIOC_CNORDT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNORDT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNORDT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNORDT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING.out.tables
+    plots    = BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING.out.plots
+    objects  = BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING.out.objects
+    versions = BIOC_CNORDT_TIME_COURSE_LOGIC_MODELING.out.versions
 }

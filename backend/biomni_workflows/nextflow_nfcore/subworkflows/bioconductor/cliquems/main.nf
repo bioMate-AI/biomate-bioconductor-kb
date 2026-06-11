@@ -1,89 +1,126 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cliqueMS
-// Annotates data from liquid chromatography coupled to mass spectrometry (LC/MS) metabolomics experime
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cliqueMS/inst/doc/annotate_features.R
-// Upstream  : xcms
-// Downstream: none
-//
-// Install: BiocManager::install("cliqueMS")
+// Bioconductor workflow: cliquems — lcms_feature_annotation
+// Group coeluting LC/MS features into cliques, annotate isotopes, and identify adducts/fragments to obtain neutral metabolite masses.
+// Input: standards.mzXML
+// Container: quay.io/biocontainers/bioconductor-cliquems:1.24.0--r45ha27e39d_0
+// R packages: cliqueMS, xcms
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLIQUEMS {
+process BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cliquems"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cliquems:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cliquems:1.20.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-cliquems:1.24.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cliquems_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cliquems_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cliquems_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cliqueMS", "xcms")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Check for required input file
+    if (!file.exists("standards.mzXML")) {
+      stop("Required input file 'standards.mzXML' not found in the working directory.")
+    }
+    
+    # Load required libraries
     library(cliqueMS)
-    library(jsonlite)
-
-    # --- show [] ---
-    # Key functions: show
+    library(xcms)
+    
+    # 1. Read and process raw LC/MS data using xcms to find chromatographic peaks
+    mzfile <- "standards.mzXML"
+    mzraw <- MSnbase::readMSData(files = mzfile, mode = "onDisk")
+    cpw <- CentWaveParam(ppm = 15, peakwidth = c(5, 20), snthresh = 10)
+    mzData <- findChromPeaks(object = mzraw, param = cpw)
+    
+    # 2. Create an anClique S4 object from the processed peak data
     ex.anClique <- createanClique(mzData)
-    show(ex.anClique)
+    
+    # 3. Group coeluting features into cliques using getCliques
+    set.seed(2)
+    ex.cliqueGroups <- getCliques(mzData, filter = TRUE)
+    
+    # 4. Annotate isotopes within each clique group using getIsotopes
+    ex.Isotopes <- getIsotopes(ex.cliqueGroups, ppm = 10)
+    
+    # 5. Annotate adducts and fragments using getAnnotation with an adduct information list
+    # Retrieve the package's adduct datasets directly without using the forbidden data() function
+    positive.adinfo <- cliqueMS::positive.adinfo
+    negative.adinfo <- cliqueMS::negative.adinfo
+    
+    ex.Adducts <- getAnnotation(ex.Isotopes, ppm = 10,
+        adinfo = positive.adinfo, polarity = "positive",
+        normalizeScore = TRUE)
+    
+    # 6. Extract the annotated peak list and clique groups
+    features.clique6 <- getlistofCliques(ex.Adducts)[[6]]
+    
+    # Extract subset of interest for demonstration/verification
+    clique6_subset <- getPeaklistanClique(ex.Adducts)[features.clique6,
+        c("an1", "mass1", "an2", "mass2", "an3", "mass3", "an4", "mass4", "an5", "mass5")]
+    
+    # Write meaningful results to output files
+    write.csv(getPeaklistanClique(ex.Adducts), "annotated_peaklist.csv", row.names = TRUE)
+    write.csv(clique6_subset, "clique6_annotated_subset.csv", row.names = TRUE)
+    saveRDS(ex.Adducts, "cliqueMS_annotated.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cliquems_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cliquems_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cliquems_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLIQUEMS:", paste0("    cliquems: ", packageVersion("cliqueMS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION":',
+        paste0('        cliquems: ', as.character(packageVersion("cliquems")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cliquems_results.csv
-    touch ${prefix}_cliquems_output.rds
-    echo "BIOC_CLIQUEMS:" > versions.yml
-    echo "    cliquems: 0.0.0" >> versions.yml
+    touch ${prefix}_lcms_feature_annotation.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLIQUEMS_WORKFLOW {
+workflow BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ standards.mzXML ] ]
 
     main:
-    BIOC_CLIQUEMS(ch_input)
+    BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION(ch_input)
 
     emit:
-    results  = BIOC_CLIQUEMS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLIQUEMS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLIQUEMS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLIQUEMS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION.out.tables
+    plots    = BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION.out.plots
+    objects  = BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION.out.objects
+    versions = BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION.out.versions
 }

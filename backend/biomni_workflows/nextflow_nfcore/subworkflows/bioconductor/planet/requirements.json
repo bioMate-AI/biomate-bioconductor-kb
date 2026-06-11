@@ -1,0 +1,42 @@
+{
+  "package": "planet",
+  "requirements": [
+    "EpiDISH",
+    "dplyr",
+    "ggplot2",
+    "minfi",
+    "planet",
+    "scales",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "ethnicity_prediction.nf": [
+      "dplyr",
+      "ggplot2",
+      "planet",
+      "scales",
+      "tidyr"
+    ],
+    "gestational_age_prediction.nf": [
+      "dplyr",
+      "ggplot2",
+      "planet",
+      "tidyr"
+    ],
+    "main.nf": [
+      "EpiDISH",
+      "dplyr",
+      "ggplot2",
+      "minfi",
+      "planet",
+      "scales",
+      "tidyr"
+    ],
+    "preeclampsia_prediction.nf": [
+      "dplyr",
+      "ggplot2",
+      "planet",
+      "tidyr"
+    ]
+  }
+}

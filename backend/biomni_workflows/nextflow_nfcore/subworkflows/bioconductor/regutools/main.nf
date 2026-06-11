@@ -1,142 +1,217 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: regutools
-// RegulonDB has collected, harmonized and centralized data from hundreds of experiments for nearly two
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/regutools/inst/doc/regutools.R
-// Upstream  : BiocStyle, Biostrings, RefManageR, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("regutools")
+// Bioconductor workflow: regutools — regutools_bacterial_regulation
+// Integrate E. coli transcriptomic count data with RegulonDB to identify active transcription factors, construct local regulatory networks, and extract genomic co
+// Input: counts.csv, coldata.csv
+// Container: 1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocGenerics, GenomicRanges, IRanges, regutools
+// QC: count normalization
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_REGUTOOLS {
+process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-regutools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-regutools:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-regutools:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_regutools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_regutools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_regutools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(regutools)
-    library(GRanges)
-    library(IRanges)
-    library(PrintBibliography)
-    library(jsonlite)
-
-    # --- Gene and Dataset Querying [] ---
-    # Key functions: list_datasets, list_attributes, get_dataset
-    datasets <- list_datasets(e_coli_regulondb)
-    gene_attrs <- list_attributes(e_coli_regulondb, "GENE")
-    gene_data <- get_dataset(
-        regulondb = e_coli_regulondb,
-        dataset = "GENE",
-        attributes = c("posleft", "posright", "strand", "name"),
-        filters = list("name" = c("araC", "crp", "lacI"))
-    )
-
-
-    # --- Genomic Range and Sequence Conversion [] ---
-    # Key functions: convert_to_granges, convert_to_biostrings, get_dataset
-    gene_granges <- convert_to_granges(gene_data)
-    seq_data <- get_dataset(
-        regulondb = e_coli_regulondb,
-        dataset = "GENE",
-        attributes = c("posleft", "posright", "strand", "name", "dna_sequence"),
-        filters = list("name" = c("araC", "crp", "lacI"))
-    )
-    dna_strings <- convert_to_biostrings(seq_data, seq_type = "DNA")
-
-
-    # --- Regulatory Network Analysis [] ---
-    # Key functions: get_gene_regulators, get_regulatory_network, get_regulatory_summary
-    regulators <- get_gene_regulators(
-        e_coli_regulondb, 
-        genes = c("araC", "fis", "crp")
-    )
-    reg_network <- get_regulatory_network(e_coli_regulondb)
-    reg_summary <- get_regulatory_summary(
-        e_coli_regulondb,
-        gene_regulators = c("araC", "modB")
-    )
-
-
-    # --- Transcription Factor Binding Sites and Visualization [] ---
-    # Key functions: get_binding_sites, get_dna_objects, plot_dna_objects
-    tf_binding <- get_binding_sites(
-        e_coli_regulondb,
-        transcription_factor = "AraC",
-        output_format = "Biostrings"
-    )
-    grange_region <- GenomicRanges::GRanges(
-        "chr",
-        IRanges::IRanges(5000, 10000)
-    )
-    dna_objects <- get_dna_objects(e_coli_regulondb, grange_region)
-    plot_dna_objects(
-        e_coli_regulondb,
-        grange_region,
-        elements = c("gene", "promoter")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_regutools_results.csv", row.names = TRUE)
+    library(GenomicRanges)
+    library(BiocGenerics)
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    
+    # Read expression counts and sample metadata
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Perform basic normalization: log2(Counts Per Million + 1)
+    cpm <- apply(counts, 2, function(x) {
+        lib_size <- sum(x)
+        if (lib_size == 0) return(x)
+        (x / lib_size) * 1e6
+    })
+    log_cpm <- log2(cpm + 1)
+    
+    # Identify differentially expressed genes based on log2 fold change
+    conds <- coldata\$condition
+    unique_conds <- unique(conds)
+    
+    if (length(unique_conds) >= 2) {
+        group1 <- which(conds == unique_conds[1])
+        group2 <- which(conds == unique_conds[2])
+        
+        mean1 <- rowMeans(log_cpm[, group1, drop = FALSE])
+        mean2 <- rowMeans(log_cpm[, group2, drop = FALSE])
+        
+        logFC <- mean2 - mean1
+        # Sort genes by absolute log fold change
+        de_genes <- names(logFC)[order(abs(logFC), decreasing = TRUE)]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_regutools_results.csv")
+        # Fallback to high-variance genes if conditions are insufficient
+        gene_vars <- apply(log_cpm, 1, var)
+        de_genes <- names(gene_vars)[order(gene_vars, decreasing = TRUE)]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_regutools_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REGUTOOLS:", paste0("    regutools: ", packageVersion("regutools"))),
-        "versions.yml"
+    
+    # Select top N genes for downstream RegulonDB query
+    top_n <- 50
+    selected_genes <- head(de_genes, top_n)
+    
+    # ==========================================
+    # Stage 2: Connect to RegulonDB Database
+    # ==========================================
+    
+    # Establish connection to the database
+    regulondb_conn <- connect_database()
+    
+    # Build the regulondb object
+    e_coli_db <- regulondb(
+        database_conn = regulondb_conn,
+        organism = "E.coli",
+        database_version = "1",
+        genome_version = "1"
     )
+    
+    # ==========================================
+    # Stage 3: Query Gene Regulators & Networks
+    # ==========================================
+    
+    # Retrieve transcription factors regulating the selected genes
+    regulators_df <- tryCatch({
+        get_gene_regulators(e_coli_db, selected_genes)
+    }, error = function(e) {
+        warning("Failed to retrieve gene regulators: ", e\$message)
+        data.frame(genes = character(), regulators = character(), effect = character())
+    })
+    
+    # Retrieve the full regulatory network and filter for our genes/regulators
+    network_subset <- tryCatch({
+        full_network <- get_regulatory_network(e_coli_db)
+        # Filter network for interactions involving our selected genes or their regulators
+        subset_idx <- full_network\$regulated %in% selected_genes | 
+                      full_network\$regulator %in% regulators_df\$regulators
+        full_network[subset_idx, ]
+    }, error = function(e) {
+        warning("Failed to retrieve regulatory network: ", e\$message)
+        data.frame(regulator = character(), regulated = character(), effect = character())
+    })
+    
+    # Generate a summary of the transcription factors regulating the genes
+    regulatory_summary <- tryCatch({
+        get_regulatory_summary(e_coli_db, gene_regulators = selected_genes)
+    }, error = function(e) {
+        warning("Failed to generate regulatory summary: ", e\$message)
+        data.frame(TF = character(), Regulated_genes_per_TF = character(), Percent = character())
+    })
+    
+    # ==========================================
+    # Stage 4: Retrieve Genomic Coordinates
+    # ==========================================
+    
+    # Query genomic coordinates for the selected genes
+    gene_coords_df <- tryCatch({
+        coords_res <- get_dataset(
+            regulondb = e_coli_db,
+            dataset = "GENE",
+            attributes = c("posleft", "posright", "strand", "name"),
+            filters = list("name" = selected_genes)
+        )
+        # Convert the result to a GRanges object
+        gr <- convert_to_granges(coords_res)
+        as.data.frame(gr)
+    }, error = function(e) {
+        warning("Failed to retrieve gene coordinates: ", e\$message)
+        data.frame(seqnames = character(), start = integer(), end = integer(), strand = character(), name = character())
+    })
+    
+    # ==========================================
+    # Stage 5: Extract Transcription Factor Binding Sites
+    # ==========================================
+    
+    # Identify the most prominent regulator from our dataset
+    top_regulator <- "Crp" # Default fallback
+    if (nrow(regulators_df) > 0) {
+        reg_counts <- table(regulators_df\$regulators)
+        if (length(reg_counts) > 0) {
+            top_regulator <- names(reg_counts)[which.max(reg_counts)]
+        }
+    }
+    
+    # Retrieve binding sites for the top regulator
+    binding_sites_df <- tryCatch({
+        bs_gr <- get_binding_sites(e_coli_db, transcription_factor = top_regulator)
+        as.data.frame(bs_gr)
+    }, error = function(e) {
+        warning("Failed to retrieve binding sites for ", top_regulator, ": ", e\$message)
+        data.frame(seqnames = character(), start = integer(), end = integer(), strand = character(), sequence = character())
+    })
+    
+    # ==========================================
+    # Stage 6: Write Outputs to Disk
+    # ==========================================
+    
+    write.csv(as.data.frame(network_subset), "regulatory_network.csv", row.names = FALSE)
+    write.csv(as.data.frame(regulatory_summary), "regulatory_summary.csv", row.names = FALSE)
+    write.csv(gene_coords_df, "gene_coordinates.csv", row.names = FALSE)
+    write.csv(binding_sites_df, "binding_sites.csv", row.names = FALSE)
+    
+    cat("Analysis complete. Outputs written to working directory.\n")
+
+    writeLines(c(
+        '"BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION":',
+        paste0('    regutools: ', as.character(packageVersion('regutools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_regutools_results.csv
-    touch ${prefix}_regutools_output.rds
-    echo "BIOC_REGUTOOLS:" > versions.yml
-    echo "    regutools: 0.0.0" >> versions.yml
+    touch ${prefix}_regutools_bacterial_regulation.csv versions.yml
     """
 }
 
-
-workflow BIOC_REGUTOOLS_WORKFLOW {
+workflow BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_REGUTOOLS(ch_input)
+    BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION(ch_input)
 
     emit:
-    results  = BIOC_REGUTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REGUTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REGUTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REGUTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION.out.tables
+    plots    = BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION.out.plots
+    objects  = BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION.out.objects
+    versions = BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION.out.versions
 }

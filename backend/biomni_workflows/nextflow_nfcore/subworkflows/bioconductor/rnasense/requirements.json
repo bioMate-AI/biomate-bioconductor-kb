@@ -1,0 +1,15 @@
+{
+  "package": "rnasense",
+  "requirements": [
+    "RNAsense",
+    "SummarizedExperiment",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RNAsense",
+      "SummarizedExperiment",
+      "ggplot2"
+    ]
+  }
+}

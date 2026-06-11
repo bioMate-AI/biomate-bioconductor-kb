@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=An ExpressionSet object containing the gene expression data and phenotypic metadata ;; groups/group/classVar=The phenotypic variable (column name in pData) used to define sample groups for comparison or classification ;; probe2gene=Logical parameter indicating whether to map probe IDs to gene symbols in plots ;; n=Number of top features to return in topTable ;; reference=List specifying the control group (e.g., list(var=\"compound\", level=\"DMSO\")) in computeLogRatio ;; within=Character string specifying the blocking/grouping variable (e.g., time points) in computeLogRatio\n- alternatives: limmaTwoLevels vs tTest=limmaTwoLevels uses a moderated t-test which is preferred for small sample sizes, whereas tTest performs an ordinary t-test (similar results when sample size is large) ;; Classifiers=PAM (pamClass), Random Forest (rfClass), Forward Filtering (nlcv/mcrPlot), and LASSO (lassoClass) are alternative classification approaches. Random Forest is noted as multivariate and dependent but can be unstable and overoptimistic ;; Pathway analysis=MLP (MLP package) is used as an alternative or supplement to standard GOstats/GSEA\n- when_to_use: Appropriate for transcriptomic studies using Affymetrix microarrays (or similar expression data represented as an ExpressionSet) where the user wants to perform unsupervised exploration, filter out low-variance/low-intensity genes, identify differentially expressed genes, build classification models, and visualize gene expression profiles\n- pitfalls: Many subsequent analysis functions rely on the presence of complementary annotation information in the ExpressionSet, which must be added first using addGeneInfo ;; Random Forest variable importance results can be unstable and sometimes overoptimistic; caution is advised during interpretation ;; Omit subtypes with only one sample (e.g., subtype T1 in the vignette) before computing log ratios or running differential expression to avoid statistical errors",
+  "workflows": [
+    {
+      "name": "microarray_differential_expression",
+      "intent": "Perform unsupervised exploration, filter low-variance genes, detect differential expression using t-test or limma, and visualize results.",
+      "input": [
+        "ExpressionSet (microarray expression data and phenotypic metadata)"
+      ],
+      "stages": "1. Add gene annotation ;; 2. Unsupervised exploration ;; 3. Filter genes based on variance and intensity ;; 4. Detect differential expression ;; 5. Visualize p-value distribution and estimate proportion of DE genes ;; 6. Extract top genes ;; 7. Visualize differential expression using volcano, box, and single-gene plots",
+      "code": "ALL <- addGeneInfo(ALL)\nspectralMap(object = ALL, groups = \"BT\")\nselBcrAblOrNeg <- filterVarInt(object = bcrAblOrNeg)\ntTestResult <- tTest(selBcrAblOrNeg, \"mol.biol\")\nhistPvalue(tTestResult[,\"p\"], addLegend = TRUE)\npropDEgenesRes <- propDEgenes(tTestResult[,\"p\"])\ntabTTest <- topTable(tTestResult, n = 10)\nvolcanoPlot(tTestResult, topPValues = 5, topLogRatios = 5)\nlimmaResult <- limmaTwoLevels(selBcrAblOrNeg, \"mol.biol\")\nvolcanoPlot(limmaResult)\ntabLimma <- topTable(limmaResult, n = 10, coef = 2)\ntabAnnot <- annotationTable(displayData = dData, hrefData = hData)\nplot1gene(probesetId = rownames(tTestResult)[1], object = selBcrAblOrNeg, groups = \"mol.biol\", legendPos = \"topright\")\nboxPlot(probesetId = rownames(tTestResult)[1], object = selBcrAblOrNeg, boxwex = 0.3, groups = \"mol.biol\", colgroups = \"BT\", legendPos = \"topright\")"
+    },
+    {
+      "name": "microarray_class_prediction",
+      "intent": "Build and evaluate classification models using PAM, Random Forest, LASSO, and Logistic Regression to predict class membership and select predictive features.",
+      "input": [
+        "ExpressionSet (filtered or unfiltered microarray data)"
+      ],
+      "stages": "1. Class prediction using PAM ;; 2. Class prediction using Random Forest ;; 3. Forward filtering with various classifiers ;; 4. Penalized regression using LASSO ;; 5. Logistic regression for a single gene ;; 6. Receiver operating characteristic (ROC) curve analysis",
+      "code": "resultPam <- pamClass(selBcrAblOrNeg, \"mol.biol\")\nplot(resultPam)\nfeatResultPam <- topTable(resultPam, n = 15)\nresultRF <- rfClass(selBcrAblOrNeg, \"mol.biol\")\nplot(resultRF, which = 2)\nfeatResultRF <- topTable(resultRF, n = 15)\nmcrPlot_TT <- mcrPlot(nlcvTT, plot = TRUE, optimalDots = TRUE, layout = TRUE, main = \"t-test selection\")\nscoresPlot(nlcvTT, tech = \"svm\", nfeat = 2)\nresultLasso <- lassoClass(object = bcrAblOrNeg, groups = \"mol.biol\")\nplot(resultLasso, label = TRUE, main = \"Lasso coefficients in relation to degree of penalization.\")\nfeatResultLasso <- topTable(resultLasso, n = 15)\nlogRegRes <- logReg(geneSymbol = \"ABL1\", object = bcrAblOrNeg, groups = \"mol.biol\")\nprobabilitiesPlot(proportions = logRegRes$fit, classVar = logRegRes$y, sampleNames = rownames(logRegRes), main = \"Probability of being NEG\")\nROCres <- ROCcurve(geneSymbol = \"ABL1\", object = bcrAblOrNeg, groups = \"mol.biol\")"
+    },
+    {
+      "name": "log_ratio_analysis",
+      "intent": "Compute and visualize log ratios of gene expression relative to a control or reference group across different conditions or time points.",
+      "input": [
+        "ExpressionSet (containing treatment/control or time-course microarray data)"
+      ],
+      "stages": "1. Compute log ratios relative to a reference level ;; 2. Plot log ratios for selected genes",
+      "code": "LogRatioALL <- computeLogRatio(ALL2, reference = list(var=\"BT\", level=\"B\"))\na <- plotLogRatio(e = LogRatioALL[topGenes,], openFile = FALSE, tooltipvalues = FALSE, device = \"pdf\", filename = \"GeneLRlist\", colorsColumnsBy = \"BTtype\", main = 'Top 20 genes most differentially between T- and B-cells', orderBy = list(rows = \"hclust\"), probe2gene = TRUE)\nlogRatioEset <- computeLogRatio(esetExampleTimeCourse, within = \"hours\", reference = list(var = \"compound\", level = \"DMSO\"))\nplotLogRatio(e = logRatioEset, mx = 1, filename = \"logRatioOverallTimeCourse.pdf\", gene.fontsize = 8, orderBy = list(rows = \"hclust\", cols = NULL), colorsColumnsBy = c('compound'), within = \"hours\", shortvarnames = shortvarnames, exp.width = 1, main = paste(\"Differential Expression (trend at early time points) in\", cl, \"upon treatment with\", compound), reference = list(var = \"compound\", level = \"DMSO\"), device = 'pdf')"
+    },
+    {
+      "name": "pathway_enrichment_mlp",
+      "intent": "Perform pathway enrichment analysis using the Mean Log P (MLP) method.",
+      "input": [
+        "ExpressionSet (with gene expression data)"
+      ],
+      "stages": "1. Generate p-values using limmaTwoLevels ;; 2. Map probe IDs to Entrez IDs ;; 3. Retrieve gene sets ;; 4. Run MLP analysis ;; 5. Plot the MLP results as a GO graph",
+      "code": "limmaResult <- limmaTwoLevels(object =  ALL, group = \"BT2\")\npValues <- limmaResult@MArrayLM$p.value\npValueNames <- fData(ALL)[rownames(pValues), 'ENTREZID']\npValues <- pValues[,2]\nnames(pValues) <- pValueNames\npValues <- pValues[!is.na(pValueNames)]\ngeneSet <- getGeneSets(species = \"Human\", geneSetSource = \"GOBP\", entrezIdentifiers = names(pValues))\nmlpOut <- MLP(geneSet = geneSet, geneStatistic = pValues, minGenes = 5, maxGenes = 100, rowPermutations = TRUE, nPermutations = 50, smoothPValues = TRUE, probabilityVector = c(0.5, 0.9, 0.95, 0.99, 0.999, 0.9999, 0.99999), df = 9)\nplot(mlpOut, type = \"GOgraph\", nRow = 25)"
+    }
+  ]
+}

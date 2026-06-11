@@ -1,135 +1,155 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SpeCond
-// This package performs a gene expression data analysis to detect condition-specific genes. Such genes
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SpeCond/inst/doc/SpeCond.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SpeCond")
+// Bioconductor workflow: SpeCond — standard_specond_analysis
+// Perform a complete condition-specific gene detection analysis in a single function call and generate HTML and text reports.
+// Input: expression_matrix.txt, expression_set.RData
+// Container: quay.io/biocontainers/bioconductor-specond:1.64.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, SpeCond
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the full SpeCond analysis to fit mixture models and detect outliers
+//  * 2. [Visualization & Output] Generate a comprehensive HTML results page with barplots and heatmaps
+//  * 3. [Visualization & Output] Generate individual HTML pages for each gene to visualize expression profiles and density curves
+//  * 4. [Visualization & Output] Export specific gene profiles, unique profiles, and gene summaries to text files
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPECOND {
+process BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-specond"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-specond:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-specond:1.60.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_specond_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_specond_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_specond_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SpeCond)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(SpeCond)
+        library(Biobase)
+        
+        # ----------------------------------------------------------------------
+        # 1. Read User Input Files
+        # ----------------------------------------------------------------------
+        if (file.exists("expression_matrix.txt")) {
+          Mexp <- tryCatch({
+            as.matrix(read.table("expression_matrix.txt", header=TRUE, sep="\t", row.names=1, check.names=FALSE))
+          }, error = function(e) {
+            as.matrix(read.table("expression_matrix.txt", header=TRUE, row.names=1, check.names=FALSE))
+          })
+        } else if (file.exists("expression_set.RData")) {
+          env <- new.env()
+          load("expression_set.RData", envir = env)
+          eset_name <- names(env)[sapply(names(env), function(x) inherits(env[[x]], "ExpressionSet"))][1]
+          if (!is.na(eset_name)) {
+            Mexp <- exprs(env[[eset_name]])
+          } else {
+            stop("No ExpressionSet object found in expression_set.RData")
+          }
+        } else {
+          stop("Required input file 'expression_matrix.txt' or 'expression_set.RData' not found in the working directory.")
+        }
+        
+        # Ensure Mexp is a numeric matrix
+        Mexp <- as.matrix(Mexp)
+        storage.mode(Mexp) <- "numeric"
+        
+        # ----------------------------------------------------------------------
+        # 2. Run SpeCond Analysis
+        # ----------------------------------------------------------------------
+        generalResult=SpeCond(Mexp, param.detection=NULL, multitest.correction.method="BY", prefix.file="E", print.hist.pv=TRUE, fit1=NULL, fit2=NULL, specificOutlierStep1=NULL)
+        specificResult=generalResult\$specificResult
+        
+        # Save the primary R objects
+        saveRDS(generalResult, file="generalResult.rds")
+        saveRDS(specificResult, file="specificResult.rds")
+        
+        # ----------------------------------------------------------------------
+        # 3. Generate HTML Reports
+        # ----------------------------------------------------------------------
+        tryCatch({
+          getFullHtmlSpeCondResult(SpeCondResult=generalResult, param.detection=specificResult\$param.detection, page.name="Example_SpeCond_results", page.title="Tissue specific results", sort.condition="all", heatmap.profile=TRUE, heatmap.expression=FALSE, heatmap.unique.profile=FALSE, expressionMatrix=Mexp)
+        }, error = function(e) {
+          warning("Could not generate full HTML report: ", e\$message)
+        })
+        
+        tryCatch({
+          gene_ids <- seq_len(min(20, nrow(Mexp)))
+          genePageInfo=getGeneHtmlPage(Mexp, specificResult, name.index.html="index_example_SpeCond_Results.html", gene.html.ids=gene_ids)
+        }, error = function(e) {
+          warning("Could not generate gene HTML pages: ", e\$message)
+        })
+        
+        # ----------------------------------------------------------------------
+        # 4. Export Specific Gene Profiles and Summaries to Text Files
+        # ----------------------------------------------------------------------
+        tryCatch({
+          if (!is.null(specificResult\$L.specific.result\$M.specific) && nrow(specificResult\$L.specific.result\$M.specific) > 0) {
+            L.specific.result.profile=getProfile(specificResult\$L.specific.result\$M.specific)
+            writeSpeCondResult(specificResult\$L.specific.result,file.name.profile="Example_specific_profile.txt", file.specific.gene="Example_list_specific_gene.txt", file.name.unique.profile="Example_specific_unique_profile.txt")
+            writeUniqueProfileSpecificResult(L.specific.result=specificResult\$L.specific.result, file.name.unique.profile="Example_specific_unique_profile.txt", full.list.gene=FALSE)
+          } else {
+            message("No condition-specific genes detected. Skipping profile text exports.")
+          }
+        }, error = function(e) {
+          warning("Could not write specific profile results: ", e\$message)
+        })
+        
+        tryCatch({
+          gene_names_subset <- rownames(Mexp)[seq_len(min(10, nrow(Mexp)))]
+          writeGeneResult(specificResult\$L.specific.result, file.name.result.gene="Example_gene_gummary_result.txt", gene.names=gene_names_subset)
+        }, error = function(e) {
+          warning("Could not write gene summary results: ", e\$message)
+        })
 
-    # --- Mixture Model Fitting [Model Fitting] ---
-    # Key functions: fitGeneMixtureModels
-    expression_matrix <- matrix(
-        rnorm(1000),
-        nrow = 100,
-        ncol = 10,
-        dimnames = list(paste0("Gene", 1:100), paste0("Cond", 1:10))
-    )
-    fit_results <- fitGeneMixtureModels(
-        expressionData = expression_matrix,
-        G = 1:3,
-        verbose = TRUE
-    )
-
-    # --- Condition Specific Detection [Detection] ---
-    # Key functions: getConditionSpecific
-    specific_genes <- getConditionSpecific(
-        expressionData = expression_matrix,
-        fit = fit_results,
-        threshold.pvalue = 0.05,
-        percentage.detect = 0.1
-    )
-
-    # --- Integrated SpeCond Analysis [Analysis] ---
-    # Key functions: specond
-    conditions <- colnames(expression_matrix)
-    specond_results <- specond(
-        expressionData = expression_matrix,
-        conds = conditions,
-        param.detection = NULL,
-        multicore = FALSE
-    )
-
-    # --- Visualisation of Specific Genes [Visualisation] ---
-    # Key functions: plotSpecond
-    plotSpecond(
-        geneName = "Gene1",
-        expressionData = expression_matrix,
-        specondResult = specond_results,
-        param.plot = NULL
-    )
-
-    # --- Exporting Results [Export] ---
-    # Key functions: writeSpecondResult
-    writeSpecondResult(
-        specondResult = specond_results,
-        file = "specond_results_output.txt",
-        prefix = "SpeCond_Analysis"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_specond_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_specond_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_specond_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPECOND:", paste0("    specond: ", packageVersion("SpeCond"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS":',
+        paste0('    SpeCond: ', as.character(packageVersion('SpeCond')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_specond_results.csv
-    touch ${prefix}_specond_output.rds
-    echo "BIOC_SPECOND:" > versions.yml
-    echo "    specond: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_specond_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPECOND_WORKFLOW {
+workflow BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.txt, expression_set.RData ] ]
 
     main:
-    BIOC_SPECOND(ch_input)
+    BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SPECOND.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPECOND.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPECOND.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPECOND.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS.out.tables
+    plots    = BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS.out.plots
+    objects  = BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS.out.objects
+    versions = BIOC_SPECOND_STANDARD_SPECOND_ANALYSIS.out.versions
 }

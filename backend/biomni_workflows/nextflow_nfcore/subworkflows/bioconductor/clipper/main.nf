@@ -1,144 +1,134 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: clipper
-// Implements topological gene set analysis using a two-step empirical approach. It exploits graph deco
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/clipper/inst/doc/clipper.R
-// Upstream  : ALL, graph, graphite
-// Downstream: none
-//
-// Install: BiocManager::install("clipper")
+// Bioconductor workflow: clipper — global_and_subpath_clipper_analysis
+// Perform a two-step topological pathway analysis to test global pathway significance and identify specific active sub-paths.
+// Input: expression_data.RData, class_labels.RData, pathway_graph.RData
+// Container: quay.io/biocontainers/bioconductor-clipper:1.50.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, clipper, graph
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run global pathway analysis using pathQ to test for differences in covariance and mean
+//  * 2. [Core Analysis] Identify specific sub-paths associated with the phenotype using clipper
+//  * 3. [Core Analysis] Prune overlapping or redundant sub-paths using prunePaths
+//  * 4. [Visualization & Output] Visualize the identified sub-paths using plotInCytoscape
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLIPPER {
+process BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clipper"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clipper:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-clipper:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clipper_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clipper_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clipper_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(clipper)
-    library(jsonlite)
-
-    # --- Cppr [] ---
-    # Key functions: packageDescription
-    options(keep.source = TRUE, width = 60)
-    cppr <- packageDescription("clipper")
-    # --- Loadgraphitepathways [] ---
-    # Key functions: pathways, convertIdentifiers, pathwayGraph, nodes
-    library(graphite)
-    kegg  <- pathways("hsapiens", "kegg")
-    graph <- convertIdentifiers(kegg[["Chronic myeloid leukemia"]], "entrez")
-    graph <- pathwayGraph(graph)
-    genes <- nodes(graph)
-    # --- Loaddataandclasses [] ---
-    # Key functions: data
-    library(ALL)
-    data(ALL)
-    # --- Lookphenodata [] ---
-    # Key functions: pData
-    head(pData(ALL))
-    dim(pData(ALL))
-    # --- Bcell Selection [] ---
-    # Key functions: pData
-    pData(ALL)$BT
-    pAllB <- pData(ALL)[grep("B", pData(ALL)$BT),]
-    dim(pAllB)
-    # --- Selectexpressionset [] ---
-    # Key functions: exprs, featureNames, unlist, mget, na
-    library("hgu95av2.db")
-    all <- ALL[,names(classes)]
-    probesIDS <- row.names(exprs(all))
-    featureNames(all@assayData)<-unlist(mget(probesIDS, hgu95av2ENTREZID))
-    all <- all[(!is.na(row.names(exprs(all))))]
-    # --- Featurenames [] ---
-    # Key functions: featureNames
-    all_rnames <- featureNames(all@assayData)
-    featureNames(all@assayData) <- paste("ENTREZID", all_rnames, sep = ":")
-    # --- Obtainingthesubgraph [] ---
-    # Key functions: intersect, exprs, subGraph
     library(graph)
-    genes <- intersect(genes, row.names(exprs(all)))
-    graph <- subGraph(genes, graph)
-    exp <- all[genes,,drop=FALSE]
-    exp
-    # --- Pathqusage [] ---
-    # Key functions: pathQ
-    library(clipper)
+    library(Biobase)
+    
+    # Helper function to load RData and extract the object
+    load_rdata_object <- function(file_path) {
+      if (!file.exists(file_path)) {
+        stop(paste("Required input file missing:", file_path))
+      }
+      temp_env <- new.env()
+      loaded_names <- load(file_path, envir = temp_env)
+      if (length(loaded_names) == 0) {
+        stop(paste("No objects found in", file_path))
+      }
+      return(temp_env[[loaded_names[1]]])
+    }
+    
+    # 1. Read the declared USER INPUT files
+    exp <- load_rdata_object("expression_data.RData")
+    classes <- load_rdata_object("class_labels.RData")
+    graph <- load_rdata_object("pathway_graph.RData")
+    
+    # 2. Run global pathway analysis using pathQ to test for differences in covariance and mean
     pathwayAnalysis <- pathQ(exp, classes, graph, nperm=100, alphaV=0.05, b=100)
     pathwayAnalysis
-    # --- Clipperusage [] ---
-    # Key functions: clipper
+    
+    # Save global pathway analysis results
+    saveRDS(pathwayAnalysis, file = "pathway_analysis_global.rds")
+    
+    # 3. Identify specific sub-paths associated with the phenotype using clipper
     clipped <- clipper(exp, classes, graph, "var", trZero=0.01, permute=FALSE)
     clipped[,1:5]
-    # --- Sintetizeyourresult [] ---
-    # Key functions: prunePaths
+    
+    # Save raw clipped paths
+    write.csv(as.data.frame(clipped), file = "clipped_paths_raw.csv", row.names = TRUE)
+    
+    # 4. Prune overlapping or redundant sub-paths using prunePaths
     clipped <- prunePaths(clipped, thr=0.2)
     clipped[,1:5]
-    # --- Easyclip Usage [] ---
-    # Key functions: easyClip
-    clipped <- easyClip(exp, classes, graph, method="mean")
-    clipped[,1:5]
+    
+    # Save pruned clipped paths
+    write.csv(as.data.frame(clipped), file = "clipped_paths_pruned.csv", row.names = TRUE)
+    
+    # 5. Visualize the identified sub-paths using plotInCytoscape
+    # Wrapped in tryCatch to handle environments where Cytoscape is not running
+    tryCatch({
+      if (nrow(clipped) > 0) {
+        plotInCytoscape(graph, clipped[1,])
+      } else {
+        warning("No paths available to plot in Cytoscape.")
+      }
+    }, error = function(e) {
+      message("Could not plot in Cytoscape. Ensure Cytoscape is running and RCy3 is configured properly.")
+      message("Error details: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clipper_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clipper_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clipper_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLIPPER:", paste0("    clipper: ", packageVersion("clipper"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS":',
+        paste0('    clipper: ', as.character(packageVersion('clipper')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clipper_results.csv
-    touch ${prefix}_clipper_output.rds
-    echo "BIOC_CLIPPER:" > versions.yml
-    echo "    clipper: 0.0.0" >> versions.yml
+    touch ${prefix}_global_and_subpath_clipper_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLIPPER_WORKFLOW {
+workflow BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_data.RData, class_labels.RData, pathway_graph.RData ] ]
 
     main:
-    BIOC_CLIPPER(ch_input)
+    BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CLIPPER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLIPPER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLIPPER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLIPPER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS.out.tables
+    plots    = BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS.out.plots
+    objects  = BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS.out.objects
+    versions = BIOC_CLIPPER_GLOBAL_AND_SUBPATH_CLIPPER_ANALYSIS.out.versions
 }

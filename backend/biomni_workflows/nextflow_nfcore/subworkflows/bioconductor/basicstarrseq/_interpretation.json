@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sample=Path to BAM file or GRanges object containing STARR-seq fragments ;; control=Path to BAM file or GRanges object containing input control fragments ;; pairedEnd=Logical indicating if the BAM data is paired-end (default is TRUE) ;; minQuantile=Which quantile of coverage height should be considered as peaks (default 0.9) ;; peakWidth=The width in base pairs that the peaks should have (default 500) ;; maxPval=The maximal p-value of peaks that is desired (default 0.001) ;; deduplicate=Whether the sequences should be deduplicated before calling peaks (default TRUE) ;; model=Which binomial model (1 or 2) should be applied to calculate the p-values (default 1)\n- alternatives: Alignment software like BWA or bowtie, and filtering tools like SAMtools and BEDtools are mentioned for preprocessing raw data before importing into R.\n- when_to_use: Use when you have aligned STARR-seq data (both sample and input control) and want to identify enhancer regions by calling peaks of significant enrichment.\n- pitfalls: Ensure the correct setting of pairedEnd (TRUE or FALSE) when loading BAM files, as incorrect settings will lead to incorrect fragment counts. Note that the enrichment calculation conservatively corrects the numerator and denominator to the bounds of the 0.95 binomial confidence interval corresponding to model 1.",
+  "workflows": [
+    {
+      "name": "peak_calling_from_bam",
+      "intent": "Initialize STARR-seq data objects directly from BAM files for paired-end or single-end experiments.",
+      "input": [
+        "smallSTARR.bam (STARR-seq sample alignment file)",
+        "smallInput.bam (Input control alignment file)"
+      ],
+      "stages": "1. Specify BAM file paths ;; 2. Initialize STARRseqData object for paired-end or single-end data",
+      "code": "starrseqFileName <- system.file(\"extdata\", \"smallSTARR.bam\",\n                                package=\"BasicSTARRseq\")\ninputFileName <- system.file(\"extdata\", \"smallInput.bam\",\n                             package=\"BasicSTARRseq\")\nSTARRseqData(sample=starrseqFileName, control=inputFileName,\n             pairedEnd=TRUE)\nSTARRseqData(sample=starrseqFileName, control=inputFileName,\n             pairedEnd=FALSE)"
+    },
+    {
+      "name": "peak_calling_from_granges",
+      "intent": "Call peaks on STARR-seq data starting from pre-loaded GRanges objects.",
+      "input": [
+        "smallSTARR.bam (STARR-seq sample alignment file)",
+        "smallInput.bam (Input control alignment file)"
+      ],
+      "stages": "1. Read BAM files into GRanges objects ;; 2. Initialize STARRseqData object ;; 3. Call peaks using getPeaks",
+      "code": "starrseqGRanges <- granges(readGAlignmentPairs(starrseqFileName))\ninputGRanges <- granges(readGAlignmentPairs(inputFileName))\ndata <- STARRseqData(sample=starrseqGRanges, control=inputGRanges)\npeaks <- getPeaks(data)"
+    }
+  ]
+}

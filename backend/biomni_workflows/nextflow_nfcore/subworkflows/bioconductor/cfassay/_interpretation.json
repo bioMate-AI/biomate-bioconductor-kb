@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: PEmethod=Controls how plating efficiencies are processed; \"fit\" (default, fits PEs as intercepts/model parameters, statistically preferred) or \"fix\" (conventional normalization) ;; method=Estimation method; \"ml\" (default, Maximum-Likelihood using glm with Poisson family and log link) or \"ls\" (Least Squares using lm) ;; curvevar=Character string specifying the column name in the data frame that distinguishes different survival curves (e.g., \"cline\") ;; A=First treatment factor name in 2-way ANOVA (e.g., \"siRNA\") ;; B=Second treatment factor name in 2-way ANOVA (e.g., \"x5fuCis\") ;; param=Parametrisation option for 2-way ANOVA; \"A/B\" (default, nested version) or \"A*B\" (with interaction)\n- alternatives: Maximum-Likelihood (ML) is preferred over Least Squares (LS) because ML parameter estimations for Poisson distributed data theoretically yield smaller variances.\n- when_to_use: Use when analyzing colony formation assay data to fit linear-quadratic radiation survival curves, compare survival curves between different cell lines/treatments, or perform 2-way ANOVA to test for treatment interactions (e.g., chemosensitisation).\n- pitfalls: High dispersion parameters indicate poor fit or experimental anomalies. A dispersion cut-off of 9.0 is recommended for PEmethod=\"fit\" (corresponding to 3 Poisson standard deviations), and 12.0 for PEmethod=\"fix\". If exceeded, specific replicate experiments may need to be removed. Input data frames must contain exact column names: \"Exp\", \"ncells\", and \"ncolonies\", plus \"dose\" for survival curves.",
+  "workflows": [
+    {
+      "name": "lq_survival_curve_analysis",
+      "intent": "Fit linear-quadratic cell survival curves to colony formation assay data, evaluate goodness-of-fit, and compare curves between different experimental groups.",
+      "input": [
+        "cellsurv_data.txt (tab-delimited text file containing columns: cline, Exp, dose, ncells, ncolonies)"
+      ],
+      "stages": "1. Load and inspect the data ;; 2. Fit the LQ model for a single cell line/group ;; 3. Print fit coefficients and calculate mean survival fractions ;; 4. Generate diagnostic plots for individual experiments ;; 5. Compare two survival curves statistically ;; 6. Plot the compared curves together",
+      "code": "library(CFAssay)\ndatatab <- read.table(system.file(\"doc\", \"expl1_cellsurvcurves.txt\",\n                                  package=\"CFAssay\"), header=TRUE, sep=\"\\t\")\nnames(datatab)\nhead(datatab, 3)\nX <- subset(datatab, cline==\"okf6TERT1\")\ndim(X)\nfit <- cellsurvLQfit(X)\nprint(fit)\nplot(fit)\nS0 <- pes(X)$S0\nnames(S0) <- pes(X)$Exp\nsfpmean(X, S0)\nplotExp(fit)\nfitcomp <- cellsurvLQdiff(datatab, curvevar=\"cline\")\nprint(fitcomp)\nplot(cellsurvLQfit(subset(datatab, cline==\"okf6TERT1\")), col=1)\nplot(cellsurvLQfit(subset(datatab, cline==\"cal33\")), col=2, add=TRUE)\nlegend(0, 0.02, c(\"OKF6/TERT1\", \"CAL 33\"), text.col=1:2)"
+    },
+    {
+      "name": "two_way_anova_cfa",
+      "intent": "Perform a two-way ANOVA with interaction on colony formation assay data to test for synergistic or sensitizing effects between two treatment factors.",
+      "input": [
+        "anova_data.txt (tab-delimited text file containing columns: Exp, siRNA, x5fuCis, ncells, ncolonies)"
+      ],
+      "stages": "1. Load and inspect the two-way experimental data ;; 2. Fit the two-way ANOVA model with interaction ;; 3. Print detailed ANOVA results and effect sizes ;; 4. Generate diagnostic plots for the experiments",
+      "code": "library(CFAssay)\ndatatab <- read.table(system.file(\"doc\", \"exp2_2waycfa.txt\", package=\"CFAssay\"),\n                      header=TRUE, sep=\"\\t\")\nnames(datatab)\nhead(datatab, 3)\nfitcomp <- cfa2way(datatab, A=\"siRNA\", B=\"x5fuCis\", param=\"A/B\")\nprint(fitcomp, labels=c(A=\"siRNA\", B=\"x5fuCis\"))\nplotExp(fitcomp, labels=c(A=\"siRNA\", B=\"x5fuCis\"))"
+    }
+  ]
+}

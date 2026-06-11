@@ -1,0 +1,13 @@
+{
+  "package": "iterativebma",
+  "requirements": [
+    "Biobase",
+    "iterativeBMA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "iterativeBMA"
+    ]
+  }
+}

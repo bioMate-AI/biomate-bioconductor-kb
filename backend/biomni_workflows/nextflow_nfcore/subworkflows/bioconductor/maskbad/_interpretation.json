@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <ind=A vector defining the two groups of samples to compare (e.g., species or strains) ;; useExpr=Logical value; if TRUE, filters for expressed genes using mas5calls() (must be set to FALSE for exon/gene arrays which lack MM probes) ;; exprlist=A subset of probe sets to analyze, recommended for exon arrays to reduce computation time ;; cutoff=The quality score threshold below which probes are identified as BAD and masked ;; cdftable=An optional custom list of probes to remove instead of using the expression-based mask ;; wilcox.ks=Logical value; if TRUE, performs Wilcoxon and Kolmogorov-Smirnov tests to compare quality score distributions of BAD and non-BAD probes>\n- alternatives: <None mentioned for BAD detection; standard preprocessing methods like rma() and gcrma() are used downstream after masking is performed>\n- when_to_use: <When analyzing Affymetrix 3' IVT or whole-transcript (exon/gene) microarray data comparing genetically distinct groups (such as different strains, species, tissues, or treatment groups) where sequence differences or isoforms might alter probe binding affinities>\n- pitfalls: <For exon and gene arrays, useExpr must be set to FALSE because they do not contain MM probes and mas5calls() is not applicable. If a probe is shared across multiple probe sets and is flagged as BAD in one, prepareMaskedAffybatch() will remove it from all probe sets. The newly generated CDF environment must be explicitly assigned in the workspace with a name matching the cdfName slot of the masked AffyBatch before running downstream expression estimation functions like rma() or gcrma().>",
+  "workflows": [
+    {
+      "name": "standard_masking_and_rma",
+      "intent": "Identify BAD probes in standard Affymetrix 3' IVT arrays, evaluate cutoffs, generate a masked AffyBatch, and estimate expression values using RMA.",
+      "input": [
+        "raw_array_data.affybatch (An AffyBatch object containing raw microarray intensities)",
+        "external_sequence_mask.rda (Optional data frame containing probe coordinates and known SNP/match status)"
+      ],
+      "stages": "1. Run mask() to calculate probe quality scores based on correlation differences between groups. ;; 2. Determine a quality score cutoff using quantiles, manual inspection with plotProbe(), or comparison with external sequence data using overlapExprExtMasks(). ;; 3. Generate a masked AffyBatch and custom CDF environment using prepareMaskedAffybatch(). ;; 4. Assign the custom CDF environment to the workspace. ;; 5. Perform background correction, normalization, and expression estimation using rma().",
+      "code": "library(\"maskBAD\")\ndata(AffyBatch, package=\"maskBAD\")\ndata(exmask, package=\"maskBAD\")\nnewAffyBatch\nexmask <- mask(newAffyBatch,ind=rep(1:2,each=10),verbose=FALSE,useExpr=F)\nquantile(exmask[[1]]$quality.score,0.22)\nrownames(exmask[[1]]) <-apply(exmask[[1]][,c(\"x\",\"y\")],1,\n                              function(x)paste(x[1],x[2],sep=\".\"))\nprobesToSee = rownames(exmask[[1]][exmask[[1]]$quality.score<0.03 \n  & exmask[[1]]$quality.score >0.028,])\nplotProbe(affy=newAffyBatch,probeset=as.character(exmask[[1]][ probesToSee[1],\"probeset\"]),\n          probeXY=probesToSee[1],scan=TRUE,ind=rep(1:2,each=10),\n          exmask=exmask$probes,names=FALSE)\nrownames(sequenceMask) <- paste(sequenceMask$x,sequenceMask$y,sep=\"_\")\nrownames(exmask$probes)<- paste(exmask$probes$x,exmask$probes$y,sep=\"_\") \ncutoff=0.029\ntable((exmask$probes[rownames(sequenceMask),\"quality.score\"]>cutoff)+0,\n      sequenceMask$match) \noverlapExSeq <- overlapExprExtMasks(exmask$probes[,1:3],\n                                    sequenceMask[,c(1,2,4)],verbose=FALSE,\n                                    cutoffs=quantile(exmask$probes[,3],seq(0,1,0.05)))\noverlapTests <- overlapExprExtMasks(exmask$probes[,1:3],verbose=FALSE,\n                                    sequenceMask[,c(1,2,4)],\n                                    wilcox.ks=T,sample=100)\nhist(exmask[[1]]$quality.score,breaks=100,xlab=\"mask quality score\",main=\"\") \naffyBatchAfterMasking <-\n  prepareMaskedAffybatch(affy=newAffyBatch,exmask=exmask$probes,\n                         cutoff=quantile(exmask[[1]]$quality.score,0.22))\nnew_cdf=affyBatchAfterMasking[[2]]\nhead(exprs(rma(affyBatchAfterMasking[[1]])))"
+    },
+    {
+      "name": "gcrma_masking",
+      "intent": "Mask probe affinities and estimate expression values using GCRMA.",
+      "input": [
+        "raw_array_data.affybatch (An AffyBatch object containing raw microarray intensities)",
+        "exmask_probes.rda (The probes data frame from the mask() output containing quality scores)"
+      ],
+      "stages": "1. Compute standard probe affinities using compute.affinities(). ;; 2. Mask the probe affinities object using prepareMaskedAffybatch() with a specified cdfName. ;; 3. Estimate expression values using gcrma() with the masked AffyBatch and the masked probe affinities.",
+      "code": "library(gcrma)\nlibrary(hgu95av2probe)\naffy.affinities=compute.affinities(\"hgu95av2\",verbose=FALSE)\naffy.affinities.m=prepareMaskedAffybatch(affy=affy.affinities,\n  exmask=exmask$probes,cdfName=\"MaskedAffinitesCdf\")\nhead(exprs(gcrma(affyBatchAfterMasking[[1]],affy.affinities.m)))"
+    }
+  ]
+}

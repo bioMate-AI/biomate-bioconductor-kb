@@ -1,0 +1,17 @@
+{
+  "package": "vplotr",
+  "requirements": [
+    "GenomicRanges",
+    "VplotR",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "VplotR",
+      "ggplot2",
+      "rtracklayer"
+    ]
+  }
+}

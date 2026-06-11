@@ -1,0 +1,26 @@
+{
+  "package": "bionet",
+  "requirements": [
+    "BioNet",
+    "Biobase",
+    "graph",
+    "limma",
+    "package"
+  ],
+  "by_workflow": {
+    "consensus_module_detection.nf": [
+      "BioNet",
+      "Biobase"
+    ],
+    "exact_module_detection.nf": [
+      "BioNet",
+      "Biobase",
+      "limma",
+      "package"
+    ],
+    "main.nf": [
+      "BioNet",
+      "graph"
+    ]
+  }
+}

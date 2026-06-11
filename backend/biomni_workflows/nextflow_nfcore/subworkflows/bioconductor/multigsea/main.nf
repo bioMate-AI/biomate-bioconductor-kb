@@ -1,122 +1,186 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: multiGSEA
-// Extracted features from pathways derived from 8 different databases (KEGG, Reactome, Biocarta, etc.)
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/multiGSEA/inst/doc/multiGSEA.R
-// Upstream  : dplyr, magrittr, msigdbr
-// Downstream: none
-//
-// Install: BiocManager::install("multiGSEA")
+// Bioconductor workflow: multiGSEA — multi_omics_gsea_enrichment
+// Run a multi-omics GSEA-based pathway enrichment analysis across transcriptome, proteome, and metabolome layers and aggregate the p-values.
+// Input: transcriptome, proteome, metabolome
+// Container: quay.io/biocontainers/bioconductor-multigsea:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: magrittr, multiGSEA, org.Hs.eg.db
+// Visualizations: bar plot, enrichment plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize the multi-omics data structure using initOmicsDataStructure
+//  * 2. [Core Analysis] Rank features for each omics layer using rankFeatures and assign feature names
+//  * 3. [Input & Preparation] Download and map pathway definitions using getMultiOmicsFeatures
+//  * 4. [Core Analysis] Calculate enrichment scores for all layers using multiGSEA
+//  * 5. [Core Analysis] Extract p-values using extractPvalues and aggregate them using combinePvalues
+//  * 6. [Core Analysis] Adjust combined p-values using p.adjust
 
 nextflow.enable.dsl = 2
 
-process BIOC_MULTIGSEA {
+process BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-multigsea"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-multigsea:1.16.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-multigsea:1.16.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_multigsea_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_multigsea_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_multigsea_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    
+    # Load required libraries
+    library(org.Hs.eg.db)
     library(multiGSEA)
-    library(jsonlite)
-
-    # --- Pathway Feature Retrieval [] ---
-    # Key functions: getMultiOmicsFeatures
+    library(magrittr)
+    
+    # Helper function to read input files from the working directory
+    read_input_file <- function(base_name) {
+      csv_file <- paste0(base_name, ".csv")
+      tsv_file <- paste0(base_name, ".tsv")
+      if (file.exists(csv_file)) {
+        return(read.csv(csv_file, stringsAsFactors = FALSE))
+      } else if (file.exists(tsv_file)) {
+        return(read.delim(tsv_file, stringsAsFactors = FALSE))
+      } else {
+        stop(paste("Error: Could not find", csv_file, "or", tsv_file, "in the working directory."))
+      }
+    }
+    
+    # Read user input files
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    transcriptome <- read_input_file("transcriptome")
+    proteome <- read_input_file("proteome")
+    metabolome <- read_input_file("metabolome")
+    
+    # 1. Initialize the multi-omics data structure
+    omics_data <- initOmicsDataStructure(layer = c(
+      "transcriptome",
+      "proteome",
+      "metabolome"
+    ))
+    
+    # 2. Rank features for each omics layer and assign feature names
+    omics_data\$transcriptome <- rankFeatures(
+      transcriptome\$logFC,
+      transcriptome\$pValue
+    )
+    names(omics_data\$transcriptome) <- transcriptome\$Symbol
+    
+    omics_data\$proteome <- rankFeatures(proteome\$logFC, proteome\$pValue)
+    names(omics_data\$proteome) <- proteome\$Symbol
+    
+    omics_data\$metabolome <- rankFeatures(metabolome\$logFC, metabolome\$pValue)
+    names(omics_data\$metabolome) <- metabolome\$HMDB
+    names(omics_data\$metabolome) <- gsub(
+      "HMDB", "HMDB00",
+      names(omics_data\$metabolome)
+    )
+    
+    # 3. Download and map pathway definitions
     databases <- c("kegg", "reactome")
-    layers <- c("transcriptome", "proteome", "metabolome")
+    layers <- names(omics_data)
+    
     pathways <- getMultiOmicsFeatures(
-        dbs = databases,
-        layer = layers,
-        returnTranscriptome = "SYMBOL",
-        returnProteome = "SYMBOL",
-        returnMetabolome = "HMDB",
-        useLocal = FALSE
+      dbs = databases, layer = layers,
+      returnTranscriptome = "SYMBOL",
+      returnProteome = "SYMBOL",
+      returnMetabolome = "HMDB",
+      useLocal = FALSE
     )
-
-
-    # --- Multi-Omics Enrichment Analysis [] ---
-    # Key functions: multiGSEA
-    enrichment_scores <- multiGSEA(
-        pathways = pathways,
-        omicsData = omics_data
-    )
-
-
-    # --- P-value Extraction and Combination [] ---
-    # Key functions: extractPvalues, combinePvalues
+    
+    # 4. Calculate enrichment scores for all layers
+    enrichment_scores <- multiGSEA(pathways, omics_data)
+    
+    # 5. Extract p-values and aggregate them
     df <- extractPvalues(
-        enrichmentScores = enrichment_scores,
-        pathwayNames = names(pathways[[1]])
+      enrichmentScores = enrichment_scores,
+      pathwayNames = names(pathways[[1]])
     )
-    df$combined_pval <- combinePvalues(df)
-    df$combined_padj <- p.adjust(
-        df$combined_pval,
-        method = "BH"
-    )
-    results <- cbind(
-        data.frame(pathway = names(pathways[[1]])),
-        df
-    )
+    
+    df\$combined_pval <- combinePvalues(df)
+    
+    # 6. Adjust combined p-values
+    df\$combined_padj <- p.adjust(df\$combined_pval, method = "BH")
+    
+    df <- cbind(data.frame(pathway = names(pathways[[1]])), df)
+    
+    # Write output files
+    write.csv(df, "multiGSEA_enrichment_results.csv", row.names = FALSE)
+    saveRDS(enrichment_scores, "enrichment_scores.rds")
+    saveRDS(pathways, "pathways.rds")
+    
+    # Generate a PDF plot of the top 15 pathways based on combined adjusted p-value
+    tryCatch({
+      pdf("top_pathways_enrichment.pdf", width = 10, height = 8)
+      plot_df <- df[order(df\$combined_padj, na.last = TRUE), ]
+      plot_df <- head(plot_df, 15)
+      
+      if (nrow(plot_df) > 0) {
+        pvals <- plot_df\$combined_padj
+        pvals[pvals == 0] <- min(pvals[pvals > 0], 1e-10) / 10
+        y_vals <- -log10(pvals)
+        
+        par(mar = c(5, 20, 4, 2))
+        barplot(rev(y_vals), 
+                names.arg = rev(plot_df\$pathway), 
+                horiz = TRUE, 
+                las = 1, 
+                col = "skyblue",
+                xlab = "-log10(Combined Adjusted P-value)",
+                main = "Top 15 Enriched Pathways (multiGSEA)")
+        abline(v = -log10(0.05), col = "red", lty = 2)
+      }
+      dev.off()
+    }, error = function(e) {
+      message("Could not generate PDF plot: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_multigsea_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_multigsea_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_multigsea_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MULTIGSEA:", paste0("    multigsea: ", packageVersion("multiGSEA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT":',
+        paste0('    multiGSEA: ', as.character(packageVersion('multiGSEA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_multigsea_results.csv
-    touch ${prefix}_multigsea_output.rds
-    echo "BIOC_MULTIGSEA:" > versions.yml
-    echo "    multigsea: 0.0.0" >> versions.yml
+    touch ${prefix}_multi_omics_gsea_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_MULTIGSEA_WORKFLOW {
+workflow BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ transcriptome, proteome, metabolome ] ]
 
     main:
-    BIOC_MULTIGSEA(ch_input)
+    BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_MULTIGSEA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MULTIGSEA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MULTIGSEA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MULTIGSEA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT.out.tables
+    plots    = BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT.out.plots
+    objects  = BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT.out.objects
+    versions = BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT.out.versions
 }

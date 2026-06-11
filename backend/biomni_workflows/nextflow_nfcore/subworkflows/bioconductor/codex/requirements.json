@@ -1,0 +1,14 @@
+{
+  "package": "codex",
+  "requirements": [
+    "CODEX"
+  ],
+  "by_workflow": {
+    "case_control_wes_cnv_calling.nf": [
+      "CODEX"
+    ],
+    "main.nf": [
+      "CODEX"
+    ]
+  }
+}

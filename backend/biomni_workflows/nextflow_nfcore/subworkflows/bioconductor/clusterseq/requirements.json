@@ -1,0 +1,16 @@
+{
+  "package": "clusterseq",
+  "requirements": [
+    "baySeq",
+    "clusterSeq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "clusterSeq"
+    ],
+    "posterior_likelihood_clustering.nf": [
+      "baySeq",
+      "clusterSeq"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "uniprot_ws",
+  "requirements": [
+    "UniProt.ws",
+    "uniprot_ws"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "UniProt.ws",
+      "uniprot_ws"
+    ]
+  }
+}

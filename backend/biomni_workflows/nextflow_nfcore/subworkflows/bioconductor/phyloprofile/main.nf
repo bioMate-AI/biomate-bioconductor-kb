@@ -1,169 +1,161 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PhyloProfile
-// PhyloProfile is a tool for exploring complex phylogenetic profiles. Phylogenetic profiles, presence/
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PhyloProfile/inst/doc/PhyloProfile-vignette.R
-// Upstream  : dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("PhyloProfile")
+// Bioconductor workflow: phyloprofile — profile_processing_and_visualization
+// Process raw orthology input data, generate a phylogenetic profile, and visualize it as a heatmap.
+// Input: rawInput.txt
+// Container: quay.io/biocontainers/bioconductor-phyloprofile:2.2.2--r45hdfd78af_0
+// R packages: dplyr, ggplot2, PhyloProfile
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PHYLOPROFILE {
+process BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-phyloprofile"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-phyloprofile:1.20.4--r44_0' :
-        'quay.io/biocontainers/bioconductor-phyloprofile:1.20.4--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-phyloprofile:2.2.2--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_phyloprofile_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_phyloprofile_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_phyloprofile_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PhyloProfile)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dplyr", "ggplot2", "PhyloProfile")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Phylogenetic Profile Construction [fromInputToProfile] ---
-    # Key functions: fromInputToProfile
-    rawInput <- system.file(
-        "extdata", "test.main.long", package = "PhyloProfile", mustWork = TRUE
-    )
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(PhyloProfile)
+    library(ggplot2)
+    
+    # Define input file path
+    rawInput <- "rawInput.txt"
+    
+    # Define parameters for profile processing
+    rankName <- "class"
+    refTaxon <- "Mammalia"
+    taxaTree <- NULL
+    sortedTaxonList <- NULL
+    var1AggregateBy <- "max"
+    var2AggregateBy <- "mean"
+    percentCutoff <- c(0.0, 1.0)
+    coorthologCutoffMax <- 10
+    var1Cutoff <- c(0.75, 1.0)
+    var2Cutoff <- c(0.5, 1.0)
+    var1Relation <- "protein"
+    var2Relation <- "species"
+    groupByCat <- FALSE
+    catDt <- NULL
+    
+    # Process the raw input file into a phylogenetic profile
     profileData <- fromInputToProfile(
         rawInput,
-        rankName = "class",
-        refTaxon = "Mammalia",
-        taxaTree = NULL,
-        sortedTaxonList = NULL,
-        var1AggregateBy = "max",
-        var2AggregateBy = "mean",
-        percentCutoff = c(0.0, 1.0),
-        coorthologCutoffMax = 10,
-        var1Cutoff = c(0.75, 1.0),
-        var2Cutoff = c(0.5, 1.0),
-        var1Relation = "protein",
-        var2Relation = "species",
-        groupByCat = FALSE,
-        catDt = NULL
+        rankName,
+        refTaxon,
+        taxaTree,
+        sortedTaxonList,
+        var1AggregateBy,
+        var2AggregateBy,
+        percentCutoff,
+        coorthologCutoffMax,
+        var1Cutoff,
+        var2Cutoff,
+        var1Relation,
+        var2Relation,
+        groupByCat,
+        catDt
     )
+    
+    # Save the processed profile data
+    write.csv(profileData, "processed_profile.csv", row.names = FALSE)
+    saveRDS(profileData, "processed_profile.rds")
+    
+    # Prepare data for plotting using the processed profile
+    plotDf <- dataMainPlot(profileData)
+    
+    # Define plot parameters
+    plotParameter <- list(
+        "xAxis" = "taxa",
+        "var1ID" = "FAS_FW",
+        "var2ID"  = "FAS_BW",
+        "midVar1" = 0.5,
+        "midColorVar1" =  "#FFFFFF",
+        "lowColorVar1" =  "#FF8C00",
+        "highColorVar1" = "#4682B4",
+        "midVar2" = 1,
+        "midColorVar2" =  "#FFFFFF",
+        "lowColorVar2" = "#CB4C4E",
+        "highColorVar2" = "#3E436F",
+        "paraColor" = "#07D000",
+        "xSize" = 8,
+        "ySize" = 8,
+        "legendSize" = 8,
+        "mainLegend" = "top",
+        "dotZoom" = 0,
+        "xAngle" = 60,
+        "guideline" = 0,
+        "colorByGroup" = FALSE,
+        "colorByOrthoID" = FALSE
+    )
+    
+    # Generate the phylogenetic profile heatmap
+    p <- heatmapPlotting(plotDf, plotParameter)
+    
+    # Save the generated plot
+    ggsave("phyloprofile_heatmap.pdf", plot = p, width = 12, height = 10)
+    saveRDS(p, "phyloprofile_plot.rds")
 
-    # --- Profile Clustering [getDataClustering, getDistanceMatrix, clusterDataDend, getDendrogram] ---
-    # Key functions: getDataClustering, getDistanceMatrix, clusterDataDend, getDendrogram
-    data("finalProcessedProfile", package = "PhyloProfile")
-    profiles <- getDataClustering(
-        finalProcessedProfile, "binary", "max", "mean"
-    )
-    distanceMatrix <- getDistanceMatrix(profiles, "mutualInformation")
-    dd <- clusterDataDend(distanceMatrix, "complete")
-    dendrogramPlot <- getDendrogram(dd)
-
-    # --- Gene Age Estimation [sortInputTaxa, estimateGeneAge] ---
-    # Key functions: sortInputTaxa, estimateGeneAge
-    data("fullProcessedProfile", package = "PhyloProfile")
-    taxonIDs <- levels(as.factor(fullProcessedProfile$ncbiID))
-    sortedInputTaxa <- sortInputTaxa(
-        taxonIDs, "class", "Mammalia", NULL, NULL, NULL
-    )
-    taxaCount <- as.data.frame(table(sortedInputTaxa$supertaxon))
-    colnames(taxaCount) <- c("supertaxon", "n")
-    geneAge <- estimateGeneAge(
-        fullProcessedProfile, taxaCount, "class", "Mammalia",
-        c(0, 1), c(0, 1), c(0, 1)
-    )
-
-    # --- Core Gene Identification [sortInputTaxa, getCoreGene] ---
-    # Key functions: sortInputTaxa, getCoreGene
-    data("fullProcessedProfile", package = "PhyloProfile")
-    taxonIDs <- levels(as.factor(fullProcessedProfile$ncbiID))
-    sortedInputTaxa <- sortInputTaxa(
-        taxonIDs, "class", "Mammalia", NULL, NULL, NULL
-    )
-    taxaCount <- as.data.frame(table(sortedInputTaxa$supertaxon))
-    colnames(taxaCount) <- c("supertaxon", "n")
-    coreGenes <- getCoreGene(
-        "class",
-        c("Mammalia", "Saccharomycetes", "Insecta"),
-        fullProcessedProfile,
-        taxaCount,
-        c(0.75, 1.0), c(0.75, 1.0),
-        c(0.0, 1.0), 1
-    )
-
-    # --- Taxon Group Comparison [compareTaxonGroups] ---
-    # Key functions: compareTaxonGroups
-    data("mainLongRaw", package = "PhyloProfile")
-    inGroup <- c("ncbi9606", "ncbi10116")
-    variable <- colnames(mainLongRaw)[4]
-    comparison <- compareTaxonGroups(
-        mainLongRaw, inGroup, TRUE, variable, 0.05
-    )
-
-    # --- Variable Distribution Analysis [createVariableDistributionData, createVarDistPlot] ---
-    # Key functions: createVariableDistributionData, createVarDistPlot
-    data("mainLongRaw", package = "PhyloProfile")
-    distData <- createVariableDistributionData(
-        mainLongRaw, c(0, 1), c(0.5, 1)
-    )
-    distPlot <- createVarDistPlot(
-        distData, "Variable 1", "var1", c(0, 1), 12
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_phyloprofile_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_phyloprofile_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_phyloprofile_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PHYLOPROFILE:", paste0("    phyloprofile: ", packageVersion("PhyloProfile"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION":',
+        paste0('        phyloprofile: ', as.character(packageVersion("phyloprofile")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_phyloprofile_results.csv
-    touch ${prefix}_phyloprofile_output.rds
-    echo "BIOC_PHYLOPROFILE:" > versions.yml
-    echo "    phyloprofile: 0.0.0" >> versions.yml
+    touch ${prefix}_profile_processing_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_PHYLOPROFILE_WORKFLOW {
+workflow BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rawInput.txt ] ]
 
     main:
-    BIOC_PHYLOPROFILE(ch_input)
+    BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_PHYLOPROFILE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PHYLOPROFILE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PHYLOPROFILE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PHYLOPROFILE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION.out.tables
+    plots    = BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION.out.plots
+    objects  = BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION.out.objects
+    versions = BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION.out.versions
 }

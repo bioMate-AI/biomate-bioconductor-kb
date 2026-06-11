@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: smoothing=In DMLtest, a logical indicating whether to smooth methylation levels. Recommended for WGBS and RRBS to combine information from nearby CpG sites (default span is 500 bp) ;; delta=In callDML and callDMR, a threshold for the minimum difference in methylation levels. If specified, the function computes the posterior probability that the difference is greater than delta. Not supported for multifactor designs ;; p.threshold=In callDML and callDMR, the significance threshold. When delta is specified, this refers to the threshold for 1-posterior probability (local FDR) ;; ncores=In DMLtest, the number of cores to use for parallel computing. Windows users should set ncores=1 because Windows does not support the required forking ;; coef=In DMLtest.multiFactor, the index or character name of the coefficient to be tested. If a character, it must match the column name of the design matrix exactly ;; term=In DMLtest.multiFactor, a character specifying a term in the model to test (useful for multi-level factors) ;; Contrast=In DMLtest.multiFactor, a contrast matrix for testing linear combinations of parameters\n- alternatives: edgeR=Mentioned as a package to perform downstream GLM fitting and hypothesis testing for RNA-seq multifactor designs using DSS-estimated dispersions ;; RADMeth=Mentioned as an alternative for BS-seq general design, but noted to be at least 10 times slower than DSS ;; BiSeq=Mentioned as an alternative for BS-seq general design, also noted to be at least 10 times slower than DSS ;; bsseq=The package DSS depends on for BS-seq data structures (BSseq class) and basic plotting functions\n- when_to_use: Use for RNA-seq differential expression analysis (two-group or multi-factor) when biological replicates are limited and dispersion shrinkage is needed. Use for BS-seq (WGBS or RRBS) differential methylation analysis (DML/DMR detection) under two-group, paired, or general multi-factor experimental designs, even when biological replicates are completely missing (by leveraging smoothing as pseudo-replicates).\n- pitfalls: Do not filter out CpG sites with low or no coverage before analysis, as DSS statistically accounts for coverage depth ;; Do not use estimated methylation levels (beta values) as input; DSS strictly requires raw count data (total reads and methylated reads) to preserve sequencing depth information ;; Do not specify delta in callDML or callDMR when analyzing multifactor designs, as regression coefficients in GLM do not represent simple methylation differences ;; When specifying coef as a character in DMLtest.multiFactor, ensure it matches the column name of the design matrix exactly (e.g., \"SexM\" instead of \"Sex\") ;; Parallel computing via ncores > 1 in DMLtest will fail or have issues on Windows due to the reliance on mcapply and forking",
+  "workflows": [
+    {
+      "name": "rnaseq_twogroup_de",
+      "intent": "Perform differential expression analysis on RNA-seq count data for a simple two-group comparison.",
+      "input": [
+        "counts.txt (a matrix of integer counts where rows are genes and columns are samples)",
+        "designs.txt (a vector of 0s and 1s representing the experimental group for each sample)"
+      ],
+      "stages": "1. Create a SeqCountSet object using newSeqCountSet ;; 2. Estimate normalization factors using estNormFactors ;; 3. Estimate and shrink gene-wise dispersions using estDispersion ;; 4. Perform two-group comparison Wald test using waldTest (or perform the entire workflow in one step using the high-level wrapper DSS.DE)",
+      "code": "## Step-by-step approach\nseqData = newSeqCountSet(X, designs)\nseqData = estNormFactors(seqData)\nseqData = estDispersion(seqData)\nresult=waldTest(seqData, 0, 1)\n\n## High-level wrapper approach\nresult = DSS.DE(counts, designs)"
+    },
+    {
+      "name": "rnaseq_multifactor_de",
+      "intent": "Perform differential expression analysis for a multi-factor RNA-seq experiment by estimating dispersions in DSS and testing in edgeR.",
+      "input": [
+        "counts.txt (a matrix of integer counts where rows are genes and columns are samples)",
+        "design_df.txt (a data frame containing experimental design covariates for each sample)"
+      ],
+      "stages": "1. Create design matrix using model.matrix ;; 2. Create SeqCountSet object using newSeqCountSet ;; 3. Estimate normalization factors using estNormFactors ;; 4. Estimate and shrink gene-wise dispersions using estDispersion ;; 5. Fit generalized linear model in edgeR using glmFit, plugging in DSS-estimated dispersions ;; 6. Perform hypothesis testing in edgeR using glmLRT",
+      "code": "X = model.matrix(~gender+strain, data=design)\nseqData = newSeqCountSet(counts, as.data.frame(X))\nseqData = estNormFactors(seqData)\nseqData = estDispersion(seqData)\nfit.edgeR = glmFit(counts, X, dispersion=dispersion(seqData))\nlrt.edgeR = glmLRT(glmfit=fit.edgeR, coef=2)"
+    },
+    {
+      "name": "bsseq_twogroup_dml_dmr",
+      "intent": "Detect differentially methylated loci (DML) and differentially methylated regions (DMR) from BS-seq data in a two-group comparison.",
+      "input": [
+        "sample_files.txt (multiple text files, one per sample, containing columns: chr, pos, N [total reads], and X [methylated reads])"
+      ],
+      "stages": "1. Load text files and create a BSseq object using makeBSseqData ;; 2. Perform statistical test for DML using DMLtest (with optional smoothing) ;; 3. Call DMLs using callDML (with optional delta threshold) ;; 4. Call DMRs using callDMR (with optional delta threshold) ;; 5. Visualize a selected DMR using showOneDMR",
+      "code": "BSobj = makeBSseqData( list(dat1.1, dat1.2, dat2.1, dat2.2),\n     c(\"C1\",\"C2\", \"N1\", \"N2\") )[1:1000,]\ndmlTest = DMLtest(BSobj, group1=c(\"C1\", \"C2\"), group2=c(\"N1\", \"N2\"))\ndmlTest.sm = DMLtest(BSobj, group1=c(\"C1\", \"C2\"), group2=c(\"N1\", \"N2\"),\n                     smoothing=TRUE)\ndmls = callDML(dmlTest, p.threshold=0.001)\ndmls2 = callDML(dmlTest, delta=0.1, p.threshold=0.001)\ndmrs = callDMR(dmlTest, p.threshold=0.01)\ndmrs2 = callDMR(dmlTest, delta=0.1, p.threshold=0.05)\nshowOneDMR(dmrs[1,], BSobj)"
+    },
+    {
+      "name": "bsseq_multifactor_dml_dmr",
+      "intent": "Detect DML and DMR from BS-seq data under a general multi-factor or paired experimental design.",
+      "input": [
+        "BSobj.RData (a BSseq object containing methylation data for all samples)",
+        "design_df.txt (a data frame containing experimental design covariates/factors for each sample)"
+      ],
+      "stages": "1. Fit a beta-binomial linear model using DMLfit.multiFactor ;; 2. Test specific coefficients, terms, or contrasts using DMLtest.multiFactor ;; 3. Call DMRs from the multi-factor test results using callDMR",
+      "code": "## General Multifactor Design\nDMLfit = DMLfit.multiFactor(RRBS, design=design, formula=~case+cell+case:cell)\nDMLtest.cell = DMLtest.multiFactor(DMLfit, coef=3)\nDMLtest.cell = DMLtest.multiFactor(DMLfit, coef=\"cellrN\")\ncallDMR(DMLtest.cell, p.threshold=0.05)\n\n## Alternative Hypothesis Testing (Terms and Contrasts)\nDMLfit = DMLfit.multiFactor(RRBS, design, ~case+cell)\ntest1 = DMLtest.multiFactor(DMLfit, coef=2)\ntest2 = DMLtest.multiFactor(DMLfit, coef=\"caseSLE\")\ntest3 = DMLtest.multiFactor(DMLfit, term=\"case\")\nContrast = matrix(c(0,1,0), ncol=1)\ntest4 = DMLtest.multiFactor(DMLfit, Contrast=Contrast)\n\n## Paired Design\nDMLfit = DMLfit.multiFactor(BSobj, design, formula = ~ Treatment + pair)\ndmlTest = DMLtest.multiFactor(DMLfit, term=\"Treatment\")"
+    }
+  ]
+}

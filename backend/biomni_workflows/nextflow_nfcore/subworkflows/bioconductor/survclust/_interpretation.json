@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: kk=The number of clusters to evaluate ;; pick_k=The chosen optimal number of clusters for final voting ;; this.fold=The number of folds for cross-validation (typically 3) ;; type=The data type specification (e.g., \"mut\" for mutation data alone) ;; cvr=The number of cross-validation rounds to summarize\n- alternatives: iClusterPlus (specifically the CNregions function) is recommended for pre-processing and reducing copy number data before running survClust.\n- when_to_use: Use when you have one or more high-dimensional molecular data types (e.g., somatic mutations, copy number alterations, gene expression) and corresponding survival/clinical outcome data (time and event status) for the same set of samples, and you want to identify molecular subtypes that are clinically distinct.\n- pitfalls: Running the individual commands (getDist, combineDist, and survClust) without cross-validation (cv_survclust) will lead to severe over-fitting. Running too few cross-validation rounds (e.g., 10 rounds) can cause high variability; at least 50 rounds of cross-validation are recommended for stable results. Input data must be carefully pre-processed (e.g., filtering out silent mutations, low-variance features, and features with >20% missing values) to avoid noise.",
+  "workflows": [
+    {
+      "name": "integrative_multi_omic_clustering",
+      "intent": "Perform supervised integrative clustering on multiple genomic data types (e.g., mutation and copy number) weighted by survival outcome.",
+      "input": [
+        "uvm_dat (a list of matrices/data frames representing different molecular data types, where rows are samples and columns are features)",
+        "uvm_survdat (a matrix or data frame with survival time and event status, where rownames match the sample names in uvm_dat)"
+      ],
+      "stages": "1. Define a helper function to run cv_survclust across multiple rounds for a given k.\n2. Execute cross-validation across a range of cluster numbers (k = 2 to 7) using parallel processing (bplapply).\n3. Summarize cross-validation performance metrics (logrank, SPWSS, and small cluster sizes) using getStats.\n4. Plot the summarized metrics using plotStats to identify the optimal k (looking for logrank peaks, SPWSS elbows, and minimal small clusters).\n5. Compute the weighted distance matrix using getDist.\n6. Consolidate cluster assignments across cross-validation rounds using cv_voting with the chosen optimal k.\n7. Perform survival analysis (Kaplan-Meier plot) on the resulting cluster labels.",
+      "code": "cv_rounds = 10\n\n#function to do cross validation \nuvm_all_cvrounds<-function(kk){\n    this.fold<-3\n    fit<-list()\n    for (i in seq_len(cv_rounds)){\n        fit[[i]] <- cv_survclust(uvm_dat,uvm_survdat,kk,this.fold)\n        print(paste0(\"finished \", i, \" rounds for k= \", kk))\n    }\n    return(fit)\n}\n\ncv.fit<-bplapply(2:7, uvm_all_cvrounds)\n\nss_stats <- getStats(uvm_survClust_cv.fit, kk=7, cvr=10)\nplotStats(ss_stats, 2:7)\n\nk4 <- cv_voting(uvm_survClust_cv.fit, getDist(uvm_dat, uvm_survdat), pick_k=4)\ntable(k4)\n\nplot(survfit(Surv(uvm_survdat[,1], uvm_survdat[,2])~k4), mark.time=TRUE, col=1:4)"
+    },
+    {
+      "name": "single_omic_clustering",
+      "intent": "Perform supervised clustering on a single genomic data type (e.g., mutation data alone) weighted by survival outcome.",
+      "input": [
+        "uvm_mut_dat (a list containing a single molecular data matrix, such as a binary mutation matrix)",
+        "uvm_survdat (a matrix or data frame with survival time and event status, where rownames match the sample names in uvm_mut_dat)"
+      ],
+      "stages": "1. Define a helper function to run cv_survclust with the type parameter set to \"mut\" across multiple rounds for a given k.\n2. Execute cross-validation across a range of cluster numbers (k = 2 to 7) using parallel processing (bplapply).\n3. Summarize cross-validation performance metrics using getStats.\n4. Plot the summarized metrics using plotStats to identify the optimal k.\n5. Compute the single-platform weighted distance matrix using getDist.\n6. Consolidate cluster assignments across cross-validation rounds using cv_voting with the chosen optimal k.\n7. Perform survival analysis (Kaplan-Meier plot) on the resulting cluster labels.",
+      "code": "cvrounds_mut_demo <- function(kk){\n    this.fold<-3\n    fit<-list()\n    for (i in seq_len(cv_rounds)){\n        fit[[i]] <- cv_survclust(uvm_mut_dat, uvm_survdat,kk,this.fold, type=\"mut\")\n        print(paste0(\"finished \", i, \" rounds for k= \", kk))\n    }\n    return(fit)\n}\n\nuvm_mut_dat <- list()\nuvm_mut_dat[[1]] <- uvm_dat[[1]]\n\nuvm_mut_cv.fit<-bplapply(2:7, cvrounds_mut)\n\nss_stats <- getStats(uvm_mut_cv.fit, kk=7, cvr=10)\nplotStats(ss_stats, 2:7)\n\nk4 <- cv_voting(uvm_mut_cv.fit, getDist(uvm_mut_dat, uvm_survdat), pick_k=4)\nplot(survfit(Surv(uvm_survdat[,1], uvm_survdat[,2]) ~ k4), mark.time=TRUE, col=2:5)"
+    }
+  ]
+}

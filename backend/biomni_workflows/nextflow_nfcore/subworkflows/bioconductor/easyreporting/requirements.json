@@ -1,0 +1,11 @@
+{
+  "package": "easyreporting",
+  "requirements": [
+    "easyreporting"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "easyreporting"
+    ]
+  }
+}

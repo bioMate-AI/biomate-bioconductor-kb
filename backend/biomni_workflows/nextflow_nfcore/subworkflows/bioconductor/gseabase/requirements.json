@@ -1,0 +1,11 @@
+{
+  "package": "gseabase",
+  "requirements": [
+    "GSEABase"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "package": "benchdamic",
+  "requirements": [
+    "BiocParallel",
+    "benchdamic",
+    "ggplot2",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "concordance_analysis.nf": [
+      "BiocParallel",
+      "benchdamic",
+      "ggplot2",
+      "phyloseq"
+    ],
+    "enrichment_analysis.nf": [
+      "benchdamic",
+      "ggplot2",
+      "phyloseq"
+    ],
+    "main.nf": [
+      "benchdamic",
+      "phyloseq"
+    ],
+    "type_i_error_control.nf": [
+      "BiocParallel",
+      "benchdamic",
+      "ggplot2",
+      "phyloseq"
+    ]
+  }
+}

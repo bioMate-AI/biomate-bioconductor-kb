@@ -1,0 +1,19 @@
+{
+  "package": "biotmle",
+  "requirements": [
+    "BiocParallel",
+    "SummarizedExperiment",
+    "SuperLearner",
+    "biotmle",
+    "dplyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "SummarizedExperiment",
+      "SuperLearner",
+      "biotmle",
+      "dplyr"
+    ]
+  }
+}

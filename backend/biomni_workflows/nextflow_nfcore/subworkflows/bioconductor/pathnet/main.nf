@@ -1,111 +1,111 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PathNet
-// PathNet uses topological information present in pathways and differential expression levels of genes
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PathNet/inst/doc/PathNet.R
-// Upstream  : PathNetData
-// Downstream: none
-//
-// Install: BiocManager::install("PathNet")
+// Bioconductor workflow: PathNet — pathway_enrichment_analysis
+// Identify significantly enriched pathways by combining direct gene expression evidence with pathway topological neighbor information.
+// Input: brain_regions_data.txt, adjacency_data.txt, pathway_data.txt
+// Container: quay.io/biocontainers/bioconductor-pathnet:1.50.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: PathNet
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the direct evidence, adjacency matrix, and pathway data
+//  * 2. [Core Analysis] Filter the adjacency matrix to match the gene IDs present in the direct evidence
+//  * 3. [Core Analysis] Run the PathNet function with Enrichment_Analysis set to TRUE
+//  * 4. [Visualization & Output] Retrieve enrichment results and combined evidence from the output list
 
 nextflow.enable.dsl = 2
 
-process BIOC_PATHNET {
+process BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pathnet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pathnet:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pathnet:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pathnet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pathnet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pathnet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PathNet)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load the required library
+        library("PathNet")
+        
+        # Stage 1: Load the direct evidence, adjacency matrix, and pathway data from the working directory
+        brain_regions <- as.matrix(read.table(
+          file = "brain_regions_data.txt", sep = "\t", header = TRUE))
+        
+        A <- as.matrix(read.table(
+          file = "adjacency_data.txt", sep = "\t", header = TRUE))
+        
+        pathway <- read.table(
+          file = "pathway_data.txt", sep = "\t", header = TRUE)
+        
+        # Stage 2: Filter the adjacency matrix to match the gene IDs present in the direct evidence
+        gene_ID <- brain_regions[, 1]
+        A <- A[rownames(A) %in% gene_ID, rownames(A) %in% gene_ID]
+        
+        # Stage 3: Run the PathNet function with Enrichment_Analysis set to TRUE
+        results <- PathNet(Enrichment_Analysis = TRUE, 
+                DirectEvidence_info = brain_regions, 
+                Adjacency = A, 
+                pathway = pathway, 
+                Column_DirectEvidence = ncol(brain_regions),
+                n_perm = 2000, threshold = 0.05) 
+        
+        # Stage 4: Retrieve enrichment results and combined evidence from the output list
+        enrichment_results <- results\$enrichment_results
+        enrichment_combined_evidence <- results\$enrichment_combined_evidence
+        
+        # Write the results to output files
+        write.csv(enrichment_results, file = "enrichment_results.csv", row.names = FALSE)
+        write.csv(enrichment_combined_evidence, file = "enrichment_combined_evidence.csv", row.names = FALSE)
+        saveRDS(results, file = "pathnet_results.rds")
 
-    # --- Custom Background Enrichment [] ---
-    # Key functions: PathNet
-    data(A_matrix, package = "pathnet")
-    data(pathway, package = "pathnet")
-    data(brain_diseases, package = "pathnet")
-    custom_bg <- as.character(brain_diseases$Gene[1:1000])
-    results_custom <- PathNet(
-        enrichment_results = brain_diseases,
-        pathway = pathway,
-        adjacency_matrix = A_matrix,
-        typeofValue = "pvalue",
-        background = custom_bg,
-        enrichment_threshold = 0.01,
-        n_permutations = 50
-    )
-
-
-    # --- Significance Filtering and Ordering [] ---
-    # Key functions: PathNet
-    pathway_results <- results_pvalue$enrichment_results
-    significant_pathways <- pathway_results[
-        pathway_results[, 5] < 0.05, 
-    ]
-    ordered_pathways <- significant_pathways[
-        order(significant_pathways[, 5]), 
-    ]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pathnet_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pathnet_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pathnet_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PATHNET:", paste0("    pathnet: ", packageVersion("PathNet"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS":',
+        paste0('    PathNet: ', as.character(packageVersion('PathNet')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pathnet_results.csv
-    touch ${prefix}_pathnet_output.rds
-    echo "BIOC_PATHNET:" > versions.yml
-    echo "    pathnet: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_enrichment_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_PATHNET_WORKFLOW {
+workflow BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ brain_regions_data.txt, adjacency_data.txt, pathway_data.txt ] ]
 
     main:
-    BIOC_PATHNET(ch_input)
+    BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_PATHNET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PATHNET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PATHNET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PATHNET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS.out.tables
+    plots    = BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS.out.plots
+    objects  = BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS.out.objects
+    versions = BIOC_PATHNET_PATHWAY_ENRICHMENT_ANALYSIS.out.versions
 }

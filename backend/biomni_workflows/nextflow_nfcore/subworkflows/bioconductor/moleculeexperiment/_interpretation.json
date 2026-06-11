@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - keepCols=Specifies which columns to retain from raw files; \"essential\" keeps only feature names, x/y coordinates, and segment IDs, while other options retain vendor-specific metadata. ;;\n    - dfType=Used in `dataframeToMEList()` to specify whether the input data frame represents \"molecules\" or \"boundaries\". ;;\n    - assayName=Specifies the name of the assay slot (e.g., \"detected\" for molecules, \"cell\" or \"nucleus\" for boundaries). ;;\n    - flatten=Logical parameter in `molecules()` and `boundaries()` getters; set to `TRUE` to return a flat, rectangular data frame instead of the default nested list structure. ;;\n    - boundariesAssay=Specifies which boundary assay (e.g., \"cell\", \"nucleus\", \"virtualDissection\") to use for aggregating transcripts in `countMolecules()`.\n- alternatives:\n    - SpatialExperiment=The standard Bioconductor class for cell-level spatial transcriptomics; use `countMolecules()` to transition from `MoleculeExperiment` to `SpatialExperiment` for downstream cell-level analyses.\n- when_to_use:\n    - Use when working with sub-cellular, molecule-resolved spatial transcriptomics data (e.g., from 10X Xenium, Nanostring CosMx, or Vizgen MERSCOPE) and you need to perform molecule-level QC, spatial subsetting, custom boundary alignment, or custom cell-level aggregation.\n- pitfalls:\n    - Calling `molecules()` or `boundaries()` without `flatten = TRUE` will print extremely large nested lists to the R console; use `showMolecules()` and `showBoundaries()` for quick, truncated console previews. ;;\n    - Aligning external segmentation masks (e.g., TIFF files) requires defining the correct spatial extent using `extent()` to ensure the boundaries align properly with the molecule coordinates.",
+  "workflows": [
+    {
+      "name": "import_from_vendor_directories",
+      "intent": "Import raw spatial transcriptomics outputs from instrument directories directly into a standardized MoleculeExperiment object.",
+      "input": [
+        "repoDir (path to a directory containing vendor-specific output files, such as Xenium, CosMx, or Merscope outputs)"
+      ],
+      "stages": "1. Identify the path to the vendor output directory.\n2. Read the data into a MoleculeExperiment object using the platform-specific reader function (`readXenium`, `readCosmx`, or `readMerscope`).",
+      "code": "repoDir <- system.file(\"extdata\", package = \"MoleculeExperiment\")\nrepoDir <- paste0(repoDir, \"/xenium_V1_FF_Mouse_Brain\")\n\nme <- readXenium(repoDir, keepCols = \"essential\", addBoundaries = \"cell\")"
+    },
+    {
+      "name": "build_from_custom_data_frames",
+      "intent": "Construct a MoleculeExperiment object from custom R data frames containing molecule coordinates and segmentation boundaries.",
+      "input": [
+        "moleculesDf (data frame of molecule coordinates)",
+        "boundariesDf (data frame of boundary vertices)"
+      ],
+      "stages": "1. Convert the molecules data frame to a standardized MoleculeExperiment list using `dataframeToMEList`.\n2. Convert the boundaries data frame to a standardized MoleculeExperiment list using `dataframeToMEList`.\n3. Construct the final `MoleculeExperiment` object using the class constructor.",
+      "code": "moleculesMEList <- dataframeToMEList(moleculesDf,\n  dfType = \"molecules\",\n  assayName = \"detected\",\n  sampleCol = \"sample_id\",\n  factorCol = \"features\",\n  xCol = \"x_coords\",\n  yCol = \"y_coords\"\n)\n\nboundariesMEList <- dataframeToMEList(boundariesDf,\n  dfType = \"boundaries\",\n  assayName = \"cell\",\n  sampleCol = \"sample_id\",\n  factorCol = \"cell_id\",\n  xCol = \"vertex_x\",\n  yCol = \"vertex_y\"\n)\n\ntoyME <- MoleculeExperiment(\n  molecules = moleculesMEList,\n  boundaries = boundariesMEList\n)"
+    },
+    {
+      "name": "subset_and_aggregate_to_spatial_experiment",
+      "intent": "Subset a MoleculeExperiment object by spatial coordinates and aggregate molecule counts within boundaries to create a cell-level SpatialExperiment object.",
+      "input": [
+        "meMerscope (an existing MoleculeExperiment object)",
+        "me (an existing MoleculeExperiment object)"
+      ],
+      "stages": "1. Define the spatial coordinates for subsetting.\n2. Subset the MoleculeExperiment object using `subset_by_extent`.\n3. Aggregate the molecule-level transcripts into cell-level counts using `countMolecules` to produce a SpatialExperiment object.",
+      "code": "new_extent = extent(meMerscope, \"detected\") - c(0, 100, 0, 0)\n\nme_sub = subset_by_extent(meMerscope, new_extent)\n\nspe <- countMolecules(me, boundariesAssay = \"nucleus\")"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: limit=Confidence limit (default 0.95) representing the threshold for the probability that separation in a PC is due to batch alone; lower values (e.g., 0.75 or 0.65) are more aggressive but increase the risk of removing biological variance ;; expt=Factor representing the experimental variable (biological signal to preserve) ;; batch=Factor representing the batch variable (technical noise to remove) ;; shiftBy=Parameter in shiftBetas (typically 1e-4) to shift beta values of exactly 0 or 1 before logit transformation to avoid infinite M-values ;; min_cluster_size=Minimum cluster size for discoverClusteredMethylation ;; cores=Number of CPU cores to use in clustering functions\n- alternatives: ComBat (from sva package) adjusts for known batches using an empirical Bayesian framework on a feature-by-feature basis. Prefer ComBat when feature-by-feature mean and variance shrinkage is desired, but prefer Harman when coordinated, principal-component-level adjustments with explicit biological signal constraints are preferred.\n- when_to_use: When correcting high-dimensional datasets (microarray, methylation M-values, mass spectrometry) for known batch effects while strictly preserving declared biological variation. It is especially useful in EWAS to identify and handle \"batch-effect susceptible\" vs \"erroneously corrected\" (genotype/SNP-driven clustered) probes.\n- pitfalls: Do not input Beta-values directly into Harman; always use M-values because Beta is constrained between 0 and 1, and post-correction values may fall outside this range. Normalization methods that yield Beta of exactly 0 or 1 produce infinite M-values, which break SVD; use shiftBetas to shift them slightly (e.g., by 1e-4) before converting to M-values. If the experimental variable is completely confounded with batch, Harman cannot separate biological and technical variance. Harman has reduced power with very small datasets (e.g., 2 replicates, 2 conditions) and may require lowering the limit parameter (e.g., to 0.75), which increases the risk of removing biological signal. Biologically clustered methylation (e.g., due to SNPs/ASM) can be erroneously corrected if unbalanced across batches; use discoverClusteredMethylation, kClusterMethylation, and clusterStats to identify and exclude these probes from correction.",
+  "workflows": [
+    {
+      "name": "transcriptomic_microarray",
+      "intent": "Correct batch effects in log2-transformed microarray expression data and reconstruct the corrected matrix.",
+      "input": [
+        "olf.data (matrix of normalized log2 expression values)",
+        "olf.info (data.frame containing Treatment and Batch factors)"
+      ],
+      "stages": "1. Run harman to find and correct batch effects.\n2. Inspect results using plot, arrowPlot, and summary.\n3. Reconstruct the corrected data matrix using reconstructData.",
+      "code": "olf.harman <- harman(olf.data, expt=olf.info$Treatment, batch=olf.info$Batch, limit=0.95)\nplot(olf.harman)\narrowPlot(olf.harman, main='Arrowplot of correction')\nsummary(olf.harman)\nolf.data.corrected <- reconstructData(olf.harman)\nolf.data.remade <- reconstructData(olf.harman, this='original')\nall.equal(as.matrix(olf.data), olf.data.remade)"
+    },
+    {
+      "name": "methylation_m_values",
+      "intent": "Correct batch effects in DNA methylation data using M-values, reconstruct corrected beta values, and identify/filter out inappropriately corrected clustered probes.",
+      "input": [
+        "mSetSw (MethylSet or similar object containing SWAN normalized methylation data)",
+        "betas_sml (matrix of beta values for cluster analysis)"
+      ],
+      "stages": "1. Shift extreme beta values of 0 or 1 using shiftBetas to avoid infinite M-values.\n2. Run harman on M-values with status as experimental variable and Slide as batch.\n3. Reconstruct corrected M-values and convert back to beta values.\n4. Discover clustered methylation de novo using discoverClusteredMethylation.\n5. Extract cluster membership and statistics using kClusterMethylation.\n6. Compare pre- and post-correction beta values using clusterStats to identify erroneously corrected probes.",
+      "code": "newBetas <- shiftBetas(betas, shiftBy=1e-4)\nmethHarman <- harman(getM(mSetSw), expt=pData(mSetSw)$status, batch=pData(mSetSw)$Slide, limit=0.65)\nsummary(methHarman)\nplot(methHarman, 2, 5)\nms_hm <- reconstructData(methHarman)\nbetas_hm <- m2beta(ms_hm)\nmyK <- discoverClusteredMethylation(betas_sml, min_cluster_size = 3, cores=2, printInfo = TRUE)\nmykClust = kClusterMethylation(betas_sml, row_ks=myK, cores=2)\nres <- clusterStats(pre_betas=betas_sml, post_betas=betas_hm_sml, kClusters = mykClust)"
+    },
+    {
+      "name": "mass_spectrometry",
+      "intent": "Correct batch effects in mass spectrometry protein intensity data.",
+      "input": [
+        "msms.dataset (MSnSet object containing protein expression data)"
+      ],
+      "stages": "1. Preprocess data to remove all-zero rows and replace NA values with 0 using pp.msms.data.\n2. Log2-transform the data (adding 1 to avoid infinite values).\n3. Run harman to correct batch effects.\n4. Reconstruct corrected data and back-transform from Log2 space.",
+      "code": "msms_pp <- pp.msms.data(msms.dataset)\nexpt <- pData(msms_pp)$treat\nbatch <- pData(msms_pp)$batch\nlog_ms_exprs <- log(exprs(msms_pp) + 1, 2)\nhm <- harman(log_ms_exprs, expt=expt, batch=batch)\nsummary(hm)\nplot(hm)\nlog_ms_exprs_hm <- reconstructData(hm)\nms_exprs_hm <- 2^log_ms_exprs_hm - 1\nmsms_pp_hm <- msms_pp\nexprs(msms_pp_hm) <- ms_exprs_hm"
+    }
+  ]
+}

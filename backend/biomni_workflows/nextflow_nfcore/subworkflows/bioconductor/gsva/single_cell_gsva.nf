@@ -4,6 +4,8 @@
 // Calculate GSVA scores on sparse single-cell RNA-seq data to assign cell types and plot enrichment.
 // Input: sc_counts.rds, cell_type_signatures.gmt
 // Container: quay.io/biocontainers/bioconductor-gsva:2.4.4--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: GSEABase, GSVA, SingleCellExperiment, SummarizedExperiment, ggplot2, org.Hs.eg.db
 // Visualizations: enrichment plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -42,16 +44,17 @@ process BIOC_GSVA_SINGLE_CELL_GSVA {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
                     
                     # Load required libraries
                     library(GSVA)
                     library(GSEABase)
-                    library(SingleCellExperiment)
-                    library(SummarizedExperiment)
                     library(ggplot2)
                     library(org.Hs.eg.db)
                     

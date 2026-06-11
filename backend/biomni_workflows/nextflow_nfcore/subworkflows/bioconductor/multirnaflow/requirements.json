@@ -1,0 +1,13 @@
+{
+  "package": "multirnaflow",
+  "requirements": [
+    "MultiRNAflow",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiRNAflow",
+      "SummarizedExperiment"
+    ]
+  }
+}

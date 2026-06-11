@@ -1,0 +1,14 @@
+{
+  "package": "genarise",
+  "requirements": [
+    "genArise"
+  ],
+  "by_workflow": {
+    "functional_enrichment_genmerge.nf": [
+      "genArise"
+    ],
+    "main.nf": [
+      "genArise"
+    ]
+  }
+}

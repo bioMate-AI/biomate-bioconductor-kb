@@ -1,0 +1,14 @@
+{
+  "package": "dominoeffect",
+  "requirements": [
+    "DominoEffect"
+  ],
+  "by_workflow": {
+    "hotspot_step_by_step.nf": [
+      "DominoEffect"
+    ],
+    "main.nf": [
+      "DominoEffect"
+    ]
+  }
+}

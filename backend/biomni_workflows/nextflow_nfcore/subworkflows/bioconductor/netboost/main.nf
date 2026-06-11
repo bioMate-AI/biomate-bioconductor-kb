@@ -1,101 +1,180 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: netboost
-// Boosting supported network analysis for high-dimensional omics applications. This package comes bund
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/netboost/inst/doc/netboost.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("netboost")
+// Bioconductor workflow: netboost — netboost_dimension_reduction
+// Perform boosting-supported network clustering, extract module eigengenes, plot dendrograms, and transfer the clustering to new datasets.
+// Input: tcga_aml_meth_rna_chr18
+// Container: quay.io/biocontainers/bioconductor-netboost:2.0.0--r41h399db7b_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: netboost
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and input dataset
+//  * 2. [Core Analysis] Run the netboost pipeline to identify modules and aggregate them into principal components
+//  * 3. [Core Analysis] Inspect results (module names, colors, and explained variance)
+//  * 4. [Visualization & Output] Plot the dendrogram using nb_plot_dendro
+//  * 5. [Core Analysis] Transfer the clustering to a new dataset using nb_transfer
 
 nextflow.enable.dsl = 2
 
-process BIOC_NETBOOST {
+process BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-netboost"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-netboost:2.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-netboost:2.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_netboost_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_netboost_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_netboost_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(netboost)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required library
+        library(netboost)
+        
+        # 1. Load the input dataset from the working directory
+        # We check for common formats (RDS, CSV, TSV, or unextended file)
+        input_file <- "tcga_aml_meth_rna_chr18"
+        
+        if (file.exists(paste0(input_file, ".rds"))) {
+          tcga_aml_meth_rna_chr18 <- readRDS(paste0(input_file, ".rds"))
+        } else if (file.exists(paste0(input_file, ".csv"))) {
+          tcga_aml_meth_rna_chr18 <- read.csv(paste0(input_file, ".csv"), row.names = 1, check.names = FALSE)
+          tcga_aml_meth_rna_chr18 <- as.matrix(tcga_aml_meth_rna_chr18)
+        } else if (file.exists(paste0(input_file, ".txt"))) {
+          tcga_aml_meth_rna_chr18 <- read.table(paste0(input_file, ".txt"), header = TRUE, row.names = 1, check.names = FALSE)
+          tcga_aml_meth_rna_chr18 <- as.matrix(tcga_aml_meth_rna_chr18)
+        } else if (file.exists(input_file)) {
+          tcga_aml_meth_rna_chr18 <- tryCatch({
+            readRDS(input_file)
+          }, error = function(e) {
+            as.matrix(read.csv(input_file, row.names = 1, check.names = FALSE))
+          })
+        } else {
+          stop("Error: Input file 'tcga_aml_meth_rna_chr18' (with or without .rds/.csv/.txt extension) not found in the working directory.")
+        }
+        
+        # Print dimensions of the loaded dataset
+        print("Dimensions of input dataset:")
+        print(dim(tcga_aml_meth_rna_chr18))
+        
+        # 2. Run the netboost pipeline to identify modules and aggregate them into principal components
+        results <- netboost(
+          datan = tcga_aml_meth_rna_chr18,
+          stepno = 20L,
+          soft_power = 3L,
+          min_cluster_size = 10L,
+          n_pc = 2,
+          scale = TRUE,
+          ME_diss_thres = 0.25
+        )
+        
+        # 3. Inspect results (module names, colors, and explained variance)
+        print("Names of results list:")
+        print(names(results))
+        
+        print("Column names of MEs (Module Eigengenes):")
+        print(colnames(results\$MEs))
+        
+        n_cols <- min(5, ncol(results\$var_explained))
+        print(paste("Variance explained by the first", n_cols, "modules:"))
+        if (n_cols > 0) {
+          print(results\$var_explained[, seq_len(n_cols), drop = FALSE])
+        } else {
+          print("No modules found.")
+        }
+        
+        if (length(results\$colors) > 0) {
+          unique_colors <- unique(results\$colors)
+          # Prefer a non-background module (0 is typically background) if available
+          mod_to_check <- if (any(unique_colors != 0)) unique_colors[unique_colors != 0][1] else unique_colors[1]
+          print(paste("Features belonging to module", mod_to_check, ":"))
+          features_mod <- results\$names[results\$colors == mod_to_check]
+          print(features_mod)
+        } else {
+          print("No modules found to display features.")
+        }
+        
+        # 4. Plot the dendrogram using nb_plot_dendro
+        pdf("netboost_dendrogram.pdf", width = 10, height = 7)
+        set.seed(123)
+        nb_plot_dendro(nb_summary = results, labels = FALSE, colorsrandom = TRUE)
+        dev.off()
+        
+        # 5. Transfer the clustering to a new dataset (using the same dataset for validation)
+        ME_transfer <- nb_transfer(
+          nb_summary = results,
+          new_data = tcga_aml_meth_rna_chr18,
+          scale = TRUE
+        )
+        
+        # Verify transfer consistency
+        transfer_check <- all(round(results\$MEs, 10) == round(ME_transfer, 10))
+        print(paste("Transfer verification (all equal):", transfer_check))
+        
+        # Write verification result to a text file
+        writeLines(
+          text = c(
+            paste("Transfer verification (all equal):", transfer_check),
+            paste("Timestamp:", Sys.time())
+          ),
+          con = "transfer_verification.txt"
+        )
+        
+        # Save meaningful outputs to files
+        saveRDS(results, file = "netboost_results.rds")
+        write.csv(as.data.frame(results\$MEs), file = "module_eigengenes.csv", row.names = TRUE)
+        write.csv(as.data.frame(results\$var_explained), file = "variance_explained.csv", row.names = TRUE)
+        write.csv(as.data.frame(ME_transfer), file = "transferred_eigengenes.csv", row.names = TRUE)
+        write.csv(data.frame(Feature = results\$names, Module_Color = results\$colors), file = "feature_module_assignments.csv", row.names = FALSE)
+        
+        print("Pipeline completed successfully. Outputs saved to the working directory.")
 
-    # --- Dendrogram Visualisation [] ---
-    # Key functions: nb_plot_dendro
-    nb_plot_dendro(
-        nb_summary = results,
-        labels = FALSE,
-        colorsrandom = TRUE
-    )
-
-
-    # --- Module Eigenvalue Transfer [] ---
-    # Key functions: nb_transfer
-    ME_transfer <- nb_transfer(
-        nb_summary = results,
-        new_data = tcga_aml_meth_rna_chr18,
-        scale = TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_netboost_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_netboost_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_netboost_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NETBOOST:", paste0("    netboost: ", packageVersion("netboost"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION":',
+        paste0('    netboost: ', as.character(packageVersion('netboost')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_netboost_results.csv
-    touch ${prefix}_netboost_output.rds
-    echo "BIOC_NETBOOST:" > versions.yml
-    echo "    netboost: 0.0.0" >> versions.yml
+    touch ${prefix}_netboost_dimension_reduction.csv versions.yml
     """
 }
 
-
-workflow BIOC_NETBOOST_WORKFLOW {
+workflow BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tcga_aml_meth_rna_chr18 ] ]
 
     main:
-    BIOC_NETBOOST(ch_input)
+    BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION(ch_input)
 
     emit:
-    results  = BIOC_NETBOOST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NETBOOST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NETBOOST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NETBOOST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION.out.tables
+    plots    = BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION.out.plots
+    objects  = BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION.out.objects
+    versions = BIOC_NETBOOST_NETBOOST_DIMENSION_REDUCTION.out.versions
 }

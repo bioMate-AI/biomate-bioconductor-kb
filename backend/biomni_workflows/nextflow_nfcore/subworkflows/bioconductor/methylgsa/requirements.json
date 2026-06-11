@@ -1,0 +1,26 @@
+{
+  "package": "methylgsa",
+  "requirements": [
+    "BiocParallel",
+    "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+    "methylGSA"
+  ],
+  "by_workflow": {
+    "custom_annotation_analysis.nf": [
+      "methylGSA"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+      "methylGSA"
+    ],
+    "methylgometh_analysis.nf": [
+      "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+      "methylGSA"
+    ],
+    "methylrra_analysis.nf": [
+      "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+      "methylGSA"
+    ]
+  }
+}

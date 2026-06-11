@@ -1,118 +1,151 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: vulcan
-// Vulcan (VirtUaL ChIP-Seq Analysis through Networks) is a package that interrogates gene regulatory n
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/vulcan/inst/doc/vulcan.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("vulcan")
+// Bioconductor workflow: vulcan — vulcan_pipeline
+// Run the full VULCAN pipeline to identify co-regulatory factors from ChIP-Seq data and a regulatory network.
+// Input: vfile.csv, network.rda
+// Container: quay.io/biocontainers/bioconductor-vulcan:1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: vulcan
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import ChIP-Seq data using vulcan.import
+//  * 2. [Core Analysis] Annotate peaks to gene names using vulcan.annotate
+//  * 3. [Core Analysis] Normalize peak abundance using vulcan.normalize
+//  * 4. [Core Analysis] Run VULCAN analysis using vulcan
+//  * 5. [Visualization & Output] Plot master regulators using plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_VULCAN {
+process BIOC_VULCAN_VULCAN_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-vulcan"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-vulcan:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-vulcan:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_vulcan_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_vulcan_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_vulcan_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(vulcan)
-    library(jsonlite)
-
-    # --- Import [] ---
-    # Key functions: import, vulcanexample, unlink
-    # Import BAM and BED information into a list object
-    # vobj<-vulcan.import(vfile)
-    vobj<-vulcandata::vulcanexample()
-    unlink(vfile)
-    # --- Annotate [] ---
-    # Key functions: annotate
-    # Annotate peaks to gene names
-    vobj<-vulcan.annotate(vobj,lborder=-10000,rborder=10000,method="sum")
-    # --- Normalize [] ---
-    # Key functions: normalize
-    # Normalize data for VULCAN analysis
-    vobj<-vulcan.normalize(vobj)
-    # Detect which conditions are present in our imported object
-    names(vobj$samples)
-    # --- Vulcan [] ---
-    # Key functions: vulcan
-    vobj_analysis<-vulcan(vobj,network=network,contrast=c("t90","t0"),minsize=5)
-    plot(vobj_analysis$msviper,mrs=7)
-    # --- Setnames [] ---
-    # Key functions: setNames, rnorm, sample, gsea
-    reflist<-setNames(-sort(rnorm(1000)),paste0("gene",1:1000))
-    set<-paste0("gene",sample(1:200,50))
-    obj<-gsea(reflist,set,method="pareto")
-    obj$p.value
-    # --- Setnames [] ---
-    # Key functions: setNames, rnorm, sample, rea
-    signatures<-setNames(-sort(rnorm(1000)),paste0("gene",1:1000))
-    set1<-paste0("gene",sample(1:200,50))
-    set2<-paste0("gene",sample(1:1000,50))
-    groups<-list(set1=set1,set2=set2)
-    obj<-rea(signatures=signatures,groups=groups)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_vulcan_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_vulcan_results.csv")
+    
+    # Validate input files
+    if (!file.exists("vfile.csv")) {
+      stop("Error: Input annotation file 'vfile.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_vulcan_output.rds")
+    if (!file.exists("network.rda")) {
+      stop("Error: Input network file 'network.rda' not found in the working directory.")
     }
+    
+    # 1. Import ChIP-Seq data
+    message("Importing ChIP-Seq data from vfile.csv...")
+    vobj <- vulcan.import("vfile.csv")
+    
+    # 2. Annotate peaks to gene names
+    message("Annotating peaks...")
+    vobj <- vulcan.annotate(vobj, lborder=-10000, rborder=10000, method="sum")
+    
+    # 3. Normalize peak abundance
+    message("Normalizing peak abundance...")
+    vobj <- vulcan.normalize(vobj)
+    print(names(vobj\$samples))
+    
+    # 4. Load the gene regulatory network
+    message("Loading gene regulatory network...")
+    load("network.rda")
+    
+    # Ensure 'network' object exists in the loaded environment
+    if (!exists("network")) {
+      stop("Error: 'network' object not found in network.rda")
+    }
+    
+    # 5. Run VULCAN analysis
+    message("Running VULCAN analysis...")
+    conditions <- names(vobj\$samples)
+    if (length(conditions) < 2) {
+      stop("Error: At least two conditions are required for contrast.")
+    }
+    vobj_analysis <- vulcan(vobj, network=network, contrast=conditions[1:2], minsize=5)
+    
+    # 6. Plot master regulators and save to PDF
+    message("Generating master regulator plot...")
+    pdf("msviper_plot.pdf", width=8, height=6)
+    plot(vobj_analysis\$msviper, mrs=7)
+    dev.off()
+    
+    # 7. Save outputs
+    message("Saving output files...")
+    saveRDS(vobj_analysis, "vobj_analysis.rds")
+    
+    # Export msviper summary to CSV
+    tryCatch({
+      msviper_summary <- summary(vobj_analysis\$msviper)
+      write.csv(msviper_summary, "msviper_summary.csv", row.names=TRUE)
+      message("Saved msviper summary to 'msviper_summary.csv'")
+    }, error = function(e) {
+      warning("Could not write msviper summary to CSV: ", e\$message)
+    })
+    
+    # Export normalized counts to CSV
+    tryCatch({
+      if (!is.null(vobj\$normalized)) {
+        write.csv(vobj\$normalized, "normalized_counts.csv", row.names=TRUE)
+        message("Saved normalized counts to 'normalized_counts.csv'")
+      }
+    }, error = function(e) {
+      warning("Could not write normalized counts to CSV: ", e\$message)
+    })
+    
+    message("VULCAN pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VULCAN:", paste0("    vulcan: ", packageVersion("vulcan"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_VULCAN_VULCAN_PIPELINE":',
+        paste0('    vulcan: ', as.character(packageVersion('vulcan')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_vulcan_results.csv
-    touch ${prefix}_vulcan_output.rds
-    echo "BIOC_VULCAN:" > versions.yml
-    echo "    vulcan: 0.0.0" >> versions.yml
+    touch ${prefix}_vulcan_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_VULCAN_WORKFLOW {
+workflow BIOC_VULCAN_VULCAN_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ vfile.csv, network.rda ] ]
 
     main:
-    BIOC_VULCAN(ch_input)
+    BIOC_VULCAN_VULCAN_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_VULCAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VULCAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VULCAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VULCAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VULCAN_VULCAN_PIPELINE.out.tables
+    plots    = BIOC_VULCAN_VULCAN_PIPELINE.out.plots
+    objects  = BIOC_VULCAN_VULCAN_PIPELINE.out.objects
+    versions = BIOC_VULCAN_VULCAN_PIPELINE.out.versions
 }

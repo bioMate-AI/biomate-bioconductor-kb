@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mixture.method=Method for mixture modeling, e.g., \"vdp\" (variational Dirichlet process) ;; pca.basis=Logical, whether to use PCA basis (e.g., pca.basis = TRUE) ;; plot_mode=Mode for plotting responses, options include \"pca\", \"network\", \"heatmap\", \"boxplot_data\", \"response.barplot\" ;; two.sided=Logical for plot_scale indicating if the color scale is two-sided ;; speedup=Option to consider with large datasets to speed up computation\n- alternatives: None mentioned, but the package is partially based on agglomerative independent variable group analysis (AIVGA) and variational Dirichlet process Gaussian mixture models\n- when_to_use: When analyzing condition-specific network activation patterns across versatile collections of functional measurements (e.g., gene expression data) and interaction networks, or when seeking to identify subnetworks with alternative states\n- pitfalls: With large datasets, computation can be slow (suggests using the 'speedup' option); cluster indices may switch due to unidentifiability when comparing known and estimated mixture components",
+  "workflows": [
+    {
+      "name": "network_functional_response_analysis",
+      "intent": "Detect and visualize subnetworks with context-specific activation patterns using functional data and a network.",
+      "input": [
+        "D (matrix of functional measurements, e.g., gene expression data where rows are samples and columns are genes/features)",
+        "network (matrix or network format representing interaction network topology)"
+      ],
+      "stages": "1. Fit NetResponse model using detect.responses ;; 2. Extract subnetworks using get.subnets ;; 3. Visualize responses using plot_responses (PCA, network, heatmap, boxplot) ;; 4. Plot color scale using plot_scale ;; 5. Retrieve soft and hard cluster assignments using sample2response and response2sample ;; 6. Retrieve model parameters using get.model.parameters",
+      "code": "res <- generate.toydata(Dim = 3, Nc = 3, Ns = 200, sd0 = 3, rgam.shape = 1, rgam.scale = 1)\nD <- res$data\ncomponent.means <- res$means\ncomponent.sds   <- res$sds\nsample2comp     <- res$sample2comp\n\n# Use fully connected network\nnetwork <- matrix(rep(1, 9), nrow = 3)\n\n# Various network formats are supported, see help(detect.responses) for\n# details. With large data sets, consider the 'speedup' option.\nset.seed(4243)\nres <- detect.responses(D, network, mixture.method = \"vdp\", pca.basis = TRUE)\n\n# List subnets (each is a list of nodes)\nsubnet.id <- names(get.subnets(res))[[1]]\n\nlibrary(ggplot2)\nvis <- plot_responses(res, subnet.id, plot_mode = \"pca\")\n\n# Modify the resulting ggplot2 object to enhance visualization\np <- vis$p # Pick the ggplot2 object from results\np <- p + geom_point(size = 3) # Modify point size\nprint(p)\n\nvis <- plot_responses(res, subnet.id, plot_mode = \"network\")\n\nvis <- plot_responses(res, subnet.id, plot_mode = \"heatmap\")\n\nvis <- plot_responses(res, subnet.id, plot_mode = \"boxplot_data\")\n\nplot_scale(vis$breaks, vis$palette, two.sided = TRUE)\n\nsubnet.id <- 'Subnet-1'\n\n# Sample - response probabilities (soft cluster assignment)\nresponse.probs <- sample2response(res, subnet.id)\ntail(round(response.probs, 6))\n\n# Sample - response hard assignments\nhard.clusters <- response2sample(res, subnet.id)\nprint(hard.clusters)\n\nparams <- get.model.parameters(res, subnet.id)\nnames(params)"
+    },
+    {
+      "name": "nonparametric_gaussian_mixture_modeling",
+      "intent": "Fit an infinite Gaussian mixture model with a Variational Dirichlet Process approximation on multi-dimensional data.",
+      "input": [
+        "D (matrix of multi-dimensional data where rows are samples and columns are features)"
+      ],
+      "stages": "1. Fit VDP mixture model using vdp.mixt ;; 2. Extract estimated centroids ;; 3. Retrieve hard mixture component assignments",
+      "code": "# Generate 2-dimensional simulated data with 3 clusters\nres <- generate.toydata(Dim = 2, Nc = 3, Ns = 200, sd0 = 3, rgam.shape = 1, rgam.scale = 1)\n\nD <- res$data\nreal.means <- res$means\nreal.sds   <- res$sds\nreal.sample2comp     <- res$sample2comp\n\n# Infinite Gaussian mixture model with\n# Variational Dirichlet Process approximation\nmixt <- vdp.mixt( D )\n\n# Centroids of the detected Gaussian components\nestimated.means <- mixt$posterior$centroids\n\n# The colors denote the known clusters\n# The blue ball denotes the original (known) cluster centroids and\n# the triangle denotes the estimated centroids\nplot(D, col = real.sample2comp, pch = 1)\npoints(real.means, col = \"blue\", pch = 16, cex = 2)\npoints(estimated.means, col = \"blue\", pch = 17, cex = 2)\n\n# Hard mixture component assignment for each sample\nestimated.sample2comp <- apply(mixt$posterior$qOFz, 1, which.max)\n\n# Compare known and estimated mixture components\n# (note that cluster indices may have switched due to unidentifiability)\n# nearly all samples have one-to-one match between the real and estimated\n# clusters\nhead(table(estimated.sample2comp, real.sample2comp))"
+    }
+  ]
+}

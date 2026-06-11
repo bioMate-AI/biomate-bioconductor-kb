@@ -1,0 +1,11 @@
+{
+  "package": "htqpcr",
+  "requirements": [
+    "HTqPCR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HTqPCR"
+    ]
+  }
+}

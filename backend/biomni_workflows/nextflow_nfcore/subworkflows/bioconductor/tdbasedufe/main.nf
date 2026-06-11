@@ -1,108 +1,180 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TDbasedUFE
-// This is a comprehensive package to perform Tensor decomposition based unsupervised feature extractio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TDbasedUFE/inst/doc/QuickStart.R
-// Upstream  : GenomicRanges, MOFAdata, rTensor, readr, tximport
-// Downstream: none
-//
-// Install: BiocManager::install("TDbasedUFE")
+// Bioconductor workflow: TDbasedUFE — single_omics_gene_expression
+// Extract key genes from a single-modality gene expression dataset using HOSVD tensor decomposition.
+// Input: gene_expression_counts.csv, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-tdbasedufe:1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: TDbasedUFE, rTensor
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Reformat the expression data into a multi-dimensional tensor using `PrepareSummarizedExperimentTensor`. 2. Apply Higher-Order Sing
 
 nextflow.enable.dsl = 2
 
-process BIOC_TDBASEDUFE {
+process BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tdbasedufe"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tdbasedufe:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tdbasedufe:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tdbasedufe_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tdbasedufe_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tdbasedufe_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(TDbasedUFE)
-    library(PrepareSummarizedExperimentTensor)
-    library(PrepareSummarizedExperimentTensorSquare)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(TDbasedUFE)
+            library(rTensor)
+            
+            # Check if input files exist
+            if (!file.exists("gene_expression_counts.csv") || !file.exists("sample_metadata.csv")) {
+              stop("Required input files 'gene_expression_counts.csv' and/or 'sample_metadata.csv' are missing.")
+            }
+            
+            # Read user inputs
+            counts_df <- read.csv("gene_expression_counts.csv", row.names = 1, check.names = FALSE)
+            samples <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
+            
+            # Ensure samples\$sample exists and matches the columns of counts_df
+            if (!"sample" %in% colnames(samples)) {
+              # Try to find a column that matches counts_df columns, or just use the first column
+              matching_col <- sapply(samples, function(col) all(col %in% colnames(counts_df)))
+              if (any(matching_col)) {
+                samples\$sample <- samples[[which(matching_col)[1]]]
+              } else {
+                samples\$sample <- colnames(counts_df)[1:nrow(samples)]
+              }
+            }
+            
+            # Ensure samples\$condition exists
+            if (!"condition" %in% colnames(samples)) {
+              # Try to find a column that represents the experimental condition
+              potential_cols <- setdiff(colnames(samples), "sample")
+              if (length(potential_cols) > 0) {
+                samples\$condition <- samples[[potential_cols[1]]]
+              } else {
+                samples\$condition <- "A"
+              }
+            }
+            
+            # Sort samples by condition to group replicates together for the tensor
+            samples <- samples[order(samples\$condition), ]
+            
+            # Subset and order counts_matrix to match samples
+            common_samples <- intersect(samples\$sample, colnames(counts_df))
+            if (length(common_samples) == 0) {
+              stop("No matching samples found between metadata and counts matrix.")
+            }
+            samples <- samples[samples\$sample %in% common_samples, ]
+            
+            counts_matrix <- as.matrix(counts_df)
+            counts_matrix <- counts_matrix[, samples\$sample, drop = FALSE]
+            
+            # Dynamically determine dimensions from the metadata
+            num_conditions <- length(unique(samples\$condition))
+            num_replicates <- nrow(samples) / num_conditions
+            
+            if (nrow(samples) %% num_conditions != 0) {
+              stop("The number of samples must be perfectly divisible by the number of conditions for a balanced tensor.")
+            }
+            
+            # Construct txi object
+            txi <- list(
+              counts = counts_matrix,
+              abundance = counts_matrix
+            )
+            
+            # Open PDF device to capture plots
+            pdf("TDbasedUFE_plots.pdf", width = 10, height = 7)
+            
+            # 1. Reformat the expression data into a multi-dimensional tensor
+            Z <- PrepareSummarizedExperimentTensor(
+              matrix(samples\$sample, nrow = num_replicates, ncol = num_conditions), 
+              rownames(txi\$abundance),
+              array(txi\$counts, c(dim(txi\$counts)[1], num_replicates, num_conditions))
+            )
+            
+            # Save Z object
+            saveRDS(Z, "tensor_Z.rds")
+            
+            # 2. Apply Higher-Order Singular Value Decomposition (HOSVD)
+            HOSVD <- computeHosvd(Z)
+            
+            # Save HOSVD object
+            saveRDS(HOSVD, "hosvd_results.rds")
+            
+            # 3. Select the singular value vectors representing the experimental conditions
+            # Mode 2 (replicates): constant vector (1)
+            # Mode 3 (conditions): distinction vector (2)
+            sv_conditions <- if (num_conditions > 1) 2 else 1
+            input_all <- selectSingularValueVectorSmall(HOSVD, input_all = c(1, sv_conditions))
+            
+            # 4. Perform feature selection based on the selected vectors
+            index <- selectFeature(HOSVD, input_all)
+            
+            # Save index object
+            saveRDS(index, "feature_index.rds")
+            
+            # Close PDF device
+            dev.off()
+            
+            # 5. Extract and view the top-ranked features
+            feature_table <- tableFeatures(Z, index)
+            
+            # Save the feature table to CSV
+            write.csv(feature_table, "selected_features.csv", row.names = FALSE)
+            
+            # Print the head of the table to stdout
+            print(head(feature_table))
 
-    # --- Tensor Decomposition [] ---
-    # Key functions: computeHosvd
-    HOSVD <- computeHosvd(Z)
-
-
-    # --- Singular Value Selection [] ---
-    # Key functions: selectSingularValueVectorSmall
-    input_all <- selectSingularValueVectorSmall(
-        HOSVD,
-        input_all = c(1, 2)
-    )
-
-
-    # --- Feature Selection [] ---
-    # Key functions: selectFeature
-    index <- selectFeature(HOSVD, input_all)
-
-
-    # --- Feature Table Generation [] ---
-    # Key functions: tableFeatures
-    feature_table <- tableFeatures(Z, index)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tdbasedufe_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tdbasedufe_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tdbasedufe_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TDBASEDUFE:", paste0("    tdbasedufe: ", packageVersion("TDbasedUFE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION":',
+        paste0('    TDbasedUFE: ', as.character(packageVersion('TDbasedUFE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tdbasedufe_results.csv
-    touch ${prefix}_tdbasedufe_output.rds
-    echo "BIOC_TDBASEDUFE:" > versions.yml
-    echo "    tdbasedufe: 0.0.0" >> versions.yml
+    touch ${prefix}_single_omics_gene_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_TDBASEDUFE_WORKFLOW {
+workflow BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_expression_counts.csv, sample_metadata.csv ] ]
 
     main:
-    BIOC_TDBASEDUFE(ch_input)
+    BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_TDBASEDUFE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TDBASEDUFE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TDBASEDUFE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TDBASEDUFE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION.out.tables
+    plots    = BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION.out.plots
+    objects  = BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION.out.objects
+    versions = BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION.out.versions
 }

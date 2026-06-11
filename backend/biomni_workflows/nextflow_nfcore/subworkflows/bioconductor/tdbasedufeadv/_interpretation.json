@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - de = Initial standard deviation value(s) used for feature selection thresholding (e.g., de = 0.05, de = c(0.01, 0.01), or de = 1e-3).\n  - input_all = Integer vector specifying the indices of the selected singular value vectors to use for feature selection (e.g., input_all = 3 or input_all = c(12, 1)).\n  - scale = Logical parameter in computeHosvd; set to FALSE to disable scaling of the tensor modes.\n  - interact = Logical parameter in selectFeatureSquare; set to FALSE to run in non-interactive batch mode.\n- alternatives:\n  - DESeq2 or limma: Supervised methods for identifying differentially expressed genes. Prefer them when group labels are known and supervised analysis is desired; prefer TDbasedUFEadv for unsupervised feature extraction, especially with small sample sizes and large feature dimensions.\n  - curatedTCGAData: Recommended over the deprecated RTCGA package for retrieving modern TCGA datasets.\n  - Metascape: Recommended for enrichment analysis of selected features, but since it lacks an R interface, RITAN, DOSE, or enrichplot are recommended as R-based alternatives.\n- when_to_use:\n  - When integrating two or more omics datasets (e.g., gene expression, methylation, drug response).\n  - When the datasets share either features (e.g., genes) or samples.\n  - When sample sizes are small but feature dimensions are very large.\n- pitfalls:\n  - Memory exhaustion: Applying HOSVD to a full tensor generated from large matrices can exceed memory limits. Use SVD with partial summation (computeSVD and selectFeatureRect) to reduce memory usage.\n  - Interactive vs. Batch mode: Many selection functions default to interactive menu-driven modes. In non-interactive environments (like vignettes or pipelines), you must explicitly specify input_all and set interact = FALSE where applicable.\n  - Mode permutation: When features are shared across multiple datasets, the tensor modes must be permuted using aperm(Z, c(2, 1, 3)) to align the dimensions correctly for downstream projection analyses.",
+  "workflows": [
+    {
+      "name": "two_omics_sharing_features_svd",
+      "intent": "Integrate two omics datasets sharing the same features using memory-efficient SVD with partial summation.",
+      "input": [
+        "expDrug (matrix of drug-treated gene expression)",
+        "expDisease (matrix of disease gene expression)"
+      ],
+      "stages": "1. Compute SVD on the two matrices using computeSVD.\n2. Generate the matrix product and prepare the tensor using PrepareSummarizedExperimentTensor.\n3. Define sample conditions.\n4. Select features using selectFeatureRect in batch mode.\n5. Extract and display selected features using tableFeatures.",
+      "code": "SVD <- computeSVD(exprs(expDrug), exprs(expDisease))\nZ <- t(exprs(expDrug)) %*% exprs(expDisease)\nsample <- outer(\n  colnames(expDrug),\n  colnames(expDisease),\n  function(x, y) {\n    paste(x, y)\n  }\n)\nZ <- PrepareSummarizedExperimentTensor(\n  sample = sample,\n  feature = rownames(expDrug),\n  value = Z\n)\ncond <- list(NULL,Cond[,colnames=\"Cisplatin\"],rep(1:2,each=dim(SVD$SVD$v)[1]/2))\nindex_all <- selectFeatureRect(SVD,cond,de=c(0.01,0.01), input_all=3) #batch mode\nhead(tableFeatures(Z,index_all[[1]]))\nhead(tableFeatures(Z,index_all[[2]]))"
+    },
+    {
+      "name": "multi_omics_sharing_samples",
+      "intent": "Integrate multiple omics datasets sharing the same samples using projection-based SVD and HOSVD.",
+      "input": [
+        "CLL_data (list of omics matrices sharing samples)",
+        "CLL_covariates (sample metadata/covariates)"
+      ],
+      "stages": "1. Prepare a tensor from the list of matrices using prepareTensorfromList.\n2. Wrap the tensor in a SummarizedExperiment-like object using PrepareSummarizedExperimentTensor.\n3. Compute HOSVD using computeHosvd.\n4. Select singular value vectors using selectSingularValueVectorLarge.\n5. Select features across individual omics profiles using selectFeatureSquare.\n6. Extract and print selected features using tableFeatures.",
+      "code": "Z <- prepareTensorfromList(CLL_data, 10L)\nZ <- PrepareSummarizedExperimentTensor(\n  feature = character(\"1\"),\n  sample = array(colnames(CLL_data$Drugs), 1),\n  value = Z,\n  sampleData = list(CLL_covariates[, 1])\n)\nHOSVD <- computeHosvd(Z,scale=FALSE)\ncond <- list(NULL,attr(Z,\"sampleData\")[[1]],seq_len(4))\ninput_all <- selectSingularValueVectorLarge(HOSVD, cond, input_all = c(12, 1) ) # batch mode\nHOSVD$U[[1]] <- HOSVD$U[[2]]\nindex_all <- selectFeatureSquare(HOSVD, input_all, CLL_data, de = c(0.5, 0.1, 0.1, 1), interact = FALSE ) # Batch mode\nfor (id in c(1:4)) {\n  attr(Z, \"feature\") <- rownames(CLL_data[[id]])\n  print(tableFeatures(Z, index_all[[id]]))\n}"
+    },
+    {
+      "name": "multi_omics_sharing_features",
+      "intent": "Integrate multiple omics datasets sharing the same features but having different samples using projection-based SVD and HOSVD.",
+      "input": [
+        "Multi (list of omics matrices sharing features)",
+        "Clinical (list of clinical metadata dataframes)",
+        "Multi_sample (list of sample barcode dataframes)"
+      ],
+      "stages": "1. Prepare a tensor from the list of matrices using prepareTensorfromList.\n2. Permute the tensor modes using aperm to align features and samples.\n3. Wrap the tensor using PrepareSummarizedExperimentTensor with clinical/sample metadata prepared via prepareCondTCGA.\n4. Compute HOSVD using computeHosvd.\n5. Select features using selectFeatureProj in batch mode.\n6. Extract and display selected features using tableFeatures.",
+      "code": "Multi <- list(\n  BLCA.rnaseq[seq_len(100), 1 + seq_len(1000)],\n  BRCA.rnaseq[seq_len(100), 1 + seq_len(1000)],\n  CESC.rnaseq[seq_len(100), 1 + seq_len(1000)],\n  COAD.rnaseq[seq_len(100), 1 + seq_len(1000)]\n)\nZ <- prepareTensorfromList(Multi, 10L)\nZ <- aperm(Z, c(2, 1, 3))\nClinical <- list(BLCA.clinical, BRCA.clinical, CESC.clinical, COAD.clinical)\nMulti_sample <- list(\n  BLCA.rnaseq[seq_len(100), 1, drop = FALSE],\n  BRCA.rnaseq[seq_len(100), 1, drop = FALSE],\n  CESC.rnaseq[seq_len(100), 1, drop = FALSE],\n  COAD.rnaseq[seq_len(100), 1, drop = FALSE]\n)\nID_column_of_Multi_sample <- c(770, 1482, 773, 791)\nID_column_of_Clinical <- c(20, 20, 12, 14)\nZ <- PrepareSummarizedExperimentTensor(\n  feature = colnames(ACC.rnaseq)[1 + seq_len(1000)],\n  sample = array(\"\", 1), value = Z,\n  sampleData = prepareCondTCGA(\n    Multi_sample, Clinical,\n    ID_column_of_Multi_sample, ID_column_of_Clinical\n  )\n)\nHOSVD <- computeHosvd(Z)\ncond <- attr(Z, \"sampleData\")\nindex <- selectFeatureProj(HOSVD, Multi, cond, de = 1e-3, input_all = 3) # Batch mode\nhead(tableFeatures(Z, index))"
+    }
+  ]
+}

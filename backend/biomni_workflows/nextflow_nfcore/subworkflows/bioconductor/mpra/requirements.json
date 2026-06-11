@@ -1,0 +1,17 @@
+{
+  "package": "mpra",
+  "requirements": [
+    "limma",
+    "mpra"
+  ],
+  "by_workflow": {
+    "allelic_comparison.nf": [
+      "limma",
+      "mpra"
+    ],
+    "main.nf": [
+      "limma",
+      "mpra"
+    ]
+  }
+}

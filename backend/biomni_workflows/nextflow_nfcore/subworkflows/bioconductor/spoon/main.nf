@@ -1,118 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: spoon
-// This package addresses the mean-variance relationship in spatially resolved transcriptomics data. Pr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/spoon/inst/doc/spoon.R
-// Upstream  : BRISC, BiocParallel, Matrix, STexampleData, SpatialExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("spoon")
+// Bioconductor workflow: spoon — weighted_nnsvg_workflow
+// Identify spatially variable genes in spatial transcriptomics data using weighted nearest-neighbor Gaussian process regression to control for the mean-variance r
+// Input: spe
+// Container: quay.io/biocontainers/bioconductor-spoon:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, Matrix, SpatialExperiment, nnSVG, scuttle, spoon
+// QC: count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter out low-quality genes and spots with zero counts
+//  * 2. [Core Analysis] Compute library size factors and log-normalize counts
+//  * 3. [Core Analysis] Generate observation weights using generate_weights()
+//  * 4. [Core Analysis] Run weighted SVG detection using weighted_nnSVG()
+//  * 5. [Core Analysis] Retrieve results from the rowData of the SpatialExperiment object
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPOON {
+process BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-spoon"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spoon:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-spoon:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_spoon_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_spoon_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_spoon_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MulticoreParam)
-    library(Visium_mouseCoronal)
-    library(jsonlite)
-
-    # --- Visium Mousecoronal [] ---
-    # Key functions: Visium_mouseCoronal
-    ---------------------------------------------------------------------
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(nnSVG)
-    library(STexampleData)
     library(SpatialExperiment)
     library(BRISC)
-    # --- Coldata [] ---
-    # Key functions: colData, filter_genes, logcounts, computeLibraryFactors, logNormCounts, sample
-    ---------------------------------------------------------------------
-    # keep spots over tissue
-    spe <- spe[, colData(spe)$in_tissue == 1]
-    # filter out low quality genes
+    library(BiocParallel)
+    library(scuttle)
+    library(Matrix)
+    library(spoon)
+    
+    # 1. Load the input SpatialExperiment object from the working directory
+    if (!file.exists("spe")) {
+      stop("Input file 'spe' not found in the working directory.")
+    }
+    spe <- readRDS("spe")
+    
+    # 2. Preprocessing
+    # Keep spots over tissue
+    if ("in_tissue" %in% colnames(colData(spe))) {
+      spe <- spe[, colData(spe)\$in_tissue == 1]
+    }
+    
+    # Filter out low quality genes
     spe <- filter_genes(spe)
-    # --- Generate Weights [] ---
-    # Key functions: generate_weights, MulticoreParam
-    ---------------------------------------------------------------------
+    
+    # Calculate logcounts (log-transformed normalized counts)
+    spe <- computeLibraryFactors(spe)
+    spe <- logNormCounts(spe)
+    
+    # Remove spots with zero counts
+    spe <- spe[, colSums(logcounts(spe)) > 0]
+    
+    # 3. Generate observation weights
     weights <- generate_weights(input = spe,
                                 stabilize = TRUE,
                                 BPPARAM = MulticoreParam(workers = 1,
                                                          RNGseed = 4))
-    # --- Weighted Nnsvg [] ---
-    # Key functions: weighted_nnSVG, MulticoreParam
-    ---------------------------------------------------------------------
+    
+    # Save the generated weights
+    saveRDS(weights, "weights.rds")
+    
+    # 4. Run weighted SVG detection
     spe <- weighted_nnSVG(input = spe,
                           w = weights,
                           BPPARAM = MulticoreParam(workers = 1, RNGseed = 5))
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    # display results
-    rowData(spe)
+    
+    # 5. Retrieve and save results
+    results_df <- as.data.frame(rowData(spe))
+    write.csv(results_df, "weighted_svg_results.csv", row.names = TRUE)
+    
+    # Save the final SpatialExperiment object
+    saveRDS(spe, "spe_weighted_nnsvg.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spoon_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spoon_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spoon_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPOON:", paste0("    spoon: ", packageVersion("spoon"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW":',
+        paste0('    spoon: ', as.character(packageVersion('spoon')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_spoon_results.csv
-    touch ${prefix}_spoon_output.rds
-    echo "BIOC_SPOON:" > versions.yml
-    echo "    spoon: 0.0.0" >> versions.yml
+    touch ${prefix}_weighted_nnsvg_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPOON_WORKFLOW {
+workflow BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ spe ] ]
 
     main:
-    BIOC_SPOON(ch_input)
+    BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_SPOON.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPOON.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPOON.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPOON.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW.out.tables
+    plots    = BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW.out.plots
+    objects  = BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW.out.objects
+    versions = BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW.out.versions
 }

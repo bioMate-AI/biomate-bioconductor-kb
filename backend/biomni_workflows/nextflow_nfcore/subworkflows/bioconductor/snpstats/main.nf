@@ -1,94 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: snpStats
-// Classes and statistical methods for large SNP association studies. This extends the earlier snpMatri
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/snpStats/inst/doc/Fst-vignette.R
-// Upstream  : hexbin
-// Downstream: MAGAR
-//
-// Install: BiocManager::install("snpStats")
+// Bioconductor workflow: snpstats — data_input
+// Load SNP genotype data from PED/INFO, PLINK, or long-format text files into SnpMatrix objects.
+// Input: sample.ped.gz, sample.info, sample.bed, sample.bim, sample.fam, sample-long.gz, sample-long-alleles.gz
+// Container: quay.io/biocontainers/bioconductor-snpstats:1.60.0--r45h01b2380_0
+// R packages: hexbin, snpStats
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SNPSTATS {
+process BIOC_SNPSTATS_DATA_INPUT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-snpstats"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-snpstats:1.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-snpstats:1.56.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-snpstats:1.60.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_snpstats_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_snpstats_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_snpstats_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Fst)
-    library(jsonlite)
-
-    # --- Pairwise [] ---
-    # Key functions: Fst
-    data(for.exercise)
-    f1 <- Fst(snps.10, subject.support$stratum, pairwise=TRUE)
-    weighted.mean(f1$Fst, f1$weight)
-    # --- Aov [] ---
-    # Key functions: Fst
-    f2 <- Fst(snps.10, subject.support$stratum, pairwise=FALSE)
-    weighted.mean(f2$Fst, f2$weight)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_snpstats_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_snpstats_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_snpstats_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("hexbin", "snpStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SNPSTATS:", paste0("    snpstats: ", packageVersion("snpStats"))),
-        "versions.yml"
-    )
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required Bioconductor package
+    library(snpStats)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Read PED/INFO files using read.pedfile
+    # -----------------------------------------------------------------------------
+    
+    # Define paths to the user-provided input files in the working directory
+    pedfile <- "sample.ped.gz"
+    infofile <- "sample.info"
+    
+    # Load the PED genotype data and SNP info
+    sample <- read.pedfile(pedfile, snps=infofile)
+    
+    # Save meaningful results from the PED import stage
+    saveRDS(sample, "ped_sample.rds")
+    write.csv(col.summary(sample\$genotypes), "ped_col_summary.csv", row.names=TRUE)
+    write.csv(sample\$fam, "ped_fam.csv", row.names=TRUE)
+    write.csv(sample\$map, "ped_map.csv", row.names=TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Read PLINK files using read.plink
+    # -----------------------------------------------------------------------------
+    
+    # Define paths to the user-provided PLINK files in the working directory
+    fam <- "sample.fam"
+    bim <- "sample.bim"
+    bed <- "sample.bed"
+    
+    # Load the complete PLINK dataset
+    sample <- read.plink(bed, bim, fam)
+    
+    # Save meaningful results from the PLINK import stage
+    saveRDS(sample, "plink_sample.rds")
+    write.csv(col.summary(sample\$genotypes), "plink_col_summary.csv", row.names=TRUE)
+    write.csv(sample\$fam, "plink_fam.csv", row.names=TRUE)
+    write.csv(sample\$map, "plink_map.csv", row.names=TRUE)
+    
+    # Load a subset of SNPs (columns 6 to 10) from the PLINK dataset
+    subset <- read.plink(bed, bim, fam, select.snps=6:10)
+    
+    # Save the subset results
+    saveRDS(subset, "plink_subset.rds")
+    write.csv(col.summary(subset\$genotypes), "plink_subset_col_summary.csv", row.names=TRUE)
+    write.csv(subset\$map, "plink_subset_map.csv", row.names=TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Read long-format files using read.long
+    # -----------------------------------------------------------------------------
+    
+    # Define path to the user-provided long-format genotype file
+    longfile <- "sample-long.gz"
+    
+    # Load long-format genotype data with specified fields, codes, and confidence threshold
+    gdata <- read.long(longfile, fields=c(snp=1, sample=2, genotype=3, confidence=4), gcodes=c("1", "2", "3"), threshold=0.95)
+    
+    # Save the long-format genotype results
+    saveRDS(gdata, "long_genotypes.rds")
+    sink("long_genotypes_summary.txt")
+    print(summary(gdata))
+    sink()
+    
+    # Define path to the user-provided long-format allele file
+    allelesfile <- "sample-long-alleles.gz"
+    
+    # Load long-format allele data with specified fields and confidence threshold
+    gdata <- read.long(allelesfile, fields=c(snp=1, sample=2, allele.A=3, allele.B=4, confidence=5), threshold=0.95)
+    
+    # Save the long-format allele results
+    saveRDS(gdata, "long_alleles.rds")
+    sink("long_alleles_summary.txt")
+    print(summary(gdata))
+    sink()
+
+    writeLines(c(
+        '"BIOC_SNPSTATS_DATA_INPUT":',
+        paste0('        snpstats: ', as.character(packageVersion("snpstats")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_snpstats_results.csv
-    touch ${prefix}_snpstats_output.rds
-    echo "BIOC_SNPSTATS:" > versions.yml
-    echo "    snpstats: 0.0.0" >> versions.yml
+    touch ${prefix}_data_input.csv versions.yml
     """
 }
 
-
-workflow BIOC_SNPSTATS_WORKFLOW {
+workflow BIOC_SNPSTATS_DATA_INPUT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample.ped.gz, sample.info, sample.bed, sample.bim, sample.fam, sample-long.gz, sample-long-alleles.gz ] ]
 
     main:
-    BIOC_SNPSTATS(ch_input)
+    BIOC_SNPSTATS_DATA_INPUT(ch_input)
 
     emit:
-    results  = BIOC_SNPSTATS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SNPSTATS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SNPSTATS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SNPSTATS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SNPSTATS_DATA_INPUT.out.tables
+    plots    = BIOC_SNPSTATS_DATA_INPUT.out.plots
+    objects  = BIOC_SNPSTATS_DATA_INPUT.out.objects
+    versions = BIOC_SNPSTATS_DATA_INPUT.out.versions
 }

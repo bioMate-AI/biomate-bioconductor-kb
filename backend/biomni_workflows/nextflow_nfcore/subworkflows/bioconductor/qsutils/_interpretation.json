@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies sequence type, typically \"DNA\" or \"AA\" ;; min.pct=Minimum relative abundance percentage threshold to filter out low-frequency haplotypes in GetQSData ;; q=Order of the diversity index or entropy (used in Hill, Renyi, HCq, RaoPow) ;; size=Total number of reads in the downsampled sample prior to abundance filtering in DSFT ;; p.cut=Abundance threshold in the filter for DSFT ;; conf=Level of confidence in trimming haplotypes, defaults to 0.95 in DSFT ;; off=Offset for position numbering in SummaryMuts\n- alternatives: Biostrings::readDNAStringSet is preferred over ReadAmplSeqs for reading raw fasta files without frequency information before collapsing them with Collapse ;; DNA.dist from the ape package is used to compute genetic distances before calculating functional diversity or genotyping\n- when_to_use: Use this package when analyzing amplicon NGS data from highly variable populations like viral quasispecies, 16S/18S ribosomal metagenomics, or tumor genetic diversity, especially when you need to correct for sample size bias or sequencing errors before computing diversity indices.\n- pitfalls: Comparing diversity indices directly between samples with different coverages/sample sizes can lead to severe bias; use DSFT (Downsampling and Fringe Trimming) to correct for this. Traditional ecological correction methods fail on NGS data because they rely on low-frequency haplotypes that are typically removed as technical noise; DSFT is specifically designed to handle this. ConsSeq does not consider IUPAC ambiguity codes and resolves ties randomly.",
+  "workflows": [
+    {
+      "name": "collapse_and_correct_gaps_ns",
+      "intent": "Load raw amplicon reads, collapse them to unique haplotypes with frequencies, correct gaps and indeterminate bases (Ns) against a reference sequence, and recollapse to update frequencies.",
+      "input": [
+        "Toy.GapsAndNs.fna (FASTA file of raw amplicon reads containing gaps or Ns)"
+      ],
+      "stages": "1. Read raw sequences using readDNAStringSet ;; 2. Collapse reads to unique haplotypes and frequencies using Collapse ;; 3. Correct gaps and Ns against a reference sequence (e.g., dominant haplotype) using CorrectGapsAndNs ;; 4. Recollapse the corrected sequences to update frequencies using Recollapse",
+      "code": "filepath<-system.file(\"extdata\",\"Toy.GapsAndNs.fna\", package=\"QSutils\")\nreads <- readDNAStringSet(filepath)\nlstCollapsed <- Collapse(reads)\nlstCorrected<-CorrectGapsAndNs(lstCollapsed$hseqs[2:length(lstCollapsed$hseqs)],\n                lstCollapsed$hseqs[[1]])\nlstCorrected<- c(lstCollapsed$hseqs[1],lstCorrected)\nlstRecollapsed<-Recollapse(lstCorrected,lstCollapsed$nr)"
+    },
+    {
+      "name": "strand_haplotype_intersection",
+      "intent": "Filter and intersect haplotypes from forward and reverse sequencing strands to reduce sequencing errors.",
+      "input": [
+        "ToyData_FWReads.fna (Forward strand reads FASTA)",
+        "ToyData_RVReads.fna (Reverse strand reads FASTA)"
+      ],
+      "stages": "1. Load forward and reverse amplicon sequences using ReadAmplSeqs ;; 2. Intersect and filter strand haplotypes using IntersectStrandHpls",
+      "code": "filepath<-system.file(\"extdata\",\"ToyData_FWReads.fna\", package=\"QSutils\")\nlstFW <- ReadAmplSeqs(filepath,type=\"DNA\")\nfilepath<-system.file(\"extdata\",\"ToyData_RVReads.fna\", package=\"QSutils\")\nlstRV <- ReadAmplSeqs(filepath,type=\"DNA\")\nlstI <- IntersectStrandHpls(lstFW$nr,lstFW$hseqs,lstRV$nr,lstRV$hseqs)"
+    },
+    {
+      "name": "quasispecies_diversity_analysis",
+      "intent": "Compute incidence-based, abundance-based, and functional diversity indices to characterize quasispecies complexity, with sample size correction.",
+      "input": [
+        "ToyData_10_50_1000.fna (FASTA file with haplotype and frequency headers)"
+      ],
+      "stages": "1. Load quasispecies data using ReadAmplSeqs ;; 2. Compute incidence-based indices (SegSites, TotalMutations) ;; 3. Compute abundance-based indices (Shannon, GiniSimpson, Hill, Renyi, HCq) ;; 4. Compute functional diversity indices using genetic distances (MutationFreq, FAD, NucleotideDiversity, RaoPow) ;; 5. Correct for sample size bias using DSFT",
+      "code": "filepath<-system.file(\"extdata\",\"ToyData_10_50_1000.fna\", package=\"QSutils\")\nlst <- ReadAmplSeqs(filepath,type=\"DNA\")\nlength(lst$hseqs)\nSegSites(lst$hseqs)\nTotalMutations(lst$hseqs)\nShannon(lst$nr)\nNormShannon(lst$nr)\nShannonVar(lst$nr)\nNormShannonVar(lst$nr)\nGiniSimpson(lst$nr)\nGiniSimpsonMVUE(lst$nr)\nGiniSimpsonVar(lst$nr)\nHill(lst$nr,q=1)\nHillProfile(lst$nr)\nRenyi(lst$nr,q=3)\nRenyiProfile(lst$nr)\nHCq(lst$nr, q= 4)\nHCqVar(lst$nr, q= 4)\nHCqProfile(lst$nr)\ndst <- DNA.dist(lst$hseqs,model=\"raw\")\nMutationFreq(dst)\nFAD(dst)\nNucleotideDiversity(dst)\nnm <- nmismatch(pairwiseAlignment(lst$hseqs,lst$hseqs[1]))\nMutationFreq(nm=nm,nr=lst$nr,len=width(lst$hseqs)[1])\nMutationFreqVar(nm,lst$nr,len=width(lst$hseqs)[1])\nNucleotideDiversity(dst,lst$nr)\nRaoPow(dst,4,lst$nr)\nRaoVar(dst,lst$nr)\nRaoPowProfile(dst,lst$nr)\nDSFT(lst$nr,size=2000)"
+    },
+    {
+      "name": "genotyping_unknown_haplotypes",
+      "intent": "Classify an unknown target haplotype into a genotype using reference standards and distance-based discriminant rules.",
+      "input": [
+        "Unknown-Genotype.fna (Target haplotype FASTA)",
+        "GenotypeStandards_A-H.fas (Reference standards FASTA)"
+      ],
+      "stages": "1. Load target sequence and reference sequences using ReadAmplSeqs ;; 2. Compute distance matrix using DNA.dist from ape ;; 3. Extract distances between references and from target to references ;; 4. Classify the target sequence using DBrule",
+      "code": "filepath<-system.file(\"extdata\",\"Unknown-Genotype.fna\", package=\"QSutils\")\nlst2Geno <- ReadAmplSeqs(filepath,type=\"DNA\")\nhseq <- lst2Geno$hseq[1]\nfilepath<-system.file(\"extdata\",\"GenotypeStandards_A-H.fas\", package=\"QSutils\")\nlstRefs <- ReadAmplSeqs(filepath,type=\"DNA\")\nRefSeqs <- lstRefs$hseq\ndm <- as.matrix(DNA.dist(c(hseq,RefSeqs),model=\"K80\"))\ndgrp <- dm[-1,-1]\nd <- dm[1,-1]\ngrp <- factor(substr(rownames(dgrp),1,1))\nhr <- as.integer(grp)\ndsc <- DBrule(dgrp,hr,d,levels(grp))"
+    }
+  ]
+}

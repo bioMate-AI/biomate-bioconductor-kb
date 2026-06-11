@@ -1,0 +1,17 @@
+{
+  "package": "icnv",
+  "requirements": [
+    "iCNV"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "iCNV"
+    ],
+    "ngs_only_cnv_detection.nf": [
+      "iCNV"
+    ],
+    "snp_array_only_cnv_detection.nf": [
+      "iCNV"
+    ]
+  }
+}

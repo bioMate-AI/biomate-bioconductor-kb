@@ -1,0 +1,19 @@
+{
+  "package": "spacemarkers",
+  "requirements": [
+    "SpaceMarkers",
+    "cowplot",
+    "dplyr",
+    "ggplot2",
+    "viridis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpaceMarkers",
+      "cowplot",
+      "dplyr",
+      "ggplot2",
+      "viridis"
+    ]
+  }
+}

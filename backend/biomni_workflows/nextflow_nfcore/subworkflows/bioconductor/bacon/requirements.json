@@ -1,0 +1,20 @@
+{
+  "package": "bacon",
+  "requirements": [
+    "BiocParallel",
+    "bacon"
+  ],
+  "by_workflow": {
+    "adjustment_with_95_ci.nf": [
+      "BiocParallel",
+      "bacon"
+    ],
+    "main.nf": [
+      "bacon"
+    ],
+    "multiple_sets_and_meta_analysis.nf": [
+      "BiocParallel",
+      "bacon"
+    ]
+  }
+}

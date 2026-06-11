@@ -1,0 +1,23 @@
+{
+  "package": "rnamodr_alkanilineseq",
+  "requirements": [
+    "Biostrings",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "RNAmodR",
+    "RNAmodR.AlkAnilineSeq",
+    "Rsamtools",
+    "rnamodr_alkanilineseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "RNAmodR",
+      "RNAmodR.AlkAnilineSeq",
+      "Rsamtools",
+      "rnamodr_alkanilineseq"
+    ]
+  }
+}

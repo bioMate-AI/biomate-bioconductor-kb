@@ -1,128 +1,246 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: XDE
-// Multi-level model for cross-study detection of differential gene expression.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/XDE/inst/doc/XDE.R
-// Upstream  : GeneMeta, siggenes
-// Downstream: none
-//
-// Install: BiocManager::install("XDE")
+// Bioconductor workflow: XDE — bayesian_cross_study_analysis
+// Fit a Bayesian hierarchical model to multiple transcriptomic studies to estimate concordant and discordant differential expression.
+// Input: Multiple ExpressionSet objects
+// Container: quay.io/biocontainers/bioconductor-xde:2.56.0--r45ha27e39d_0
+// R packages: Biobase, GeneMeta, siggenes, XDE
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, XDE
+// Visualizations: plot (ggplot/base)
+// QC: input validation, missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Create and validate the ExpressionSetList. 2. Initialize the XdeParameter object with the phenotype label. 3. (Optional) Generate 
 
 nextflow.enable.dsl = 2
 
-process BIOC_XDE {
+process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-xde"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-xde:2.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-xde:2.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_xde_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_xde_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_xde_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GeneMeta", "siggenes", "XDE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(XDE)
-    library(jsonlite)
-
-    # --- Parameter Configuration [] ---
-    # Key functions: XdeParameter
-    data(expressionSetList, package = "XDE")
-    xlist <- expressionSetList
-    params <- new("XdeParameter",
-                  esetList = xlist,
-                  phenotypeLabel = "adenoVsquamous")
-
-
-    # --- MCMC Log Extraction [] ---
-    # Key functions: output
-    data(xmcmc, package = "XDE")
-    pathToLogFiles <- system.file("logFiles", package = "XDE")
+    library(Biobase)
+    
+    # ==========================================
+    # 1. Read and Validate User Input
+    # ==========================================
+    
+    input_file <- "expressionSetList.rds"
+    xlist <- NULL
+    
+    if (file.exists(input_file)) {
+      message("Reading ExpressionSetList from ", input_file)
+      xlist <- readRDS(input_file)
+    } else {
+      # Fallback: Search for any RDS files in the working directory and attempt to combine them
+      rds_files <- list.files(pattern = "\\\\.rds\$")
+      esets <- list()
+      for (f in rds_files) {
+        obj <- readRDS(f)
+        if (inherits(obj, "ExpressionSet")) {
+          esets[[f]] <- obj
+        }
+      }
+      if (length(esets) >= 2) {
+        message("Combining ", length(esets), " ExpressionSet objects into an ExpressionSetList")
+        xlist <- new("ExpressionSetList", esetList = esets)
+      } else {
+        stop("Error: Could not find 'expressionSetList.rds' or multiple ExpressionSet RDS files in the working directory.")
+      }
+    }
+    
+    # Validate the ExpressionSetList object
+    class(xlist)
+    validObject(xlist)
+    
+    # Identify a shared binary phenotype covariate present in all studies
+    shared_covariates <- Reduce(intersect, lapply(xlist, varLabels))
+    if (length(shared_covariates) == 0) {
+      stop("Error: No shared covariates found across all studies.")
+    }
+    
+    is_binary <- sapply(shared_covariates, function(cov) {
+      length(na.omit(unique(unlist(lapply(xlist, function(x) pData(x)[[cov]]))))) == 2
+    })
+    
+    if (!any(is_binary)) {
+      stop("Error: No shared binary phenotype covariate found across all studies.")
+    }
+    
+    phenotype_label <- shared_covariates[is_binary][1]
+    message("Using phenotype label: ", phenotype_label)
+    
+    # ==========================================
+    # 2. Initialize XdeParameter Object
+    # ==========================================
+    
+    params <- new("XdeParameter", esetList = xlist, phenotypeLabel = phenotype_label)
+    params
+    
+    # Configure to allow genes to be differentially expressed in a subset of studies (one.delta = FALSE)
+    params <- new("XdeParameter", esetList = xlist, phenotypeLabel = phenotype_label, one.delta = FALSE)
+    
+    # ==========================================
+    # 3. Generate Empirical Starting Values
+    # ==========================================
+    
+    empirical <- empiricalStart(xlist, phenotypeLabel = phenotype_label)
+    firstMcmc(params) <- empirical
+    
+    # ==========================================
+    # 4. Configure and Run Burn-in MCMC Chains
+    # ==========================================
+    
+    iterations(params) <- 3
+    burnin(params) <- TRUE
+    fit <- xde(params, xlist)
+    
+    iterations(params) <- 2
+    firstMcmc(params) <- lastMcmc(fit)
+    seed(params) <- seed(fit)
+    fit2 <- xde(params, xlist)
+    
+    # ==========================================
+    # 5. Configure and Run Production MCMC Chain
+    # ==========================================
+    
+    burnin(params) <- FALSE
+    iterations(params) <- 2000
+    
+    # Turn off saving for extremely large gene/study-indexed parameters to save memory/disk space
+    output(params)[c("potential", "acceptance",
+                     "diffExpressed",
+                     "nu",
+                     "probDelta",
+                     "phi")] <- 0
+    
+    thin(params) <- 2
+    
+    # Create local directory for MCMC log files
+    dir.create("logFiles", showWarnings = FALSE)
+    directory(params) <- "logFiles"
+    
+    # Run the main MCMC simulation
+    xmcmc <- xde(params, xlist)
+    
+    # ==========================================
+    # 6. Calculate Posterior Averages & Effect Sizes
+    # ==========================================
+    
+    postAvg <- calculatePosteriorAvg(xmcmc, NCONC = 2, NDIFF = 1)
+    bayesianEffectSize(xmcmc) <- calculateBayesianEffectSize(xmcmc)
+    
+    # Save calculated objects to the log directory to match documented load() expectations
+    save(postAvg, file = file.path("logFiles", "postAvg.rda"))
+    BES <- bayesianEffectSize(xmcmc)
+    save(BES, file = file.path("logFiles", "BES.rda"))
+    
+    # ==========================================
+    # 7. MCMC Diagnostics and Visualization
+    # ==========================================
+    
+    pathToLogFiles <- "logFiles"
     xmcmc@directory <- pathToLogFiles
-    c2 <- xmcmc$c2
-    active_params <- output(xmcmc)[2:22]
-    active_params <- active_params[active_params == 1]
-
-
-    # --- Posterior Probability Analysis [] ---
-    # Key functions: symbolsInteresting
-    pathToLogFiles <- system.file("logFiles", package = "XDE")
-    load(file.path(pathToLogFiles, "postAvg.rda"))
-    op.conc <- symbolsInteresting(
-        rankingStatistic = postAvg[, "concordant"]
-    )
-    op.disc <- symbolsInteresting(
-        rankingStatistic = postAvg[, "discordant"]
-    )
-
-
-    # --- Visualisation of Concordant and Discordant Expression [] ---
-    # Key functions: symbolsInteresting
-    pathToLogFiles <- system.file("logFiles", package = "XDE")
+    c2 <- xmcmc\$c2
+    
+    # Open PDF device for saving plots
+    pdf("mcmc_diagnostics_and_plots.pdf", width = 10, height = 8)
+    
+    # Plot c2 parameter trace
+    par(las = 1)
+    plot.ts(c2, ylab = "c2", xlab = "iterations", plot.type = "single")
+    
+    # Reload saved posterior averages and Bayesian effect sizes
     load(file.path(pathToLogFiles, "BES.rda"))
     load(file.path(pathToLogFiles, "postAvg.rda"))
+    
+    # Identify interesting concordant and discordant genes
     op.conc <- symbolsInteresting(rankingStatistic = postAvg[, "concordant"])
-    graphics:::pairs(BES[op.conc$order, ],
-                     pch = op.conc$pch,
-                     col = op.conc$col,
-                     bg = op.conc$bg,
-                     upper.panel = NULL,
-                     cex = op.conc$cex)
+    op.disc <- symbolsInteresting(rankingStatistic = postAvg[, "discordant"])
+    
+    # Generate pairwise scatter plots of Bayesian Effect Sizes
+    par(las = 1)
+    graphics:::pairs(BES[op.conc\$order, ], pch = op.conc\$pch, col = op.conc\$col,
+                     bg = op.conc\$bg, upper.panel = NULL, cex = op.conc\$cex)
+    
+    graphics:::pairs(BES[op.disc\$order, ], pch = op.disc\$pch, col = op.disc\$col, bg = op.disc\$bg,
+                     upper.panel = NULL, cex = op.disc\$cex)
+    
+    dev.off()
+    
+    # ==========================================
+    # 8. Save Meaningful Results
+    # ==========================================
+    
+    write.csv(postAvg, "posterior_averages.csv", row.names = TRUE)
+    write.csv(BES, "bayesian_effect_sizes.csv", row.names = TRUE)
+    saveRDS(xmcmc, "xmcmc_fit.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to 'posterior_averages.csv', 'bayesian_effect_sizes.csv', 'xmcmc_fit.rds', and 'mcmc_diagnostics_and_plots.pdf'.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_xde_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_xde_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_xde_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_XDE:", paste0("    xde: ", packageVersion("XDE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS":',
+        paste0('    XDE: ', as.character(packageVersion('XDE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_xde_results.csv
-    touch ${prefix}_xde_output.rds
-    echo "BIOC_XDE:" > versions.yml
-    echo "    xde: 0.0.0" >> versions.yml
+    touch ${prefix}_bayesian_cross_study_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_XDE_WORKFLOW {
+workflow BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Multiple ExpressionSet objects ] ]
 
     main:
-    BIOC_XDE(ch_input)
+    BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_XDE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_XDE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_XDE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_XDE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS.out.tables
+    plots    = BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS.out.plots
+    objects  = BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS.out.objects
+    versions = BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS.out.versions
 }

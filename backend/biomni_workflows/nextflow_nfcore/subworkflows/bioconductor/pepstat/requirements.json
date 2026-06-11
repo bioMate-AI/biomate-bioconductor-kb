@@ -1,0 +1,13 @@
+{
+  "package": "pepstat",
+  "requirements": [
+    "Pviz",
+    "pepStat"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Pviz",
+      "pepStat"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "segmenter",
+  "requirements": [
+    "ComplexHeatmap",
+    "GenomicRanges",
+    "rtracklayer",
+    "segmenter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "GenomicRanges",
+      "rtracklayer",
+      "segmenter"
+    ]
+  }
+}

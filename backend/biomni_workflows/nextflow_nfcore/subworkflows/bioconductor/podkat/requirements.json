@@ -1,0 +1,16 @@
+{
+  "package": "podkat",
+  "requirements": [
+    "GenomicRanges",
+    "podkat"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "podkat"
+    ],
+    "post_association_analysis_and_visualization.nf": [
+      "podkat"
+    ]
+  }
+}

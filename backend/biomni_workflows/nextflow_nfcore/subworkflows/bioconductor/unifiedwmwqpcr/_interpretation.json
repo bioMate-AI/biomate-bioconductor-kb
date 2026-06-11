@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: groups=A vector of the same length as the number of columns in the data matrix, denoting the treatment group of each sample ;; housekeeping.names=A character vector containing the names of the housekeeping features to be used for normalization (if omitted, overall normalization is performed) ;; add.ref=In volcanoplot, character vector specifying which reference lines to add (e.g., \"both\", \"x\", \"y\", or \"none\") ;; ref.x=In volcanoplot, numeric vector specifying the x-axis positions for reference lines ;; ref.y=In volcanoplot, numeric value specifying the y-axis position for the reference line ;; estimate=In forestplot, character indicating whether to plot the estimated probabilities (\"p\") or log odds ratios (\"or\") ;; order=In forestplot, a vector of indices or names to subset and order the features shown in the plot\n- alternatives: Standard Wilcoxon-Mann-Whitney test, which is asymptotically equivalent only when no normalization is needed (Delta = 0.5). Standard delta-Ct normalization followed by t-tests, which ignores the statistical uncertainty introduced by the normalization step.\n- when_to_use: Use this package when analyzing RT-qPCR Cq/Ct data for differential expression between two groups, especially when you want to rigorously account for the normalization step (either via overall expression or housekeeping genes) within the statistical testing framework.\n- pitfalls: Forgetting to adjust the raw p-values for multiple testing (the package returns unadjusted p-values, so p.adjust must be run post-hoc) ;; Comparing the estimated probability in the forest plot to 0.5 instead of comparing it to the estimated reference Delta (which represents the normalization constant and is often significantly different from 0.5) ;; Incorrectly assuming features are stable housekeeping genes without prior biological validation.",
+  "workflows": [
+    {
+      "name": "qpcr_overall_normalization",
+      "intent": "Perform differential expression analysis on RT-qPCR data using overall expression normalization when stable housekeeping genes are unavailable.",
+      "input": [
+        "NBmat (matrix of Cq values where rows are features/miRNAs and columns are samples)",
+        "NBgroups (vector of group labels for each sample)"
+      ],
+      "stages": "1. Load the package and inspect the input qPCR data matrix and group labels.\n2. Run the unified Wilcoxon-Mann-Whitney test with overall normalization using uWMW.\n3. Extract and subset the test results (log odds ratios, standard errors, p-values).\n4. Adjust the raw p-values for multiple testing using p.adjust.\n5. Create a volcano plot to visualize effect sizes and significance.\n6. Create a forest plot to visualize estimated probabilities and confidence intervals against the reference Delta.\n7. Extract the underlying probabilistic index model coefficients and variance-covariance matrix.",
+      "code": "library('unifiedWMWqPCR')\ndata(NBmat)\ndim(NBmat)\ntable(NBgroups)\nmax(NBmat)\nuWMW.out <- uWMW(NBmat, groups = NBgroups)\nuWMW.out\nuWMW.out[1:3]\nuWMW.out[1:3,]\nnames.tmp <- rownames(NBmat)[1:3]\nnames.tmp\nuWMW.out[names.tmp] \nselection.miRNA <- c(\"hsa-mir-17-3p\", \"hsa-mir-17-5p\", \"hsa-mir-18a\", \n\"hsa-mir-18a#\",\"hsa-mir-19a\", \"hsa-mir-19b\",\n\"hsa-mir-20a\",\"hsa-mir-92\", \"hsa-mir-181a\", \"hsa-mir-181b\")\nuWMW.out[selection.miRNA]\nadj.pvalues <- p.adjust(uWMW.out@p.value, method = \"BH\")\nselection.id <- match(selection.miRNA, names(uWMW.out))\nadj.pvalues[selection.id]\nuWMW.out[\"hsa-mir-92\"]\nadj.pvalues[match(\"hsa-mir-92\", names(uWMW.out))]\nvolcanoplot(uWMW.out, add.ref = c(\"both\"), ref.x = c(-log(2),log(2)), \nref.y = -log10(0.001))\nx.label <- expression(\"estimated \"*P(Y[MNA] < Y[MNSC]))\nforestplot(uWMW.out, estimate = \"p\", order = selection.id, xlab = x.label) \ncoef(uWMW.out)[1:3]\nvcov(uWMW.out)[1:3,1:3]"
+    },
+    {
+      "name": "qpcr_housekeeping_normalization",
+      "intent": "Perform differential expression analysis on RT-qPCR data using specific housekeeping genes for normalization.",
+      "input": [
+        "NBmat (matrix of Cq values where rows are features/miRNAs and columns are samples)",
+        "NBgroups (vector of group labels for each sample)"
+      ],
+      "stages": "1. Load the package and data.\n2. Identify and define the vector of housekeeping gene names.\n3. Run the unified Wilcoxon-Mann-Whitney test with housekeeping normalization by passing the housekeeping names to uWMW.\n4. Inspect the resulting uWMW object.",
+      "code": "library('unifiedWMWqPCR')\ndata(NBmat)\nhousekeeping.miRNA <- rownames(NBmat)[1:2]\nhousekeeping.miRNA\nuWMW.out2 <- uWMW(NBmat, groups = NBgroups, \nhousekeeping.names = housekeeping.miRNA)\nuWMW.out2"
+    }
+  ]
+}

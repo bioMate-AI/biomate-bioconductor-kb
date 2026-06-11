@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: align_parents=logical, controls parent alignment during plotting and auto-hinting ;; normalize=logical, determines if input data frames should be checked and normalized ;; hints=list, contains custom plotting order (horder) and spouse matrix (spouse) ;; packed=logical, allows branches of the pedigree tree to overlap to save space ;; width=numeric, minimum width for a packed pedigree ;; align=logical, determines if children should be centered under parents ;; informative=character, criteria for identifying informative individuals (e.g., \"AvAf\") ;; max_bits=numeric, maximum size parameter used when shrinking pedigrees ;; ggplot_gen=logical, generates a ggplot object for interactive visualization\n- alternatives: The documentation notes that \"other software\" is better suited for highly complex annotations or extremely large, heavily inbred pedigrees (such as in animal studies).\n- when_to_use: Use when handling human family pedigree data, calculating kinship matrices (including sparse matrices for large multi-family studies), and generating automated, aligned pedigree plots.\n- pitfalls: Do not use factors for subject identifiers (use character or numeric vectors instead) ;; Singletons (individuals with only one parent instead of two or none) can confuse the alignment setup ;; The diagonal elements of the kinship matrix are 0.5, not 1.0, which is a common point of genetic confusion ;; If errors are detected during normalization, the returned object contains an error column instead of a valid Pedigree.",
+  "workflows": [
+    {
+      "name": "pedigree_alignment_and_plotting",
+      "intent": "Create a Pedigree object from family data, apply automatic or manual alignment hints, and plot the pedigree.",
+      "input": [
+        "ped_df (data frame containing columns id, dadid, momid, sex, and optional status variables)",
+        "rel_df (optional data frame containing relationship pairs and codes for twins or spouses)"
+      ],
+      "stages": "1. Construct the Pedigree object using Pedigree() ;; 2. Generate automatic alignment hints using auto_hint() ;; 3. Customize sibling ordering and spouse anchors using hints(), horder(), and spouse() ;; 4. Plot the pedigree using plot() or generate an interactive plot using ggplot_gen = TRUE and plotly",
+      "code": "id <- c(\"A\", \"B\", \"C\", \"D\", \"E\", \"F\", \"G\", \"J\", \"I\", \"H\")\ndadid <- c(\"0\", \"0\", \"0\", \"A\", \"C\", \"C\", \"A\", \"F\", \"F\", \"F\")\nmomid <- c(\"0\", \"0\", \"0\", \"B\", \"B\", \"B\", \"E\", \"G\", \"G\", \"G\")\nsex <- c(1, 2, 1, 2, 2, 1, 2, 1, 1, 2)\npedi <- Pedigree( id, dadid, momid, sex, na_strings = \"0\" )\nplot(pedi, align_parents = FALSE, title = \"1) Without reordering\")\nhints(pedi) <- auto_hint(pedi, align_parents = FALSE)\nhorder(hints(pedi))[c(\"H\", \"I\", \"J\")] <- c(1, 2, 3)\nspouse(hints(pedi)) <- data.frame(idl = \"G\", idr = \"F\", anchor = \"left\")\nplot(pedi, align_parents = FALSE, title = \"2) With ordering\")\n\npedi <- Pedigree(sampleped)\np <- plot( pedi, ggplot_gen = TRUE, tips = c(\"affection\", \"momid\", \"dadid\"), symbolsize = 1.5, cex = 0.8 )\nplotly::layout( plotly::ggplotly(p$ggplot, tooltip = \"text\"), hoverlabel = list(bgcolor = \"darkgrey\") )"
+    },
+    {
+      "name": "kinship_and_pedigree_subsetting",
+      "intent": "Compute kinship matrices for family data, handle monozygotic twins, and subset or shrink pedigrees to informative individuals.",
+      "input": [
+        "ped_df (data frame containing family pedigree data)",
+        "rel_df (optional data frame containing twin relationships)"
+      ],
+      "stages": "1. Construct the Pedigree object using Pedigree() ;; 2. Compute the kinship matrix using kinship() ;; 3. Update family IDs and subset families using upd_famid() and bracket subsetting ;; 4. Shrink pedigrees to a target size using shrink() ;; 5. Filter for informative individuals using is_informative() and useful_inds()",
+      "code": "pedi <- Pedigree(sampleped[, -16])\nkinship(pedi)[35:48, 35:48]\n\npedi <- Pedigree(sampleped)\nmcols(pedi)$idth <- ifelse(as.numeric( stringr::str_split_i(id(ped(pedi)), \"_\", 2) ) < 200, \"A\", \"B\")\npedi <- upd_famid(pedi, mcols(pedi)$idth)\nped_a <- pedi[famid(ped(pedi)) == \"A\"]\nlst1_s <- shrink(ped_a, max_bits = 10)\nadopted(ped(ped_a)) <- FALSE\nkinship(ped_a)[1:10, 1:10]\nped_a <- is_informative(ped_a, informative = \"AvAf\", col_aff = \"affection\")\nped_a <- useful_inds(ped_a)\nas.data.frame(ped(ped_a))[\"useful\"][1:10, ]"
+    }
+  ]
+}

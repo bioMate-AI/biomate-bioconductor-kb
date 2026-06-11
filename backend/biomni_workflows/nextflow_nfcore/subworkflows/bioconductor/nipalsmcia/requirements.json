@@ -1,0 +1,36 @@
+{
+  "package": "nipalsmcia",
+  "requirements": [
+    "ComplexHeatmap",
+    "MultiAssayExperiment",
+    "Seurat",
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "ggpubr",
+    "nipalsMCIA",
+    "scales"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "dplyr",
+      "ggplot2",
+      "ggpubr",
+      "nipalsMCIA"
+    ],
+    "out_of_sample_prediction.nf": [
+      "MultiAssayExperiment",
+      "ggplot2",
+      "nipalsMCIA"
+    ],
+    "single_cell_cite_seq_mcia.nf": [
+      "ComplexHeatmap",
+      "MultiAssayExperiment",
+      "Seurat",
+      "SingleCellExperiment",
+      "nipalsMCIA",
+      "scales"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "multistateqtl",
+  "requirements": [
+    "ComplexHeatmap",
+    "QTLExperiment",
+    "multistateQTL"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "QTLExperiment",
+      "multistateQTL"
+    ]
+  }
+}

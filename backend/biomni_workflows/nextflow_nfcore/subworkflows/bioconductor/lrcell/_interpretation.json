@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gene.p=A named numeric vector of p-values from a bulk differential expression analysis, where names are gene symbols/IDs ;; marker.g=A list of marker genes for each cell type; if NULL, species and region must be specified to retrieve them from ExperimentHub ;; species=Species name (e.g., \"mouse\", \"human\") used for automatic marker retrieval ;; region=Brain region or tissue abbreviation (e.g., \"FC\" for Frontal Cortex, \"pFC\" for Prefrontal Cortex) used for automatic marker retrieval ;; method=Regression method to use; \"LiR\" for Linear Regression (used in LRcell) or \"LR\" for Logistic Regression (used in get_markergenes and LRcellCore) ;; expr=A read count matrix with rows as genes and columns as cells, used for custom enrichment score calculation ;; annot=A named vector of cell-type annotations, where names correspond to column names of expr ;; power=A hyper-parameter controlling the penalty for the proportion of cells expressing a certain gene ;; parallel=Logical indicating whether to execute enrichment score calculation in parallel ;; n.cores=Number of cores to use for parallel execution ;; topn=Number of top marker genes to select per cell type ;; min.size=Minimum number of marker genes required for a cell type to be included in LRcellCore ;; sig.cutoff=Significance cutoff for p-values/FDR in LRcellCore or plotting\n- alternatives: LRpath=The original algorithm designed for pathway/gene set enrichment analysis which inspired LRcell ;; LRcell vs LRcellCore=LRcell is a wrapper that automatically retrieves marker genes from ExperimentHub based on species/region, whereas LRcellCore is the core function that requires a user-provided marker gene list\n- when_to_use: Use this analysis when you have bulk RNA-seq differential expression results (gene p-values) and want to identify which specific cell types or sub-cell types are driving the observed transcriptional changes, especially when paired single-cell RNA-seq data for the same samples is unavailable.\n- pitfalls: Using LRcellCore with logistic regression (method = \"LR\") might trigger convergence warnings (e.g., \"Warning: glm.fit: algorithm did not converge\") if the marker gene set or input p-values are highly skewed or small ;; The columns of the expression matrix (expr) must exactly match the names of the annotation vector (annot) when calculating custom gene enrichment scores ;; Ensure correct gene identifier matching (e.g., gene symbols) between the bulk DE p-values (gene.p) and the marker gene lists.",
+  "workflows": [
+    {
+      "name": "lrcell_preloaded_markers",
+      "intent": "Run cell-type enrichment analysis on bulk RNA-seq differential expression results using pre-loaded marker genes from ExperimentHub.",
+      "input": [
+        "example_gene_pvals.RData (named numeric vector of bulk DE gene p-values)"
+      ],
+      "stages": "1. Load bulk DE p-values ;; 2. Run LRcell using linear regression with specified species and brain region ;; 3. Exclude leading genes for clean visualization ;; 4. Plot the enrichment results using a Manhattan plot.",
+      "code": "data(\"example_gene_pvals\")\nres <- LRcell(gene.p = example_gene_pvals,\n              marker.g = NULL,\n              species = \"mouse\",\n              region = \"FC\",\n              method = \"LiR\")\nFC_res <- res$FC\nsub_FC_res <- subset(FC_res, select=-lead_genes)\nhead(sub_FC_res)\nplot_manhattan_enrich(FC_res, sig.cutoff = .05, label.topn = 5)"
+    },
+    {
+      "name": "lrcell_custom_markers",
+      "intent": "Run cell-type enrichment analysis on bulk RNA-seq differential expression results using custom marker genes derived from user-provided single-cell RNA-seq data.",
+      "input": [
+        "sim.expr (single-cell gene-by-cell expression matrix)",
+        "sim.annot (named cell-type annotation vector)",
+        "example_gene_pvals.RData (named numeric vector of bulk DE gene p-values)"
+      ],
+      "stages": "1. Calculate gene enrichment scores from the single-cell expression matrix and annotations ;; 2. Extract top marker genes for each cell type ;; 3. Run LRcellCore using logistic regression with the custom marker genes ;; 4. Curate cell types and visualize the enrichment results.",
+      "code": "enriched_res <- LRcell_gene_enriched_scores(expr = sim.expr,\n                            annot = sim.annot, parallel = FALSE)\nmarker_res <- get_markergenes(enriched.g = enriched_res,\n                method = \"LR\", topn=1)\nres <- LRcellCore(gene.p = example_gene_pvals,\n           marker.g = FC_marker_genes,\n           method = \"LR\", min.size = 5, \n           sig.cutoff = 0.05)\nres$cell_type <- unlist(lapply(strsplit(res$ID, '\\\\.'), '\n[', 2))\nhead(subset(res, select=-lead_genes))\nplot_manhattan_enrich(res, sig.cutoff = .05, label.topn = 5)"
+    }
+  ]
+}

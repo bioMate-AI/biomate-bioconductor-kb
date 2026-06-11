@@ -1,0 +1,19 @@
+{
+  "package": "enrichviewnet",
+  "requirements": [
+    "enrichViewNet",
+    "ggplot2",
+    "gprofiler2",
+    "igraph",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "enrichViewNet",
+      "ggplot2",
+      "gprofiler2",
+      "igraph",
+      "limma"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "phenstat",
+  "requirements": [
+    "PhenStat"
+  ],
+  "by_workflow": {
+    "fishers_exact_categorical_analysis.nf": [
+      "PhenStat"
+    ],
+    "main.nf": [
+      "PhenStat"
+    ]
+  }
+}

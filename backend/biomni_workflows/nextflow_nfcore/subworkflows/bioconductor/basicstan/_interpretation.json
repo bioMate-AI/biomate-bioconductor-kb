@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Method=Specifies the Stan inference engine to use (e.g., \"sampling\" for MCMC/NUTS, or ADVI/BFGS) ;; ReturnBASiCS=Logical indicating whether to return a BASiCS_Chain object (TRUE) or a raw Stan object (FALSE) ;; iter=Number of iterations for the Stan sampler ;; Regression=Must be set to TRUE as the joint regression prior is the only supported mode in BASiCStan\n- alternatives: BASiCS::BASiCS_MCMC=Uses adaptive Metropolis within Gibbs sampling; prefer BASiCStan when alternative inference engines (like ADVI or NUTS) or Stan's diagnostic tools are needed\n- when_to_use: Use when analyzing single-cell RNA-seq count data to estimate gene-specific expression mean and over-dispersion parameters, particularly when standard MCMC is too slow or when detailed Stan diagnostics are required\n- pitfalls: Regression = TRUE is the only supported mode in BASiCStan() ;; Low iteration counts (e.g., iter = 10) or small warmup sizes will trigger warnings about lack of variance estimation and divergent transitions ;; The normalizeCounts function is deprecated and users should use scrapper::normalizeCounts instead",
+  "workflows": [
+    {
+      "name": "basics_stan_inference",
+      "intent": "Perform parameter estimation for single-cell RNA-seq data using Stan-based inference and convert the output for downstream BASiCS analysis.",
+      "input": [
+        "sce (SingleCellExperiment object containing single-cell expression counts and spike-in information)"
+      ],
+      "stages": "1. Load the package and generate or load the SingleCellExperiment dataset ;; 2. Run parameter estimation using BASiCStan to obtain a BASiCS_Chain object ;; 3. Run BASiCStan with ReturnBASiCS = FALSE to obtain a raw Stan object for diagnostics ;; 4. Convert the raw Stan object to a BASiCS_Chain object using Stan2BASiCS",
+      "code": "suppressPackageStartupMessages(library(\"BASiCStan\"))\nset.seed(42)\nsce <- BASiCS_MockSCE()\nstan_fit <- BASiCStan(sce, Method = \"sampling\", iter = 10)\nBASiCS_ShowFit(stan_fit)\nstan_obj <- BASiCStan(sce, ReturnBASiCS = FALSE, Method = \"sampling\", iter = 10)\nhead(summary(stan_obj)$summary)\nStan2BASiCS(stan_obj)"
+    }
+  ]
+}

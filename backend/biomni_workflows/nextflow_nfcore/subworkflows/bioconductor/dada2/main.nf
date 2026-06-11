@@ -1,132 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: dada2
-// The dada2 package infers exact amplicon sequence variants (ASVs) from high-throughput amplicon seque
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/dada2/inst/doc/dada2-intro.R
-// Upstream  : none
-// Downstream: MiscMetabar
-//
-// Install: BiocManager::install("dada2")
+// Bioconductor workflow: dada2 — paired_end_denoising_pipeline
+// Process raw paired-end FASTQ files to resolve exact amplicon sequence variants (ASVs) and construct a non-chimeric sequence table.
+// Input: sample_F.fastq.gz, sample_R.fastq.gz
+// Container: quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0
+// R packages: dada2
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DADA2 {
+process BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dada2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dada2:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dada2:1.34.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dada2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dada2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dada2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dada2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required library
     library(dada2)
-    library(jsonlite)
-
-    # --- Filtering and Trimming [] ---
-    # Key functions: filterAndTrim
-    fnF1 <- system.file("extdata", "sam1F.fastq.gz", package="dada2")
-    fnR1 <- system.file("extdata", "sam1R.fastq.gz", package="dada2")
-    filtF1 <- tempfile(fileext=".fastq.gz")
-    filtR1 <- tempfile(fileext=".fastq.gz")
-    filterAndTrim(
-        fwd=fnF1, filt=filtF1, rev=fnR1, filt.rev=filtR1,
-        trimLeft=10, truncLen=c(240, 200),
-        maxN=0, maxEE=2, compress=TRUE, verbose=TRUE
-    )
-
-
-    # --- Error Rate Learning [] ---
-    # Key functions: derepFastq, learnErrors
-    fnF1 <- system.file("extdata", "sam1F.fastq.gz", package="dada2")
-    derepF1 <- derepFastq(fnF1, verbose=TRUE)
-    errF <- learnErrors(derepF1, multithread=FALSE)
-
-
-    # --- Sample Inference and Merging [] ---
-    # Key functions: derepFastq, dada, mergePairs
-    fnF1 <- system.file("extdata", "sam1F.fastq.gz", package="dada2")
-    fnR1 <- system.file("extdata", "sam1R.fastq.gz", package="dada2")
-    derepF1 <- derepFastq(fnF1, verbose=TRUE)
-    derepR1 <- derepFastq(fnR1, verbose=TRUE)
+    cat("DADA2 version:", as.character(packageVersion("dada2")), "\n")
+    
+    # Define input files from the working directory as specified by the user
+    fnF1 <- "sample_F.fastq.gz"
+    fnR1 <- "sample_R.fastq.gz"
+    
+    # Define output paths for filtered reads
+    filtF1 <- "sample_F_filtered.fastq.gz"
+    filtR1 <- "sample_R_filtered.fastq.gz"
+    
+    # 1. Inspect quality profiles
+    pdf("quality_profiles.pdf", width = 10, height = 7)
+    plotQualityProfile(fnF1) # Forward
+    plotQualityProfile(fnR1) # Reverse
+    dev.off()
+    
+    # 2. Filter and trim reads
+    filterAndTrim(fwd=fnF1, filt=filtF1, rev=fnR1, filt.rev=filtR1,
+                  trimLeft=10, truncLen=c(240, 200), 
+                  maxN=0, maxEE=2,
+                  compress=TRUE, verbose=TRUE)
+    
+    # 3. Dereplicate filtered reads
+    derepF1 <- derepFastq(filtF1, verbose=TRUE)
+    derepR1 <- derepFastq(filtR1, verbose=TRUE)
+    
+    # 4. Learn error rates
     errF <- learnErrors(derepF1, multithread=FALSE)
     errR <- learnErrors(derepR1, multithread=FALSE)
+    
+    # Plot and save error rates for quality control
+    pdf("error_rates.pdf", width = 10, height = 7)
+    plotErrors(errF, nominalQ=TRUE)
+    plotErrors(errR, nominalQ=TRUE)
+    dev.off()
+    
+    # 5. Infer sample composition
     dadaF1 <- dada(derepF1, err=errF, multithread=FALSE)
     dadaR1 <- dada(derepR1, err=errR, multithread=FALSE)
-    merger1 <- mergePairs(
-        dadaF1, derepF1, dadaR1, derepR1, verbose=TRUE
-    )
+    print(dadaF1)
+    
+    # 6. Merge forward and reverse reads
+    merger1 <- mergePairs(dadaF1, derepF1, dadaR1, derepR1, verbose=TRUE)
+    
+    # Remove chimeras on the single merged sample (as shown in the first part of the vignette)
+    merger1.nochim <- removeBimeraDenovo(merger1, multithread=FALSE, verbose=TRUE)
+    
+    # 7. Construct sequence table (adapted for the single user-provided sample)
+    seqtab <- makeSequenceTable(list(merger1))
+    
+    # 8. Remove chimeras from the sequence table
+    seqtab.nochim <- removeBimeraDenovo(seqtab, verbose=TRUE)
+    print(dim(seqtab.nochim))
+    
+    # Save the final sequence table and results
+    saveRDS(seqtab.nochim, "seqtab_nochim.rds")
+    write.csv(as.data.frame(seqtab.nochim), "seqtab_nochim.csv", row.names = TRUE)
+    
+    cat("Pipeline completed successfully. Outputs saved to 'quality_profiles.pdf', 'error_rates.pdf', 'seqtab_nochim.rds', and 'seqtab_nochim.csv'.\n")
 
-
-    # --- Sequence Table Construction and Chimera Removal [] ---
-    # Key functions: makeSequenceTable, removeBimeraDenovo
-    mock_merger <- data.frame(
-        sequence = c("ACTG", "TGCA"),
-        abundance = c(10, 20),
-        forward = c(1, 2),
-        reverse = c(1, 2)
-    )
-    seqtab <- makeSequenceTable(list(mock_merger))
-    seqtab.nochim <- removeBimeraDenovo(
-        seqtab, multithread=FALSE, verbose=TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dada2_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dada2_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dada2_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DADA2:", paste0("    dada2: ", packageVersion("dada2"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE":',
+        paste0('        dada2: ', as.character(packageVersion("dada2")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dada2_results.csv
-    touch ${prefix}_dada2_output.rds
-    echo "BIOC_DADA2:" > versions.yml
-    echo "    dada2: 0.0.0" >> versions.yml
+    touch ${prefix}_paired_end_denoising_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_DADA2_WORKFLOW {
+workflow BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample_F.fastq.gz, sample_R.fastq.gz ] ]
 
     main:
-    BIOC_DADA2(ch_input)
+    BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_DADA2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DADA2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DADA2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DADA2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE.out.tables
+    plots    = BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE.out.plots
+    objects  = BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE.out.objects
+    versions = BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE.out.versions
 }

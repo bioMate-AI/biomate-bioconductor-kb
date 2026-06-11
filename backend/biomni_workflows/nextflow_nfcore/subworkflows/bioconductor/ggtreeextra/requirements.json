@@ -1,0 +1,29 @@
+{
+  "package": "ggtreeextra",
+  "requirements": [
+    "ggnewscale",
+    "ggplot2",
+    "ggstar",
+    "ggtree",
+    "ggtreeExtra",
+    "treeio"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggnewscale",
+      "ggplot2",
+      "ggstar",
+      "ggtree",
+      "ggtreeExtra",
+      "treeio"
+    ],
+    "same_position_multiple_layers.nf": [
+      "ggnewscale",
+      "ggplot2",
+      "ggstar",
+      "ggtree",
+      "ggtreeExtra",
+      "treeio"
+    ]
+  }
+}

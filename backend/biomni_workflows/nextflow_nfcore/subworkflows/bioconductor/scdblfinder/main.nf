@@ -1,99 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scDblFinder
-// The scDblFinder package gathers various methods for the detection and handling of doublets/multiplet
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scDblFinder/inst/doc/computeDoubletDensity.R
-// Upstream  : BiocStyle, bluster, scRNAseq, scater, scran
-// Downstream: OSCA.advanced
-//
-// Install: BiocManager::install("scDblFinder")
+// Bioconductor workflow: scDblFinder — sc_dbl_finder
+// Run the main scDblFinder workflow on a SingleCellExperiment object to score and classify doublets.
+// Input: sce.rds
+// Container: quay.io/biocontainers/bioconductor-scdblfinder:1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, SingleCellExperiment, scDblFinder
+// Visualizations: plot (ggplot/base)
+// QC: doublet detection QC
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Set random seed for reproducibility
+//  * 2. [Core Analysis] Run scDblFinder with optional doublet rate (dbr), cluster information (clusters), or sample splitting (samples)
+//  * 3. [Core Analysis] Inspect results in colData (scDblFinder.score and scDblFinder.class)
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCDBLFINDER {
+process BIOC_SCDBLFINDER_SC_DBL_FINDER {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scdblfinder"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scdblfinder:1.20.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-scdblfinder:1.20.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(seurat_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scdblfinder_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scdblfinder_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scdblfinder_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BachMammaryData)
-    library(jsonlite)
-
-    # --- Bachmammarydata [] ---
-    # Key functions: BachMammaryData, sample
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce <- BachMammaryData(samples="G_1")
-    set.seed(1001)
-    sce <- sce[,sample(ncol(sce), 1000)]
-    # --- Lognormcounts [] ---
-    # Key functions: logNormCounts, modelGeneVar, getTopHVGs, runPCA, runTSNE
-    ---------------------------------------------------------------------
-    library(scuttle)
-    sce <- logNormCounts(sce)
-    library(scran)
-    dec <- modelGeneVar(sce)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scdblfinder_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scdblfinder_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+    # 1. Set random seed for reproducibility
+    set.seed(123)
+    
+    # Load required libraries
+    suppressPackageStartupMessages(library(SingleCellExperiment))
+    suppressPackageStartupMessages(library(scDblFinder))
+    suppressPackageStartupMessages(library(BiocParallel))
+    
+    # Load user input
+    if (!file.exists("sce.rds")) {
+      stop("Required input file 'sce.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scdblfinder_output.rds")
+    sce <- readRDS("sce.rds")
+    
+    # Ensure counts assay is present and correctly named
+    if (!"counts" %in% assayNames(sce)) {
+      if (length(assays(sce)) > 0) {
+        assayNames(sce)[1] <- "counts"
+      } else {
+        stop("The input SingleCellExperiment object must contain at least one assay (counts).")
+      }
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCDBLFINDER:", paste0("    scdblfinder: ", packageVersion("scDblFinder"))),
-        "versions.yml"
+    
+    # 2. Run scDblFinder with cluster information and sample splitting
+    bp <- SnowParam(3, RNGseed=1234)
+    
+    scDblFinder_args <- list(sce = sce, BPPARAM = bp)
+    
+    if ("cluster" %in% colnames(colData(sce))) {
+      scDblFinder_args\$clusters <- "cluster"
+    }
+    
+    if ("sample_id" %in% colnames(colData(sce))) {
+      scDblFinder_args\$samples <- "sample_id"
+    }
+    
+    sce <- do.call(scDblFinder, scDblFinder_args)
+    
+    # 3. Inspect results in colData (scDblFinder.score and scDblFinder.class)
+    cat("Doublet detection summary:\n")
+    print(table(Class = sce\$scDblFinder.class))
+    
+    # Write named output files for the meaningful results
+    # Save the updated SingleCellExperiment object
+    saveRDS(sce, "sce_scDblFinder.rds")
+    
+    # Save a CSV table of the doublet scores and classifications
+    results_df <- data.frame(
+      Cell = colnames(sce),
+      scDblFinder.score = sce\$scDblFinder.score,
+      scDblFinder.class = sce\$scDblFinder.class,
+      stringsAsFactors = FALSE
     )
+    write.csv(results_df, "scDblFinder_results.csv", row.names = FALSE)
+    
+    # Save a PDF plot of the doublet score distribution
+    pdf("scDblFinder_score_histogram.pdf", width = 6, height = 4)
+    hist(sce\$scDblFinder.score, 
+         breaks = 50, 
+         main = "Distribution of scDblFinder Scores", 
+         xlab = "Doublet Score", 
+         col = "skyblue", 
+         border = "white")
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs saved: scDblFinder_results.csv, sce_scDblFinder.rds, scDblFinder_score_histogram.pdf\n")
+
+    writeLines(c(
+        '"BIOC_SCDBLFINDER_SC_DBL_FINDER":',
+        paste0('    scDblFinder: ', as.character(packageVersion('scDblFinder')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scdblfinder_results.csv
-    touch ${prefix}_scdblfinder_output.rds
-    echo "BIOC_SCDBLFINDER:" > versions.yml
-    echo "    scdblfinder: 0.0.0" >> versions.yml
+    touch ${prefix}_sc_dbl_finder.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCDBLFINDER_WORKFLOW {
+workflow BIOC_SCDBLFINDER_SC_DBL_FINDER_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(seurat_object) ]
+    ch_input  // channel: [ val(meta), [ sce.rds ] ]
 
     main:
-    BIOC_SCDBLFINDER(ch_input)
+    BIOC_SCDBLFINDER_SC_DBL_FINDER(ch_input)
 
     emit:
-    results  = BIOC_SCDBLFINDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCDBLFINDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCDBLFINDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCDBLFINDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCDBLFINDER_SC_DBL_FINDER.out.tables
+    plots    = BIOC_SCDBLFINDER_SC_DBL_FINDER.out.plots
+    objects  = BIOC_SCDBLFINDER_SC_DBL_FINDER.out.objects
+    versions = BIOC_SCDBLFINDER_SC_DBL_FINDER.out.versions
 }

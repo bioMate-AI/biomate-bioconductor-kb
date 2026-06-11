@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: countsTable=A matrix of RNA-seq short read counts (or assay of a SummarizedExperiment) ;; train_id=Vector of indices of known housekeeping/conserved genes used for training ;; gamma=A numeric sequence of candidate values for the kernel parameter gamma ;; nu=Parameter controlling the trade-off between model complexity and training errors (default 0.01) ;; reject_rate=The expected proportion of outliers in the training set ;; ds=Logical indicating if the dataset is from different species (TRUE) or the same species (FALSE) ;; sce=A SingleCellExperiment object containing scRNA-seq counts ;; stable_idx=Vector of stable/housekeeping gene identifiers for scRNA-seq ;; filtered=Logical indicating whether to filter genes in scMEB\n- alternatives: Existing DEG detection methods that require prior data normalization or prior cell clustering.\n- when_to_use: Appropriate for identifying differentially expressed genes (DEGs) in bulk RNA-seq (same or different species) without prior normalization, or in single-cell RNA-seq data without requiring prior cell clustering.\n- pitfalls: Setting ds = FALSE for different species data or vice versa ;; For different species data, failing to format the input countsTable with 4 columns (gene length 1, count 1, gene length 2, count 2) ;; Misinterpreting prediction results: a prediction of TRUE means the gene is non-DE (inside the ball), while FALSE means the gene is a DE gene (outlier).",
+  "workflows": [
+    {
+      "name": "sfmeb_bulk_same_species",
+      "intent": "Identify differentially expressed genes in bulk RNA-seq data from the same species using the SFMEB method.",
+      "input": [
+        "countsTable (matrix of raw RNA-seq counts where rows are genes and columns are samples/replicates)",
+        "train_id (vector of row indices representing known housekeeping genes)"
+      ],
+      "stages": "1. Define candidate gamma parameters ;; 2. Train the SFMEB model using NIMEB with ds = FALSE ;; 3. Predict DEG status using predict on the trained model",
+      "code": "gamma <- seq(1e-06,5e-05,1e-06)\nsim_model_sp <- NIMEB(countsTable=assay(sim_data_sp), train_id=1:1000, gamma,\nnu = 0.01, reject_rate = 0.05, ds = FALSE)\nsim_model_sp_pred <- predict(sim_model_sp$model, assay(sim_data_sp))\nsummary(sim_model_sp_pred)"
+    },
+    {
+      "name": "sfmeb_bulk_different_species",
+      "intent": "Identify differentially expressed genes in bulk RNA-seq data from different species using the SFMEB method.",
+      "input": [
+        "countsTable (matrix containing 4 columns: species 1 gene lengths, species 1 counts, species 2 gene lengths, species 2 counts)",
+        "train_id (vector of row indices representing conserved genes)"
+      ],
+      "stages": "1. Define candidate gamma parameters ;; 2. Train the SFMEB model using NIMEB with ds = TRUE",
+      "code": "gamma <- seq(1e-07,2e-05,1e-06)\nsim_model_dsp <- NIMEB(countsTable=assay(sim_data_dsp), train_id=1:1000, gamma,\nnu = 0.01, reject_rate = 0.1, ds = TRUE)"
+    },
+    {
+      "name": "scmeb_single_cell",
+      "intent": "Identify differentially expressed genes in single-cell RNA-seq data without prior cell clustering.",
+      "input": [
+        "sce (a SingleCellExperiment object containing scRNA-seq counts)",
+        "stable_idx (vector of stable/housekeeping gene names or indices)"
+      ],
+      "stages": "1. Train the scMEB model using scMEB ;; 2. Predict DEG status using predict on the trained model and PCA data ;; 3. Extract distance metrics to rank genes by DEG likelihood",
+      "code": "sim_scRNA <- scMEB(sce=sim_scRNA_data, stable_idx=stable_gene, \nfiltered = TRUE, gamma = seq(1e-04,0.001,1e-05), nu = 0.01, \nreject_rate = 0.1)\nsim_scRNA_pred <- predict(sim_scRNA$model, sim_scRNA$dat_pca)\nsummary(sim_scRNA_pred)\ntable(sim_scRNA$dist>0)\nsim_scRNA_dist <- data.frame(Gene=rownames(sim_scRNA_data),\n                             Distance=sim_scRNA$dist)\nhead(sim_scRNA_dist)"
+    }
+  ]
+}

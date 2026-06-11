@@ -1,138 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: graphite
-// Graph objects from pathway topology derived from KEGG, Panther, PathBank, PharmGKB, Reactome SMPDB a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/graphite/inst/doc/graphite.R
-// Upstream  : SPIA, graph, topologyGSA
-// Downstream: none
-//
-// Install: BiocManager::install("graphite")
+// Bioconductor workflow: graphite — spia_analysis
+// Run Signaling Pathway Impact Analysis (SPIA) on differential gene expression data using graphite pathways.
+// Input: top.txt, hgu133plus2.db
+// Container: quay.io/biocontainers/bioconductor-graphite:1.56.0--r45hdfd78af_0
+// R packages: AnnotationDbi, graph, graphite, hgu133plus2.db, SPIA, topologyGSA
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, graphite, hgu133plus2.db
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Map probe IDs to Entrez IDs and format with the "ENTREZID:" prefix
+//  * 2. [Input & Preparation] Extract logFC for significant genes and define the background gene list
+//  * 3. [Input & Preparation] Load KEGG pathways and convert identifiers to "ENTREZID"
+//  * 4. [Input & Preparation] Prepare SPIA input files using prepareSPIA
+//  * 5. [Core Analysis] Run SPIA using runSPIA
 
 nextflow.enable.dsl = 2
 
-process BIOC_GRAPHITE {
+process BIOC_GRAPHITE_SPIA_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-graphite"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-graphite:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-graphite:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_graphite_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_graphite_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_graphite_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationDbi", "graph", "graphite", "hgu133plus2.db", "SPIA", "topologyGSA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(graphite)
-    library(Do)
-    library(jsonlite)
-
-    # --- Identifier Conversion [] ---
-    # Key functions: convertIdentifiers, nodes
-    humanReactome <- pathways("hsapiens", "reactome")
-    p <- humanReactome[[1]]
-    pSymbol <- convertIdentifiers(p, "SYMBOL")
-    reactomeSymbol <- convertIdentifiers(humanReactome[1:5], "SYMBOL")
-    symbol_nodes <- head(nodes(pSymbol))
-
-
-    # --- Graph Conversion [] ---
-    # Key functions: pathwayGraph
-    humanReactome <- pathways("hsapiens", "reactome")
-    p <- humanReactome[[1]]
-    g_default <- pathwayGraph(p)
-    g_mixed <- pathwayGraph(p, which = "mixed")
-
-
-    # --- SPIA Pathway Analysis [] ---
-    # Key functions: pathways, convertIdentifiers, prepareSPIA, runSPIA
+    library(SPIA)
+    library(AnnotationDbi)
+    
+    # Load the annotation database. 
+    # If hgu133plus2.db is provided as a SQLite file in the working directory, load it using loadDb.
+    # Otherwise, attempt to load it as an installed Bioconductor package.
+    if (file.exists("hgu133plus2.db")) {
+      hgu133plus2.db <- loadDb("hgu133plus2.db")
+    } else {
+      library(hgu133plus2.db)
+    }
+    
+    # Read the user input differential expression results
+    top <- read.table("top.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # 1. Map probe IDs to Entrez IDs and format with the "ENTREZID:" prefix
+    top\$ENTREZ <- mapIds(hgu133plus2.db,
+                         top\$ID, "ENTREZID", "PROBEID", multiVals = "first")
+    top <- top[!is.na(top\$ENTREZ) & !duplicated(top\$ENTREZ), ]
+    top\$ENTREZ <- paste("ENTREZID", top\$ENTREZ, sep = ":")
+    tg1 <- top[top\$adj.P.Val < 0.05, ]
+    
+    # 2. Extract logFC for significant genes and define the background gene list
+    DE_genes = tg1\$logFC
+    names(DE_genes) <- tg1\$ENTREZ
+    ALL_genes <- top\$ENTREZ
+    
+    # 3. Load KEGG pathways and convert identifiers to "ENTREZID"
     kegg <- pathways("hsapiens", "kegg")
     kegg <- convertIdentifiers(kegg, "ENTREZID")
-    kegg_subset <- kegg[1:2]
-    prepareSPIA(kegg_subset, "keggEx")
-    de_genes <- c("ENTREZID:672" = 2.5, "ENTREZID:7157" = -1.8)
-    all_genes <- c("ENTREZID:672", "ENTREZID:7157", "ENTREZID:100")
-    res <- runSPIA(de = de_genes, all = all_genes, "keggEx")
-
-
-    # --- Topology-Based Pathway Analysis [] ---
-    # Key functions: pathways, convertIdentifiers, nodes, runTopologyGSA
-    kegg <- pathways("hsapiens", "kegg")
-    p <- convertIdentifiers(kegg[[1]], "SYMBOL")
-    genes <- head(nodes(p))
-    y1 <- matrix(rnorm(50), nrow = 10, ncol = length(genes))
-    y2 <- matrix(rnorm(50), nrow = 10, ncol = length(genes))
-    colnames(y1) <- paste("SYMBOL", genes, sep = ":")
-    colnames(y2) <- paste("SYMBOL", genes, sep = ":")
-    res_gsa <- runTopologyGSA(p, "var", y1, y2, 0.05)
-
-
-    # --- Custom Pathway Construction [] ---
-    # Key functions: buildPathway
-    edges <- data.frame(src_type = "ENTREZID", src = "672",
-                        dest_type = "ENTREZID", dest = "7157",
-                        direction = "undirected", type = "binding")
-    edgemix <- data.frame(src_type = "CHEBI", src = "77750",
-                          dest_type = "ENTREZID", dest = "7157",
-                          direction = "undirected",
-                          type = "biochemicalReaction")
-    pathway <- buildPathway("#1", "example", "hsapiens", "database",
-                            proteinEdges = edges,
-                            mixedEdges = edgemix)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_graphite_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_graphite_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_graphite_output.rds")
+    
+    # 4. Prepare SPIA input files using prepareSPIA
+    prepareSPIA(kegg, "keggEx")
+    
+    # 5. Run SPIA using runSPIA
+    res <- runSPIA(de = DE_genes, all = ALL_genes, "keggEx")
+    
+    # Write meaningful output files
+    write.csv(res, "spia_results.csv", row.names = FALSE)
+    saveRDS(res, "spia_results.rds")
+    
+    # Clean up temporary SPIA files created in the working directory
+    if (file.exists("keggExSPIA.RData")) {
+      file.remove("keggExSPIA.RData")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GRAPHITE:", paste0("    graphite: ", packageVersion("graphite"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GRAPHITE_SPIA_ANALYSIS":',
+        paste0('    graphite: ', as.character(packageVersion('graphite')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_graphite_results.csv
-    touch ${prefix}_graphite_output.rds
-    echo "BIOC_GRAPHITE:" > versions.yml
-    echo "    graphite: 0.0.0" >> versions.yml
+    touch ${prefix}_spia_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GRAPHITE_WORKFLOW {
+workflow BIOC_GRAPHITE_SPIA_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ top.txt, hgu133plus2.db ] ]
 
     main:
-    BIOC_GRAPHITE(ch_input)
+    BIOC_GRAPHITE_SPIA_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GRAPHITE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GRAPHITE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GRAPHITE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GRAPHITE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GRAPHITE_SPIA_ANALYSIS.out.tables
+    plots    = BIOC_GRAPHITE_SPIA_ANALYSIS.out.plots
+    objects  = BIOC_GRAPHITE_SPIA_ANALYSIS.out.objects
+    versions = BIOC_GRAPHITE_SPIA_ANALYSIS.out.versions
 }

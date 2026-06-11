@@ -1,0 +1,47 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pset_name=A character string specifying the name of the study/dataset when building a PharmacoSet from a MultiAssayExperiment ;; pharmacoset=A PharmacoSet object to be converted into a gDR-compatible data.table ;; manifest_path=Path to the manifest file containing experimental metadata ;; template_path=Path to the template file(s) defining plate layouts and drug concentrations ;; result_path=Path to the raw result/readout file(s) from the scanner ;; path_to_file=Path to the single LEVEL5 PRISM data file ;; prism_data_path=Path to the LEVEL6 PRISM collapsed log fold change viability data file ;; cell_line_data_path=Path to the LEVEL6 PRISM cell line metadata file ;; treatment_data_path=Path to the LEVEL6 PRISM treatment metadata file\n- alternatives: PharmacoGx=Mentioned as a popular Bioconductor package for containerizing drug response and genomic data into PharmacoSet objects. gDRimport acts as a bridge to convert between gDR's MultiAssayExperiment and PharmacoGx's PharmacoSet.\n- when_to_use: Use when importing raw drug response data from scanners (Tecan, D300, EnVision) to prepare it for the gDR processing pipeline. Use when converting a gDR-processed MultiAssayExperiment into a PharmacoSet for downstream pharmacogenomic analysis, or when converting a PharmacoSet into a gDR-compatible data.table. Use when processing public PRISM datasets (LEVEL5 or LEVEL6) from DepMap.\n- pitfalls: Drug-combination data conversion from PharmacoSets to gDR is not currently supported (only single-agent data conversion is supported). Ensure that the correct level of PRISM data (LEVEL5 vs LEVEL6) is matched with its corresponding converter function, as LEVEL6 requires three distinct files while LEVEL5 requires only one.",
+  "workflows": [
+    {
+      "name": "mae_to_pharmacoset",
+      "intent": "Convert a gDR-generated MultiAssayExperiment (MAE) object into a PharmacoGx PharmacoSet (PSet) object.",
+      "input": [
+        "kyung2022mae/MAE_E2.qs2 (A gDR-generated MultiAssayExperiment object saved as a file)"
+      ],
+      "stages": "1. Load the MAE object using qs2::qs_read ;; 2. Convert the MAE object to a PharmacoSet object using convert_MAE_to_PSet ;; 3. Extract the TreatmentResponseExperiment using treatmentResponse",
+      "code": "(mae <- qs2 :: qs_read ( system.file ( \"extdata\" , \"kyung2022mae\" , \"MAE_E2.qs2\" , package = \"gDRimport\" ) ) )\npset <- convert_MAE_to_PSet (mae, pset_name= \"Kyung2022\" )\ntre <- treatmentResponse (pset)"
+    },
+    {
+      "name": "pharmacoset_to_gdr",
+      "intent": "Convert a PharmacoSet (PSet) object into a data.table format suitable for the gDR processing pipeline.",
+      "input": [
+        "Tavor_2020 (A PharmacoSet dataset name or local PSet object)"
+      ],
+      "stages": "1. Load or retrieve the PharmacoSet using getPSet ;; 2. Convert the PharmacoSet to a data.table using convert_pset_to_df ;; 3. Subset the data to extract relevant cell lines or treatments ;; 4. Run the gDR processing pipeline using gDRcore::runDrugResponseProcessingPipeline",
+      "code": "pset <- getPSet ( \"Tavor_2020\" )\ndt <- convert_pset_to_df ( pharmacoset = pset)\nsubset_cl <- dt $ Clid[ 1 ]\nx <- dt[Clid == subset_cl]\nse <- gDRcore :: runDrugResponseProcessingPipeline (x)"
+    },
+    {
+      "name": "raw_data_import",
+      "intent": "Load and merge raw drug response files (manifest, templates, and results) into a unified gDR-compatible list structure.",
+      "input": [
+        "manifest.xlsx (Metadata manifest file)",
+        "template.xlsx (Plate layout template file)",
+        "results.csv (Raw scanner readout results file)"
+      ],
+      "stages": "1. Load the manifest file using load_manifest ;; 2. Load the template files using load_templates ;; 3. Load the raw results using load_results ;; 4. Load and merge all three components together using load_data",
+      "code": "ml <- load_manifest(manifest_path(td1))\nt_df <- load_templates(template_path(td1))\nr_df <- suppressMessages(load_results(result_path(td1)))\nl_tbl <- suppressMessages( load_data(manifest_path(td1), template_path(td1), result_path(td1)))"
+    },
+    {
+      "name": "prism_data_processing",
+      "intent": "Process LEVEL5 or LEVEL6 PRISM multiplexed cancer cell line screening data and convert it to gDR input.",
+      "input": [
+        "prism_level5.csv (Single LEVEL5 PRISM data file)",
+        "prism_level6_data.csv (LEVEL6 collapsed log fold change viability data)",
+        "cell_line_metadata.csv (Cell line metadata file)",
+        "treatment_metadata.csv (Treatment metadata file)"
+      ],
+      "stages": "1. Process LEVEL5 PRISM data using convert_LEVEL5_prism_to_gDR_input ;; 2. Process LEVEL6 PRISM data using convert_LEVEL6_prism_to_gDR_input",
+      "code": "convert_LEVEL5_prism_to_gDR_input(\"path_to_file\")\nconvert_LEVEL6_prism_to_gDR_input(\"prism_data_path\", \"cell_line_data_path\", \"treatment_data_path\")"
+    }
+  ]
+}

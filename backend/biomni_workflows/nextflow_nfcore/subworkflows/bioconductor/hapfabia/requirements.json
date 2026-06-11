@@ -1,0 +1,14 @@
+{
+  "package": "hapfabia",
+  "requirements": [
+    "hapFabia"
+  ],
+  "by_workflow": {
+    "direct_sparse_matrix_analysis.nf": [
+      "hapFabia"
+    ],
+    "main.nf": [
+      "hapFabia"
+    ]
+  }
+}

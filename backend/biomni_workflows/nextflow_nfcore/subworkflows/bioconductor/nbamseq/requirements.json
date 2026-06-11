@@ -1,0 +1,15 @@
+{
+  "package": "nbamseq",
+  "requirements": [
+    "BiocParallel",
+    "NBAMSeq",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "NBAMSeq",
+      "ggplot2"
+    ]
+  }
+}

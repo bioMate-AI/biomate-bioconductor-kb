@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies the output data type to retrieve (\"individuals\", \"biosamples\", \"analyses\", \"filtering_terms\", \"counts\", \"g_variants\", \"cnv_fraction\", \"cnv_frequency\") ;; output=Specifies the output format, such as \"pgxseg\" or \"seg\" for variants, and \"pgxfreq\" or \"pgxmatrix\" for CNV frequencies ;; filters=Identifiers (e.g., NCIt codes) used to filter queries, combined with AND logic for metadata and OR logic for counts/frequencies ;; codematches=Logical value; if TRUE, excludes child concepts of hierarchical filters to return exact matches only ;; domain=Specifies the database domain, defaulting to \"progenetix.org\" but can be set to \"cancercelllines.org\" ;; save_file=Logical; when TRUE (only for type=\"g_variants\"), saves retrieved variants to a local file instead of returning them ;; group_id=Column name used for grouping in survival plots or CNV frequency calculations\n- alternatives: byconaut=An R package mentioned for local visualization of `.pgxseg` files when dealing with a large number of samples ;; IGV=An external tool mentioned for visualizing `.seg` files ;; Progenetix website=An online platform where users can upload `.pgxseg` files for visualization\n- when_to_use: Use when retrieving curated cancer CNV profiles and clinical metadata from Progenetix or Cancer Cell Lines databases, analyzing copy number variation fractions/frequencies across cohorts, or processing and visualizing local copy number segment data\n- pitfalls: Variant data (type=\"g_variants\") cannot be queried using filters or individual IDs due to timeout constraints and must be queried using biosample IDs ;; codematches should not be set to TRUE when filters include ontology-irrelevant terms like PubMed or cohort identifiers ;; codematches is not available when type=\"analyses\" because analysis data does not include filter information ;; Not all individuals or samples have available survival data, which may affect survival visualization ;; One biosample ID may correspond to multiple analysis IDs, meaning the number of analysis profiles may not equal the number of samples",
+  "workflows": [
+    {
+      "name": "process_local_pgxseg",
+      "intent": "Extract segment data, metadata, calculate CNV frequencies, and visualize survival data from a local `.pgxseg` file.",
+      "input": [
+        "example.pgxseg (A local tab-separated file containing copy number segment variants and associated clinical metadata)"
+      ],
+      "stages": "1. Extract segment data using pgxSegprocess ;; 2. Extract metadata using pgxSegprocess ;; 3. Visualize survival data using Kaplan-Meier plots ;; 4. Calculate CNV frequency based on metadata grouping ;; 5. Extract all data types simultaneously",
+      "code": "library(pgxRpi)\nlibrary(GenomicRanges)\nfile_name <- system.file(\"extdata\", \"example.pgxseg\",package = 'pgxRpi')\nseg <- pgxSegprocess(file=file_name,return_seg = TRUE)\nmeta <- pgxSegprocess(file=file_name,return_metadata = TRUE)\npgxSegprocess(file=file_name,show_KM_plot = TRUE)\npgxSegprocess(file=file_name,show_KM_plot = TRUE,group_id = 'histological_diagnosis_id')\npgxSegprocess(file=file_name,show_KM_plot = TRUE,pval=TRUE,palette='npg')\nfrequency <- pgxSegprocess(file=file_name,return_frequency = TRUE)\nfrequency_2 <- pgxSegprocess(file=file_name,return_frequency = TRUE, group_id ='icdo_morphology_id')\ninfo <- pgxSegprocess(file=file_name,show_KM_plot = TRUE, return_seg = TRUE, return_metadata = TRUE, return_frequency = TRUE)"
+    },
+    {
+      "name": "calculate_cnv_frequency",
+      "intent": "Compute binned CNV frequencies from custom segment data.",
+      "input": [
+        "segdata.tsv (A data frame or file containing segment data with sample ID, chromosome, start, end, and CNV state columns)"
+      ],
+      "stages": "1. Calculate CNV frequency using segtoFreq specifying the CNV state column index ;; 2. Calculate level-specific CNV frequency using EFO codes",
+      "code": "library(pgxRpi)\nvariants <- pgxLoader(type=\"g_variants\",biosample_id = c(\"pgxbs-kftvhmz9\", \"pgxbs-kftvhnqz\",\"pgxbs-kftvhupd\"),output=\"pgxseg\")\nsegdata <- variants[variants$variant_type %in% c(\"DUP\",\"DEL\"),]\nsegfreq1 <- segtoFreq(segdata,cnv_column_idx = 6, cohort_name=\"c1\")\nsegfreq2 <- segtoFreq(segdata,cnv_column_idx = 9,cohort_name=\"c1\")"
+    }
+  ]
+}

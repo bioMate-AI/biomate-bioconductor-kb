@@ -1,106 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scRecover
-// scRecover is an R package for imputation of single-cell RNA-seq (scRNA-seq) data. It will detect and
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scRecover/inst/doc/scRecover.R
-// Upstream  : BiocParallel, SingleCellExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("scRecover")
+// Bioconductor workflow: scRecover — scrna_seq_imputation
+// Detect and impute dropout values in a scRNA-seq raw read counts matrix or SingleCellExperiment object while keeping real zeros unchanged.
+// Input: counts, labels
+// Container: quay.io/biocontainers/bioconductor-screcover:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, SingleCellExperiment, scRecover
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load or format input data (matrix or SingleCellExperiment)
+//  * 2. [Core Analysis] Run scRecover with Kcluster or labels specified to perform imputation
+//  * 3. [Visualization & Output] Retrieve imputed matrices from the specified output directory
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCRECOVER {
+process BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-screcover"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-screcover:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-screcover:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_screcover_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_screcover_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_screcover_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Demo1 [] ---
-    # Key functions: scRecover
-    # Load test data for scRecover
-    data(scRecoverTest)
-    # Run scRecover with Kcluster specified
-    scRecover(counts = counts, Kcluster = 2, outputDir = "./outDir_scRecover/", verbose = FALSE)
-    # Or run scRecover with labels specified
-    # --- Demo2 [] ---
-    # Key functions: SingleCellExperiment, sce, scRecover
-    # Load test data for scRecover
-    data(scRecoverTest)
-    # Convert the test data in scRecover to SingleCellExperiment data representation
-    sce <- SingleCellExperiment(assays = list(counts = as.matrix(counts)))
-    # Run scRecover with SingleCellExperiment input sce (Kcluster specified)
-    # --- Demo3 [] ---
-    # Key functions: countsSampling, estDropoutNum
-    # Load test data
-    data(scRecoverTest)
-    # Downsample 10% read counts in oneCell
-    set.seed(999)
-    oneCell.down <- countsSampling(counts = oneCell, fraction = 0.1)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_screcover_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(scRecover)
+    library(BiocParallel)
+    suppressMessages(library(SingleCellExperiment))
+    
+    # ==========================================
+    # 1. Load or format input data
+    # ==========================================
+    
+    # Read counts matrix or SingleCellExperiment object from the working directory
+    counts <- NULL
+    if (file.exists("counts.rds")) {
+      counts <- readRDS("counts.rds")
+    } else if (file.exists("counts.csv")) {
+      counts <- as.matrix(read.csv("counts.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("counts.tsv")) {
+      counts <- as.matrix(read.delim("counts.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("sce.rds")) {
+      sce_input <- readRDS("sce.rds")
+      counts <- assay(sce_input, "counts")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_screcover_results.csv")
+      stop("Error: Input counts file (counts.rds, counts.csv, counts.tsv, or sce.rds) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_screcover_output.rds")
+    
+    # Read optional labels vector from the working directory
+    labels <- NULL
+    if (file.exists("labels.rds")) {
+      labels <- readRDS("labels.rds")
+    } else if (file.exists("labels.csv")) {
+      labels <- read.csv("labels.csv", header = FALSE)[[1]]
+    } else if (file.exists("labels.tsv")) {
+      labels <- read.delim("labels.tsv", header = FALSE)[[1]]
+    } else if (file.exists("labels.txt")) {
+      labels <- readLines("labels.txt")
     }
+    
+    # Ensure counts is in matrix format if it's not already a SingleCellExperiment
+    if (is.data.frame(counts)) {
+      counts <- as.matrix(counts)
+    }
+    
+    # ==========================================
+    # 2. Parallel Execution Setup
+    # ==========================================
+    
+    # Set the parameters and register the back-end to be used based on OS
+    if (.Platform\$OS.type == "unix") {
+      message("Setting up MulticoreParam for Unix/Mac parallel execution...")
+      # Using a safe number of workers (2) to prevent resource exhaustion
+      param <- MulticoreParam(workers = 2, progressbar = TRUE)
+      register(param)
+    } else {
+      message("Setting up SnowParam for Windows parallel execution...")
+      # Using a safe number of workers (2) to prevent resource exhaustion
+      param <- SnowParam(workers = 2, type = "SOCK", progressbar = TRUE)
+      register(param)
+    }
+    
+    # ==========================================
+    # 3. Run scRecover Imputation
+    # ==========================================
+    
+    # Execute a single appropriate run of scRecover with parallelization and explicit outputDir
+    if (!is.null(labels)) {
+      message("Running parallel scRecover with labels specified...")
+      scRecover(counts = counts, labels = labels, parallel = TRUE, BPPARAM = param, outputDir = "./outDir_scRecover/", verbose = FALSE)
+    } else {
+      message("Running parallel scRecover with Kcluster specified...")
+      scRecover(counts = counts, Kcluster = 2, parallel = TRUE, BPPARAM = param, outputDir = "./outDir_scRecover/", verbose = FALSE)
+    }
+    
+    # ==========================================
+    # 4. Retrieve and Save Imputed Results
+    # ==========================================
+    
+    # Locate and copy the primary imputed outputs to the working directory
+    imputed_dirs <- c("./outDir_scRecover/")
+    output_found <- FALSE
+    
+    for (dir in imputed_dirs) {
+      if (dir.exists(dir)) {
+        imputed_files <- list.files(dir, pattern = "\\\\.(csv|rds|txt)\$", full.names = TRUE, recursive = TRUE)
+        if (length(imputed_files) > 0) {
+          message("Imputation successful. Copying results from ", dir, " to working directory...")
+          for (f in imputed_files) {
+            dest_file <- file.path(".", paste0("final_", basename(f)))
+            file.copy(f, dest_file, overwrite = TRUE)
+            message("Saved: ", dest_file)
+          }
+          output_found <- TRUE
+        }
+      }
+    }
+    
+    if (!output_found) {
+      warning("No imputed output files were detected in the output directories.")
+    }
+    
+    message("scRecover pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCRECOVER:", paste0("    screcover: ", packageVersion("scRecover"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION":',
+        paste0('    scRecover: ', as.character(packageVersion('scRecover')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_screcover_results.csv
-    touch ${prefix}_screcover_output.rds
-    echo "BIOC_SCRECOVER:" > versions.yml
-    echo "    screcover: 0.0.0" >> versions.yml
+    touch ${prefix}_scrna_seq_imputation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCRECOVER_WORKFLOW {
+workflow BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts, labels ] ]
 
     main:
-    BIOC_SCRECOVER(ch_input)
+    BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION(ch_input)
 
     emit:
-    results  = BIOC_SCRECOVER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCRECOVER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCRECOVER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCRECOVER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION.out.tables
+    plots    = BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION.out.plots
+    objects  = BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION.out.objects
+    versions = BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION.out.versions
 }

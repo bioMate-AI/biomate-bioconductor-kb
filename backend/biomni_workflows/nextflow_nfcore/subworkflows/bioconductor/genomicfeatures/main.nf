@@ -1,158 +1,228 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GenomicFeatures
-// Extract the genomic locations of genes, transcripts, exons, introns, and CDS, for the gene models st
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GenomicFeatures/inst/doc/GenomicFeatures.R
-// Upstream  : none
-// Downstream: Cogito, cpvSNP, ensembldb, GSReg, Guitar
-//
-// Install: BiocManager::install("GenomicFeatures")
+// Bioconductor workflow: GenomicFeatures — genomic_features_annotation
+// Annotate user-defined genomic regions with transcript, exon, intron, CDS, and promoter context, map them to transcript-relative coordinates, and calculate trans
+// Input: regions.bed, coldata.csv
+// Container: 1.62.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicFeatures, GenomicRanges, IRanges, S4Vectors, TxDb.Hsapiens.UCSC.hg19.knownGene
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENOMICFEATURES {
+process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genomicfeatures"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomicfeatures:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomicfeatures:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genomicfeatures_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genomicfeatures_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genomicfeatures_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required Bioconductor libraries
     library(GenomicFeatures)
-    library(BSgenome.Hsapiens.UCSC.hg19)
-    library(jsonlite)
-
-
-    # --- Loadgenomicfeatures [] ---
-    # Key functions: suppressPackageStartupMessages, loadDb, extdata, hg19_knownGene_sample.sqlite, shorthand
-    suppressPackageStartupMessages(library(GenomicFeatures))
-    samplefile <- system.file("extdata", "hg19_knownGene_sample.sqlite",
-                              package="GenomicFeatures")
-    txdb <- loadDb(samplefile)
-    txdb
+    library(GenomicRanges)
+    library(S4Vectors)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    hg19_txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene  # shorthand (for convenience)
-    hg19_txdb
-
-    # --- Seqlevels [] ---
-    # Key functions: seqlevels, chr1, seqlevels0
-    head(seqlevels(hg19_txdb))
-    seqlevels(hg19_txdb) <- "chr1"
-    seqlevels(hg19_txdb) <- seqlevels0(hg19_txdb)
-
-    # --- Seqlevels4 [] ---
-    # Key functions: seqlevels, chr15, columns, keytypes, select
-    seqlevels(hg19_txdb) <- "chr15"
-    seqlevels(hg19_txdb)
-    keys <- c("100033416", "100033417", "100033420")
-    columns(hg19_txdb)
-    keytypes(hg19_txdb)
-    select(hg19_txdb, keys = keys, columns="TXNAME", keytype="GENEID")
-    columns(hg19_txdb)
-    cols <- c("TXNAME", "TXSTRAND", "TXCHROM")
-    select(hg19_txdb, keys=keys, columns=cols, keytype="GENEID")
-
-    # --- Transcripts1 [] ---
-    # Key functions: transcripts, strand, runLength, chr15
-    GR <- transcripts(hg19_txdb)
-    GR[1:3]
-    tx_strand <- strand(GR)
-    tx_strand
-    sum(runLength(tx_strand))
-    length(GR)
-    GR <- transcripts(hg19_txdb, filter=list(tx_chrom = "chr15", tx_strand = "+"))
-    length(GR)
-    unique(strand(GR))
-
-    # --- Transcripts4 [] ---
-    # Key functions: promoters, exons, transcriptsBy, gene
-    PR <- promoters(hg19_txdb, upstream=2000, downstream=400)
-    PR
-    EX <- exons(hg19_txdb)
-    EX[1:4]
-    length(EX)
-    length(GR)
-    GRList <- transcriptsBy(hg19_txdb, by = "gene")
-    length(GRList)
-    names(GRList)[10:13]
-    GRList[11:12]
-
-    # --- Exons By [] ---
-    # Key functions: exonsBy, select, intronsByTranscript, fiveUTRsByTranscript, threeUTRsByTranscript, suppressPackageStartupMessages, shorthand, extractTranscriptSeqs
-    GRList <- exonsBy(hg19_txdb, by = "tx")
-    length(GRList)
-    names(GRList)[10:13]
-    GRList[[12]]
-    GRList <- exonsBy(hg19_txdb, by = "tx")
-    tx_ids <- names(GRList)
-    head(select(hg19_txdb, keys=tx_ids, columns="TXNAME", keytype="TXID"))
-
-    ## ----introns-UTRs-------------------------------------------------------------
-    length(intronsByTranscript(hg19_txdb))
-    length(fiveUTRsByTranscript(hg19_txdb))
-    length(threeUTRsByTranscript(hg19_txdb))
-    suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg19))
-    genome <- BSgenome.Hsapiens.UCSC.hg19  # shorthand (for convenience)
-    tx_seqs1 <- extractTranscriptSeqs(genome, hg19_txdb, use.names=TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomicfeatures_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomicfeatures_results.csv")
+    
+    # ==========================================
+    # STAGE 1: Import User Regions (BED format)
+    # ==========================================
+    message("Stage 1: Importing user regions from regions.bed...")
+    
+    if (!file.exists("regions.bed")) {
+        stop("Input file 'regions.bed' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomicfeatures_output.rds")
+    
+    # Read BED file robustly, ignoring comment lines
+    bed_data <- read.table("regions.bed", header=FALSE, sep="\t", stringsAsFactors=FALSE, comment.char="#")
+    
+    if (ncol(bed_data) < 3) {
+        stop("regions.bed must have at least 3 columns (chrom, start, end)")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENOMICFEATURES:", paste0("    genomicfeatures: ", packageVersion("GenomicFeatures"))),
-        "versions.yml"
+    
+    colnames(bed_data)[1:3] <- c("chrom", "start", "end")
+    
+    # Handle optional BED columns (name, score, strand)
+    name <- if (ncol(bed_data) >= 4) bed_data[,4] else paste0("region_", seq_len(nrow(bed_data)))
+    score <- if (ncol(bed_data) >= 5) bed_data[,5] else rep(0, nrow(bed_data))
+    strand <- if (ncol(bed_data) >= 6) bed_data[,6] else rep("*", nrow(bed_data))
+    
+    # Construct GRanges object (BED is 0-based, so start coordinate is incremented by 1)
+    user_gr <- GRanges(
+        seqnames = bed_data\$chrom,
+        ranges = IRanges(start = bed_data\$start + 1, end = bed_data\$end),
+        strand = strand,
+        name = name,
+        score = score
     )
+    
+    # ==========================================
+    # STAGE 2: Load and Configure TxDb Annotation
+    # ==========================================
+    message("Stage 2: Loading TxDb annotation database...")
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+    
+    # Align seqlevels styles to avoid mismatch warnings/errors
+    seqlevelsStyle(user_gr) <- seqlevelsStyle(txdb)
+    
+    # Restrict TxDb active chromosomes to those present in user data to optimize performance
+    active_chrs <- intersect(seqlevels(txdb), unique(as.character(seqnames(user_gr))))
+    if (length(active_chrs) > 0) {
+        seqlevels(txdb) <- active_chrs
+    } else {
+        warning("No overlapping chromosomes found between input regions and TxDb. Resetting to default seqlevels.")
+        seqlevels(txdb) <- seqlevels0(txdb)
+    }
+    
+    # ==========================================
+    # STAGE 3: Extract Genomic Features
+    # ==========================================
+    message("Stage 3: Extracting genomic features from TxDb...")
+    tx <- transcripts(txdb)
+    ex <- exons(txdb)
+    cds_regions <- cds(txdb)
+    proms <- promoters(txdb, upstream=2000, downstream=400)
+    
+    # ==========================================
+    # STAGE 4: Annotate User Regions with Overlaps
+    # ==========================================
+    message("Stage 4: Annotating user regions with genomic context...")
+    user_gr\$overlap_transcript <- countOverlaps(user_gr, tx) > 0
+    user_gr\$overlap_exon <- countOverlaps(user_gr, ex) > 0
+    user_gr\$overlap_cds <- countOverlaps(user_gr, cds_regions) > 0
+    user_gr\$overlap_promoter <- countOverlaps(user_gr, proms) > 0
+    user_gr\$overlap_intron <- user_gr\$overlap_transcript & !user_gr\$overlap_exon
+    
+    # Find nearest transcript and calculate distance
+    nearest_tx_idx <- nearest(user_gr, tx)
+    valid_idx <- !is.na(nearest_tx_idx)
+    
+    user_gr\$nearest_tx_id <- NA
+    user_gr\$distance_to_nearest_tx <- NA
+    
+    if (any(valid_idx)) {
+        user_gr\$nearest_tx_id[valid_idx] <- tx\$tx_name[nearest_tx_idx[valid_idx]]
+        user_gr\$distance_to_nearest_tx[valid_idx] <- distance(user_gr[valid_idx], tx[nearest_tx_idx[valid_idx]])
+    }
+    
+    # Export annotated regions to CSV
+    annotated_df <- as.data.frame(user_gr)
+    write.csv(annotated_df, "annotated_regions.csv", row.names=FALSE)
+    message("Saved annotated regions to 'annotated_regions.csv'")
+    
+    # ==========================================
+    # STAGE 5: Map Regions to Transcript Coordinates
+    # ==========================================
+    message("Stage 5: Mapping genomic regions to transcript-relative coordinates...")
+    ex_by_tx <- exonsBy(txdb, by="tx")
+    
+    mapped_tx <- tryCatch({
+        mapToTranscripts(user_gr, ex_by_tx)
+    }, error = function(e) {
+        message("Warning: mapToTranscripts failed: ", e\$message)
+        NULL
+    })
+    
+    if (!is.null(mapped_tx) && length(mapped_tx) > 0) {
+        mapped_df <- as.data.frame(mapped_tx)
+        # Link back to original region names using query hits (xHits)
+        mapped_df\$original_region_name <- user_gr\$name[mapped_df\$xHits]
+        
+        # Map internal transcript IDs to standard transcript names
+        tx_names <- select(txdb, keys=as.character(mapped_df\$seqnames), columns="TXNAME", keytype="TXID")
+        mapped_df\$tx_name <- tx_names\$TXNAME[match(mapped_df\$seqnames, tx_names\$TXID)]
+        
+        write.csv(mapped_df, "transcript_mapping.csv", row.names=FALSE)
+        message("Saved transcript-relative mapping to 'transcript_mapping.csv'")
+    } else {
+        write.csv(data.frame(Message="No regions mapped to transcripts"), "transcript_mapping.csv", row.names=FALSE)
+        message("No transcript mappings found; wrote fallback 'transcript_mapping.csv'")
+    }
+    
+    # ==========================================
+    # STAGE 6: Compute Coverage by Transcript
+    # ==========================================
+    message("Stage 6: Computing coverage across transcripts...")
+    cov_by_tx <- tryCatch({
+        coverageByTranscript(user_gr, txdb)
+    }, error = function(e) {
+        message("Warning: coverageByTranscript failed: ", e\$message)
+        NULL
+    })
+    
+    if (!is.null(cov_by_tx)) {
+        cov_sums <- sum(cov_by_tx)
+        active_cov <- cov_sums[cov_sums > 0]
+        
+        if (length(active_cov) > 0) {
+            cov_df <- data.frame(
+                tx_id = names(active_cov),
+                total_coverage_bases = as.numeric(active_cov)
+            )
+            # Map internal transcript IDs to standard transcript names
+            tx_names_cov <- select(txdb, keys=as.character(cov_df\$tx_id), columns="TXNAME", keytype="TXID")
+            cov_df\$tx_name <- tx_names_cov\$TXNAME[match(cov_df\$tx_id, tx_names_cov\$TXID)]
+            
+            write.csv(cov_df, "transcript_coverage.csv", row.names=FALSE)
+            message("Saved transcript coverage summary to 'transcript_coverage.csv'")
+        } else {
+            write.csv(data.frame(Message="No coverage detected on any transcripts"), "transcript_coverage.csv", row.names=FALSE)
+            message("No coverage detected; wrote fallback 'transcript_coverage.csv'")
+        }
+    } else {
+        write.csv(data.frame(Message="Coverage computation skipped or failed"), "transcript_coverage.csv", row.names=FALSE)
+    }
+    
+    message("GenomicFeatures pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION":',
+        paste0('    GenomicFeatures: ', as.character(packageVersion('GenomicFeatures')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genomicfeatures_results.csv
-    touch ${prefix}_genomicfeatures_output.rds
-    echo "BIOC_GENOMICFEATURES:" > versions.yml
-    echo "    genomicfeatures: 0.0.0" >> versions.yml
+    touch ${prefix}_genomic_features_annotation.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENOMICFEATURES_WORKFLOW {
+workflow BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GENOMICFEATURES(ch_input)
+    BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION(ch_input)
 
     emit:
-    results  = BIOC_GENOMICFEATURES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENOMICFEATURES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENOMICFEATURES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENOMICFEATURES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION.out.tables
+    plots    = BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION.out.plots
+    objects  = BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION.out.objects
+    versions = BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION.out.versions
 }

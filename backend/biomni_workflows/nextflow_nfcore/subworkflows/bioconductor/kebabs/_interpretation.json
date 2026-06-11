@@ -1,0 +1,57 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: k=length of k-mers used as features ;; m=maximum number of mismatches (mismatch kernel) or maximum number of wildcard positions (gappy pair kernel) ;; distWeight=distance weighting function or 1 for position-specific kernels ;; annSpec=logical indicating whether the kernel is annotation-specific ;; normalized=logical indicating whether to scale feature vectors to the unit sphere ;; presence=logical indicating whether only presence of a pattern is relevant, not its count ;; revComplement=logical indicating whether reverse complements are treated as identical ;; mixCoef=numeric vector of mixture coefficients for mixture kernels ;; pkg=SVM package to use (\"e1071\", \"LiblineaR\", or \"kernlab\") ;; svm=SVM type (e.g., \"C-svc\", \"l1rl2l-svc\", \"nu-svr\") ;; cost=unified cost hyperparameter for SVMs\n- alternatives: procoil (specifically for coiled-coil prediction, though kebabs is faster and more flexible) ;; kernlab (for general string kernels, but kebabs is optimized for biological sequences and supports position-dependent/annotation-specific variants)\n- when_to_use: When performing classification or regression on biological sequences where sequence patterns (k-mers, motifs, gaps) and potentially their positions or annotations (e.g., exon/intron, heptad) are predictive.\n- pitfalls: Unbalanced datasets can distort standard accuracy; use balanced accuracy (BACC) or Matthews Correlation Coefficient (MCC) instead ;; Comparing different kernels with the same hyperparameter values is inadequate; hyperparameters must be tuned individually for each kernel ;; Position-dependent kernels are considerably slower than position-independent ones ;; Explicit representations are not supported for position-specific kernels or distance-weighted kernels ;; Lowercase characters are ignored by default (ignoreLower=TRUE) and XStringSet classes convert them to uppercase automatically.",
+  "workflows": [
+    {
+      "name": "binary_sequence_classification",
+      "intent": "Train a support vector machine classifier on biological sequences to predict binary labels and evaluate performance.",
+      "input": [
+        "sequences.fasta (DNA, RNA, or amino acid sequences)",
+        "labels.txt (binary class labels, e.g., 1 and -1)"
+      ],
+      "stages": "1. Define the sequence kernel ;; 2. Train the SVM model using kbsvm ;; 3. Predict labels on test sequences ;; 4. Evaluate prediction performance",
+      "code": "specK2 <- spectrumKernel(k=2)\nmodel <- kbsvm(x=enhancerFB[train], y=yFB[train], kernel=specK2,\n               pkg=\"e1071\", svm=\"C-svc\", cost=15)\npred <- predict(model, enhancerFB[test])\nevaluatePrediction(pred, yFB[test], allLabels=unique(yFB))"
+    },
+    {
+      "name": "grid_search_and_model_selection",
+      "intent": "Perform grid search and cross-validation to select the best sequence kernel and SVM hyperparameters.",
+      "input": [
+        "sequences.fasta (biological sequences)",
+        "labels.txt (class labels)"
+      ],
+      "stages": "1. Define candidate kernels ;; 2. Run grid search with cross-validation using kbsvm ;; 3. Extract model selection results ;; 4. Plot performance across the grid",
+      "code": "model <- kbsvm(ccseq[train], y=yCC[train],\n               kernel=c(gappy, gappya), pkg=\"LiblineaR\", svm=\"C-svc\",\n               cost=c(1, 10, 50, 100, 200, 500), explicit=\"yes\", cross=5,\n               perfParameters=\"ALL\", perfObjective=\"BACC\",\n               showProgress=TRUE)\nresult <- modelSelResult(model)\nperfData <- performance(result)\nplot(result, sel=\"BACC\")"
+    },
+    {
+      "name": "annotation_specific_classification",
+      "intent": "Train a classifier that utilizes sequence annotations (e.g., exon/intron or heptad structures) aligned with the biological sequences.",
+      "input": [
+        "sequences.fasta (biological sequences)",
+        "annotations.txt (character strings of annotations of identical length to sequences)",
+        "labels.txt (class labels)"
+      ],
+      "stages": "1. Assign annotation metadata to sequences ;; 2. Define an annotation-specific kernel ;; 3. Train the SVM model ;; 4. Predict and evaluate",
+      "code": "annotationMetadata(ccseq, annCharset=\"abcdefg\") <- ccannot\ngappya <- gappyPairKernel(k=1, m=10, annSpec=TRUE)\nmodel <- kbsvm(ccseq[train], y=yCC[train], kernel=gappya,\n               pkg=\"LiblineaR\", svm=\"C-svc\", cost=100)\npred <- predict(model, ccseq[test])\nevaluatePrediction(pred, yCC[test], allLabels=unique(yCC))"
+    },
+    {
+      "name": "sequence_regression_and_feature_weights",
+      "intent": "Train a regression model on biological sequences to predict continuous values and extract feature weights.",
+      "input": [
+        "sequences.fasta (biological sequences)",
+        "values.txt (continuous numeric response variables)"
+      ],
+      "stages": "1. Define the sequence kernel ;; 2. Train a support vector regression model ;; 3. Predict continuous values ;; 4. Extract feature weights",
+      "code": "model <- kbsvm(x=enhancerFB[train], y=yReg[train],\n               kernel=gappyK1M2, pkg=\"e1071\", svm=\"nu-svr\",\n               nu=0.7)\npred <- predict(model, enhancerFB[test])\nfeatWeights <- featureWeights(model)"
+    },
+    {
+      "name": "prediction_profiling",
+      "intent": "Generate prediction profiles to visualize the contribution of individual sequence positions to the model's prediction.",
+      "input": [
+        "sequences.fasta (biological sequences to profile)",
+        "trained_model.RData (a trained kebabs model object)"
+      ],
+      "stages": "1. Extract feature weights and model offset ;; 2. Compute prediction profiles ;; 3. Plot prediction profiles",
+      "code": "predProf <- getPredictionProfile(GCN4, gappya,\n                                 featureWeights(model),\n                                 modelOffset(model))\nplot(predProf, sel=1, ylim=c(-0.4, 0.2), heptads=TRUE, annotate=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: y=A cell-by-feature matrix of gene expression values (or an ExpressionSet/SingleCellExperiment object) ;; iter=The number of MCMC iterations to run (default is 2000) ;; burn=The number of MCMC iterations to discard as burn-in (default is iter/2) ;; thin=The thinning interval for MCMC sampling (default is 1) ;; covar=An optional matrix of covariates to adjust for confounding factors\n- alternatives: Monocle or Slingshot, which should be preferred if the underlying trajectory has more than one bifurcation or complex multi-branching topologies.\n- when_to_use: When analyzing single-cell RNA-seq or qPCR data where cells are expected to transition from a single progenitor state into one of two distinct lineage outcomes (a single bifurcation).\n- pitfalls: High-dimensional input matrices (thousands of genes) can lead to extremely slow MCMC convergence; users should pre-filter data to include only transition-associated or highly variable genes (typically 100-500 genes).",
+  "workflows": [
+    {
+      "name": "mfa_bifurcation_analysis",
+      "intent": "Perform Bayesian trajectory inference to estimate pseudotime and branch assignments for single-cell expression data.",
+      "input": [
+        "expression_matrix.csv (numeric matrix of normalized single-cell gene expression values with cells as rows and genes as columns)"
+      ],
+      "stages": "1. Estimate hyperparameters using empirical Bayes with empirical_bayes ;; 2. Fit the Bayesian mixture of factor analysers model using mfa ;; 3. Extract posterior summary statistics using summary ;; 4. Convert the fit to a tidy format or diagnostic object using to_ggmcmc ;; 5. Plot the inferred bifurcation trajectory using plot_mfa",
+      "code": "# Assuming y is a cell-by-gene expression matrix\nm <- mfa(y, iter = 2000, burn = 1000, thin = 1)\nms <- summary(m)\ng <- to_ggmcmc(m)\nplot_mfa(m)"
+    }
+  ]
+}

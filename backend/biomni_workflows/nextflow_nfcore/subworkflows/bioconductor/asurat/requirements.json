@@ -1,0 +1,29 @@
+{
+  "package": "asurat",
+  "requirements": [
+    "ASURAT",
+    "AnnotationDbi",
+    "Rtsne",
+    "Seurat",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "dplyr",
+    "ggplot2",
+    "org.Hs.eg.db",
+    "scales"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ASURAT",
+      "AnnotationDbi",
+      "Rtsne",
+      "Seurat",
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "org.Hs.eg.db",
+      "scales"
+    ]
+  }
+}

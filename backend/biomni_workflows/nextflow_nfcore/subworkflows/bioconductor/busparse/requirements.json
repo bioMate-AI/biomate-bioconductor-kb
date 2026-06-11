@@ -1,0 +1,26 @@
+{
+  "package": "busparse",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "BUSpaRse",
+    "EnsDb.Hsapiens.v86",
+    "Matrix",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "ggplot2",
+    "zeallot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BUSpaRse",
+      "Matrix",
+      "ggplot2",
+      "zeallot"
+    ],
+    "transcript_to_gene_mapping.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "BUSpaRse",
+      "EnsDb.Hsapiens.v86",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene"
+    ]
+  }
+}

@@ -1,107 +1,114 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: FeatSeekR
-// FeatSeekR performs unsupervised feature selection using replicated measurements. It iteratively sele
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/FeatSeekR/inst/doc/FeatSeekR-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("FeatSeekR")
+// Bioconductor workflow: FeatSeekR — unsupervised_feature_selection
+// Select and rank a subset of highly reproducible, non-redundant features from high-dimensional replicated data.
+// Input: SummarizedExperiment object containing replicated measurements across conditions
+// Container: quay.io/biocontainers/bioconductor-featseekr:1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: FeatSeekR, SummarizedExperiment, pheatmap
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Perform feature selection and ranking using FeatSeek
+//  * 2. [Visualization & Output] Visualize the selected features using plotSelectedFeatures
 
 nextflow.enable.dsl = 2
 
-process BIOC_FEATSEEKR {
+process BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-featseekr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-featseekr:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-featseekr:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_featseekr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_featseekr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_featseekr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(FeatSeekR)
-    library(FeatSeek)
-    library(jsonlite)
-
-    # --- Feature Selection [] ---
-    # Key functions: FeatSeek
-    res <- FeatSeek(sim, max_features = 5)
-    res_custom <- FeatSeek(
-        t(data), 
-        conditions = conds, 
-        max_features = 30, 
-        verbose = TRUE
+    library(pheatmap)
+    
+    # Define input file path
+    input_file <- "summarized_experiment.rds"
+    
+    # Check if the input file exists
+    if (!file.exists(input_file)) {
+      stop(paste("Error: Input file", input_file, "not found in the working directory."))
+    }
+    
+    # Read the user-provided SummarizedExperiment object
+    sim <- readRDS(input_file)
+    
+    # 1. Perform feature selection and ranking using FeatSeek
+    res <- FeatSeek(sim, max_features=5)
+    
+    # Save the complete result object
+    saveRDS(res, "featseek_results.rds")
+    
+    # Export the ranked selected features to a CSV file
+    selected_features_df <- data.frame(
+      Rank = seq_len(nrow(res)),
+      Feature = rownames(res)
     )
-
-
-    # --- Variance Analysis [] ---
-    # Key functions: plotVarianceExplained
-    plotVarianceExplained(res_custom)
-
-
-    # --- Feature Visualization [] ---
-    # Key functions: plotSelectedFeatures
+    
+    # Include any additional metadata from rowData if available
+    if (ncol(rowData(res)) > 0) {
+      selected_features_df <- cbind(selected_features_df, as.data.frame(rowData(res)))
+    }
+    write.csv(selected_features_df, "selected_features.csv", row.names = FALSE)
+    
+    # 2. Visualize the selected features using plotSelectedFeatures
+    pdf("selected_features_heatmap.pdf", width = 8, height = 6)
     plotSelectedFeatures(res)
-    n_feat <- min(which(rowData(res_custom)$explained_variance > 0.7))
-    plotSelectedFeatures(res_custom, n_features = n_feat)
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_featseekr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_featseekr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_featseekr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FEATSEEKR:", paste0("    featseekr: ", packageVersion("FeatSeekR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION":',
+        paste0('    FeatSeekR: ', as.character(packageVersion('FeatSeekR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_featseekr_results.csv
-    touch ${prefix}_featseekr_output.rds
-    echo "BIOC_FEATSEEKR:" > versions.yml
-    echo "    featseekr: 0.0.0" >> versions.yml
+    touch ${prefix}_unsupervised_feature_selection.csv versions.yml
     """
 }
 
-
-workflow BIOC_FEATSEEKR_WORKFLOW {
+workflow BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ SummarizedExperiment object containing replicated measurements across conditions ] ]
 
     main:
-    BIOC_FEATSEEKR(ch_input)
+    BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION(ch_input)
 
     emit:
-    results  = BIOC_FEATSEEKR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FEATSEEKR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FEATSEEKR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FEATSEEKR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION.out.tables
+    plots    = BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION.out.plots
+    objects  = BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION.out.objects
+    versions = BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION.out.versions
 }

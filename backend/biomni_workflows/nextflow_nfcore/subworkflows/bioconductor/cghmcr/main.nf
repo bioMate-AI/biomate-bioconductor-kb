@@ -1,110 +1,189 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cghMCR
-// This package provides functions to identify genomic regions of interests based on segmented copy num
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cghMCR/inst/doc/findMCR.R
-// Upstream  : limma
-// Downstream: none
-//
-// Install: BiocManager::install("cghMCR")
+// Bioconductor workflow: cghMCR — segment_gain_or_loss_sgol
+// Identify genomic regions of recurrent copy number gain or loss across samples using the Segment Gain Or Loss (SGOL) method.
+// Input: sampleData, geneInfo
+// Container: quay.io/biocontainers/bioconductor-cghmcr:1.68.0--r45hdfd78af_0
+// R packages: CNTools, cghMCR, limma
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNTools, cghMCR
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load segment data and gene mapping information
+//  * 2. [Core Analysis] Convert segment data to a gene-by-sample matrix using CNTools
+//  * 3. [Core Analysis] Compute SGOL scores using SGOL
+//  * 4. [Visualization & Output] Plot SGOL scores
+//  * 5. [Core Analysis] Extract genes of interest in gains and losses using thresholding and the gol helper function
 
 nextflow.enable.dsl = 2
 
-process BIOC_CGHMCR {
+process BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cghmcr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cghmcr:1.64.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cghmcr:1.64.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cghmcr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cghmcr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cghmcr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(cghMCR)
-    library(CNSeg)
-    library(MCR)
-    library(SGOL)
-    library(jsonlite)
-
-    # --- MCR Initialization [] ---
-    # Key functions: cghMCR
-    cghmcr_obj <- cghMCR(segData, gapAllowed = 500,
-                         alteredLow = 0.9, alteredHigh = 0.9,
-                         recurrence = 100)
-
-
-    # --- MCR Identification [] ---
-    # Key functions: MCR
-    mcrs <- MCR(cghmcr_obj)
-    mcr_summary <- mcrs[, c("chromosome", "status", "mcr.start",
-                            "mcr.end", "samples")]
-
-
-    # --- MCR Probe Merging [] ---
-    # Key functions: mergeMCRProbes
-    mcrs_chr7 <- mcrs[mcrs[, "chromosome"] == "7", ]
-    merged_probes <- mergeMCRProbes(mcrs_chr7,
-                                    as.data.frame(segData[["data"]]))
-    mcr_probes_summary <- merged_probes[, c("chromosome", "status",
-                                            "mcr.start", "mcr.end",
-                                            "probes")]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cghmcr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cghmcr_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CNTools", "cghMCR", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cghmcr_output.rds")
-    }
+        
+        # Load required libraries
+        library(CNTools)
+        library(cghMCR)
+        
+        # Helper function to read input files with various extensions
+        read_input_file <- function(base_name) {
+          extensions <- c(".csv", ".tsv", ".txt", "")
+          for (ext in extensions) {
+            file_path <- paste0(base_name, ext)
+            if (file.exists(file_path)) {
+              if (ext == ".csv") {
+                return(read.csv(file_path, stringsAsFactors = FALSE, check.names = FALSE))
+              } else if (ext %in% c(".tsv", ".txt")) {
+                return(read.delim(file_path, stringsAsFactors = FALSE, check.names = FALSE))
+              } else {
+                # Try reading as table if no extension
+                tryCatch({
+                  return(read.table(file_path, header = TRUE, stringsAsFactors = FALSE, check.names = FALSE))
+                }, error = function(e) NULL)
+              }
+            }
+          }
+          stop(paste("Required input file not found:", base_name))
+        }
+        
+        # 1. Load segment data and gene mapping information from the working directory
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        sampleData <- read_input_file("sampleData")
+        geneInfo <- read_input_file("geneInfo")
+        
+        # Ensure correct column types for sampleData
+        sampleData\$chrom <- as.character(sampleData\$chrom)
+        sampleData\$loc.start <- as.numeric(sampleData\$loc.start)
+        sampleData\$loc.end <- as.numeric(sampleData\$loc.end)
+        sampleData\$num.mark <- as.integer(sampleData\$num.mark)
+        sampleData\$seg.mean <- as.numeric(sampleData\$seg.mean)
+        
+        # Ensure correct column types for geneInfo
+        geneInfo\$chrom <- as.character(geneInfo\$chrom)
+        geneInfo\$start <- as.numeric(geneInfo\$start)
+        geneInfo\$end <- as.numeric(geneInfo\$end)
+        
+        # 2. Convert segment data to a gene-by-sample matrix using CNTools
+        # We use min(20, ...) to prevent sampling errors if the input dataset has fewer than 20 samples.
+        set.seed(1234)
+        convertedData <- getRS(CNSeg(sampleData[which(is.element(sampleData[, "ID"], sample(unique(sampleData[, "ID"]), min(20, length(unique(sampleData[, "ID"])))))), ]), by = "gene", imput = FALSE, XY = FALSE, geneMap = geneInfo, what = "median")
+        
+        # 3. Compute SGOL scores using SGOL
+        require(cghMCR, quietly = TRUE)
+        SGOLScores <- SGOL(convertedData, threshold = c(-0.2, 0.2), method = sum)
+        
+        # 4. Plot SGOL scores (redirected to a PDF file)
+        pdf("sgol_scores_plot.pdf", width = 10, height = 6)
+        plot(SGOLScores)
+        dev.off()
+        
+        # 5. Extract genes of interest in gains and losses using thresholding and the gol helper function
+        GOIGains <- SGOLScores[which(as.numeric(unlist(gol(SGOLScores[, "gains"]))) > 20), "gains"]
+        GOILosses <- SGOLScores[which(as.numeric(unlist(gol(SGOLScores[, "losses"]))) < -20), "losses"]
+        
+        # Print head of GOIGains to console as in the vignette
+        cat("Head of GOIGains:\n")
+        print(head(gol(GOIGains)))
+        
+        # Save meaningful results to output files
+        saveRDS(SGOLScores, "sgol_scores.rds")
+        
+        # Save SGOL scores table
+        sgol_df <- data.frame(
+          gene = rownames(gol(SGOLScores)),
+          gains = as.numeric(unlist(gol(SGOLScores[, "gains"]))),
+          losses = as.numeric(unlist(gol(SGOLScores[, "losses"]))),
+          stringsAsFactors = FALSE
+        )
+        write.csv(sgol_df, "sgol_scores.csv", row.names = FALSE)
+        
+        # Save Genes of Interest (Gains)
+        if (length(GOIGains) > 0) {
+          gains_df <- data.frame(
+            gene = rownames(gol(GOIGains)),
+            gains = as.numeric(unlist(gol(GOIGains))),
+            stringsAsFactors = FALSE
+          )
+          write.csv(gains_df, "goi_gains.csv", row.names = FALSE)
+        } else {
+          write.csv(data.frame(gene = character(), gains = numeric()), "goi_gains.csv", row.names = FALSE)
+        }
+        
+        # Save Genes of Interest (Losses)
+        if (length(GOILosses) > 0) {
+          losses_df <- data.frame(
+            gene = rownames(gol(GOILosses)),
+            losses = as.numeric(unlist(gol(GOILosses))),
+            stringsAsFactors = FALSE
+          )
+          write.csv(losses_df, "goi_losses.csv", row.names = FALSE)
+        } else {
+          write.csv(data.frame(gene = character(), losses = numeric()), "goi_losses.csv", row.names = FALSE)
+        }
+        
+        cat("Workflow completed successfully. Outputs saved to 'sgol_scores_plot.pdf', 'sgol_scores.rds', 'sgol_scores.csv', 'goi_gains.csv', and 'goi_losses.csv'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CGHMCR:", paste0("    cghmcr: ", packageVersion("cghMCR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL":',
+        paste0('    cghMCR: ', as.character(packageVersion('cghMCR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cghmcr_results.csv
-    touch ${prefix}_cghmcr_output.rds
-    echo "BIOC_CGHMCR:" > versions.yml
-    echo "    cghmcr: 0.0.0" >> versions.yml
+    touch ${prefix}_segment_gain_or_loss_sgol.csv versions.yml
     """
 }
 
-
-workflow BIOC_CGHMCR_WORKFLOW {
+workflow BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sampleData, geneInfo ] ]
 
     main:
-    BIOC_CGHMCR(ch_input)
+    BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL(ch_input)
 
     emit:
-    results  = BIOC_CGHMCR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CGHMCR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CGHMCR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CGHMCR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL.out.tables
+    plots    = BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL.out.plots
+    objects  = BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL.out.objects
+    versions = BIOC_CGHMCR_SEGMENT_GAIN_OR_LOSS_SGOL.out.versions
 }

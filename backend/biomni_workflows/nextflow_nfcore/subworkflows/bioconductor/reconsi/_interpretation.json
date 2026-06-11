@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mat=Numeric matrix of data with samples in rows and features in columns ;; Y=Alternative matrix argument name when grouping factor x is not supplied ;; x=Grouping factor or vector representing experimental groups ;; B=Number of resamples to run (e.g., 5e1 or 1e2L) ;; test=Custom test function accepting response and grouping variables ;; distFun=Distribution function for transforming custom test statistics to z-values ;; zValues=Logical indicating whether to operate on the z-value scale (default TRUE) ;; resamZvals=Logical indicating whether to use the same resampling instances for marginal null distributions ;; groupName=Character string specifying the grouping variable name in a phyloseq object ;; FCname=Character string specifying the flow cytometry variable name in a phyloseq object\n- alternatives: Standard Wilcoxon rank-sum or t-tests without resampling, which fail to account for test correlation and may suffer from reduced power or inflated false discovery rates under dependence.\n- when_to_use: Use when performing simultaneous testing on highly correlated features, such as microbiome differential abundance analysis where compositional data is scaled by total cell counts.\n- pitfalls: Setting zValues = FALSE to run the procedure on the scale of original test statistics (when the null distribution is unknown) may be numerically less stable.",
+  "workflows": [
+    {
+      "name": "matrix_simultaneous_inference",
+      "intent": "Perform simultaneous hypothesis testing on a data matrix while accounting for test correlation using a collapsed null distribution.",
+      "input": [
+        "mat (numeric matrix of features)",
+        "x (grouping factor vector)"
+      ],
+      "stages": "1. Run simultaneous inference using reconsi ;; 2. Extract estimated tail-area false discovery rates and proportion of true nulls ;; 3. Plot the estimated null distribution ;; 4. Plot the approximate covariance matrix of test statistics",
+      "code": "fdrRes = reconsi(mat, x)\nestFdr = fdrRes$Fdr\nfdrRes$p0\nplotNull(fdrRes)\nplotApproxCovar(fdrRes)"
+    },
+    {
+      "name": "phyloseq_differential_abundance",
+      "intent": "Perform differential abundance analysis on a phyloseq object incorporating flow cytometry cell counts to account for correlation.",
+      "input": [
+        "Vandeputte (phyloseq object containing microbiome abundance data and sample metadata)"
+      ],
+      "stages": "1. Run differential abundance analysis using testDAA ;; 2. Extract and summarize the estimated tail-area false discovery rates",
+      "code": "testVanDePutte = testDAA(Vandeputte, groupName = \"Health.status\", FCname = \"absCountFrozen\", B = 1e2L)\nFdrVDP = testVanDePutte$Fdr\nquantile(FdrVDP)"
+    }
+  ]
+}

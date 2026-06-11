@@ -1,0 +1,20 @@
+{
+  "package": "deconvr",
+  "requirements": [
+    "GenomicRanges",
+    "data.table",
+    "deconvR",
+    "dplyr"
+  ],
+  "by_workflow": {
+    "atlas_extension_and_signature_generation.nf": [
+      "data.table",
+      "deconvR",
+      "dplyr"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "deconvR"
+    ]
+  }
+}

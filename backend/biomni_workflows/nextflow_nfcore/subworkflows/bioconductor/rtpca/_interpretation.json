@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: objList=A list of ExpressionSet objects (e.g. from the TPP package) or a list of matrices/data frames containing TPP data for the control/first condition ;; contrastList=A list of ExpressionSet objects or matrices/data frames containing TPP data for the treatment/second condition ;; ppiAnno=A data frame annotating known protein-protein interactions (e.g. with columns for interacting partners) ;; complexAnno=A data frame annotating proteins to known protein complexes ;; minCount=Minimum number of proteins required to keep a complex for analysis ;; ctrlCondName=Character string naming the control condition ;; contrastCondName=Character string naming the contrast/treatment condition ;; pair=A character vector of length 2 specifying the protein pair to plot in profile plots\n- alternatives: The TPP package is used for importing and preprocessing raw TPP data (using tpptrImport) before passing it to Rtpca.\n- when_to_use: Use this package when you have TPP or CETSA datasets and want to validate protein-protein interactions, analyze protein complex co-aggregation, or identify changes in protein-protein interactions between two experimental conditions (e.g., control vs. drug treatment).\n- pitfalls: If supplying custom data frames instead of ExpressionSet objects to objList or contrastList, you must additionally indicate which column contains the protein or gene names. Multiple comparisons can result in high adjusted p-values (p_adj), meaning individual pairs might not pass strict significance thresholds; visual inspection of melting curves using plotPPiProfiles is recommended to validate candidate pairs.",
+  "workflows": [
+    {
+      "name": "single_condition_tpca",
+      "intent": "Run TPCA on a single condition to evaluate how well TPP data captures known protein-protein interactions or protein complexes.",
+      "input": [
+        "tpp_data.RData (imported TPP dataset as a list of ExpressionSet objects or matrices)",
+        "ppi_annotations.csv (data frame of known protein-protein interactions)",
+        "complex_annotations.csv (data frame of protein complex memberships)"
+      ],
+      "stages": "1. Run TPCA for protein-protein interactions using runTPCA ;; 2. Run TPCA for protein complexes using runTPCA ;; 3. Plot ROC curve for protein-protein interactions using plotPPiRoc ;; 4. Plot ROC curve for protein complexes using plotComplexRoc",
+      "code": "vehTPCA <- runTPCA(\n    objList = trData,\n    ppiAnno = string_ppi_cs_950_df\n)\n\nvehComplexTPCA <- runTPCA(\n    objList = trData,\n    complexAnno = ori_et_al_complexes_df,\n    minCount = 2\n)\n\nplotPPiRoc(vehTPCA, computeAUC = TRUE)\n\nplotComplexRoc(vehComplexTPCA, computeAUC = TRUE)"
+    },
+    {
+      "name": "differential_tpca",
+      "intent": "Identify protein-protein interactions that change significantly between two experimental conditions.",
+      "input": [
+        "tpp_control_data.RData (TPP dataset for the control condition)",
+        "tpp_treatment_data.RData (TPP dataset for the treatment condition)",
+        "ppi_annotations.csv (data frame of known protein-protein interactions)"
+      ],
+      "stages": "1. Run differential TPCA using runDiffTPCA ;; 2. Plot a volcano plot of the differential results using plotDiffTpcaVolcano ;; 3. Extract and inspect the results table using diffTpcaResultTable ;; 4. Plot melting profiles of candidate pairs using plotPPiProfiles",
+      "code": "diffTPCA <- \n    runDiffTPCA(\n        objList = trData[1:2], \n        contrastList = trData[3:4],\n        ctrlCondName = \"DMSO\",\n        contrastCondName = \"Panobinostat\",\n        ppiAnno = string_ppi_cs_950_df)\n\nplotDiffTpcaVolcano(\n    diffTPCA,\n    setXLim = TRUE,\n    xlimit = c(-0.5, 0.5))\n\nhead(diffTpcaResultTable(diffTPCA) %>% \n         arrange(p_value) %>% \n        dplyr::select(pair, rssC1_rssC2, f_stat, p_value, p_adj))\n\nplotPPiProfiles(diffTPCA, pair = c(\"KPNA6\", \"KPNB1\"))"
+    }
+  ]
+}

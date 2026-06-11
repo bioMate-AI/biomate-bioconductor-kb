@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SINGLECELLEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-singlecellexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-singlecellexperiment:1.28.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-singlecellexperiment:1.28.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
     tuple val(meta), path(singlecellexperiment)
@@ -39,41 +38,74 @@ process BIOC_SINGLECELLEXPERIMENT {
     """
     #!/usr/bin/env Rscript
     library(AsetX)
-    library(SingleCellExperiment)
     library(jsonlite)
+
+    # --- Object Construction [] ---
+    # Key functions: SingleCellExperiment, assays, colData, rowData
+    counts <- matrix(rpois(1000, lambda = 10), ncol = 20, nrow = 50)
+    coldata <- DataFrame(Treatment = rep(c("Chirp", "Mute"), each = 10))
+    rowdata <- DataFrame(GeneType = rep(c("Protein", "RNA"), length.out = 50))
+    sce <- SingleCellExperiment(
+        assays = list(counts = counts),
+        colData = coldata,
+        rowData = rowdata
+    )
+
+    # --- Metadata Annotation [] ---
+    # Key functions: colData, rowData, sizeFactors, sizeFactors<-
+    colData(sce)\$CellType <- sample(
+        c("T-cell", "B-cell"), 
+        ncol(sce), 
+        replace = TRUE
+    )
+    rowData(sce)\$Length <- runif(nrow(sce), 100, 5000)
+    sf <- colSums(assay(sce, "counts"))
+    sizeFactors(sce) <- sf / mean(sf)
+
+    # --- Dimensionality Reduction [] ---
+    # Key functions: reducedDim, reducedDim<-, reducedDims, reducedDimNames
+    pca_data <- matrix(runif(ncol(sce) * 5), ncol = 5)
+    tsne_data <- matrix(runif(ncol(sce) * 2), ncol = 2)
+    reducedDim(sce, "PCA") <- pca_data
+    reducedDim(sce, "TSNE") <- tsne_data
+    red_names <- reducedDimNames(sce)
+
+    # --- Alternative Experiments [] ---
+    # Key functions: altExp, altExp<-, altExpNames, altExps
+    spike_counts <- matrix(rpois(100, lambda = 5), ncol = ncol(sce), nrow = 5)
+    spike_se <- SingleCellExperiment(assays = list(counts = spike_counts))
+    altExp(sce, "ERCC") <- spike_se
+    alt_names <- altExpNames(sce)
 
     # --- Internal Metadata Management [] ---
     # Key functions: int_colData, int_elementMetadata, int_metadata
-    singlecellexperiment::int_colData(sce)$A <- S4Vectors::DataFrame(
-        X = runif(ncol(sce))
-    )
-    singlecellexperiment::int_elementMetadata(sce)$A <- S4Vectors::DataFrame(
-        Y = runif(nrow(sce))
-    )
-    singlecellexperiment::int_metadata(sce)$A <- list(
-        Z = "Aaron"
-    )
+    int_colData(sce)\$A <- DataFrame(X = runif(ncol(sce)))
+    int_elementMetadata(sce)\$A <- DataFrame(Y = runif(nrow(sce)))
+    int_metadata(sce)\$A <- list(Z = "Aaron")
 
-
-    # --- Accessing Internal Metadata [] ---
-    # Key functions: int_colData, int_elementMetadata, int_metadata
-    col_meta <- singlecellexperiment::int_colData(sce)$A$X
-    row_meta <- singlecellexperiment::int_elementMetadata(sce)$A$Y
-    study_meta <- singlecellexperiment::int_metadata(sce)$A$Z
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_singlecellexperiment_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_singlecellexperiment_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_singlecellexperiment_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_singlecellexperiment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_singlecellexperiment_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_singlecellexperiment_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SINGLECELLEXPERIMENT:", paste0("    singlecellexperiment: ", packageVersion("SingleCellExperiment"))),
+        c("BIOC_SINGLECELLEXPERIMENT:", paste0("    singlecellexperiment: ", as.character(packageVersion("SingleCellExperiment")))),
         "versions.yml"
     )
     """

@@ -1,110 +1,111 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tpSVG
-// The goal of `tpSVG` is to detect and visualize spatial variation in the gene expression for spatiall
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tpSVG/inst/doc/intro_to_tpSVG.R
-// Upstream  : STexampleData, SpatialExperiment, scuttle
-// Downstream: none
-//
-// Install: BiocManager::install("tpSVG")
+// Bioconductor workflow: tpSVG — poisson_count_model
+// Detect spatially variable genes from raw count spatially resolved transcriptomics data using a Poisson model.
+// Input: spe
+// Container: quay.io/biocontainers/bioconductor-tpsvg:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SpatialExperiment, tpSVG
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate the library size (total counts) per spot/cell
+//  * 2. [Core Analysis] Run tpSVG with a Poisson family, specifying the raw counts assay and the log-transformed library size as an offset
+//  * 3. [Core Analysis] Retrieve the SVG statistics and p-values from the rowData of the returned object
 
 nextflow.enable.dsl = 2
 
-process BIOC_TPSVG {
+process BIOC_TPSVG_POISSON_COUNT_MODEL {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tpsvg"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tpsvg:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tpsvg:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(singlecellexperiment)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tpsvg_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tpsvg_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tpsvg_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(tpSVG)
-    library(Visium_humanDLPFC)
-    library(jsonlite)
-
-    # --- Spatial Gene Detection [] ---
-    # Key functions: tpSVG
-    spe_poisson <- tpSVG(
-        spe_subset,
-        family = poisson(),
-        assay_name = "counts",
-        offset = log(spe_subset$total)
-    )
-    res_poisson <- rowData(spe_poisson)
-
-
-    # --- Covariate Adjusted Detection [] ---
-    # Key functions: tpSVG
-    idx_complete <- complete.cases(spe_subset$ground_truth)
-    spe_filtered <- spe_subset[, idx_complete]
-    x_cov <- spe_filtered$ground_truth
-    spe_cov <- tpSVG(
-        spe_filtered,
-        X = x_cov,
-        family = poisson(),
-        assay_name = "counts",
-        offset = log(spe_filtered$total)
-    )
-    res_cov <- rowData(spe_cov)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tpsvg_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tpsvg_results.csv")
+    library(SpatialExperiment)
+    
+    # 1. Read the input SpatialExperiment object from the working directory
+    if (!file.exists("spe.rds")) {
+      stop("Error: Input file 'spe.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tpsvg_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TPSVG:", paste0("    tpsvg: ", packageVersion("tpSVG"))),
-        "versions.yml"
+    spe <- readRDS("spe.rds")
+    
+    # 2. Calculate the library size (total counts) per spot/cell
+    spe\$total <- counts(spe) |> colSums()
+    
+    # 3. Run tpSVG with a Poisson family, specifying the raw counts assay and the log-transformed library size as an offset
+    set.seed(1)
+    spe_poisson  <- tpSVG(
+      spe,
+      family = poisson,
+      assay_name = "counts",
+      offset = log(spe\$total)   # Natural log library size
     )
+    
+    # 4. Retrieve the SVG statistics and p-values from the rowData of the returned object
+    svg_results <- rowData(spe_poisson)
+    
+    # 5. Write named output files for the meaningful results
+    # Save the updated SpatialExperiment object containing the tpSVG results
+    saveRDS(spe_poisson, "spe_poisson.rds")
+    
+    # Save the SVG statistics and p-values as a CSV table
+    write.csv(as.data.frame(svg_results), "tpSVG_poisson_results.csv", row.names = TRUE)
+    
+    message("tpSVG Poisson workflow completed successfully.")
+    message("Outputs saved: 'spe_poisson.rds' and 'tpSVG_poisson_results.csv'.")
+
+    writeLines(c(
+        '"BIOC_TPSVG_POISSON_COUNT_MODEL":',
+        paste0('    tpSVG: ', as.character(packageVersion('tpSVG')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tpsvg_results.csv
-    touch ${prefix}_tpsvg_output.rds
-    echo "BIOC_TPSVG:" > versions.yml
-    echo "    tpsvg: 0.0.0" >> versions.yml
+    touch ${prefix}_poisson_count_model.csv versions.yml
     """
 }
 
-
-workflow BIOC_TPSVG_WORKFLOW {
+workflow BIOC_TPSVG_POISSON_COUNT_MODEL_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(singlecellexperiment) ]
+    ch_input  // channel: [ val(meta), [ spe ] ]
 
     main:
-    BIOC_TPSVG(ch_input)
+    BIOC_TPSVG_POISSON_COUNT_MODEL(ch_input)
 
     emit:
-    results  = BIOC_TPSVG.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TPSVG.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TPSVG.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TPSVG.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TPSVG_POISSON_COUNT_MODEL.out.tables
+    plots    = BIOC_TPSVG_POISSON_COUNT_MODEL.out.plots
+    objects  = BIOC_TPSVG_POISSON_COUNT_MODEL.out.objects
+    versions = BIOC_TPSVG_POISSON_COUNT_MODEL.out.versions
 }

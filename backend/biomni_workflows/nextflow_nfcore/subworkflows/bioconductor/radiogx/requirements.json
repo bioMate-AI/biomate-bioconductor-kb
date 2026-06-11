@@ -1,0 +1,16 @@
+{
+  "package": "radiogx",
+  "requirements": [
+    "RadioGx",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "biomarker_discovery_signatures.nf": [
+      "RadioGx",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "RadioGx"
+    ]
+  }
+}

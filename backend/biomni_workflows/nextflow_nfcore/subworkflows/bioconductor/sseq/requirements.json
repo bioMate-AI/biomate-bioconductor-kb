@@ -1,0 +1,16 @@
+{
+  "package": "sseq",
+  "requirements": [
+    "matrixStats",
+    "sSeq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "matrixStats",
+      "sSeq"
+    ],
+    "paired_experimental_design.nf": [
+      "sSeq"
+    ]
+  }
+}

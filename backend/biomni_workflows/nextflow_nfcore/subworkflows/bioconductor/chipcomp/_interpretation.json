@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filetype=Specifies the format of the input files, such as \"bed\" or \"bam\" ;; species=Required if filetype is \"bed\", must be specified as either \"hg19\" or \"mm9\" ;; binsize=Size of the bins used for smoothing control read counts, e.g., 1000\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when comparing transcription factor binding or histone modification ChIP-seq datasets between two treatment conditions where biological replicates and matching control (input) sequencing data are available.\n- pitfalls: Currently, ChIPComp only supports situations when replicates are available for each treatment condition. If the input filetype is \"bed\", the species parameter must be explicitly specified as \"hg19\" or \"mm9\", whereas it is not necessary for \"bam\" files.",
+  "workflows": [
+    {
+      "name": "differential_binding_analysis",
+      "intent": "Detect differentially bound sharp binding sites between two conditions using ChIP-seq and matching control data.",
+      "input": [
+        "conf.csv (CSV file containing sample metadata, IP read file paths, control read file paths, and peak file paths)",
+        "*.bed (ChIP-seq IP reads, control reads, and peak files in BED format)"
+      ],
+      "stages": "1. Load configuration and design matrix using makeConf ;; 2. Merge binding sites and count reads using makeCountSet ;; 3. Plot correlation between ChIP and control samples using plot ;; 4. Perform hypothesis testing for differential binding using ChIPComp",
+      "code": "library(ChIPComp)\nconfs=makeConf(system.file(\"extdata\", \"conf.csv\", package=\"ChIPComp\"))\nconf=confs$conf\ndesign=confs$design\ncountSet=makeCountSet(conf,design,filetype=\"bed\", species=\"hg19\",binsize=1000)\nplot(countSet)\ncountSet=ChIPComp(countSet)\nprint(countSet)"
+    }
+  ]
+}

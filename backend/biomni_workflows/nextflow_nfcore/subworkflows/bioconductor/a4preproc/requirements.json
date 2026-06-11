@@ -1,0 +1,13 @@
+{
+  "package": "a4preproc",
+  "requirements": [
+    "Biobase",
+    "a4Preproc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "a4Preproc"
+    ]
+  }
+}

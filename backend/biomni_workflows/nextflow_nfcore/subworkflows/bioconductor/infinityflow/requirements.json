@@ -1,0 +1,21 @@
+{
+  "package": "infinityflow",
+  "requirements": [
+    "e1071",
+    "flowCore",
+    "glmnetUtils",
+    "infinityFlow"
+  ],
+  "by_workflow": {
+    "custom_regression_pipeline.nf": [
+      "e1071",
+      "flowCore",
+      "glmnetUtils",
+      "infinityFlow"
+    ],
+    "main.nf": [
+      "flowCore",
+      "infinityFlow"
+    ]
+  }
+}

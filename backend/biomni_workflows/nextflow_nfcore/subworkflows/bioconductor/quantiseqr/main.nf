@@ -1,115 +1,111 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: quantiseqr
-// This package provides a streamlined workflow for the quanTIseq method, developed to perform the quan
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/quantiseqr/inst/doc/using_quantiseqr.R
-// Upstream  : ExperimentHub, GEOquery, SummarizedExperiment, dplyr, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("quantiseqr")
+// Bioconductor workflow: quantiseqr — deconvolution_from_matrix
+// Perform immune cell deconvolution on a gene expression matrix and plot the resulting cell fractions.
+// Input: expression_matrix.txt
+// Container: quay.io/biocontainers/bioconductor-quantiseqr:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, quantiseqr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the deconvolution using run_quantiseq
+//  * 2. [Visualization & Output] Visualize the estimated cell fractions as a stacked barplot using quantiplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_QUANTISEQR {
+process BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-quantiseqr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-quantiseqr:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-quantiseqr:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(ggplot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_quantiseqr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_quantiseqr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_quantiseqr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(quantiseqr)
-    library(ExperimentHub)
-    library(jsonlite)
-
-    # --- Tumour Deconvolution [quantiseqr] ---
-    # Key functions: run_quantiseq
+    library(ggplot2)
+    
+    # Verify input file existence
+    input_file <- "expression_matrix.txt"
+    if (!file.exists(input_file)) {
+      stop(paste("Error: Required input file '", input_file, "' not found in the working directory.", sep = ""))
+    }
+    
+    # Read the expression matrix (TPM values, HGNC symbols as row names, samples as columns)
+    expr_mat <- read.table(input_file, header = TRUE, sep = "\t", row.names = 1, check.names = FALSE)
+    expr_mat <- as.matrix(expr_mat)
+    
+    # Perform immune cell deconvolution using the exact documented function call
     ti_racle <- quantiseqr::run_quantiseq(
-        expression_data = dataset_racle$expr_mat,
-        signature_matrix = "TIL10",
-        is_arraydata = FALSE,
-        is_tumordata = TRUE,
-        scale_mRNA = TRUE
+      expression_data = expr_mat,
+      signature_matrix = "TIL10",
+      is_arraydata = FALSE,
+      is_tumordata = TRUE,
+      scale_mRNA = TRUE
     )
+    
+    # Save the estimated cell fractions as a CSV table
+    write.csv(ti_racle, "deconvolution_results.csv", row.names = TRUE)
+    
+    # Save the results as an RDS object for downstream R analyses
+    saveRDS(ti_racle, "deconvolution_results.rds")
+    
+    # Visualize the estimated cell fractions as a stacked barplot and save to PDF
+    pdf("deconvolution_plot.pdf", width = 10, height = 6)
+    p <- quantiplot(ti_racle)
+    print(p)
+    dev.off()
 
-    # --- Visualisation of Immune Cell Fractions [quantiseqr] ---
-    # Key functions: quantiplot
-    cell_fraction_plot <- quantiplot(
-        ti_racle
-    )
-
-    # --- SummarizedExperiment Deconvolution [quantiseqr] ---
-    # Key functions: run_quantiseq, extract_ti_from_se
-    se_deconv <- quantiseqr::run_quantiseq(
-        expression_data = se_input,
-        signature_matrix = "TIL10",
-        is_arraydata = FALSE,
-        is_tumordata = TRUE,
-        scale_mRNA = TRUE
-    )
-    ti_fractions <- quantiseqr::extract_ti_from_se(
-        se_deconv
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_quantiseqr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_quantiseqr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_quantiseqr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QUANTISEQR:", paste0("    quantiseqr: ", packageVersion("quantiseqr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX":',
+        paste0('    quantiseqr: ', as.character(packageVersion('quantiseqr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_quantiseqr_results.csv
-    touch ${prefix}_quantiseqr_output.rds
-    echo "BIOC_QUANTISEQR:" > versions.yml
-    echo "    quantiseqr: 0.0.0" >> versions.yml
+    touch ${prefix}_deconvolution_from_matrix.csv versions.yml
     """
 }
 
-
-workflow BIOC_QUANTISEQR_WORKFLOW {
+workflow BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(ggplot_object) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.txt ] ]
 
     main:
-    BIOC_QUANTISEQR(ch_input)
+    BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX(ch_input)
 
     emit:
-    results  = BIOC_QUANTISEQR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QUANTISEQR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QUANTISEQR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QUANTISEQR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX.out.tables
+    plots    = BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX.out.plots
+    objects  = BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX.out.objects
+    versions = BIOC_QUANTISEQR_DECONVOLUTION_FROM_MATRIX.out.versions
 }

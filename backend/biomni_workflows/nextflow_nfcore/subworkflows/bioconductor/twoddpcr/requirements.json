@@ -1,0 +1,20 @@
+{
+  "package": "twoddpcr",
+  "requirements": [
+    "ggplot2",
+    "twoddpcr"
+  ],
+  "by_workflow": {
+    "custom_classification_integration.nf": [
+      "ggplot2",
+      "twoddpcr"
+    ],
+    "knn_training_classification.nf": [
+      "ggplot2",
+      "twoddpcr"
+    ],
+    "main.nf": [
+      "twoddpcr"
+    ]
+  }
+}

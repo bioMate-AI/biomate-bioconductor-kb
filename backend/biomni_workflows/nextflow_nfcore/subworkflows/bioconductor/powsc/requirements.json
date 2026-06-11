@@ -1,0 +1,21 @@
+{
+  "package": "powsc",
+  "requirements": [
+    "POWSC",
+    "RColorBrewer",
+    "SingleCellExperiment",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "POWSC",
+      "SingleCellExperiment"
+    ],
+    "multiple_group_power_analysis.nf": [
+      "POWSC",
+      "RColorBrewer",
+      "SingleCellExperiment",
+      "pheatmap"
+    ]
+  }
+}

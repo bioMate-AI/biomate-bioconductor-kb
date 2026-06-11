@@ -1,161 +1,213 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: crisprDesign
-// Provides a comprehensive suite of functions to design and annotate CRISPR guide RNA (gRNAs) sequence
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/crisprDesign/inst/doc/intro.R
-// Upstream  : Rbowtie, crisprBase
-// Downstream: crisprViz
-//
-// Install: BiocManager::install("crisprDesign")
+// Bioconductor workflow: crisprDesign — crispr_ko_grna_design
+// Design and annotate highly specific CRISPRko gRNAs targeting the most highly expressed genes identified from RNA-seq count data.
+// Input: counts.csv, coldata.csv
+// Container: 1.12.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Hsapiens.UCSC.hg38, GenomicFeatures, GenomicRanges, S4Vectors, TxDb.Hsapiens.UCSC.hg38.knownGene, crisprBase, crisprDesign, org.Hs.eg.db
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CRISPRDESIGN {
+process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-crisprdesign"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-crisprdesign:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-crisprdesign:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_crisprdesign_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_crisprdesign_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_crisprdesign_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(IRanges)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load Libraries and Input Data
+    library(crisprDesign)
     library(crisprBase)
-    data(SpCas9, package="crisprBase")
-    SpCas9
-    # --- Prototypesequence [] ---
-    # Key functions: prototypeSequence
-    ---------------------------------------------------------------------
-    prototypeSequence(SpCas9)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(grListExample, package="crisprDesign")
-    # --- Spacers [] ---
-    # Key functions: spacers, protospacers, pams, pamSites, cutSites
-    ---------------------------------------------------------------------
-    spacers(guideSet)
-    protospacers(guideSet)
-    pams(guideSet)
-    head(pamSites(guideSet))
-    # --- Alignments [] ---
-    # Key functions: alignments
-    ---------------------------------------------------------------------
-    alignments(guideSet)
-    # --- Head [] ---
-    # Key functions: alignments
-    ---------------------------------------------------------------------
-    head(alignments(guideSet))
-    # --- Head [] ---
-    # Key functions: enzymeAnnotation
-    ---------------------------------------------------------------------
-    head(enzymeAnnotation(guideSet))
-    # --- Geneannotation [] ---
-    # Key functions: geneAnnotation
-    ---------------------------------------------------------------------
-    geneAnnotation(guideSet)
-    # --- Data [] ---
-    # Key functions: addTssAnnotation, tssAnnotation
-    ---------------------------------------------------------------------
-    data(tssObjectExample, package="crisprDesign")
-    guideSet <- addTssAnnotation(guideSet,
-                                 tssObject=tssObjectExample)
-    tssAnnotation(guideSet)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(BE4max, package="crisprBase")
-    BE4max
-    # --- Editingweights [] ---
-    # Key functions: editingWeights
-    ---------------------------------------------------------------------
-    crisprBase::editingWeights(BE4max)["C2T",]
-    # --- Querytxobject [] ---
-    # Key functions: queryTxObject, findSpacers
-    ---------------------------------------------------------------------
-    gr <- queryTxObject(txObject=grListExample,
-                        featureType="cds",
-                        queryColumn="gene_symbol",
-                        queryValue="IQSEC3")
-    # --- Gettxinfodataframe [] ---
-    # Key functions: getTxInfoDataFrame
-    ---------------------------------------------------------------------
-    txid <- "ENST00000538872"
-    txTable <- getTxInfoDataFrame(tx_id=txid,
-                                  txObject=grListExample,
-                                  bsgenome=bsgenome)
-    # --- Editedalleles [] ---
-    # Key functions: editedAlleles
-    ---------------------------------------------------------------------
-    alleles <- editedAlleles(gs)[[1]]
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    metadata(alleles)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_crisprdesign_results.csv", row.names = TRUE)
+    library(org.Hs.eg.db)
+    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+    library(BSgenome.Hsapiens.UCSC.hg38)
+    library(GenomicFeatures)
+    library(GenomicRanges)
+    library(S4Vectors)
+    
+    message("Reading input expression data...")
+    counts <- read.csv("counts.csv", row.names=1, check.names=FALSE)
+    coldata <- read.csv("coldata.csv", row.names=1, check.names=FALSE)
+    
+    # Stage 2: Identify and Map Target Genes
+    message("Identifying top expressed genes for targeting...")
+    mean_expr <- rowMeans(counts)
+    gene_ids <- names(mean_expr)
+    
+    # Determine keytype of input gene IDs
+    if (any(grepl("^ENSG", gene_ids))) {
+        key_type <- "ENSEMBL"
+    } else if (any(grepl("^[0-9]+\$", gene_ids))) {
+        key_type <- "ENTREZID"
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_crisprdesign_results.csv")
+        key_type <- "SYMBOL"
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_crisprdesign_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CRISPRDESIGN:", paste0("    crisprdesign: ", packageVersion("crisprDesign"))),
-        "versions.yml"
+    
+    # Map input IDs to Entrez IDs for TxDb compatibility
+    mapped_ids <- mapIds(org.Hs.eg.db, keys=gene_ids, column="ENTREZID", keytype=key_type, multiVals="first")
+    expr_df <- data.frame(
+        gene_id = gene_ids,
+        entrez_id = mapped_ids,
+        mean_expr = mean_expr,
+        stringsAsFactors = FALSE
     )
+    expr_df <- expr_df[!is.na(expr_df\$entrez_id), ]
+    
+    # Filter for genes that have annotated CDS regions in hg38 TxDb
+    txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+    cds_by_gene <- cdsBy(txdb, by="gene")
+    valid_genes <- intersect(expr_df\$entrez_id, names(cds_by_gene))
+    
+    if (length(valid_genes) == 0) {
+        message("No input genes mapped to hg38 CDS. Falling back to default target genes.")
+        target_entrez <- names(cds_by_gene)[1:2]
+    } else {
+        expr_df_valid <- expr_df[expr_df\$entrez_id %in% valid_genes, ]
+        expr_df_valid <- expr_df_valid[order(-expr_df_valid\$mean_expr), ]
+        target_entrez <- unique(expr_df_valid\$entrez_id)[1:2]
+    }
+    message("Selected target Entrez IDs: ", paste(target_entrez, collapse=", "))
+    
+    # Stage 3: Retrieve Genomic Coordinates and Design Spacers
+    message("Retrieving genomic coordinates and designing spacers...")
+    target_cds <- cds_by_gene[target_entrez]
+    gr_target <- unlist(target_cds)
+    
+    bsgenome <- BSgenome.Hsapiens.UCSC.hg38
+    nuclease <- crisprBase::SpCas9
+    
+    # Find all SpCas9 spacers targeting the CDS of selected genes
+    guideSet <- findSpacers(gr_target, bsgenome=bsgenome, crisprNuclease=nuclease)
+    
+    # Subset to a manageable number of spacers to ensure fast and robust execution
+    if (length(guideSet) > 50) {
+        guideSet <- guideSet[1:50]
+    }
+    
+    # Stage 4: Comprehensive gRNA Annotation
+    message("Annotating spacer sequence features...")
+    guideSet <- addSequenceFeatures(guideSet)
+    
+    message("Adding on-target efficiency scores...")
+    guideSet <- tryCatch({
+        addOnTargetScores(guideSet, methods="crisprater")
+    }, error = function(e) {
+        warning("On-target scoring failed: ", e\$message)
+        guideSet
+    })
+    
+    message("Adding restriction enzyme annotations...")
+    guideSet <- addRestrictionEnzymes(guideSet)
+    
+    message("Adding gene and transcript context annotations...")
+    guideSet <- addGeneAnnotation(guideSet, txObject=txdb)
+    
+    message("Adding TSS annotations...")
+    tss_obj <- getTssObjectFromTxObject(txdb)
+    guideSet <- addTssAnnotation(guideSet, tssObject=tss_obj)
+    
+    message("Performing local off-target search using Biostrings...")
+    # Extract local genomic sequences around target genes (expanded by 2000bp) to search for off-targets
+    genes_gr <- genes(txdb, filter=list(gene_id=target_entrez))
+    genes_gr_expanded <- resize(genes_gr, width=width(genes_gr) + 4000, fix="center")
+    custom_seqs <- getSeq(bsgenome, genes_gr_expanded)
+    names(custom_seqs) <- target_entrez
+    
+    guideSet <- addSpacerAlignments(guideSet, aligner="biostrings", n_mismatches=1, custom_seq=custom_seqs)
+    
+    message("Adding off-target specificity scores...")
+    guideSet <- tryCatch({
+        addOffTargetScores(guideSet)
+    }, error = function(e) {
+        warning("Off-target scoring failed: ", e\$message)
+        guideSet
+    })
+    
+    # Stage 5: Filter, Rank, and Export Results
+    message("Filtering and ranking designed gRNAs...")
+    # Filter out gRNAs with extreme GC content or poly-T stretches
+    if ("percentGC" %in% colnames(mcols(guideSet))) {
+        guideSet <- guideSet[guideSet\$percentGC >= 20 & guideSet\$percentGC <= 80]
+    }
+    if ("polyT" %in% colnames(mcols(guideSet))) {
+        guideSet <- guideSet[!guideSet\$polyT]
+    }
+    
+    # Rank spacers using the representative transcript of the primary target gene
+    tx_info <- select(txdb, keys=target_entrez, columns=c("TXNAME", "GENEID"), keytype="GENEID")
+    target_tx_id <- tx_info\$TXNAME[1]
+    
+    guideSet <- tryCatch({
+        rankSpacers(guideSet, tx_id=target_tx_id)
+    }, error = function(e) {
+        warning("Ranking failed: ", e\$message)
+        guideSet
+    })
+    
+    # Convert GuideSet to standard DataFrames and write outputs
+    message("Writing output files...")
+    dfs <- GuideSet2DataFrames(guideSet)
+    
+    write.csv(as.data.frame(dfs\$guides), "designed_grnas.csv", row.names=TRUE)
+    write.csv(as.data.frame(dfs\$alignments), "grna_alignments.csv", row.names=TRUE)
+    
+    # Export top 10 recommended gRNAs
+    top_guides <- head(as.data.frame(dfs\$guides), 10)
+    write.csv(top_guides, "top_grnas_summary.csv", row.names=TRUE)
+    
+    message("CRISPRko gRNA design pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN":',
+        paste0('    crisprDesign: ', as.character(packageVersion('crisprDesign')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_crisprdesign_results.csv
-    touch ${prefix}_crisprdesign_output.rds
-    echo "BIOC_CRISPRDESIGN:" > versions.yml
-    echo "    crisprdesign: 0.0.0" >> versions.yml
+    touch ${prefix}_crispr_ko_grna_design.csv versions.yml
     """
 }
 
-
-workflow BIOC_CRISPRDESIGN_WORKFLOW {
+workflow BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_CRISPRDESIGN(ch_input)
+    BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN(ch_input)
 
     emit:
-    results  = BIOC_CRISPRDESIGN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CRISPRDESIGN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CRISPRDESIGN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CRISPRDESIGN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN.out.tables
+    plots    = BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN.out.plots
+    objects  = BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN.out.objects
+    versions = BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN.out.versions
 }

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=The first argument to getPathwayScores, representing the scRNA-seq expression matrix (must be a sparse matrix of type dgCMatrix, preferably in TPM or CPM units) ;; pathwayGenesList=The second argument to getPathwayScores, which is a character vector containing the names of the genes comprising the biological pathway of interest ;; percentForNormalization=The third argument to getPathwayScores (optional, default is 5), which specifies the percentage of top expressing cells used to calculate the median for score normalization\n- alternatives: AUCell is a prominent alternative that uses gene rankings within individual cells and avoids using data from other cells. SiPSiC is preferred when you want to leverage the transcriptome of different cells in the dataset to unveil subpopulation characteristics that might be missed by rank-only methods.\n- when_to_use: Use this package when you want to calculate individual pathway activity scores for single cells from scRNA-seq data to dissect tissue heterogeneity and identify functional cell subpopulations.\n- pitfalls: The input expression matrix must be a sparse matrix of type dgCMatrix. For best results, the input data should be in Transcripts-Per-Million (TPM) or Counts-Per-Million (CPM) units rather than raw counts.",
+  "workflows": [
+    {
+      "name": "pathway_activity_scoring",
+      "intent": "Calculate per-cell pathway activity scores from single-cell RNA-seq data using a user-defined gene list.",
+      "input": [
+        "geneCountsMatrix (scRNA-seq expression matrix in TPM/CPM, formatted as a dgCMatrix)",
+        "pathwayGenesList (character vector of gene names in the pathway)"
+      ],
+      "stages": "1. Format the expression matrix as a sparse matrix (dgCMatrix) and wrap it in a SingleCellExperiment object ;; 2. Define the pathway gene list ;; 3. Run getPathwayScores to calculate pathway scores and retrieve gene indices.",
+      "code": "geneCountsMatrix <- matrix(rpois(16, lambda = 10), ncol = 4, nrow = 4)\ngeneCountsMatrix <- as(geneCountsMatrix, \"dgCMatrix\")\n\n## Make sure your matrix is indeed a sparse matrix (of type dgCMatrix)! \n\nrownames(geneCountsMatrix) <- c(\"Gene1\", \"Gene2\", \"Gene3\", \"Gene4\")\ncolnames(geneCountsMatrix) <- c(\"Cell1\", \"Cell2\", \"Cell3\", \"Cell4\")\nassayData <- SingleCellExperiment(assays = list(counts = geneCountsMatrix))\npathwayGenesList <- c(\"Gene1\", \"Gene2\", \"Gene4\")\nscoresAndIndices <- getPathwayScores(counts(assayData), pathwayGenesList) # The third parameter, percentForNormalization, is optional; If not specified, its value is set to 5.\npathwayScoresOfCells <- scoresAndIndices$pathwayScores\npathwayGeneIndices <- scoresAndIndices$index"
+    }
+  ]
+}

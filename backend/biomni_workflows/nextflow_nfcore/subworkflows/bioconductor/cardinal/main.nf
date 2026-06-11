@@ -1,120 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Cardinal
-// Implements statistical & computational tools for analyzing mass spectrometry imaging datasets, inclu
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Cardinal/inst/doc/Cardinal3-guide.R
-// Upstream  : CardinalWorkflows
-// Downstream: CardinalWorkflows
-//
-// Install: BiocManager::install("Cardinal")
+// Bioconductor workflow: cardinal — msi_preprocessing_and_peak_extraction
+// Import raw MSI data, apply sequential preprocessing steps, perform peak picking and alignment, and export the processed dataset.
+// Input: continuous.imzML, processed.imzML
+// Container: quay.io/biocontainers/bioconductor-cardinal:3.12.1--r45hdfd78af_0
+// R packages: Cardinal, cardinalworkflows
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CARDINAL {
+process BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cardinal"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cardinal:3.8.3--r44_0' :
-        'quay.io/biocontainers/bioconductor-cardinal:3.8.3--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-cardinal:3.12.1--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(ggplot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cardinal_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cardinal_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cardinal_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Cardinal", "cardinalworkflows")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(Cardinal)
-    library(MassDataFrame)
-    library(jsonlite)
-
-    # --- Simulation of MS Imaging Data [] ---
-    # Key functions: simulateSpectra, MassDataFrame, PositionDataFrame, MSImagingExperiment, simulateImage
-    s <- simulateSpectra(n=9, npeaks=10, from=500, to=600)
-    coord_grid <- expand.grid(x=1:3, y=1:3)
-    run_fac <- factor(rep("run0", nrow(coord_grid)))
-    fdata <- MassDataFrame(mz=s$mz)
-    pdata <- PositionDataFrame(run=run_fac, coord=coord_grid)
-    mse_sim <- MSImagingExperiment(
-        spectraData=s$intensity,
-        featureData=fdata,
-        pixelData=pdata
-    )
-    mse_full <- simulateImage(preset=6, dim=c(32,32), baseline=0.5)
-
-
-    # --- Subsetting and Feature Selection [] ---
-    # Key functions: features, pixels, subsetFeatures, subsetPixels, convertMSImagingExperiment2Arrays
-    mse_full <- simulateImage(preset=6, dim=c(32,32), baseline=0.5)
-    fid <- features(mse_full, 1002 < mz, mz < 1004)
-    pid <- pixels(mse_full, x <= 3, y <= 3, run == "runA1")
-    mse_sub <- mse_full[fid, pid]
-    mse_sub2 <- subsetFeatures(mse_full, 1002 < mz, mz < 1004)
-    mse_sub3 <- subsetPixels(mse_full, x <= 3, y <= 3)
-    msa_sub <- convertMSImagingExperiment2Arrays(mse_full)
-
-
-    # --- Visualization and Image Generation [] ---
-    # Key functions: plot, image, convertMSImagingExperiment2Arrays
-    mse_full <- simulateImage(preset=6, dim=c(32,32), baseline=0.5)
-    msa_full <- convertMSImagingExperiment2Arrays(mse_full)
-    plot(msa_full, i=c(496, 1520), superpose=TRUE)
-    image(mse_full, mz=1003.3, tolerance=0.5, units="mz")
-    image(mse_full, mz=1003.3, smooth="gaussian", enhance="histogram")
-    image(mse_full, mz=c(1003.3, 1663.6), superpose=TRUE, scale=TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cardinal_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cardinal_results.csv")
+    
+    # 1. Read raw MSI data using readMSIData()
+    # Reading the user-provided continuous and processed imzML files
+    path_continuous <- "continuous.imzML"
+    mse_tiny <- readMSIData(path_continuous)
+    
+    path_processed <- "processed.imzML"
+    msa <- readMSIData(path_processed)
+    
+    # 2. Queue preprocessing steps: normalize(), smooth(), reduceBaseline(), and peakPick()
+    mse_queue <- msa |>
+    	normalize() |>
+    	smooth() |>
+    	reduceBaseline() |>
+    	peakPick(SNR=6)
+    
+    # 3. Preview queued processing using plot()
+    # Saving the preview plot to a PDF file
+    pdf("preprocessing_preview.pdf", width=9, height=6)
+    tryCatch({
+    	plot(mse_queue, coord=list(x=16, y=16), linewidth=2)
+    }, error = function(e) {
+    	warning("Could not plot at coord (16,16), attempting default plot: ", e\$message)
+    	try(plot(mse_queue, linewidth=2))
+    })
+    dev.off()
+    
+    # 4. Apply processing and align peaks across spectra using peakAlign()
+    mse_proc <- peakAlign(mse_queue)
+    
+    # 5. Filter peaks by frequency using subsetFeatures()
+    mse_proc <- subsetFeatures(mse_proc, freq > 0.1)
+    
+    # 6. Export the processed dataset to imzML using writeMSIData()
+    imzfile <- "processed_output.imzML"
+    if (file.exists(imzfile)) {
+    	unlink(imzfile, recursive = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cardinal_output.rds")
-    }
+    writeMSIData(mse_proc, file=imzfile)
+    
+    # Read the exported dataset back to verify
+    mse_re <- readMSIData(imzfile)
+    
+    # Save additional meaningful results
+    # Save the processed MSImagingExperiment object as an RDS file
+    saveRDS(mse_proc, file="processed_dataset.rds")
+    
+    # Export detected peak metadata (features) to CSV
+    tryCatch({
+    	peaks_df <- as.data.frame(featureData(mse_proc))
+    	write.csv(peaks_df, file="detected_peaks.csv", row.names=FALSE)
+    }, error = function(e) {
+    	warning("Could not export feature data to CSV: ", e\$message)
+    })
+    
+    # Export pixel metadata to CSV
+    tryCatch({
+    	pixel_df <- as.data.frame(pixelData(mse_proc))
+    	write.csv(pixel_df, file="pixel_metadata.csv", row.names=FALSE)
+    }, error = function(e) {
+    	warning("Could not export pixel data to CSV: ", e\$message)
+    })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CARDINAL:", paste0("    cardinal: ", packageVersion("Cardinal"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION":',
+        paste0('        cardinal: ', as.character(packageVersion("cardinal")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cardinal_results.csv
-    touch ${prefix}_cardinal_output.rds
-    echo "BIOC_CARDINAL:" > versions.yml
-    echo "    cardinal: 0.0.0" >> versions.yml
+    touch ${prefix}_msi_preprocessing_and_peak_extraction.csv versions.yml
     """
 }
 
-
-workflow BIOC_CARDINAL_WORKFLOW {
+workflow BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(ggplot_object) ]
+    ch_input  // channel: [ val(meta), [ continuous.imzML, processed.imzML ] ]
 
     main:
-    BIOC_CARDINAL(ch_input)
+    BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION(ch_input)
 
     emit:
-    results  = BIOC_CARDINAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CARDINAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CARDINAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CARDINAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION.out.tables
+    plots    = BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION.out.plots
+    objects  = BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION.out.objects
+    versions = BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION.out.versions
 }

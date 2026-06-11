@@ -1,107 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: lefser
-// lefser is the R implementation of the popular microbiome biomarker discovery too, LEfSe. It uses the
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/lefser/inst/doc/lefser.R
-// Upstream  : SummarizedExperiment, phyloseq
-// Downstream: none
-//
-// Install: BiocManager::install("lefser")
+// Bioconductor workflow: lefser — metagenomic_biomarker_discovery
+// Identify metagenomic biomarkers from taxonomic count data using relative abundance and terminal nodes.
+// Input: SummarizedExperiment object containing taxonomic count data in assays and class/subclass metadata in colData.
+// Container: quay.io/biocontainers/bioconductor-lefser:1.20.2--r45hdfd78af_0
+// R packages: lefser, phyloseq, SummarizedExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, lefser
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter non-terminal nodes to avoid collinearity using get_terminal_nodes
+//  * 2. [Core Analysis] Convert counts to relative abundances using relativeAb
+//  * 3. [Core Analysis] Run the LEfSe analysis using lefser with a set seed for reproducibility
+//  * 4. [Visualization & Output] Visualize the biomarker discovery results using lefserPlot
 
 nextflow.enable.dsl = 2
 
-process BIOC_LEFSER {
+process BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-lefser"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-lefser:1.16.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-lefser:1.16.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_lefser_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_lefser_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_lefser_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("lefser", "phyloseq", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(lefser)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(zeller14)
-    zeller14 <- zeller14[, zeller14$study_condition != "adenoma"]
-    # --- Get Terminal Nodes [] ---
-    # Key functions: get_terminal_nodes
-    ---------------------------------------------------------------------
-    tn <- get_terminal_nodes(rownames(zeller14))
-    zeller14tn <- zeller14[tn,]
-    # --- Relativeab [] ---
-    # Key functions: relativeAb
-    ---------------------------------------------------------------------
-    zeller14tn_ra <- relativeAb(zeller14tn)
-    # --- Lefserplot [] ---
-    # Key functions: lefserPlot
-    ---------------------------------------------------------------------
-    lefserPlot(res)
-    # --- Maketreesummarizedexperimentfromphyloseq [] ---
-    # Key functions: makeTreeSummarizedExperimentFromPhyloseq
-    ---------------------------------------------------------------------
-    mia::makeTreeSummarizedExperimentFromPhyloseq(kostic)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_lefser_results.csv", row.names = TRUE)
+    
+    # Define input file path (expected in the working directory)
+    input_file <- "taxonomic_counts_se.rds"
+    
+    # Check if input file exists
+    if (!file.exists(input_file)) {
+      stop(paste("Error: Input file", input_file, "not found in the working directory."))
+    }
+    
+    # Read the SummarizedExperiment object containing taxonomic count data
+    se <- readRDS(input_file)
+    
+    # 1. Filter non-terminal nodes to avoid collinearity using get_terminal_nodes
+    tn <- get_terminal_nodes(rownames(se))
+    setn <- se[tn,]
+    
+    # 2. Convert counts to relative abundances using relativeAb
+    setn_ra <- relativeAb(setn)
+    
+    # 3. Run the LEfSe analysis using lefser with a set seed for reproducibility
+    set.seed(1234)
+    
+    # Dynamically assign class and subclass columns based on the user's colData
+    class_col <- colnames(colData(se))[1]
+    
+    if (ncol(colData(se)) > 1) {
+      subclass_col <- colnames(colData(se))[2]
+      res <- lefser(setn_ra, # relative abundance only with terminal nodes
+                    classCol = class_col,
+                    subclassCol = subclass_col)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_lefser_results.csv")
+      res <- lefser(setn_ra, # relative abundance only with terminal nodes
+                    classCol = class_col)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_lefser_output.rds")
-    }
+    
+    # Print head of results to standard output
+    print(head(res))
+    
+    # Save tabular results to disk
+    write.csv(res, "lefser_results.csv", row.names = FALSE)
+    saveRDS(res, "lefser_results.rds")
+    
+    # 4. Visualize the biomarker discovery results using lefserPlot and save to PDF
+    pdf("lefser_plot_default.pdf", width = 10, height = 8)
+    print(lefserPlot(res))
+    dev.off()
+    
+    pdf("lefser_plot_italic.pdf", width = 10, height = 8)
+    print(lefserPlot(res, label.font.face = "italic"))
+    dev.off()
+    
+    pdf("lefser_plot_red.pdf", width = 10, height = 8)
+    print(lefserPlot(res, label.font.color = "red"))
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LEFSER:", paste0("    lefser: ", packageVersion("lefser"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY":',
+        paste0('    lefser: ', as.character(packageVersion('lefser')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_lefser_results.csv
-    touch ${prefix}_lefser_output.rds
-    echo "BIOC_LEFSER:" > versions.yml
-    echo "    lefser: 0.0.0" >> versions.yml
+    touch ${prefix}_metagenomic_biomarker_discovery.csv versions.yml
     """
 }
 
-
-workflow BIOC_LEFSER_WORKFLOW {
+workflow BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ SummarizedExperiment object containing taxonomic count data in assays and class/subclass metadata in colData. ] ]
 
     main:
-    BIOC_LEFSER(ch_input)
+    BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY(ch_input)
 
     emit:
-    results  = BIOC_LEFSER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LEFSER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LEFSER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LEFSER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY.out.tables
+    plots    = BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY.out.plots
+    objects  = BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY.out.objects
+    versions = BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY.out.versions
 }

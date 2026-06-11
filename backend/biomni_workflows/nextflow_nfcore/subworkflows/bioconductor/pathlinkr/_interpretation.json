@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rnaseqResult=A data frame of RNA-Seq results (e.g., from DESeq2 results()) ;; filterInput=Logical indicating whether to filter input genes based on standard thresholds (default: adjusted p-value < 0.05, absolute fold change > 1.5) ;; order=Type of PPI network to build (e.g., \"zero\", \"minimum\", \"first\") ;; analysis=Enrichment method to use (\"sigora\", \"reactome\", \"hallmark\", \"kegg\") ;; gpsRepo=Gene Pair Signature Repository for sigora (default is \"default\" which uses human Reactome reaH, or \"kegH\" for KEGG) ;; split=Logical indicating whether to split genes into up- and down-regulated before enrichment ;; columns=Number of columns to split the pathway plot into (up to 3) ;; maxDistance=Maximum distance threshold for pathway similarity in pathnetFoundation()\n- alternatives: analysis=\"sigora\" (default) uses gene-pair signatures to reduce false positives from promiscuous genes, whereas analysis=\"reactome\" (ReactomePA) or analysis=\"hallmark\" (MSigDb) use traditional over-representation analysis (ORA). KEGG is also supported via analysis=\"kegg\" or analysis=\"sigora\" with gpsRepo=\"kegH\".\n- when_to_use: When analyzing RNA-Seq differential expression results across one or multiple comparisons to identify biological significance via pathway enrichment, PPI networks, and visualizations.\n- pitfalls: Traditional ORA assumes all genes in a pathway have equal value, which can lead to false positives due to overlapping/promiscuous genes (e.g., kinases). Use sigora to mitigate this. Different p-value cut-offs and adjustment methods are used: sigora uses Bonferroni adjustment with a strict threshold (adjusted p-value < 0.001) because the gene-pair universe is much larger, whereas ReactomePA/Hallmark use Benjamini-Hochberg with adjusted p-value < 0.05. Ensure gene IDs are compatible (e.g., Ensembl IDs or Entrez IDs depending on the database/method used).",
+  "workflows": [
+    {
+      "name": "rna_seq_downstream_analysis",
+      "intent": "Visualize differentially expressed genes and perform pathway enrichment analysis on RNA-Seq results.",
+      "input": [
+        "rnaseq_results.rds (A list of data frames containing DESeq2 results with columns like log2FoldChange, padj, etc.)"
+      ],
+      "stages": "1. Generate a volcano plot using eruption() ;; 2. Plot fold changes across comparisons using plotFoldChange() ;; 3. Perform pathway enrichment using pathwayEnrichment() ;; 4. Plot pathway enrichment results using pathwayPlots()",
+      "code": "eruption(\n    rnaseqResult=exampleDESeqResults[[1]],\n    title=names(exampleDESeqResults[1])\n)\n\nplotFoldChange(\n    inputList=exampleDESeqResults,\n    pathName=\"Interferon alpha/beta signaling\"\n)\n\nenrichedResultsSigora <- pathwayEnrichment(\n    inputList=exampleDESeqResults,\n    analysis=\"sigora\",\n    filterInput=TRUE,\n    gpsRepo=\"default\"\n)\n\nenrichedResultsHm <- pathwayEnrichment(\n    inputList=exampleDESeqResults,\n    analysis=\"hallmark\",\n    filterInput=TRUE,\n    split=TRUE\n)\n\npathwayPlots(\n    pathwayEnrichmentResults=enrichedResultsSigora,\n    columns=2\n)"
+    },
+    {
+      "name": "ppi_network_analysis",
+      "intent": "Build, visualize, enrich, and extract subnetworks from Protein-Protein Interaction (PPI) networks using DEG results.",
+      "input": [
+        "rnaseq_results.rds (A list of data frames containing DESeq2 results)"
+      ],
+      "stages": "1. Build a PPI network using ppiBuildNetwork() ;; 2. Plot the PPI network using ppiPlotNetwork() ;; 3. Enrich the network nodes for pathways using ppiEnrichNetwork() ;; 4. Extract a subnetwork based on an enriched pathway using ppiExtractSubnetwork() ;; 5. Plot the extracted subnetwork using ppiPlotNetwork()",
+      "code": "exNetwork <- ppiBuildNetwork(\n    rnaseqResult=exampleDESeqResults[[1]],\n    filterInput=TRUE,\n    order=\"zero\"\n)\n\nppiPlotNetwork(\n    network=exNetwork,\n    title=names(exampleDESeqResults)[1],\n    fillColumn=LogFoldChange,\n    fillType=\"foldChange\",\n    label=TRUE,\n    labelColumn=hgncSymbol,\n    legend=TRUE\n)\n\nexNetworkPathways <- ppiEnrichNetwork(\n    network=exNetwork,\n    analysis=\"hallmark\",\n    filterResults=\"default\",\n    geneUniverse = rownames(exampleDESeqResults[[1]])\n)\n\nexSubnetwork <- ppiExtractSubnetwork(\n    network=exNetwork,\n    pathwayEnrichmentResult=exNetworkPathways,\n    pathwayToExtract=\"INTERFERON GAMMA RESPONSE\"\n)\n\nppiPlotNetwork(\n    network=exSubnetwork,\n    fillType=\"oneSided\",\n    fillColumn=degree,\n    label=TRUE,\n    labelColumn=hgncSymbol,\n    legendTitle=\"Degree\"\n)"
+    },
+    {
+      "name": "pathway_similarity_network",
+      "intent": "Construct and visualize pathway-to-pathway similarity networks from enriched pathway results.",
+      "input": [
+        "enriched_pathways.rds (Enriched pathway results from pathwayEnrichment())"
+      ],
+      "stages": "1. Load the Sigora database and calculate pathway distances using getPathwayDistances() ;; 2. Create a foundation network of pathways using pathnetFoundation() ;; 3. Filter enriched pathways for a specific comparison ;; 4. Create the pathway network using pathnetCreate() ;; 5. Visualize the pathway network using pathnetGGraph()",
+      "code": "data(\"sigoraDatabase\")\n\npathwayDistancesJaccard <- getPathwayDistances(pathwayData = sigoraDatabase)\n\nstartingPathways <- pathnetFoundation(\n    mat=pathwayDistancesJaccard,\n    maxDistance=0.8\n)\n\nexPathwayNetworkInput <- enrichedResultsSigora %>%\n    filter(comparison == \"COVID Pos Over Time\")\n\nmyPathwayNetwork <- pathnetCreate(\n    pathwayEnrichmentResult=exPathwayNetworkInput,\n    foundation=startingPathways\n)\n\npathnetGGraph(\n    myPathwayNetwork,\n    labelProp=0.1,\n    nodeLabelSize=3,\n    nodeLabelOverlaps=8,\n    segColour=\"red\",\n    themeBaseSize = 12\n)"
+    }
+  ]
+}

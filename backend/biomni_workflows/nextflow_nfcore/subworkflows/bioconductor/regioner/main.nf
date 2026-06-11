@@ -1,148 +1,119 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: regioneR
-// regioneR offers a statistical framework based on customizable permutation tests to assess the associ
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/regioneR/inst/doc/regioneR.R
-// Upstream  : knitr
-// Downstream: karyoploteR, regioneReloaded
-//
-// Install: BiocManager::install("regioneR")
+// Bioconductor workflow: regioner — overlap_permutation_test
+// Statistically evaluate whether two genomic region sets overlap more (or less) than expected by chance using a permutation test.
+// Input: cpgHMM.txt, UCSC.promoters.hg19.bed
+// Container: quay.io/biocontainers/bioconductor-regioner:1.42.0--r45hdfd78af_0
+// R packages: knitr, regioneR
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_REGIONER {
+process BIOC_REGIONER_OVERLAP_PERMUTATION_TEST {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-regioner"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-regioner:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-regioner:1.38.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-regioner:1.42.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_regioner_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_regioner_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_regioner_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("knitr", "regioneR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(regioneR)
-    library(jsonlite)
-
-    # --- Genome and Chromosome Filtering [] ---
-    # Key functions: getGenome, filterChromosomes, createRandomRegions
-    hg19_genome <- getGenome("hg19")
-    autosomal_genome <- filterChromosomes(
-        hg19_genome,
-        organism = "hg",
-        chr.type = "autosomal"
+    
+    # Set seed for reproducibility
+    set.seed(12345)
+    
+    # 1. Load region sets using toGRanges from local files
+    cpgHMM <- toGRanges("cpgHMM.txt")
+    promoters <- toGRanges("UCSC.promoters.hg19.bed")
+    
+    # 2. Filter out non-canonical chromosomes using filterChromosomes
+    cpgHMM <- filterChromosomes(cpgHMM, organism="hg", chr.type="canonical")
+    promoters <- filterChromosomes(promoters, organism="hg", chr.type="canonical")
+    
+    # 3. Subset regions to speed up analysis
+    cpgHMM_2K <- sample(cpgHMM, 2000)
+    
+    # 4. Run the permutation test using overlapPermTest
+    pt <- overlapPermTest(cpgHMM_2K, promoters, ntimes=1000, genome="hg19", count.once=TRUE)
+    
+    # 5. Plot the permutation test results and save to PDF
+    pdf("overlap_permutation_test_plot.pdf", width = 8, height = 6)
+    plot(pt)
+    dev.off()
+    
+    # Save the permutation test object as RDS
+    saveRDS(pt, file = "permutation_test_results.rds")
+    
+    # Extract and save meaningful results to a CSV table
+    results_df <- data.frame(
+      p_value = pt\$numOverlaps\$pval,
+      z_score = pt\$numOverlaps\$zscore,
+      ntimes = pt\$numOverlaps\$ntimes,
+      observed = pt\$numOverlaps\$observed,
+      alternative = pt\$numOverlaps\$alternative,
+      mean_permuted = mean(pt\$numOverlaps\$permuted)
     )
-    random_regions <- createRandomRegions(
-        nregions = 100,
-        length.mean = 50000,
-        genome = autosomal_genome
-    )
+    write.csv(results_df, file = "permutation_test_summary.csv", row.names = FALSE)
 
-
-    # --- Overlap Permutation Testing [] ---
-    # Key functions: overlapPermTest, numOverlaps, randomizeRegions
-    region_a <- createRandomRegions(
-        nregions = 50,
-        length.mean = 5000000,
-        length.sd = 3000000
-    )
-    region_b <- randomizeRegions(region_a)
-    overlap_count <- numOverlaps(region_a, region_b, count.once = TRUE)
-    pt_results <- overlapPermTest(
-        A = region_a,
-        B = region_b,
-        ntimes = 50,
-        verbose = FALSE
-    )
-
-
-    # --- Custom Resampling and Permutation Testing [] ---
-    # Key functions: permTest, resampleRegions, numOverlaps
-    special_regions <- createRandomRegions(nregions = 30, length.mean = 10000)
-    all_genes <- createRandomRegions(nregions = 500, length.mean = 20000)
-    altered_regions <- createRandomRegions(nregions = 40, length.mean = 15000)
-    pt_resample <- permTest(
-        A = special_regions,
-        ntimes = 50,
-        randomize.function = resampleRegions,
-        universe = all_genes,
-        evaluate.function = numOverlaps,
-        B = altered_regions,
-        verbose = FALSE
-    )
-
-
-    # --- Local Z-Score Analysis [] ---
-    # Key functions: localZScore, permTest, randomizeRegions, plot
-    reg_a <- createRandomRegions(nregions = 20, length.mean = 10000)
-    reg_b <- createRandomRegions(nregions = 20, length.mean = 10000)
-    pt_res <- permTest(
-        A = reg_a, ntimes = 20,
-        randomize.function = randomizeRegions,
-        evaluate.function = numOverlaps, B = reg_b,
-        verbose = FALSE
-    )
-    lz_score <- localZScore(
-        A = reg_a, pt = pt_res,
-        window = 50000, step = 5000, B = reg_b
-    )
-    plot(lz_score)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_regioner_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_regioner_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_regioner_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REGIONER:", paste0("    regioner: ", packageVersion("regioneR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_REGIONER_OVERLAP_PERMUTATION_TEST":',
+        paste0('        regioner: ', as.character(packageVersion("regioner")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_regioner_results.csv
-    touch ${prefix}_regioner_output.rds
-    echo "BIOC_REGIONER:" > versions.yml
-    echo "    regioner: 0.0.0" >> versions.yml
+    touch ${prefix}_overlap_permutation_test.csv versions.yml
     """
 }
 
-
-workflow BIOC_REGIONER_WORKFLOW {
+workflow BIOC_REGIONER_OVERLAP_PERMUTATION_TEST_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cpgHMM.txt, UCSC.promoters.hg19.bed ] ]
 
     main:
-    BIOC_REGIONER(ch_input)
+    BIOC_REGIONER_OVERLAP_PERMUTATION_TEST(ch_input)
 
     emit:
-    results  = BIOC_REGIONER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REGIONER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REGIONER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REGIONER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REGIONER_OVERLAP_PERMUTATION_TEST.out.tables
+    plots    = BIOC_REGIONER_OVERLAP_PERMUTATION_TEST.out.plots
+    objects  = BIOC_REGIONER_OVERLAP_PERMUTATION_TEST.out.objects
+    versions = BIOC_REGIONER_OVERLAP_PERMUTATION_TEST.out.versions
 }

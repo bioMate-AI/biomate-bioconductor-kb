@@ -1,0 +1,14 @@
+{
+  "package": "swathxtend",
+  "requirements": [
+    "SwathXtend"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SwathXtend"
+    ],
+    "swath_reliability_check.nf": [
+      "SwathXtend"
+    ]
+  }
+}

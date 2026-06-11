@@ -1,0 +1,19 @@
+{
+  "package": "iloreg",
+  "requirements": [
+    "ILoReg",
+    "SingleCellExperiment",
+    "cowplot",
+    "ggplot2",
+    "plyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ILoReg",
+      "SingleCellExperiment",
+      "cowplot",
+      "ggplot2",
+      "plyr"
+    ]
+  }
+}

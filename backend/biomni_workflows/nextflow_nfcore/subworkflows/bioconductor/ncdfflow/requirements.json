@@ -1,0 +1,15 @@
+{
+  "package": "ncdfflow",
+  "requirements": [
+    "EBImage",
+    "flowCore",
+    "ncdfFlow"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "flowCore",
+      "ncdfFlow"
+    ]
+  }
+}

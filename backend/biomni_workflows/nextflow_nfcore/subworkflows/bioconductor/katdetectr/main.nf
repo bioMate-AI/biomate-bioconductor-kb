@@ -1,110 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: katdetectr
-// Kataegis refers to the occurrence of regional hypermutation and is a phenomenon observed in a wide r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/katdetectr/inst/doc/General_overview.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("katdetectr")
+// Bioconductor workflow: katdetectr — standard_kataegis_detection
+// Detect and visualize kataegis foci from standard genomic variant files (VCF or MAF) or VRanges objects.
+// Input: pathToVCF, pathToMAF, syntheticData
+// Container: quay.io/biocontainers/bioconductor-katdetectr:1.12.0--r45hdfd78af_0
+// R packages: katdetectr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_KATDETECTR {
+process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-katdetectr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-katdetectr:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-katdetectr:1.8.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-katdetectr:1.12.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_katdetectr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_katdetectr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_katdetectr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(katdetectr)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("katdetectr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- label = "Importing genomic variants" [] ---
-    # Key functions: generateSyntheticData
-    pathToVCF <- system.file(package = "katdetectr", "extdata/CPTAC_Breast.vcf")
-    pathToMAF <- system.file(package = "katdetectr", "extdata/APL_primary.maf")
-    In addition, we can generate synthetic genomic variants including kataegis foci using generateSyntheticData().
-    # --- label = "Detection of kataegis foci" [] ---
-    # Key functions: detectKataegis
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(katdetectr)
+    
+    # ==========================================
+    # 1. Import genomic variants from user input
+    # ==========================================
+    # Read the declared user input files from the working directory
+    pathToVCF <- "pathToVCF"
+    pathToMAF <- "pathToMAF"
+    syntheticData <- readRDS("syntheticData")
+    
+    # ==========================================
+    # 2. Detect kataegis foci
+    # ==========================================
+    # Detect kataegis foci within the given VCF file
     kdVCF <- detectKataegis(genomicVariants = pathToVCF)
+    
+    # Detect kataegis foci within the given MAF file (aggregating multiple samples)
     kdMAF <- detectKataegis(genomicVariants = pathToMAF, aggregateRecords = TRUE)
+    
+    # Detect kataegis foci within the synthetic data
     kdSynthetic <- detectKataegis(genomicVariants = syntheticData)
-    # --- label = "Overview of KatDetect objects" [] ---
-    # Key functions: show
+    
+    # Save the primary KatDetect objects as RDS files
+    saveRDS(kdVCF, "kdVCF.rds")
+    saveRDS(kdMAF, "kdMAF.rds")
+    saveRDS(kdSynthetic, "kdSynthetic.rds")
+    
+    # ==========================================
+    # 3. Summarize and inspect KatDetect objects
+    # ==========================================
     summary(kdVCF)
     print(kdVCF)
     show(kdVCF)
-    # --- label = "Retrieving information from KatDetect objects" [] ---
-    # Key functions: getGenomicVariants, getSegments, getKataegisFoci, getInfo
-    getGenomicVariants(kdVCF)
-    getSegments(kdVCF)
-    getKataegisFoci(kdVCF)
-    # --- label = "Visualisation of KatDetect objects" [] ---
-    # Key functions: rainfallPlot, as_tibble
+    kdVCF
+    
+    # ==========================================
+    # 4. Extract underlying data using getters
+    # ==========================================
+    vcf_variants <- getGenomicVariants(kdVCF)
+    vcf_segments <- getSegments(kdVCF)
+    vcf_foci <- getKataegisFoci(kdVCF)
+    vcf_info <- getInfo(kdVCF)
+    
+    # Save extracted data to output files
+    write.csv(as.data.frame(vcf_variants), "kdVCF_variants.csv", row.names = FALSE)
+    write.csv(as.data.frame(vcf_segments), "kdVCF_segments.csv", row.names = FALSE)
+    write.csv(as.data.frame(vcf_foci), "kdVCF_foci.csv", row.names = FALSE)
+    saveRDS(vcf_info, "kdVCF_info.rds")
+    
+    # ==========================================
+    # 5. Visualize results using rainfallPlot
+    # ==========================================
+    pdf("rainfall_plots.pdf", width = 12, height = 8)
+    
+    # Standard rainfall plot
     rainfallPlot(kdVCF)
-    With showSegmentation, the detected segments (changepoints) as visualized with their mean IMD.
+    
+    # Rainfall plot with segmentation
     rainfallPlot(kdMAF, showSegmentation = TRUE)
+    
+    # Rainfall plot highlighting kataegis foci, segmentation, and specific sequences
+    rainfallPlot(kdSynthetic, showKataegis = TRUE, showSegmentation = TRUE, showSequence = "Kataegis")
+    
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_katdetectr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_katdetectr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_katdetectr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_KATDETECTR:", paste0("    katdetectr: ", packageVersion("katdetectr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION":',
+        paste0('        katdetectr: ', as.character(packageVersion("katdetectr")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_katdetectr_results.csv
-    touch ${prefix}_katdetectr_output.rds
-    echo "BIOC_KATDETECTR:" > versions.yml
-    echo "    katdetectr: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_kataegis_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_KATDETECTR_WORKFLOW {
+workflow BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pathToVCF, pathToMAF, syntheticData ] ]
 
     main:
-    BIOC_KATDETECTR(ch_input)
+    BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_KATDETECTR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_KATDETECTR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_KATDETECTR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_KATDETECTR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION.out.tables
+    plots    = BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION.out.plots
+    objects  = BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION.out.objects
+    versions = BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION.out.versions
 }

@@ -1,0 +1,49 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: anchor=Specifies whether to search for P-site candidates from the 5' end (\"5end\", default) or 3' end (\"3end\", preferred for MNase digestion) ;; bestpsite=The integer offset distance to the P-site (typically 13 for 5' end or -16 for 3' end) ;; toStartCodon=Logical parameter in readsEndPlot to plot reads shifted relative to the start codon ;; fiveEnd=Logical parameter in readsEndPlot to plot the 5' end (TRUE) or 3' end (FALSE) of reads ;; region=Specifies the genomic region for coverage depth calculation (\"utr5\", \"cds\", \"utr3\", or \"feature with extension\") ;; level=Specifies the summarization level (\"gene\" or \"tx\") ;; window=The window size in nucleotides (e.g., 90) used to calculate maximum N-mer translational efficiency\n- alternatives: riboSeqR=Alternative package for Ribo-Seq analysis requiring reads mapped to the transcriptome ;; RiboProfiling=Alternative package for standard Ribo-Seq pipeline processing ;; ORFik=Alternative package that can also identify new transcription start sites using CageSeq data ;; RiboWaltz=Alternative R/Bioconductor package optimized for ribosome P-site positioning\n- when_to_use: Use this package when you have ribosome profiling (Ribo-Seq) BAM files mapped to a reference genome (and optionally matching RNA-Seq BAM files) and want to perform quality control (P-site estimation, frame alignment, fragment length distribution) and prepare count matrices for downstream differential translation or translational efficiency analysis.\n- pitfalls: Mapping reads to the transcriptome instead of the whole genome (the package expects genome-mapped BAMs) ;; Using the wrong library type during mapping (Ribo-Seq is usually strand-specific; mapping must use the correct library type, e.g., --library-type fr-firststrand in TopHat2) ;; Failing to filter out contamination reads (rRNA, tRNA, snRNA, snoRNA, etc.) before analysis, which can skew results ;; Assigning the wrong P-site position, which severely impacts reading frame mapping and downstream frame-specific analyses ;; Using FPKM-based TE calculation for lowly/highly expressed transcripts without correction (can be fixed using TE max in a 90-nt window, normBy with edgeR, or normalizeTEbyLoess) ;; Mismatching chromosome naming styles between TxDb and BAM files.",
+  "workflows": [
+    {
+      "name": "qc_and_psite_estimation",
+      "intent": "Perform quality control on Ribo-Seq BAM files, estimate the P-site offset, and check reading frame alignment.",
+      "input": [
+        "bamfile (Ribo-Seq BAM file mapped to genome)",
+        "txdb (TxDb annotation object)",
+        "genome (BSgenome object or DNAStringSet)"
+      ],
+      "stages": "1. Prepare CDS annotation using prepareCDS.\n2. Estimate P-site offset using estimatePsite.\n3. Plot start/stop windows using readsEndPlot.\n4. Get P-site coordinates using getPsiteCoordinates.\n5. Summarize fragment length using summaryReadsLength.\n6. Plot strand specificity using strandPlot.\n7. Check genomic element distribution using readsDistribution.\n8. Plot metagene coverage using coverageDepth and metaPlot.\n9. Assign reading frames using assignReadingFrame and plot frame density using plotFrameDensity and plotDistance2Codon.\n10. Calculate ORFscore and coverage rate using frameCounts and getORFscore.",
+      "code": "CDS <- prepareCDS(txdb)\nestimatePsite(bamfile, CDS, genome)\nestimatePsite(bamfile, CDS, genome, anchor = \"3end\")\nre <- readsEndPlot(bamfile, CDS, toStartCodon=TRUE)\nreadsEndPlot(re$reads, CDS, toStartCodon=TRUE, fiveEnd=FALSE)\npc <- getPsiteCoordinates(bamfile, bestpsite = 13)\nreadsLen <- summaryReadsLength(pc)\npc.sub <- pc[pc$qwidth %in% c(28, 29)]\nstrandPlot(pc.sub, CDS)\npc.sub <- readsDistribution(pc.sub, txdb, las=2)\ncvgs.utr5 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region=\"utr5\")\ncvgs.CDS <- coverageDepth(RPFs = bamfilename, gtf = txdb, region=\"cds\")\ncvgs.utr3 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region=\"utr3\")\nmetaPlot(cvgs.utr5, cvgs.CDS, cvgs.utr3, sample=1)\npc.sub <- assignReadingFrame(pc.sub, CDS)\nplotDistance2Codon(pc.sub)\nplotFrameDensity(pc.sub)\ncvg <- frameCounts(pc.sub, coverageRate=TRUE)\nORFscore <- getORFscore(pc.sub)"
+    },
+    {
+      "name": "differential_analysis_rpf_only",
+      "intent": "Count RPF reads and perform differential expression or alternative splicing analysis using RPF data alone.",
+      "input": [
+        "RPFs (Vector of Ribo-Seq BAM file paths)",
+        "gtf (GTF file path or TxDb object)"
+      ],
+      "stages": "1. Count reads across samples using countReads.\n2. Perform differential analysis using edgeR (DGEList, calcNormFactors, estimateDisp, glmQLFit, glmQLFTest).\n3. Calculate coverage depth using coverageDepth.\n4. Detect alternative splicing/translation events using spliceEvent and plot them using plotSpliceEvent.",
+      "code": "cnts <- countReads(RPFs, gtf=gtf, level=\"gene\", bestpsite=13, readsLen=c(28,29))\ny <- DGEList(counts = cnts$RPFs, group = gp)\ny <- calcNormFactors(y)\ndesign <- model.matrix(~0+gp)\ncolnames(design) <- sub(\"gp\", \"\", colnames(design))\ny <- estimateDisp(y, design)\nfit <- glmQLFit(y, design)\nqlf <- glmQLFTest(fit)\ntopTags(qlf, n=3)\nfit <- glmFit(y, design)\nlrt <- glmLRT(fit)\ntopTags(lrt, n=3)\ncoverage <- coverageDepth(RPFs[grepl(\"KD1|WT\", RPFs)], gtf=txdb, level=\"gene\", region=\"feature with extension\")\nse <- spliceEvent(coverage, group1, group2)\nplotSpliceEvent(se, se$feature[1], coverage, group1, group2)"
+    },
+    {
+      "name": "translational_efficiency_and_rrs",
+      "intent": "Calculate and analyze translational efficiency (TE) and ribosome release score (RRS) by combining RPF and RNA-Seq data.",
+      "input": [
+        "RPFs (Vector of Ribo-Seq BAM file paths)",
+        "RNAs (Vector of RNA-Seq BAM file paths)",
+        "gtf (GTF file path or TxDb object)"
+      ],
+      "stages": "1. Count reads for both RPFs and RNA-Seq using countReads.\n2. Calculate FPKM using getFPKM.\n3. Calculate standard Translational Efficiency (TE) using translationalEfficiency.\n4. Perform differential TE analysis using limma or edgeR.\n5. Calculate maximum N-mer TE (TE90) using coverageDepth and translationalEfficiency with a window parameter.\n6. Normalize TE using normBy or normalizeTEbyLoess.\n7. Calculate Ribosome Release Score (RRS) using ribosomeReleaseScore.\n8. Plot metagene coverage using metaPlot.",
+      "code": "cnts <- countReads(RPFs, RNAs, gtf, level=\"tx\")\nfpkm <- getFPKM(cnts)\nTE <- translationalEfficiency(fpkm)\nTE.log2 <- log2(TE$TE + 1)\ndesign <- model.matrix(~0+gp)\ncolnames(design) <- sub(\"gp\", \"\", colnames(design))\nfit <- lmFit(TE.log2, design)\nfit2 <- eBayes(fit)\ntopTable(fit2, number=3)\nplotTE(TE, sample=2, xaxis=\"mRNA\", log2=TRUE)\ncvgs <- coverageDepth(RPFs, RNAs, txdb)\nTE90 <- translationalEfficiency(cvgs, window = 90, normByLibSize=TRUE)\nplotTE(TE90, sample=2, xaxis=\"mRNA\", log2=TRUE)\ncvgs.utr3 <- coverageDepth(RPFs, RNAs, txdb, region=\"utr3\")\nTE90.utr3 <- translationalEfficiency(cvgs.utr3, window = 90)\ncnts_normByEdgeR <- normBy(cnts, method = 'edgeR')\nTE_edgeR <- translationalEfficiency(cnts_normByEdgeR)\nplotTE(TE_edgeR)\nTE.log2_norm <- normalizeTEbyLoess(TE)\nplotTE(TE.log2_norm, log2 = FALSE)\nRRS <- ribosomeReleaseScore(TE90, TE90.utr3, log2 = TRUE)\ncvgs.utr5 <- coverageDepth(RPFs, RNAs, txdb, region=\"utr5\")\nmetaPlot(cvgs.utr5, cvgs, cvgs.utr3, sample=2, xaxis = \"mRNA\")"
+    },
+    {
+      "name": "floss_analysis",
+      "intent": "Compare the distribution of read lengths to a reference background (e.g., protein-coding genes) to identify translation-like patterns.",
+      "input": [
+        "pc (P-site coordinates GRanges object)",
+        "danrer10.annotations$protein (Reference gene list)",
+        "CDS (CDS annotation prepared from TxDb)"
+      ],
+      "stages": "1. Calculate FLOSS scores using FLOSS.\n2. Extract and plot the gene with the maximum Cook's distance against the reference.",
+      "code": "fl <- FLOSS(pc, ref = danrer10.annotations$protein, CDS = CDS, readLengths=readsLengths, level=\"gene\", draw = FALSE)\nfl.max <- t(fl[c(1, which.max(fl$cooks.distance)), as.character(readsLengths)])\nmatplot(fl.max, type = \"l\", x=readsLengths, xlab=\"Fragment Length\", ylab=\"Fraction of Reads\", col = c(\"gray\", \"red\"), lwd = 2, lty = 1)"
+    }
+  ]
+}

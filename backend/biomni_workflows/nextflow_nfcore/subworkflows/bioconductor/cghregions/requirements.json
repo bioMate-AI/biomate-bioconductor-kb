@@ -1,0 +1,13 @@
+{
+  "package": "cghregions",
+  "requirements": [
+    "Biobase",
+    "CGHregions"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "CGHregions"
+    ]
+  }
+}

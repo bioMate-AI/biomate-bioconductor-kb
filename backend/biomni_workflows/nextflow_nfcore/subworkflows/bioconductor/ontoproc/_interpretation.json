@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: url=The URL of the OWL ontology file to download and cache ;; ontoname=The name of the cached ontology to retrieve (e.g., \"cellOnto\", \"diseaseOnto\", \"efoOnto\") ;; year_added=The specific year version of the cached ontology to load ;; target=A regular expression matching the ancestral ontology term used to subset descendants\n- alternatives: ontologyIndex=CRAN package used for parsing OBO format and basic queries, which ontoProc builds upon ;; celaref=Bioconductor package for performing cell identity inference using reference profiles ;; Hancock=Package under development for systematically structuring cell-type signatures and conducting inference\n- when_to_use: Use when you need to standardize informal cell type annotations in single-cell RNA-seq datasets (e.g., SingleCellExperiment) to formal Cell Ontology terms, subset datasets hierarchically based on cell lineages, or import and query custom OWL-based ontologies.\n- pitfalls: Informal-to-formal mapping requires the mapping data frame to have columns named exactly \"informal\" and \"formal\" ;; Changes in OWL representations (such as tags used for both classes and properties) can cause parsing issues, requiring manual line filtering of known problematic terms (e.g., STATO terms in Cell Ontology) before parsing ;; Unmapped terms will result in NA or empty strings in the annotated dataset.",
+  "workflows": [
+    {
+      "name": "map_and_subset_single_cell_data",
+      "intent": "Map informal cell type labels in a SingleCellExperiment to formal Cell Ontology tags and subset the dataset to descendants of a specific cell type.",
+      "input": [
+        "hpca_sce (SingleCellExperiment object with cell type labels)",
+        "hpca.csv (CSV file mapping informal labels to formal ontology tags)"
+      ],
+      "stages": "1. Load the mapping file and rename columns to \"informal\" and \"formal\".\n2. Bind formal ontology tags to the SingleCellExperiment object using bind_formal_tags.\n3. Load the Cell Ontology using getOnto.\n4. Subset the SingleCellExperiment to descendants of a target term using subset_descendants.",
+      "code": "hpca_map = read.csv(system.file(\"extdata/hpca.csv\", package=\"ontoProc\"), strings=FALSE)\nnames(hpca_map) = c(\"informal\", \"formal\")\nhpca_sce = HumanPrimaryCellAtlasData()\nhpca_sce = bind_formal_tags(hpca_sce, \"label.fine\", hpca_map)\ncell_onto = ontoProc::getOnto(\"cellOnto\", \"2023\")\nhpca_mono = subset_descendants( hpca_sce, cell_onto, \"^monocyte$\" )"
+    },
+    {
+      "name": "import_and_visualize_owl_ontology",
+      "intent": "Import an OWL ontology from a URL, cache it, parse it into an ontology index, and visualize a subset of terms.",
+      "input": [
+        "url (URL string pointing to an OWL ontology file)"
+      ],
+      "stages": "1. Cache the OWL file locally using owl2cache.\n2. Read and clean the OWL file to remove known problematic lines.\n3. Parse the OWL file into an ontology index using setup_entities2.\n4. Visualize selected terms using onto_plot2.",
+      "code": "clont_path = owl2cache(url=\"http://purl.obolibrary.org/obo/cl.owl\")\ntmp = readLines(clont_path)\nbad = grep(\"STATO_0000416\", tmp)[1:2]\ntmp = tmp[-bad]\nbad = grep(\"STATO_0000663\", tmp)[1:2]\ntmp = tmp[-bad]\ntf = tempfile()\nwriteLines(tmp, tf)\ncle = setup_entities2(tf)\nsel = c(\"CL_0000492\", \"CL_0001054\", \"CL_0000236\", \"CL_0000625\", \"CL_0000576\", \"CL_0000623\", \"CL_0000451\", \"CL_0000556\")\nonto_plot2(cle, sel)"
+    }
+  ]
+}

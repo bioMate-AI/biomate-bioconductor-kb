@@ -1,0 +1,13 @@
+{
+  "package": "flowchic",
+  "requirements": [
+    "flowCHIC",
+    "flowCore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCHIC",
+      "flowCore"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "gdr",
+  "requirements": [
+    "SummarizedExperiment",
+    "gDR",
+    "gDRutils",
+    "kableExtra"
+  ],
+  "by_workflow": {
+    "automated_drug_response_pipeline.nf": [
+      "SummarizedExperiment",
+      "gDR",
+      "kableExtra"
+    ],
+    "main.nf": [
+      "SummarizedExperiment",
+      "gDR",
+      "gDRutils"
+    ]
+  }
+}

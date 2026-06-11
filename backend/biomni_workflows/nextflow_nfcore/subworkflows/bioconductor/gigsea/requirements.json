@@ -1,0 +1,13 @@
+{
+  "package": "gigsea",
+  "requirements": [
+    "GIGSEA",
+    "Matrix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GIGSEA",
+      "Matrix"
+    ]
+  }
+}

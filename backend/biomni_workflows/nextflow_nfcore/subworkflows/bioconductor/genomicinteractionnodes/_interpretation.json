@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: con=The path or connection to the input BEDPE file ;; format=The format of the input file, typically \"bedpe\" ;; txdb=A TxDb object (e.g., TxDb.Hsapiens.UCSC.hg19.knownGene) used to define gene promoter regions for annotation ;; orgDb=An OrgDb object (e.g., org.Hs.eg.db) used to map gene IDs to symbols and perform enrichment analysis ;; upstream=The number of base pairs upstream of the TSS to define promoter regions (e.g., 2000) ;; downstream=The number of base pairs downstream of the TSS to define promoter regions (e.g., 500)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you have chromatin interaction data (such as Hi-C or ChIA-PET loops) in BEDPE format and want to identify high-order genomic interaction hubs (nodes) and analyze their functional enrichment.\n- pitfalls: Ensure that the genome build of the input BEDPE file matches the genome build of the TxDb and OrgDb annotation packages used (e.g., hg19).",
+  "workflows": [
+    {
+      "name": "detect_and_analyze_interaction_nodes",
+      "intent": "Import chromatin interactions, detect interaction nodes, annotate them with gene promoters, and perform Gene Ontology enrichment analysis.",
+      "input": [
+        "WT.2.bedpe (chromatin interaction loops in BEDPE format)"
+      ],
+      "stages": "1. Import chromatin interactions from a BEDPE file ;; 2. Detect genomic interaction nodes ;; 3. Annotate node regions with gene promoters ;; 4. Perform Gene Ontology enrichment analysis",
+      "code": "library(GenomicInteractionNodes)\nlibrary(rtracklayer)\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene) ## for human hg19\nlibrary(org.Hs.eg.db) ## used to convert gene_id to gene_symbol\nlibrary(GO.db) ## used for enrichment analysis\n\n## import the interactions from bedpe file\np <- system.file(\"extdata\", \"WT.2.bedpe\",\n                 package = \"GenomicInteractionNodes\")\n#### please try to replace the connection to your file path\ninteractions <- import(con=p, format=\"bedpe\")\n\n## define the nodes\nnodes <- detectNodes(interactions)\nnames(nodes)\nlapply(nodes, head, n=2)\n\n## annotate the nodes by gene promoters\nnode_regions <- nodes$node_regions\nnode_regions <- annotateNodes(node_regions,\n                        txdb=TxDb.Hsapiens.UCSC.hg19.knownGene,\n                        orgDb=org.Hs.eg.db,\n                        upstream=2000, downstream=500)\nhead(node_regions, n=2)\n\n## Gene Ontology enrichment analysis\nenrich <- enrichmentAnalysis(node_regions, orgDb=org.Hs.eg.db)\nnames(enrich$enriched)\nnames(enrich$enriched_in_compound)\nres <- enrich$enriched$BP\nres <- res[order(res$fdr), ]\nhead(res, n=2)"
+    }
+  ]
+}

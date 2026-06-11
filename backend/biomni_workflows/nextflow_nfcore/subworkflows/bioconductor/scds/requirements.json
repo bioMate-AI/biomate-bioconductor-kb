@@ -1,0 +1,13 @@
+{
+  "package": "scds",
+  "requirements": [
+    "SingleCellExperiment",
+    "scds"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "scds"
+    ]
+  }
+}

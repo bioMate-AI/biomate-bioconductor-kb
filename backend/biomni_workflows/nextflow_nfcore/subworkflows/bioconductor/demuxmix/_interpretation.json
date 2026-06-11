@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rna=A vector containing the number of detected genes per droplet, used as a covariate in regression mixture models ;; model=Specifies the mixture model type; can be \"naive\" (does not use RNA data) or \"regression\" (default is to automatically select the best model) ;; pAcpt=The acceptance probability threshold (minimum posterior probability) required to classify a droplet; droplets below this are classified as \"uncertain\". Can be set during initialization or modified on the fitted object (e.g., pAcpt(dmm) <- 0.95) ;; hto=Used in plotting functions (e.g., plotDmmHistogram) to select specific HTOs for visualization\n- alternatives: hashedDrops (from DropletUtils)=An alternative demultiplexing method. demuxmix is preferred when there is a positive association between the number of detected genes and HTO counts, as hashedDrops does not explicitly model this relationship ;; Genetic demultiplexing (e.g., freemuxlet)=Used when samples are genetically diverse. demuxmix is preferred when samples are genetically identical/similar and require HTO labeling, or can be used in combination/comparison\n- when_to_use: Use when demultiplexing pooled single-cell RNA-seq datasets (cells or nuclei) labeled with sample-specific barcode oligonucleotides (HTOs) via antibodies or lipids. Particularly useful when there is a positive correlation between HTO counts and the number of detected genes per droplet. Appropriate for designs where some pooled samples are completely non-labeled (e.g., rare cells) and others are labeled.\n- pitfalls: Failing to remove empty and low-quality droplets before running demuxmix (pre-filtering is required) ;; Uncommon experimental designs (like pooling highly distinct cell lines with different surface characteristics) can make the association between HTO counts and detected genes noisy, causing the regression model to perform poorly (though demuxmix automatically falls back to naive models in such cases) ;; Multiplets of two or more cells from the same sample cannot be detected at the demultiplexing step ;; High sequencing depth or a large number of pooled samples can make the positive component of the HTO histogram look flat; users should zoom into the overlapping region for proper QC",
+  "workflows": [
+    {
+      "name": "standard_hto_demultiplexing",
+      "intent": "Demultiplex pooled single-cell samples labeled with multiple hashtag oligonucleotides (HTOs) using regression or naive mixture models.",
+      "input": [
+        "hto (matrix of raw HTO counts, HTOs x cells)",
+        "rna (vector of the number of detected genes per droplet)"
+      ],
+      "stages": "1. Fit mixture models using demuxmix ;; 2. Summarize model fit and error rates using summary ;; 3. Classify droplets into singlets, multiplets, negatives, or uncertain using dmmClassify ;; 4. Perform quality control using plotDmmHistogram, dmmOverlap, plotDmmPosteriorP, and plotDmmScatter ;; 5. Adjust classification confidence threshold using pAcpt if necessary",
+      "code": "dmm <- demuxmix(hto, rna = rna)\nsummary(dmm)\nclasses <- dmmClassify(dmm)\ntable(classes$HTO)\nplotDmmHistogram(dmm)\ndmmNaive <- demuxmix(hto, model = \"naive\")\nclassLabelsNaive <- dmmClassify(dmmNaive)\nsummary(dmmNaive)\npAcpt(dmm)\npAcpt(dmm) <- 0.95\nsummary(dmm)\ndmmOverlap(dmm)\nplotDmmPosteriorP(dmm)\nplotDmmScatter(dmm)"
+    },
+    {
+      "name": "pooling_non_labeled_with_labeled_cells",
+      "intent": "Demultiplex a mixture of labeled cells and non-labeled cells (e.g., rare cells) using a single HTO channel.",
+      "input": [
+        "csf (data frame containing HTO counts and detected gene counts per droplet)"
+      ],
+      "stages": "1. Filter out low-quality droplets based on detected gene counts ;; 2. Fit a regression mixture model for the single HTO using demuxmix ;; 3. Classify droplets into labeled (positive) and non-labeled (negative) using dmmClassify ;; 4. Assess model fit and overlap using summary, dmmOverlap, plotDmmHistogram, and plotDmmScatter",
+      "code": "csf <- csf[csf$NumGenes >= 200, ]\nhto <- t(matrix(csf$HTO, dimnames = list(rownames(csf), \"HTO\")))\ndmm <- demuxmix(hto, rna = csf$NumGenes)\ndmm\nsummary(dmm)\ndmmOverlap(dmm)\nhisto <- plotDmmHistogram(dmm)\nscatter <- plotDmmScatter(dmm) + coord_cartesian(xlim = c(2, 4))\nclass <- dmmClassify(dmm)"
+    }
+  ]
+}

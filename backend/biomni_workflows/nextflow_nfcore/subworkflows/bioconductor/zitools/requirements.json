@@ -1,0 +1,21 @@
+{
+  "package": "zitools",
+  "requirements": [
+    "DESeq2",
+    "matrixStats",
+    "microbiome",
+    "phyloseq",
+    "tidyverse",
+    "zitools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "matrixStats",
+      "microbiome",
+      "phyloseq",
+      "tidyverse",
+      "zitools"
+    ]
+  }
+}

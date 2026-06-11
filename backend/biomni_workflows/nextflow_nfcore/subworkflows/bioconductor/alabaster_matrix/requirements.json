@@ -1,0 +1,19 @@
+{
+  "package": "alabaster_matrix",
+  "requirements": [
+    "DelayedArray",
+    "Matrix",
+    "alabaster.base",
+    "alabaster.matrix",
+    "alabaster_matrix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DelayedArray",
+      "Matrix",
+      "alabaster.base",
+      "alabaster.matrix",
+      "alabaster_matrix"
+    ]
+  }
+}

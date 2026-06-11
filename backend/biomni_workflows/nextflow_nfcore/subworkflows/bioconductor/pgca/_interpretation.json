@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: col.mapping=A named character vector mapping internal column names to the dataset's column names, such as retaining the gene symbol column (e.g., col.mapping=c(gene.symbol=\"Gene_Symbol\")) ;; dict=The dictionary object built by pgcaDict() to be applied to the datasets in applyDict() ;; file=The file path where the dictionary should be saved as a text file in saveDict()\n- alternatives: Software tools like ProteinPilot (with Paragon and ProGroup algorithms) or Thermo Proteome Discoverer identify peptides/proteins and create local protein groups for individual runs, but PGCA is preferred when merging and comparing these groups across multiple experimental runs or batches.\n- when_to_use: Appropriate when analyzing multiple batches or experimental runs of shotgun quantitative proteomics data (e.g., multiplex iTRAQ runs) where protein groups were generated separately for each run, and there is a need to compare protein levels across these runs using a unified global protein group code.\n- pitfalls: If only the top-protein selected by the processing software within each run is used, proteins cannot be compared reliably across runs due to differing local group assignments; PGCA must be run on the full group summaries. Adding new files to an existing analysis requires rebuilding the dictionary and re-translating all datasets, as the global protein group codes (PGC) may change.",
+  "workflows": [
+    {
+      "name": "protein_group_resolution",
+      "intent": "Build a global protein group dictionary from multiple proteomics experimental runs and apply it to translate local protein groups into comparable global protein group codes.",
+      "input": [
+        "run1.txt (tab-separated text file of experimental run 1 containing local group ID, accession, gene symbol, and protein name)",
+        "run2.txt (tab-separated text file of experimental run 2 containing local group ID, accession, gene symbol, and protein name)"
+      ],
+      "stages": "1. Build the global protein group dictionary using pgcaDict from data frames, files, or a directory ;; 2. Apply the dictionary to the experimental datasets using applyDict to append global Protein Group Codes (PGC) ;; 3. Save the generated dictionary to a text file using saveDict",
+      "code": "dict <- pgcaDict(\n    BET2007_v339,\n    BET2047_v339,\n    col.mapping=c(gene.symbol=\"Gene_Symbol\")\n)\ntranslated <- applyDict(BET2007_v339, BET2047_v339, dict=dict)\ndict.from.files <- pgcaDict(\n    system.file(\"extdata\", \"BET1947_v339.txt\", package=\"pgca\"),\n    system.file(\"extdata\", \"BET2007_v339.txt\", package=\"pgca\"),\n    system.file(\"extdata\", \"BET2047_v339.txt\", package=\"pgca\"),\n    system.file(\"extdata\", \"BET2067_v339.txt\", package=\"pgca\"),\n    col.mapping=c(gene.symbol=\"Gene_Symbol\")\n)\ndict.from.dir <- pgcaDict(\n    system.file(\"extdata\", package=\"pgca\"),\n    col.mapping=c(gene.symbol=\"Gene_Symbol\")\n)\ntranslated2 <- applyDict(BET1947_v339, BET2007_v339, BET2047_v339, BET2067_v339,\n                         dict=dict.from.dir)\ndictOutFile <- tempfile()\nsaveDict(dict.from.dir, file=dictOutFile)"
+    }
+  ]
+}

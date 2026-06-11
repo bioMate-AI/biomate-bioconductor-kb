@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: esdata=An ExpressionSet object containing normalized gene expression values or spectral counts ;; data=An ExpressionSet object used in step-by-step functions ;; covariate=Numeric index of the covariate in the phenoData slot of the ExpressionSet defining experimental conditions ;; fitCondition=The experimental condition name used to fit the PLGEM model (usually the most replicated one) ;; p=Number of intervals (or bins) used to partition the expression value range; should be no more than 1/10th of the number of genes/proteins (default 10) ;; q=Quantile of the location-dependent spread used to fit the model (default 0.5) ;; fittingEval=Logical; if TRUE, produces a multi-panel diagnostic plot of residuals ;; plot.file=Logical; if TRUE, saves the diagnostic plot to a PNG file ;; baselineCondition=The condition index to be treated as the baseline (default 1) ;; iterations=Number of resampling iterations; can be set to \"automatic\" (capped at 500) ;; delta=Significance level (False Positive Rate) for selecting differentially expressed genes/proteins (default 0.001)\n- alternatives: None mentioned; the package improves upon standard methods by using model-derived spread estimates instead of data-derived ones.\n- when_to_use: Use when identifying differentially expressed genes or proteins in genome-wide datasets (such as one-channel microarrays or mass spectrometry-based proteomics) where modeling the variance-versus-mean dependence is required to improve detection sensitivity.\n- pitfalls: PLGEM requires at least 2 replicates of the same experimental condition to fit the model, though 3 or more are highly recommended. The parameter p must not be set too close to the total number of genes/proteins (rule of thumb: p <= 1/10th of total genes/proteins); for proteomics datasets with fewer than 100 proteins, the default p=10 should be decreased.",
+  "workflows": [
+    {
+      "name": "wrapper_mode",
+      "intent": "Run the entire PLGEM pipeline in a single step using the wrapper function to identify differentially expressed genes or proteins.",
+      "input": [
+        "ExpressionSet object (normalized gene expression values or spectral counts)"
+      ],
+      "stages": "1. Load the package and dataset ;; 2. Set the random seed for reproducibility ;; 3. Run the wrapper function run.plgem to identify differentially expressed genes/proteins.",
+      "code": "library(plgem)\ndata(LPSeset)\nset.seed(123)\nLPSdegList <- run.plgem(esdata=LPSeset)"
+    },
+    {
+      "name": "step_by_step_mode",
+      "intent": "Run the PLGEM pipeline step-by-step to gain advanced control over model fitting, signal-to-noise ratio calculation, resampling, p-value computation, and DEG selection.",
+      "input": [
+        "ExpressionSet object (normalized gene expression values or spectral counts)"
+      ],
+      "stages": "1. Fit the PLGEM model using plgem.fit ;; 2. Compute observed signal-to-noise ratios using plgem.obsStn ;; 3. Compute resampled signal-to-noise ratios under the null hypothesis using plgem.resampledStn ;; 4. Calculate empirical p-values using plgem.pValue ;; 5. Select differentially expressed genes or proteins using plgem.deg.",
+      "code": "LPSfit <- plgem.fit(data=LPSeset, covariate=1, fitCondition='C', p=10, q=0.5,\n  plot.file=FALSE, fittingEval=TRUE, verbose=TRUE)\nLPSobsStn <- plgem.obsStn(data=LPSeset, covariate=1, baselineCondition=1,\n  plgemFit=LPSfit, verbose=TRUE)\nset.seed(123)\nLPSresampledStn <- plgem.resampledStn(data=LPSeset, plgemFit=LPSfit,\n  iterations=\"automatic\", verbose=TRUE)\nLPSpValues <- plgem.pValue(observedStn=LPSobsStn,\n  plgemResampledStn=LPSresampledStn, verbose=TRUE)\nLPSdegList <- plgem.deg(observedStn=LPSobsStn, plgemPval=LPSpValues,\n  delta=0.001, verbose=TRUE)"
+    }
+  ]
+}

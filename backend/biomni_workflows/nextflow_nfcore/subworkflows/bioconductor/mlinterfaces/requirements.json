@@ -1,0 +1,21 @@
+{
+  "package": "mlinterfaces",
+  "requirements": [
+    "Biobase",
+    "MLInterfaces",
+    "e1071",
+    "randomForest"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "MLInterfaces"
+    ],
+    "multi_classifier_evaluation.nf": [
+      "Biobase",
+      "MLInterfaces",
+      "e1071",
+      "randomForest"
+    ]
+  }
+}

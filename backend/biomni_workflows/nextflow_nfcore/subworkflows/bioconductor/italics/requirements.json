@@ -1,0 +1,13 @@
+{
+  "package": "italics",
+  "requirements": [
+    "ITALICS",
+    "affy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ITALICS",
+      "affy"
+    ]
+  }
+}

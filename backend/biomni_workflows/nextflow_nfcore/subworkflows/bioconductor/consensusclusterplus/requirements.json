@@ -1,0 +1,14 @@
+{
+  "package": "consensusclusterplus",
+  "requirements": [
+    "ConsensusClusterPlus"
+  ],
+  "by_workflow": {
+    "custom_distance_consensus_clustering.nf": [
+      "ConsensusClusterPlus"
+    ],
+    "main.nf": [
+      "ConsensusClusterPlus"
+    ]
+  }
+}

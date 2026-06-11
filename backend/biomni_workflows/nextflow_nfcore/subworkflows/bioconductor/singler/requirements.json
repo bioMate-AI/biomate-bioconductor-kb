@@ -1,0 +1,20 @@
+{
+  "package": "singler",
+  "requirements": [
+    "SingleCellExperiment",
+    "SingleR",
+    "SummarizedExperiment",
+    "scrapper"
+  ],
+  "by_workflow": {
+    "annotation_with_single_cell_reference_and_diagnostics.nf": [
+      "SingleCellExperiment",
+      "SingleR",
+      "scrapper"
+    ],
+    "main.nf": [
+      "SingleR",
+      "SummarizedExperiment"
+    ]
+  }
+}

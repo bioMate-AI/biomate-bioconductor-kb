@@ -1,0 +1,17 @@
+{
+  "package": "cytopipeline",
+  "requirements": [
+    "CytoPipeline",
+    "dplyr",
+    "ggplot2",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CytoPipeline",
+      "dplyr",
+      "ggplot2",
+      "reshape2"
+    ]
+  }
+}

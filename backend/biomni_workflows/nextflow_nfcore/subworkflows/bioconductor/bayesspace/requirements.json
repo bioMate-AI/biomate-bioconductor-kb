@@ -1,0 +1,21 @@
+{
+  "package": "bayesspace",
+  "requirements": [
+    "BayesSpace",
+    "Matrix",
+    "SingleCellExperiment",
+    "ggplot2",
+    "patchwork",
+    "purrr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BayesSpace",
+      "Matrix",
+      "SingleCellExperiment",
+      "ggplot2",
+      "patchwork",
+      "purrr"
+    ]
+  }
+}

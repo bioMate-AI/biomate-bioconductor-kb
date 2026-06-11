@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gact=Genotype matrix where rows are markers and columns are individuals ;; gexp=Gene expression matrix where rows are genes and columns are individuals ;; gpos=Data frame containing marker physical positions (chromosome, physical position) ;; ppos=Data frame containing gene physical positions (chromosome, start, end) ;; window=Genomic distance in base pairs to define local (cis) linkage ;; prob.cutoff=Posterior probability threshold for establishing a causal link in the network\n- alternatives: qtl for standard QTL mapping, WGCNA for undirected co-expression network analysis, and pcalg for general causal graph estimation without genetic anchors\n- when_to_use: When matched genotype and high-dimensional gene expression data are available for a segregating population (e.g., yeast crosses, recombinant inbred lines) and the goal is to infer directed causal regulatory networks\n- pitfalls: Requires exact matching of sample IDs across genotype and expression datasets; assumes a simple causal model (genotype -> regulator -> target) which may miss complex feedback loops; computationally intensive for large datasets, requiring pre-filtering of genes and markers",
+  "workflows": [
+    {
+      "name": "causal_network_inference",
+      "intent": "Reconstruct causal transcriptional regulatory networks from matched genotype and gene expression data using eQTL-directed graphical models.",
+      "input": [
+        "genotypes.txt (matrix of marker genotypes across individuals)",
+        "expression.txt (matrix of gene expression levels across individuals)",
+        "marker_positions.txt (genomic coordinates of markers)",
+        "gene_positions.txt (genomic coordinates of genes)"
+      ],
+      "stages": "1. Build the trigger object using trigger.build ;; 2. Compute local linkage (eQTLs) using trigger.loclink ;; 3. Estimate the posterior probabilities of causal regulation using trigger.prob ;; 4. Reconstruct the causal network using trigger.net ;; 5. Export the network using trigger.export",
+      "code": "trig <- trigger.build(gact = gact, gexp = gexp, gpos = gpos, ppos = ppos)\ntrig.loc <- trigger.loclink(trig, window = 100000)\ntrig.prob <- trigger.prob(trig.loc, logratio = TRUE)\ntrig.net <- trigger.net(trig.prob, prob.cutoff = 0.9)\ntrigger.export(trig.net, file = \"causal_network.txt\")"
+    }
+  ]
+}

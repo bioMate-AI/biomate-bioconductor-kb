@@ -1,0 +1,11 @@
+{
+  "package": "gbscleanr",
+  "requirements": [
+    "GBScleanR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GBScleanR"
+    ]
+  }
+}

@@ -1,104 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PharmacoGx
-// Contains a set of functions to perform large-scale analysis of pharmaco-genomic data. These include 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PharmacoGx/inst/doc/CreatingPharmacoSet.R
-// Upstream  : Biobase, CoreGx, S4Vectors, SummarizedExperiment, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("PharmacoGx")
+// Bioconductor workflow: PharmacoGx — sensitivity_consistency
+// Compare gene expression and drug sensitivity measures across different pharmacogenomic studies.
+// Input: GDSCsmall, CCLEsmall
+// Container: quay.io/biocontainers/bioconductor-pharmacogx:3.14.0--r45ha27e39d_0
+// R packages: Biobase, CoreGx, ggplot2, PharmacoGx, S4Vectors, SummarizedExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: PharmacoGx, SummarizedExperiment
+// Visualizations: box plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Find common genes and intersect PharmacoSets on cell lines and drugs using intersectPSet. 2. Summarize sensitivity profiles (AUC, 
 
 nextflow.enable.dsl = 2
 
-process BIOC_PHARMACOGX {
+process BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pharmacogx"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pharmacogx:3.10.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-pharmacogx:3.10.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pharmacogx_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pharmacogx_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pharmacogx_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "CoreGx", "ggplot2", "PharmacoGx", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(PharmacoGx)
-    library(knitcitations)
-    library(jsonlite)
-
-
-    # --- Knitcitation [] ---
-    # Key functions: cleanbib, cite_options, pandoc, lung, breast, prostate, CVCL_0023, CVCL_0031
-    library(knitcitations)
-
-    cleanbib()
-    cite_options(citation_format = "pandoc")
-
-    ## -----------------------------------------------------------------------------
-    sample <- data.frame(
-      sampleid = c("A549", "MCF7", "PC3"),
-      tissueid = c("lung", "breast", "prostate"),
-      cellosaurus.accession = c("CVCL_0023", "CVCL_0031", "CVCL_0035"),
-      row.names = c("A549", "MCF7", "PC3"))
-
-    sample
-
-    ## -----------------------------------------------------------------------------
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pharmacogx_results.csv", row.names = TRUE)
+    library(stats)
+    
+    # 1. Read the declared USER INPUT files from the working directory
+    if (file.exists("GDSCsmall")) {
+      GDSCsmall <- readRDS("GDSCsmall")
+    } else if (file.exists("GDSCsmall.rds")) {
+      GDSCsmall <- readRDS("GDSCsmall.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pharmacogx_results.csv")
+      stop("Required input file 'GDSCsmall' or 'GDSCsmall.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pharmacogx_output.rds")
+    
+    if (file.exists("CCLEsmall")) {
+      CCLEsmall <- readRDS("CCLEsmall")
+    } else if (file.exists("CCLEsmall.rds")) {
+      CCLEsmall <- readRDS("CCLEsmall.rds")
+    } else {
+      stop("Required input file 'CCLEsmall' or 'CCLEsmall.rds' not found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PHARMACOGX:", paste0("    pharmacogx: ", packageVersion("PharmacoGx"))),
-        "versions.yml"
+    
+    # 2. Execute the documented workflow EXACTLY as specified
+    commonGenes <- intersect(fNames(GDSCsmall, "rna"), fNames(CCLEsmall,"rna"))
+    common <- intersectPSet(list('CCLE'=CCLEsmall, 'GDSC'=GDSCsmall), intersectOn=c("cell.lines", "drugs"), strictIntersect=TRUE)
+    GDSC.auc <- summarizeSensitivityProfiles( common\$GDSC, sensitivity.measure='auc_published', summary.stat="median", verbose=FALSE)
+    CCLE.auc <- summarizeSensitivityProfiles( common\$CCLE, sensitivity.measure='auc_published', summary.stat="median", verbose=FALSE)
+    GDSC.ic50 <- summarizeSensitivityProfiles( common\$GDSC, sensitivity.measure='ic50_published', summary.stat="median", verbose=FALSE)
+    CCLE.ic50 <- summarizeSensitivityProfiles( common\$CCLE, sensitivity.measure='ic50_published', summary.stat="median", verbose=FALSE)
+    GDSCexpression <- summarizeMolecularProfiles(common\$GDSC, cellNames(common\$GDSC), mDataType="rna", features=commonGenes, verbose=FALSE)
+    CCLEexpression <- summarizeMolecularProfiles(common\$CCLE, cellNames(common\$CCLE), mDataType="rna", features=commonGenes, verbose=FALSE)
+    gg <- fNames(common[[1]], 'rna')
+    cc <- cellNames(common[[1]])
+    ge.cor <- sapply(cc, function (x, d1, d2) { stats::cor(d1[ , x], d2[ , x], method="spearman", use="pairwise.complete.obs") }, d1=assay(GDSCexpression, 1), d2=assay(CCLEexpression, 1))
+    ic50.cor <- sapply(cc, function (x, d1, d2) { stats::cor(d1[, x], d2[ , x], method="spearman", use="pairwise.complete.obs") }, d1=GDSC.ic50, d2=CCLE.ic50)
+    auc.cor <- sapply(cc, function (x, d1, d2) { stats::cor(d1[ , x], d2[ , x], method="spearman", use="pairwise.complete.obs") }, d1=GDSC.auc, d2=CCLE.auc)
+    w1 <- stats::wilcox.test(x=ge.cor, y=auc.cor, conf.int=TRUE, exact=FALSE)
+    w2 <- stats::wilcox.test(x=ge.cor, y=ic50.cor, conf.int=TRUE, exact=FALSE)
+    yylim <- c(-1, 1)
+    ss <- sprintf("GE vs. AUC = %.1E\nGE vs. IC50 = %.1E", w1\$p.value, w2\$p.value)
+    
+    # 3. Write named output files for the meaningful results
+    # Save the boxplot as a PDF
+    pdf("concordance_boxplot.pdf", width = 7, height = 7)
+    boxplot(list("GE"=ge.cor, "AUC"=auc.cor, "IC50"=ic50.cor), main="Concordance between cell lines", ylab=expression(R[s]), sub=ss, ylim=yylim, col="lightgrey", pch=20, border="black")
+    dev.off()
+    
+    # Save the correlation coefficients as a CSV table
+    cor_df <- data.frame(
+      CellLine = names(ge.cor),
+      GeneExpression_Cor = ge.cor,
+      IC50_Cor = ic50.cor,
+      AUC_Cor = auc.cor,
+      row.names = NULL
     )
+    write.csv(cor_df, "correlations.csv", row.names = FALSE)
+    
+    # Save the Wilcoxon test results as an RDS object
+    wilcox_results <- list(
+      GE_vs_AUC = w1,
+      GE_vs_IC50 = w2
+    )
+    saveRDS(wilcox_results, "wilcox_results.rds")
+
+    writeLines(c(
+        '"BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY":',
+        paste0('    PharmacoGx: ', as.character(packageVersion('PharmacoGx')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pharmacogx_results.csv
-    touch ${prefix}_pharmacogx_output.rds
-    echo "BIOC_PHARMACOGX:" > versions.yml
-    echo "    pharmacogx: 0.0.0" >> versions.yml
+    touch ${prefix}_sensitivity_consistency.csv versions.yml
     """
 }
 
-
-workflow BIOC_PHARMACOGX_WORKFLOW {
+workflow BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GDSCsmall, CCLEsmall ] ]
 
     main:
-    BIOC_PHARMACOGX(ch_input)
+    BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY(ch_input)
 
     emit:
-    results  = BIOC_PHARMACOGX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PHARMACOGX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PHARMACOGX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PHARMACOGX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY.out.tables
+    plots    = BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY.out.plots
+    objects  = BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY.out.objects
+    versions = BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY.out.versions
 }

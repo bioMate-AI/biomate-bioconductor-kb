@@ -1,0 +1,19 @@
+{
+  "package": "rontotools",
+  "requirements": [
+    "ROntoTools",
+    "Rgraphviz",
+    "graph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ROntoTools",
+      "Rgraphviz",
+      "graph"
+    ],
+    "primary_dis_regulation.nf": [
+      "ROntoTools",
+      "graph"
+    ]
+  }
+}

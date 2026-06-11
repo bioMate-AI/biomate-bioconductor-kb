@@ -1,0 +1,13 @@
+{
+  "package": "struct",
+  "requirements": [
+    "ggplot2",
+    "struct"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "struct"
+    ]
+  }
+}

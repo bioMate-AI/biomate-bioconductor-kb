@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ploidy=Specifies the ploidy of the yeast strain (\"diploid\" or \"haploid\") to apply the correct singlet/doublet gates in steadyState or summarizeFlow ;; only=Filters the events to analyze, typically \"singlets\" or \"doublets\" ;; mergeBy=The column name in the annotation data frame used to match and merge with the flowSet sampleNames (default is \"name\") ;; channel=The fluorescence channel(s) to be summarized in summarizeFlow (e.g., \"FL1.A\") ;; gated=Logical parameter in summarizeFlow; set to TRUE if the input flowSet has already been subsetted/gated\n- alternatives: gate_flowClust_2d is deprecated in favor of gate_flowclust_2d for 2D gating ;; Gating can be performed on-the-fly during summarization using ploidy and only parameters with loadGates(), or pre-gated using Subset() and then summarized with gated = TRUE\n- when_to_use: Use flowTime when analyzing flow cytometry datasets (steady-state or time-course) where experimental metadata needs to be integrated with flowSet objects, and automated gating (such as yeast population and singlet gating) is required for downstream statistical summarization and plotting.\n- pitfalls: The sampleNames of the assembled flowSet must match the unique identifier column of the annotation dataframe exactly ;; Custom gates must be defined using the same transformation (e.g., logicle) as the dataset being analyzed ;; Budding yeast cultures contain debris and doublets that must be gated out to avoid introducing noise into signaling pathway measurements.",
+  "workflows": [
+    {
+      "name": "steady_state_analysis",
+      "intent": "Analyze single time-point flow cytometry data by annotating, gating, and compiling individual events.",
+      "input": [
+        ".fcs files (flow cytometry data)",
+        ".csv file (metadata/annotations)"
+      ],
+      "stages": "1. Import FCS files using read.flowSet ;; 2. Load metadata annotation using read.csv ;; 3. Annotate the flowSet using annotateFlowSet ;; 4. Load default gates using loadGates ;; 5. Gate and compile events using steadyState ;; 6. Plot the compiled events using ggplot",
+      "code": "plate1 <- read.flowSet ( path = system.file ( \"extdata\" , \"ss_example\" , package = \"flowTime\" ), alter.names = TRUE )\nsampleNames (plate1) <- paste ( \"1_\" , sampleNames (plate1), sep = \"\" )\ndat <- plate1\nannotation <- read.csv ( system.file ( \"extdata\" , \"ss_example.csv\" , package = \"flowTime\" ))\nadat <- annotateFlowSet ( yourFlowSet = dat, annotation_df = annotation, mergeBy = \"name\" )\nloadGates ()\ndat.SS <- steadyState ( flowset = adat, ploidy = \"diploid\" , only = \"singlets\" )\np <- ggplot (dat.SS, aes ( x = as.factor (treatment), y = FL2.A, fill = AFB)) + geom_boxplot ( outlier.shape = NA ) + facet_grid (IAA ~ AFB) + theme_classic ( base_family = \"Arial\" , base_size = 16 ) + ylim ( c ( - 1000 , 10000 )) + xlab ( expression ( paste ( \"Auxin (\" , mu, \"M)\" , sep = \"\" ))) + ylab ( \"Fluorescence (AU)\" ) + theme ( legend.position = \"none\" )\np"
+    },
+    {
+      "name": "time_course_analysis",
+      "intent": "Analyze time-lapse flow cytometry data by annotating, gating, and generating summary statistics per sample and time point.",
+      "input": [
+        ".fcs files (time-course flow cytometry data)",
+        ".csv file (metadata/annotations with timepoints)"
+      ],
+      "stages": "1. Import FCS files using read.flowSet ;; 2. Load metadata annotation using read.csv ;; 3. Annotate the flowSet using annotateFlowSet ;; 4. Load cytometer-specific gates using loadGates ;; 5. Gate and summarize the flowSet using summarizeFlow ;; 6. Plot the summarized time-course data using qplot",
+      "code": "plate1 <- read.flowSet ( path = system.file ( \"extdata\" , \"tc_example\" , package = \"flowTime\" ), alter.names = TRUE )\nsampleNames(plate1)<-paste('1_',sampleNames(plate1),sep='')\ndat <- plate1\nannotation <- read.csv ( system.file ( \"extdata\" , \"tc_example.csv\" , package = \"flowTime\" ))\nadat <- annotateFlowSet (dat, annotation)\nloadGates ( gatesFile = \"C6Gates.RData\" , path = system.file ( \"extdata\" , package = \"flowTime\" ))\ndat_sum <- summarizeFlow (adat, ploidy = \"diploid\" , only = \"singlets\" , channel = \"FL1.A\" )\nqplot ( x = time, y = FL1.Amean, data = dat_sum, linetype = factor (treatment)) + geom_line () + xlab ( \"Time post Auxin addition (min)\" ) + ylab ( \"Reporter Fluorescence (AU)\" ) + scale_color_discrete ( name = expression ( paste ( \"Auxin (\" , mu, \"M)\" , sep = \"\" ))) + theme_classic ( base_size = 14 , base_family = \"Arial\" )"
+    },
+    {
+      "name": "custom_yeast_gating",
+      "intent": "Create and save custom gating schemes (yeast population and singlet gates) from a flowSet.",
+      "input": [
+        ".fcs files (flow cytometry data)",
+        ".csv file (metadata/annotations)"
+      ],
+      "stages": "1. Import and annotate flowSet using read.flowSet and annotateFlowSet ;; 2. Combine flowSet into a single frame for gate definition using fsApply ;; 3. Estimate and apply logicle transformation using estimateLogicle and transform ;; 4. Define yeast population gate using gate_flowClust_2d ;; 5. Reverse transform the gate and data using inverseLogicleTransform ;; 6. Define singlet gate using gate_singlet ;; 7. Save custom gates using saveGates",
+      "code": "data <- read.flowSet ( path = system.file ( \"extdata\" , \"ss_example\" , package = \"flowTime\" ), alter.names = TRUE )\nannotation <- read.csv ( system.file ( \"extdata\" , \"ss_example.csv\" , package = \"flowTime\" ))\nadat <- annotateFlowSet ( yourFlowSet = data, annotation_df = annotation, mergeBy = \"name\" )\nlibrary ( \"openCyto\" )\nlibrary ( \"ggcyto\" )\nlibrary ( \"flowClust\" )\ndata .1 frame <- data[[ 1 ]]\nexprs (data .1 frame) <- fsApply (data, function (x) { x <- exprs (x) return (x) })\nchnls <- c ( \"FSC.A\" , \"SSC.A\" , \"FSC.H\" , \"SSC.H\" )\ntrans <- estimateLogicle (data .1 frame, channels = chnls)\ninv.trans <- inverseLogicleTransform (trans)\ndata .1 frame <- transform (data .1 frame, trans)\nyeast <- gate_flowClust_2d (data .1 frame, xChannel = \"FSC.A\" , yChannel = \"SSC.A\" , K = 1 , quantile = 0.95 , min = c ( 0 , 0 ))\nyeast <- transform (yeast, inv.trans)\ndata .1 frame <- transform (data .1 frame, inv.trans)\nlibrary (flowStats)\nsinglets <- gate_singlet ( x = Subset (data .1 frame, yeast), area = \"FSC.A\" , height = \"FSC.H\" , prediction_level = 0.999 , maxit = 20 )\nsaveGates ( yeastGate = yeast, dipsingletGate = singlets, fileName = \"PSB_Accuri_W303.RData\" )"
+    }
+  ]
+}

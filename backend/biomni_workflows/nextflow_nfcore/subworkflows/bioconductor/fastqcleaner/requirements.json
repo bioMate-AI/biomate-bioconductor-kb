@@ -1,0 +1,15 @@
+{
+  "package": "fastqcleaner",
+  "requirements": [
+    "Biostrings",
+    "FastqCleaner",
+    "ShortRead"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "FastqCleaner",
+      "ShortRead"
+    ]
+  }
+}

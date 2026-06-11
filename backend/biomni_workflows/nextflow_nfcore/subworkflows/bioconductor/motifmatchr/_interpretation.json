@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: subject=The second argument, which can be genomic ranges (GenomicRanges, RangedSummarizedExperiment) or sequences (DNAStringSet, DNAString, character vector) ;; genome=Required if subject is genomic ranges; can be a BSgenome object, DNAStringSet, or FaFile ;; bg=Background nucleotide frequencies; can be \"even\", \"genome\", or a named numeric vector ;; out=Output type; \"matches\" (default, returns boolean matrix), \"scores\" (returns boolean matrix, high scores, and match counts), or \"positions\" (returns GenomicRangesList or IRangesList)\n- alternatives: matchPWM in Biostrings and searchSeq in TFBSTools are alternatives, but motifmatchr is preferred when matching many different sequences/ranges against many different motifs\n- when_to_use: Use when scanning a large set of genomic ranges (such as ChIP-seq or ATAC-seq peaks) or sequences against a large database of motifs (such as JASPAR) to find matches, scores, or exact match positions\n- pitfalls: Default background frequencies are calculated from input sequences, which may not be appropriate for short sequences (use bg = \"even\" or bg = \"genome\" instead) ;; Using bg = \"genome\" requires specifying a genome ;; If background frequencies passed to matchMotifs do not match those in the input PWM, the PWM is adjusted, changing the calculated scores; ensure background frequencies match the bg slot of the PWMatrix object to avoid this ;; If the subject is a sequence object (character vector, DNAStringSet, DNAString) and no ranges argument is provided, out = \"positions\" returns relative positions (IRangesList) instead of genomic coordinates (GenomicRangesList)",
+  "workflows": [
+    {
+      "name": "motif_matching_genomic_ranges",
+      "intent": "Find motif matches, scores, and genomic positions within a set of genomic ranges (peaks).",
+      "input": [
+        "peaks (GRanges object containing genomic coordinates)",
+        "example_motifs (PWMatrixList or PFMatrixList containing motif matrices)"
+      ],
+      "stages": "1. Load the motifmatchr, GenomicRanges, SummarizedExperiment, and BSgenome libraries ;; 2. Load example motifs and define genomic ranges (peaks) ;; 3. Find motif matches using matchMotifs with default settings ;; 4. Extract the boolean matches matrix using motifMatches ;; 5. Find motif matches and extract scores and counts using out = \"scores\" ;; 6. Find exact genomic positions of motif matches using out = \"positions\"",
+      "code": "library(motifmatchr)\nlibrary(GenomicRanges)\nlibrary(SummarizedExperiment)\nlibrary(BSgenome)\n\ndata(example_motifs, package = \"motifmatchr\") \n\npeaks <- GRanges(seqnames = c(\"chr1\",\"chr2\",\"chr2\"),\n                 ranges = IRanges(start = c(76585873,42772928,100183786),\n                                  width = 500))\n\nmotif_ix <- matchMotifs(example_motifs, peaks, genome = \"hg19\") \nmotifMatches(motif_ix)\n\nmotif_ix_scores <- matchMotifs(example_motifs, peaks, \n                                genome = \"hg19\", out = \"scores\")\nhead(motifMatches(motif_ix_scores))\nhead(motifScores(motif_ix_scores))\nhead(motifCounts(motif_ix_scores))\n\nmotif_pos <- matchMotifs(example_motifs, peaks, genome = \"hg19\", \n                          out = \"positions\") \nprint(motif_pos)"
+    },
+    {
+      "name": "motif_matching_sequences",
+      "intent": "Find motif matches directly within biological sequences (DNAStringSet or character vectors).",
+      "input": [
+        "example_DNAStringSet (DNAStringSet containing sequence data)",
+        "example_character (character vector containing sequence data)",
+        "example_motifs (PWMatrixList or PFMatrixList containing motif matrices)"
+      ],
+      "stages": "1. Load the Biostrings and genome libraries ;; 2. Extract sequences from the genome using genomic ranges ;; 3. Find motif matches using a DNAStringSet input ;; 4. Convert sequences to a character vector and find motif matches",
+      "code": "library(Biostrings)\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\n\nexample_DNAStringSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, peaks)\n\nmotif_ix_DNAStringSet <- matchMotifs(example_motifs, example_DNAStringSet) \n\nexample_character <- as.character(example_DNAStringSet)\n\nmotif_ix_character <- matchMotifs(example_motifs, example_character)"
+    }
+  ]
+}

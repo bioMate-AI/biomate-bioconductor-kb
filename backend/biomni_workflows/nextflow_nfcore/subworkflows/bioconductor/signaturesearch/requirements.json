@@ -1,0 +1,18 @@
+{
+  "package": "signaturesearch",
+  "requirements": [
+    "BiocParallel",
+    "readr",
+    "signatureSearch"
+  ],
+  "by_workflow": {
+    "batch_gess_processing.nf": [
+      "BiocParallel",
+      "readr",
+      "signatureSearch"
+    ],
+    "main.nf": [
+      "signatureSearch"
+    ]
+  }
+}

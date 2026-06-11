@@ -1,0 +1,30 @@
+{
+  "package": "nebulosa",
+  "requirements": [
+    "BiocFileCache",
+    "DropletUtils",
+    "Nebulosa",
+    "Seurat",
+    "igraph",
+    "patchwork",
+    "scater",
+    "scran"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocFileCache",
+      "DropletUtils",
+      "Nebulosa",
+      "igraph",
+      "patchwork",
+      "scater",
+      "scran"
+    ],
+    "seurat_density.nf": [
+      "BiocFileCache",
+      "Nebulosa",
+      "Seurat",
+      "patchwork"
+    ]
+  }
+}

@@ -1,103 +1,207 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BiocSet
-// BiocSet displays different biological sets in a triple tibble format. These three tibbles are `eleme
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BiocSet/inst/doc/BiocSet.R
-// Upstream  : airway, BiocFileCache, DESeq2, tibble, limma
-// Downstream: RegEnrich
-//
-// Install: BiocManager::install("BiocSet")
+// Bioconductor workflow: BiocSet — biocset_de_gsea_pipeline
+// Integrate differential expression results with Gene Ontology enrichment analysis using BiocSet to filter, annotate, and generate reference URLs for functional g
+// Input: counts.csv, coldata.csv
+// Container: 1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, BiocSet, DESeq2, GO.db, dplyr, limma, org.Hs.eg.db, tibble
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIOCSET {
+process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biocset"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biocset:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biocset:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(deseqdataset)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biocset_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biocset_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biocset_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BiocSet)
-    library(BiocSet_from_elementset)
-    library(DESeq)
-    library(DESeqDataSet)
-    library(jsonlite)
-
-    # --- Import genomic data file [] ---
-    # Key functions: import, es_element, unnest, unlist, kegg_sets, bfcnew, export, DESeqDataSet
-    download.file("http://current.geneontology.org/ontology/go.obo", "obo_file.obo")
-    foo <- import("obo_file.obo", extract_tag = "everything")
-    small_tst <- es_element(foo)[1,] %>%
-    # --- GO analysis via limma [] ---
-    # Key functions: goana, as_tibble
+    library(DESeq2)
+    library(org.Hs.eg.db)
+    library(GO.db)
     library(limma)
-    go_ids <- goana(tbl$ENTREZID[tbl$padj < 0.05], tbl$ENTREZID, "Hs") %>%
-    as.data.frame() %>%
-    # --- BiocSet analysis [] ---
-    # Key functions: BiocSet, tempfile, export, union, union_single, go_sets, es_activate, count
-    foo <- foo %>% dplyr::rename(element = ENTREZID, set = GOALL)
-    tbl <- tbl %>% dplyr::rename(element = ENTREZID)
-    go_ids <- go_ids %>% dplyr::rename(set = GOALL)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biocset_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biocset_results.csv")
+    library(dplyr)
+    library(tibble)
+    
+    # ----------------------------------------------------------------------
+    # Stage 1: Load Input Data
+    # ----------------------------------------------------------------------
+    message("Loading input expression data...")
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    if (!"gene_id" %in% colnames(counts_df)) {
+        stop("Input counts.csv must contain a 'gene_id' column.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biocset_output.rds")
+    
+    # Set gene_id as row names and convert to matrix
+    rownames(counts_df) <- counts_df\$gene_id
+    counts_matrix <- as.matrix(counts_df[, -which(colnames(counts_df) == "gene_id"), drop = FALSE])
+    
+    # Load sample metadata
+    coldata <- read.csv("coldata.csv")
+    if (!all(c("sample", "condition") %in% colnames(coldata))) {
+        stop("Input coldata.csv must contain 'sample' and 'condition' columns.")
     }
+    rownames(coldata) <- coldata\$sample
+    
+    # Align counts and coldata
+    common_samples <- intersect(colnames(counts_matrix), coldata\$sample)
+    if (length(common_samples) == 0) {
+        stop("No matching samples found between counts.csv and coldata.csv.")
+    }
+    counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Ensure condition is a factor
+    coldata\$condition <- as.factor(coldata\$condition)
+    
+    # ----------------------------------------------------------------------
+    # Stage 2: Differential Expression Analysis
+    # ----------------------------------------------------------------------
+    message("Running DESeq2 differential expression analysis...")
+    dds <- DESeqDataSetFromMatrix(countData = counts_matrix,
+                                  colData = coldata,
+                                  design = ~ condition)
+    dds <- DESeq(dds)
+    res <- results(dds)
+    
+    res_tbl <- as.data.frame(res) %>%
+        rownames_to_column("ENSEMBL") %>%
+        as_tibble()
+    
+    # ----------------------------------------------------------------------
+    # Stage 3: ID Mapping and GSEA Preparation
+    # ----------------------------------------------------------------------
+    message("Mapping Ensembl IDs to Entrez IDs...")
+    res_tbl <- res_tbl %>%
+        mutate(ENTREZID = mapIds(org.Hs.eg.db,
+                                 keys = ENSEMBL,
+                                 keytype = "ENSEMBL",
+                                 column = "ENTREZID",
+                                 multiVals = "first") %>% unname()) %>%
+        filter(!is.na(padj), !is.na(ENTREZID))
+    
+    # Identify significant genes
+    p_adj_cutoff <- 0.05
+    sig_genes <- res_tbl %>% filter(padj < p_adj_cutoff) %>% pull(ENTREZID)
+    all_genes <- res_tbl\$ENTREZID
+    
+    # Fallback if no genes are significant
+    if (length(sig_genes) == 0) {
+        message("Warning: No genes met the significance threshold. Using top 100 genes by p-value.")
+        sig_genes <- res_tbl %>% arrange(pvalue) %>% head(100) %>% pull(ENTREZID)
+    }
+    
+    # ----------------------------------------------------------------------
+    # Stage 4: Gene Set Enrichment Analysis (GSEA)
+    # ----------------------------------------------------------------------
+    message("Performing Gene Ontology enrichment analysis...")
+    go_results <- goana(de = sig_genes, universe = all_genes, species = "Hs") %>%
+        as.data.frame() %>%
+        rownames_to_column("GOALL") %>%
+        as_tibble()
+    
+    # Retrieve mapping between Entrez IDs and GO terms
+    message("Retrieving gene-to-GO mappings...")
+    go_mapping <- AnnotationDbi::select(org.Hs.eg.db,
+                                        keys = res_tbl\$ENTREZID,
+                                        columns = "GOALL",
+                                        keytype = "ENTREZID") %>%
+        as_tibble() %>%
+        dplyr::select(-EVIDENCEALL) %>%
+        distinct() %>%
+        filter(ONTOLOGYALL == "BP") %>%
+        dplyr::select(-ONTOLOGYALL)
+    
+    # ----------------------------------------------------------------------
+    # Stage 5: Construct and Manipulate BiocSet
+    # ----------------------------------------------------------------------
+    message("Constructing BiocSet object...")
+    # Rename columns to match BiocSet requirements (element, set)
+    element_df <- res_tbl %>% dplyr::rename(element = ENTREZID)
+    set_df <- go_results %>% dplyr::rename(set = GOALL)
+    elementset_df <- go_mapping %>% dplyr::rename(element = ENTREZID, set = GOALL)
+    
+    # Create BiocSet from the elementset mapping and metadata tibbles
+    es <- BiocSet_from_elementset(elementset_df, element_df, set_df)
+    
+    # Filter sets to keep only enriched ones (P.DE < 0.05)
+    message("Filtering and annotating gene sets...")
+    es_filtered <- es %>% filter_set(P.DE < 0.05)
+    
+    # Add GO definitions using GO.db
+    map_def <- map_add_set(es_filtered, GO.db, "GOID", "DEFINITION")
+    es_annotated <- es_filtered %>% mutate_set(definition = map_def)
+    
+    # Add reference URLs for elements and sets
+    message("Generating reference URLs...")
+    es_final <- url_ref(es_annotated)
+    
+    # ----------------------------------------------------------------------
+    # Stage 6: Export Results
+    # ----------------------------------------------------------------------
+    message("Exporting final tables...")
+    # Export flat elementset table
+    final_flat_df <- data.frame_from_elementset(es_final)
+    write.csv(final_flat_df, "biocset_results.csv", row.names = FALSE)
+    
+    # Export set summary table
+    final_set_df <- tibble_from_set(es_final)
+    write.csv(final_set_df, "biocset_sets_summary.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIOCSET:", paste0("    biocset: ", packageVersion("BiocSet"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE":',
+        paste0('    BiocSet: ', as.character(packageVersion('BiocSet')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biocset_results.csv
-    touch ${prefix}_biocset_output.rds
-    echo "BIOC_BIOCSET:" > versions.yml
-    echo "    biocset: 0.0.0" >> versions.yml
+    touch ${prefix}_biocset_de_gsea_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIOCSET_WORKFLOW {
+workflow BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(deseqdataset) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BIOCSET(ch_input)
+    BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_BIOCSET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIOCSET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIOCSET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIOCSET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE.out.tables
+    plots    = BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE.out.plots
+    objects  = BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE.out.objects
+    versions = BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE.out.versions
 }

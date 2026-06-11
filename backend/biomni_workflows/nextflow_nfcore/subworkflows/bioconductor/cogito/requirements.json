@@ -1,0 +1,15 @@
+{
+  "package": "cogito",
+  "requirements": [
+    "Cogito",
+    "GenomicFeatures",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Cogito",
+      "GenomicFeatures",
+      "GenomicRanges"
+    ]
+  }
+}

@@ -1,89 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Linnorm
-// Linnorm is an algorithm for normalizing and transforming RNA-seq, single cell RNA-seq, ChIP-seq coun
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Linnorm/inst/doc/Linnorm_User_Manual.R
-// Upstream  : RColorBrewer, gplots, igraph, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("Linnorm")
+// Bioconductor workflow: Linnorm — normalization_and_transformation
+// Normalize, transform, and optionally impute raw count or expression data for downstream parametric analysis or export.
+// Input: Islam2011
+// Container: quay.io/biocontainers/bioconductor-linnorm:2.34.0--r45ha27e39d_0
+// R packages: gplots, igraph, knitr, Linnorm, RColorBrewer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Linnorm
+// QC: low-count filtering, missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the Linnorm library and dataset
+//  * 2. [Core Analysis] Perform normalizing transformation with or without low-count filtering
+//  * 3. [Visualization & Output] Export transformed data to a tab-delimited file
+//  * 4. [Core Analysis] Perform normalization to XPM or Raw counts
+//  * 5. [Core Analysis] Optionally perform data imputation or select stable genes
 
 nextflow.enable.dsl = 2
 
-process BIOC_LINNORM {
+process BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-linnorm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-linnorm:2.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-linnorm:2.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_linnorm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_linnorm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_linnorm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gplots", "igraph", "knitr", "Linnorm", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(Linnorm)
-    library(jsonlite)
-
-    # --- kable [] ---
-    # Key functions: kable
-    library(knitr)
-    kable(Genes10[,c(1:5)], digits=4)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_linnorm_results.csv", row.names = TRUE)
+    
+    # Read the user input file "Islam2011" from the working directory.
+    # We assume it is a tab-separated or comma-separated file with gene names as row names.
+    if (file.exists("Islam2011")) {
+      Islam2011 <- tryCatch({
+        as.matrix(read.table("Islam2011", header=TRUE, sep="\t", row.names=1, check.names=FALSE))
+      }, error = function(e) {
+        as.matrix(read.csv("Islam2011", header=TRUE, row.names=1, check.names=FALSE))
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_linnorm_results.csv")
+      stop("Required input file 'Islam2011' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_linnorm_output.rds")
-    }
+    
+    # Do not filter gene list:
+    Transformed <- Linnorm(Islam2011)
+    
+    # Filter low count genes
+    result <- Linnorm(Islam2011, Filter=TRUE)
+    FTransformed <- result[["Linnorm"]]
+    
+    # You can use this file with Excel.
+    # This file includes all genes.
+    write.table(Transformed, "Transformed.txt",
+    quote=FALSE, sep="\t", col.names=TRUE, row.names=TRUE)
+    
+    # This file filtered low count genes.
+    write.table(FTransformed, "Transformed.txt",
+    quote=FALSE, sep="\t", col.names=TRUE, row.names=TRUE)
+    
+    # Also write FTransformed to a unique filename to avoid overwriting Transformed.txt
+    write.table(FTransformed, "FTransformed.txt",
+    quote=FALSE, sep="\t", col.names=TRUE, row.names=TRUE)
+    
+    # Normalization
+    Normalized <- Linnorm.Norm(Islam2011)
+    
+    # You can use this file with Excel.
+    write.table(Normalized, "Normalized.txt",
+    quote=FALSE, sep="\t", col.names=TRUE, row.names=TRUE)
+    
+    # Data Imputation
+    DataImputed <- Linnorm.DataImput(Transformed)
+    
+    # Or, users can directly perform data imputation during transformation.
+    DataImputed <- Linnorm(Islam2011,DataImputation=TRUE)
+    
+    # Save imputed data
+    write.table(DataImputed, "DataImputed.txt",
+    quote=FALSE, sep="\t", col.names=TRUE, row.names=TRUE)
+    
+    # Obtain stable genes
+    StableGenes <- Linnorm.SGenes(Islam2011)
+    
+    # Save stable genes
+    write.table(StableGenes, "StableGenes.txt",
+    quote=FALSE, sep="\t", col.names=TRUE, row.names=TRUE)
+    
+    # Save RDS objects for downstream R analysis
+    saveRDS(Transformed, "Transformed.rds")
+    saveRDS(FTransformed, "FTransformed.rds")
+    saveRDS(Normalized, "Normalized.rds")
+    saveRDS(DataImputed, "DataImputed.rds")
+    saveRDS(StableGenes, "StableGenes.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LINNORM:", paste0("    linnorm: ", packageVersion("Linnorm"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION":',
+        paste0('    Linnorm: ', as.character(packageVersion('Linnorm')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_linnorm_results.csv
-    touch ${prefix}_linnorm_output.rds
-    echo "BIOC_LINNORM:" > versions.yml
-    echo "    linnorm: 0.0.0" >> versions.yml
+    touch ${prefix}_normalization_and_transformation.csv versions.yml
     """
 }
 
-
-workflow BIOC_LINNORM_WORKFLOW {
+workflow BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Islam2011 ] ]
 
     main:
-    BIOC_LINNORM(ch_input)
+    BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION(ch_input)
 
     emit:
-    results  = BIOC_LINNORM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LINNORM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LINNORM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LINNORM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION.out.tables
+    plots    = BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION.out.plots
+    objects  = BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION.out.objects
+    versions = BIOC_LINNORM_NORMALIZATION_AND_TRANSFORMATION.out.versions
 }

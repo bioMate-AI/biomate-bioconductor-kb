@@ -1,0 +1,16 @@
+{
+  "package": "geneselectmmd",
+  "requirements": [
+    "Biobase",
+    "GeneSelectMMD"
+  ],
+  "by_workflow": {
+    "data_matrix_workflow.nf": [
+      "GeneSelectMMD"
+    ],
+    "main.nf": [
+      "Biobase",
+      "GeneSelectMMD"
+    ]
+  }
+}

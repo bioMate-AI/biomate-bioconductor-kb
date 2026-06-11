@@ -1,0 +1,21 @@
+{
+  "package": "camera",
+  "requirements": [
+    "CAMERA",
+    "xcms"
+  ],
+  "by_workflow": {
+    "isotope_validation.nf": [
+      "CAMERA",
+      "xcms"
+    ],
+    "main.nf": [
+      "CAMERA",
+      "xcms"
+    ],
+    "multiple_sample_diffreport.nf": [
+      "CAMERA",
+      "xcms"
+    ]
+  }
+}

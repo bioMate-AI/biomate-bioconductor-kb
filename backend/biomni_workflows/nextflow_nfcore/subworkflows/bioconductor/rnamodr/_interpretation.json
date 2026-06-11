@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: files=A named character vector or named BamFileList where names must be \"treated\" or \"control\" to describe the condition of each replicate ;; annotation=A GRangesList, GFF3File, or TxDb object containing genomic features ;; sequences=A FASTA file or XStringSet object containing genomic sequences ;; find.mod=Optional logical argument in Modifier constructors; if set to FALSE, prevents automatic search for modifications ;; minScore=A numeric threshold setting in Modifier objects (e.g., minScore = 0.5) used to filter modification calls ;; perTranscript=Logical argument in modifications(); if TRUE, returns coordinates relative to transcript boundaries instead of genomic coordinates ;; alias=A data.frame mapping transcript IDs to other names (e.g., gene names) for plotting ;; showSequenceData=Logical argument in plotData(); if TRUE, includes detailed pileup sequence data in the plot\n- alternatives: RNAmodR.RiboMethSeq=Use this package's ModRiboMethSeq class to detect ribose methylations ;; RNAmodR.AlkAnilineSeq=Use this package's ModAlkAnilineSeq class to detect m7G and m3C modifications ;; Pseudo-Seq=An alternative high-throughput sequencing method for pseudouridine profiling mentioned in the literature\n- when_to_use: Use this package when you need to identify, map, and compare post-transcriptional RNA modifications (such as Inosine via A-to-G conversion) across single or multiple sample sets with replicate high-throughput sequencing data.\n- pitfalls: BAM files must be explicitly named with \"treated\" or \"control\" conditions, or the package will fail to assign conditions ;; Using found modification sites directly as input for plotROC is strongly discouraged as it defeats the purpose of the performance test (circular logic) ;; For visualization with Gviz, naming chromosomes as chr1-chrN is recommended to avoid compatibility issues",
+  "workflows": [
+    {
+      "name": "single_sample_modification_detection",
+      "intent": "Detect post-transcriptional RNA modifications (such as Inosine) in a single sample set with replicates.",
+      "input": [
+        "annotation.gff3 (GFF3 genome annotation)",
+        "sequences.fasta (FASTA genome sequence)",
+        "treated_rep1.bam (BAM alignment for treated replicate 1)",
+        "treated_rep2.bam (BAM alignment for treated replicate 2)",
+        "treated_rep3.bam (BAM alignment for treated replicate 3)"
+      ],
+      "stages": "1. Load annotation and sequence files ;; 2. Define named BAM file vector with \"Treated\" or \"Control\" conditions ;; 3. Create a SequenceData object (e.g., End5SequenceData) to load and parse BAM files ;; 4. Create a Modifier object (e.g., ModInosine) to automatically aggregate data and search for modifications ;; 5. Retrieve and adjust settings (e.g., minScore) of the Modifier object",
+      "code": "annotation <- GFF3File(RNAmodR.Data.example.gff3())\nsequences <- RNAmodR.Data.example.fasta()\nfiles <- c(Treated = RNAmodR.Data.example.bam.1(),\n           Treated = RNAmodR.Data.example.bam.2(),\n           Treated = RNAmodR.Data.example.bam.3())\nseqdata <- End5SequenceData(files, annotation = annotation, \n                            sequences = sequences)\nmi <- ModInosine(files, annotation = annotation, sequences = sequences)\nsettings(mi)\nsettings(mi,\"minScore\")\nsettings(mi) <- list(minScore = 0.5)\nsettings(mi,\"minScore\")"
+    },
+    {
+      "name": "multi_sample_modification_comparison",
+      "intent": "Compare post-transcriptional RNA modification profiles across multiple sample sets with replicates.",
+      "input": [
+        "annotation.gff3 (GFF3 genome annotation)",
+        "sequences.fasta (FASTA genome sequence)",
+        "sample1_rep1.bam (BAM alignment for sample set 1 replicate 1)",
+        "sample1_rep2.bam (BAM alignment for sample set 1 replicate 2)",
+        "sample2_rep1.bam (BAM alignment for sample set 2 replicate 1)",
+        "sample2_rep2.bam (BAM alignment for sample set 2 replicate 2)"
+      ],
+      "stages": "1. Load annotation and sequence files ;; 2. Define a named list of named character vectors representing BAM files for multiple sample sets ;; 3. Create a ModifierSet object (e.g., ModSetInosine) to process all sample sets in parallel ;; 4. Retrieve identified modifications using modifications() ;; 5. Compare modification scores across samples at specific coordinates using compareByCoord() ;; 6. Generate a TxDb object and alias data frame for transcript-to-gene mapping ;; 7. Visualize comparisons using heatmaps (plotCompareByCoord()) and transcript-level plots (plotData()) ;; 8. Evaluate performance using ROC curves (plotROC()) and retrieve read metadata statistics (stats())",
+      "code": "sequences <- RNAmodR.Data.example.AAS.fasta()\nannotation <- GFF3File(RNAmodR.Data.example.AAS.gff3())\nfiles <- list(\"SampleSet1\" = c(treated = RNAmodR.Data.example.wt.1(),\n                               treated = RNAmodR.Data.example.wt.2(),\n                               treated = RNAmodR.Data.example.wt.3()),\n              \"SampleSet2\" = c(treated = RNAmodR.Data.example.bud23.1(),\n                               treated = RNAmodR.Data.example.bud23.2()),\n              \"SampleSet3\" = c(treated = RNAmodR.Data.example.trm8.1(),\n                               treated = RNAmodR.Data.example.trm8.2()))\nmsi <- ModSetInosine(files, annotation = annotation, sequences = sequences)\nmod <- modifications(msi)\nmod <- modifications(msi, perTranscript = TRUE)\nmod <- modifications(msi)\ncoord <- unique(unlist(mod))\ncoord$score <- NULL\ncoord$sd <- NULL\ncompareByCoord(msi,coord)\ntxdb <- makeTxDbFromGFF(annotation)\nalias <- data.frame(tx_id = names(id2name(txdb)),\n                    name = id2name(txdb))\nplotCompareByCoord(msi, coord, alias = alias)\nplotCompareByCoord(msi[c(3,1,2)], coord, alias = alias, normalize = \"SampleSet3\",\n                   perTranscript = TRUE)\nplotData(msi, \"2\", from = 10L, to = 45L, alias = alias)\nplotData(msi[1:2], \"2\", from = 10L, to = 45L, showSequenceData = TRUE, alias = alias)\nplotROC(msi, coord)\nstats <- stats(msi)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=A data frame, matrix, or SummarizedExperiment object with abundance measurements (features on rows, replicates/samples on columns) ;; pSamplepairs=Threshold value (c_s) to assign a feature for a replicate sample pair to be reproducible (default is 0.75) ;; pFeatures=Threshold value (c_m) to assign a sample pair for a feature to be reproducible (default is 0.75) ;; alpha=Level of significance to control the False Discovery Rate (FDR), default is 0.05 ;; by=Filtering target in MarrFilterData(), which can be \"features\", \"samplePairs\", or \"both\"\n- alternatives: IDR (Irreproducible Discovery Rate) by Li et al. (2011) for measuring reproducibility of high-throughput experiments\n- when_to_use: Use when you need to assess and filter high-throughput biological replicate experiments (such as MS-Metabolomics or transcriptomics) to identify consistent (reproducible) and inconsistent (irreproducible) features or sample pairs without relying on parametric assumptions.\n- pitfalls: Input data must be preprocessed (filtered for high missingness, imputed, and normalized) before running Marr(). The package expects features on the rows and replicates/samples on the columns.",
+  "workflows": [
+    {
+      "name": "maximum_rank_reproducibility_analysis",
+      "intent": "Assess reproducibility of high-dimensional biological features and sample pairs, visualize the distributions, and filter the dataset.",
+      "input": [
+        "abundance_matrix.csv (a matrix, data frame, or SummarizedExperiment of abundance measurements with features as rows and replicate samples as columns)"
+      ],
+      "stages": "1. Compute maximum rank reproducibility using Marr() ;; 2. Extract reproducible features and sample pairs using MarrFeatures() and MarrSamplepairs() ;; 3. Check the percentage of reproducible features and sample pairs using MarrFeaturesfiltered() and MarrSamplepairsfiltered() ;; 4. Plot the distributions using MarrPlotSamplepairs() and MarrPlotFeatures() ;; 5. Filter the dataset by features, sample pairs, or both using MarrFilterData()",
+      "code": "library(marr)\nMarr_output<- Marr(msprepCOPD, pSamplepairs =\n                   0.75, pFeatures = 0.75, alpha=0.05)\nMarr_output\nhead(MarrFeatures(Marr_output))\nhead(MarrSamplepairs(Marr_output))\nMarrFeaturesfiltered(Marr_output)\nMarrSamplepairsfiltered(Marr_output)\nMarrPlotSamplepairs(Marr_output) \nMarrPlotFeatures(Marr_output) \nMarrFilterData(Marr_output, by = \"features\")\nMarrFilterData(Marr_output, by = \"samplePairs\")\nMarrFilterData(Marr_output, by = \"both\")"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "package": "ruvnormalize",
+  "requirements": [
+    "RUVnormalize",
+    "spams"
+  ],
+  "by_workflow": {
+    "iterative_ruv.nf": [
+      "RUVnormalize",
+      "spams"
+    ],
+    "main.nf": [
+      "RUVnormalize"
+    ],
+    "replicate_ruv.nf": [
+      "RUVnormalize"
+    ]
+  }
+}

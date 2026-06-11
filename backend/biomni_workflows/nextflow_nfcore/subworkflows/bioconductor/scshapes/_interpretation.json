@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <perc.zero=Proportion of zero counts allowed to filter out lowly expressed genes (e.g., 0.1 to keep genes expressed in at least 10% of cells) ;; counts=Matrix of raw UMI counts where rows are genes and columns are cells ;; cexpr=Covariates such as cell types or treatment conditions to be included in the GLM ;; lib.size=Library sizes per cell, required as an offset in the GLM to normalize for differences in sequencing depth ;; BPPARAM=Parallel backend configuration, such as SnowParam, to speed up computation ;; model=Specific model to extract parameters for in model_param (set to NULL to use the best-fit model)>\n- alternatives: <None mentioned in the documentation>\n- when_to_use: <When analyzing single-cell RNA-sequencing (scRNA-seq) count data to identify genes that change their distribution shape (e.g., from unimodal to zero-inflated, or between Poisson, NB, ZIP, ZINB) across different treatment conditions or cell states.>\n- pitfalls: <Failing to input library sizes (lib.size) which are required as an offset in the GLM to normalize for differences in sequencing depth ;; Not subsetting the counts matrix to only include genes significant from the KS test before running fit_models, which can lead to unnecessary computation on genes that do not fit the ZINB family ;; For change_shape, the input dataframe must have genes as rows and conditions as columns containing the corresponding distribution names.>",
+  "workflows": [
+    {
+      "name": "differential_distribution_analysis",
+      "intent": "Identify the best-fit distribution for genes in scRNA-seq data and detect genes changing distribution shapes between treatment conditions.",
+      "input": [
+        "counts (matrix of raw UMI counts)",
+        "covariates (vector or matrix of cell covariates/cell types)",
+        "lib_size (vector of cell library sizes)",
+        "ifnb.distr (dataframe with genes as rows and treatment conditions as columns containing the corresponding distribution name a particular gene follows)"
+      ],
+      "stages": "1. Filter genes based on zero expression percentage using filter_counts ;; 2. Perform Kolmogorov-Smirnov test using ks_test to select genes belonging to the ZINB family ;; 3. Select significant genes using ks_sig and subset the count matrix ;; 4. Fit Poisson, NB, ZIP, and ZINB models using fit_models ;; 5. Calculate BIC values using model_bic and select the model with the least BIC using lbic_model ;; 6. Perform goodness-of-fit testing using gof_model ;; 7. Select the final best-fit model using select_model ;; 8. Extract model parameters using model_param ;; 9. Identify genes changing distribution shape between conditions using change_shape",
+      "code": "scData_filt <- filter_counts(scData$counts, perc.zero = 0.1)\nscData_KS <- ks_test(counts=scData$counts, cexpr=scData$covariates, lib.size=scData$lib_size, BPPARAM=SnowParam(workers=8,type=\"SOCK\"))\nscData_KS_sig <- ks_sig(scData_KS)\nscData.sig.genes <- scData$counts[rownames(scData$counts) %in% names(scData_KS_sig$genes),]\nscData_models <- fit_models(counts=scData.sig.genes, cexpr=scData$covariates, lib.size=scData$lib_size, BPPARAM=SnowParam(workers=8,type=\"SOCK\"))\nscData_bicvals <- model_bic(scData_models)\nscData_least.bic <- lbic_model(scData_bicvals, scData$counts)\nscData_gof <- gof_model(scData_least.bic, cexpr=scData$covariates, lib.size=scData$lib_size, BPPARAM=SnowParam(workers=8,type=\"SOCK\"))\nscData_fit <- select_model(scData_gof)\nscData_params <- model_param(scData_models, scData_fit, model=NULL)\nifnb.DD.genes <- change_shape(ifnb.distr)"
+    }
+  ]
+}

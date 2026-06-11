@@ -1,0 +1,19 @@
+{
+  "package": "mslp",
+  "requirements": [
+    "data.table",
+    "doFuture",
+    "future",
+    "magrittr",
+    "mslp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "data.table",
+      "doFuture",
+      "future",
+      "magrittr",
+      "mslp"
+    ]
+  }
+}

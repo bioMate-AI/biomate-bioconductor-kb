@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gsnorm=Specifies global scaling normalization method (\"none\", \"median\", \"mean\", \"meanlog\") in mmgmos, gmoExon, gmhta, and igmoExon ;; exontype=Specifies the species chip type (\"Human\", \"Mouse\", \"Rat\") in gmoExon and igmoExon ;; condition=Specifies whether to calculate gene expression values separately by condition (\"Yes\" or \"No\") in igmoExon ;; cl=A snow cluster object passed to pumaComb, gmoExon, or gmhta to enable parallel processing ;; clusters=The number of clusters to identify in pumaClust ;; mincls/maxcls=The minimum and maximum number of clusters to identify in pumaClustii\n- alternatives: rma or mas5.0 (via affy/oligo)=Traditional summarisation methods that provide only point estimates; prefer mmgmos or PMmmgmos when probe-level uncertainty propagation is desired ;; limma=Standard differential expression package; prefer pumaDE (PPLR/IPPLR) to incorporate probe-level uncertainty, which improves accuracy especially for weakly expressed genes ;; prcomp=Standard PCA; prefer pumaPCA to account for expression-level uncertainty ;; standard clustering=Prefer pumaClust or pumaClustii (Student's t mixture model) to incorporate measurement error and replicate information\n- when_to_use: Use when analyzing Affymetrix GeneChip datasets (3' arrays, exon arrays, or HTA 2.0 arrays) and wanting to leverage probe-level measurement uncertainty to improve the robustness and accuracy of PCA, clustering, and differential expression analysis.\n- pitfalls: Running mmgmos with gsnorm=\"none\" requires subsequent normalization using pumaNormalize before differential expression analysis to avoid artifacts ;; The original PPLR method (pumaComb) is computationally intensive for large datasets; use pumaCombImproved (IPPLR) or parallel processing via the snow package to reduce execution times ;; Remapped CDFs often result in probesets with very few probes, making uncertainty propagation highly critical but potentially highly variable.",
+  "workflows": [
+    {
+      "name": "standard_3_prime_array_analysis",
+      "intent": "Perform summarisation, normalization, PCA, replicate combining, and differential expression analysis on standard Affymetrix 3' arrays.",
+      "input": [
+        "celFiles (raw Affymetrix 3' array CEL files)"
+      ],
+      "stages": "1. Read CEL files and define phenotype data ;; 2. Summarise probe-level data using mmgmos ;; 3. Perform uncertainty-aware PCA ;; 4. Normalize expression levels ;; 5. Combine replicate arrays ;; 6. Identify differentially expressed genes using PPLR ;; 7. Plot expression levels with error bars",
+      "code": "library(oligo)\nestrogenFilenames<-list.celfiles()\noligo.estrogen<-read.celfiles(celFiles)\npData(oligo.estrogen) <- data.frame(\n    \"estrogen\"=c(\"absent\",\"absent\",\"present\",\"present\"\n        ,\"absent\",\"absent\",\"present\",\"present\")\n,   \"time.h\"=c(\"10\",\"10\",\"10\",\"10\",\"48\",\"48\",\"48\",\"48\")\n,   row.names=rownames(pData(oligo.estrogen))\n)\neset_estrogen_mmgmos<-mmgmos(oligo.estrogen,gsnorm=\"none\")\npumapca_estrogen <- pumaPCA(eset_estrogen_mmgmos)\nplot(pumapca_estrogen,legend1pos=\"right\",legend2pos=\"top\",main=\"pumaPCA\")\neset_estrogen_mmgmos_normd <- pumaNormalize(eset_estrogen_mmgmos)\neset_estrogen_comb <- pumaComb(eset_estrogen_mmgmos_normd)\npumaDERes <- pumaDE(eset_estrogen_comb)\ntoppumaDEIntGene <- topGenes(pumaDERes, contrast=7)\nplotErrorBars(eset_estrogen_mmgmos_normd, toppumaDEIntGene)"
+    },
+    {
+      "name": "exon_array_analysis",
+      "intent": "Calculate gene and transcript expression levels from Affymetrix exon arrays.",
+      "input": [
+        "exonFilenames (raw Affymetrix exon array CEL files)",
+        "SampleNameTable (tab-separated table with Celnames and Condition columns)"
+      ],
+      "stages": "1. Read CEL files ;; 2. Calculate gene and transcript expression levels using gmoExon or igmoExon ;; 3. Write expression and standard error results to CSV files",
+      "code": "library(oligo)\nexonFilenames<-c(\"C0006.CEL\",\"C021.CEL\"\n                ,\"F023_NEG.CEL\",\"F043_NEG.CEL\")\noligo.exon<-read.celfiles(exonFilenames)\neset_gmoExon<-gmoExon(oligo.exon,exontype=\"Human\",gsnorm=\"none\")\nwrite.reslts(eset_gmoExon$gene, file=\"eset_gmoExon_gene\")\nwrite.reslts(eset_gmoExon$transcript, file=\"eset_gmoExon_transcript\")\n\ncel.path<-\"cel.path\"\nSampleNameTable<-\"SampleNameTable\"\neset_igmoExon<-igmoExon(cel.path=\"cel.path\",SampleNameTable=\"SampleNameTable\"\n                       , exontype=\"Human\"\n                       , gsnorm=\"none\", condition=\"Yes\")"
+    },
+    {
+      "name": "hta_array_analysis",
+      "intent": "Calculate gene and transcript expression levels from Affymetrix HTA 2.0 arrays.",
+      "input": [
+        "celFiles (raw Affymetrix HTA 2.0 array CEL files)"
+      ],
+      "stages": "1. Read CEL files ;; 2. Calculate gene and transcript expression levels using gmhta ;; 3. Write expression and standard error results to CSV files",
+      "code": "library(puma)\nlibrary(oligo)\noligo.hta<-read.celfiles(celFiles)\neset_gmhta<-gmhta(oligo.hta,gsnorm=\"none\")\nwrite.reslts(eset_gmhta$gene, file=\"eset_gmhta_gene\")\nwrite.reslts(eset_gmhta$transcript, file=\"eset_gmhta_transcript\")"
+    },
+    {
+      "name": "uncertainty_aware_clustering",
+      "intent": "Cluster probe-sets taking into account expression-level uncertainties and replicate information.",
+      "input": [
+        "eset_estrogen_mmgmos (ExpressionSet object with uncertainty from mmgmos)",
+        "Clustii.exampleE (expression matrix)",
+        "Clustii.exampleStd (standard deviation matrix)"
+      ],
+      "stages": "1. Run pumaClust for standard clustering or pumaClustii for robust Student's t mixture model clustering with replicates ;; 2. Summarize cluster assignments and write results",
+      "code": "pumaClust_estrogen <- pumaClust(eset_estrogen_mmgmos, clusters=7)\nsummary(as.factor(pumaClust_estrogen$cluster))\npumaClust_estrogen$centers\nwrite.csv(pumaClust_estrogen$cluster, file=\"pumaClust_clusters.csv\")\n\ndata(Clustii.exampleE)\ndata(Clustii.exampleStd)\n  r<-vector(mode=\"integer\",0)\n  for (i in c(1:20))\n    for (j in c(1:4))\n      r<-c(r,i)\ncl<-pumaClustii(Clustii.exampleE,Clustii.exampleStd,\n                mincls=6,maxcls=6,conds=20,reps=r,eps=1e-3)"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "doppelgangr",
+  "requirements": [
+    "Biobase",
+    "doppelgangR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "doppelgangR"
+    ]
+  }
+}

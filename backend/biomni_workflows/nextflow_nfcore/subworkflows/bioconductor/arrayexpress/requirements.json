@@ -1,0 +1,15 @@
+{
+  "package": "arrayexpress",
+  "requirements": [
+    "ArrayExpress",
+    "Biobase",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ArrayExpress",
+      "Biobase",
+      "limma"
+    ]
+  }
+}

@@ -1,119 +1,165 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: metabomxtr
-// The functions in this package return optimized parameter estimates and log likelihoods for mixture m
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/metabomxtr/inst/doc/Metabomxtr_Vignette.R
-// Upstream  : ggplot2, plyr, reshape2, xtable
-// Downstream: none
-//
-// Install: BiocManager::install("metabomxtr")
+// Bioconductor workflow: metabomxtr — mixture_model_association_analysis
+// Run mixture model association analysis on metabolites with missing values to test for significant differences between phenotype groups while controlling for cov
+// Input: experimental_metabolite_data.csv
+// Container: quay.io/biocontainers/bioconductor-metabomxtr:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: metabomxtr
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Define target metabolite names and set the reference level for categorical predictors. 2. Specify the full and reduced mixture mod
 
 nextflow.enable.dsl = 2
 
-process BIOC_METABOMXTR {
+process BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-metabomxtr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-metabomxtr:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-metabomxtr:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_metabomxtr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_metabomxtr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_metabomxtr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(metabomxtr)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    data(metabdata)
-    dim(metabdata)
-    # --- Colnames [] ---
-    # Key functions: na
-    yvars<-colnames(metabdata)[24:27]
-    apply(metabdata[,yvars],2,function(x){sum(is.na(x))})
-    # --- Levels [] ---
-    # Key functions: levels, relevel
-    levels(metabdata$PHENO)
-    metabdata$PHENO<-relevel(metabdata$PHENO,ref="MomLowFPG")
-    # --- Mxtrmod [] ---
-    # Key functions: mxtrmod
-    fullModelResults<-mxtrmod(ynames=yvars,mxtrModel=fullModel,data=metabdata)
-    fullModelResults
-    # --- Mxtrmodlrt [] ---
-    # Key functions: mxtrmodLRT
-    finalResult<-mxtrmodLRT(fullmod=fullModelResults,redmod=reducedModelResults,adj="BH")
-    finalResult
-    # --- Frame [] ---
-    # Key functions: frame
-    finalResultTable<-data.frame(Metabolite=fullModelResults$.id,HighFPG.Prop=HighFPG.Prop,
-    LowFPG.Prop=LowFPG.Prop,HighFPG.Mean=HighFPG.Mean,
-    LowFPG.Mean=LowFPG.Mean,Mean.Difference=FPG.MeanDiff,
-    FDR.Adj.P=round(finalResult$adjP,digits=4))
-    # --- Dtable [] ---
-    # Key functions: xtable
-    library(xtable)
-    finalXTable<-xtable(finalResultTable,digits=c(0,2,2,2,2,2,2,4))
-    print(finalXTable)
-    # --- Tolatex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_metabomxtr_results.csv", row.names = TRUE)
+    
+    # Read the user input file
+    metabdata <- read.csv("experimental_metabolite_data.csv", header = TRUE, stringsAsFactors = FALSE)
+    
+    # Ensure PHENO is a factor for releveling
+    metabdata\$PHENO <- as.factor(metabdata\$PHENO)
+    
+    # Define target metabolite names (identifying metabolites as columns containing missing values)
+    yvars <- colnames(metabdata)[colSums(is.na(metabdata)) > 0]
+    
+    # Define covariates (all other columns except PHENO and the identified metabolites)
+    covariates <- setdiff(colnames(metabdata), c("PHENO", yvars))
+    
+    # Set the reference level for categorical predictors dynamically
+    ref_level <- levels(metabdata\$PHENO)[1]
+    alt_level <- levels(metabdata\$PHENO)[2]
+    metabdata\$PHENO <- relevel(metabdata\$PHENO, ref = ref_level)
+    
+    # Specify the full and reduced mixture model formulas dynamically
+    if (length(covariates) > 0) {
+      cov_form <- paste(covariates, collapse = "+")
+      fullModel <- as.formula(paste("~PHENO|PHENO+", cov_form, sep = ""))
+      reducedModel <- as.formula(paste("~1|", cov_form, sep = ""))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_metabomxtr_results.csv")
+      fullModel <- as.formula("~PHENO|PHENO")
+      reducedModel <- as.formula("~1|1")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_metabomxtr_output.rds")
+    
+    # Fit the full mixture model using mxtrmod
+    fullModelResults <- mxtrmod(ynames = yvars, mxtrModel = fullModel, data = metabdata)
+    
+    # Fit the reduced mixture model using mxtrmod, specifying the fullModel parameter
+    reducedModelResults <- mxtrmod(ynames = yvars, mxtrModel = reducedModel, data = metabdata, fullModel = fullModel)
+    
+    # Perform nested likelihood ratio tests using mxtrmodLRT
+    finalResult <- mxtrmodLRT(fullmod = fullModelResults, redmod = reducedModelResults, adj = "BH")
+    
+    # Calculate estimated presence proportions and mean differences for reporting dynamically
+    x_col <- paste0("x_PHENO", alt_level)
+    z_col <- paste0("z_PHENO", alt_level)
+    
+    # Fallback if exact column name differs (e.g., due to special characters in factor levels)
+    if (!(x_col %in% colnames(fullModelResults))) {
+      x_col <- grep("^x_PHENO", colnames(fullModelResults), value = TRUE)[1]
+      z_col <- grep("^z_PHENO", colnames(fullModelResults), value = TRUE)[1]
+      alt_level <- sub("^x_PHENO", "", x_col)
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METABOMXTR:", paste0("    metabomxtr: ", packageVersion("metabomxtr"))),
-        "versions.yml"
+    
+    Alt.Prop <- round(exp(fullModelResults\$xInt + fullModelResults[[x_col]]) /
+    (1 + exp(fullModelResults\$xInt + fullModelResults[[x_col]])), digits = 2)
+    
+    Ref.Prop <- round(exp(fullModelResults\$xInt) / (1 + exp(fullModelResults\$xInt)), digits = 2)
+    
+    Alt.Mean <- round(fullModelResults\$zInt + fullModelResults[[z_col]], digits = 2)
+    
+    Ref.Mean <- round(fullModelResults\$zInt, digits = 2)
+    
+    MeanDiff <- round(fullModelResults[[z_col]], digits = 2)
+    
+    # Combine into final results table
+    finalResultTable <- data.frame(
+      Metabolite = fullModelResults\$.id,
+      Alt.Prop = Alt.Prop,
+      Ref.Prop = Ref.Prop,
+      Alt.Mean = Alt.Mean,
+      Ref.Mean = Ref.Mean,
+      Mean.Difference = MeanDiff,
+      FDR.Adj.P = round(finalResult\$adjP, digits = 4)
     )
+    
+    # Rename columns to reflect actual level names
+    colnames(finalResultTable)[2:5] <- c(
+      paste0(alt_level, ".Prop"),
+      paste0(ref_level, ".Prop"),
+      paste0(alt_level, ".Mean"),
+      paste0(ref_level, ".Mean")
+    )
+    
+    # Write outputs to CSV files
+    write.csv(finalResultTable, "final_result_table.csv", row.names = FALSE)
+    write.csv(fullModelResults, "full_model_results.csv", row.names = FALSE)
+    write.csv(reducedModelResults, "reduced_model_results.csv", row.names = FALSE)
+    write.csv(finalResult, "lrt_results.csv", row.names = FALSE)
+    
+    # Save RDS objects for downstream analysis
+    saveRDS(fullModelResults, "full_model_results.rds")
+    saveRDS(reducedModelResults, "reduced_model_results.rds")
+    saveRDS(finalResult, "lrt_results.rds")
+
+    writeLines(c(
+        '"BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS":',
+        paste0('    metabomxtr: ', as.character(packageVersion('metabomxtr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_metabomxtr_results.csv
-    touch ${prefix}_metabomxtr_output.rds
-    echo "BIOC_METABOMXTR:" > versions.yml
-    echo "    metabomxtr: 0.0.0" >> versions.yml
+    touch ${prefix}_mixture_model_association_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_METABOMXTR_WORKFLOW {
+workflow BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ experimental_metabolite_data.csv ] ]
 
     main:
-    BIOC_METABOMXTR(ch_input)
+    BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_METABOMXTR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METABOMXTR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METABOMXTR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METABOMXTR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS.out.tables
+    plots    = BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS.out.plots
+    objects  = BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS.out.objects
+    versions = BIOC_METABOMXTR_MIXTURE_MODEL_ASSOCIATION_ANALYSIS.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "gage",
+  "requirements": [
+    "gage"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gage"
+    ]
+  }
+}

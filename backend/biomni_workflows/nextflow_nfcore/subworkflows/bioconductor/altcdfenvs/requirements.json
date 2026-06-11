@@ -1,0 +1,22 @@
+{
+  "package": "altcdfenvs",
+  "requirements": [
+    "Biostrings",
+    "affy",
+    "altcdfenvs",
+    "hgu133aprobe",
+    "plasmodiumanophelescdf"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "affy",
+      "altcdfenvs",
+      "hgu133aprobe"
+    ],
+    "subset_and_modify_cdf_env.nf": [
+      "altcdfenvs",
+      "plasmodiumanophelescdf"
+    ]
+  }
+}

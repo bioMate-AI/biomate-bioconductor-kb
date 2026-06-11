@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genesList/genes=A named list containing one or more character vectors of gene symbols to analyze ;; submissionName=A character string used to name the output directory and cache; must be unique and avoid 'test' or 'test2' if they already exist locally ;; studyName/cancernames=Standard cBioPortal cancer study name(s) (e.g., \"Breast Invasive Carcinoma (TCGA, Cell 2015)\") or a matrix mapping standard names to custom names ;; desiredTechnique=The high-throughput platform to query, which must be one of \"RNA-Seq\", \"RNA-SeqRTN\", \"microRNA-Seq\", \"microarray.mRNA\", \"microarray.microRNA\", or \"methylation\" ;; desiredCaseList=A numeric vector of cancer subgroup indices, or \"none\" to prompt the user interactively ;; calculate=A character vector of statistical procedures to perform, choosing from \"frequencyPercentage\", \"frequencyRatio\", \"meanValue\", and \"medianValue\" ;; cutoff=Numeric threshold for filtering samples; defaults to 0.8 for methylation (observed/expected ratio) and 2.0 for expression studies (log z-score) ;; validateGenes=Logical value; if TRUE, checks for gene records and looks up alternative names on cBioPortal if missing\n- alternatives: cgdsr=The official CRAN package for obtaining data from cBioPortal, which requires a manual, multi-step procedure and is sensitive to frequent changes in cancer study indices. cbaf is preferred for automated, multi-study comparisons and batch processing.\n- when_to_use: Use when you need to compare expression or methylation profiles of specific gene sets across multiple cancer types or within subgroups of a single cancer study using cBioPortal data.\n- pitfalls: Using submissionName values like \"test\" or \"test2\" if they already exist locally, which will cause the function to halt. Using simplifyBy for publication-grade figures, as it changes values smaller than the threshold to zero to aid candidate gene recognition but alters the raw representation. Not cleaning the database using cleanDatabase() when fresh data is needed from cBioPortal, as the package caches data locally.",
+  "workflows": [
+    {
+      "name": "single_study_analysis",
+      "intent": "Retrieve, analyze, and visualize multi-omic data across subgroups of a single cancer study.",
+      "input": [
+        "genes (a named list of gene symbol vectors to analyze)",
+        "studyName (character string of a standard cBioPortal cancer study name)"
+      ],
+      "stages": "1. Query and download subgroup data using obtainOneStudy() (or automatically via processOneStudy()) ;; 2. Calculate statistics (frequency percentage, ratio, mean, median) using automatedStatistics() ;; 3. Generate heatmaps for the calculated statistics using heatmapOutput() ;; 4. Export results to Excel spreadsheets using xlsxOutput()",
+      "code": "genes <- list(K.demethylases = c(\"KDM1A\", \"KDM1B\", \"KDM2A\", \"KDM2B\", \"KDM3A\", \"KDM3B\", \"JMJD1C\", \"KDM4A\"), K.methyltransferases = c(\"SUV39H1\", \"SUV39H2\", \"EHMT1\", \"EHMT2\", \"SETDB1\", \"SETDB2\", \"KMT2A\", \"KMT2A\"))\n\nprocessOneStudy(genes, \"test\", \"Breast Invasive Carcinoma (TCGA, Cell 2015)\", \"RNA-Seq\", desiredCaseList = c(2,3,4,5), calculate = c(\"frequencyPercentage\",  \"frequencyRatio\"), heatmapFileFormat = \"TIFF\")"
+    },
+    {
+      "name": "multiple_studies_analysis",
+      "intent": "Retrieve, analyze, and compare multi-omic data across multiple different cancer studies.",
+      "input": [
+        "genes (a named list of gene symbol vectors to analyze)",
+        "studies (a character vector of standard cBioPortal cancer study names)"
+      ],
+      "stages": "1. Query and download data for multiple studies using obtainMultipleStudies() (or automatically via processMultipleStudies()) ;; 2. Calculate statistics across studies using automatedStatistics() ;; 3. Generate comparative heatmaps using heatmapOutput() ;; 4. Export results to Excel spreadsheets using xlsxOutput()",
+      "code": "genes <- list(K.demethylases = c(\"KDM1A\", \"KDM1B\", \"KDM2A\", \"KDM2B\", \"KDM3A\", \"KDM3B\", \"JMJD1C\", \"KDM4A\"), K.methyltransferases = c(\"SUV39H1\", \"SUV39H2\", \"EHMT1\", \"EHMT2\", \"SETDB1\", \"SETDB2\", \"KMT2A\", \"KMT2A\"))\n\nstudies <- c(\"Acute Myeloid Leukemia (TCGA, Provisional)\", \"Adrenocortical Carcinoma (TCGA, Provisional)\", \"Bladder Urothelial Carcinoma (TCGA, Provisional)\", \"Brain Lower Grade Glioma (TCGA, Provisional)\", \"Breast Invasive Carcinoma (TCGA, Provisional)\") \n\nprocessMultipleStudies(genes, \"test2\", studies, \"RNA-Seq\", calculate = c(\"frequencyPercentage\", \"frequencyRatio\"), heatmapFileFormat = \"TIFF\")"
+    }
+  ]
+}

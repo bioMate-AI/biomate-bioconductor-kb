@@ -1,0 +1,41 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: norm.method=Specifies the normalization method in normalize() (e.g., \"quantile\" for microarray/RNA-seq, \"vst\" for RNA-seq variance-stabilizing transformation) ;; de.method=Specifies the differential expression method in deAna() for RNA-seq (e.g., \"edgeR\", \"DESeq2\", \"limma\") ;; padj.method=Specifies the multiple testing correction method in deAna() (e.g., \"BH\") ;; method=Specifies the enrichment method in sbea() (e.g., \"ora\", \"gsea\", \"safe\", \"padog\", \"roast\", \"camera\", \"gsva\") or nbea() (e.g., \"ggea\", \"spia\", \"pathnet\") ;; org=Three-letter organism code (e.g., \"hsa\" for Homo sapiens) ;; db=Database for gene sets or networks (e.g., \"kegg\", \"go\", \"msigdb\", \"enrichr\") ;; perm=Number of permutations for significance estimation (set to 0 for classical hypergeometric test in ORA) ;; alpha=Significance level for filtering enriched gene sets ;; GROUP=A column name in colData defining the binary sample groups (1 for case, 0 for control) ;; BLOCK=A column name in colData defining paired samples or batch blocks\n- alternatives: limma=Preferred for microarray differential expression ;; edgeR or DESeq2=Preferred for RNA-seq differential expression ;; ROAST or GSVA=Recommended for testing self-contained null hypotheses (directional association of genes in a set with phenotype) ;; PADOG or SAFE=Recommended for testing competitive null hypotheses (excess differential expression in a set relative to outside genes) ;; DAVID or GeneAnalytics=Preferred over enrichmentbrowser when analyzing simple gene lists without expression matrices\n- when_to_use: Use when you have microarray or RNA-seq expression data and want to perform differential expression followed by set-based and/or network-based pathway enrichment analysis, and then combine and interactively browse the results.\n- pitfalls: ORA (Overrepresentation Analysis) is prone to type I error rate inflation when genes are co-expressed within sets ;; GSEA, SAFE, and SAMGS require the full expression matrix for sample permutation and cannot be run on simple gene lists ;; Legacy enrichment methods (like GSEA and PADOG) applied to RNA-seq raw counts require a variance-stabilizing transformation (vst) or voom transformation first ;; Modifying package-wide configuration parameters via configEBrowser should be done with care to avoid impairing functionality.",
+  "workflows": [
+    {
+      "name": "microarray_enrichment_workflow",
+      "intent": "Perform normalization, differential expression, set-based enrichment (ORA), network-based enrichment (GGEA), and combine results for microarray data.",
+      "input": [
+        "exprs.tab (tab-separated expression matrix)",
+        "colData.tab (tab-separated phenotype data)",
+        "rowData.tab (tab-separated feature annotation data)",
+        "hsa_kegg_gs.gmt (GMT file containing gene sets)"
+      ],
+      "stages": "1. Read expression data into a SummarizedExperiment ;; 2. Map probes to genes ;; 3. Normalize expression values ;; 4. Define sample groups ;; 5. Perform differential expression analysis ;; 6. Load gene sets ;; 7. Run set-based enrichment analysis (SBEA) ;; 8. Compile gene regulatory network ;; 9. Run network-based enrichment analysis (NBEA) ;; 10. Combine enrichment results ;; 11. Visualize and browse results",
+      "code": "library(EnrichmentBrowser)\ndata.dir <- system.file(\"extdata\", package = \"EnrichmentBrowser\")\nexprs.file <- file.path(data.dir, \"exprs.tab\")\ncdat.file <- file.path(data.dir, \"colData.tab\")\nrdat.file <- file.path(data.dir, \"rowData.tab\")\nse <- readSE(exprs.file, cdat.file, rdat.file)\nlibrary(ALL) \ndata(ALL)\nind.bs <- grep(\"^B\", ALL$BT)\nind.mut <- which(ALL$mol.biol %in% c(\"BCR/ABL\", \"NEG\"))\nsset <- intersect(ind.bs, ind.mut)\nall.eset <- ALL[, sset]\nallSE <- probe2gene(all.eset)\nallSE <- normalize(allSE, norm.method = \"quantile\")\nallSE$GROUP <- ifelse(allSE$mol.biol ==\"BCR/ABL\", 1, 0) \nallSE <- deAna(allSE, padj.method = \"BH\")\ngmt.file <- file.path(data.dir, \"hsa_kegg_gs.gmt\")\nhsa.gs <- getGenesets(gmt.file) \nsbea.res <- sbea(method = \"ora\", se = allSE, gs = hsa.gs, perm = 0, alpha = 0.1) \ngsRanking(sbea.res)\nhsa.grn <- compileGRN(org=\"hsa\", db=\"kegg\")\nnbea.res <- nbea(method=\"ggea\", se=allSE, gs=hsa.gs, grn=hsa.grn) \ngsRanking(nbea.res)\nres.list <- list(sbea.res, nbea.res) \ncomb.res <- combResults(res.list)"
+    },
+    {
+      "name": "rnaseq_enrichment_workflow",
+      "intent": "Perform filtering, differential expression, ID mapping, variance-stabilizing transformation, and set-based enrichment (GSEA) for RNA-seq raw count data.",
+      "input": [
+        "airway (SummarizedExperiment containing RNA-seq raw read counts and phenotype data)",
+        "hsa_kegg_gs.gmt (GMT file containing gene sets)"
+      ],
+      "stages": "1. Filter low-count genes ;; 2. Define sample groups and blocks ;; 3. Perform differential expression analysis using edgeR ;; 4. Map ENSEMBL gene IDs to NCBI Entrez IDs ;; 5. Apply variance-stabilizing transformation ;; 6. Run set-based enrichment analysis (GSEA)",
+      "code": "library(airway) \ndata(airway)\nairSE <- airway[grep(\"^ENSG\", rownames(airway)),] \nairSE <- airSE[rowSums(assay(airSE)) > 4,]\nairSE$GROUP <- ifelse(airway$dex == \"trt\", 1, 0)\nairSE$BLOCK <- airway$cell \nairSE <- deAna(airSE, de.method = \"edgeR\")\nairSE <- idMap(airSE, org =\"hsa\", from = \"ENSEMBL\", to = \"ENTREZID\") \nairSE <- normalize(airSE, norm.method = \"vst\")\nair.res <- sbea(method = \"gsea\", se = airSE, gs = hsa.gs)\ngsRanking(sbea.res)"
+    },
+    {
+      "name": "all_in_one_pipeline",
+      "intent": "Run the complete standardized enrichment analysis pipeline using the all-in-one wrapper function.",
+      "input": [
+        "exprs.tab (tab-separated expression matrix)",
+        "colData.tab (tab-separated phenotype data)",
+        "rowData.tab (tab-separated feature annotation data)",
+        "hsa_kegg_gs.gmt (GMT file containing gene sets)",
+        "hsa.grn (compiled gene regulatory network)"
+      ],
+      "stages": "1. Execute the ebrowser wrapper function to run normalization, DE, SBEA, NBEA, and combine results",
+      "code": "ebrowser( meth=c(\"ora\", \"ggea\"), exprs=exprs.file, cdat=cdat.file, rdat=rdat.file, org=\"hsa\", gs=hsa.gs, grn=hsa.grn, comb=TRUE, nr.show=5)"
+    }
+  ]
+}

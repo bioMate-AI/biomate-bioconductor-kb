@@ -1,0 +1,19 @@
+{
+  "package": "mousefm",
+  "requirements": [
+    "MouseFM",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "fetch_genotypes.nf": [
+      "MouseFM"
+    ],
+    "main.nf": [
+      "MouseFM"
+    ],
+    "strain_prioritization.nf": [
+      "MouseFM",
+      "ggplot2"
+    ]
+  }
+}

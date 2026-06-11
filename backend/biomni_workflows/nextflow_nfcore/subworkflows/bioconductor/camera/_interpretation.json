@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: perfwhm=Defines the window width percentage of FWHM around the median retention time for matching peaks into pseudospectra ;; cor_eic_th=Correlation threshold for pairwise EIC correlation; peaks with correlation higher than this threshold stay in the group ;; polarity=Specifies ionization mode (\"positive\" or \"negative\") to calculate adducts ;; rules=Custom or precalculated rule table for adduct calculation ;; maxcharge=Controls the maximum expected charge of isotopes within one cluster ;; maxiso=Controls the maximum number of expected isotopes within one cluster ;; sample=Specifies which sample(s) to use for correlation analysis in multi-sample workflows (specific index, subset, all, or NA for automatic selection) ;; fc_th=Fold change threshold for automatic preselection of pseudospectra from diffreport\n- alternatives: xcms=Used for preprocessing (peak picking, alignment, filling) before CAMERA annotation ;; Rdisop=Mentioned for calculating molecular composition from high-accuracy mass and isotope pattern intensities ;; compoundQuantiles=Used for validating isotope clusters using database statistics (KEGG, ChEBI, etc.)\n- when_to_use: Appropriate for LC-MS metabolomics or small molecule profiling datasets where peak lists have been extracted (e.g., via xcms) and need deconvolution into pseudospectra, isotope annotation, and adduct/fragment identification to determine exact masses and molecular formulas.\n- pitfalls: Running groupCorr without running groupFWHM first results in very long runtimes ;; For multiple samples, if you want a diffreport later, make sure to run fillPeaks on the xcmsSet before running CAMERA ;; Adduct annotation groups must include at least one ion with quasi set to 1 in the rule table, otherwise the group is excluded.",
+  "workflows": [
+    {
+      "name": "single_sample_lcms_annotation",
+      "intent": "Group peaks and annotate isotopes and adducts for a single LC-MS sample.",
+      "input": [
+        "MM14.mzML (raw LC-MS data file)"
+      ],
+      "stages": "1. Preprocess raw data with xcms peak picking ;; 2. Initialize CAMERA annotation object ;; 3. Group peaks by retention time ;; 4. Annotate isotopes ;; 5. Verify grouping with peak shape correlation ;; 6. Annotate adducts ;; 7. Export annotated peak list",
+      "code": "library(CAMERA)\nfile <- system.file('mzML/MM14.mzML', package = \"CAMERA\")\nxs <- xcmsSet(file,method=\"centWave\",ppm=30,peakwidth=c(5,10))\nan   <- xsAnnotate(xs)\nanF <- groupFWHM(an, perfwhm = 0.6)\nanI <- findIsotopes(anF, mzabs = 0.01)\nanIC <- groupCorr(anI, cor_eic_th = 0.75)\nanFA <- findAdducts(anIC, polarity=\"positive\")\npeaklist <- getPeaklist(anFA)\nwrite.csv(peaklist, file='xsannotated.csv')"
+    },
+    {
+      "name": "multi_sample_lcms_diffreport",
+      "intent": "Annotate isotopes and adducts across multiple samples and integrate results with an xcms differential report.",
+      "input": [
+        "faahko (pre-existing xcmsSet or raw CDF files)"
+      ],
+      "stages": "1. Preprocess multiple samples with xcms grouping and peak filling ;; 2. Initialize CAMERA annotation object ;; 3. Group peaks by retention time ;; 4. Verify grouping with peak shape correlation ;; 5. Annotate isotopes ;; 6. Annotate adducts ;; 7. Generate and export combined differential report",
+      "code": "library(CAMERA)\nlibrary(faahKO)\nfilepath <- system.file(\"cdf\", package = \"faahKO\")\nxsg <- group(faahko)\nxsg <- fillPeaks(xsg)\nxsa <- xsAnnotate(xsg)\nxsaF <- groupFWHM(xsa, perfwhm=0.6)\nxsaC <- groupCorr(xsaF)\nxsaFI <- findIsotopes(xsaC)\nxsaFA <- findAdducts(xsaFI, polarity=\"positive\")\nwrite.csv(getPeaklist(xsaFA),file=\"result_CAMERA.csv\")\nxsg.fill <- fillPeaks(xsg)\ndiffreport <- annotateDiffreport(xsg.fill)\nwrite.csv(diffreport, file=\"diffreport.csv\")"
+    },
+    {
+      "name": "isotope_detection_with_validation",
+      "intent": "Perform targeted peak picking for isotopes and validate putative isotope clusters using database statistics.",
+      "input": [
+        "microtofq (raw LC-MS data files)"
+      ],
+      "stages": "1. Perform peak picking targeting isotopes using centWaveWithPredictedIsotopeROIs ;; 2. Initialize CAMERA annotation object ;; 3. Group peaks by retention time ;; 4. Detect and validate isotope clusters using database statistics ;; 5. Extract the annotated peak list",
+      "code": "library(\"msdata\")\nlibrary(\"xcms\")\nlibrary(\"CAMERA\")\nmzmlpath <- file.path(find.package(\"msdata\"), \"microtofq\")\nfile <- list.files(path = mzmlpath, pattern = \"^.*\\\\.mzML$\",\n                   all.files = TRUE, full.names = TRUE,\n     recursive = FALSE, ignore.case = FALSE,\n     include.dirs = FALSE, no.. = TRUE)[[1]]\nxs    <- xcmsSet(\n   files=file, method=\"centWaveWithPredictedIsotopeROIs\",\n   ppm=10, peakwidth=c(5,12), snthresh=25, prefilter=c(3,200)\n)\nan   <- xsAnnotate(xs, polarity=\"positive\")\nan   <- groupFWHM(an, perfwhm = 1)\nan   <- findIsotopesWithValidation(object = an, ppm = 10,\n                                   mzabs = 0.01, intval=\"intb\",\n       maxcharge = 3)\npeakTable <- getPeaklist(an)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "path2ppi",
+  "requirements": [
+    "Path2PPI"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Path2PPI"
+    ]
+  }
+}

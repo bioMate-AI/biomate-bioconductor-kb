@@ -1,0 +1,19 @@
+{
+  "package": "carnival",
+  "requirements": [
+    "CARNIVAL",
+    "igraph"
+  ],
+  "by_workflow": {
+    "inverse_carnival.nf": [
+      "CARNIVAL"
+    ],
+    "main.nf": [
+      "CARNIVAL",
+      "igraph"
+    ],
+    "two_step_carnival.nf": [
+      "CARNIVAL"
+    ]
+  }
+}

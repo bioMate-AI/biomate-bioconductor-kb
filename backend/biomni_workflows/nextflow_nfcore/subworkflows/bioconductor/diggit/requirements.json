@@ -1,0 +1,13 @@
+{
+  "package": "diggit",
+  "requirements": [
+    "Biobase",
+    "diggit"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "diggit"
+    ]
+  }
+}

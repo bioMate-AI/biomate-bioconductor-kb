@@ -1,132 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SamSPECTRAL
-// Samples large data such that spectral clustering is possible while preserving density information in
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SamSPECTRAL/inst/doc/Clustering_by_SamSPECTRAL.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SamSPECTRAL")
+// Bioconductor workflow: SamSPECTRAL — quick_samspectral_clustering
+// Run the complete SamSPECTRAL clustering pipeline using the high-level wrapper function on a flow cytometry data matrix.
+// Input: flow_data.csv
+// Container: quay.io/biocontainers/bioconductor-samspectral:1.64.0--r45h01b2380_0
+// R packages: SamSPECTRAL
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SamSPECTRAL
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and data
+//  * 2. [Core Analysis] Run the SamSPECTRAL wrapper function with specified dimensions, normal.sigma, and separation.factor
+//  * 3. [Visualization & Output] Calculate cluster frequencies and plot results
 
 nextflow.enable.dsl = 2
 
-process BIOC_SAMSPECTRAL {
+process BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-samspectral"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-samspectral:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-samspectral:1.60.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_samspectral_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_samspectral_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_samspectral_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Building_Communities)
-    library(Civilized_Spectral_Clustering)
-    library(Conductance_Calculation)
-    library(Connecting)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SamSPECTRAL")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(SamSPECTRAL)
-    library(jsonlite)
-
-    # --- Community Building [] ---
-    # Key functions: Building_Communities
-    data(small_data)
-    full <- small
-    m <- 3000
-    space.length <- 1
-    community.weakness.threshold <- 1
-    society <- Building_Communities(
-        full, m, space.length,
-        community.weakness.threshold
-    )
-
-
-    # --- Conductance Calculation [] ---
-    # Key functions: Conductance_Calculation
-    normal.sigma <- 250
-    precision <- 6
-    conductance <- Conductance_Calculation(
-        full, normal.sigma, space.length,
-        society, precision
-    )
-
-
-    # --- Civilized Spectral Clustering [] ---
-    # Key functions: Civilized_Spectral_Clustering
-    maximum.number.of.clusters <- 30
-    clust_result <- Civilized_Spectral_Clustering(
-        full, maximum.number.of.clusters,
-        society, conductance, stabilizer = 1,
-        eigenvalues.num = 50
-    )
-    eigen.values <- clust_result@eigen.space$values
-
-
-    # --- Cluster Connecting and Post-processing [] ---
-    # Key functions: Connecting
-    labels.for_num.of.clusters <- clust_result@labels.for_num.of.clusters
-    number.of.clusters <- clust_result@number.of.clusters
-    separation.factor <- 0.5
-    component.of <- Connecting(
-        full, society, conductance, number.of.clusters,
-        labels.for_num.of.clusters, separation.factor
-    )$label
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_samspectral_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_samspectral_results.csv")
+    
+    # Set seed for reproducibility
+    set.seed(4)
+    
+    # Read user input
+    if (!file.exists("flow_data.csv")) {
+      stop("Error: flow_data.csv not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_samspectral_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SAMSPECTRAL:", paste0("    samspectral: ", packageVersion("SamSPECTRAL"))),
-        "versions.yml"
+    full <- as.matrix(read.csv("flow_data.csv"))
+    
+    # Run SamSPECTRAL clustering using the exact documented function and arguments
+    L <- SamSPECTRAL(full, dimension=c(1,2,3), normal.sigma = 200,
+                     separation.factor = 0.39)   
+    
+    # Open PDF device to save the plot
+    pdf("samspectral_plot.pdf", width=7, height=7)
+    
+    # Plotting and frequency calculation exactly as documented
+    plot(full, pch='.', col= L)
+    
+    frequency <- c()	
+    minimum.frequency <- 0.01	
+    freq.large <- c()	
+    labels <- as.character(unique(L))
+    for(label in labels){
+      if(!is.na(label)){
+        frequency[label] <- length(which(L==label))/length(L)
+        if(frequency[label] > minimum.frequency)
+          freq.large[label] <- frequency[label]
+      }
+    }	
+    print(frequency)	
+    
+    legend(x="topleft", as.character(round(freq.large,3)),
+           col=names(freq.large), pch=19)
+    
+    # Close PDF device
+    dev.off()
+    
+    # Save meaningful results to output files
+    # 1. Save the cluster labels as an RDS object
+    saveRDS(L, "samspectral_labels.rds")
+    
+    # 2. Save the original data with cluster labels as a CSV
+    output_data <- as.data.frame(full)
+    output_data\$Cluster <- L
+    write.csv(output_data, "clustering_results.csv", row.names = FALSE)
+    
+    # 3. Save the calculated cluster frequencies as a CSV
+    frequency_df <- data.frame(
+      Cluster = names(frequency),
+      Frequency = as.numeric(frequency),
+      stringsAsFactors = FALSE
     )
+    write.csv(frequency_df, "cluster_frequencies.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING":',
+        paste0('    SamSPECTRAL: ', as.character(packageVersion('SamSPECTRAL')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_samspectral_results.csv
-    touch ${prefix}_samspectral_output.rds
-    echo "BIOC_SAMSPECTRAL:" > versions.yml
-    echo "    samspectral: 0.0.0" >> versions.yml
+    touch ${prefix}_quick_samspectral_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_SAMSPECTRAL_WORKFLOW {
+workflow BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ flow_data.csv ] ]
 
     main:
-    BIOC_SAMSPECTRAL(ch_input)
+    BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_SAMSPECTRAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SAMSPECTRAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SAMSPECTRAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SAMSPECTRAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING.out.tables
+    plots    = BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING.out.plots
+    objects  = BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING.out.objects
+    versions = BIOC_SAMSPECTRAL_QUICK_SAMSPECTRAL_CLUSTERING.out.versions
 }

@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: files=character vector of filenames to read ;; path=directory path where files are located ;; format=format of the input files (e.g., \"SDS\", \"LightCycler\", \"CFX\", \"BioMark\", \"OpenArray\") ;; n.features=number of features per sample/card ;; n.data=number of samples/data points per file ;; norm=normalization method (\"quantile\", \"scale.rank\", \"norm.rank\", \"deltaCt\", \"geometric.mean\") ;; deltaCt.genes=housekeeping genes used for deltaCt normalization ;; groups=experimental groups/conditions for plotting ;; calibrator=reference sample/group for relative Ct plotting ;; stratify=feature metadata column (e.g., \"class\", \"type\") to group by in plots ;; sample.order=vector defining layout splitting for multi-sample cards\n- alternatives: None mentioned; the package integrates with and depends on Biobase, RColorBrewer, limma, statmod, affy, and gplots.\n- when_to_use: When analyzing high-throughput qPCR assays (Ct or Cp values) across multiple conditions or replicates, including formats like TaqMan Low Density Arrays (TLDA), Roche LightCycler, Bio-Rad CFX, Fluidigm BioMark, and OpenArray.\n- pitfalls: High variation between duplicates often occurs when one duplicate is \"Undetermined\" (artificially high Ct value) ;; Using exprs might be confusing for users unfamiliar with microarray data; getCt and setCt<- are provided as intuitive alternatives ;; Incorrectly specifying n.features and n.data for non-standard formats (like BioMark or OpenArray) will result in incorrect data dimensions.",
+  "workflows": [
+    {
+      "name": "standard_qpcr_analysis",
+      "intent": "Import, quality control, normalize, visualize, and analyze standard qPCR Ct data.",
+      "input": [
+        "files.txt (tab-delimited text file listing sample filenames and biological conditions)",
+        "sample1.txt (tab-delimited text file containing raw Ct values for sample 1)"
+      ],
+      "stages": "1. Read sample info and raw Ct data ;; 2. Perform quality control and spatial layout visualization ;; 3. Assess replicate concordance and variation ;; 4. Filter and categorize Ct values ;; 5. Normalize Ct data ;; 6. Visualize normalized data distributions, correlations, and clustering",
+      "code": "files <- read.delim(file.path(path, \"files.txt\"))\nraw <- readCtData(files = files$File, path = path)\ng <- featureNames(raw)[1:10]\nplotCtOverview(raw, genes = g, xlim = c(0, 50), groups = files$Treatment, conf.int = TRUE, ylim = c(0, 55))\nplotCtOverview(raw, genes = g, xlim = c(0, 50), groups = files$Treatment, calibrator = \"Control\")\nplotCtCard(raw, col.range = c(10, 35), well.size = 2.6)\nfeatureClass(raw) <- factor(c(\"Marker\", \"TF\", \"Kinase\")[sample(c(1, 1, 2, 2, 1, 3), 384, replace = TRUE)])\nplotCtCard(raw, plot = \"class\", well.size = 2.6)\nplotCtReps(qPCRraw, card = 2, percent = 20)\nraw.mix <- raw\nplotCtVariation(raw.mix, variation = \"sd\", log = TRUE, main = \"SD of replicated features\", col = \"lightgrey\")\nraw.variation <- plotCtVariation(raw.mix, type = \"detail\", add.featurenames = TRUE, pch = \" \", cex = 1.2)\nraw.cat <- raw\nplotCtCategory(raw.cat)\nplotCtCategory(raw.cat, stratify = \"class\")\nplotCtCategory(raw.cat, by.feature = TRUE, cexRow = 0.1)\nq.norm <- normalizeCtData(raw.cat, norm = \"quantile\")\nsr.norm <- normalizeCtData(raw.cat, norm = \"scale.rank\")\nnr.norm <- normalizeCtData(raw.cat, norm = \"norm.rank\")\nd.norm <- normalizeCtData(raw.cat, norm = \"deltaCt\", deltaCt.genes = c(\"Gene1\", \"Gene60\"))\ng.norm <- normalizeCtData(raw.cat, norm = \"geometric.mean\")\nplotCtCor(raw, main = \"Ct correlation\")\nplotCtDensity(sr.norm)\nplotCtHistogram(sr.norm)\nplotCtBoxes(sr.norm, stratify = \"class\")\nplotCtScatter(sr.norm, cards = c(1, 2), col = \"type\", diag = TRUE)\nplotCtPairs(sr.norm, col = \"type\", diag = TRUE)\nplotCtHeatmap(raw, gene.names = \"\", dist = \"euclidean\")\nplotCVBoxes(qPCRraw, stratify = \"class\")\nclusterCt(sr.norm, type = \"samples\")\ncluster.list <- clusterCt(sr.norm, type = \"genes\", n.cluster = 6, cex = 0.5)\nplotCtPCA(qPCRraw)\ngetCtHistory(sr.norm)"
+    },
+    {
+      "name": "alternative_platforms_import",
+      "intent": "Import and reformat qPCR data from specialized platforms (SDS, LightCycler, CFX, BioMark, OpenArray).",
+      "input": [
+        "SDS_sample.txt (SDS format output file)",
+        "LightCycler_sample.txt (LightCycler format output file)",
+        "CFX_sample.txt (CFX format output file)",
+        "BioMark_sample.csv (BioMark format output file)",
+        "OpenArray_sample.csv (OpenArray format output file)"
+      ],
+      "stages": "1. Read raw data using platform-specific format and dimension parameters ;; 2. Reformat layout if multiple samples are on a single card ;; 3. Visualize spatial layout of microfluidic arrays",
+      "code": "raw <- readCtData(files=\"SDS_sample.txt\", path=path, format=\"SDS\")\nraw <- readCtData(files=\"LightCycler_sample.txt\", path=path, format=\"LightCycler\")\nraw <- readCtData(files=\"CFX_sample.txt\", path=path, format=\"CFX\", n.features=330)\nraw1 <- readCtData(files=\"BioMark_sample.csv\", path=exPath, format=\"BioMark\", n.features=48, n.data=48)\nplotCtArray(raw1)\nraw1 <- readCtData(files=\"OpenArray_sample.csv\", path=exPath, format=\"OpenArray\", n.features=846, n.data=6)\nsample2.order <- rep(c(\"subSampleA\", \"subSampleB\"), each=192)\nqPCRnew2 <- changeCtLayout(sr.norm, sample.order=sample2.order)"
+    }
+  ]
+}

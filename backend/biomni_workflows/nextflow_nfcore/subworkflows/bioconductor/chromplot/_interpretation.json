@@ -1,0 +1,63 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gaps=A data frame or GRanges object containing chromosome coordinates, lengths, and centromere positions (e.g., hg_gap or mm10_gap) ;; bands=A data frame or GRanges object containing cytoband information (e.g., hg_cytoBandIdeo) or genomic elements to plot directly on the chromosome body ;; annot1, annot2, annot3, annot4=Genomic data tracks plotted as histograms or genomic elements ;; segment, segment2=Large genomic segments (e.g., QTLs, ancestry blocks) plotted as vertical bars ;; stat, stat2=Genomic elements associated with continuous numeric values for XY plotting ;; statCol, statCol2=The column name containing continuous values in the stat/stat2 objects ;; statTyp=The plot type for statistics (\"p\" for points, \"l\" for lines, \"n\" for no points/labels only) ;; chr=A character vector specifying which chromosomes to display ;; figCols=An integer specifying the number of columns in the output figure grid ;; chrSide=A numeric vector of 1 (left) or -1 (right) specifying the side of the chromosome for each data track ;; noHist=A logical value; if TRUE, prevents automatic conversion of segments/annotations to histograms ;; stack=A logical value; if TRUE, stacks non-overlapping segments to save space ;; statSumm=A character string specifying a statistical function (e.g., \"mean\", \"median\", \"sum\", \"none\") to apply to binned data ;; legChrom=An integer or character specifying the chromosome under which to place the legend, or NA to omit it ;; org=An organism name (e.g., \"hsapiens\") to retrieve Ensembl genes via biomaRt if annot1 is not provided\n- alternatives: biomaRt=Used to retrieve gene annotations remotely when org is specified ;; GenomicFeatures/TxDb=Used to extract transcripts and genomic coordinates locally ;; qtl=Used to perform QTL mapping and generate LOD scores before plotting\n- when_to_use: Use this package when you need to visualize multiple heterogeneous genomic data types (such as gene density, QTL regions, selection signals like Fst/iHS, and synteny) simultaneously across whole chromosomes in a single publication-quality figure.\n- pitfalls: Continuous variables with too many distinct colors can be hard to distinguish; users should bin continuous data and assign colors to bins manually ;; Small segments or large datasets automatically convert to histograms unless noHist=TRUE is explicitly set ;; Automatic legend placement can sometimes overlap data; use legChrom to shift the legend to a different chromosome or set it to NA and use the manual legend() function ;; The statSumm argument does not perform sanity checks on the function name provided, so users must ensure the function is valid and appropriate for their data ;; Wrong color names in a custom 'Colors' column will cause R to throw errors.",
+  "workflows": [
+    {
+      "name": "idiogram_and_synteny_mapping",
+      "intent": "Plot chromosome idiograms (G-banding) and highlight genomic elements or synteny blocks directly on the chromosome body.",
+      "input": [
+        "hg_gap (UCSC gap track data frame)",
+        "hg_cytoBandIdeo (UCSC cytoband data frame)",
+        "refGeneHg (data frame of genomic elements with Chrom, Start, End, and optional Colors/Group columns)",
+        "sinteny (data frame of syntenic regions with Chrom, Start, End, and Group columns)"
+      ],
+      "stages": "1. Load coordinate gaps and cytoband data ;; 2. Plot basic chromosome structures ;; 3. Plot G-banding patterns ;; 4. Overlay genomic elements or synteny blocks on the chromosome body",
+      "code": "chromPlot(gaps=hg_gap)\nchromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, chr=c(\"1\", \"2\", \"3\", \"4\", \"5\", \"6\"), figCols=6)\nchromPlot(gaps=hg_gap, bands=refGeneHg, chr=c(19, 20, 21), figCols=3)\nchromPlot(gaps=hg_gap, bands=sinteny, chr=c(19:21), figCols=3)"
+    },
+    {
+      "name": "histogram_density_profiling",
+      "intent": "Plot single or stacked density histograms of genomic features (such as transcripts or differentially expressed genes) on the sides of chromosomes.",
+      "input": [
+        "hg_gap (UCSC gap track data frame)",
+        "txgr (GRanges object of transcripts)",
+        "refGeneHg (data frame of reference genes)",
+        "ref_mm10 (data frame of mouse reference genes)",
+        "array (data frame of array-represented genes)",
+        "DEneg (data frame of down-regulated genes)",
+        "DEpos (data frame of up-regulated genes)",
+        "monocytes (data frame of categorized differentially expressed genes)"
+      ],
+      "stages": "1. Load coordinate gaps and cytobands ;; 2. Extract or load genomic features ;; 3. Plot single track density histograms ;; 4. Plot stacked histograms representing multiple filtering stages (e.g., reference genes vs. array genes vs. differentially expressed genes) ;; 5. Plot stacked histograms categorized by a single grouping variable",
+      "code": "chromPlot(gaps=hg_gap, annot1=txgr)\nchromPlot(gaps=hg_gap, bands=hg_cytoBandIdeo, annot1=refGeneHg, chr=c(19:21), figCols=3)\nchromPlot(gaps=mm10_gap, bands=mm10_cytoBandIdeo, annot1=ref_mm10, annot2=array, annot3=DEneg, annot4=DEpos, chr=c( \"17\", \"18\", \"19\"), figCols=3, chrSide=c(-1, -1, -1, 1, -1, 1, -1, 1), noHist=FALSE)\nchromPlot(gaps=hg_gap, bands=hg_cytoBandIdeo, annot1=refGeneHg, segment=monocytes, chrSide=c(-1,1,1,1,1,1,1,1), figCols=3, chr=c(19:21))"
+    },
+    {
+      "name": "xy_plotting_of_genomic_statistics",
+      "intent": "Plot continuous genomic statistics (such as Fst, iHS, XP-EHH, or LOD scores) along chromosomes as points or lines, with optional thresholding and summarization.",
+      "input": [
+        "hg_gap (UCSC gap track data frame)",
+        "hg_cytoBandIdeo (UCSC cytoband data frame)",
+        "fst (data frame of Fst values with Chrom, Start, End, and win.FST columns)",
+        "ihs (data frame of iHS values with Chrom, Start, End, and iHS columns)",
+        "xpehh (data frame of XP-EHH values with Chrom, Start, End, XP, and ID columns)",
+        "QTLs (data frame of LOD scores with Chrom, Start, and LOD columns)"
+      ],
+      "stages": "1. Load coordinate gaps and cytobands ;; 2. Plot continuous statistics as points or lines ;; 3. Apply bin-level summarization (e.g., mean) to smooth the plot ;; 4. Plot multiple continuous tracks simultaneously with thresholds and text labels for specific data points ;; 5. Plot LOD curves from QTL mapping along with gene density",
+      "code": "chromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, stat=fst, statCol=\"win.FST\", statName=\"win.FST\", statTyp=\"p\", chr=c(19:21), figCols=3, scex=0.7, spty=20, statSumm=\"none\")\nchromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, stat=fst, statCol=\"win.FST\", statName=\"win.FST\", statTyp=\"p\", chr=c(19:21), figCols=3, scex=0.7, spty=20, statSumm=\"mean\")\nchromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, stat=fst, statCol=\"win.FST\", statName=\"win.FST\", statTyp=\"l\", chr=c(19:21), figCols=3, statSumm=\"none\")\nchromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, stat=fst, statCol=\"win.FST\", statName=\"win.FST\", statTyp=\"l\", chr=c(19:21), figCols=3, statSumm=\"mean\")\nchromPlot(gaps=hg_gap, bands=fst, stat=ihs, stat2=xpehh, statCol=\"iHS\", statCol2=\"XP\", statName=\"iHS\", statName2=\"normxpehh\", colStat=\"red\", colStat2=\"blue\", statTyp=\"p\", scex=2, spty=20, statThreshold=1.2, statThreshold2=1.5, chr=c(19:21), bin=1e6, figCols=3, cex=0.7, statSumm=\"none\", legChrom=19, stack=FALSE)\nchromPlot(gaps=mm10_gap, bands=mm10_cytoBandIdeo, annot1=ref_mm10, stat=QTLs, statCol=\"LOD\", chrSide=c(-1,1,1,1,1,1,1,1), statTyp=\"l\", chr=c(2,17:18), figCols=3)"
+    },
+    {
+      "name": "segment_and_ancestry_mapping",
+      "intent": "Plot large genomic segments (such as QTL intervals, ancestry blocks, or phenotype associations) as vertical bars on the sides of chromosomes, categorized by one or two grouping variables.",
+      "input": [
+        "mm10_gap (UCSC gap track data frame)",
+        "mm10_cytoBandIdeo (UCSC cytoband data frame)",
+        "qtl (data frame of QTL segments with Chrom, Start, End, and Group columns)",
+        "ref_mm10 (data frame of mouse reference genes)",
+        "pheno_ancestry (data frame of SNP associations with Chrom, Start, End, Group, and Group2 columns)",
+        "ancestry (data frame of ancestry blocks with Chrom, Start, End, and Group columns)",
+        "region (data frame of donor regions with Chrom, Start, End, and Colors columns)"
+      ],
+      "stages": "1. Load coordinate gaps and cytobands ;; 2. Plot large stacked segments on the side of the chromosome body ;; 3. Plot segments grouped by two categories (using color for Group and shape for Group2) ;; 4. Plot non-overlapping categorized genomic regions (e.g., ancestry blocks) ;; 5. Integrate multiple data types (e.g., donor regions on the chromosome body, gene density on the left, and QTL segments on the right)",
+      "code": "chromPlot(gaps=mm10_gap, segment=qtl, noHist=TRUE, annot1=ref_mm10, chrSide=c(-1,1,1,1,1,1,1,1), chr=c(2,11,17), stack=TRUE, figCol=3, bands=mm10_cytoBandIdeo)\nchromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, segment=pheno_ancestry, noHist=TRUE, chr=c(3:5), figCols=3, legChrom=5)\nchromPlot(gaps=hg_gap, bands=hg_cytoBandIdeo, chrSide=c(-1,1,1,1,1,1,1,1), noHist=TRUE, annot1=refGeneHg, figCols=3, segment=ancestry, colAnnot1=\"blue\", chr=c(19:21), legChrom=21)\nchromPlot(gaps=mm10_gap, segment=qtl, noHist=TRUE, annot1=ref_mm10, chrSide=c(-1,1,1,1,1,1,1,1), chr=c(2,11,17), stack=TRUE, figCol=3, bands=region, colAnnot1=\"blue\")"
+    }
+  ]
+}

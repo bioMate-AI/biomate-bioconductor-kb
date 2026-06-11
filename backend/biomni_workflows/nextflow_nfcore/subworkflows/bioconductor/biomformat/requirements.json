@@ -1,0 +1,15 @@
+{
+  "package": "biomformat",
+  "requirements": [
+    "SummarizedExperiment",
+    "biomformat",
+    "rhdf5"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "biomformat",
+      "rhdf5"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "marr",
+  "requirements": [
+    "SummarizedExperiment",
+    "marr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "marr"
+    ]
+  }
+}

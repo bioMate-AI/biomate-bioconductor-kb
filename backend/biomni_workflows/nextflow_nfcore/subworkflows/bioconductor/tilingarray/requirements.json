@@ -1,0 +1,16 @@
+{
+  "package": "tilingarray",
+  "requirements": [
+    "RColorBrewer",
+    "tilingArray"
+  ],
+  "by_workflow": {
+    "along_chromosome_visualization.nf": [
+      "RColorBrewer",
+      "tilingArray"
+    ],
+    "main.nf": [
+      "tilingArray"
+    ]
+  }
+}

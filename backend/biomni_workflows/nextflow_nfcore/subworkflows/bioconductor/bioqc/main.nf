@@ -1,93 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BioQC
-// BioQC performs quality control of high-throughput expression data based on tissue gene signatures. I
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BioQC/inst/doc/BioQC.R
-// Upstream  : Biobase, RColorBrewer, gplots, gridExtra, lattice
-// Downstream: none
-//
-// Install: BiocManager::install("BioQC")
+// Bioconductor workflow: BioQC — tissue_heterogeneity_detection
+// Detect tissue heterogeneity and contamination in gene expression data using tissue-specific gene signatures.
+// Input: kidney_example.rda, exp.tissuemark.affy.roche.symbols.gmt
+// Container: quay.io/biocontainers/bioconductor-bioqc:1.38.0--r45ha27e39d_0
+// R packages: Biobase, BioQC, gplots, gridExtra, lattice, RColorBrewer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BioQC, Biobase
+// Visualizations: heatmap (ComplexHeatmap), heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load tissue-specific gene signatures from a GMT file using readGmt
+//  * 2. [Input & Preparation] Load the gene expression dataset
+//  * 3. [Core Analysis] Perform the Wilcoxon-Mann-Whitney test using wmwTest to calculate enrichment p-values
+//  * 4. [Core Analysis] Filter the resulting p-value matrix using filterPmat
+//  * 5. [Visualization & Output] Transform the filtered p-values to BioQC scores using absLog10p for downstream visualization
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIOQC {
+process BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bioqc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bioqc:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bioqc:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bioqc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bioqc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bioqc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "BioQC", "gplots", "gridExtra", "lattice", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BioQC)
-    library(jsonlite)
-
-    # --- Define comparison contrasts [] ---
-    # Key functions: with, makeContrasts, exprs, lmFit
-    isNeph <- with(pData(eset), Strain=="FVB/NJ" &
-    TREATMENTNAME %in% c("Nephrectomy-Losartan", "Sham-Losartan"))
-    isContam <- with(pData(eset), INDIVIDUALNAME %in% c("BN7", "FNL8", "FN6"))
-    # --- Table formatting and display [] ---
-    # Key functions: readGmt, filterPmat, absLog10p, heatmap, matplot, kable
-    kable(diffTable, caption="Genes that are identified as strongly changed ony if the contaminated sample is included.")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bioqc_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # 1. Load tissue-specific gene signatures from the local GMT file
+    gmtFile <- "exp.tissuemark.affy.roche.symbols.gmt"
+    gmt <- readGmt(gmtFile)
+    
+    # 2. Load the gene expression dataset from the local RDA file
+    file <- "kidney_example.rda"
+    load(file) # This loads the 'eset' object into the environment
+    
+    # 3. Perform the Wilcoxon-Mann-Whitney test using wmwTest to calculate enrichment p-values
+    bioqcRes <- wmwTest(eset, gmt, valType="p.greater")
+    
+    # 4. Filter the resulting p-value matrix using filterPmat
+    bioqcResFil <- filterPmat(bioqcRes, 1E-6)
+    
+    # 5. Transform the filtered p-values to BioQC scores using absLog10p
+    bioqcAbsLogRes <- absLog10p(bioqcResFil)
+    
+    # 6. Write named output files for the results
+    # Save RDS objects for downstream R analysis
+    saveRDS(bioqcRes, "bioqc_raw_pvalues.rds")
+    saveRDS(bioqcAbsLogRes, "bioqc_scores.rds")
+    
+    # Save CSV tables for easy inspection
+    write.csv(as.matrix(bioqcRes), "bioqc_raw_pvalues.csv", row.names=TRUE)
+    write.csv(as.matrix(bioqcAbsLogRes), "bioqc_scores.csv", row.names=TRUE)
+    
+    # Generate a PDF heatmap of the BioQC scores
+    pdf("bioqc_scores_heatmap.pdf", width=10, height=8)
+    if (nrow(bioqcAbsLogRes) > 0 && ncol(bioqcAbsLogRes) > 0) {
+      heatmap(bioqcAbsLogRes, 
+              Colv=NA, 
+              Rowv=TRUE, 
+              cexRow=0.85, 
+              scale="row", 
+              main="BioQC Scores Heatmap (absLog10p)")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bioqc_results.csv")
+      plot.new()
+      text(0.5, 0.5, "No signatures passed the filtering threshold (1E-6)")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bioqc_output.rds")
-    }
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIOQC:", paste0("    bioqc: ", packageVersion("BioQC"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION":',
+        paste0('    BioQC: ', as.character(packageVersion('BioQC')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bioqc_results.csv
-    touch ${prefix}_bioqc_output.rds
-    echo "BIOC_BIOQC:" > versions.yml
-    echo "    bioqc: 0.0.0" >> versions.yml
+    touch ${prefix}_tissue_heterogeneity_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIOQC_WORKFLOW {
+workflow BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ kidney_example.rda, exp.tissuemark.affy.roche.symbols.gmt ] ]
 
     main:
-    BIOC_BIOQC(ch_input)
+    BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_BIOQC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIOQC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIOQC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIOQC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION.out.tables
+    plots    = BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION.out.plots
+    objects  = BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION.out.objects
+    versions = BIOC_BIOQC_TISSUE_HETEROGENEITY_DETECTION.out.versions
 }

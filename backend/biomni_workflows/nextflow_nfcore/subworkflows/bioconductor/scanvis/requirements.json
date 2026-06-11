@@ -1,0 +1,11 @@
+{
+  "package": "scanvis",
+  "requirements": [
+    "SCANVIS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SCANVIS"
+    ]
+  }
+}

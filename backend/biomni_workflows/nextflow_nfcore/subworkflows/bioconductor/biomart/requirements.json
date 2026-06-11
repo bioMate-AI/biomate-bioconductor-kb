@@ -1,0 +1,11 @@
+{
+  "package": "biomart",
+  "requirements": [
+    "biomaRt"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biomaRt"
+    ]
+  }
+}

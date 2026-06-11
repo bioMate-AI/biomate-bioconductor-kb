@@ -1,130 +1,134 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scuttle
-// Provides basic utility functions for performing single-cell analyses, focusing on simple normalizati
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scuttle/inst/doc/misc.R
-// Upstream  : BiocStyle, scRNAseq, scran
-// Downstream: scater, scran, OSCA.advanced, OSCA.basic, OSCA.intro
-//
-// Install: BiocManager::install("scuttle")
+// Bioconductor workflow: scuttle — feature_qc_and_data_transformation
+// Calculate feature-level QC metrics, compute size-factor adjusted average expression, resolve duplicate gene symbols, and format data into data.frames for downst
+// Input: sce, sce.ens
+// Container: quay.io/biocontainers/bioconductor-scuttle:1.20.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, BiocStyle, scran, scRNAseq, scuttle
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, scuttle
+// QC: outlier detection
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute feature-level QC metrics using perFeatureQCMetrics
+//  * 2. [Core Analysis] Calculate size-factor adjusted average expression using calculateAverage
+//  * 3. [Core Analysis] Resolve duplicate or missing gene symbols using uniquifyFeatureNames
+//  * 4. [Core Analysis] Convert cell or feature data to data.frames using makePerCellDF and makePerFeatureDF
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCUTTLE {
+process BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scuttle"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scuttle:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scuttle:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(seurat_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scuttle_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scuttle_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scuttle_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(scuttle)
-    library(ZeiselBrainData)
-    library(jsonlite)
-
-    # --- Normalization [] ---
-    # Key functions: logNormCounts
-    sce <- logNormCounts(
-        sce
-    )
-
-
-    # --- Aggregation and Summarization [] ---
-    # Key functions: aggregateAcrossCells, summarizeAssayByGroup
-    agg.sce <- aggregateAcrossCells(
-        sce,
-        ids = colData(sce)[, c("level1class", "tissue")]
-    )
-    agg.n <- summarizeAssayByGroup(
-        sce,
-        statistics = "prop.detected",
-        ids = colData(sce)[, c("level1class", "tissue")]
-    )
-
-
-    # --- Feature Aggregation and Renaming [] ---
-    # Key functions: sumCountsAcrossFeatures, uniquifyFeatureNames
-    rownames(sce) <- uniquifyFeatureNames(
-        rownames(sce),
-        rowData(sce)$originalName
-    )
-    agg.feat <- sumCountsAcrossFeatures(
-        sce,
-        ids = list(GeneSet1 = 1:10, GeneSet2 = 11:50),
-        average = TRUE,
-        exprs_values = "logcounts"
-    )
-
-
-    # --- Data Frame Conversion [] ---
-    # Key functions: makePerCellDF, makePerFeatureDF
-    cell_df <- makePerCellDF(
-        sce,
-        features = "Tspan12"
-    )
-    feat_df <- makePerFeatureDF(
-        sce,
-        cells = head(colnames(sce), 4)
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scuttle_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scuttle_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "BiocStyle", "scran", "scRNAseq", "scuttle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scuttle_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+        # Load required libraries
+        library(scuttle)
+        
+        # Read user input files from the working directory
+        sce <- readRDS("sce.rds")
+        sce.ens <- readRDS("sce.ens.rds")
+        
+        # 1. Compute feature-level QC metrics
+        per.feat <- perFeatureQCMetrics(sce)
+        summary(per.feat\$mean)
+        summary(per.feat\$detected)
+        
+        # Save feature-level QC metrics
+        write.csv(as.data.frame(per.feat), "per_feature_qc_metrics.csv", row.names=TRUE)
+        
+        # 2. Calculate size-factor adjusted average expression
+        ave <- calculateAverage(sce)
+        summary(ave)
+        
+        # Save average expression
+        saveRDS(ave, "average_expression.rds")
+        
+        # 3. Resolve duplicate or missing gene symbols
+        if ("originalName" %in% colnames(rowData(sce.ens))) {
+            symbols <- rowData(sce.ens)\$originalName
+        } else {
+            symbols <- rownames(sce.ens)
+        }
+        
+        rownames(sce.ens) <- uniquifyFeatureNames(
+            rownames(sce.ens), symbols
+        )
+        
+        # Save the updated SingleCellExperiment object
+        saveRDS(sce.ens, "sce_ens_uniquified.rds")
+        
+        # 4. Convert cell or feature data to data.frames
+        out <- makePerCellDF(sce, features=rownames(sce)[1], assay.type="counts")
+        write.csv(out, "per_cell_df.csv", row.names=TRUE)
+        
+        out2 <- makePerFeatureDF(
+            sce,
+            cells=head(colnames(sce), 4),
+            assay.type="counts"
+        )
+        write.csv(out2, "per_feature_df.csv", row.names=TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCUTTLE:", paste0("    scuttle: ", packageVersion("scuttle"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION":',
+        paste0('    scuttle: ', as.character(packageVersion('scuttle')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scuttle_results.csv
-    touch ${prefix}_scuttle_output.rds
-    echo "BIOC_SCUTTLE:" > versions.yml
-    echo "    scuttle: 0.0.0" >> versions.yml
+    touch ${prefix}_feature_qc_and_data_transformation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCUTTLE_WORKFLOW {
+workflow BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(seurat_object) ]
+    ch_input  // channel: [ val(meta), [ sce, sce.ens ] ]
 
     main:
-    BIOC_SCUTTLE(ch_input)
+    BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION(ch_input)
 
     emit:
-    results  = BIOC_SCUTTLE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCUTTLE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCUTTLE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCUTTLE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION.out.tables
+    plots    = BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION.out.plots
+    objects  = BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION.out.objects
+    versions = BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION.out.versions
 }

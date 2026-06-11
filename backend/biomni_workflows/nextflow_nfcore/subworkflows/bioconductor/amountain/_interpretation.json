@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: a=The alpha parameter balancing the l1-norm and l2-norm in the elastic net penalty, which controls the module size (larger alpha results in a more sparse vector and smaller module) ;; lambda=The parameter in the objective function that controls the trade-off between node scores and edge weights ;; maxiter=The maximum number of iterations for the gradient projection algorithm (default is 500)\n- alternatives: Conventional clustering or graph partitioning approaches (e.g., Fortunato 2010) which purely use network topology to define modules ;; High-performance C-version functions (CGPFixSS, CGPFixSSTwolayer, CGPFixSSMultiLayer) which are faster for large-scale networks compared to pure R functions\n- when_to_use: When you want to identify active gene modules from weighted gene co-expression networks constructed from expression profiles, especially when integrating node-level significance scores (e.g., differential expression p-values) with edge-level co-expression weights across single or multiple network layers (representing different tissues, time points, or conditions).\n- pitfalls: The calculation of edge scores (W) and node scores (z) heavily impacts performance, and different inputs can lead to different modules ;; Real-world data lacks ground truth, meaning parameters (especially alpha) must be carefully tuned (e.g., using binary search) to achieve a biologically realistic module size ;; Pure R functions can be slow on large-scale networks, requiring the use of compiled C-version functions for high performance.",
+  "workflows": [
+    {
+      "name": "single_layer_module_detection",
+      "intent": "Identify active gene modules in a single-layer weighted gene co-expression network and tune the module size using binary search or grid search.",
+      "input": [
+        "W (weighted gene co-expression matrix)",
+        "z (node score vector, e.g., gene significance scores)"
+      ],
+      "stages": "1. Initialize search parameters for module size control ;; 2. Run the gradient projection algorithm using moduleIdentificationGPFixSS inside a search loop to find the optimal alpha parameter ;; 3. Extract the predicted module member indices.",
+      "code": "x <- moduleIdentificationGPFixSS(W,z,rep(1/n,n),a=(abegin+aend)/2,lambda = 0.001,maxiter = 500)\npredictedid <- which(x[[2]]!=0)"
+    },
+    {
+      "name": "two_layer_module_detection",
+      "intent": "Identify active gene modules across two network layers simultaneously while maximizing inter-layer links.",
+      "input": [
+        "W1 (edge weight matrix for layer 1)",
+        "z1 (node score vector for layer 1)",
+        "W2 (edge weight matrix for layer 2)",
+        "z2 (node score vector for layer 2)",
+        "A (inter-layer weight matrix connecting the two layers)"
+      ],
+      "stages": "1. Run moduleIdentificationGPFixSSTwolayer using the networks, node scores, and inter-layer weight matrix ;; 2. Extract predicted module member indices for both layers.",
+      "code": "modres <- moduleIdentificationGPFixSSTwolayer(pp[[1]],pp[[2]],rep(1/n1,n1),pp2[[1]],pp2[[2]],rep(1/n2,n2),A)\npredictedid <- which(modres[[1]]!=0)\npredictedid2 <- which(modres[[2]]!=0)"
+    },
+    {
+      "name": "multi_layer_module_detection",
+      "intent": "Identify active gene modules across multiple network layers sharing a common network structure.",
+      "input": [
+        "W (shared edge weight matrix/network)",
+        "listz (list of node score vectors, one vector for each layer)"
+      ],
+      "stages": "1. Organize the node scores for each layer into a list ;; 2. Run moduleIdentificationGPFixSSMultilayer using the shared network and the list of node scores ;; 3. Extract the predicted module member indices.",
+      "code": "listz <- list()\nfor (i in 1:L){\nlistz[[i]] <- cpl[[i+2]]\n}\nx <- moduleIdentificationGPFixSSMultilayer(cpl[[1]],listz,rep(1/n,n))\npredictedid <- which(x[[2]]!=0)"
+    }
+  ]
+}

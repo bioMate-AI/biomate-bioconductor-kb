@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: poptag=Population identifier (e.g., \"CEU\") used in importing HapMap LD data ;; chrom=Chromosome identifier (e.g., \"chr17\") for the LD data ;; ldstruct=An S4 object of class ldstruct containing the LD matrix ;; lb=Lower bound threshold for the LD statistic (e.g., D' > 0.9) to select linked SNPs\n- alternatives: snpStats=Mentioned as providing linkage disequilibrium analysis support, which ldblock aims to simplify for handling existing population-level data\n- when_to_use: When you need to identify and extract a complete set of SNPs that are in linkage disequilibrium with a specific list of target SNPs (e.g., GWAS hits) using population-level LD data (such as HapMap).\n- pitfalls: Not all GWAS SNPs are present in the HapMap LD resource, which may result in some input SNPs being dropped during expansion ;; User-provided LD data must strictly match the tabular format of the HapMap distribution to be imported correctly",
+  "workflows": [
+    {
+      "name": "snp_set_expansion",
+      "intent": "Expand a set of target SNPs to include all SNPs in linkage disequilibrium above a specified threshold using population LD data.",
+      "input": [
+        "ld_data.txt.gz (Gzipped tabular LD data in HapMap format)",
+        "target_snps.txt (A list of query SNP identifiers, such as GWAS hits)"
+      ],
+      "stages": "1. Import HapMap-formatted LD data using hmld ;; 2. Define the target SNP set ;; 3. Expand the SNP set based on an LD threshold using expandSnpSet",
+      "code": "path = dir(system.file(\"hapmap\", package=\"ldblock\"), full=TRUE)\nceu17 = hmld(path, poptag=\"CEU\", chrom=\"chr17\")\nexset = ldblock::expandSnpSet( rsh17, ldstruct= ceu17, lb=.9 )"
+    }
+  ]
+}

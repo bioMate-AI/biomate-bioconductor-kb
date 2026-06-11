@@ -1,0 +1,25 @@
+{
+  "package": "crisprscore",
+  "requirements": [
+    "Biostrings",
+    "crisprScore"
+  ],
+  "by_workflow": {
+    "cas12a_on_target_scoring.nf": [
+      "crisprScore"
+    ],
+    "cas13d_on_target_scoring.nf": [
+      "Biostrings",
+      "crisprScore"
+    ],
+    "indel_frameshift_prediction.nf": [
+      "crisprScore"
+    ],
+    "main.nf": [
+      "crisprScore"
+    ],
+    "off_target_specificity_scoring.nf": [
+      "crisprScore"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: spacers=Character vector of short DNA spacer sequences to align ;; seeds=Character vector of short RNAi seed sequences to align ;; bsgenome=A BSgenome object corresponding to the reference genome used for extracting protospacer and PAM sequences ;; crisprNuclease=A CrisprNuclease object (from crisprBase) specifying the nuclease to constrain PAM search ;; n_mismatches=Integer specifying the maximum number of mismatches allowed between the query and target sequences ;; canonical=Logical indicating whether to restrict the search to canonical PAM sequences (TRUE) or allow non-canonical PAMs (FALSE) ;; bwa_index=Character string specifying the path prefix of the BWA index\n- alternatives: addSpacerAlignments=A function in the crisprDesign package recommended for comprehensive gRNA design and off-target annotation within the broader crisprVerse ecosystem\n- when_to_use: Use when you need to perform fast on-target and off-target searches for CRISPR gRNA spacer sequences across a genome for any CRISPR nuclease, or when mapping short RNAi (siRNA/shRNA) seed sequences to a reference genome to predict off-target effects.\n- pitfalls: OS Compatibility=The package is supported on macOS and Linux only (not supported on Windows) ;; Index Requirement=Users must build a BWA index using Rbwa::bwa_build_index before running alignments, as standard FASTA files cannot be queried directly without indexing.",
+  "workflows": [
+    {
+      "name": "crispr_grna_alignment",
+      "intent": "Align CRISPR gRNA spacer sequences to a reference genome to identify on-target and off-target sites with PAM constraints.",
+      "input": [
+        "genome_fasta.fa (FASTA file of the reference genome)",
+        "spacers_vector (Character vector of gRNA spacer sequences)"
+      ],
+      "stages": "1. Build a BWA index from the reference genome FASTA using Rbwa::bwa_build_index ;; 2. Load the corresponding BSgenome object and CrisprNuclease object ;; 3. Align spacers and annotate PAMs using runCrisprBwa",
+      "code": "library(Rbwa)\nfasta <- system.file(package=\"crisprBwa\", \"example/chr12.fa\")\noutdir <- tempdir()\nindex <- file.path(outdir, \"chr12\")\nRbwa::bwa_build_index(fasta,\n                      index_prefix=index)\n\nlibrary(crisprBwa)\nlibrary(BSgenome.Hsapiens.UCSC.hg38)\ndata(SpCas9, package=\"crisprBase\")\ncrisprNuclease <- SpCas9\nbsgenome <- BSgenome.Hsapiens.UCSC.hg38\nspacers <- c(\"AGCTGTCCGTGGGGGTCCGC\",\n             \"CCCCTGCTGCTGTGCCAGGC\",\n             \"ACGAACTGTAAAAGGCTTGG\",\n             \"ACGAACTGTAACAGGCTTGG\",\n             \"AAGGCCCTCAGAGTAATTAC\")\nrunCrisprBwa(spacers,\n             bsgenome=bsgenome,\n             crisprNuclease=crisprNuclease,\n             n_mismatches=3,\n             canonical=FALSE,\n             bwa_index=index)"
+    },
+    {
+      "name": "rnai_seed_alignment",
+      "intent": "Map short RNAi (siRNA/shRNA) seed sequences to a reference genome to predict putative off-targets without PAM constraints.",
+      "input": [
+        "genome_fasta.fa (FASTA file of the reference genome)",
+        "seeds_vector (Character vector of RNAi seed sequences)"
+      ],
+      "stages": "1. Build a BWA index from the reference genome FASTA using Rbwa::bwa_build_index ;; 2. Align seed sequences using runBwa",
+      "code": "library(Rbwa)\nfasta <- system.file(package=\"crisprBwa\", \"example/chr12.fa\")\noutdir <- tempdir()\nindex <- file.path(outdir, \"chr12\")\nRbwa::bwa_build_index(fasta,\n                      index_prefix=index)\n\nlibrary(crisprBwa)\nseeds <- c(\"GTAAGCGGAGTGT\", \"AACGGGGAGATTG\")\nrunBwa(seeds,\n       n_mismatches=2,\n       bwa_index=index)"
+    }
+  ]
+}

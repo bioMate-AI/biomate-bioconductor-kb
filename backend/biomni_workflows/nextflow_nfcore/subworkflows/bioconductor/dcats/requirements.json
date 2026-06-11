@@ -1,0 +1,15 @@
+{
+  "package": "dcats",
+  "requirements": [
+    "DCATS",
+    "tidymodels",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DCATS",
+      "tidymodels",
+      "tidyverse"
+    ]
+  }
+}

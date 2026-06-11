@@ -1,0 +1,19 @@
+{
+  "package": "heron",
+  "requirements": [
+    "HERON",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HERON",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ],
+    "smoothed_probe_level_analysis.nf": [
+      "HERON",
+      "SummarizedExperiment"
+    ]
+  }
+}

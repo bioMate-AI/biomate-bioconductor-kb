@@ -1,0 +1,11 @@
+{
+  "package": "bobafit",
+  "requirements": [
+    "BOBaFIT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BOBaFIT"
+    ]
+  }
+}

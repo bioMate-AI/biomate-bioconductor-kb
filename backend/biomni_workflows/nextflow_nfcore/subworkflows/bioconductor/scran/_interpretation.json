@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: clusters=Used in computeSumFactors() to specify pre-computed quick clusters, reducing sensitivity to violations of the non-DE majority assumption ;; groups=Used in quickSubCluster() to define the parent clusters for nested subclustering ;; subset.row=Used in correlatePairs() to restrict correlation calculations to a specific subset of genes (e.g., top HVGs) ;; block=Used in correlatePairs() to specify a blocking factor (e.g., donor or batch) to prevent uninteresting substructure from driving false correlations\n- alternatives: scrapper package=Supersedes most of scran's deprecated/defunct functionality and is recommended for routine single-cell analyses ;; scuttle package=Provides computeSumFactors(), which is used in conjunction with scran's quickCluster()\n- when_to_use: Use when performing specialized downstream single-cell RNA-seq analyses, such as cluster-based normalization factor calculation, subclustering within existing groups, technical-variance-based PC selection, or identifying gene-gene correlation networks.\n- pitfalls: Using scran for routine analyses that have been superseded by scrapper ;; Failing to block on uninteresting factors (like donor) in correlatePairs(), which can lead to strong spurious correlations ;; Insufficient permutation iterations in correlation testing, which can lead to lower-bounded p-values and trigger warnings.",
+  "workflows": [
+    {
+      "name": "quick_clustering_and_normalization",
+      "intent": "Perform quick clustering to assist in cluster-based normalization factor calculation and subsequent subclustering.",
+      "input": [
+        "sce.ready (SingleCellExperiment object containing pre-processed single-cell RNA-seq data)"
+      ],
+      "stages": "1. Generate quick-and-dirty clusters using quickCluster() ;; 2. Compute size factors within clusters using computeSumFactors() ;; 3. Perform subclustering within identified clusters using quickSubCluster()",
+      "code": "clusters <- quickCluster(sce.ready)\nsce.normed <- computeSumFactors(sce.ready, clusters=clusters)\nsummary(sizeFactors(sce.normed))\nsubout <- quickSubCluster(sce.ready, groups=clusters)\ntable(metadata(subout)$subcluster)"
+    },
+    {
+      "name": "automated_pc_selection",
+      "intent": "Determine the optimal number of principal components (PCs) to retain based on technical variance estimates.",
+      "input": [
+        "sce.ready (SingleCellExperiment object with PCA and row metadata containing variance statistics)"
+      ],
+      "stages": "1. Extract variance explained and technical/total variance statistics ;; 2. Determine the number of PCs to retain using denoisePCANumber() ;; 3. Subset the PCA coordinates to the chosen number of PCs",
+      "code": "var.explained <- metadata(sce.ready)$PCA$variance.explained\nstats <- rowData(sce.ready)\ntotal.tech.var.in.hvgs <- sum(stats[stats$hvg,\"fitted\"])\ntotal.var.in.hvgs <- sum(stats[stats$hvg,\"variances\"])\nchosen <- denoisePCANumber(var.explained, total.tech.var.in.hvgs, total.var.in.hvgs)\nchosen\nreducedDim(sce.ready, \"PCA.denoised\") <- reducedDim(sce.ready, \"PCA\")[,1:chosen]"
+    },
+    {
+      "name": "gene_correlation_analysis",
+      "intent": "Identify significant pairwise and gene-level correlations among highly variable genes (HVGs) while blocking on uninteresting batch effects.",
+      "input": [
+        "sce.ready (SingleCellExperiment object with residual variance statistics)"
+      ],
+      "stages": "1. Select top highly variable genes of interest ;; 2. Compute pairwise correlations using correlatePairs() ;; 3. Compute pairwise correlations blocking on batch/donor effects using correlatePairs(..., block=...) ;; 4. Summarize pairwise correlations into gene-level statistics using correlateGenes()",
+      "code": "of.interest <- order(rowData(sce.ready)$residuals, decreasing=TRUE)[1:200]\ncor.pairs <- correlatePairs(sce.ready, subset.row=of.interest)\ncor.pairs\ncor.pairs2 <- correlatePairs(sce.ready, subset.row=of.interest, block=sce.ready$donor)\ncor.genes <- correlateGenes(cor.pairs)\ncor.genes"
+    }
+  ]
+}

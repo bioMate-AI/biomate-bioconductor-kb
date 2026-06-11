@@ -1,0 +1,18 @@
+{
+  "package": "greylistchip",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GreyListChIP",
+    "Rsamtools"
+  ],
+  "by_workflow": {
+    "bsgenome_workflow.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GreyListChIP",
+      "Rsamtools"
+    ],
+    "main.nf": [
+      "GreyListChIP"
+    ]
+  }
+}

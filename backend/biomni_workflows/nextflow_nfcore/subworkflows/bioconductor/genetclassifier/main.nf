@@ -1,100 +1,237 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: geNetClassifier
-// Comprehensive package to automatically train and validate a multi-class SVM classifier based on gene
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/geNetClassifier/inst/doc/geNetClassifier-vignette.R
-// Upstream  : leukemiasEset
-// Downstream: none
-//
-// Install: BiocManager::install("geNetClassifier")
+// Bioconductor workflow: geNetClassifier — train_classifier_and_networks
+// Train a multi-class SVM classifier, rank significant genes, estimate generalization error, and construct co-expression networks from gene expression data.
+// Input: expression_data.RData, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-genetclassifier:1.50.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, geNetClassifier
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the gene expression dataset and define training samples. 2. Run geNetClassifier() to rank genes, train the SVM classifier, es
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENETCLASSIFIER {
+process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genetclassifier"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genetclassifier:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genetclassifier:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genetclassifier_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genetclassifier_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genetclassifier_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(geNetClassifier)
-    library(jsonlite)
-
-    # --- Data import and loading [] ---
-    # Key functions: data
-    library(leukemiasEset)
-    data(leukemiasEset)
-    leukemiasEset
-    # --- Quality control and filtering [] ---
-    # Key functions: pData
-    ## pData(leukemiasEset)
-    # --- RequireNamespace analysis [] ---
-    # Key functions: requireNamespace, packages, featureNames, objects, geNetClassifier, numGenes, getTopRanking, getRanking
-    ## plotExpressionProfiles(leukemiasEset, genes=topGenes[,3, drop=FALSE],
-    ##                        sampleLabels="LeukemiaType",
-    ##                        showMean=TRUE, identify=FALSE,
-    ##                        sampleColors=c("grey","red")
-    ##                        [(sampleNames(leukemiasEset)%in% c("GSM331386.CEL","GSM331392.CEL"))+1])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genetclassifier_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # ==========================================
+    # 1. Load the gene expression dataset and define training samples
+    # ==========================================
+    
+    if (!file.exists("expression_data.RData")) {
+      stop("Required input file 'expression_data.RData' not found in the working directory.")
+    }
+    if (!file.exists("sample_metadata.csv")) {
+      stop("Required input file 'sample_metadata.csv' not found in the working directory.")
+    }
+    
+    # Load ExpressionSet from RData
+    local_env <- new.env()
+    load("expression_data.RData", envir = local_env)
+    eset_objs <- names(local_env)[sapply(local_env, function(x) inherits(x, "ExpressionSet"))]
+    if (length(eset_objs) == 0) {
+      stop("No ExpressionSet object found in 'expression_data.RData'.")
+    }
+    leukemiasEset <- local_env[[eset_objs[1]]]
+    
+    # Load metadata
+    metadata <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
+    
+    # Align metadata with ExpressionSet samples
+    sample_ids <- sampleNames(leukemiasEset)
+    id_col <- NULL
+    for (col in colnames(metadata)) {
+      if (any(sample_ids %in% metadata[[col]])) {
+        id_col <- col
+        break
+      }
+    }
+    
+    if (!is.null(id_col)) {
+      rownames(metadata) <- metadata[[id_col]]
+      metadata <- metadata[sample_ids, , drop = FALSE]
+      pData(leukemiasEset) <- metadata
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genetclassifier_results.csv")
+      pData(leukemiasEset) <- cbind(pData(leukemiasEset), metadata)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genetclassifier_output.rds")
+    
+    # Ensure "LeukemiaType" column exists in pData
+    if (!"LeukemiaType" %in% colnames(pData(leukemiasEset))) {
+      class_cols <- c("class", "label", "LeukemiaType", "subtype", "group", "type")
+      found_col <- intersect(class_cols, colnames(pData(leukemiasEset)))
+      if (length(found_col) > 0) {
+        pData(leukemiasEset)\$LeukemiaType <- pData(leukemiasEset)[[found_col[1]]]
+      } else {
+        pData(leukemiasEset)\$LeukemiaType <- metadata[[2]]
+      }
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENETCLASSIFIER:", paste0("    genetclassifier: ", packageVersion("geNetClassifier"))),
-        "versions.yml"
+    
+    # Ensure LeukemiaType is a factor
+    pData(leukemiasEset)\$LeukemiaType <- as.factor(pData(leukemiasEset)\$LeukemiaType)
+    
+    # Define training samples dynamically to ensure robustness across different dataset sizes
+    classes <- as.character(pData(leukemiasEset)\$LeukemiaType)
+    unique_classes <- unique(classes)
+    trainSamples <- unlist(lapply(unique_classes, function(cl) {
+      which(classes == cl)[1:min(10, sum(classes == cl))]
+    }))
+    trainSamples <- sort(trainSamples)
+    
+    # Construct geneSymbols mapping from featureNames of leukemiasEset
+    if ("symbol" %in% colnames(fData(leukemiasEset))) {
+      geneSymbols <- fData(leukemiasEset)\$symbol
+      names(geneSymbols) <- featureNames(leukemiasEset)
+    } else if ("GeneSymbol" %in% colnames(fData(leukemiasEset))) {
+      geneSymbols <- fData(leukemiasEset)\$GeneSymbol
+      names(geneSymbols) <- featureNames(leukemiasEset)
+    } else {
+      geneSymbols <- featureNames(leukemiasEset)
+      names(geneSymbols) <- featureNames(leukemiasEset)
+    }
+    
+    # ==========================================
+    # 2. Run geNetClassifier() to rank genes, train the SVM classifier, 
+    #    estimate generalization error, and build co-expression networks
+    # ==========================================
+    
+    leukemiasClassifier <- geNetClassifier(
+      eset=leukemiasEset[,trainSamples], 
+      sampleLabels="LeukemiaType", 
+      plotsName="leukemiasClassifier", 
+      estimateGError=TRUE, 
+      geneLabels=geneSymbols
     )
+    
+    # ==========================================
+    # 3. Inspect the ranked genes and significant gene counts
+    # ==========================================
+    
+    names(leukemiasClassifier)
+    leukemiasClassifier@genesRanking
+    numGenes(leukemiasClassifier@genesRanking)
+    subRanking <- getTopRanking(leukemiasClassifier@genesRanking, 10)
+    getRanking(subRanking)
+    
+    # Wrap potentially out-of-bounds or class-specific calls in tryCatch for robustness
+    tryCatch({
+      getRanking(subRanking, showGeneID=TRUE)\$geneID[,1:4]
+    }, error = function(e) {
+      message("Note: Could not subset first 4 classes. Showing all available classes:")
+      print(getRanking(subRanking, showGeneID=TRUE)\$geneID)
+    })
+    
+    tryCatch({
+      genesDetails(subRanking)\$AML
+    }, error = function(e) {
+      message("Note: AML class details not available. Showing details for the first available class:")
+      print(genesDetails(subRanking)[[1]])
+    })
+    
+    numSignificantGenes(leukemiasClassifier@genesRanking)
+    
+    # ==========================================
+    # 4. Evaluate classifier performance and generalization error
+    # ==========================================
+    
+    leukemiasClassifier@classifier
+    leukemiasClassifier@classificationGenes
+    leukemiasClassifier@generalizationError
+    leukemiasClassifier@generalizationError@confMatrix
+    leukemiasClassifier@generalizationError@probMatrix
+    
+    # ==========================================
+    # 5. Export the constructed gene networks to text files
+    # ==========================================
+    
+    leukemiasClassifier@genesNetwork
+    network2txt(leukemiasClassifier@genesNetwork, filePrefix="leukemiasNetwork")
+    
+    # ==========================================
+    # 6. Save meaningful results to disk
+    # ==========================================
+    
+    message("Saving pipeline results to disk...")
+    saveRDS(leukemiasClassifier, file="leukemiasClassifier.rds")
+    
+    # Save ranking
+    ranking_list <- getRanking(leukemiasClassifier@genesRanking)
+    if (is.list(ranking_list)) {
+      write.csv(as.data.frame(ranking_list\$geneLabels), file="genes_ranking_labels.csv", row.names=FALSE)
+    } else {
+      write.csv(as.data.frame(ranking_list), file="genes_ranking.csv", row.names=FALSE)
+    }
+    
+    # Save confusion matrix if available
+    if (!is.null(leukemiasClassifier@generalizationError@confMatrix)) {
+      write.csv(as.data.frame.matrix(leukemiasClassifier@generalizationError@confMatrix), file="confusion_matrix.csv")
+    }
+    
+    # Save probability matrix if available
+    if (!is.null(leukemiasClassifier@generalizationError@probMatrix)) {
+      write.csv(as.data.frame(leukemiasClassifier@generalizationError@probMatrix), file="probability_matrix.csv")
+    }
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS":',
+        paste0('    geNetClassifier: ', as.character(packageVersion('geNetClassifier')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genetclassifier_results.csv
-    touch ${prefix}_genetclassifier_output.rds
-    echo "BIOC_GENETCLASSIFIER:" > versions.yml
-    echo "    genetclassifier: 0.0.0" >> versions.yml
+    touch ${prefix}_train_classifier_and_networks.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENETCLASSIFIER_WORKFLOW {
+workflow BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_data.RData, sample_metadata.csv ] ]
 
     main:
-    BIOC_GENETCLASSIFIER(ch_input)
+    BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS(ch_input)
 
     emit:
-    results  = BIOC_GENETCLASSIFIER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENETCLASSIFIER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENETCLASSIFIER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENETCLASSIFIER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS.out.tables
+    plots    = BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS.out.plots
+    objects  = BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS.out.objects
+    versions = BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS.out.versions
 }

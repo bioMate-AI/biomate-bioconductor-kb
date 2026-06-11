@@ -1,93 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: COMPASS
-// COMPASS is a statistical framework that enables unbiased analysis of antigen-specific T-cell subsets
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/COMPASS/inst/doc/COMPASS.R
-// Upstream  : BiocManager, dplyr, ggplot2, readxl
-// Downstream: none
-//
-// Install: BiocManager::install("COMPASS")
+// Bioconductor workflow: COMPASS — standard_compass
+// Fit a COMPASS model to cell-level marker intensity data using a COMPASSContainer and extract functionality scores.
+// Input: data.rds, counts.rds, meta.csv
+// Container: quay.io/biocontainers/bioconductor-compass:1.48.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: COMPASS
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Construct a COMPASSContainer using COMPASSContainer()
+//  * 2. [Core Analysis] Fit the COMPASS model using COMPASS()
+//  * 3. [Core Analysis] Extract functionality and polyfunctionality scores using FunctionalityScore() and PolyfunctionalityScore()
+//  * 4. [Core Analysis] Extract posterior probabilities using Posterior()
+//  * 5. [Visualization & Output] Visualize results using plot() with different measures (PosteriorDiff(), PosteriorLogDiff())
 
 nextflow.enable.dsl = 2
 
-process BIOC_COMPASS {
+process BIOC_COMPASS_STANDARD_COMPASS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-compass"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-compass:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-compass:1.44.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_matrix)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_compass_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_compass_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_compass_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(COMPASSContainer)
-    library(FunctionalityScore)
-    library(PolyfunctionalityScore)
-    library(Posterior)
-    library(jsonlite)
-
-    # --- Rep len analysis [] ---
-    # Key functions: rep_len, replicate, rexp, setNames, COMPASSContainer, FunctionalityScore, PolyfunctionalityScore, Posterior
-    counts <- sapply(data, nrow) + round( rnorm(n, 1E4, 1E3) )
-    counts <- setNames( as.integer(counts), names(counts) )
-    head(counts)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_compass_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_compass_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_compass_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COMPASS:", paste0("    compass: ", packageVersion("COMPASS"))),
-        "versions.yml"
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(COMPASS)
+    
+    # 1. Read User Input Files
+    # - data.rds: list of cell-level marker intensity matrices
+    # - counts.rds: named integer vector of total cell counts
+    # - meta.csv: sample metadata table
+    data <- readRDS("data.rds")
+    counts <- readRDS("counts.rds")
+    meta <- read.csv("meta.csv", stringsAsFactors = FALSE)
+    
+    # 2. Construct COMPASSContainer
+    CC <- COMPASSContainer(
+      data=data,
+      counts=counts,
+      meta=meta,
+      individual_id="iid",
+      sample_id="sid"
     )
+    
+    # 3. Fit the COMPASS Model
+    fit <- COMPASS( CC,
+      treatment=trt == "Treatment",
+      control=trt == "Control",
+      iterations=100
+    )
+    
+    # 4. Extract Functionality and Polyfunctionality Scores
+    FS <- FunctionalityScore(fit)
+    PFS <- PolyfunctionalityScore(fit)
+    
+    # 5. Extract Posterior Probabilities
+    post <- Posterior(fit)
+    
+    # 6. Save Tabular and Object Outputs
+    # Save scores as CSV
+    write.csv(data.frame(Individual = names(FS), FunctionalityScore = FS), 
+              file = "functionality_scores.csv", row.names = FALSE)
+    write.csv(data.frame(Individual = names(PFS), PolyfunctionalityScore = PFS), 
+              file = "polyfunctionality_scores.csv", row.names = FALSE)
+    
+    # Save fit and posterior objects as RDS
+    saveRDS(fit, file = "compass_fit.rds")
+    saveRDS(post, file = "posterior_probabilities.rds")
+    
+    # 7. Visualize Results and Save to PDF
+    pdf("compass_plots.pdf", width = 10, height = 8)
+    
+    # Plot mean probability of response heatmap
+    tryCatch({
+      plot(fit)
+    }, error = function(e) {
+      warning("Default plot failed: ", e\$message)
+    })
+    
+    # Plot posterior difference heatmap
+    tryCatch({
+      plot(fit, measure=PosteriorDiff(fit), threshold=0)
+    }, error = function(e) {
+      warning("PosteriorDiff plot failed: ", e\$message)
+    })
+    
+    # Plot posterior log difference heatmap
+    tryCatch({
+      plot(fit, measure=PosteriorLogDiff(fit), threshold=0)
+    }, error = function(e) {
+      warning("PosteriorLogDiff plot failed: ", e\$message)
+    })
+    
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_COMPASS_STANDARD_COMPASS":',
+        paste0('    COMPASS: ', as.character(packageVersion('COMPASS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_compass_results.csv
-    touch ${prefix}_compass_output.rds
-    echo "BIOC_COMPASS:" > versions.yml
-    echo "    compass: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_compass.csv versions.yml
     """
 }
 
-
-workflow BIOC_COMPASS_WORKFLOW {
+workflow BIOC_COMPASS_STANDARD_COMPASS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_matrix) ]
+    ch_input  // channel: [ val(meta), [ data.rds, counts.rds, meta.csv ] ]
 
     main:
-    BIOC_COMPASS(ch_input)
+    BIOC_COMPASS_STANDARD_COMPASS(ch_input)
 
     emit:
-    results  = BIOC_COMPASS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COMPASS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COMPASS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COMPASS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COMPASS_STANDARD_COMPASS.out.tables
+    plots    = BIOC_COMPASS_STANDARD_COMPASS.out.plots
+    objects  = BIOC_COMPASS_STANDARD_COMPASS.out.objects
+    versions = BIOC_COMPASS_STANDARD_COMPASS.out.versions
 }

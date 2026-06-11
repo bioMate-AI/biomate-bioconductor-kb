@@ -1,0 +1,15 @@
+{
+  "package": "a4core",
+  "requirements": [
+    "Biobase",
+    "a4Core",
+    "glmnet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "a4Core",
+      "glmnet"
+    ]
+  }
+}

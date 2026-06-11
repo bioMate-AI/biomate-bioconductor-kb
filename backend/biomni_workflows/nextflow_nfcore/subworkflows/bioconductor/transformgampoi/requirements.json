@@ -1,0 +1,20 @@
+{
+  "package": "transformgampoi",
+  "requirements": [
+    "MatrixGenerics",
+    "SingleCellExperiment",
+    "transformGamPoi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MatrixGenerics",
+      "SingleCellExperiment",
+      "transformGamPoi"
+    ],
+    "model_residuals_transformation.nf": [
+      "MatrixGenerics",
+      "SingleCellExperiment",
+      "transformGamPoi"
+    ]
+  }
+}

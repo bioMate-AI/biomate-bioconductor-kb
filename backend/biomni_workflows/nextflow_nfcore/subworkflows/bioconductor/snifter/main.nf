@@ -1,111 +1,167 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: snifter
-// Provides an R wrapper for the implementation of FI-tSNE from the python package openTNSE. See Poliča
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/snifter/inst/doc/snifter.R
-// Upstream  : BiocStyle
-// Downstream: OSCA.advanced
-//
-// Install: BiocManager::install("snifter")
+// Bioconductor workflow: snifter — run_fitsne
+// Run fast interpolated t-SNE (FI-tSNE) on a high-dimensional matrix to generate 2D coordinates.
+// Input: counts
+// Container: quay.io/biocontainers/bioconductor-snifter:1.20.0--r45hdfd78af_0
+// R packages: BiocStyle, ggplot2, snifter
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, snifter
+// Visualizations: t-SNE plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run FI-tSNE using the fitsne function
+//  * 2. [Visualization & Output] Visualize the resulting 2D coordinates
 
 nextflow.enable.dsl = 2
 
-process BIOC_SNIFTER {
+process BIOC_SNIFTER_RUN_FITSNE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-snifter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-snifter:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-snifter:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_snifter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_snifter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_snifter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(snifter)
-    library(jsonlite)
-
-    # --- Model Training and Embedding [] ---
-    # Key functions: fitsne
-    embedding <- fitsne(
-        train_mat,
-        random_state = 42L,
-        perplexity = 30
-    )
-    train_coords <- data.frame(
-        tSNE1 = embedding[, 1],
-        tSNE2 = embedding[, 2],
-        Label = train_label
-    )
-
-
-    # --- Out-of-sample Projection [] ---
-    # Key functions: project
-    new_coords <- project(
-        embedding,
-        new = test_mat,
-        old = train_mat
-    )
-    projected_df <- data.frame(
-        tSNE1 = new_coords[, 1],
-        tSNE2 = new_coords[, 2],
-        Label = test_label
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_snifter_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_snifter_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocStyle", "ggplot2", "snifter")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_snifter_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library("snifter")
+        library("ggplot2")
+        
+        # Set theme for plotting
+        theme_set(theme_bw())
+        
+        # -----------------------------------------------------------------------------
+        # 1. Read User Input
+        # -----------------------------------------------------------------------------
+        # The pipeline expects a file named 'counts' (CSV, TSV, or RDS format)
+        # representing a high-dimensional matrix where rows are samples and columns are features.
+        
+        counts <- NULL
+        
+        if (file.exists("counts.csv")) {
+          counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+          counts <- as.matrix(counts_df)
+        } else if (file.exists("counts.tsv")) {
+          counts_df <- read.delim("counts.tsv", row.names = 1, check.names = FALSE)
+          counts <- as.matrix(counts_df)
+        } else if (file.exists("counts.rds")) {
+          counts <- readRDS("counts.rds")
+          if (!is.matrix(counts)) {
+            counts <- as.matrix(counts)
+          }
+        } else {
+          stop("Error: Input 'counts' file (counts.csv, counts.tsv, or counts.rds) not found in the working directory.")
+        }
+        
+        # Optional: Read labels for visualization if available.
+        # If not available, we will use a default dummy label.
+        label <- NULL
+        if (file.exists("labels.csv")) {
+          labels_df <- read.csv("labels.csv", header = TRUE)
+          if ("label" %in% colnames(labels_df)) {
+            label <- labels_df\$label
+          } else {
+            label <- labels_df[, 1]
+          }
+        } else if (file.exists("labels.txt")) {
+          label <- readLines("labels.txt")
+        } else {
+          label <- rep("Sample", nrow(counts))
+        }
+        
+        # -----------------------------------------------------------------------------
+        # 2. Run FI-tSNE (Documented Code)
+        # -----------------------------------------------------------------------------
+        fit <- fitsne(counts, random_state = 42L)
+        
+        # -----------------------------------------------------------------------------
+        # 3. Visualize and Save Results
+        # -----------------------------------------------------------------------------
+        # Generate the t-SNE plot
+        p <- ggplot() +
+            aes(fit[, 1], fit[, 2], colour = label) +
+            geom_point(pch = 19) +
+            scale_colour_discrete(name = "Cluster") +
+            labs(x = "t-SNE 1", y = "t-SNE 2")
+        
+        # Save the plot to a PDF file
+        ggsave("tsne_plot.pdf", plot = p, width = 8, height = 6)
+        
+        # Prepare coordinates data frame for export
+        sample_names <- rownames(counts)
+        if (is.null(sample_names)) {
+          sample_names <- paste0("Sample_", seq_len(nrow(counts)))
+        }
+        
+        coords_df <- data.frame(
+          Sample = sample_names,
+          tSNE_1 = fit[, 1],
+          tSNE_2 = fit[, 2]
+        )
+        
+        # Save coordinates to CSV
+        write.csv(coords_df, "tsne_coordinates.csv", row.names = FALSE)
+        
+        # Save the fit object as RDS
+        saveRDS(fit, "snifter_fit.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SNIFTER:", paste0("    snifter: ", packageVersion("snifter"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SNIFTER_RUN_FITSNE":',
+        paste0('    snifter: ', as.character(packageVersion('snifter')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_snifter_results.csv
-    touch ${prefix}_snifter_output.rds
-    echo "BIOC_SNIFTER:" > versions.yml
-    echo "    snifter: 0.0.0" >> versions.yml
+    touch ${prefix}_run_fitsne.csv versions.yml
     """
 }
 
-
-workflow BIOC_SNIFTER_WORKFLOW {
+workflow BIOC_SNIFTER_RUN_FITSNE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts ] ]
 
     main:
-    BIOC_SNIFTER(ch_input)
+    BIOC_SNIFTER_RUN_FITSNE(ch_input)
 
     emit:
-    results  = BIOC_SNIFTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SNIFTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SNIFTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SNIFTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SNIFTER_RUN_FITSNE.out.tables
+    plots    = BIOC_SNIFTER_RUN_FITSNE.out.plots
+    objects  = BIOC_SNIFTER_RUN_FITSNE.out.objects
+    versions = BIOC_SNIFTER_RUN_FITSNE.out.versions
 }

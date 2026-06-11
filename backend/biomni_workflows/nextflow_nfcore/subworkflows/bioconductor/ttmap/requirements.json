@@ -1,0 +1,15 @@
+{
+  "package": "ttmap",
+  "requirements": [
+    "SummarizedExperiment",
+    "TTMap",
+    "rgl"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "TTMap",
+      "rgl"
+    ]
+  }
+}

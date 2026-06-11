@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: celFiles=Character vector of paths to raw CEL files ;; batch=Character vector indicating processing batches (e.g., chemistry plates or scan dates); copy number estimation requires at least 10 samples per batch ;; cdfName=Name of the annotation package without the \"Crlmm\" suffix (e.g., \"genomewidesnp6\") ;; genome=Character string specifying the genome build (e.g., \"hg19\") ;; gender=If NULL, gender is automatically imputed from X and Y chromosome intensities ;; outdir/ldPath=Directory path where large ff disk-backed objects are stored to manage RAM ;; ocProbesets/ocSamples=Functions to set the maximum number of probesets and samples to keep in active RAM\n- alternatives: oligo=Previous implementation of CRLMM; crlmm is preferred as it is faster, avoids SQL queries by using simple R objects, and provides improved confidence/quality scores ;; VanillaICE=Preferred for downstream hidden Markov models (HMM) using log R ratios and B allele frequencies ;; snpStats=Preferred for downstream genome-wide association studies (GWAS) using SnpMatrix objects\n- when_to_use: Use when you need to perform high-throughput genotyping, quality control (SNR), and copy number estimation (including allele-specific copy number, log R ratios, and B allele frequencies) from raw Affymetrix or Illumina microarray data.\n- pitfalls: Segment faults during normalization are often caused by corrupt CEL files; use validCEL(celFiles) to verify file integrity ;; Copy number estimation requires at least 10 samples per batch; smaller batches (< 50) yield noisy estimates ;; Low SNR values (below 5 for Affymetrix, below 25 for Illumina) indicate poor sample quality and may require excluding those samples ;; Large datasets can easily exhaust RAM; ensure ldPath() is set to store ff objects on disk and use ocProbesets() / ocSamples() to manage memory.",
+  "workflows": [
+    {
+      "name": "simple_genotyping",
+      "intent": "Genotype Affymetrix CEL files quickly using the basic CRLMM algorithm to obtain genotype calls and confidence scores.",
+      "input": [
+        "celFiles (vector of paths to raw Affymetrix CEL files)"
+      ],
+      "stages": "1. Identify CEL files ;; 2. Run the crlmm function ;; 3. Extract genotype calls, confidence scores, and SNR.",
+      "code": "require(oligoClasses)\nlibrary(crlmm)\nlibrary(hapmapsnp6)\npath <- system.file(\"celFiles\", package=\"hapmapsnp6\")\ncelFiles <- list.celfiles(path, full.names=TRUE)\nsystem.time(crlmmResult <- crlmm(celFiles, verbose=FALSE))\ncalls(crlmmResult)[1:10,]\nconfs(crlmmResult)[1:10,]\ncrlmmResult[[\"SNR\"]]"
+    },
+    {
+      "name": "copy_number_and_genotyping_pipeline",
+      "intent": "Preprocess, genotype, and estimate copy number (including allele-specific copy number, log R ratios, and B allele frequencies) using a disk-backed CNSet container.",
+      "input": [
+        "celFiles (vector of paths to raw Affymetrix CEL files)"
+      ],
+      "stages": "1. Set up disk-backed storage and RAM limits ;; 2. Construct the CNSet container ;; 3. Perform quantile normalization ;; 4. Genotype and impute gender ;; 5. Fit linear model for copy number ;; 6. Extract raw copy number or coerce to BafLrrSetList for log R ratios and B allele frequencies.",
+      "code": "library(oligoClasses)\nlibrary(crlmm)\nlibrary(ff)\noutdir <- paste(\"/local_data/r00/crlmm/\", getRversion(), \"/affy_vignette\", sep=\"\")\nldPath(outdir)\nocProbesets(100000)\nocSamples(200)\ncelFiles <- list.celfiles(pathToCels, full.names=TRUE, pattern=\".CEL\")[1:10]\nplates <- substr(basename(celFiles), 13, 13)\ncnSet <- constructAffyCNSet(celFiles, batch=plates, cdfName=\"genomewidesnp6\", genome=\"hg19\")\ncnrmaAffy(cnSet)\nvalidCEL(celFiles)\nsnprmaAffy(cnSet)\ngenotypeAffy(cnSet, gender=NULL)\ntable(c(\"male\", \"female\")[cnSet$gender[]])\ncrlmmCopynumber(cnSet)\ntmp <- totalCopynumber(cnSet, i=seq_len(nrow(cnSet)), j=1:2)\nsnp.index <- which(isSnp(cnSet) & !is.na(chromosome(cnSet)))\nca <- CA(cnSet, i=snp.index, j=1:2)\ncb <- CB(cnSet, i=snp.index, j=1:2)\nlibrary(VanillaICE)\nopen(cnSet)\noligoSetList <- BafLrrSetList(cnSet)\nclose(cnSet)\nlrrList <- lrr(oligoSetList)\nbafList <- baf(oligoSetList)"
+    },
+    {
+      "name": "gwas_preparation_with_snpstats",
+      "intent": "Convert CRLMM genotype calls to a SnpMatrix for downstream GWAS analysis using the snpStats package.",
+      "input": [
+        "crlmmResult (SnpSet object containing genotype calls)"
+      ],
+      "stages": "1. Extract and recode genotype calls ;; 2. Filter out non-informative SNPs ;; 3. Convert to SnpMatrix ;; 4. Perform association testing.",
+      "code": "theCalls <- t(calls(crlmmResult))-1L\nrm(crlmmResult)\ngtypeCounts <- rbind(AA=colSums(theCalls == 0L), AB=colSums(theCalls == 1L), BB=colSums(theCalls == 2L))\ntoRemove <- which(colSums(gtypeCounts == 0) == 2L)\ntheCalls <- theCalls[, -toRemove]\nlibrary(snpStats)\ncrlmmSM <- new(\"SnpMatrix\", theCalls)\nex <- as.numeric(exprs(hmceuB36)[mypr[1],])\nsubjdata <- pData(hmceuB36)\nsubjdata[[\"ex\"]] <- ex\ngwas <- snp.rhs.tests(ex~male, data=subjdata, snp.data=crlmmSM, family=\"gaussian\")"
+    }
+  ]
+}

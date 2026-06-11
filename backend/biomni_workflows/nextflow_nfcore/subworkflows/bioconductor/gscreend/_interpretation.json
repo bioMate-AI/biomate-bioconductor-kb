@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: timepoint=In colData, the timepoint column must follow the naming convention where \"T0\" represents the reference/library and \"T1\" represents the after-proliferation samples ;; direction=In ResultsTable, specifies whether to look for genes that reduce cell viability (\"negative\") or increase cell viability (\"positive\") when perturbed.\n- alternatives: None mentioned in the documentation.\n- when_to_use: Appropriate for analyzing pooled CRISPR knockout or perturbation screens where the goal is to rank and identify essential genes based on raw gRNA count tables.\n- pitfalls: Failing to use the exact naming convention for timepoints (\"T0\" and \"T1\") in colData will cause errors or incorrect comparisons ;; Input SummarizedExperiment must contain specific rowData columns (sgRNA_id and gene) and colData columns (samplename and timepoint).",
+  "workflows": [
+    {
+      "name": "pooled_screen_analysis",
+      "intent": "Identify essential genes from pooled CRISPR screen raw count data by comparing gRNA abundances before and after selection.",
+      "input": [
+        "raw_counts.txt (tab-separated text file containing gRNA IDs, gene mappings, and raw counts for library and replicate samples)"
+      ],
+      "stages": "1. Load raw count data and construct a SummarizedExperiment object with correct row and column metadata ;; 2. Create a PoolScreenExp object using createPoolScreenExp() ;; 3. Run the main analysis pipeline using RunGscreend() ;; 4. Perform quality control using plotReplicateCorrelation() and plotModelParameters() ;; 5. Extract gene-level results using ResultsTable()",
+      "code": "raw_counts <- read.table(\n    system.file(\"extdata\", \"simulated_counts.txt\", package = \"gscreend\"),\n    header=TRUE)\ncounts_matrix <- cbind(raw_counts$library0, \n                        raw_counts$R0_0, \n                        raw_counts$R1_0)\n\nrowData <- data.frame(sgRNA_id = raw_counts$sgrna_id,\n                    gene = raw_counts$Gene)\n\ncolData <- data.frame(samplename = c(\"library\", \"R1\", \"R2\"),\n                    # timepoint naming convention: \n                    # T0 -> reference, \n                    # T1 -> after proliferation\n                    timepoint = c(\"T0\", \"T1\", \"T1\"))\n\nse <- SummarizedExperiment(assays=list(counts=counts_matrix),\n                    rowData=rowData, colData=colData)\npse <- createPoolScreenExp(se)\npse_an <- RunGscreend(pse)\nplotReplicateCorrelation(pse_an)\nplotModelParameters(pse_an) \nres <- ResultsTable(pse_an, direction = \"negative\")\nhead(res)"
+    }
+  ]
+}

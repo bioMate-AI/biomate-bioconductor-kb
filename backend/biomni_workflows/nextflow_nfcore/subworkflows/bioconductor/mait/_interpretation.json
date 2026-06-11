@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dataDir=Path to the parent directory containing class-specific subdirectories of raw LC/MS files ;; project=Character string defining the project name, which determines the output results folder name ;; adductTable=Set to \"negAdducts\" for negative ionization mode annotation, or left NULL/default for positive mode ;; pvalue=P-value threshold for selecting statistically significant features ;; peakPrecision=Mass tolerance window (in mass/charge units) used during the biotransformations annotation step ;; peakTolerance=Mass tolerance window (in mass/charge units) used for matching features against the metabolite database ;; spectraEstimation=Logical flag in MAITbuilder indicating whether to group imported peaks into pseudospectra\n- alternatives: XCMS=Used internally by MAIT for peak detection, grouping, and retention time correction ;; CAMERA=Used for initial peak correlation and adduct annotation, which MAIT extends with biotransformations ;; MetaboAnalyst/XCMS Online=Web-based alternatives that are less programmable and require manual step-by-step intervention\n- when_to_use: Use this package when you have raw LC/MS data files (or pre-processed peak tables) and want to identify statistically significant metabolites that differentiate sample classes, validate their predictive power using machine learning classifiers (SVM, PLS-DA, KNN), and generate automated profiling plots.\n- pitfalls: Directory structure=Raw files must be organized into subdirectories named after their respective sample classes under a single parent directory ;; Polarity mismatch=Failing to set adductTable=\"negAdducts\" or polarity=\"negative\" when analyzing negative ionization mode data will result in incorrect positive-mode annotations ;; Step dependency=Biotransformations and metabolite identification functions require a MAIT object that has already undergone peak annotation and statistical feature selection.",
+  "workflows": [
+    {
+      "name": "raw_lcms_end_to_end_pipeline",
+      "intent": "Perform end-to-end analysis of raw LC/MS data files from peak detection to metabolite identification and validation.",
+      "input": [
+        "raw_data_dir/ (parent directory containing subdirectories of raw LC/MS files like CDF, organized by class)"
+      ],
+      "stages": "1. Peak detection and retention time correction ;; 2. Peak annotation and pseudospectra grouping ;; 3. Statistical feature selection ;; 4. Visualization and plotting ;; 5. Biotransformation annotation ;; 6. Database-driven metabolite identification ;; 7. Cross-validation of significant features",
+      "code": "library(MAIT)\nlibrary(faahKO)\ncdfFiles<-system.file(\"cdf\", package=\"faahKO\", mustWork=TRUE)\nMAIT <- sampleProcessing(dataDir = cdfFiles, project = \"MAIT_Demo\", \nsnThres=2,rtStep=0.03)\nMAIT <- peakAnnotation(MAIT.object = MAIT,corrWithSamp = 0.7, \ncorrBetSamp = 0.75,perfwhm = 0.6)\nMAIT<- spectralSigFeatures(MAIT.object = MAIT,pvalue=0.05,\n       p.adj=\"none\",scale=FALSE)\nsignTable <- sigPeaksTable(MAIT.object = MAIT, printCSVfile = FALSE)\nplotBoxplot(MAIT)\nplotHeatmap(MAIT)\nMAIT<-plotPCA(MAIT,plot3d=FALSE)\nMAIT<-plotPLS(MAIT,plot3d=FALSE)\nPLSmodel <- model(MAIT, type = \"PLS\")\nPCAmodel <- model(MAIT, type = \"PCA\")\nBiotransformations(MAIT.object = MAIT, peakPrecision = 0.005) \nMAIT <- identifyMetabolites(MAIT.object = MAIT, peakTolerance = 0.005)\nmetTable<-metaboliteTable(MAIT)\nMAIT <- Validation(Iterations = 20, trainSamples= 3, \nMAIT.object = MAIT)\nclassifRatioClasses(MAIT)"
+    },
+    {
+      "name": "external_peak_table_analysis",
+      "intent": "Import pre-processed external peak tables, masses, and retention times to perform annotation and metabolite identification.",
+      "input": [
+        "peaks_matrix (numeric matrix of peak intensities across samples)",
+        "masses_vector (numeric vector of peak m/z values)",
+        "rt_vector (numeric vector of peak retention times in minutes)"
+      ],
+      "stages": "1. Build MAIT object from external data ;; 2. Perform biotransformation and adduct annotation ;; 3. Identify metabolites against the database",
+      "code": "peaks <- scores(MAIT)\nmasses <- getPeaklist(MAIT)$mz\nrt <- getPeaklist(MAIT)$rt/60\nimportMAIT <- MAITbuilder(data = peaks, masses = masses, \n              rt = rt,significantFeatures = TRUE, \n              spectraEstimation = TRUE,rtRange=0.2,\n              corThresh=0.7)\nimportMAIT <- Biotransformations(MAIT.object = importMAIT, \n              adductAnnotation = TRUE, \n              peakPrecision = 0.005, adductTable = NULL)\nimportMAIT <- identifyMetabolites(MAIT.object = importMAIT, \n              peakTolerance=0.005,polarity=\"positive\")"
+    }
+  ]
+}

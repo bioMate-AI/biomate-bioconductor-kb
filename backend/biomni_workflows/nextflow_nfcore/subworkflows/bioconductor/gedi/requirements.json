@@ -1,0 +1,21 @@
+{
+  "package": "gedi",
+  "requirements": [
+    "AnnotationDbi",
+    "GeDi",
+    "igraph",
+    "mosdef",
+    "org.Hs.eg.db",
+    "topGO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "GeDi",
+      "igraph",
+      "mosdef",
+      "org.Hs.eg.db",
+      "topGO"
+    ]
+  }
+}

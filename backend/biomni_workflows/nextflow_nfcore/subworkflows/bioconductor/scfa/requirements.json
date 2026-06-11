@@ -1,0 +1,17 @@
+{
+  "package": "scfa",
+  "requirements": [
+    "SCFA",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SCFA",
+      "survival"
+    ],
+    "risk_score_prediction.nf": [
+      "SCFA",
+      "survival"
+    ]
+  }
+}

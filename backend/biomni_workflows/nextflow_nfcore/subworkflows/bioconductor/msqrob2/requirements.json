@@ -1,0 +1,38 @@
+{
+  "package": "msqrob2",
+  "requirements": [
+    "ExploreModelMatrix",
+    "MsCoreUtils",
+    "QFeatures",
+    "arrow",
+    "data.table",
+    "dplyr",
+    "ggplot2",
+    "msqrob2",
+    "stringr",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "dia_precursor_workflow.nf": [
+      "ExploreModelMatrix",
+      "MsCoreUtils",
+      "QFeatures",
+      "arrow",
+      "dplyr",
+      "ggplot2",
+      "msqrob2",
+      "stringr",
+      "tidyr"
+    ],
+    "main.nf": [
+      "ExploreModelMatrix",
+      "QFeatures",
+      "data.table",
+      "dplyr",
+      "ggplot2",
+      "msqrob2",
+      "stringr",
+      "tidyr"
+    ]
+  }
+}

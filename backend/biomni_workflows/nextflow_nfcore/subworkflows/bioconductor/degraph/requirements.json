@@ -1,0 +1,25 @@
+{
+  "package": "degraph",
+  "requirements": [
+    "DEGraph",
+    "KEGGgraph",
+    "R.utils",
+    "Rgraphviz",
+    "corpcor",
+    "fields",
+    "lattice",
+    "marray"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DEGraph",
+      "KEGGgraph",
+      "R.utils",
+      "Rgraphviz",
+      "corpcor",
+      "fields",
+      "lattice",
+      "marray"
+    ]
+  }
+}

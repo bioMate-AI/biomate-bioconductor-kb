@@ -1,0 +1,17 @@
+{
+  "package": "adsplit",
+  "requirements": [
+    "Biobase",
+    "adSplit"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "adSplit"
+    ],
+    "manual_split_and_null_distribution.nf": [
+      "Biobase",
+      "adSplit"
+    ]
+  }
+}

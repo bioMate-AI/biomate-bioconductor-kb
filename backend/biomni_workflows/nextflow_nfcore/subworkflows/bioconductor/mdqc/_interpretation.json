@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=The grouping method to use (\"nogroups\", \"apriori\", \"cluster\", \"loading\", or \"global\") ;; groups=A list of column index vectors defining manual groups of quality measures (required for method=\"apriori\") ;; k=The number of clusters/groups to form (required for method=\"cluster\" and method=\"loading\") ;; pc=The number of principal components to retain from the robust PCA (required for method=\"loading\" and method=\"global\")\n- alternatives: affyPLM=Mentioned for detailed probe-level microarray quality assessment (e.g., PLM weights, pseudo-images, MA-plots) ;; Huber et al. (2002) PCA=Alternative PCA methods to reduce dimensionality when the number of variables exceeds the number of observations and robust PCA cannot be directly computed\n- when_to_use: Use when you have a multivariate quality control report (e.g., from Affymetrix GeneChips or other platforms) for a set of arrays and want to statistically identify outlying, low-quality arrays while accounting for correlation among QC metrics.\n- pitfalls: p >= n constraint=MDQC can only be used if the number of observations (arrays, n) is greater than or equal to the number of quality measures in any group (p). If p > n, you must group the variables or use PCA to reduce dimensionality ;; Small sample sizes=Caution should be taken with small datasets, as robust estimators of location and covariance may not scale properly, reducing the method's performance.",
+  "workflows": [
+    {
+      "name": "multivariate_qc_assessment",
+      "intent": "Perform multivariate quality control assessment on microarray QC reports using Mahalanobis Distance to identify and diagnose outlying arrays.",
+      "input": [
+        "allQC.csv (A user-provided data frame or matrix of quality control measures where rows represent arrays and columns represent QC metrics)"
+      ],
+      "stages": "1. Load the package and the QC report data ;; 2. Run MDQC using the desired grouping or dimensionality reduction method (e.g., \"nogroups\", \"apriori\", \"cluster\", \"loading\", or \"global\") ;; 3. Plot the Mahalanobis distances against Chi-Squared distribution cutoffs to visually identify outliers ;; 4. Print and summarize the MDQC output to list flagged arrays exceeding the 90%, 95%, and 99% thresholds",
+      "code": "library(mdqc)\ndata(allQC)\ndim(allQC)\nallQC[1:2,]\nmdout <- mdqc(allQC, method=\"nogroups\") \nplot(mdout) \nprint(mdout)\nsummary(mdout)\nmdout <- mdqc(allQC, method=\"apriori\",\n              groups=list(1:5, 6:9, 10:11))\nplot(mdout) \nmdout <- mdqc(allQC, method=\"cluster\", k=3)\nplot(mdout) \nprint(mdout)\nmdout <- mdqc(allQC, method=\"loading\", k=3, pc=4)\nplot(mdout)\nprint(mdout)\nmdout <- mdqc(allQC, method=\"global\", pc=4)\nplot(mdout)"
+    }
+  ]
+}

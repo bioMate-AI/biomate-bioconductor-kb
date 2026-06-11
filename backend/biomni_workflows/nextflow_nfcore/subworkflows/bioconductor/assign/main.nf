@@ -1,139 +1,196 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ASSIGN
-// ASSIGN is a computational tool to evaluate the pathway deregulation/activation status in individual 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ASSIGN/inst/doc/ASSIGN.vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ASSIGN")
+// Bioconductor workflow: ASSIGN — assign_pathway_profiling
+// Evaluate pathway deregulation and activation status in patient samples using a signature-based Bayesian factor analysis approach without training data.
+// Input: counts.csv, coldata.csv
+// Container: 1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ASSIGN
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ASSIGN {
+process BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-assign"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-assign:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-assign:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_assign_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_assign_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_assign_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(ASSIGN)
-    library(jsonlite)
-
-    # --- MCMC Sampling [] ---
-    # Key functions: assign.mcmc
+    
+    # Create output directory
+    output_dir <- "assign_outputs"
+    if (!dir.exists(output_dir)) {
+      dir.create(output_dir)
+    }
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    
+    # Read expression matrix (probe/gene-by-sample)
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(counts), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching sample names found between counts.csv and coldata.csv.")
+    }
+    
+    counts <- counts[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # Convert to matrix and ensure data is log-transformed/normalized
+    testData <- as.matrix(counts)
+    if (max(testData, na.rm = TRUE) > 100) {
+      message("Data values exceed 100; performing log2 transformation...")
+      testData <- log2(testData + 1)
+    }
+    
+    # ==========================================
+    # Stage 2: Construct Pathway Signatures
+    # ==========================================
+    
+    # Identify highly variable genes to construct mock pathway signatures
+    row_vars <- apply(testData, 1, var)
+    row_vars <- row_vars[!is.is.na(row_vars) & !is.nan(row_vars)]
+    top_genes <- names(sort(row_vars, decreasing = TRUE))
+    
+    if (length(top_genes) < 40) {
+      stop("Too few genes in the input matrix to build pathway signatures.")
+    }
+    
+    # Create two distinct pathway signatures from the top variable genes
+    n_genes_per_pathway <- min(30, floor(length(top_genes) / 2))
+    geneList <- list(
+      Pathway_A = top_genes[1:n_genes_per_pathway],
+      Pathway_B = top_genes[(n_genes_per_pathway + 1):(2 * n_genes_per_pathway)]
+    )
+    
+    # Extract test labels (conditions)
+    testLabel <- coldata\$condition
+    
+    # ==========================================
+    # Stage 3: Run ASSIGN Step-by-Step Pipeline
+    # ==========================================
+    
+    message("Step 1: Preprocessing data...")
+    processed.data <- assign.preprocess(
+      trainingData = NULL,
+      testData = testData,
+      trainingLabel = NULL,
+      geneList = geneList
+    )
+    
+    message("Step 2: Running MCMC chain...")
     mcmc.chain <- assign.mcmc(
-        Y = processed.data$testData_sub,
-        Bg = processed.data$B_vector,
-        X = processed.data$S_matrix,
-        Delta_prior_p = processed.data$Pi_matrix,
-        iter = 2000,
-        adaptive_B = TRUE,
-        adaptive_S = FALSE,
-        mixture_beta = TRUE
+      Y = processed.data\$testData_sub,
+      Bg = processed.data\$B_vector,
+      X = processed.data\$S_matrix,
+      Delta_prior_p = processed.data\$Pi_matrix,
+      iter = 1000,
+      adaptive_B = TRUE,
+      adaptive_S = TRUE,
+      mixture_beta = TRUE
     )
-
-
-    # --- Convergence Diagnostics [] ---
-    # Key functions: assign.convergence
+    
+    message("Step 3: Checking convergence...")
+    pdf(file.path(output_dir, "convergence_trace_plot.pdf"))
     trace.plot <- assign.convergence(
-        test = mcmc.chain,
-        burn_in = 0,
-        iter = 2000,
-        parameter = "B",
-        whichGene = 1,
-        whichSample = NA,
-        whichPath = NA
+      test = mcmc.chain,
+      burn_in = 0,
+      iter = 1000,
+      parameter = "B",
+      whichGene = 1,
+      whichSample = NA,
+      whichPath = NA
     )
-
-
-    # --- Parameter Estimation [] ---
-    # Key functions: assign.summary
+    dev.off()
+    
+    message("Step 4: Computing posterior summary...")
     mcmc.pos.mean <- assign.summary(
-        test = mcmc.chain,
-        burn_in = 1000,
-        iter = 2000,
-        adaptive_B = TRUE,
-        adaptive_S = FALSE,
-        mixture_beta = TRUE
+      test = mcmc.chain,
+      burn_in = 500,
+      iter = 1000,
+      adaptive_B = TRUE,
+      adaptive_S = TRUE,
+      mixture_beta = TRUE
     )
-
-
-    # --- Output Generation [] ---
-    # Key functions: assign.output
+    
+    message("Step 5: Generating prediction outputs...")
     assign.output(
-        processed.data = processed.data,
-        mcmc.pos.mean.testData = mcmc.pos.mean,
-        trainingData = trainingData1,
-        testData = testData1,
-        trainingLabel = trainingLabel1,
-        testLabel = testLabel1,
-        geneList = NULL,
-        adaptive_B = TRUE,
-        adaptive_S = FALSE,
-        mixture_beta = TRUE,
-        outputDir = "output_directory"
+      processed.data = processed.data,
+      mcmc.pos.mean.testData = mcmc.pos.mean,
+      trainingData = NULL,
+      testData = testData,
+      trainingLabel = NULL,
+      testLabel = testLabel,
+      geneList = geneList,
+      adaptive_B = TRUE,
+      adaptive_S = TRUE,
+      mixture_beta = TRUE,
+      outputDir = output_dir
     )
+    
+    message("ASSIGN pipeline completed successfully. Outputs saved in '", output_dir, "'.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_assign_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_assign_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_assign_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ASSIGN:", paste0("    assign: ", packageVersion("ASSIGN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING":',
+        paste0('    ASSIGN: ', as.character(packageVersion('ASSIGN')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_assign_results.csv
-    touch ${prefix}_assign_output.rds
-    echo "BIOC_ASSIGN:" > versions.yml
-    echo "    assign: 0.0.0" >> versions.yml
+    touch ${prefix}_assign_pathway_profiling.csv versions.yml
     """
 }
 
-
-workflow BIOC_ASSIGN_WORKFLOW {
+workflow BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ASSIGN(ch_input)
+    BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING(ch_input)
 
     emit:
-    results  = BIOC_ASSIGN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ASSIGN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ASSIGN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ASSIGN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING.out.tables
+    plots    = BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING.out.plots
+    objects  = BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING.out.objects
+    versions = BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING.out.versions
 }

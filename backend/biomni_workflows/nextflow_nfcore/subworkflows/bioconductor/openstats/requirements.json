@@ -1,0 +1,17 @@
+{
+  "package": "openstats",
+  "requirements": [
+    "OpenStats"
+  ],
+  "by_workflow": {
+    "fishers_exact_test_workflow.nf": [
+      "OpenStats"
+    ],
+    "main.nf": [
+      "OpenStats"
+    ],
+    "reference_range_plus_workflow.nf": [
+      "OpenStats"
+    ]
+  }
+}

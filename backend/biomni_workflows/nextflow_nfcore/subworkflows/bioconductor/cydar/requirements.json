@@ -1,0 +1,19 @@
+{
+  "package": "cydar",
+  "requirements": [
+    "BiocParallel",
+    "cydar",
+    "edgeR",
+    "flowCore",
+    "ncdfFlow"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "cydar",
+      "edgeR",
+      "flowCore",
+      "ncdfFlow"
+    ]
+  }
+}

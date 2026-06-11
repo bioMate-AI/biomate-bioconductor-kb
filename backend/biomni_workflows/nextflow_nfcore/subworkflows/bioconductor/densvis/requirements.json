@@ -1,0 +1,17 @@
+{
+  "package": "densvis",
+  "requirements": [
+    "densvis",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "density_preserving_umap.nf": [
+      "densvis",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "densvis",
+      "ggplot2"
+    ]
+  }
+}

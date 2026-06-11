@@ -1,0 +1,11 @@
+{
+  "package": "unifiedwmwqpcr",
+  "requirements": [
+    "unifiedWMWqPCR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "unifiedWMWqPCR"
+    ]
+  }
+}

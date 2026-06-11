@@ -1,91 +1,216 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ClusterFoldSimilarity
-// This package calculates a similarity coefficient using the fold changes of shared features (e.g. gen
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ClusterFoldSimilarity/inst/doc/ClusterFoldSimilarity.R
-// Upstream  : Seurat, dplyr, scRNAseq
-// Downstream: none
-//
-// Install: BiocManager::install("ClusterFoldSimilarity")
+// Bioconductor workflow: ClusterFoldSimilarity — single_cell_cluster_similarity
+// Compare cell clusters or annotated groups across independent single-cell datasets to identify similar populations, key contributing features, and graph-based co
+// Input: singlecellObjectList
+// Container: quay.io/biocontainers/bioconductor-clusterfoldsimilarity:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, ClusterFoldSimilarity, Seurat, SingleCellExperiment, dplyr
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Set active identities (e.g., cell types or cluster labels) for comparison
+//  * 2. [Core Analysis] Compute similarity table using clusterFoldSimilarity()
+//  * 3. [Core Analysis] Find closely-related cluster communities using findCommunitiesSimmilarity()
+//  * 4. [Core Analysis] Retrieve top-n similar clusters or top-n contributing features
+//  * 5. [Visualization & Output] Generate similarity heatmaps using similarityHeatmap()
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLUSTERFOLDSIMILARITY {
+process BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clusterfoldsimilarity"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clusterfoldsimilarity:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-clusterfoldsimilarity:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clusterfoldsimilarity_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clusterfoldsimilarity_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clusterfoldsimilarity_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CreateSeuratObject)
-    library(MuraroPancreasData)
-    library(jsonlite)
-
-    # --- Muraro Pancreas Data [] ---
-    # Key functions: MuraroPancreasData, colData, CreateSeuratObject
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(Seurat)
-    library(scRNAseq)
+    library(ClusterFoldSimilarity)
+    library(BiocParallel)
     library(dplyr)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clusterfoldsimilarity_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clusterfoldsimilarity_results.csv")
+    
+    # -----------------------------------------------------------------------------
+    # 1. Read User Input
+    # -----------------------------------------------------------------------------
+    # The pipeline expects a pre-processed list of Seurat or SingleCellExperiment objects
+    input_file <- "singlecellObjectList.rds"
+    if (!file.exists(input_file)) {
+      if (file.exists("singlecellObjectList.RDS")) {
+        input_file <- "singlecellObjectList.RDS"
+      } else {
+        stop("Error: Input file 'singlecellObjectList.rds' or 'singlecellObjectList.RDS' not found in the working directory.")
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clusterfoldsimilarity_output.rds")
+    
+    singlecellObjectList <- readRDS(input_file)
+    
+    # Robustness check: Ensure "cell.type" column exists in metadata for all objects.
+    # If not present, we fall back to active identities or cluster labels.
+    for (i in seq_along(singlecellObjectList)) {
+      if (inherits(singlecellObjectList[[i]], "Seurat")) {
+        if (!"cell.type" %in% colnames(singlecellObjectList[[i]][[]])) {
+          if ("seurat_clusters" %in% colnames(singlecellObjectList[[i]][[]])) {
+            singlecellObjectList[[i]]\$cell.type <- singlecellObjectList[[i]]\$seurat_clusters
+          } else {
+            singlecellObjectList[[i]]\$cell.type <- as.character(Idents(singlecellObjectList[[i]]))
+          }
+        }
+      } else if (inherits(singlecellObjectList[[i]], "SingleCellExperiment")) {
+        if (!"cell.type" %in% colnames(colData(singlecellObjectList[[i]]))) {
+          labels <- colLabels(singlecellObjectList[[i]])
+          if (is.null(labels)) {
+            labels <- rep("unknown", ncol(singlecellObjectList[[i]]))
+          }
+          singlecellObjectList[[i]]\$cell.type <- as.character(labels)
+        }
+      }
     }
+    
+    # Open PDF device to capture all automatically generated plots
+    pdf("cluster_fold_similarity_plots.pdf", width = 11, height = 8.5)
+    
+    # -----------------------------------------------------------------------------
+    # 2. Documented Workflow Execution
+    # -----------------------------------------------------------------------------
+    
+    # Assign cell-type annotated from the original study to the cell labels for all datasets:
+    for (i in seq_along(singlecellObjectList)) {
+      if (inherits(singlecellObjectList[[i]], "Seurat")) {
+        Idents(singlecellObjectList[[i]]) <- factor(singlecellObjectList[[i]]\$cell.type)
+      } else if (inherits(singlecellObjectList[[i]], "SingleCellExperiment")) {
+        colLabels(singlecellObjectList[[i]]) <- factor(singlecellObjectList[[i]]\$cell.type)
+      }
+    }
+    
+    # Generate dynamic sample names based on the number of datasets
+    mySampleNames <- paste0("dataset", seq_along(singlecellObjectList))
+    
+    library(ClusterFoldSimilarity)
+    similarityTable <- clusterFoldSimilarity(scList=singlecellObjectList, 
+                                             sampleNames=mySampleNames,
+                                             topN=1, 
+                                             nSubsampling=24)
+    
+    cellCommunities <- findCommunitiesSimmilarity(similarityTable = similarityTable)
+    
+    # Retrieve the top 3 similar cluster for each of the clusters:
+    similarityTable3Top <- clusterFoldSimilarity(scList=singlecellObjectList, 
+                                                 topN=3,
+                                                 sampleNames=mySampleNames, 
+                                                 nSubsampling=24)
+    
+    # Retrieve the top 5 features that contribute the most to the similarity between each pair of clusters:
+    similarityTable5TopFeatures <- clusterFoldSimilarity(scList=singlecellObjectList, 
+                                                         sampleNames=mySampleNames,
+                                                         topNFeatures=5, 
+                                                         nSubsampling=24)
+    
+    similarityTableAllValues <- clusterFoldSimilarity(scList=singlecellObjectList, 
+                                                      sampleNames=mySampleNames, 
+                                                      topN=Inf)
+    
+    # Setting the number of CPUs with BiocParallel:
+    BiocParallel::register(BPPARAM =  BiocParallel::MulticoreParam(workers = 6))
+    
+    # Prepare the variable features subset
+    singlecellObjectListVariable <- lapply(singlecellObjectList, function(x){
+      if (inherits(x, "Seurat")) {
+        var_feats <- VariableFeatures(x)
+        if (length(var_feats) > 0) {
+          return(x[var_feats, ])
+        }
+      }
+      return(x)
+    })
+    
+    similarityTableParallel <- clusterFoldSimilarity(scList=singlecellObjectListVariable,
+                                                            sampleNames=mySampleNames,
+                                                            topN=1, 
+                                                            nSubsampling=24,
+                                                            parallel=TRUE)
+    
+    similarityTableParallelAll <- clusterFoldSimilarity(scList=singlecellObjectListVariable,
+                                                              sampleNames=mySampleNames,
+                                                              topN=Inf,
+                                                              nSubsampling=24,
+                                                              parallel=TRUE)
+    
+    main_dataset <- mySampleNames[min(2, length(mySampleNames))]
+    
+    ClusterFoldSimilarity::similarityHeatmap(similarityTable=similarityTableParallelAll, mainDataset=main_dataset)
+    
+    # Turn-off the highlighting:
+    ClusterFoldSimilarity::similarityHeatmap(similarityTable=similarityTableParallelAll, mainDataset=main_dataset, highlightTop=FALSE)
+    
+    # Close PDF device
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # 3. Save Outputs
+    # -----------------------------------------------------------------------------
+    write.csv(similarityTable, "similarityTable_top1.csv", row.names = FALSE)
+    write.csv(cellCommunities, "cellCommunities.csv", row.names = FALSE)
+    write.csv(similarityTable3Top, "similarityTable_top3.csv", row.names = FALSE)
+    write.csv(similarityTable5TopFeatures, "similarityTable_top5_features.csv", row.names = FALSE)
+    write.csv(similarityTableAllValues, "similarityTable_all_values.csv", row.names = FALSE)
+    write.csv(similarityTableParallel, "similarityTable_parallel_top1.csv", row.names = FALSE)
+    write.csv(similarityTableParallelAll, "similarityTable_parallel_all.csv", row.names = FALSE)
+    
+    saveRDS(similarityTableParallelAll, "similarityTableParallelAll.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLUSTERFOLDSIMILARITY:", paste0("    clusterfoldsimilarity: ", packageVersion("ClusterFoldSimilarity"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY":',
+        paste0('    ClusterFoldSimilarity: ', as.character(packageVersion('ClusterFoldSimilarity')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clusterfoldsimilarity_results.csv
-    touch ${prefix}_clusterfoldsimilarity_output.rds
-    echo "BIOC_CLUSTERFOLDSIMILARITY:" > versions.yml
-    echo "    clusterfoldsimilarity: 0.0.0" >> versions.yml
+    touch ${prefix}_single_cell_cluster_similarity.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLUSTERFOLDSIMILARITY_WORKFLOW {
+workflow BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ singlecellObjectList ] ]
 
     main:
-    BIOC_CLUSTERFOLDSIMILARITY(ch_input)
+    BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY(ch_input)
 
     emit:
-    results  = BIOC_CLUSTERFOLDSIMILARITY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLUSTERFOLDSIMILARITY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLUSTERFOLDSIMILARITY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLUSTERFOLDSIMILARITY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY.out.tables
+    plots    = BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY.out.plots
+    objects  = BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY.out.objects
+    versions = BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "attract",
+  "requirements": [
+    "attract"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "attract"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - labels: Numeric vector of cluster labels for each cell in the sample.\n    - sample: The flow cytometry sample matrix (cells x features) used to estimate cluster centers and covariances if they are not explicitly provided.\n    - centers: Optional list of mean vectors for the clusters.\n    - covs: Optional list of covariance matrices for the clusters.\n    - dist.type: Distance metric used to compute dissimilarity between clusters; options are 'Mahalanobis', 'KL', or 'Euclidean'.\n    - unmatch.penalty: Penalty for leaving a cluster unmatched in match.clusters; a very large value (e.g., 99999) forces all clusters to match.\n    - color.mc: Character vector of colors used to color different meta-clusters in plots.\n    - plot.mc: Logical; if TRUE, plots the outline/contour of the combined meta-cluster rather than individual participating clusters.\n    - colorbysample: Logical; if TRUE, colors the contours in the template plot by their sample of origin.\n- alternatives:\n    - flowMap: Matches cell populations across samples using the nonparametric Friedman-Rafsky (FR) multivariate run test, but does not perform meta-clustering or template creation.\n    - FLAME: A non-Bioconductor package that provides similar population matching and meta-clustering functionalities.\n    - flowClust / flowMerge / flowMeans: Bioconductor packages used for the initial clustering/gating of flow cytometry samples before passing the results to flowMatch.\n- when_to_use: Use this package when you have multiple flow cytometry samples (e.g., replicates, different conditions, or patient cohorts) that have already been clustered, and you want to align corresponding cell populations across samples or summarize them into a representative class template.\n- pitfalls:\n    - Non-reproducible clustering: If using stochastic clustering algorithms like kmeans, failing to set a seed (set.seed) before clustering will lead to non-reproducible templates.\n    - Parameter estimation overhead: If centers and covs are not pre-calculated and passed to ClusteredSample, the raw sample matrix must be provided, which can be memory-intensive for very large datasets.\n    - Unmatch penalty selection: Choosing an inappropriate unmatch.penalty can lead to biologically unrealistic matches or prevent true matches from being established.",
+  "workflows": [
+    {
+      "name": "pairwise_cluster_matching",
+      "intent": "Match cell populations (clusters) across a pair of flow cytometry samples using the Mixed Edge Cover (MEC) algorithm.",
+      "input": [
+        "sample1.csv (expression matrix for sample 1)",
+        "sample2.csv (expression matrix for sample 2)"
+      ],
+      "stages": "1. Cluster both samples using a clustering algorithm (e.g., kmeans).\n2. Create ClusteredSample S4 objects for both samples to encapsulate cluster labels and expression data.\n3. Match clusters across the sample pair using match.clusters with a specified distance metric and unmatch penalty.\n4. Retrieve and summarize the matching results.",
+      "code": "clust1 = kmeans(sample1, centers=4, nstart=20)\nclust2 = kmeans(sample2, centers=4, nstart=20)\ncluster.labels1 = clust1$cluster\ncluster.labels2 = clust2$cluster\nclustSample1 = ClusteredSample(labels=cluster.labels1, sample=sample1)\nclustSample2 = ClusteredSample(labels=cluster.labels2, sample=sample2)\nmec = match.clusters(clustSample1, clustSample2, dist.type=\"Mahalanobis\", unmatch.penalty=99999)\nclass(mec)\nsummary(mec)"
+    },
+    {
+      "name": "template_construction_and_metaclustering",
+      "intent": "Build a representative template and meta-clusters from a collection of multiple clustered flow cytometry samples, and visualize the results.",
+      "input": [
+        "sample_list.rds (a list of expression matrices for multiple flow cytometry samples)"
+      ],
+      "stages": "1. Loop through each sample, cluster it, and create ClusteredSample objects.\n2. Store all ClusteredSample objects in a list.\n3. Construct a template from the list of clustered samples using create.template.\n4. Visualize the hierarchical relationship of the samples using template.tree.\n5. Plot the template contours using various visualization options.\n6. Retrieve, summarize, and plot individual meta-clusters.",
+      "code": "clustSamples = list()\nfor(i in 1:length(hd.flowSet))\n{\n  sample1 = exprs(hd.flowSet[[i]])\n  clust1 = kmeans(sample1, centers=4, nstart=20)\n  cluster.labels1 = clust1$cluster\n  clustSample1 = ClusteredSample(labels=cluster.labels1, sample=sample1)\n  clustSamples = c(clustSamples, clustSample1)\n}\ntemplate = create.template(clustSamples)\nsummary(template)\ntemplate.tree(template)\nplot(template)\nplot(template, color.mc=c('blue','black','green3','red'))\nplot(template, plot.mc=TRUE, color.mc=c('blue','black','green3','red'))\nplot(template, colorbysample=TRUE)\nmc = get.metaClusters(template)[[1]]\nsummary(mc)\nplot(mc)\nplot(mc, plot.mc=TRUE)"
+    }
+  ]
+}

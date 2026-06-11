@@ -1,0 +1,26 @@
+{
+  "package": "msquality",
+  "requirements": [
+    "BiocParallel",
+    "Chromatograms",
+    "MsExperiment",
+    "MsQuality",
+    "Spectra"
+  ],
+  "by_workflow": {
+    "chromatographic_qc_chromatograms.nf": [
+      "BiocParallel",
+      "Chromatograms",
+      "MsExperiment",
+      "MsQuality",
+      "Spectra"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "Chromatograms",
+      "MsExperiment",
+      "MsQuality",
+      "Spectra"
+    ]
+  }
+}

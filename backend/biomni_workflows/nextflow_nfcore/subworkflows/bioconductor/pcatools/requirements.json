@@ -1,0 +1,15 @@
+{
+  "package": "pcatools",
+  "requirements": [
+    "DESeq2",
+    "PCAtools",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "PCAtools",
+      "ggplot2"
+    ]
+  }
+}

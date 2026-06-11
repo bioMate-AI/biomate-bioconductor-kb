@@ -1,0 +1,11 @@
+{
+  "package": "synextend",
+  "requirements": [
+    "SynExtend"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SynExtend"
+    ]
+  }
+}

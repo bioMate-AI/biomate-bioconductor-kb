@@ -1,0 +1,15 @@
+{
+  "package": "customcmpdb",
+  "requirements": [
+    "ChemmineR",
+    "RSQLite",
+    "customCMPdb"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChemmineR",
+      "RSQLite",
+      "customCMPdb"
+    ]
+  }
+}

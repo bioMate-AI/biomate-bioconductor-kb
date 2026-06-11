@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: species=Designation for the target species in fetch_go (e.g., \"sgd\" for yeast) ;; terms=A tibble containing functional term descriptions passed to prepare_for_enrichment ;; mapping=A tibble containing term-to-feature mapping passed to prepare_for_enrichment ;; background=A vector of all detected features (e.g., exmpl_all) representing the gene background ;; feature_name=The column name in the mapping tibble containing the feature identifiers (e.g., \"gene_symbol\") ;; selected=A vector of selected features of interest (e.g., exmpl_sel) passed to functional_enrichment\n- alternatives: topGO, GOstats, clusterProfiler, and GOfuncR are mentioned as comprehensive alternatives that are slower because they bundle data preparation and testing together, making them less suitable for interactive or multi-selection exploratory analyses.\n- when_to_use: Use when you need to perform rapid, repeated functional enrichment analyses on multiple different feature selections (e.g., in a Shiny app or during interactive data exploration) using a pre-defined background set.\n- pitfalls: Enrichment analysis only indicates statistical overrepresentation and does not guarantee biological relevance, requiring independent validation. Users must ensure that the feature identifiers in their background/selection lists match the identifier type specified in the feature_name parameter of the mapping database.",
+  "workflows": [
+    {
+      "name": "fast_functional_enrichment",
+      "intent": "Perform rapid functional enrichment analysis on a selected set of genes against a background set using fetched Gene Ontology annotations.",
+      "input": [
+        "background_genes.txt (a vector of all detected gene symbols in the experiment)",
+        "selected_genes.txt (a vector of gene symbols of interest, such as differentially expressed genes)"
+      ],
+      "stages": "1. Fetch Gene Ontology terms and gene mappings for the target species using fetch_go ;; 2. Prepare the fetched terms and mappings for fast enrichment against the background gene set using prepare_for_enrichment ;; 3. Run the rapid functional enrichment test on the selected genes using functional_enrichment",
+      "code": "library(fenr)\ndata(exmpl_all, exmpl_sel)\ngo <- fetch_go(species = \"sgd\")\ngo_terms <- prepare_for_enrichment(go$terms, go$mapping, exmpl_all, feature_name = \"gene_symbol\")\nenr <- functional_enrichment(exmpl_all, exmpl_sel, go_terms)"
+    }
+  ]
+}

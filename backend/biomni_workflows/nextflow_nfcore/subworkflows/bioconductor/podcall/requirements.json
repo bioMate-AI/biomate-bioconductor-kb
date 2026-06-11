@@ -1,0 +1,11 @@
+{
+  "package": "podcall",
+  "requirements": [
+    "PoDCall"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PoDCall"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "msstatsptm",
+  "requirements": [
+    "MSstats",
+    "MSstatsPTM",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSstats",
+      "MSstatsPTM",
+      "data.table"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "tidyflowcore",
+  "requirements": [
+    "dplyr",
+    "flowCore",
+    "ggplot2",
+    "tidyFlowCore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "flowCore",
+      "ggplot2",
+      "tidyFlowCore"
+    ]
+  }
+}

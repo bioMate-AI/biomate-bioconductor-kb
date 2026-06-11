@@ -1,0 +1,19 @@
+{
+  "package": "scanmir",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "scanMiR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "scanMiR"
+    ]
+  }
+}

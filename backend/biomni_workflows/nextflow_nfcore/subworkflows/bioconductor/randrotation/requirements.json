@@ -1,0 +1,26 @@
+{
+  "package": "randrotation",
+  "requirements": [
+    "limma",
+    "nlme",
+    "randRotation",
+    "sva"
+  ],
+  "by_workflow": {
+    "contrast_analysis_batch_correction.nf": [
+      "limma",
+      "randRotation",
+      "sva"
+    ],
+    "main.nf": [
+      "limma",
+      "randRotation",
+      "sva"
+    ],
+    "mixed_model_batch_correction.nf": [
+      "limma",
+      "nlme",
+      "randRotation"
+    ]
+  }
+}

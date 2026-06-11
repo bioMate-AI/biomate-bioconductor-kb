@@ -1,0 +1,15 @@
+{
+  "package": "quantro",
+  "requirements": [
+    "Biobase",
+    "doParallel",
+    "quantro"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "doParallel",
+      "quantro"
+    ]
+  }
+}

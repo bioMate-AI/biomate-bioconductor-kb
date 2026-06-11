@@ -1,127 +1,113 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mgsa
-// Model-based Gene Set Analysis (MGSA) is a Bayesian modeling approach for gene set enrichment. The pa
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mgsa/inst/doc/mgsa.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("mgsa")
+// Bioconductor workflow: mgsa — mgsa_gene_ontology
+// Perform model-based gene set enrichment analysis using Gene Ontology annotations loaded from a GAF file.
+// Input: gene_association.gaf, study_genes.txt
+// Container: quay.io/biocontainers/bioconductor-mgsa:1.58.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: mgsa
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load GO annotations from a GAF file using readGAF
+//  * 2. [Core Analysis] Run MGSA using mgsa
+//  * 3. [Visualization & Output] Plot the posterior probabilities using plot
+//  * 4. [Core Analysis] Extract and filter results using setsResults and subset
 
 nextflow.enable.dsl = 2
 
-process BIOC_MGSA {
+process BIOC_MGSA_MGSA_GENE_ONTOLOGY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mgsa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mgsa:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mgsa:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mgsa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mgsa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mgsa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(mgsa)
-    library(jsonlite)
+    
+    # 1. Load GO annotations from the user-provided GAF file
+    # The documented code uses readGAF() to load GAF files.
+    # We assign the result to 'example_go' to match the documented mgsa() call.
+    example_go = readGAF("gene_association.gaf")
+    
+    # Load the study genes from the user-provided text file
+    # We assign this to 'example_o' to match the documented mgsa() call.
+    example_o = readLines("study_genes.txt")
+    example_o = trimws(example_o)
+    example_o = example_o[example_o != ""]
+    
+    # 2. Run MGSA using mgsa()
+    set.seed(0)
+    fit = mgsa(example_o, example_go)
+    
+    # Print the fit object to stdout
+    print(fit)
+    
+    # 3. Plot the posterior probabilities using plot() and save to PDF
+    pdf("mgsa_plot.pdf", width = 10, height = 8)
+    plot(fit)
+    dev.off()
+    
+    # 4. Extract and filter results using setsResults and subset
+    res = setsResults(fit)
+    filtered_res = subset(res, estimate > 0.5)
+    
+    # Write the results to output files
+    write.csv(res, "mgsa_results_all.csv", row.names = TRUE)
+    write.csv(filtered_res, "mgsa_results_filtered.csv", row.names = TRUE)
+    saveRDS(fit, "mgsa_fit.rds")
 
-    # --- Model Fitting [] ---
-    # Key functions: mgsa, new
-    data("example")
-    fit_example <- mgsa(
-        o = example_o,
-        sets = example_go
-    )
-    custom_sets <- new(
-        "MgsaSets",
-        sets = list(set1 = LETTERS[1:3], set2 = LETTERS[2:5])
-    )
-    fit_custom <- mgsa(
-        o = c("A", "B"),
-        sets = custom_sets
-    )
-
-
-    # --- Result Extraction [] ---
-    # Key functions: mgsa, setsResults
-    data("example")
-    fit <- mgsa(
-        o = example_o,
-        sets = example_go
-    )
-    res <- setsResults(fit)
-    high_est_sets <- subset(
-        res,
-        estimate > 0.5
-    )
-
-
-    # --- Visualisation [] ---
-    # Key functions: mgsa, plot
-    data("example")
-    fit <- mgsa(
-        o = example_o,
-        sets = example_go
-    )
-    plot(
-        fit,
-        main = "MGSA Posterior Probabilities"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mgsa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mgsa_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mgsa_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MGSA:", paste0("    mgsa: ", packageVersion("mgsa"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MGSA_MGSA_GENE_ONTOLOGY":',
+        paste0('    mgsa: ', as.character(packageVersion('mgsa')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mgsa_results.csv
-    touch ${prefix}_mgsa_output.rds
-    echo "BIOC_MGSA:" > versions.yml
-    echo "    mgsa: 0.0.0" >> versions.yml
+    touch ${prefix}_mgsa_gene_ontology.csv versions.yml
     """
 }
 
-
-workflow BIOC_MGSA_WORKFLOW {
+workflow BIOC_MGSA_MGSA_GENE_ONTOLOGY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_association.gaf, study_genes.txt ] ]
 
     main:
-    BIOC_MGSA(ch_input)
+    BIOC_MGSA_MGSA_GENE_ONTOLOGY(ch_input)
 
     emit:
-    results  = BIOC_MGSA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MGSA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MGSA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MGSA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MGSA_MGSA_GENE_ONTOLOGY.out.tables
+    plots    = BIOC_MGSA_MGSA_GENE_ONTOLOGY.out.plots
+    objects  = BIOC_MGSA_MGSA_GENE_ONTOLOGY.out.objects
+    versions = BIOC_MGSA_MGSA_GENE_ONTOLOGY.out.versions
 }

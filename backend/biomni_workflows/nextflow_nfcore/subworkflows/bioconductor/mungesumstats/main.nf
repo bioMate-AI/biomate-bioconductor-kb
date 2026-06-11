@@ -1,99 +1,122 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MungeSumstats
-// The *MungeSumstats* package is designed to facilitate the standardisation of GWAS summary statistics
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MungeSumstats/inst/doc/MungeSumstats.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MungeSumstats")
+// Bioconductor workflow: mungesumstats — standardise_and_qc_gwas
+// Standardise column headers and perform comprehensive quality control checks on local tabular or VCF GWAS summary statistics.
+// Input: eduAttainOkbay.txt, ALSvcf.vcf
+// Container: quay.io/biocontainers/bioconductor-mungesumstats:1.18.1--r45hdfd78af_0
+// R packages: MungeSumstats
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MUNGESUMSTATS {
+process BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mungesumstats"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mungesumstats:1.14.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-mungesumstats:1.14.1--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-mungesumstats:1.18.1--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mungesumstats_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mungesumstats_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mungesumstats_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MungeSumstats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(MungeSumstats)
-    library(jsonlite)
-
-    # --- Formatted Example [] ---
-    # Key functions: formatted_example, liftover
-    ---------------------------------------------------------------------
-    sumstats_dt <- MungeSumstats::formatted_example()
-    sumstats_dt_hg38 <- MungeSumstats::liftover(sumstats_dt = sumstats_dt,
-                                                ref_genome = "hg19",
-                                                convert_ref_genome = "hg38")
-    # --- Copy [] ---
-    # Key functions: copy, setnames, runif, standardise_header
-    ---------------------------------------------------------------------
-    #### Mess up some column names ####
-    dat_raw <- data.table::copy(dat)
-    data.table::setnames(dat_raw, c("SNP","CHR"), c("rsID","Seqnames"))
-    #### Add a non-standard column that I want to keep the casing for ####
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mungesumstats_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mungesumstats_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mungesumstats_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MUNGESUMSTATS:", paste0("    mungesumstats: ", packageVersion("MungeSumstats"))),
-        "versions.yml"
+    
+    # 1. Define the path to the raw summary statistics files (from the working directory)
+    eduAttainOkbayPth <- "eduAttainOkbay.txt"
+    ALSvcfPth <- "ALSvcf.vcf"
+    
+    # 2. Run format_sumstats() specifying the reference genome and output parameters
+    reformatted <- MungeSumstats::format_sumstats(
+      path = eduAttainOkbayPth, 
+      ref_genome = "GRCh37"
     )
+    
+    reformatted_vcf <- MungeSumstats::format_sumstats(
+      path = ALSvcfPth, 
+      ref_genome = "GRCh37"
+    )
+    
+    # 3. Run format_sumstats() with logging and imputation indicators enabled
+    reformatted_vcf_2 <- MungeSumstats::format_sumstats(
+      path = ALSvcfPth, 
+      ref_genome = "GRCh37", 
+      log_folder_ind = TRUE, 
+      imputation_ind = TRUE, 
+      log_mungesumstats_msgs = TRUE
+    )
+    
+    # 4. Write named output files for the meaningful results
+    # Copy the formatted tabular summary statistics to the working directory
+    file.copy(reformatted, "reformatted_eduAttainOkbay.tsv.gz", overwrite = TRUE)
+    
+    # Copy the formatted VCF summary statistics to the working directory
+    file.copy(reformatted_vcf, "reformatted_ALSvcf.tsv.gz", overwrite = TRUE)
+    
+    # Save the list containing paths to log files and formatted sumstats from the second run
+    saveRDS(reformatted_vcf_2, "reformatted_vcf_2_results.rds")
+    
+    # Copy the sumstats file from the second run to the working directory
+    if (is.list(reformatted_vcf_2) && !is.null(reformatted_vcf_2\$sumstats)) {
+      file.copy(reformatted_vcf_2\$sumstats, "reformatted_vcf_2.tsv.gz", overwrite = TRUE)
+    }
+
+    writeLines(c(
+        '"BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS":',
+        paste0('        mungesumstats: ', as.character(packageVersion("mungesumstats")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mungesumstats_results.csv
-    touch ${prefix}_mungesumstats_output.rds
-    echo "BIOC_MUNGESUMSTATS:" > versions.yml
-    echo "    mungesumstats: 0.0.0" >> versions.yml
+    touch ${prefix}_standardise_and_qc_gwas.csv versions.yml
     """
 }
 
-
-workflow BIOC_MUNGESUMSTATS_WORKFLOW {
+workflow BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ eduAttainOkbay.txt, ALSvcf.vcf ] ]
 
     main:
-    BIOC_MUNGESUMSTATS(ch_input)
+    BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS(ch_input)
 
     emit:
-    results  = BIOC_MUNGESUMSTATS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MUNGESUMSTATS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MUNGESUMSTATS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MUNGESUMSTATS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS.out.tables
+    plots    = BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS.out.plots
+    objects  = BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS.out.objects
+    versions = BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS.out.versions
 }

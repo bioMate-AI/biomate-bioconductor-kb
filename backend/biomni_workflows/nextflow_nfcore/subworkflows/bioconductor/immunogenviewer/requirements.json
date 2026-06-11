@@ -1,0 +1,11 @@
+{
+  "package": "immunogenviewer",
+  "requirements": [
+    "immunogenViewer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "immunogenViewer"
+    ]
+  }
+}

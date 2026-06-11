@@ -1,0 +1,24 @@
+{
+  "package": "karyoploter",
+  "requirements": [
+    "GenomicRanges",
+    "karyoploteR",
+    "regioneR"
+  ],
+  "by_workflow": {
+    "custom_low_level_plotting.nf": [
+      "karyoploteR",
+      "regioneR"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "karyoploteR",
+      "regioneR"
+    ],
+    "zoomed_region_plotting.nf": [
+      "GenomicRanges",
+      "karyoploteR",
+      "regioneR"
+    ]
+  }
+}

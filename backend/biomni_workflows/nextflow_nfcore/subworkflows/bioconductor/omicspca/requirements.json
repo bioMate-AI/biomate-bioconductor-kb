@@ -1,0 +1,19 @@
+{
+  "package": "omicspca",
+  "requirements": [
+    "MultiAssayExperiment",
+    "OMICsPCA",
+    "cluster",
+    "factoextra",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "OMICsPCA",
+      "cluster",
+      "factoextra",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "package": "catscradle",
+  "requirements": [
+    "CatsCradle",
+    "Seurat",
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "deldir",
+    "ggplot2",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "gene_function_prediction.nf": [
+      "CatsCradle",
+      "Seurat",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "CatsCradle",
+      "Seurat",
+      "htmlwidgets"
+    ],
+    "spatial_neighborhood_analysis.nf": [
+      "CatsCradle",
+      "Seurat",
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "deldir"
+    ]
+  }
+}

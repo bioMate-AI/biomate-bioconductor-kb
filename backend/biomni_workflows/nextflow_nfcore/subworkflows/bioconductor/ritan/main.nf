@@ -1,99 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RITAN
-// Tools for comprehensive gene set enrichment and extraction of multi-resource high confidence subnetw
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RITAN/inst/doc/choosing_resources.R
-// Upstream  : RITANdata, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("RITAN")
+// Bioconductor workflow: RITAN — term_enrichment_analysis
+// Run hypergeometric enrichment analysis on a list of genes of interest across selected annotation resources or a custom GMT file.
+// Input: my_genes.txt, curated_gene_disease_associations.gmt.gz
+// Container: quay.io/biocontainers/bioconductor-ritan:1.34.0--r45hdfd78af_0
+// R packages: knitr, RITAN, RITANdata
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RITAN, RITANdata
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the input gene list and define the target resources. 2. Run hypergeometric enrichment testing using term_enrichment(). 3. Sum
 
 nextflow.enable.dsl = 2
 
-process BIOC_RITAN {
+process BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ritan"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ritan:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ritan:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ritan_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ritan_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ritan_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RITAN)
-    library(jsonlite)
-
-    # --- kable [] ---
-    # Key functions: kable
-    library(RITANdata)
-    library(RITAN)
-    library(knitr)
-    # --- geneset overlap P [] ---
-    # Key functions: network_overlap
-    e <- network_overlap( genes, resources = c('CCSB','STRING'), minStringScore = 700 )
-    # --- geneset overlap M [] ---
-    # Key functions: network_overlap
-    e2 <- network_overlap( genes, resources = c('PID','HumanNet') )
-    # --- geneset overlap E [] ---
-    # Key functions: network_overlap
-    e2 <- network_overlap( genes, resources = c('ChEA','HumanNet') )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ritan_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ritan_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("knitr", "RITAN", "RITANdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ritan_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(RITANdata)
+        library(RITAN)
+        
+        # 1. Load the input gene list and define the target resources
+        if (!file.exists("my_genes.txt")) {
+          stop("Required input file 'my_genes.txt' not found in the working directory.")
+        }
+        
+        # Read the user-provided gene list
+        my_genes <- readLines("my_genes.txt")
+        my_genes <- unique(trimws(my_genes[my_genes != ""]))
+        
+        # Define resources and background genes
+        resources <- c("ReactomePathways", "MSigDB_Hallmarks")
+        
+        # Define the optional custom GMT file path
+        gmt <- "curated_gene_disease_associations.gmt.gz"
+        
+        # Use the input genes as the query set 'gs' for the custom GMT enrichment
+        gs <- my_genes
+        
+        # 2. Run hypergeometric enrichment testing using term_enrichment()
+        e <- term_enrichment (my_genes, resources = resources, all_symbols = cached_coding_genes)
+        
+        # 3. Summarize and inspect the top enriched terms using summary()
+        summary (e)
+        
+        # Save standard enrichment results
+        write.csv(e, "term_enrichment_results.csv", row.names = FALSE)
+        saveRDS(e, "term_enrichment_results.rds")
+        
+        # Run enrichment against the custom GMT file if it exists
+        e2 <- NULL
+        if (file.exists(gmt)) {
+          e2 <- term_enrichment ( gs, resources = gmt, all_symbols = cached_coding_genes )
+          print ( e2[ 1 : 3 , - 5 ] )
+          
+          # Save custom GMT enrichment results
+          write.csv(e2, "term_enrichment_gmt_results.csv", row.names = FALSE)
+          saveRDS(e2, "term_enrichment_gmt_results.rds")
+        } else {
+          message("Optional custom GMT file 'curated_gene_disease_associations.gmt.gz' not found. Skipping custom GMT enrichment.")
+        }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RITAN:", paste0("    ritan: ", packageVersion("RITAN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS":',
+        paste0('    RITAN: ', as.character(packageVersion('RITAN')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ritan_results.csv
-    touch ${prefix}_ritan_output.rds
-    echo "BIOC_RITAN:" > versions.yml
-    echo "    ritan: 0.0.0" >> versions.yml
+    touch ${prefix}_term_enrichment_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_RITAN_WORKFLOW {
+workflow BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ my_genes.txt, curated_gene_disease_associations.gmt.gz ] ]
 
     main:
-    BIOC_RITAN(ch_input)
+    BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_RITAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RITAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RITAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RITAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS.out.tables
+    plots    = BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS.out.plots
+    objects  = BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS.out.objects
+    versions = BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS.out.versions
 }

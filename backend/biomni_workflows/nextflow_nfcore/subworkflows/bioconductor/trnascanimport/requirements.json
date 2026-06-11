@@ -1,0 +1,17 @@
+{
+  "package": "trnascanimport",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "rtracklayer",
+    "tRNAscanImport"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "rtracklayer",
+      "tRNAscanImport"
+    ]
+  }
+}

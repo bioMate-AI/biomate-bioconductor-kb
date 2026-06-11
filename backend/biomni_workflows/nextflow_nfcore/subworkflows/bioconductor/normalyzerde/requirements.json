@@ -1,0 +1,24 @@
+{
+  "package": "normalyzerde",
+  "requirements": [
+    "NormalyzerDE",
+    "SummarizedExperiment",
+    "limma"
+  ],
+  "by_workflow": {
+    "differential_expression.nf": [
+      "NormalyzerDE"
+    ],
+    "main.nf": [
+      "NormalyzerDE",
+      "SummarizedExperiment"
+    ],
+    "retention_time_normalization.nf": [
+      "NormalyzerDE",
+      "limma"
+    ],
+    "stepwise_processing.nf": [
+      "NormalyzerDE"
+    ]
+  }
+}

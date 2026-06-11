@@ -1,128 +1,227 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: girafe
-// The package 'girafe' deals with the genome-level representation of aligned reads from next-generatio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/girafe/inst/doc/girafe.R
-// Upstream  : RColorBrewer, parallel
-// Downstream: none
-//
-// Install: BiocManager::install("girafe")
+// Bioconductor workflow: girafe — girafe_genome_intervals_pipeline
+// Perform genome-level representation, reduction, and coverage analysis of aligned reads using the girafe package.
+// Input: regions.bed, coldata.csv
+// Container: 1.58.0--r44he5774e6_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, IRanges, S4Vectors, genomeIntervals, girafe, rtracklayer
+// Visualizations: bar plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GIRAFE {
+process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-girafe"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-girafe:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-girafe:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_girafe_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_girafe_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_girafe_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load Required Libraries
     library(girafe)
-    library(AlignedGenomeIntervals)
-    library(jsonlite)
-
-    # --- Genome Interval Conversion [] ---
-    # Key functions: AlignedGenomeIntervals, organism
-    exDir <- system.file("extdata", package="girafe")
-    exA <- ShortRead::readAligned(
-        dirPath=exDir,
-        type="Bowtie",
-        pattern="aravinSRNA_23_no_adapter_excerpt_mm9_unmasked.bwtmap"
-    )
-    exAI <- as(exA, "AlignedGenomeIntervals")
-    organism(exAI) <- "Mm"
-
-
-    # --- Interval Reduction [] ---
-    # Key functions: reduce, detail
-    S <- exAI[seqnames(exAI) == "chrX" & matches(exAI) == 1L & exAI[, 1] > 1e8]
-    S_reduced <- reduce(S)
-    detail(S_reduced)
-
-
-    # --- Window-based Coverage Analysis [] ---
-    # Key functions: perWindow
-    exPX <- perWindow(exAI, chr="chrX", winsize=1e5, step=0.5e5)
-    top_windows <- exPX[order(exPX$n.overlap, decreasing=TRUE), ]
-
-
-    # --- Genomic Feature Overlap [] ---
-    # Key functions: interval_overlap
-    exDir <- system.file("extdata", package="girafe")
-    load(file.path(exDir, "mgi_gi.RData"))
-    exOv <- interval_overlap(exAI, mgi.gi)
-    tabOv <- table(as.character(mgi.gi$type)[unlist(exOv)])
-
-
-    # --- Genomic Interval Visualization [] ---
-    # Key functions: plot
-    exDir <- system.file("extdata", package="girafe")
-    load(file.path(exDir, "mgi_gi.RData"))
-    plot(
-        exAI, mgi.gi, chr="chrX",
-        start=50400000, end=50410000,
-        show="minus"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_girafe_results.csv", row.names = TRUE)
+    library(genomeIntervals)
+    library(rtracklayer)
+    library(S4Vectors)
+    library(GenomicRanges)
+    
+    # Stage 2: Import Input Data
+    message("Stage 2: Importing input files...")
+    if (!file.exists("regions.bed")) {
+      stop("Required input file 'regions.bed' not found in the working directory.")
+    }
+    
+    # Read genomic intervals from BED file
+    gr <- rtracklayer::import("regions.bed")
+    
+    # Read optional metadata if present
+    if (file.exists("coldata.csv")) {
+      coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+      message("Successfully loaded coldata.csv metadata.")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_girafe_results.csv")
+      message("Optional coldata.csv not found. Proceeding with default settings.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_girafe_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GIRAFE:", paste0("    girafe: ", packageVersion("girafe"))),
-        "versions.yml"
+    
+    # Stage 3: Construct AlignedGenomeIntervals Object
+    message("Stage 3: Constructing AlignedGenomeIntervals object...")
+    
+    # Extract fields for GenomeIntervals construction
+    chrom <- as.character(seqnames(gr))
+    start <- start(gr)
+    end <- end(gr)
+    strand <- as.character(strand(gr))
+    strand[strand == "*"] <- NA
+    
+    # Construct the base GenomeIntervals object
+    gi <- GenomeIntervals(
+      chromosome = chrom,
+      left = as.integer(start),
+      right = as.integer(end),
+      strand = strand
     )
+    
+    # Extract read counts (scores) and read IDs (names) from GRanges
+    reads <- as.integer(gr\$score)
+    if (all(is.na(reads)) || all(reads <= 0)) {
+      reads <- rep(1L, length(gr))
+    } else {
+      reads[is.na(reads) | reads < 0] <- 1L
+    }
+    
+    char_id <- gr\$name
+    if (is.null(char_id) || all(is.na(char_id))) {
+      char_id <- paste0("read_", seq_along(gr))
+    } else {
+      char_id <- as.character(char_id)
+    }
+    
+    # Construct the AlignedGenomeIntervals object
+    agi <- new("AlignedGenomeIntervals",
+               intervals = gi,
+               reads = reads,
+               char_id = char_id)
+    
+    # Stage 4: Quality Control & Filtering
+    message("Stage 4: Filtering low-abundance intervals...")
+    min_reads <- 1
+    agi_filtered <- agi[reads(agi) >= min_reads]
+    
+    # Stage 5: Core Analysis - Interval Reduction & Merging
+    message("Stage 5: Merging overlapping intervals and summing read counts...")
+    agi_reduced <- reduce(agi_filtered)
+    
+    # Extract reduced intervals to data frame
+    gi_red <- intervals(agi_reduced)
+    chrom_red <- tryCatch(chromosome(gi_red), error = function(e) as.character(gi_red@annotation\$seqnames))
+    left_red <- tryCatch(left(gi_red), error = function(e) gi_red@left)
+    right_red <- tryCatch(right(gi_red), error = function(e) gi_red@right)
+    strand_red <- tryCatch(as.character(strand(gi_red)), error = function(e) as.character(gi_red@annotation\$strand))
+    reads_red <- reads(agi_reduced)
+    
+    reduced_df <- data.frame(
+      chromosome = chrom_red,
+      start = left_red,
+      end = right_red,
+      strand = strand_red,
+      reads = reads_red,
+      stringsAsFactors = FALSE
+    )
+    write.csv(reduced_df, "reduced_intervals.csv", row.names = FALSE)
+    message("Saved reduced intervals to 'reduced_intervals.csv'.")
+    
+    # Stage 6: Coverage Calculation & Export
+    message("Stage 6: Calculating genome-wide coverage...")
+    cov <- coverage(agi_filtered)
+    
+    # Convert coverage RleList to GRanges safely
+    cov_gr <- tryCatch({
+      as(cov, "GRanges")
+    }, error = function(e) {
+      # Fallback manual construction if direct coercion fails
+      gr_list <- lapply(names(cov), function(chr) {
+        rle <- cov[[chr]]
+        if (length(rle) == 0) return(NULL)
+        runs <- runLength(rle)
+        vals <- runValue(rle)
+        ends <- cumsum(runs)
+        starts <- ends - runs + 1
+        nz <- vals > 0
+        if (!any(nz)) return(NULL)
+        GRanges(seqnames = chr, ranges = IRanges(start = starts[nz], end = ends[nz]), score = vals[nz])
+      })
+      gr_list <- gr_list[!sapply(gr_list, is.null)]
+      if (length(gr_list) > 0) do.call(c, gr_list) else GRanges()
+    })
+    
+    # Filter out zero-coverage regions to optimize file size
+    if (length(cov_gr) > 0) {
+      cov_gr <- cov_gr[cov_gr\$score > 0]
+      rtracklayer::export.bedGraph(cov_gr, "coverage.bedGraph")
+      message("Saved coverage track to 'coverage.bedGraph'.")
+    } else {
+      writeLines("# No coverage data", "coverage.bedGraph")
+      message("No coverage detected. Created empty 'coverage.bedGraph'.")
+    }
+    
+    # Stage 7: Diagnostics & Visualization
+    message("Stage 7: Generating diagnostic plots...")
+    pdf("analysis_plots.pdf", width = 8, height = 10)
+    par(mfrow = c(3, 1))
+    
+    # Plot 1: Histogram of read counts
+    hist(reads(agi), breaks = 50, col = "skyblue", main = "Distribution of Read Counts",
+         xlab = "Read Count per Interval", ylab = "Frequency")
+    
+    # Plot 2: Total reads per chromosome
+    chrom_reads <- tapply(reads(agi), chrom, sum)
+    barplot(chrom_reads, col = "coral", main = "Total Reads per Chromosome",
+            xlab = "Chromosome", ylab = "Total Reads", las = 2)
+    
+    # Plot 3: Coverage along the highest-coverage chromosome
+    top_chrom <- names(which.max(sapply(cov, function(x) sum(as.numeric(x)))))
+    if (!is.null(top_chrom) && length(top_chrom) > 0) {
+      cov_chrom <- cov[[top_chrom]]
+      max_len <- min(length(cov_chrom), 500000)
+      cov_vals <- as.numeric(cov_chrom[1:max_len])
+      plot(cov_vals, type = "l", col = "darkgreen", main = paste("Coverage along", top_chrom, "(First 500kb)"),
+           xlab = "Genomic Position", ylab = "Coverage")
+    } else {
+      plot(1, type = "n", axes = FALSE, xlab = "", ylab = "", main = "No coverage data to plot")
+    }
+    
+    dev.off()
+    message("Saved diagnostic plots to 'analysis_plots.pdf'.")
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE":',
+        paste0('    girafe: ', as.character(packageVersion('girafe')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_girafe_results.csv
-    touch ${prefix}_girafe_output.rds
-    echo "BIOC_GIRAFE:" > versions.yml
-    echo "    girafe: 0.0.0" >> versions.yml
+    touch ${prefix}_girafe_genome_intervals_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_GIRAFE_WORKFLOW {
+workflow BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GIRAFE(ch_input)
+    BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_GIRAFE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GIRAFE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GIRAFE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GIRAFE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE.out.tables
+    plots    = BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE.out.plots
+    objects  = BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE.out.objects
+    versions = BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE.out.versions
 }

@@ -1,134 +1,261 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MinimumDistance
-// Analysis of de novo copy number variants in trios from high-dimensional genotyping platforms.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MinimumDistance/inst/doc/MinimumDistance.R
-// Upstream  : SummarizedExperiment, VanillaICE, grid, oligoClasses
-// Downstream: none
-//
-// Install: BiocManager::install("MinimumDistance")
+// Bioconductor workflow: MinimumDistance — trio_denovo_cnv_calling
+// Identify, filter, and visualize de novo copy number variants in case-parent trios from raw genotyping report files.
+// Input: SNP_info.csv, FinalReport*.txt, sample_data.csv
+// Container: quay.io/biocontainers/bioconductor-minimumdistance:1.54.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Hsapiens.UCSC.hg18, MinimumDistance, SummarizedExperiment, VanillaICE, data.table, foreach, oligoClasses
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create marker annotation and set sequence info
+//  * 2. [Visualization & Output] Define ArrayViews to manage raw source files and parsed output directory
+//  * 3. [Input & Preparation] Define parsing parameters and parse source files
+//  * 4. [Input & Preparation] Define pedigree structure and map sample IDs
+//  * 5. [Input & Preparation] Construct a MinDistExperiment object
+//  * 6. [Core Analysis] Segment the minimum distance and offspring log R ratios
+//  * 7. [Core Analysis] Calculate posterior probabilities and call trio states
+//  * 8. [Core Analysis] Filter called CNVs
+//  * 9. [Visualization & Output] Merge adjacent segments and plot results
 
 nextflow.enable.dsl = 2
 
-process BIOC_MINIMUMDISTANCE {
+process BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-minimumdistance"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-minimumdistance:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-minimumdistance:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_minimumdistance_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_minimumdistance_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_minimumdistance_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(oligoClasses)
+    library(VanillaICE)
     library(MinimumDistance)
-    library(ArrayViews)
-    library(CopyNumScanParams)
-    library(DNAcopyParam)
-    library(FilterParamMD)
-    library(GRanges)
-    library(HmmTrellisParam)
-    library(IRanges)
-    library(MAP2)
-    library(MinDistExperiment)
-    library(MinDistParam)
-    library(jsonlite)
-
-    # --- Parsing Source Files [] ---
-    # Key functions: parseSourceFile, parsedPath
-    parsed_path <- parsedPath(views)
-    invisible(sapply(
-        views,
-        parseSourceFile,
-        param = scan_params
-    ))
-    parsed_files <- list.files(parsed_path)
-
-
-    # --- Pedigree Construction and Experiment Setup [] ---
-    # Key functions: ParentOffspring, ParentOffspringList, MinDistExperiment
-    ped_list <- ParentOffspringList(pedigrees = list(
-        ParentOffspring(
-            id = "hapmap",
-            father = "12287_03",
-            mother = "12287_02",
-            offspring = "12287_01",
+    library(data.table)
+    library(BSgenome.Hsapiens.UCSC.hg18)
+    library(grid)
+    
+    # Register sequential backend for foreach
+    foreach::registerDoSEQ()
+    
+    # ==========================================
+    # 1. Create marker annotation and set sequence info
+    # ==========================================
+    # Read SNP_info.csv from the current working directory
+    features <- suppressWarnings(fread("SNP_info.csv"))
+    fgr <- GRanges(paste0("chr", features\$Chr), IRanges(features\$Position, width=1),
+                   isSnp=features[["Intensity Only"]]==0)
+    fgr <- SnpGRanges(fgr)
+    names(fgr) <- features[["Name"]]
+    
+    # Set sequence levels and info using hg18
+    sl <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)
+    seqlevels(fgr) <- sl[sl %in% seqlevels(fgr)]
+    seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
+    fgr <- sort(fgr)
+    
+    # ==========================================
+    # 2. Define ArrayViews to manage raw source files
+    # ==========================================
+    # Find all FinalReport files in the current working directory
+    files <- list.files(".", full.names=TRUE, recursive=FALSE, pattern="FinalReport")
+    
+    parsedDir <- "ParsedFiles"
+    if(!file.exists(parsedDir)) dir.create(parsedDir)
+    views <- ArrayViews(rowRanges=fgr, sourcePaths=files, parsedPath=parsedDir)
+    
+    # ==========================================
+    # 3. Define parsing parameters and parse source files
+    # ==========================================
+    dat <- fread(files[1], skip="[Data]")
+    
+    select_columns <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
+                              "Log R Ratio", "B Allele Freq"), names(dat))
+    
+    index_genome <- match(names(fgr), dat[["SNP Name"]])
+    
+    scan_params <- CopyNumScanParams(index_genome=index_genome,
+                                     select=select_columns,
+                                     cnvar="Log R Ratio",
+                                     bafvar="B Allele Freq",
+                                     gtvar=c("Allele1 - AB", "Allele2 - AB"))
+    
+    # Parse the source files
+    parseSourceFile(views[, 1], scan_params)
+    invisible(sapply(views, parseSourceFile, param=scan_params))
+    
+    # ==========================================
+    # 4. Define pedigree structure and map sample IDs
+    # ==========================================
+    # Read sample metadata mapping file names to individual IDs
+    sample_info <- read.csv("sample_data.csv", stringsAsFactors=FALSE)
+    
+    # Clean up whitespace and map column names
+    colnames(sample_info) <- trimws(colnames(sample_info))
+    sample_info\$IndividualID <- gsub(" ", "", sample_info\$IndividualID)
+    sample_info\$FatherID <- gsub(" ", "", sample_info\$FatherID)
+    sample_info\$MotherID <- gsub(" ", "", sample_info\$MotherID)
+    sample_info\$FamilyID <- gsub(" ", "", sample_info\$FamilyID)
+    
+    # Map colnames of views to Individual IDs
+    sample_files_clean <- gsub(".txt", "", sample_info\$File)
+    ind_id <- setNames(sample_info\$IndividualID, sample_files_clean)
+    views_cols_clean <- gsub(".txt", "", colnames(views))
+    colnames(views) <- ind_id[views_cols_clean]
+    
+    # Dynamically build ParentOffspringList from sample metadata
+    families <- unique(sample_info\$FamilyID)
+    ped_list_elements <- list()
+    for (fam in families) {
+      fam_data <- sample_info[sample_info\$FamilyID == fam, ]
+      offspring_rows <- fam_data[fam_data\$FatherID != "" & fam_data\$MotherID != "" & 
+                                 !is.na(fam_data\$FatherID) & !is.na(fam_data\$MotherID), ]
+      if (nrow(offspring_rows) > 0) {
+        for (i in 1:nrow(offspring_rows)) {
+          off_id <- offspring_rows\$IndividualID[i]
+          fat_id <- offspring_rows\$FatherID[i]
+          mot_id <- offspring_rows\$MotherID[i]
+          
+          ped_list_elements[[paste0(fam, "_", off_id)]] <- ParentOffspring(
+            id = fam,
+            father = fat_id,
+            mother = mot_id,
+            offspring = off_id,
             parsedPath = parsedPath(views)
-        )
-    ))
-    me <- MinDistExperiment(views, pedigree = ped_list[[1]])
-
-
-    # --- Minimum Distance Segmentation [] ---
-    # Key functions: DNAcopyParam, MinDistParam, segment2, MAP2
-    segment_params <- DNAcopyParam(alpha = 0.01)
-    params <- MinDistParam(dnacopy = segment_params)
+          )
+        }
+      }
+    }
+    ped_list <- ParentOffspringList(pedigrees=ped_list_elements)
+    
+    # ==========================================
+    # 5. Construct a MinDistExperiment object
+    # ==========================================
+    # Use the first pedigree in the list for analysis
+    ped_to_use <- ped_list[[1]]
+    me <- MinDistExperiment(views, pedigree=ped_to_use)
+    
+    # ==========================================
+    # 6. Segment the minimum distance and offspring log R ratios
+    # ==========================================
+    segment_params <- DNAcopyParam(alpha=0.01)
+    params <- MinDistParam(dnacopy=segment_params)
+    
     mdgr <- segment2(me, params)
+    
+    # ==========================================
+    # 7. Calculate posterior probabilities and call trio states
+    # ==========================================
     md_g <- MAP2(me, mdgr, params)
-
-
-    # --- CNV Filtering and De Novo Detection [] ---
-    # Key functions: FilterParamMD, cnvFilter, denovoHemizygous, denovoHomozygous
-    filter_param <- FilterParamMD(state = c("220", "221", "223"))
-    cnvs <- cnvFilter(md_g, filter_param)
+    
+    # Save the raw called object
+    saveRDS(md_g, "md_g_raw.rds")
+    
+    # ==========================================
+    # 8. Filter called CNVs
+    # ==========================================
+    filter_param <- FilterParamMD()
+    default_cnvs <- cnvFilter(md_g, filter_param)
+    write.csv(as.data.frame(default_cnvs), "default_filtered_cnvs.csv", row.names=FALSE)
+    
+    # Extract de novo hemizygous and homozygous calls
     denovo_hemi <- denovoHemizygous(md_g)
+    write.csv(as.data.frame(denovo_hemi), "denovo_hemizygous_cnvs.csv", row.names=FALSE)
+    
     denovo_homo <- denovoHomozygous(md_g)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_minimumdistance_results.csv", row.names = TRUE)
+    write.csv(as.data.frame(denovo_homo), "denovo_homozygous_cnvs.csv", row.names=FALSE)
+    
+    # Custom filter for specific states on the first available chromosome
+    seqs_present <- as.character(unique(seqnames(md_g)))
+    seq_to_filter <- if ("chr22" %in% seqs_present) "chr22" else seqs_present[1]
+    
+    select_cnv <- FilterParamMD(state=c("220", "221", "223"), seqnames=seq_to_filter)
+    cnvs <- cnvFilter(md_g, select_cnv)
+    write.csv(as.data.frame(cnvs), "selected_states_cnvs.csv", row.names=FALSE)
+    
+    # ==========================================
+    # 9. Merge adjacent segments and plot results
+    # ==========================================
+    pdf("denovo_cnv_visualization.pdf", width=11, height=8.5)
+    
+    if (length(denovoHemizygous(md_g)) > 0) {
+      g2 <- reduce(denovoHemizygous(md_g), min.gapwidth=500e3)
+      post <- MAP2(me, g2, params)
+      g2 <- denovoHemizygous(post)
+      
+      if (length(g2) > 0) {
+        vps <- pedigreeViewports()
+        grid.params <- HmmTrellisParam()
+        p <- plotDenovo(me, g2, grid.params)
+        pedigreeGrid(g=g2, vps=vps, figs=p)
+      } else {
+        grid.newpage()
+        grid.text("No de novo hemizygous CNVs remaining after merging and recalculation.")
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_minimumdistance_results.csv")
+      grid.newpage()
+      grid.text("No de novo hemizygous CNVs detected to plot.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_minimumdistance_output.rds")
-    }
+    
+    dev.off()
+    
+    # Save final experiment and results objects
+    saveRDS(me, "MinDistExperiment_object.rds")
+    saveRDS(md_g, "MAP2_called_object.rds")
+    
+    message("Trio de novo CNV calling pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MINIMUMDISTANCE:", paste0("    minimumdistance: ", packageVersion("MinimumDistance"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING":',
+        paste0('    MinimumDistance: ', as.character(packageVersion('MinimumDistance')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_minimumdistance_results.csv
-    touch ${prefix}_minimumdistance_output.rds
-    echo "BIOC_MINIMUMDISTANCE:" > versions.yml
-    echo "    minimumdistance: 0.0.0" >> versions.yml
+    touch ${prefix}_trio_denovo_cnv_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_MINIMUMDISTANCE_WORKFLOW {
+workflow BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ SNP_info.csv, FinalReport*.txt, sample_data.csv ] ]
 
     main:
-    BIOC_MINIMUMDISTANCE(ch_input)
+    BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING(ch_input)
 
     emit:
-    results  = BIOC_MINIMUMDISTANCE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MINIMUMDISTANCE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MINIMUMDISTANCE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MINIMUMDISTANCE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING.out.tables
+    plots    = BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING.out.plots
+    objects  = BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING.out.objects
+    versions = BIOC_MINIMUMDISTANCE_TRIO_DENOVO_CNV_CALLING.out.versions
 }

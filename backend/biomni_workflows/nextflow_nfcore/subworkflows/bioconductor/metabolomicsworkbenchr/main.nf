@@ -1,135 +1,245 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: metabolomicsWorkbenchR
-// This package provides functions for interfacing with the Metabolomics Workbench RESTful API. Study, 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/metabolomicsWorkbenchR/inst/doc/Introduction_to_metabolomicsWorkbenchR.R
-// Upstream  : grid, httptest, structToolbox
-// Downstream: none
-//
-// Install: BiocManager::install("metabolomicsWorkbenchR")
+// Bioconductor workflow: metabolomicsWorkbenchR — metabolomics_workbench_annotation
+// Query the Metabolomics Workbench API to annotate local feature matrices and find related public studies based on sample conditions.
+// Input: intensity.csv, coldata.csv
+// Container: 1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, metabolomicsWorkbenchR
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_METABOLOMICSWORKBENCHR {
+process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-metabolomicsworkbenchr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-metabolomicsworkbenchr:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-metabolomicsworkbenchr:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_metabolomicsworkbenchr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_metabolomicsworkbenchr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_metabolomicsworkbenchr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(metabolomicsWorkbenchR)
-    library(jsonlite)
-
-    # --- Study Querying [] ---
-    # Key functions: do_query
-    diabetes_studies <- do_query(
-        context = "study",
-        input_item = "study_title",
-        input_value = "Diabetes",
-        output_item = "summary"
+    
+    # Stage 1: Load local data
+    message("Stage 1: Loading local data...")
+    if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
+        stop("Required input files 'intensity.csv' or 'coldata.csv' are missing.")
+    }
+    
+    intensity <- read.csv("intensity.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align samples between intensity matrix and coldata
+    common_samples <- intersect(colnames(intensity), rownames(coldata))
+    if (length(common_samples) == 0) {
+        stop("No common samples found between intensity.csv and coldata.csv")
+    }
+    intensity <- intensity[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Stage 2: Create SummarizedExperiment
+    message("Stage 2: Creating SummarizedExperiment...")
+    se <- SummarizedExperiment(
+        assays = list(intensity = as.matrix(intensity)),
+        colData = DataFrame(coldata)
     )
-    untargeted_studies <- do_query(
-        context = "study",
-        input_item = "ignored",
-        input_value = "ignored",
-        output_item = "untarg_studies"
-    )
-
-
-    # --- Compound and Gene Querying [] ---
-    # Key functions: do_query
-    compound_data <- do_query(
-        context = "compound",
-        input_item = "regno",
-        input_value = "11",
-        output_item = "compound_exact"
-    )
-    gene_data <- do_query(
-        context = "gene",
-        input_item = "gene_name",
-        input_value = "acetyl-CoA",
-        output_item = "gene_partial"
-    )
-
-
-    # --- SummarizedExperiment Retrieval [] ---
-    # Key functions: do_query
-    se_dataset <- do_query(
-        context = "study",
-        input_item = "study_id",
-        input_value = "ST000001",
-        output_item = "SummarizedExperiment"
-    )
-
-
-    # --- MultiAssayExperiment Retrieval [] ---
-    # Key functions: do_query
-    mae_dataset <- do_query(
-        context = "study",
-        input_item = "study_id",
-        input_value = "ST000009",
-        output_item = "MultiAssayExperiment"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_metabolomicsworkbenchr_results.csv", row.names = TRUE)
+    
+    # Stage 3: Query Metabolomics Workbench for related studies
+    message("Stage 3: Querying Metabolomics Workbench for related studies...")
+    conditions <- unique(coldata\$condition)
+    study_list <- list()
+    
+    for (cond in conditions) {
+        if (is.na(cond) || cond == "") next
+        message("Searching studies for condition: ", cond)
+        res <- tryCatch({
+            do_query(
+                context = 'study',
+                input_item = 'study_title',
+                input_value = cond,
+                output_item = 'summary'
+            )
+        }, error = function(e) {
+            message("Query failed for condition '", cond, "': ", e\$message)
+            NULL
+        })
+        if (!is.null(res) && is.data.frame(res) && nrow(res) > 0) {
+            res\$queried_condition <- cond
+            study_list[[cond]] <- res
+        }
+    }
+    
+    if (length(study_list) > 0) {
+        # Standardize columns before binding
+        all_study_cols <- unique(unlist(lapply(study_list, colnames)))
+        standardized_studies <- lapply(study_list, function(df) {
+            missing_cols <- setdiff(all_study_cols, colnames(df))
+            df[missing_cols] <- NA
+            df[, all_study_cols, drop = FALSE]
+        })
+        matched_studies <- do.call(rbind, standardized_studies)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_metabolomicsworkbenchr_results.csv")
+        matched_studies <- data.frame(
+            queried_condition = conditions,
+            status = "No matching studies found or API query failed"
+        )
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_metabolomicsworkbenchr_output.rds")
+    
+    # Stage 4: Query Metabolomics Workbench for feature annotations
+    message("Stage 4: Querying Metabolomics Workbench for feature annotations...")
+    feature_ids <- rownames(se)
+    # Limit to first 20 features to avoid API rate limits/timeout
+    features_to_query <- head(feature_ids, 20)
+    
+    # Retrieve valid inputs/outputs dynamically to ensure API compatibility
+    refmet_inputs <- tryCatch(context_inputs('refmet'), error = function(e) NULL)
+    refmet_outputs <- tryCatch(context_outputs('refmet'), error = function(e) NULL)
+    compound_inputs <- tryCatch(context_inputs('compound'), error = function(e) NULL)
+    compound_outputs <- tryCatch(context_outputs('compound'), error = function(e) NULL)
+    protein_inputs <- tryCatch(context_inputs('protein'), error = function(e) NULL)
+    protein_outputs <- tryCatch(context_outputs('protein'), error = function(e) NULL)
+    
+    query_annotation <- function(fid) {
+        # 1. Try RefMet
+        if (!is.null(refmet_inputs) && !is.null(refmet_outputs) && length(refmet_inputs) > 0 && length(refmet_outputs) > 0) {
+            res <- tryCatch({
+                do_query(
+                    context = 'refmet',
+                    input_item = refmet_inputs[1],
+                    input_value = fid,
+                    output_item = refmet_outputs[1]
+                )
+            }, error = function(e) NULL)
+            if (!is.null(res) && is.data.frame(res) && nrow(res) > 0) {
+                res\$source_context <- "refmet"
+                return(res[1, , drop = FALSE])
+            }
+        }
+        # 2. Try Compound
+        if (!is.null(compound_inputs) && !is.null(compound_outputs) && length(compound_inputs) > 0 && length(compound_outputs) > 0) {
+            res <- tryCatch({
+                do_query(
+                    context = 'compound',
+                    input_item = compound_inputs[1],
+                    input_value = fid,
+                    output_item = compound_outputs[1]
+                )
+            }, error = function(e) NULL)
+            if (!is.null(res) && is.data.frame(res) && nrow(res) > 0) {
+                res\$source_context <- "compound"
+                return(res[1, , drop = FALSE])
+            }
+        }
+        # 3. Try Protein
+        if (!is.null(protein_inputs) && !is.null(protein_outputs) && length(protein_inputs) > 0 && length(protein_outputs) > 0) {
+            res <- tryCatch({
+                do_query(
+                    context = 'protein',
+                    input_item = protein_inputs[1],
+                    input_value = fid,
+                    output_item = protein_outputs[1]
+                )
+            }, error = function(e) NULL)
+            if (!is.null(res) && is.data.frame(res) && nrow(res) > 0) {
+                res\$source_context <- "protein"
+                return(res[1, , drop = FALSE])
+            }
+        }
+        return(NULL)
     }
+    
+    ann_results <- list()
+    for (fid in features_to_query) {
+        message("Querying annotation for feature: ", fid)
+        ann <- query_annotation(fid)
+        if (!is.null(ann)) {
+            ann\$feature_id <- fid
+            ann_results[[fid]] <- ann
+        }
+    }
+    
+    if (length(ann_results) > 0) {
+        all_ann_cols <- unique(unlist(lapply(ann_results, colnames)))
+        standardized_ann <- lapply(ann_results, function(df) {
+            missing_cols <- setdiff(all_ann_cols, colnames(df))
+            df[missing_cols] <- NA
+            df[, all_ann_cols, drop = FALSE]
+        })
+        annotations_df <- do.call(rbind, standardized_ann)
+    } else {
+        annotations_df <- data.frame(
+            feature_id = feature_ids,
+            annotation_status = "No annotation found or API query failed"
+        )
+    }
+    
+    # Stage 5: Integrate annotations into SummarizedExperiment rowData
+    message("Stage 5: Integrating annotations into SummarizedExperiment...")
+    row_df <- data.frame(feature_id = feature_ids, row.names = feature_ids, stringsAsFactors = FALSE)
+    if (nrow(annotations_df) > 0 && "feature_id" %in% colnames(annotations_df)) {
+        row_df <- merge(row_df, annotations_df, by = "feature_id", all.x = TRUE)
+        rownames(row_df) <- row_df\$feature_id
+        row_df <- row_df[feature_ids, , drop = FALSE]
+    }
+    rowData(se) <- DataFrame(row_df)
+    
+    # Stage 6: Write outputs
+    message("Stage 6: Writing outputs...")
+    write.csv(matched_studies, "matched_studies.csv", row.names = FALSE)
+    write.csv(row_df, "feature_annotations.csv", row.names = FALSE)
+    saveRDS(se, "annotated_summarized_experiment.rds")
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METABOLOMICSWORKBENCHR:", paste0("    metabolomicsworkbenchr: ", packageVersion("metabolomicsWorkbenchR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION":',
+        paste0('    metabolomicsWorkbenchR: ', as.character(packageVersion('metabolomicsWorkbenchR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_metabolomicsworkbenchr_results.csv
-    touch ${prefix}_metabolomicsworkbenchr_output.rds
-    echo "BIOC_METABOLOMICSWORKBENCHR:" > versions.yml
-    echo "    metabolomicsworkbenchr: 0.0.0" >> versions.yml
+    touch ${prefix}_metabolomics_workbench_annotation.csv versions.yml
     """
 }
 
-
-workflow BIOC_METABOLOMICSWORKBENCHR_WORKFLOW {
+workflow BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_METABOLOMICSWORKBENCHR(ch_input)
+    BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION(ch_input)
 
     emit:
-    results  = BIOC_METABOLOMICSWORKBENCHR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METABOLOMICSWORKBENCHR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METABOLOMICSWORKBENCHR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METABOLOMICSWORKBENCHR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION.out.tables
+    plots    = BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION.out.plots
+    objects  = BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION.out.objects
+    versions = BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION.out.versions
 }

@@ -1,0 +1,17 @@
+{
+  "package": "enrichplot",
+  "requirements": [
+    "S4Vectors",
+    "clusterProfiler",
+    "enrichplot",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "clusterProfiler",
+      "enrichplot",
+      "ggplot2"
+    ]
+  }
+}

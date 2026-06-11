@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gene=a vector of Entrez gene IDs for over-representation analysis ;; geneList=a numeric vector of sorted gene level statistics with Entrez gene IDs as names for GSEA ;; organism=organism name (default is \"human\") ;; pvalueCutoff=p-value cutoff for enrichment significance\n- alternatives: None mentioned in the provided documentation, but clusterProfiler or DOSE are standard alternatives for other ontology/pathway databases.\n- when_to_use: When identifying biological pathways from the Reactome database that are significantly enriched or coordinatedly regulated in a list of genes of interest (e.g., from differential expression analysis).\n- pitfalls: The package strictly requires Entrez gene IDs as input; using gene symbols or Ensembl IDs directly without conversion will result in empty or incorrect mapping.",
+  "workflows": [
+    {
+      "name": "reactome_pathway_enrichment",
+      "intent": "Perform Reactome pathway over-representation analysis on a list of Entrez gene IDs and visualize the enriched pathways.",
+      "input": [
+        "gene_list.txt (a text file containing a list of Entrez gene IDs, one per line)"
+      ],
+      "stages": "1. Read gene IDs ;; 2. Run enrichment analysis using enrichPathway ;; 3. Visualize results using dotplot, emapplot, or cnetplot",
+      "code": "# Note: No code is provided in the source documentation. Standard usage based on exported functions:\n# de_genes <- readLines(\"gene_list.txt\")\n# res <- enrichPathway(gene = de_genes, organism = \"human\")\n# dotplot(res)\n# emapplot(res)\n# cnetplot(res)"
+    },
+    {
+      "name": "reactome_gsea",
+      "intent": "Perform Reactome gene set enrichment analysis (GSEA) on a ranked list of genes.",
+      "input": [
+        "ranked_genes.tsv (a tab-separated file containing Entrez gene IDs and their corresponding differential expression statistics, e.g., fold change)"
+      ],
+      "stages": "1. Read and prepare ranked gene list ;; 2. Run GSEA using gsePathway ;; 3. Visualize GSEA results using gseaplot or ridgeplot",
+      "code": "# Note: No code is provided in the source documentation. Standard usage based on exported functions:\n# gene_data <- read.delim(\"ranked_genes.tsv\")\n# gene_list <- gene_data$logFC\n# names(gene_list) <- gene_data$EntrezID\n# gene_list <- sort(gene_list, decreasing = TRUE)\n# res_gsea <- gsePathway(geneList = gene_list, organism = \"human\")\n# gseaplot(res_gsea, geneSetID = 1)\n# ridgeplot(res_gsea)"
+    }
+  ]
+}

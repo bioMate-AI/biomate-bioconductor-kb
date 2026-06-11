@@ -1,0 +1,19 @@
+{
+  "package": "padma",
+  "requirements": [
+    "MultiAssayExperiment",
+    "ggplot2",
+    "padma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "padma"
+    ],
+    "reference_based_pathway_deviation_projection.nf": [
+      "MultiAssayExperiment",
+      "ggplot2",
+      "padma"
+    ]
+  }
+}

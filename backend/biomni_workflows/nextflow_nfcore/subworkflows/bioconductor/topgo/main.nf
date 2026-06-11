@@ -1,113 +1,127 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: topGO
-// topGO package provides tools for testing GO terms while accounting for the topology of the GO graph.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/topGO/inst/doc/topGO.R
-// Upstream  : ALL, genefilter, lattice, xtable
-// Downstream: BgeeDB, compEpiTools, EGSEA, ideal, moanin
-//
-// Install: BiocManager::install("topGO")
+// Bioconductor workflow: topGO — predefined_gene_list_enrichment
+// Perform GO enrichment analysis using a predefined list of interesting genes and custom gene-to-GO annotations.
+// Input: geneid2go.map, myInterestingGenes
+// Container: quay.io/biocontainers/bioconductor-topgo:2.62.0--r45hdfd78af_0
+// R packages: ALL, genefilter, lattice, topGO, xtable
+// Bioconductor: 3.20 | R: 4.4
+// Requires: topGO
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Read custom gene-to-GO mappings from a file. 2. Define the gene universe and create a named factor vector indicating interesting g
 
 nextflow.enable.dsl = 2
 
-process BIOC_TOPGO {
+process BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-topgo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-topgo:2.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-topgo:2.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_topgo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_topgo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_topgo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GenTable)
-    library(IQR)
-    library(jsonlite)
-
-    # --- Data import and loading [] ---
-    # Key functions: data
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ALL", "genefilter", "lattice", "topGO", "xtable")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(topGO)
-    library(ALL)
-    data(ALL)
-    data(geneList)
-    # --- Quality control and filtering [] ---
-    # Key functions: getPvalues, exprs, frame, xyplot, device, whitebg
-    pValue <- getPvalues(exprs(ALL), classlabel = y, alternative = "greater")
-    geneVar <- apply(exprs(ALL), 1, var)
-    dd <- data.frame(x = geneVar[allProb], y = log10(pValue[allProb]), groups = groupProb)
-    library(lattice)
-    trellis.device(device = pdf, theme = col.whitebg(), file = "whichProbe.pdf", width = 9, height = 7)
-    # --- ColSums analysis [] ---
-    # Key functions: colSums, topDiffGenes, runTest, GenTable, colors, score, termStat, colMap
-    ## weight01.fisher <- runTest(GOdata, statistic = "fisher")
-    ## weight01.t <- runTest(GOdata, algorithm = "weight01", statistic = "t")
-    ## elim.ks <- runTest(GOdata, algorithm = "elim", statistic = "ks")
-    ##
-    ## weight.ks <- runTest(GOdata, algorithm = "weight", statistic = "ks") #will not work!!!
-    # --- Feature annotation [] ---
-    # Key functions: featureNames, genes, factor, numGenes, genesInTerm, sigGenes
-    allProb <- featureNames(ALL)
-    groupProb <- integer(length(allProb)) + 1
-    groupProb[allProb %in% genes(GOdata)] <- 0
-    groupProb[!selProbes] <- 2
-    groupProb <- factor(groupProb, labels = c("Used", "Not annotated", "Filtered"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_topgo_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_topgo_results.csv")
+    
+    # 1. Read custom gene-to-GO mappings from a file
+    if (!file.exists("geneid2go.map")) {
+      stop("Error: 'geneid2go.map' file not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_topgo_output.rds")
+    geneID2GO <- readMappings(file = "geneid2go.map")
+    
+    # 2. Define the gene universe and create a named factor vector indicating interesting genes
+    GO2geneID <- inverseList(geneID2GO)
+    geneNames <- names(geneID2GO)
+    
+    if (!file.exists("myInterestingGenes")) {
+      stop("Error: 'myInterestingGenes' file not found in the working directory.")
     }
+    myInterestingGenes <- readLines("myInterestingGenes")
+    myInterestingGenes <- trimws(myInterestingGenes)
+    myInterestingGenes <- myInterestingGenes[myInterestingGenes != ""]
+    
+    geneList <- factor(as.integer(geneNames %in% myInterestingGenes))
+    names(geneList) <- geneNames
+    
+    # 3. Initialize the topGOdata object using the custom mapping
+    GOdata <- new("topGOdata", ontology = "MF", allGenes = geneList, annot = annFUN.gene2GO, gene2GO = geneID2GO)
+    
+    # 4. Run a count-based enrichment test (Fisher's exact test)
+    resultFis <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
+    
+    # 5. Generate a summary table of the top significant GO terms
+    allRes <- GenTable(GOdata, classic = resultFis, orderBy = "classic", topNodes = 20)
+    
+    # Write named output files
+    write.csv(allRes, file = "topGO_enrichment_results.csv", row.names = FALSE)
+    saveRDS(GOdata, file = "topGO_data_object.rds")
+    saveRDS(resultFis, file = "topGO_result_fisher.rds")
+    
+    # Generate a PDF plot of the GO structure
+    tryCatch({
+      printGraph(GOdata, resultFis, firstSigNodes = 5, fn.prefix = "tGO_classic", useInfo = "all", pdfSW = TRUE)
+    }, error = function(e) {
+      warning("Could not generate GO graph PDF: ", e\$message)
+    })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TOPGO:", paste0("    topgo: ", packageVersion("topGO"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT":',
+        paste0('    topGO: ', as.character(packageVersion('topGO')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_topgo_results.csv
-    touch ${prefix}_topgo_output.rds
-    echo "BIOC_TOPGO:" > versions.yml
-    echo "    topgo: 0.0.0" >> versions.yml
+    touch ${prefix}_predefined_gene_list_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_TOPGO_WORKFLOW {
+workflow BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ geneid2go.map, myInterestingGenes ] ]
 
     main:
-    BIOC_TOPGO(ch_input)
+    BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_TOPGO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TOPGO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TOPGO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TOPGO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT.out.tables
+    plots    = BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT.out.plots
+    objects  = BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT.out.objects
+    versions = BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT.out.versions
 }

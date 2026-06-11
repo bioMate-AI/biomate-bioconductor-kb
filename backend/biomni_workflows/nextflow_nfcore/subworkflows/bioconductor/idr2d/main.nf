@@ -1,100 +1,126 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: idr2d
-// A tool to measure reproducibility between genomic experiments that produce two-dimensional peaks (in
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/idr2d/inst/doc/idr1d.R
-// Upstream  : DT
-// Downstream: none
-//
-// Install: BiocManager::install("idr2d")
+// Bioconductor workflow: idr2d — two_dimensional_idr
+// Identify reproducible genomic interactions between two replicates of 2D genomic data (e.g., ChIA-PET, HiChIP, Hi-C).
+// Input: rep1_df, rep2_df
+// Container: quay.io/biocontainers/bioconductor-idr2d:1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: idr2d
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load replicate data frames
+//  * 2. [Core Analysis] Estimate 2D IDR using estimate_idr2d
+//  * 3. [Visualization & Output] Summarize results using summary
+//  * 4. [Visualization & Output] Visualize IDR distribution and dependencies using draw_idr_distribution_histogram, draw_rank_idr_scatterplot, and draw_value_idr_s
 
 nextflow.enable.dsl = 2
 
-process BIOC_IDR2D {
+process BIOC_IDR2D_TWO_DIMENSIONAL_IDR {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-idr2d"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-idr2d:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-idr2d:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_idr2d_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_idr2d_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_idr2d_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(idr2d)
-    library(jsonlite)
-
-    # --- Distribution Visualisation [] ---
-    # Key functions: draw_idr_distribution_histogram
-    hist_plot <- draw_idr_distribution_histogram(
-        idr_df = rep1_idr_df
-    )
-
-
-    # --- Rank Scatterplot Visualisation [] ---
-    # Key functions: draw_rank_idr_scatterplot, draw_value_idr_scatterplot
-    rank_plot <- draw_rank_idr_scatterplot(
-        idr_df = rep1_idr_df
-    )
-    val_plot <- draw_value_idr_scatterplot(
-        idr_df = rep1_idr_df
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_idr2d_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load replicate data frames from the working directory
+    if (file.exists("rep1_df.csv")) {
+      rep1_df <- read.csv("rep1_df.csv", header = TRUE)
+    } else if (file.exists("rep1_df.tsv")) {
+      rep1_df <- read.delim("rep1_df.tsv", header = TRUE)
+    } else if (file.exists("rep1_df.txt")) {
+      rep1_df <- read.table("rep1_df.txt", header = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_idr2d_results.csv")
+      stop("Could not find rep1_df input file (expected rep1_df.csv, rep1_df.tsv, or rep1_df.txt)")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_idr2d_output.rds")
+    
+    if (file.exists("rep2_df.csv")) {
+      rep2_df <- read.csv("rep2_df.csv", header = TRUE)
+    } else if (file.exists("rep2_df.tsv")) {
+      rep2_df <- read.delim("rep2_df.tsv", header = TRUE)
+    } else if (file.exists("rep2_df.txt")) {
+      rep2_df <- read.table("rep2_df.txt", header = TRUE)
+    } else {
+      stop("Could not find rep2_df input file (expected rep2_df.csv, rep2_df.tsv, or rep2_df.txt)")
     }
+    
+    # Load the package
+    library(idr2d)
+    
+    # 2. Estimate 2D IDR using estimate_idr2d
+    idr_results <- estimate_idr2d(rep1_df, rep2_df,
+                                  value_transformation = "log_additive_inverse")
+    rep1_idr_df <- idr_results\$rep1_df
+    
+    # 3. Summarize results and save summary to a text file
+    sink("idr_summary.txt")
+    summary(idr_results)
+    sink()
+    
+    # Print summary to console as well
+    summary(idr_results)
+    
+    # 4. Visualize IDR distribution and dependencies, saving to a PDF file
+    pdf("idr_plots.pdf", width = 7, height = 7)
+    print(draw_idr_distribution_histogram(rep1_idr_df))
+    print(draw_rank_idr_scatterplot(rep1_idr_df))
+    print(draw_value_idr_scatterplot(rep1_idr_df))
+    dev.off()
+    
+    # Save meaningful results to files
+    saveRDS(idr_results, "idr_results.rds")
+    write.csv(rep1_idr_df, "rep1_idr_df.csv", row.names = FALSE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IDR2D:", paste0("    idr2d: ", packageVersion("idr2d"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IDR2D_TWO_DIMENSIONAL_IDR":',
+        paste0('    idr2d: ', as.character(packageVersion('idr2d')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_idr2d_results.csv
-    touch ${prefix}_idr2d_output.rds
-    echo "BIOC_IDR2D:" > versions.yml
-    echo "    idr2d: 0.0.0" >> versions.yml
+    touch ${prefix}_two_dimensional_idr.csv versions.yml
     """
 }
 
-
-workflow BIOC_IDR2D_WORKFLOW {
+workflow BIOC_IDR2D_TWO_DIMENSIONAL_IDR_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rep1_df, rep2_df ] ]
 
     main:
-    BIOC_IDR2D(ch_input)
+    BIOC_IDR2D_TWO_DIMENSIONAL_IDR(ch_input)
 
     emit:
-    results  = BIOC_IDR2D.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IDR2D.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IDR2D.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IDR2D.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IDR2D_TWO_DIMENSIONAL_IDR.out.tables
+    plots    = BIOC_IDR2D_TWO_DIMENSIONAL_IDR.out.plots
+    objects  = BIOC_IDR2D_TWO_DIMENSIONAL_IDR.out.objects
+    versions = BIOC_IDR2D_TWO_DIMENSIONAL_IDR.out.versions
 }

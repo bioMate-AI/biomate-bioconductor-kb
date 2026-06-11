@@ -1,0 +1,11 @@
+{
+  "package": "ipath",
+  "requirements": [
+    "iPath"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "iPath"
+    ]
+  }
+}

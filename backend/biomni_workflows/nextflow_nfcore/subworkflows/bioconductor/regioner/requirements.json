@@ -1,0 +1,17 @@
+{
+  "package": "regioner",
+  "requirements": [
+    "regioneR"
+  ],
+  "by_workflow": {
+    "local_zscore_analysis.nf": [
+      "regioneR"
+    ],
+    "main.nf": [
+      "regioneR"
+    ],
+    "resampling_permutation_test.nf": [
+      "regioneR"
+    ]
+  }
+}

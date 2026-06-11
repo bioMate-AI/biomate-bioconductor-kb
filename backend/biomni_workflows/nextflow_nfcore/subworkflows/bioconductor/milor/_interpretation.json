@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: prop=Proportion of cells to randomly sample to start neighbourhood definition (usually 0.1-0.2 for <30k cells, 0.05 for larger datasets) ;; k=Number of nearest neighbors for graph building and refinement (average neighbourhood size should ideally be > 5 * N_samples) ;; d=Number of reduced dimensions (PCs) to use for graph building and refinement ;; refined=Logical indicating whether to use the sampling refinement algorithm (default and recommended TRUE) ;; design=Formula specifying the experimental design (e.g., ~ Condition or ~ sequencing.batch + stage or ~ adjmfc.time + (1|tenx_lane) for GLMM) ;; model.contrasts=Character vector specifying contrasts for multi-group comparisons (e.g., \"Age1wk - Age4wk\") ;; glmm.solver=Solver for GLMM parameter estimation (\"Fisher\", \"HE\", or \"HE-NNLS\"; \"Fisher\" is recommended if well-conditioned) ;; REML=Logical, use restricted maximum likelihood for GLMM (recommend TRUE)\n- alternatives: Discrete cell clustering (traditional DA testing is done on discrete clusters, but Milo uses overlapping graph neighbourhoods to avoid arbitrary clustering boundaries) ;; BBKNN (graph-based batch correction can be used, but forces random sampling instead of refined sampling, leading to suboptimal DA results) ;; GLM vs GLMM (GLM is faster and standard; GLMM is preferred when there are dependencies between observations, e.g., multiple time points/organs from the same individual, genetic ancestry, family structures, and sample size is large, at least 50 observations)\n- when_to_use: When analyzing complex single-cell datasets generated from replicated multi-condition experiments to detect changes in composition (differential abundance) across continuous cell states or trajectories without relying on discrete clustering.\n- pitfalls: Low neighbourhood size (if the average neighbourhood size is too small, e.g., < 5 * N_samples, statistical power is reduced; increase k or prop) ;; Batch correction with graph-only tools (like BBKNN forces random sampling instead of refined sampling, leading to suboptimal DA results) ;; GLMM convergence issues (sparse neighbourhood counts can cause GLMM parameter estimation to fail or not converge; use checkSeparation to identify and exclude neighbourhoods with perfect separation) ;; GLMM sample size (do not use GLMM with fewer than 50 observations) ;; Contrasts syntax (must use ~ 0 + Variable in the design to get separate columns for each level when using contrasts)",
+  "workflows": [
+    {
+      "name": "standard_da_glm",
+      "intent": "Perform standard differential abundance testing using a Negative Binomial GLM, followed by neighbourhood annotation, grouping, and marker gene identification.",
+      "input": [
+        "embryo_data (SingleCellExperiment object containing single-cell counts and reduced dimensions)",
+        "embryo_design (data.frame matching samples to experimental conditions and technical covariates)"
+      ],
+      "stages": "1. Create Milo object ;; 2. Build KNN graph ;; 3. Define representative neighbourhoods ;; 4. Count cells in neighbourhoods ;; 5. Compute neighbourhood connectivity (distances) ;; 6. Test for differential abundance ;; 7. Annotate and group neighbourhoods ;; 8. Find marker genes for neighbourhood groups ;; 9. Perform differential expression within a group",
+      "code": "embryo_milo <- Milo(embryo_data)\nembryo_milo <- buildGraph(embryo_milo, k = 30, d = 30, reduced.dim = \"pca.corrected\")\nembryo_milo <- makeNhoods(embryo_milo, prop = 0.1, k = 30, d=30, refined = TRUE, reduced_dims = \"pca.corrected\")\nplotNhoodSizeHist(embryo_milo)\nembryo_milo <- countCells(embryo_milo, meta.data = as.data.frame(colData(embryo_milo)), sample=\"sample\")\nembryo_milo <- calcNhoodDistance(embryo_milo, d=30, reduced.dim = \"pca.corrected\")\nda_results <- testNhoods(embryo_milo, design = ~ sequencing.batch + stage, design.df = embryo_design, reduced.dim=\"pca.corrected\")\nembryo_milo <- buildNhoodGraph(embryo_milo)\nda_results <- annotateNhoods(embryo_milo, da_results, coldata_col = \"celltype\")\nda_results <- groupNhoods(embryo_milo, da_results, max.lfc.delta = 10, overlap=1)\nnhood_markers <- findNhoodGroupMarkers(embryo_milo, da_results, subset.row = hvgs, aggregate.samples = TRUE, sample_col = \"sample\")\ndge_6 <- testDiffExp(embryo_milo, da_results, design = ~ stage, meta.data = data.frame(colData(embryo_milo)), subset.row = rownames(embryo_milo)[1:5], subset.nhoods=da_results$NhoodGroup==\"6\")"
+    },
+    {
+      "name": "da_glmm_random_effects",
+      "intent": "Perform differential abundance testing using a Generalized Linear Mixed Model (GLMM) to account for random effects and dependencies between observations.",
+      "input": [
+        "pbmc.sce (SingleCellExperiment object containing single-cell counts and reduced dimensions)",
+        "pbmc.design (data.frame matching samples to fixed and random effect covariates)"
+      ],
+      "stages": "1. Create Milo object ;; 2. Build KNN graph ;; 3. Define representative neighbourhoods ;; 4. Count cells in neighbourhoods ;; 5. Check for perfect separation ;; 6. Test for differential abundance using GLMM",
+      "code": "pbmc.milo <- Milo(pbmc.sce)\nreducedDim(pbmc.milo, \"UMAP\") <- reducedDim(pbmc.sce, \"UMAP\")\npbmc.milo <- buildGraph(pbmc.milo, k = 60, d = 30)\npbmc.milo <- makeNhoods(pbmc.milo, prop = 0.05, k = 60, d=30, refined = TRUE, refinement_scheme=\"graph\")\npbmc.milo <- countCells(pbmc.milo, meta.data = data.frame(colData(pbmc.milo)), samples=\"ObsID\")\nwhich(checkSeparation(pbmc.milo, design.df=pbmc.design, condition=\"adjmfc.time\", min.val=10))\nda_results <- testNhoods(pbmc.milo, design = ~ adjmfc.time + (1|tenx_lane), design.df = pbmc.design, fdr.weighting=\"graph-overlap\", glmm.solver=\"Fisher\", REML=TRUE, norm.method=\"TMM\", BPPARAM = bpparam, fail.on.error=FALSE)"
+    },
+    {
+      "name": "da_contrasts",
+      "intent": "Perform differential abundance testing using contrasts to compare specific groups in multi-group experimental designs.",
+      "input": [
+        "thy.sce (SingleCellExperiment object containing single-cell counts and reduced dimensions)",
+        "thy.design (data.frame matching samples to multi-level group covariates)"
+      ],
+      "stages": "1. Create Milo object ;; 2. Build KNN graph ;; 3. Define representative neighbourhoods ;; 4. Count cells in neighbourhoods ;; 5. Test for differential abundance using specified contrasts",
+      "code": "thy.milo <- Milo(thy.sce)\nreducedDim(thy.milo, \"UMAP\") <- reducedDim(thy.sce, \"UMAP\")\nthy.milo <- buildGraph(thy.milo, k = 11, d = 40)\nthy.milo <- makeNhoods(thy.milo, prop = 0.2, k = 11, d=40, refined = TRUE, refinement_scheme=\"graph\")\nthy.milo <- countCells(thy.milo, meta.data = data.frame(colData(thy.milo)), samples=\"Sample\")\nda_results <- testNhoods(thy.milo, design = ~ 0 + Age, design.df = thy.design, model.contrasts = contrast.1, fdr.weighting=\"graph-overlap\", norm.method=\"TMM\")"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "macorrplot",
+  "requirements": [
+    "maCorrPlot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "maCorrPlot"
+    ]
+  }
+}

@@ -1,160 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ROntoTools
-// Suite of tools for functional analysis.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ROntoTools/inst/doc/rontotools.R
-// Upstream  : graph
-// Downstream: BLMA
-//
-// Install: BiocManager::install("ROntoTools")
+// Bioconductor workflow: ROntoTools — pathway_express
+// Perform Pathway-Express analysis to identify significantly impacted signaling pathways using gene fold changes, p-values, and pathway topology.
+// Input: topTable.RData
+// Container: quay.io/biocontainers/bioconductor-rontotools:2.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ROntoTools, Rgraphviz, graph
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Download and load KEGG pathway graphs using keggPathwayGraphs
+//  * 2. [Core Analysis] Set edge weights based on interaction subtypes using setEdgeWeights
+//  * 3. [Core Analysis] Retrieve pathway names using keggPathwayNames
+//  * 4. [Core Analysis] Filter differentially expressed genes and extract fold changes and p-values
+//  * 5. [Core Analysis] Set node weights using gene significance via setNodeWeights and alphaMLG
+//  * 6. [Core Analysis] Run Pathway-Express analysis using pe
+//  * 7. [Visualization & Output] Summarize results using Summary
+//  * 8. [Visualization & Output] Visualize results using plot and renderGraph
 
 nextflow.enable.dsl = 2
 
-process BIOC_RONTOTOOLS {
+process BIOC_RONTOTOOLS_PATHWAY_EXPRESS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rontotools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rontotools:2.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rontotools:2.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rontotools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rontotools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rontotools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Summary)
-    library(jsonlite)
-
-    # --- Keggpathwaygraphs [] ---
-    # Key functions: keggPathwayGraphs
-    require(graph)
-    require(ROntoTools)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    library(graph)
+    library(Rgraphviz)
+    library(ROntoTools)
+    
+    # 1. Download and load KEGG pathway graphs
     kpg <- keggPathwayGraphs("hsa", verbose = FALSE)
-    # --- Head [] ---
-    # Key functions: nodes, edges
-    kpg[["path:hsa04110"]]
-    head(nodes(kpg[["path:hsa04110"]]))
-    head(edges(kpg[["path:hsa04110"]]))
-    # --- Head [] ---
-    # Key functions: edgeData
-    head(edgeData(kpg[["path:hsa04110"]], attr = "subtype"))
-    # --- Setedgeweights [] ---
-    # Key functions: setEdgeWeights
-    kpg <- setEdgeWeights(kpg, edgeTypeAttr = "subtype",
-    	edgeWeightByType = list(activation = 1, inhibition = -1,
-    		expression = 1, repression = -1),
+    
+    # 2. Set edge weights based on interaction subtypes
+    kpg <- setEdgeWeights(kpg, edgeTypeAttr = "subtype", 
+    	edgeWeightByType = list(activation = 1, inhibition = -1, 
+    		expression = 1, repression = -1), 
     	defaultWeight = 0)
-    # --- Head [] ---
-    # Key functions: edgeData
-    head(edgeData(kpg[["path:hsa04110"]], attr = "weight"))
-    # --- Keggpathwaynames [] ---
-    # Key functions: keggPathwayNames
+    
+    # 3. Retrieve pathway names
     kpn <- keggPathwayNames("hsa")
-    head(kpn)
-    # --- Setnodeweights [] ---
-    # Key functions: setNodeWeights, alphaMLG, nodeWeights
+    
+    # 4. Load user input and filter differentially expressed genes
+    load("topTable.RData")
+    
+    fc <- top\$logFC[top\$adj.P.Val <= .01]
+    names(fc) <- top\$entrez[top\$adj.P.Val <= .01]
+    
+    pv <- top\$P.Value[top\$adj.P.Val <= .01]
+    names(pv) <- top\$entrez[top\$adj.P.Val <= .01]
+    
+    ref <- top\$entrez
+    
+    # 5. Set node weights using gene significance
     kpg <- setNodeWeights(kpg, weights = alphaMLG(pv), defaultWeight = 1)
-    head(nodeWeights(kpg[["path:hsa04110"]]))
-    # --- Pe [] ---
-    # Key functions: pe
+    
+    # 6. Run Pathway-Express analysis
     peRes <- pe(x = fc, graphs = kpg, ref = ref,  nboot = 200, verbose = FALSE)
-    # --- Head [] ---
-    # Key functions: Summary
-    head(Summary(peRes))
-    head(Summary(peRes, pathNames = kpn, totalAcc = FALSE, totalPert = FALSE,
-                 pAcc = FALSE, pORA = FALSE, comb.pv = NULL, order.by = "pPert"))
-    # --- Pepathway Graph Pert [] ---
-    # Key functions: layoutGraph, graphRenderInfo, edgeRenderInfo, peEdgeRenderInfo, nodeRenderInfo, peNodeRenderInfo, renderGraph
-    p <- peRes@pathways[["path:hsa05216"]]
-    g <- layoutGraph(p@map, layoutType = "dot")
-    graphRenderInfo(g) <- list(fixedsize = FALSE)
-    edgeRenderInfo(g) <- peEdgeRenderInfo(p)
-    nodeRenderInfo(g) <- peNodeRenderInfo(p)
-    # --- Pepathway Graph Pert2 [] ---
-    # Key functions: layoutGraph, graphRenderInfo, edgeRenderInfo, peEdgeRenderInfo, nodeRenderInfo, peNodeRenderInfo, renderGraph
-    p <- peRes@pathways[["path:hsa04660"]]
-    g <- layoutGraph(p@map, layoutType = "dot")
-    graphRenderInfo(g) <- list(fixedsize = FALSE)
-    edgeRenderInfo(g) <- peEdgeRenderInfo(p)
-    nodeRenderInfo(g) <- peNodeRenderInfo(p)
-    # --- Fig5 [] ---
-    # Key functions: layoutGraph, graphRenderInfo, edgeRenderInfo, peEdgeRenderInfo, nodeRenderInfo, peNodeRenderInfo, renderGraph
-    p <- peRes@pathways[["path:hsa05216"]]
-    g <- layoutGraph(p@map, layoutType = "dot")
-    graphRenderInfo(g) <- list(fixedsize = FALSE)
-    edgeRenderInfo(g) <- peEdgeRenderInfo(p)
-    nodeRenderInfo(g) <- peNodeRenderInfo(p)
-    # --- Fig6 [] ---
-    # Key functions: layoutGraph, graphRenderInfo, edgeRenderInfo, peEdgeRenderInfo, nodeRenderInfo, peNodeRenderInfo, renderGraph
-    p <- peRes@pathways[["path:hsa04660"]]
-    g <- layoutGraph(p@map, layoutType = "dot")
-    graphRenderInfo(g) <- list(fixedsize = FALSE)
-    edgeRenderInfo(g) <- peEdgeRenderInfo(p)
-    nodeRenderInfo(g) <- peNodeRenderInfo(p)
-    # --- Keggpathwaygraphs [] ---
-    # Key functions: keggPathwayGraphs
-    require(graph)
-    require(ROntoTools)
-    kpg <- keggPathwayGraphs("hsa", verbose = FALSE)
-    # --- Keggpathwaynames [] ---
-    # Key functions: keggPathwayNames
-    kpn <- keggPathwayNames("hsa")
-    head(kpn)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rontotools_results.csv", row.names = TRUE)
+    
+    # 7. Summarize results and save to CSV
+    sum_all <- Summary(peRes)
+    write.csv(sum_all, "pe_summary_all.csv", row.names = TRUE)
+    
+    sum_pPert <- Summary(peRes, pathNames = kpn, totalAcc = FALSE, totalPert = FALSE,
+                         pAcc = FALSE, pORA = FALSE, comb.pv = NULL, order.by = "pPert")
+    write.csv(sum_pPert, "pe_summary_pPert.csv", row.names = TRUE)
+    
+    saveRDS(peRes, "peRes.rds")
+    
+    # 8. Visualize results and save to PDF
+    pdf("pe_results_plots.pdf", width = 10, height = 8)
+    
+    tryCatch({
+      plot(peRes)
+    }, error = function(e) {
+      message("Could not plot peRes: ", e\$message)
+    })
+    
+    tryCatch({
+      plot(peRes, c("pAcc", "pORA"), comb.pv.func = compute.normalInv, threshold = .01)
+    }, error = function(e) {
+      message("Could not plot peRes with threshold: ", e\$message)
+    })
+    
+    # Visualize specific pathway if available in the results
+    target_pathway <- "path:hsa05216"
+    if (target_pathway %in% names(peRes@pathways)) {
+      tryCatch({
+        plot(peRes@pathways[[target_pathway]], type = "two.way")
+      }, error = function(e) {
+        message("Could not plot two.way for ", target_pathway, ": ", e\$message)
+      })
+    
+      tryCatch({
+        plot(peRes@pathways[[target_pathway]], type = "boot")
+      }, error = function(e) {
+        message("Could not plot boot for ", target_pathway, ": ", e\$message)
+      })
+    
+      tryCatch({
+        p <- peRes@pathways[[target_pathway]]
+        g <- layoutGraph(p@map, layoutType = "dot")
+        graphRenderInfo(g) <- list(fixedsize = FALSE)
+        edgeRenderInfo(g) <- peEdgeRenderInfo(p)
+        nodeRenderInfo(g) <- peNodeRenderInfo(p)
+        renderGraph(g)
+      }, error = function(e) {
+        message("Could not render graph for ", target_pathway, ": ", e\$message)
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rontotools_results.csv")
+      message("Pathway ", target_pathway, " not found in the analysis results. Skipping pathway-specific plots.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rontotools_output.rds")
-    }
+    
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RONTOTOOLS:", paste0("    rontotools: ", packageVersion("ROntoTools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RONTOTOOLS_PATHWAY_EXPRESS":',
+        paste0('    ROntoTools: ', as.character(packageVersion('ROntoTools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rontotools_results.csv
-    touch ${prefix}_rontotools_output.rds
-    echo "BIOC_RONTOTOOLS:" > versions.yml
-    echo "    rontotools: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_express.csv versions.yml
     """
 }
 
-
-workflow BIOC_RONTOTOOLS_WORKFLOW {
+workflow BIOC_RONTOTOOLS_PATHWAY_EXPRESS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ topTable.RData ] ]
 
     main:
-    BIOC_RONTOTOOLS(ch_input)
+    BIOC_RONTOTOOLS_PATHWAY_EXPRESS(ch_input)
 
     emit:
-    results  = BIOC_RONTOTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RONTOTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RONTOTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RONTOTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RONTOTOOLS_PATHWAY_EXPRESS.out.tables
+    plots    = BIOC_RONTOTOOLS_PATHWAY_EXPRESS.out.plots
+    objects  = BIOC_RONTOTOOLS_PATHWAY_EXPRESS.out.objects
+    versions = BIOC_RONTOTOOLS_PATHWAY_EXPRESS.out.versions
 }

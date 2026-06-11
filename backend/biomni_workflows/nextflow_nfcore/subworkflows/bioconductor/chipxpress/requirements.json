@@ -1,0 +1,15 @@
+{
+  "package": "chipxpress",
+  "requirements": [
+    "ChIPXpress",
+    "ChIPXpressData",
+    "bigmemory"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChIPXpress",
+      "ChIPXpressData",
+      "bigmemory"
+    ]
+  }
+}

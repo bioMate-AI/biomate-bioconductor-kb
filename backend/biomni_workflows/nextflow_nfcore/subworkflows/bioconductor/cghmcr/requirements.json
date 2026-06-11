@@ -1,0 +1,18 @@
+{
+  "package": "cghmcr",
+  "requirements": [
+    "CNTools",
+    "DNAcopy",
+    "cghMCR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CNTools",
+      "cghMCR"
+    ],
+    "minimum_common_regions_mcr.nf": [
+      "DNAcopy",
+      "cghMCR"
+    ]
+  }
+}

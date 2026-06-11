@@ -1,98 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tilingArray
-// The package provides functionality that can be useful for the analysis of high-density tiling microa
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tilingArray/inst/doc/findsegments.R
-// Upstream  : none
-// Downstream: davidTiling
-//
-// Install: BiocManager::install("tilingArray")
+// Bioconductor workflow: tilingArray — piecewise_segmentation
+// Fit a piecewise constant curve to sequential genomic data and select the optimal number of segments using AIC or BIC.
+// Input: intensity_matrix.txt
+// Container: quay.io/biocontainers/bioconductor-tilingarray:1.88.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: tilingArray
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run segmentation using the segment function with specified maxk and maxseg constraints
+//  * 2. [Visualization & Output] Plot penalized log-likelihoods using plotPenLL
+//  * 3. [Core Analysis] Identify the optimal number of segments using logLik with AIC or BIC penalties
 
 nextflow.enable.dsl = 2
 
-process BIOC_TILINGARRAY {
+process BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tilingarray"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tilingarray:1.84.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tilingarray:1.84.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tilingarray_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tilingarray_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tilingarray_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(tilingArray)
-    library(jsonlite)
-
-    # --- Model Selection [] ---
-    # Key functions: logLik
-    aic_val <- logLik(seg, penalty = "AIC")
-    bic_val <- logLik(seg, penalty = "BIC")
-    best_aic <- which.max(aic_val)
-    best_bic <- which.max(bic_val)
-
-
-    # --- Visualisation of Penalised Likelihood [] ---
-    # Key functions: plotPenLL
-    png("penalised_likelihood.png", width = 800, height = 600)
-    plotPenLL(seg)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library("tilingArray")
+    
+    # -------------------------------------------------------------------------
+    # 1. Read User Input
+    # -------------------------------------------------------------------------
+    # The pipeline reads 'intensity_matrix.txt' from the working directory.
+    # This file is expected to be a matrix of normalized intensity values
+    # where rows represent genomic positions and columns represent replicates/samples.
+    if (!file.exists("intensity_matrix.txt")) {
+      stop("Error: 'intensity_matrix.txt' not found in the working directory.")
+    }
+    
+    intensity_matrix <- as.matrix(read.table("intensity_matrix.txt", header = TRUE))
+    
+    # Construct the gd list containing the data matrix in gd\$x
+    gd <- list(x = intensity_matrix)
+    
+    # -------------------------------------------------------------------------
+    # 2. Define Parameters Dynamically based on Input Size
+    # -------------------------------------------------------------------------
+    lenx <- nrow(gd\$x)
+    if (lenx < 3) {
+      stop("Error: Input intensity matrix must have at least 3 rows (genomic positions) for segmentation.")
+    }
+    
+    # Determine a safe nrSeg (fixed to avoid linear scaling with input size)
+    nrSeg <- 22
+    while (as.integer(nrSeg * 2.5) >= lenx && nrSeg > 1) {
+      nrSeg <- nrSeg - 1
+    }
+    
+    # Determine safe maxseg and maxk constraints
+    maxseg <- 12
+    if (maxseg >= lenx) {
+      maxseg <- lenx - 1
+    }
+    if (maxseg < 2) {
+      maxseg <- 2
+    }
+    
+    maxk <- 500
+    if (maxk > lenx) {
+      maxk <- lenx
+    }
+    
+    # -------------------------------------------------------------------------
+    # 3. Run Documented Segmentation Workflow
+    # -------------------------------------------------------------------------
+    
+    # Stage 1: Run segmentation using the segment function with specified maxk and maxseg constraints
+    seg  = segment(gd\$x, maxk=maxk, maxseg=maxseg)
+    
+    # Run segmentation for model selection
+    s = segment(gd\$x, maxk=maxk, maxseg=as.integer(nrSeg * 2.5))
+    
+    # Stage 2: Plot penalized log-likelihoods using plotPenLL
+    pdf("penalized_log_likelihood.pdf", width = 7, height = 6)
+    plotPenLL(s)
     dev.off()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tilingarray_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tilingarray_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tilingarray_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TILINGARRAY:", paste0("    tilingarray: ", packageVersion("tilingArray"))),
-        "versions.yml"
+    
+    # Stage 3: Identify the optimal number of segments using logLik with AIC or BIC penalties
+    aic_opt <- which.max(logLik(s, penalty="AIC"))
+    bic_opt <- which.max(logLik(s, penalty="BIC"))
+    
+    # -------------------------------------------------------------------------
+    # 4. Save Outputs
+    # -------------------------------------------------------------------------
+    # Save the segmentation objects
+    saveRDS(seg, "segmentation_constrained.rds")
+    saveRDS(s, "segmentation_model_selection.rds")
+    
+    # Save the optimal model selection results
+    results <- data.frame(
+      Metric = c("AIC_Optimal_Segments", "BIC_Optimal_Segments"),
+      Value = c(aic_opt, bic_opt)
     )
+    write.csv(results, "optimal_segments.csv", row.names = FALSE)
+    
+    # Save the breakpoints of the BIC-optimal model if available
+    if (bic_opt <= length(s@breakpoints) && bic_opt > 0) {
+      bp_bic <- s@breakpoints[[bic_opt]]
+      write.csv(as.data.frame(bp_bic), "breakpoints_bic_optimal.csv", row.names = FALSE)
+    }
+    
+    cat("Pipeline completed successfully.\n")
+    cat("Outputs saved:\n")
+    cat(" - penalized_log_likelihood.pdf\n")
+    cat(" - segmentation_constrained.rds\n")
+    cat(" - segmentation_model_selection.rds\n")
+    cat(" - optimal_segments.csv\n")
+    cat(" - breakpoints_bic_optimal.csv\n")
+
+    writeLines(c(
+        '"BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION":',
+        paste0('    tilingArray: ', as.character(packageVersion('tilingArray')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tilingarray_results.csv
-    touch ${prefix}_tilingarray_output.rds
-    echo "BIOC_TILINGARRAY:" > versions.yml
-    echo "    tilingarray: 0.0.0" >> versions.yml
+    touch ${prefix}_piecewise_segmentation.csv versions.yml
     """
 }
 
-
-workflow BIOC_TILINGARRAY_WORKFLOW {
+workflow BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ intensity_matrix.txt ] ]
 
     main:
-    BIOC_TILINGARRAY(ch_input)
+    BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION(ch_input)
 
     emit:
-    results  = BIOC_TILINGARRAY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TILINGARRAY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TILINGARRAY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TILINGARRAY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION.out.tables
+    plots    = BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION.out.plots
+    objects  = BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION.out.objects
+    versions = BIOC_TILINGARRAY_PIECEWISE_SEGMENTATION.out.versions
 }

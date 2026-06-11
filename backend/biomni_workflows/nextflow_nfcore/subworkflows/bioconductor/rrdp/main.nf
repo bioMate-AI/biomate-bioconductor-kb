@@ -1,138 +1,95 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rRDP
-// This package installs and interfaces the naive Bayesian classifier for 16S rRNA sequences developed 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rRDP/inst/doc/rRDP.R
-// Upstream  : none
-// Downstream: rRDPData
-//
-// Install: BiocManager::install("rRDP")
+// Bioconductor workflow: rRDP — taxonomic_classification
+// Classify 16S rRNA sequences taxonomically using the pre-trained RDP classifier.
+// Input: sequences.fasta
+// Container: quay.io/biocontainers/bioconductor-rrdp:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biostrings, rRDP
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the default RDP classifier
+//  * 2. [Input & Preparation] Read sequences into a DNAStringSet
+//  * 3. [Core Analysis] Classify sequences using predict
 
 nextflow.enable.dsl = 2
 
-process BIOC_RRDP {
+process BIOC_RRDP_TAXONOMIC_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rrdp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rrdp:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rrdp:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rrdp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rrdp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rrdp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Set Java memory limit before loading rJava/rRDP to prevent OutOfMemory errors
+    options(java.parameters = "-Xmx4g")
+    
+    # Load required libraries
+    library(Biostrings)
     library(rRDP)
-    library(jsonlite)
+    
+    # 1. Read sequences from the user-provided FASTA file
+    seq <- readDNAStringSet("sequences.fasta")
+    
+    # 2. Load the default RDP classifier
+    cl <- rdp()
+    
+    # 3. Classify sequences using predict
+    pred <- predict(cl, seq)
+    
+    # 4. Write the classification results to a CSV file
+    write.csv(as.data.frame(pred), "taxonomic_predictions.csv", row.names = TRUE)
 
-    # --- Readrnastringset [] ---
-    # Key functions: readRNAStringSet
-    ---------------------------------------------------------------------
-    seq <- readRNAStringSet(system.file("examples/RNA_example.fasta",
-        package = "rRDP"
-    ))
-    seq
-    # --- Predict [] ---
-    # Key functions: predict, rdp
-    ---------------------------------------------------------------------
-    pred <- predict(rdp(), seq)
-    pred
-    # --- Attr [] ---
-    # Key functions: attr
-    ---------------------------------------------------------------------
-    attr(pred, "confidence")
-    # --- Decode Greengenes [] ---
-    # Key functions: decode_Greengenes
-    ---------------------------------------------------------------------
-    actual <- decode_Greengenes(annotation)
-    actual
-    # --- Confusiontable [] ---
-    # Key functions: confusionTable, accuracy
-    ---------------------------------------------------------------------
-    confusionTable(actual, pred, rank = "genus")
-    accuracy(actual, pred, rank = "genus")
-    # --- Readdnastringset [] ---
-    # Key functions: readDNAStringSet
-    ---------------------------------------------------------------------
-    trainingSequences <- readDNAStringSet(
-        system.file("examples/trainingSequences.fasta", package = "rRDP")
-    )
-    trainingSequences
-    # --- Trainrdp [] ---
-    # Key functions: trainRDP
-    ---------------------------------------------------------------------
-    customRDP <- trainRDP(trainingSequences, dir = "myRDP")
-    customRDP
-    # --- Readdnastringset [] ---
-    # Key functions: readDNAStringSet, predict
-    ---------------------------------------------------------------------
-    testSequences <- readDNAStringSet(
-        system.file("examples/testSequences.fasta", package = "rRDP")
-    )
-    pred <- predict(customRDP, testSequences)
-    # --- Rdp [] ---
-    # Key functions: rdp
-    ---------------------------------------------------------------------
-    customRDP <- rdp(dir = "myRDP")
-    # --- Removerdp [] ---
-    # Key functions: removeRDP
-    ---------------------------------------------------------------------
-    removeRDP(customRDP)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rrdp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rrdp_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rrdp_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RRDP:", paste0("    rrdp: ", packageVersion("rRDP"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RRDP_TAXONOMIC_CLASSIFICATION":',
+        paste0('    rRDP: ', as.character(packageVersion('rRDP')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rrdp_results.csv
-    touch ${prefix}_rrdp_output.rds
-    echo "BIOC_RRDP:" > versions.yml
-    echo "    rrdp: 0.0.0" >> versions.yml
+    touch ${prefix}_taxonomic_classification.csv versions.yml
     """
 }
 
-
-workflow BIOC_RRDP_WORKFLOW {
+workflow BIOC_RRDP_TAXONOMIC_CLASSIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sequences.fasta ] ]
 
     main:
-    BIOC_RRDP(ch_input)
+    BIOC_RRDP_TAXONOMIC_CLASSIFICATION(ch_input)
 
     emit:
-    results  = BIOC_RRDP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RRDP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RRDP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RRDP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RRDP_TAXONOMIC_CLASSIFICATION.out.tables
+    plots    = BIOC_RRDP_TAXONOMIC_CLASSIFICATION.out.plots
+    objects  = BIOC_RRDP_TAXONOMIC_CLASSIFICATION.out.objects
+    versions = BIOC_RRDP_TAXONOMIC_CLASSIFICATION.out.versions
 }

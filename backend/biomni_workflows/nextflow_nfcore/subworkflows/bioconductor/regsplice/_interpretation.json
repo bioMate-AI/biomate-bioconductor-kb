@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filter_zeros=Logical value to enable/disable filtering of zero-count exon bins (set to FALSE for microarray data) ;; filter_low_counts=Logical value to enable/disable filtering of low-count exons (set to FALSE for microarray data) ;; normalize=Logical value to enable/disable calculation of normalization factors (set to FALSE for microarray data) ;; voom=Logical value to enable/disable limma-voom transformation and weights (set to FALSE for microarray data) ;; seed=Integer value used to set the random seed for reproducible model fitting ;; rank_by=Character string specifying whether to rank results by \"FDR\" or raw p-values in summaryTable() ;; n=Number of top genes to display in summaryTable() (set to Inf to show all) ;; threshold=Significance threshold for summaryTable() (set to 1 to show all genes) ;; when_null_selected=Character string (\"ones\", \"full\", or \"NA\") determining how to handle genes where the lasso model selects zero interaction terms ;; alpha=Elastic net parameter for glmnet (between 0 for ridge and 1 for lasso, default is 1) ;; lambda_choice=Parameter to select optimal lambda from cv.glmnet (\"lambda.min\" or \"lambda.1se\", default is \"lambda.min\")\n- alternatives: DEXSeq is mentioned as a standard approach, specifically for generating exon bin counts using its Python scripts. regsplice is preferred when faster runtimes and improved power via regularization are desired.\n- when_to_use: Appropriate for detecting differential exon usage (differential splicing) across two or more experimental conditions using either RNA-seq read counts or log2-transformed exon microarray intensities.\n- pitfalls: For exon microarray data, users must log2-transform intensities externally and disable filtering, normalization, and voom steps (filter_zeros = FALSE, filter_low_counts = FALSE, normalize = FALSE, voom = FALSE). For RNA-seq data, voom assumes zero and low-count exons have already been filtered, so filterZeros() and filterLowCounts() must be executed before runVoom(). If a lasso model selects zero interaction terms, the LR test cannot be calculated; users must configure when_null_selected (default \"ones\" is usually sufficient, but \"full\" is required to rank low-evidence genes).",
+  "workflows": [
+    {
+      "name": "rna_seq_wrapper",
+      "intent": "Run the complete regsplice analysis pipeline on RNA-seq count data in a single step using the wrapper function.",
+      "input": [
+        "counts (matrix or data frame of RNA-seq read counts)",
+        "gene_IDs (vector of gene IDs)",
+        "n_exons (vector of number of exon bins per gene)",
+        "condition (vector of experimental conditions)"
+      ],
+      "stages": "1. Create RegspliceData object ;; 2. Run the wrapper analysis pipeline ;; 3. Generate a summary table of results",
+      "code": "file_counts <- system.file(\"extdata/vignette_counts.txt\", package = \"regsplice\")\ndata <- read.table(file_counts, header = TRUE, sep = \"\\t\", stringsAsFactors = FALSE)\n\ncounts <- data[, 2:7]\ntbl_exons <- table(sapply(strsplit(data$exon, \":\"), function(s) s[[1]]))\ngene_IDs <- names(tbl_exons)\nn_exons <- unname(tbl_exons)\n\ncondition <- rep(c(\"untreated\", \"treated\"), each = 3)\n\nlibrary(regsplice)\n\nrs_data <- RegspliceData(counts, gene_IDs, n_exons, condition)\n\nrs_results <- suppressWarnings(regsplice(rs_data, seed = 123))\n\nsummaryTable(rs_results)"
+    },
+    {
+      "name": "rna_seq_step_by_step",
+      "intent": "Run the regsplice analysis pipeline step-by-step on RNA-seq count data for maximum flexibility and control over filtering, normalization, and model fitting.",
+      "input": [
+        "counts (matrix or data frame of RNA-seq read counts)",
+        "gene_IDs (vector of gene IDs)",
+        "n_exons (vector of number of exon bins per gene)",
+        "condition (vector of experimental conditions)"
+      ],
+      "stages": "1. Create RegspliceData object ;; 2. Filter zero-count exon bins ;; 3. Filter low-count exons ;; 4. Calculate normalization factors ;; 5. Apply voom transformation and weights ;; 6. Initialize RegspliceResults object ;; 7. Fit regularized, null, and full models ;; 8. Calculate likelihood ratio tests ;; 9. Generate summary table of results",
+      "code": "file_counts <- system.file(\"extdata/vignette_counts.txt\", package = \"regsplice\")\ndata <- read.table(file_counts, header = TRUE, sep = \"\\t\", stringsAsFactors = FALSE)\n\ncounts <- data[, 2:7]\ntbl_exons <- table(sapply(strsplit(data$exon, \":\"), function(s) s[[1]]))\ngene_IDs <- names(tbl_exons)\nn_exons <- unname(tbl_exons)\n\ncondition <- rep(c(\"untreated\", \"treated\"), each = 3)\n\nlibrary(regsplice)\n\nrs_data <- RegspliceData(counts, gene_IDs, n_exons, condition)\n\nrs_data <- filterZeros(rs_data)\n\nrs_data <- filterLowCounts(rs_data)\n\nrs_data <- runNormalization(rs_data)\n\nrs_data <- runVoom(rs_data)\n\ncolData(rs_data)\n\nrs_results <- initializeResults(rs_data)\n\nseed <- 123\n\nrs_results <- suppressWarnings(fitRegMultiple(rs_results, rs_data, seed = seed))\n\nrs_results <- fitNullMultiple(rs_results, rs_data, seed = seed)\n\nrs_results <- fitFullMultiple(rs_results, rs_data, seed = seed)\n\nrs_results <- LRTests(rs_results)\n\nsummaryTable(rs_results)"
+    }
+  ]
+}

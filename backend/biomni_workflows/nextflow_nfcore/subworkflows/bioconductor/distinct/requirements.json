@@ -1,0 +1,15 @@
+{
+  "package": "distinct",
+  "requirements": [
+    "SingleCellExperiment",
+    "distinct",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "distinct",
+      "ggplot2"
+    ]
+  }
+}

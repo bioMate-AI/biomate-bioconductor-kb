@@ -1,0 +1,32 @@
+{
+  "package": "singlemoleculefootprinting",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "SingleMoleculeFootprinting",
+    "dplyr",
+    "ggplot2",
+    "readr",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "SingleMoleculeFootprinting",
+      "dplyr",
+      "ggplot2",
+      "readr",
+      "rtracklayer"
+    ],
+    "supervised_tf_sorting.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "SingleMoleculeFootprinting",
+      "dplyr",
+      "ggplot2",
+      "readr",
+      "rtracklayer"
+    ]
+  }
+}

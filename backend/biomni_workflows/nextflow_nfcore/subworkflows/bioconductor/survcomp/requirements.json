@@ -1,0 +1,26 @@
+{
+  "package": "survcomp",
+  "requirements": [
+    "Biobase",
+    "rmeta",
+    "survcomp",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "rmeta",
+      "survcomp",
+      "survival"
+    ],
+    "performance_comparison_meta_analysis.nf": [
+      "Biobase",
+      "rmeta",
+      "survcomp"
+    ],
+    "survival_curve_visualization.nf": [
+      "survcomp",
+      "survival"
+    ]
+  }
+}

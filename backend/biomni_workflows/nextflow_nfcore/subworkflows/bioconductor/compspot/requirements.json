@@ -1,0 +1,11 @@
+{
+  "package": "compspot",
+  "requirements": [
+    "compSPOT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "compSPOT"
+    ]
+  }
+}

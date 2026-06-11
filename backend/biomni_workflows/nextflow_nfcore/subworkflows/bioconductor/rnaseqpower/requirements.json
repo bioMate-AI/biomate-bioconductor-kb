@@ -1,0 +1,11 @@
+{
+  "package": "rnaseqpower",
+  "requirements": [
+    "RNASeqPower"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RNASeqPower"
+    ]
+  }
+}

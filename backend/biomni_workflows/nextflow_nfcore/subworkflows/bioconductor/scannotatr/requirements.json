@@ -1,0 +1,24 @@
+{
+  "package": "scannotatr",
+  "requirements": [
+    "Seurat",
+    "SingleCellExperiment",
+    "ggplot2",
+    "scAnnotatR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Seurat",
+      "scAnnotatR"
+    ],
+    "train_basic_classifier.nf": [
+      "SingleCellExperiment",
+      "scAnnotatR"
+    ],
+    "train_child_classifier.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scAnnotatR"
+    ]
+  }
+}

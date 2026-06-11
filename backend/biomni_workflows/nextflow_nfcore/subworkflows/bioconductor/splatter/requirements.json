@@ -1,0 +1,29 @@
+{
+  "package": "splatter",
+  "requirements": [
+    "SingleCellExperiment",
+    "VariantAnnotation",
+    "cowplot",
+    "rtracklayer",
+    "scater",
+    "splatter"
+  ],
+  "by_workflow": {
+    "compare_and_diff_simulations.nf": [
+      "SingleCellExperiment",
+      "cowplot",
+      "splatter"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "scater",
+      "splatter"
+    ],
+    "splatpop_population_simulation.nf": [
+      "SingleCellExperiment",
+      "VariantAnnotation",
+      "rtracklayer",
+      "splatter"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: features=In analyzeFeatures(), a TxFeatures object used to guide the analysis based on existing annotation ;; which=In analyzeFeatures() or predictTxFeatures(), a GRanges object specifying the genomic region of interest for de novo prediction ;; min_denominator=In analyzeVariants() or getSGVariantCounts(), the minimum compatible fragment count required at either the start or end of a variant to avoid setting relative usage estimates to NA ;; cores=Integer specifying the number of cores for parallel processing ;; max_complexity=In prediction functions, controls skipping of regions with high split-read complexity to prevent memory issues ;; min_overhang=In predictTxFeatures(), set to NULL when running on individual samples to suppress terminal exon processing before merging\n- alternatives: DEXSeq=For performing statistical testing of differential exon/variant usage ;; limma (diffSplice with voom)=For performing statistical testing of differential splice variant usage using single counts per variant\n- when_to_use: When analyzing alternative splicing events from RNA-seq data mapped to a reference genome in BAM format, either using existing transcript annotations or predicting novel splice features de novo, and wishing to quantify local splice variant usage (PSI) and visualize splice graphs.\n- pitfalls: BAM files must be indexed and generated with a splice-aware aligner (e.g., GSNAP, HISAT, STAR) that outputs the custom 'XS' tag for spliced reads ;; lib_size must reflect the total number of aligned fragments in the original BAM files (even if subsetted) for accurate FPKM calculation ;; variant effect prediction (predictVariantEffects) is relatively slow and should only be run on select variants ;; high split-read complexity regions can cause memory issues, which can be resolved by adjusting max_complexity or excluding problematic regions like mitochondrial genes",
+  "workflows": [
+    {
+      "name": "annotation_guided_splice_analysis",
+      "intent": "Analyze and quantify splice features and variants using existing transcript annotations.",
+      "input": [
+        "file_bam (Indexed BAM files from splice-aware aligner)",
+        "txdb (TxDb annotation object)"
+      ],
+      "stages": "1. Convert TxDb annotation to transcript features using convertToTxFeatures() ;; 2. Convert transcript features to splice graph features and count compatible fragments using analyzeFeatures() ;; 3. Plot splice graph and feature expression using plotFeatures()",
+      "code": "library(TxDb.Hsapiens.UCSC.hg19.knownGene)\nlibrary(GenomeInfoDb)  # for keepSeqlevels() and seqlevelsStyle()\ntxdb <- TxDb.Hsapiens.UCSC.hg19.knownGene\ntxdb <- keepSeqlevels(txdb, \"chr16\")\nseqlevelsStyle(txdb) <- \"NCBI\"\ntxf_ucsc <- convertToTxFeatures(txdb)\ntxf_ucsc <- txf_ucsc[txf_ucsc %over% gr]\nsgfc_ucsc <- analyzeFeatures(si, features = txf_ucsc)\ndf <- plotFeatures(sgfc_ucsc, geneID = 1)"
+    },
+    {
+      "name": "de_novo_splice_analysis",
+      "intent": "Predict novel splice features de novo from RNA-seq data, annotate them, identify splice variants, and predict their functional effects.",
+      "input": [
+        "file_bam (Indexed BAM files from splice-aware aligner)",
+        "gr (GRanges object of genomic region of interest)",
+        "txdb (TxDb annotation object for annotating predicted features)",
+        "Hsapiens (BSgenome object for variant effect prediction)"
+      ],
+      "stages": "1. Predict transcript features and count compatible fragments using analyzeFeatures() ;; 2. Annotate predicted features with known transcripts using annotate() ;; 3. Identify splice variants and estimate relative usage using analyzeVariants() ;; 4. Predict variant effects on protein-coding potential using predictVariantEffects() ;; 5. Obtain single counts per variant for differential testing using getSGVariantCounts()",
+      "code": "sgfc_pred <- analyzeFeatures(si, which = gr)\nsgfc_pred <- annotate(sgfc_pred, txf_ucsc)\ndf <- plotFeatures(sgfc_pred, geneID = 1, color_novel = \"red\")\nsgvc_pred <- analyzeVariants(sgfc_pred)\nplotVariants(sgvc_pred, eventID = 1, color_novel = \"red\")\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\nseqlevelsStyle(Hsapiens) <- \"NCBI\"\nvep <- predictVariantEffects(sgv_pred, txdb, Hsapiens)\nsgv <- rowRanges(sgvc_pred)\nsgvc <- getSGVariantCounts(sgv, sample_info = si)\nx <- counts(sgvc)\nvid <- variantID(sgvc)\neid <- eventID(sgvc)"
+    },
+    {
+      "name": "step_by_step_splice_analysis",
+      "intent": "Perform de novo splice feature prediction, quantification, and variant identification using individual step-by-step functions for advanced control.",
+      "input": [
+        "file_bam (Indexed BAM files from splice-aware aligner)",
+        "gr (GRanges object of genomic region of interest)",
+        "txf_ucsc (TxFeatures object from annotation)"
+      ],
+      "stages": "1. Predict transcript features using predictTxFeatures() ;; 2. Convert predicted transcript features to splice graph features using convertToSGFeatures() ;; 3. Annotate splice graph features using annotate() ;; 4. Get compatible fragment counts for splice graph features using getSGFeatureCounts() ;; 5. Find splice variants from splice graph features using findSGVariants() ;; 6. Get variant counts and relative frequencies using getSGVariantCounts()",
+      "code": "txf <- predictTxFeatures(si, gr)\nsgf <- convertToSGFeatures(txf)\nsgf <- annotate(sgf, txf_ucsc)\nsgfc <- getSGFeatureCounts(si, sgf)\nsgv <- findSGVariants(sgf)\nsgvc <- getSGVariantCounts(sgv, sgfc)"
+    }
+  ]
+}

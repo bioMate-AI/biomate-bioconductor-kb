@@ -1,0 +1,25 @@
+{
+  "package": "regionalst",
+  "requirements": [
+    "BayesSpace",
+    "RegionalST",
+    "S4Vectors",
+    "ggplot2",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "cell_type_labels_workflow.nf": [
+      "BayesSpace",
+      "RegionalST",
+      "S4Vectors",
+      "ggplot2",
+      "gridExtra"
+    ],
+    "main.nf": [
+      "BayesSpace",
+      "RegionalST",
+      "S4Vectors",
+      "gridExtra"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package": "ccimpute",
+  "requirements": [
+    "BiocParallel",
+    "SingleCellExperiment",
+    "ccImpute",
+    "mclust",
+    "scRNAseq",
+    "scater"
+  ],
+  "by_workflow": {
+    "decomposed_imputation.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "ccImpute"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "ccImpute",
+      "mclust",
+      "scRNAseq",
+      "scater"
+    ]
+  }
+}

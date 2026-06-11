@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: W=The omega threshold parameter determined via null simulation to control the fudge effect in small samples ;; alpha=The probabilistic threshold (typically 0.05 or 0.01) used to control the false discovery rate ;; na/nb=The number of replicate libraries in condition A and condition B ;; nci=The column index indicating where the annotation columns end and the count data columns begin ;; TT=A numeric parameter used to truncate extreme t-values in the MA plot for better visualization\n- alternatives: baySeq, DESeq, DESeq2, and edgeR (exact test or GLM). MBttest is preferred over these alternatives when working with very small sample sizes (typically 6 or fewer replicates per condition) because it offers higher power, more conservative FDR estimation, and greater stability.\n- when_to_use: Use this package when analyzing transcriptomic count data, tag data, SAGE data, or comparative ChIP-Seq data with small sample sizes (replicates <= 6) to detect differential expression, alternative splicing, or alternative polyadenylation.\n- pitfalls: Failing to normalize libraries to the same size before running the main test can lead to erroneous results ;; Neglecting to run multiple null simulations (typically 4 to 6 runs) to calculate an accurate average omega (W) value before analyzing the real dataset ;; Incorrectly specifying the nci parameter, which can cause the algorithm to treat annotation columns as count data or vice versa.",
+  "workflows": [
+    {
+      "name": "differential_expression_analysis",
+      "intent": "Identify differentially expressed genes or isoforms between two conditions with small sample sizes using multiple beta t-tests.",
+      "input": [
+        "count_matrix.csv (matrix containing gene/isoform annotations in the left columns and raw count data for two conditions in the right columns)"
+      ],
+      "stages": "1. Simulate null count data from real data using simulat ;; 2. Run multiple beta t-tests on the simulated null data using smbetattest to identify false positives ;; 3. Calculate the threshold parameter omega (W) by sorting and analyzing the rho values of false positives ;; 4. Normalize the real count data to ensure equal library sizes ;; 5. Perform the multiple beta t-test on the normalized real data using mbetattest ;; 6. Visualize the results using maplot and myheatmap",
+      "code": "library(MBttest)\nsjknull1<-simulat(yy=jkttcell[1:500,], nci=7,r1=3,r2=3,p=0, q=0.2)\nmysim1<-smbetattest(X=sjknull1,na=3,nb=3,alpha=0.05)\nres<-mbetattest(X=jkttcell[1:1000,],na=3,nb=3,W=1,alpha=0.05,file=\"jurkat_NS_48h_tag_mbetattest.csv\")\nmaplot(dat=dat,r1=3,r2=3,TT=350,matitle=\"MA plot\")\nmaplot(dat=dat,r1=3,r2=3,TT=50,matitle=\"MA plot\")\nmyheatmap(dat=dat,r1=3,r2=3,maptitle=\"Jurkat T-cell heatmap2\")\nmyheatmap(dat=dat,r1=3,r2=3,tree=\"none\",maptitle=\"Jurkat T-cell heatmap3\")\nmyheatmap(dat=dat,r1=3,r2=3,colrs=\"redblue\", tree=\"column\", method=\"pearson\", maptitle=\"Jurkat T-cell heatmap\")"
+    }
+  ]
+}

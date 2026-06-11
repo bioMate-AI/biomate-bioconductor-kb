@@ -1,0 +1,23 @@
+{
+  "package": "chetah",
+  "requirements": [
+    "CHETAH",
+    "Matrix",
+    "S4Vectors",
+    "SingleCellExperiment",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CHETAH",
+      "Matrix",
+      "S4Vectors",
+      "SingleCellExperiment"
+    ],
+    "reference_qc_and_preparation.nf": [
+      "CHETAH",
+      "SingleCellExperiment",
+      "SummarizedExperiment"
+    ]
+  }
+}

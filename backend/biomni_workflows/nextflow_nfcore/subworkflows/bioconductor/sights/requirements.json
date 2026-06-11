@@ -1,0 +1,15 @@
+{
+  "package": "sights",
+  "requirements": [
+    "ggplot2",
+    "gridExtra",
+    "sights"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "gridExtra",
+      "sights"
+    ]
+  }
+}

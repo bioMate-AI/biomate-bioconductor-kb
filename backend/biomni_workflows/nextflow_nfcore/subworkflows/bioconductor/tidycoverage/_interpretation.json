@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tracks=A single BigWig file, a named list of BigWig files, a BigWigFile, or a BigWigFileList ;; features=A GRanges or a named GRangesList object representing genomic regions of interest ;; width=Numeric value used to center features to their midpoint and resize them to the chosen width ;; window=An integer specifying the bin size to average coverage scores over non-overlapping bins during CoverageExperiment creation or coarsening ;; bin=An integer specifying the bin size used during aggregation ;; scale=Logical indicating whether to scale the coverage scores ;; center=Logical indicating whether to center features around their midpoint\n- alternatives: Traditional SummarizedExperiment objects store atomic values in individual cells, whereas CoverageExperiment stores a list containing a matrix of per-base coverage scores in each cell. tidySummarizedExperiment can be loaded to enable direct dplyr verb manipulation on CoverageExperiment and AggregatedCoverage objects without explicit coercion.\n- when_to_use: Use this package when you need to compare and visualize linear coverage profiles (e.g., ChIP-seq, RNA-seq, ATAC-seq) across multiple genomic tracks over a single locus or aggregated across thousands of genomic features.\n- pitfalls: Coarsening a CoverageExperiment with a window size and then aggregating is NOT mathematically equivalent to aggregating a per-base CoverageExperiment with a bin size, because certain statistical operations (such as standard deviation, min, and max) are not commutative with the mean.",
+  "workflows": [
+    {
+      "name": "single_locus_coverage",
+      "intent": "Extract and plot coverage of multiple tracks over a single genomic locus.",
+      "input": [
+        "Scc1.bw (BigWig track)",
+        "RNA.fwd.bw (BigWig track)",
+        "RNA.rev.bw (BigWig track)",
+        "PolII.bw (BigWig track)",
+        "MNase.bw (BigWig track)"
+      ],
+      "stages": "1. Load genomic tracks as a BigWigFileList ;; 2. Define the genomic locus of interest as a GRanges object ;; 3. Instantiate a CoverageExperiment object ;; 4. Coarsen the coverage resolution using coarsen() ;; 5. Expand the object into a tidy tibble using expand() ;; 6. Plot the coverage tracks using ggplot2 and geom_coverage()",
+      "code": "tracks <- list(\n    Scc1 = system.file(\"extdata\", \"Scc1.bw\", package = \"tidyCoverage\"), \n    RNA_fwd = system.file(\"extdata\", \"RNA.fwd.bw\", package = \"tidyCoverage\"),\n    RNA_rev = system.file(\"extdata\", \"RNA.rev.bw\", package = \"tidyCoverage\"),\n    PolII = system.file(\"extdata\", \"PolII.bw\", package = \"tidyCoverage\"), \n    MNase = system.file(\"extdata\", \"MNase.bw\", package = \"tidyCoverage\")\n) |> BigWigFileList()\n\nlocus <- GRanges(\"II:450001-475000\")\n\nCE_chrII <- CoverageExperiment(\n    tracks = tracks, \n    features = locus,\n    width = width(locus)\n)\n\nlibrary(ggplot2)\nCE_chrII |> \n    coarsen(window = 10) |> \n    expand() |> \n    ggplot() + \n    geom_coverage(aes(fill = track)) + \n    facet_grid(track~., scales = 'free')"
+    },
+    {
+      "name": "aggregated_coverage_multiple_features",
+      "intent": "Extract, aggregate, and plot coverage of multiple tracks over multiple sets of genomic features.",
+      "input": [
+        "TSSs.bed (BED file of genomic features)",
+        "conv_transcription_loci.bed (BED file of genomic features)",
+        "Scc1.bw (BigWig track)",
+        "RNA.fwd.bw (BigWig track)",
+        "RNA.rev.bw (BigWig track)",
+        "PolII.bw (BigWig track)",
+        "MNase.bw (BigWig track)"
+      ],
+      "stages": "1. Import genomic features and filter by strand ;; 2. Import genomic tracks as Rle objects ;; 3. Create a CoverageExperiment object with scaling and centering enabled ;; 4. Aggregate the coverage across features using aggregate() ;; 5. Coerce the AggregatedCoverage object to a tibble using as_tibble() ;; 6. Plot the aggregated coverage profiles using ggplot2 and geom_aggrcoverage()",
+      "code": "library(purrr)\nlibrary(plyranges)\n\nfeatures <- list(\n    TSSs = system.file(\"extdata\", \"TSSs.bed\", package = \"tidyCoverage\"),\n    `Convergent transcription` = system.file(\"extdata\", \"conv_transcription_loci.bed\", package = \"tidyCoverage\")\n) |> map(import) |> map(filter, strand == '+') \n\ntracks <- list(\n    Scc1 = system.file(\"extdata\", \"Scc1.bw\", package = \"tidyCoverage\"), \n    RNA_fwd = system.file(\"extdata\", \"RNA.fwd.bw\", package = \"tidyCoverage\"),\n    RNA_rev = system.file(\"extdata\", \"RNA.rev.bw\", package = \"tidyCoverage\"),\n    PolII = system.file(\"extdata\", \"PolII.bw\", package = \"tidyCoverage\"), \n    MNase = system.file(\"extdata\", \"MNase.bw\", package = \"tidyCoverage\")\n) |> map(import, as = 'Rle')\n\nCE <- CoverageExperiment(tracks, features, width = 5000, scale = TRUE, center = TRUE)\n\nAC <- aggregate(CE)\n\nAC |> \n    as_tibble() |> \n    ggplot(aes(col = track, linetype = track %in% c('RNA_fwd', 'RNA_rev'))) + \n    geom_aggrcoverage() + \n    facet_grid(features ~ .) + \n    labs(x = 'Distance from genomic feature', y = 'Mean coverage (\u00c2\u00b1 95% conf. intervale)') + \n    theme_bw() + \n    theme(legend.position = 'top')"
+    }
+  ]
+}

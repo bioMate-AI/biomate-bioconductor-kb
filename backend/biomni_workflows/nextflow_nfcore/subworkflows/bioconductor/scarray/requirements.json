@@ -1,0 +1,19 @@
+{
+  "package": "scarray",
+  "requirements": [
+    "Matrix",
+    "SCArray",
+    "SingleCellExperiment",
+    "scater",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Matrix",
+      "SCArray",
+      "SingleCellExperiment",
+      "scater",
+      "scuttle"
+    ]
+  }
+}

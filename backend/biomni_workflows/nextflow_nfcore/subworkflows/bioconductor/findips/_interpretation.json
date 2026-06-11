@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fun=The ranking function or criterion to use (e.g., \"t.test\", \"cox\", \"log2fc\", \"kruskal.test\", or a custom function) ;; decreasing=Logical indicating whether the ranking criterion should be sorted in decreasing order (e.g., FALSE for p-values) ;; topN=The number of top-prioritized features to select and compare ;; method=The rank comparison method, which can be \"unweighted\", \"weightedSpearman\", or \"adaptive\" (recommended) ;; topn=The number of top influential points to label in plotIPs() ;; kappa=The shape parameter of the adaptive weights method used in plotAdaptiveWeights()\n- alternatives: The package compares three internal rank comparison methods: \"unweighted\" (assumes all ranks have equal importance), \"weightedSpearman\" (emphasizes top-ranked features), and \"adaptive\" (recommended; dynamically adjusts weights based on the distribution of rank changes).\n- when_to_use: Use this package when performing feature selection or ranking on high-throughput molecular data (e.g., microarray or RNA-seq) to ensure that the resulting feature list is robust and not driven by a single outlier or influential sample.\n- pitfalls: Using the \"unweighted\" method can be misleading because it treats changes in low-ranked features with the same importance as changes in top-ranked features. Note that the output structure of sumRanks() and findIPs() changes depending on the method; elements like \"kappa\", \"origRankWeighted\", and \"drop1RankWeighted\" are only returned when method = \"adaptive\".",
+  "workflows": [
+    {
+      "name": "binary_or_continuous_outcome_ip_detection",
+      "intent": "Detect influential points affecting feature rankings for binary or continuous outcomes using t-test, Kruskal-Wallis, or custom ranking functions.",
+      "input": [
+        "expression_matrix.csv (high-dimensional feature matrix with samples as rows and genes as columns)",
+        "phenotype_labels.csv (binary or continuous response vector matching the samples)"
+      ],
+      "stages": "1. Generate original and leave-one-out rankings using getdrop1ranks() ;; 2. Calculate cumulative rank changes using sumRanks() ;; 3. Run the complete detection in one step using findIPs() ;; 4. Visualize influential points, rank scatters, and adaptive weights using plotIPs(), plotRankScatters(), and plotAdaptiveWeights()",
+      "code": "library(findIPs)\ndata(miller05)\nX <- miller05$X\ny <- miller05$y\nsurv <- miller05$surv\n\nobj <- getdrop1ranks(X, y,\n                     fun = \"t.test\",\n                     decreasing = FALSE,\n                     topN = 100)\nstr(obj)\n\nresults <- sumRanks(origRank = obj$origRank,\n                    drop1Rank = obj$drop1Rank,\n                    topN = 100,\n                    method = \"adaptive\")\n\nstr(results)\n\nresults.ipsr <- findIPs(X, y, \n                        fun = \"t.test\",\n                        decreasing = FALSE,\n                        method = \"adaptive\")\n\nidentical(results, results.ipsr)\n\npar(mar = c(4, 4, 2, 2))\nplotIPs(results.ipsr, topn = 5, ylim = c(0, 8))\n\npar(mar = c(4, 4, 2, 2))\nplotRankScatters(results.ipsr)\n\npar(mar = c(4, 4, 2, 2))\nplotAdaptiveWeights(results.ipsr$kappa, n = 100, type = \"line\")\n\nfun <- function(x, y){\n  kruskal.test(x, y)$p.value\n}\n\nkruskal.test1 <- getdrop1ranks(X, y, \n                               fun = fun, \n                               decreasing = FALSE)\n\nkruskal.test2 <- getdrop1ranks(X, y, \n                               fun = \"kruskal.test\", \n                               decreasing = FALSE)\n\nidentical(kruskal.test1, kruskal.test2)"
+    },
+    {
+      "name": "survival_outcome_ip_detection",
+      "intent": "Detect influential points affecting feature rankings for survival outcomes using a univariate Cox proportional hazards model.",
+      "input": [
+        "expression_matrix.csv (high-dimensional feature matrix with samples as rows and genes as columns)",
+        "survival_data.csv (survival response object containing time and event status)"
+      ],
+      "stages": "1. Run the one-step findIPs() function with fun = \"cox\" ;; 2. Visualize the influence scores of each sample using plotIPs()",
+      "code": "library(findIPs)\ndata(miller05)\nX <- miller05$X\ny <- miller05$y\nsurv <- miller05$surv\n\npar(mar = c(4, 4, 2, 2))\nresults.cox <- findIPs(X, surv, \n                       fun = \"cox\",\n                       decreasing = FALSE,\n                       method = \"adaptive\")\n\nplotIPs(results.cox)"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "package": "screencounter",
+  "requirements": [
+    "Biostrings",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "screenCounter"
+  ],
+  "by_workflow": {
+    "combinatorial_barcodes.nf": [
+      "SummarizedExperiment",
+      "screenCounter"
+    ],
+    "dual_barcodes_paired_end.nf": [
+      "Biostrings",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "screenCounter"
+    ],
+    "dual_barcodes_single_end.nf": [
+      "S4Vectors",
+      "SummarizedExperiment",
+      "screenCounter"
+    ],
+    "main.nf": [
+      "SummarizedExperiment",
+      "screenCounter"
+    ],
+    "random_barcodes.nf": [
+      "SummarizedExperiment",
+      "screenCounter"
+    ]
+  }
+}

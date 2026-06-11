@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Eset.data=An ExpressionSet object containing normalized log-intensity expression data and phenotype data ;; comp.var=The name or numeric index of the column in the phenotype data containing the group labels ;; comp.def=A string defining the contrast for the two-group comparison (e.g., \"tumor-control\") ;; gset.collection=A GeneSetCollection object defining gene-sets for the differential expression analysis ;; map.data=A list containing probe.map (a data.frame mapping probe IDs between experiments), map.Aprobe.col (index/name of experiment A probe column), and map.Bprobe.col (index/name of experiment B probe column) ;; min.nperms=Minimum number of permutations for adaptive permutation testing ;; max.nperms=Maximum number of permutations for adaptive permutation testing\n- alternatives: Classical permutation test (can be performed by setting min.nperms = max.nperms)\n- when_to_use: When comparing two-group differential expression results across two different experiments, platforms, or species (e.g., matching a mouse model of a disease to human disease subtypes) to evaluate transcriptome-wide or gene-set level agreement.\n- pitfalls: Ensure that the expression data and phenotype data have samples in the exact same order (rownames of pData must match colnames of exprs) ;; The call to agdex and the map.data object must label the experiments (A and B) in the same way ;; Real applications require larger values of min.nperms and max.nperms than the small values used in the package examples.",
+  "workflows": [
+    {
+      "name": "cross_species_differential_expression_agreement",
+      "intent": "Evaluate the agreement of differential expression profiles across two experiments (e.g., human and mouse) at both the genome-wide and gene-set levels.",
+      "input": [
+        "human.data (ExpressionSet for experiment A)",
+        "mouse.data (ExpressionSet for experiment B)",
+        "gset.data (GeneSetCollection for experiment A)",
+        "map.data (List mapping probe IDs between experiment A and B)"
+      ],
+      "stages": "1. Create dex.set objects for each experiment using make.dex.set.object ;; 2. Run the AGDEX analysis using agdex ;; 3. Visualize results using agdex.scatterplot ;; 4. Extract gene-set details using get.gset.result.details",
+      "code": "dex.set.human <- make.dex.set.object(Eset.data= human.data,                            \n                                     comp.var=2,                                       \n                                     comp.def=\"human.tumor.typeD-other.human.tumors\",  \n                                     gset.collection=gset.data)                        \ndex.set.mouse <- make.dex.set.object(mouse.data,\n                                     comp.var=2,\n                                     comp.def=\"mouse.tumor-mouse.control\",\n                                     gset.collection=NULL)                                      \nagdex.res<-agdex(dex.setA=dex.set.human,\n                 dex.setB=dex.set.mouse,\n                 map.data=map.data,\n                 min.nperms=5,\n                 max.nperms=10)\nagdex.scatterplot(agdex.res, gset.id=NULL)\ngset.res.stats<-get.gset.result.details(agdex.res, gset.ids = NULL, alpha=0.01)\ndna.cat.process.gset.res<-get.gset.result.details(agdex.res, gset.ids=\"DNA_CATABOLIC_PROCESS\")"
+    }
+  ]
+}

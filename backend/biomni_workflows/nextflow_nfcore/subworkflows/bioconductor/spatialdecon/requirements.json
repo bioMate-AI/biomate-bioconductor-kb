@@ -1,0 +1,20 @@
+{
+  "package": "spatialdecon",
+  "requirements": [
+    "GeomxTools",
+    "Seurat",
+    "SeuratObject",
+    "SpatialDecon"
+  ],
+  "by_workflow": {
+    "custom_profile_matrix_generation.nf": [
+      "Seurat",
+      "SeuratObject",
+      "SpatialDecon"
+    ],
+    "main.nf": [
+      "GeomxTools",
+      "SpatialDecon"
+    ]
+  }
+}

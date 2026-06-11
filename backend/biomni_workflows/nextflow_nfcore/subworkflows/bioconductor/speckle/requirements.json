@@ -1,0 +1,34 @@
+{
+  "package": "speckle",
+  "requirements": [
+    "SingleCellExperiment",
+    "edgeR",
+    "ggplot2",
+    "limma",
+    "patchwork",
+    "scater",
+    "speckle",
+    "statmod"
+  ],
+  "by_workflow": {
+    "custom_linear_modeling_and_anova.nf": [
+      "SingleCellExperiment",
+      "edgeR",
+      "ggplot2",
+      "limma",
+      "patchwork",
+      "scater",
+      "speckle",
+      "statmod"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "speckle"
+    ],
+    "propeller_on_precalculated_proportions.nf": [
+      "limma",
+      "speckle"
+    ]
+  }
+}

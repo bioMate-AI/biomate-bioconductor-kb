@@ -1,0 +1,17 @@
+{
+  "package": "hiannotator",
+  "requirements": [
+    "GenomicRanges",
+    "ggplot2",
+    "hiAnnotator",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "hiAnnotator",
+      "rtracklayer"
+    ]
+  }
+}

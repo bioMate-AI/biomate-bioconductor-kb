@@ -4,6 +4,8 @@
 // Build a custom cell cycle reference using PCA on Gene Ontology cell cycle genes and project data using this new reference.
 // Input: sce_normalized.rds
 // Container: quay.io/biocontainers/bioconductor-tricycle:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: CircStats, SingleCellExperiment, ggplot2, tricycle
 // Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -40,14 +42,16 @@ process BIOC_TRICYCLE_CUSTOM_REFERENCE_PROJECTION {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries
     library(tricycle)
-    library(SingleCellExperiment)
     library(ggplot2)
     library(CircStats)
     

@@ -1,0 +1,17 @@
+{
+  "package": "strandcheckr",
+  "requirements": [
+    "Rsamtools",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "ggplot2",
+    "strandCheckR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rsamtools",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "ggplot2",
+      "strandCheckR"
+    ]
+  }
+}

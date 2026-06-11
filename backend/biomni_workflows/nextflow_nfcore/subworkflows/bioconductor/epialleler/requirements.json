@@ -1,0 +1,26 @@
+{
+  "package": "epialleler",
+  "requirements": [
+    "GenomicRanges",
+    "epialleleR"
+  ],
+  "by_workflow": {
+    "long_read_methylation_reporting.nf": [
+      "epialleleR"
+    ],
+    "main.nf": [
+      "epialleleR"
+    ],
+    "methylation_pattern_and_ecdf_visualization.nf": [
+      "GenomicRanges",
+      "epialleleR"
+    ],
+    "short_read_methylation_calling.nf": [
+      "epialleleR"
+    ],
+    "snv_epiallele_association.nf": [
+      "GenomicRanges",
+      "epialleleR"
+    ]
+  }
+}

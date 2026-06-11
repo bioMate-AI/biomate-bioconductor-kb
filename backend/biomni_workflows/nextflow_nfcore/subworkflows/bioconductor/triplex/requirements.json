@@ -1,0 +1,15 @@
+{
+  "package": "triplex",
+  "requirements": [
+    "Biostrings",
+    "rtracklayer",
+    "triplex"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "rtracklayer",
+      "triplex"
+    ]
+  }
+}

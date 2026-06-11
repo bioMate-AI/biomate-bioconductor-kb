@@ -1,0 +1,21 @@
+{
+  "package": "biobroom",
+  "requirements": [
+    "DESeq2",
+    "biobroom",
+    "dplyr",
+    "edgeR",
+    "ggplot2",
+    "qvalue"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "biobroom",
+      "dplyr",
+      "edgeR",
+      "ggplot2",
+      "qvalue"
+    ]
+  }
+}

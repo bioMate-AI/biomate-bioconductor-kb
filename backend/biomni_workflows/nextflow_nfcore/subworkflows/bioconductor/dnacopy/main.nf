@@ -1,93 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DNAcopy
-// Implements the circular binary segmentation (CBS) algorithm to segment DNA copy number data and iden
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DNAcopy/inst/doc/DNAcopy.R
-// Upstream  : none
-// Downstream: CGHcall, cghMCR, CRImage, PureCN, CSclone
-//
-// Install: BiocManager::install("DNAcopy")
+// Bioconductor workflow: DNAcopy — dna_copy_number_segmentation
+// Segment DNA copy number data to identify genomic regions with abnormal copy number using circular binary segmentation (CBS).
+// Input: copy_number_data.txt
+// Container: quay.io/biocontainers/bioconductor-dnacopy:1.86.0--r45h5bbb887_0
+// R packages: DNAcopy
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DNAcopy
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the DNAcopy package and import data into a CNA object using CNA()
+//  * 2. [Core Analysis] Smooth single-point outliers using smooth.CNA()
+//  * 3. [Core Analysis] Segment the smoothed data using segment()
+//  * 4. [Visualization & Output] Visualize the segmented data using plot() with different plot.type options
+//  * 5. [Visualization & Output] Refine segmentation by undoing splits with segment() using undo.splits="sdundo" and plot the results
 
 nextflow.enable.dsl = 2
 
-process BIOC_DNACOPY {
+process BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dnacopy"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dnacopy:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dnacopy:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dnacopy_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dnacopy_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dnacopy_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CNA)
-    library(jsonlite)
-
-    # --- Cna [] ---
-    # Key functions: CNA
-    CNA.object <- CNA(cbind(coriell$Coriell.05296),
-                      coriell$Chromosome,coriell$Position,
-                      data.type="logratio",sampleid="c05296")
-    # --- Segment [] ---
-    # Key functions: segment
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DNAcopy")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the DNAcopy package
+    library(DNAcopy)
+    
+    # Read the user input file
+    df <- read.delim("copy_number_data.txt", header = TRUE, sep = "\t")
+    
+    # Identify Chromosome, Position, and Sample columns dynamically
+    chrom_idx <- grep("chrom", colnames(df), ignore.case = TRUE)
+    if (length(chrom_idx) == 0) chrom_idx <- 1
+    
+    pos_idx <- grep("pos", colnames(df), ignore.case = TRUE)
+    if (length(pos_idx) == 0) pos_idx <- 2
+    
+    sample_idx <- setdiff(seq_len(ncol(df)), c(chrom_idx, pos_idx))[1]
+    if (is.na(sample_idx)) sample_idx <- 3
+    
+    chromosomes <- df[[chrom_idx]]
+    positions <- df[[pos_idx]]
+    logratios <- df[[sample_idx]]
+    sample_name <- colnames(df)[sample_idx]
+    
+    # 1. Create CNA object
+    CNA.object <- CNA(cbind(logratios),
+                      chromosomes, positions,
+                      data.type="logratio", sampleid=sample_name)
+    
+    # 2. Smooth single-point outliers
+    smoothed.CNA.object <- smooth.CNA(CNA.object)
+    
+    # 3. Segment the smoothed data
     segment.smoothed.CNA.object <- segment(smoothed.CNA.object, verbose=1)
+    
+    # Save RDS of the segmented object and write segment results to CSV
+    saveRDS(segment.smoothed.CNA.object, "segment_smoothed_CNA_object.rds")
+    write.csv(segment.smoothed.CNA.object\$output, "segmented_copy_number.csv", row.names=FALSE)
+    
+    # 4. Visualize the segmented data using plot() with different plot.type options
+    pdf("segmentation_plots.pdf", width=10, height=8)
+    plot(segment.smoothed.CNA.object, plot.type="w")
+    plot(segment.smoothed.CNA.object, plot.type="s") 
+    plot(segment.smoothed.CNA.object, plot.type="p")
+    dev.off()
+    
+    # 5. Refine segmentation by undoing splits
+    sdundo.CNA.object <- segment(smoothed.CNA.object, 
+                                 undo.splits="sdundo", 
+                                 undo.SD=3, verbose=1)
+    
+    # Save RDS of the refined segmented object and write refined segment results to CSV
+    saveRDS(sdundo.CNA.object, "sdundo_CNA_object.rds")
+    write.csv(sdundo.CNA.object\$output, "segmented_copy_number_sdundo.csv", row.names=FALSE)
+    
+    # Plot refined segmentation
+    pdf("segmentation_plots_sdundo.pdf", width=10, height=8)
+    plot(sdundo.CNA.object, plot.type="s")
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dnacopy_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dnacopy_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dnacopy_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DNACOPY:", paste0("    dnacopy: ", packageVersion("DNAcopy"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION":',
+        paste0('    DNAcopy: ', as.character(packageVersion('DNAcopy')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dnacopy_results.csv
-    touch ${prefix}_dnacopy_output.rds
-    echo "BIOC_DNACOPY:" > versions.yml
-    echo "    dnacopy: 0.0.0" >> versions.yml
+    touch ${prefix}_dna_copy_number_segmentation.csv versions.yml
     """
 }
 
-
-workflow BIOC_DNACOPY_WORKFLOW {
+workflow BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ copy_number_data.txt ] ]
 
     main:
-    BIOC_DNACOPY(ch_input)
+    BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION(ch_input)
 
     emit:
-    results  = BIOC_DNACOPY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DNACOPY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DNACOPY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DNACOPY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION.out.tables
+    plots    = BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION.out.plots
+    objects  = BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION.out.objects
+    versions = BIOC_DNACOPY_DNA_COPY_NUMBER_SEGMENTATION.out.versions
 }

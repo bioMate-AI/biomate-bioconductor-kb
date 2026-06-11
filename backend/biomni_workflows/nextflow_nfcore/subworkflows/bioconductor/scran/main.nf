@@ -1,141 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scran
-// Implements miscellaneous functions for interpretation of single-cell RNA-seq data. Methods are provi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scran/inst/doc/scran.R
-// Upstream  : bluster, knitr, pheatmap, scRNAseq, scater
-// Downstream: OSCA.advanced, OSCA.basic, OSCA.intro, OSCA.multisample, OSCA.workflows
-//
-// Install: BiocManager::install("scran")
+// Bioconductor workflow: scran — quick_clustering_and_normalization
+// Perform quick clustering to assist in cluster-based normalization factor calculation and subsequent subclustering.
+// Input: sce.ready
+// Container: quay.io/biocontainers/bioconductor-scran:1.38.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, bluster, knitr, pheatmap, scater, scran, scRNAseq, scuttle
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, scran, scuttle
+// QC: clustering QC
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Generate quick-and-dirty clusters using quickCluster()
+//  * 2. [Core Analysis] Compute size factors within clusters using computeSumFactors()
+//  * 3. [Core Analysis] Perform subclustering within identified clusters using quickSubCluster()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCRAN {
+process BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scran"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scran:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scran:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scran_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scran_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scran_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "bluster", "knitr", "pheatmap", "scater", "scran", "scRNAseq", "scuttle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(scran)
-    library(GrunPancreasData)
-    library(jsonlite)
-
-    # --- Normalisation ---
-    # Key functions: quickCluster, computeSumFactors
-    clusters <- quickCluster(sce)
-    sce <- computeSumFactors(sce, clusters = clusters)
-    sf <- sizeFactors(sce)
-    summary_sf <- summary(sf)
-
-    # --- Variance Modelling ---
-    # Key functions: modelGeneVar, modelGeneVarWithSpikes, getTopHVGs
-    dec <- modelGeneVar(sce)
-    dec2 <- modelGeneVarWithSpikes(sce, "ERCC")
-    dec3 <- modelGeneVar(sce, block = sce$donor, density.weights = FALSE)
-    top.hvgs <- getTopHVGs(dec, prop = 0.1)
-    top.hvgs2 <- getTopHVGs(dec, n = 2000)
-    top.hvgs3 <- getTopHVGs(dec, var.threshold = 0)
-
-    # --- Dimensionality Reduction ---
-    # Key functions: fixedPCA, denoisePCA, getClusteredPCs
-    sce <- fixedPCA(sce, subset.row = top.hvgs)
-    sced <- denoisePCA(sce, dec2, subset.row = getTopHVGs(dec2, prop = 0.1))
-    output <- getClusteredPCs(reducedDim(sce))
-    npcs <- metadata(output)$chosen
-    reducedDim(sce, "PCAsub") <- reducedDim(sce, "PCA")[, 1:npcs, drop = FALSE]
-
-    # --- Graph-based Clustering ---
-    # Key functions: buildSNNGraph, bootstrapStability, quickSubCluster
-    g <- buildSNNGraph(sce, use.dimred = "PCAsub")
-    cluster <- igraph::cluster_walktrap(g)$membership
-    colLabels(sce) <- factor(cluster)
-    ass.prob <- bootstrapStability(sce, FUN = function(x) {
-        g_sub <- buildSNNGraph(x, use.dimred = "PCAsub")
-        igraph::cluster_walktrap(g_sub)$membership
-    }, clusters = colLabels(sce))
-    subout <- quickSubCluster(sce, groups = colLabels(sce))
-
-    # --- Marker Gene Detection ---
-    # Key functions: scoreMarkers
-    markers <- scoreMarkers(sce)
-    markers_full <- scoreMarkers(sce, full.stats = TRUE)
-    top_marker_stats <- markers[[1]][
-        order(markers[[1]]$mean.AUC, decreasing = TRUE),
-        1:4
-    ]
-    cohen_stats <- markers_full[[1]]$full.logFC.cohen
-
-    # --- Gene Correlation Analysis ---
-    # Key functions: correlatePairs, correlateGenes, convertTo
-    of.interest <- top.hvgs[1:200]
-    cor.pairs <- correlatePairs(sce, subset.row = of.interest)
-    cor.pairs2 <- correlatePairs(
-        sce, subset.row = of.interest, block = sce$donor
-    )
-    cor.genes <- correlateGenes(cor.pairs)
-    y <- convertTo(sce, type = "edgeR")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scran_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scran_results.csv")
+    library(scuttle)
+    
+    # 1. Read the input SingleCellExperiment object
+    if (!file.exists("sce.ready")) {
+      stop("Error: Input file 'sce.ready' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scran_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCRAN:", paste0("    scran: ", packageVersion("scran"))),
-        "versions.yml"
+    
+    message("Reading input SingleCellExperiment object...")
+    sce.ready <- readRDS("sce.ready")
+    
+    # 2. Perform quick clustering
+    message("Performing quick clustering...")
+    clusters <- quickCluster(sce.ready)
+    
+    # Save quick clustering results
+    clusters_df <- data.frame(
+      Cell = colnames(sce.ready),
+      Cluster = clusters,
+      stringsAsFactors = FALSE
     )
+    write.csv(clusters_df, "quick_clusters.csv", row.names = FALSE)
+    
+    # 3. Compute size factors within clusters
+    message("Computing sum factors...")
+    sce.normed <- computeSumFactors(sce.ready, clusters=clusters)
+    
+    # Extract and save size factors summary
+    sf_summary <- summary(sizeFactors(sce.normed))
+    message("Size factors summary:")
+    print(sf_summary)
+    
+    sink("size_factors_summary.txt")
+    print(sf_summary)
+    sink()
+    
+    # Save the normalized SingleCellExperiment object
+    saveRDS(sce.normed, "sce_normed.rds")
+    
+    # 4. Perform subclustering within identified clusters
+    message("Performing subclustering...")
+    subout <- quickSubCluster(sce.ready, groups=clusters)
+    
+    # Extract and save subcluster table
+    subcluster_table <- table(metadata(subout)\$subcluster)
+    message("Subcluster table:")
+    print(subcluster_table)
+    
+    subcluster_df <- as.data.frame(subcluster_table)
+    colnames(subcluster_df) <- c("Subcluster", "CellCount")
+    write.csv(subcluster_df, "subcluster_table.csv", row.names = FALSE)
+    
+    # Save the subclustering output object
+    saveRDS(subout, "subout.rds")
+    
+    message("Workflow completed successfully. Outputs saved: 'quick_clusters.csv', 'sce_normed.rds', 'size_factors_summary.txt', 'subcluster_table.csv', 'subout.rds'.")
+
+    writeLines(c(
+        '"BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION":',
+        paste0('    scran: ', as.character(packageVersion('scran')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scran_results.csv
-    touch ${prefix}_scran_output.rds
-    echo "BIOC_SCRAN:" > versions.yml
-    echo "    scran: 0.0.0" >> versions.yml
+    touch ${prefix}_quick_clustering_and_normalization.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCRAN_WORKFLOW {
+workflow BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce.ready ] ]
 
     main:
-    BIOC_SCRAN(ch_input)
+    BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION(ch_input)
 
     emit:
-    results  = BIOC_SCRAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCRAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCRAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCRAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION.out.tables
+    plots    = BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION.out.plots
+    objects  = BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION.out.objects
+    versions = BIOC_SCRAN_QUICK_CLUSTERING_AND_NORMALIZATION.out.versions
 }

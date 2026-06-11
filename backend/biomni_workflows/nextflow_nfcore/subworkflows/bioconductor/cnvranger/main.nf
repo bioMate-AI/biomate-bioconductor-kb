@@ -1,102 +1,141 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNVRanger
-// The CNVRanger package implements a comprehensive tool suite for CNV analysis. This includes function
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNVRanger/inst/doc/CNVRanger.R
-// Upstream  : AnnotationHub, SummarizedExperiment, TCGAutils, curatedTCGAData, regioneR
-// Downstream: none
-//
-// Install: BiocManager::install("CNVRanger")
+// Bioconductor workflow: CNVRanger — cnv_population_summarization_and_overlap
+// Summarize individual CNV calls across a population and assess their overlap with functional genomic regions using permutation tests.
+// Input: Silva16_PONE_CNV_calls.csv, EnsDb
+// Container: quay.io/biocontainers/bioconductor-cnvranger:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Btaurus.UCSC.bosTau6.masked, CNVRanger, GenomeInfoDb, GenomicRanges, S4Vectors, ensembldb, regioneR
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Read CNV calls and represent them as a GRangesList; 2. Summarize individual calls into population-level CNV regions using density 
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNVRANGER {
+process BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cnvranger"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cnvranger:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cnvranger:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cnvranger_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cnvranger_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cnvranger_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AnnotationHub)
-    library(RaggedExperiment)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Access AnnotationHub resources [] ---
-    # Key functions: AnnotationHub, query, granges, SummarizedExperiment
-    library(SummarizedExperiment)
-    rranges <- GenomicRanges::granges(sel.genes)[rownames(rcounts)]
-    rse <- SummarizedExperiment(assays=list(rcounts=rcounts), rowRanges=rranges)
-    # --- Find overlapping genomic intervals [] ---
-    # Key functions: findOverlaps, queryHits, subjectHits
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(CNVRanger)
+    library(GenomicRanges)
+    library(S4Vectors)
+    library(regioneR)
+    library(ensembldb)
+    library(BSgenome.Btaurus.UCSC.bosTau6.masked)
+    
+    # 1. Read CNV calls and represent them as a GRangesList
+    calls <- read.csv("Silva16_PONE_CNV_calls.csv", as.is=TRUE)
+    sample_id_col <- colnames(calls)[4]
+    grl <- GenomicRanges::makeGRangesListFromDataFrame(calls, split.field=sample_id_col, keep.extra.columns=TRUE)
+    grl <- GenomicRanges::sort(grl)
+    
+    # 2. Summarize individual calls into population-level CNV regions
+    cnvrs <- populationRanges(grl, density=0.1)
+    ro.cnvrs <- populationRanges(grl, mode="RO", ro.thresh=0.51)
+    
+    # 3. Identify recurrent CNV regions
+    cnvrs <- populationRanges(grl, density=0.1, est.recur=TRUE)
+    recurrent_cnvrs <- subset(cnvrs, pvalue < 0.05)
+    
+    # Plot recurrent regions and save to PDF
+    pdf("recurrent_regions_plot.pdf")
+    plotRecurrentRegions(cnvrs, genome="bosTau6", chr="chr1")
+    dev.off()
+    
+    # 4. Find overlaps between CNV regions and functional genomic regions (genes)
+    ensdb <- readRDS("EnsDb")
+    bt.genes <- ensembldb::genes(ensdb)
+    GenomeInfoDb::seqlevelsStyle(bt.genes) <- "UCSC"
+    
+    sel.genes <- subset(bt.genes, seqnames %in% paste0("chr", 1:2))
+    sel.genes <- subset(sel.genes, gene_biotype == "protein_coding")
+    sel.cnvrs <- subset(cnvrs, seqnames %in% paste0("chr", 1:2))
+    
     olaps <- GenomicRanges::findOverlaps(sel.genes, sel.cnvrs, ignore.strand=TRUE)
     qh <- S4Vectors::queryHits(olaps)
     sh <- S4Vectors::subjectHits(olaps)
-    # --- Assay data access [] ---
-    # Key functions: include_graphics, makeGRangesListFromDataFrame, RaggedExperiment, assay, rnorm, colData, populationRanges, plotRecurrentRegions
-    order.chrs <- c(1:24, "25LG1", "25LG2", 27:28, "LGE22", "1A", "4A")
-    chr.size.file <- file.path(data.dir, "Parus_major_chr_sizes.txt")
-    chr.sizes <- scan(chr.size.file)
+    cgenes <- sel.genes[qh]
+    cgenes\$type <- sel.cnvrs\$type[sh]
+    
+    # Plot OncoPrint and save to PDF
+    pdf("oncoprint_plot.pdf")
+    cnvOncoPrint(grl, cgenes)
+    dev.off()
+    
+    # 5. Perform an overlap permutation test
+    res <- regioneR::overlapPermTest(A=sel.cnvrs, B=sel.genes, ntimes=100, genome="bosTau6", mask=NA, per.chromosome=TRUE, count.once=TRUE)
+    perm_summary <- summary(res[[1]]\$permuted)
+    
+    # Plot permutation test results and save to PDF
+    pdf("permutation_test_plot.pdf")
+    plot(res)
+    dev.off()
+    
+    # Write outputs to files
+    write.csv(as.data.frame(cnvrs), "cnvrs_summary.csv", row.names=FALSE)
+    write.csv(as.data.frame(ro.cnvrs), "ro_cnvrs_summary.csv", row.names=FALSE)
+    write.csv(as.data.frame(recurrent_cnvrs), "recurrent_cnvrs.csv", row.names=FALSE)
+    write.csv(as.data.frame(cgenes), "overlapping_genes.csv", row.names=FALSE)
+    saveRDS(res, "permutation_results.rds")
+    
+    # Save permutation summary stats
+    write.csv(as.data.frame(as.list(perm_summary)), "permutation_summary.csv", row.names=FALSE)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cnvranger_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cnvranger_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cnvranger_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNVRANGER:", paste0("    cnvranger: ", packageVersion("CNVRanger"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP":',
+        paste0('    CNVRanger: ', as.character(packageVersion('CNVRanger')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cnvranger_results.csv
-    touch ${prefix}_cnvranger_output.rds
-    echo "BIOC_CNVRANGER:" > versions.yml
-    echo "    cnvranger: 0.0.0" >> versions.yml
+    touch ${prefix}_cnv_population_summarization_and_overlap.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNVRANGER_WORKFLOW {
+workflow BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Silva16_PONE_CNV_calls.csv, EnsDb ] ]
 
     main:
-    BIOC_CNVRANGER(ch_input)
+    BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP(ch_input)
 
     emit:
-    results  = BIOC_CNVRANGER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNVRANGER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNVRANGER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNVRANGER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP.out.tables
+    plots    = BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP.out.plots
+    objects  = BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP.out.objects
+    versions = BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP.out.versions
 }

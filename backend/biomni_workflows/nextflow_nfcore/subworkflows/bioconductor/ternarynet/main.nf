@@ -1,134 +1,165 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ternarynet
-// Gene-regulatory network (GRN) modeling seeks to infer dependencies between genes and thereby provide
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ternarynet/inst/doc/ternarynet.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ternarynet")
+// Bioconductor workflow: ternarynet — ternary_network_fitting
+// Fit a ternary gene-regulatory network model from steady-state perturbation data using a parallel replica exchange Monte Carlo algorithm, with the option to resu
+// Input: indata.csv
+// Container: quay.io/biocontainers/bioconductor-ternarynet:1.54.0--r45ha27e39d_0
+// R packages: ternarynet
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ternarynet
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Format the experimental perturbation data into a data frame with 0-indexed node and experiment identifiers. 2. Run the parallel re
 
 nextflow.enable.dsl = 2
 
-process BIOC_TERNARYNET {
+process BIOC_TERNARYNET_TERNARY_NETWORK_FITTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ternarynet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ternarynet:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ternarynet:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ternarynet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ternarynet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ternarynet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ternarynet")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
     library(ternarynet)
-    library(jsonlite)
-
-    # --- Data Preparation [ternarynet] ---
-    # Key functions: data.frame
-    i_exp <- as.integer(c(0,0,0, 0,0,0, 1,1,1, 1,1,1))
-    i_node <- as.integer(c(0,0,0, 1,1,1, 0,0,0, 1,1,1))
-    outcome <- as.integer(c(-1,0,1, -1,0,1, -1,0,1, -1,0,1))
-    value <- c(0,1,2, 0,1,2, 2,1,0, 0,1,2)
-    is_perturbation <- c(
-        TRUE, TRUE, TRUE, FALSE, FALSE, FALSE,
-        FALSE, FALSE, FALSE, TRUE, TRUE, TRUE
-    )
-    indata <- data.frame(
-        i_exp = i_exp,
-        i_node = i_node,
-        outcome = outcome,
-        value = value,
-        is_perturbation = is_perturbation
-    )
-
-    # --- Network Fitting [ternarynet] ---
-    # Key functions: parallelFit
-    results <- parallelFit(
-        indata,
-        max_parents = 1,
-        n_cycles = 10000,
-        n_write = 10,
-        T_lo = 0.001,
-        T_hi = 2.0,
-        target_score = 0,
-        n_proc = 1,
-        logfile = "ternarynet_fit.log"
-    )
-
-    # --- Model Refinement [ternarynet] ---
-    # Key functions: parallelFit
-    refined_results <- parallelFit(
-        indata,
-        max_parents = 1,
-        n_cycles = 100,
-        n_write = 10,
-        T_lo = 0.001,
-        T_hi = 2.0,
-        target_score = 0,
-        n_proc = 1,
-        logfile = "ternarynet_refine.log",
-        init_parents = best_parents,
-        init_outcomes = best_outcomes
-    )
-    refined_best <- refined_results[[1]]
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ternarynet_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ternarynet_results.csv")
+    
+    # Read the user input file from the working directory
+    if (!file.exists("indata.csv")) {
+      stop("Error: indata.csv not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ternarynet_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TERNARYNET:", paste0("    ternarynet: ", packageVersion("ternarynet"))),
-        "versions.yml"
+    
+    indata <- read.csv("indata.csv", stringsAsFactors = FALSE)
+    
+    # Ensure correct data types for ternarynet
+    indata\$i_exp <- as.integer(indata\$i_exp)
+    indata\$i_node <- as.integer(indata\$i_node)
+    indata\$outcome <- as.integer(indata\$outcome)
+    indata\$value <- as.numeric(indata\$value)
+    indata\$is_perturbation <- as.logical(indata\$is_perturbation)
+    
+    # Run the parallel replica exchange fitting algorithm (First Fit)
+    results <- parallelFit(indata,
+                            max_parents=1,
+                            n_cycles=100000,
+                            n_write=10,
+                            T_lo=0.001,
+                            T_hi=2.0,
+                            target_score=0,
+                            n_proc=1,
+                            logfile='try.log')
+    
+    lowest_temp_results <- results[[1]]
+    
+    print('Unnormalized score:')
+    print(lowest_temp_results\$unnormalized_score)
+    
+    print('Normalized score:')
+    print(lowest_temp_results\$normalized_score)
+    
+    print('Parents:')
+    print(lowest_temp_results\$parents)
+    
+    print('Outcomes:')
+    print(lowest_temp_results\$outcomes)
+    
+    # Perform a subsequent fit using the previous fit's parents and outcomes as initial conditions (Refinement Fit)
+    results <- parallelFit(indata,
+                            max_parents=1,
+                            n_cycles=10,
+                            n_write=10,
+                            T_lo=0.001,
+                            T_hi=2.0,
+                            target_score=0,
+                            n_proc=1,
+                            logfile='try.log',
+                            init_parents=lowest_temp_results\$parents,
+                            init_outcomes=lowest_temp_results\$outcomes)
+    
+    lowest_temp_results <- results[[1]]
+    
+    print('Refined Unnormalized score:')
+    print(lowest_temp_results\$unnormalized_score)
+    
+    print('Refined Normalized score:')
+    print(lowest_temp_results\$normalized_score)
+    
+    print('Refined Parents:')
+    print(lowest_temp_results\$parents)
+    
+    print('Refined Outcomes:')
+    print(lowest_temp_results\$outcomes)
+    
+    # Save meaningful results to output files
+    write.csv(as.data.frame(lowest_temp_results\$parents), "parents.csv", row.names = FALSE)
+    write.csv(as.data.frame(lowest_temp_results\$outcomes), "outcomes.csv", row.names = FALSE)
+    
+    scores_df <- data.frame(
+      metric = c("unnormalized_score", "normalized_score"),
+      value = c(lowest_temp_results\$unnormalized_score, lowest_temp_results\$normalized_score)
     )
+    write.csv(scores_df, "scores.csv", row.names = FALSE)
+    
+    saveRDS(lowest_temp_results, "lowest_temp_results.rds")
+    saveRDS(results, "all_results.rds")
+
+    writeLines(c(
+        '"BIOC_TERNARYNET_TERNARY_NETWORK_FITTING":',
+        paste0('    ternarynet: ', as.character(packageVersion('ternarynet')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ternarynet_results.csv
-    touch ${prefix}_ternarynet_output.rds
-    echo "BIOC_TERNARYNET:" > versions.yml
-    echo "    ternarynet: 0.0.0" >> versions.yml
+    touch ${prefix}_ternary_network_fitting.csv versions.yml
     """
 }
 
-
-workflow BIOC_TERNARYNET_WORKFLOW {
+workflow BIOC_TERNARYNET_TERNARY_NETWORK_FITTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ indata.csv ] ]
 
     main:
-    BIOC_TERNARYNET(ch_input)
+    BIOC_TERNARYNET_TERNARY_NETWORK_FITTING(ch_input)
 
     emit:
-    results  = BIOC_TERNARYNET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TERNARYNET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TERNARYNET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TERNARYNET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TERNARYNET_TERNARY_NETWORK_FITTING.out.tables
+    plots    = BIOC_TERNARYNET_TERNARY_NETWORK_FITTING.out.plots
+    objects  = BIOC_TERNARYNET_TERNARY_NETWORK_FITTING.out.objects
+    versions = BIOC_TERNARYNET_TERNARY_NETWORK_FITTING.out.versions
 }

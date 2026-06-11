@@ -1,0 +1,18 @@
+{
+  "package": "cqn",
+  "requirements": [
+    "cqn",
+    "edgeR",
+    "scales"
+  ],
+  "by_workflow": {
+    "cqn_edger_differential_expression.nf": [
+      "cqn",
+      "edgeR",
+      "scales"
+    ],
+    "main.nf": [
+      "cqn"
+    ]
+  }
+}

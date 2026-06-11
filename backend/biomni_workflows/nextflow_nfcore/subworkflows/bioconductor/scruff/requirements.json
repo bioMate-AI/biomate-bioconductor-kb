@@ -1,0 +1,30 @@
+{
+  "package": "scruff",
+  "requirements": [
+    "GenomeInfoDb",
+    "GenomicAlignments",
+    "Rsamtools",
+    "Rsubread",
+    "SingleCellExperiment",
+    "ggplot2",
+    "patchwork",
+    "scruff"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomeInfoDb",
+      "GenomicAlignments",
+      "Rsamtools",
+      "Rsubread",
+      "SingleCellExperiment",
+      "ggplot2",
+      "patchwork",
+      "scruff"
+    ],
+    "tenx_bam_qc.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scruff"
+    ]
+  }
+}

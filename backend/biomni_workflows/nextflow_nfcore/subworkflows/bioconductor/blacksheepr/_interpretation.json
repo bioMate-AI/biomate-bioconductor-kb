@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: se=The SummarizedExperiment object containing the assay data and colData annotations ;; analyze_negative_outliers=Logical indicating whether to analyze negative outliers (TRUE) or positive outliers (FALSE) ;; aggregate_features=Logical indicating whether to collapse subfeatures (e.g., phosphosites) to a primary term (e.g., protein) ;; feature_delineator=Character string (e.g., \"-\") used to split and aggregate subfeatures into primary features ;; fraction_samples_cutoff=Minimum fraction of samples in a group (e.g., 0.3 for 30%) that must contain an outlier for the feature to be considered significant, preventing single-sample bias ;; fdrcutoffvalue=FDR threshold used to filter significant results and generate heatmaps ;; method=In deva_normalization, specifies the normalization method (e.g., \"MoR-log\" for Median of Ratios followed by log2 transform)\n- alternatives: None mentioned. The documentation notes that for non-aggregated data types like RNA-seq, aggregate_features should be set to FALSE, and to output all genes regardless of significance, the FDR cutoff can be set to 1 and fraction_samples_cutoff to 0.\n- when_to_use: Use this analysis when you want to identify features (genes, proteins, phosphosites) that exhibit extreme, outlying values in one biological subpopulation compared to another, rather than comparing population medians or means.\n- pitfalls: Rownames of the annotation table must exactly match the column names of the count/intensity data ;; Annotation columns must be strictly binary and formatted as character strings (e.g., \"mutant\"/\"WT\" or \"high\"/\"low\" rather than numeric 1/0) ;; Count data must be formatted as a matrix and annotation data as a DataFrame when creating a SummarizedExperiment ;; Heavily skewed data must be normalized (e.g., using deva_normalization) before running deva to ensure accurate outlier boundary calculations ;; Heatmaps will not be generated if no features meet the specified FDR cutoff.",
+  "workflows": [
+    {
+      "name": "deva_standard_workflow",
+      "intent": "Perform differential extreme value analysis (deva) using a SummarizedExperiment object and extract tables and heatmaps of significant outliers.",
+      "input": [
+        "phosphotable.csv (matrix of prenormalized phosphoprotein counts with samples as columns and phosphosites as rows)",
+        "comptable.csv (dataframe of binary sample annotations with samples as rows)"
+      ],
+      "stages": "1. Load the package and read in count and annotation data. ;; 2. Create a SummarizedExperiment object, ensuring counts are formatted as a matrix and annotations as a DataFrame. ;; 3. Run the high-level deva function to perform outlier analysis and generate heatmaps. ;; 4. Extract and explore significant tables and heatmaps using the deva_results utility function.",
+      "code": "library(blacksheepr)\ndata(sample_annotationdata)\ncomptable <- sample_annotationdata\ndata(sample_phosphodata)\nphosphotable <- sample_phosphodata\nsuppressPackageStartupMessages(library(SummarizedExperiment))\nblacksheep_SE <- SummarizedExperiment(\n    assays=list(counts=as.matrix(phosphotable)), \n    colData=DataFrame(comptable))\ndeva_out <- deva(se = blacksheep_SE, \n    analyze_negative_outliers = FALSE, aggregate_features = TRUE, \n    feature_delineator = \"-\", fraction_samples_cutoff = 0.3, \n    fdrcutoffvalue = 0.1)\nnames(deva_out)\ndeva_results(deva_out)\nsubanalysis_Her2 <- deva_results(deva_out, ID = \"Her2\", type = \"table\")\nhead(subanalysis_Her2)\nsubanalysis_Her2_HM <- deva_results(deva_out, ID = \"Her2\", type = \"heatmap\")\nsubanalysis_Her2_HM"
+    },
+    {
+      "name": "piecewise_outlier_analysis",
+      "intent": "Perform step-by-step outlier analysis and generate custom heatmaps without using the high-level deva wrapper.",
+      "input": [
+        "phosphotable.csv (matrix of prenormalized phosphoprotein counts with samples as columns and phosphosites as rows)",
+        "comptable.csv (dataframe of binary sample annotations with samples as rows)"
+      ],
+      "stages": "1. Create sample subgroups from the annotation table using comparison_groupings. ;; 2. Convert the continuous count table into a binary outlier table using make_outlier_table. ;; 3. Tabulate outliers and aggregate subfeatures to primary features using count_outliers. ;; 4. Run the statistical outlier enrichment analysis using outlier_analysis. ;; 5. Order the annotation table and plot results using outlier_heatmap.",
+      "code": "library(blacksheepr)\ndata(sample_annotationdata)\ncomptable <- sample_annotationdata\ndata(sample_phosphodata)\nphosphotable <- sample_phosphodata\ngroupings <- comparison_groupings(comptable)\nreftable_function_out <- make_outlier_table(phosphotable,\n                                        analyze_negative_outliers = FALSE)\noutliertab <- reftable_function_out$outliertab\nupperboundtab <- reftable_function_out$upperboundtab\nsampmedtab <- reftable_function_out$sampmedtab\ncount_outliers_out <- count_outliers(groupings, outliertab, \n                        aggregate_features = TRUE, feature_delineator = \"-\")\ngrouptablist <- count_outliers_out$grouptablist\naggoutliertab <- count_outliers_out$aggoutliertab\nfractiontab <- count_outliers_out$fractiontab\noutlier_analysis_out <- outlier_analysis(grouptablist = grouptablist,\n                                        fraction_table = fractiontab,\n                                        fraction_samples_cutoff = 0.3)\nplottable <- comptable[do.call(order, c(decreasing = TRUE, \n                            data.frame(comptable[,1:ncol(comptable)]))),]\nhm1 <- outlier_heatmap(outlier_analysis_out = outlier_analysis_out, \n                counttab = fractiontab, metatable = plottable, \n                fdrcutoffvalue = 0.1)\nhm1$print_outlieranalysis_for_PAM50_Her2__Her2_vs_PAM50_Her2__not_Her2"
+    },
+    {
+      "name": "raw_counts_normalization_and_formatting",
+      "intent": "Normalize raw count data and format multi-class annotations into binary comparison columns prior to running outlier analysis.",
+      "input": [
+        "raw_counts.tsv (raw count matrix, e.g., RNA-seq)",
+        "multiclass_annotations.csv (annotation table with multi-class or non-binary columns)"
+      ],
+      "stages": "1. Normalize raw counts using deva_normalization with Median of Ratios and log2 transformation. ;; 2. Convert multi-class annotation columns into binary comparison columns using make_comparison_columns.",
+      "code": "library(blacksheepr)\nlibrary(pasilla)\npasCts <- system.file(\"extdata\", \"pasilla_gene_counts.tsv\", package=\"pasilla\")\ncts <- as.matrix(read.csv(pasCts,sep=\"\\t\",row.names=\"gene_id\"))\nnorm_cts <- deva_normalization(cts, method = \"MoR-log\")\ndummyannotations <- data.frame(comp1 = c(1,1,2,2,3,3), \n                    comp2 = c(\"red\", \"blue\", \"red\", \"blue\", \"green\", \"green\"), \n                    row.names = paste0(\"sample\", seq_len(6)))\nexpanded_dummyannotations <- make_comparison_columns(dummyannotations)"
+    }
+  ]
+}

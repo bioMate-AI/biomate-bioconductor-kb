@@ -1,0 +1,20 @@
+{
+  "package": "clipper",
+  "requirements": [
+    "Biobase",
+    "clipper",
+    "graph"
+  ],
+  "by_workflow": {
+    "easy_clipper_analysis.nf": [
+      "Biobase",
+      "clipper",
+      "graph"
+    ],
+    "main.nf": [
+      "Biobase",
+      "clipper",
+      "graph"
+    ]
+  }
+}

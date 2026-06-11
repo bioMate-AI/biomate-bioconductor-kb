@@ -1,0 +1,14 @@
+{
+  "package": "rbowtie",
+  "requirements": [
+    "Rbowtie"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rbowtie"
+    ],
+    "spliced_alignment_splicemap.nf": [
+      "Rbowtie"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: infoFile=Path to the formatted PPI data file ;; proteinList=Character vector of protein identifiers (e.g., UniProt IDs) to find paths between ;; outFolder=Directory path where the HTML visualization files will be written ;; maxPathLength=Maximum number of steps allowed in the identified paths (default is 2)\n- alternatives: RCy3=Use when you want to visualize networks in the Cytoscape desktop application instead of a web browser ;; STRINGdb=Use for direct functional enrichment and network plotting of STRING database interactions without local HTML generation\n- when_to_use: Use when you have a list of candidate proteins (e.g., from proteomics) and want to identify and interactively explore the shortest physical or signaling interaction paths connecting them.\n- pitfalls: Mismatched protein identifier types (e.g., mixing Gene Symbols with UniProt IDs) will result in zero paths found ;; Large protein lists can generate massive HTML files that cause web browsers to freeze or lag.",
+  "workflows": [
+    {
+      "name": "ppi_path_visualization",
+      "intent": "Identify shortest interaction paths among a set of proteins and generate an interactive HTML visualization.",
+      "input": [
+        "protein_list.txt (a text file containing protein identifiers, one per line)",
+        "ppi_data.tsv (protein-protein interaction data downloaded from BioGRID or STRING)"
+      ],
+      "stages": "1. Format the raw PPI data into the required format using format_ppi ;; 2. Run the path-finding algorithm and generate the HTML visualization using cisPath",
+      "code": "library(cisPath)\ninfoFile <- format_ppi(interaction_file, source=\"STRING\", species=\"9606\")\nproteinList <- c(\"P01112\", \"Q01844\", \"P01116\", \"P01111\")\ncisPath(infoFile, proteinList, outFolder=tempdir())"
+    }
+  ]
+}

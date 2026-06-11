@@ -1,108 +1,122 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MetaPhOR
-// MetaPhOR was developed to enable users to assess metabolic dysregulation using transcriptomic-level 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MetaPhOR/inst/doc/MetaPhOR-vignette.R
-// Upstream  : kableExtra
-// Downstream: none
-//
-// Install: BiocManager::install("MetaPhOR")
+// Bioconductor workflow: metaphor — single_deg_metabolic_profiling
+// Assess metabolic dysregulation from a single DEG list and visualize the profile using a bubble plot.
+// Input: BRCA_DEGS.csv
+// Container: quay.io/biocontainers/bioconductor-metaphor:1.12.0--r45hdfd78af_0
+// R packages: kableExtra, MetaPhOR
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_METAPHOR {
+process BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-metaphor"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-metaphor:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-metaphor:1.8.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-metaphor:1.12.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_metaphor_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_metaphor_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_metaphor_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("kableExtra", "MetaPhOR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(MetaPhOR)
-    library(jsonlite)
-
-    # --- Enrichment Visualization [] ---
-    # Key functions: bubblePlot
-    pval_plot <- bubblePlot(
-        scorelist = brca,
-        labeltext = "Pval",
-        labelsize = 0.85
-    )
-    logfc_plot <- bubblePlot(
-        scorelist = brca,
-        labeltext = "LogFC",
-        labelsize = 0.85
-    )
-
-
-    # --- Comparative Heatmap Generation [] ---
-    # Key functions: metaHeatmap
-    all_scores <- list(brca, ovca, prad)
-    names_list <- c("BRCA", "OVCA", "PRAD")
-    metaHeatmap(
-        scorelist = all_scores,
-        samplenames = names_list,
-        pvalcut = 0.05
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_metaphor_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_metaphor_results.csv")
+    
+    # Verify input file existence
+    input_file <- "BRCA_DEGS.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file", input_file, "is missing from the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_metaphor_output.rds")
-    }
+    
+    # 1. Set seed for reproducible bootstrapping
+    set.seed(1234)
+    
+    # 2. Run pathway analysis using pathwayAnalysis()
+    brca <- pathwayAnalysis(DEGpath = input_file,
+                            genename = "X",
+                            sampsize = 1095,
+                            iters = 50000,
+                            headers = c("logFC", "adj.P.Val"))
+    
+    # Save the pathway analysis scores to CSV and RDS
+    write.csv(brca, "BRCA_pathway_analysis_scores.csv", row.names = TRUE)
+    saveRDS(brca, "BRCA_pathway_analysis_scores.rds")
+    
+    # 3. Visualize the metabolic profile using bubblePlot() and 4. Plot the bubble plot using plot()
+    # Bubble Plot Labeled by P Value
+    pval <- bubblePlot(scorelist = brca,
+                        labeltext = "Pval",
+                        labelsize = .85)
+    
+    pdf("BRCA_bubblePlot_Pval.pdf", width = 10, height = 8)
+    plot(pval)
+    dev.off()
+    
+    # Bubble Plot Labeled by LogFC
+    logfc <- bubblePlot(scorelist = brca,
+                        labeltext = "LogFC",
+                        labelsize = .85)
+    
+    pdf("BRCA_bubblePlot_LogFC.pdf", width = 10, height = 8)
+    plot(logfc)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METAPHOR:", paste0("    metaphor: ", packageVersion("MetaPhOR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING":',
+        paste0('        metaphor: ', as.character(packageVersion("metaphor")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_metaphor_results.csv
-    touch ${prefix}_metaphor_output.rds
-    echo "BIOC_METAPHOR:" > versions.yml
-    echo "    metaphor: 0.0.0" >> versions.yml
+    touch ${prefix}_single_deg_metabolic_profiling.csv versions.yml
     """
 }
 
-
-workflow BIOC_METAPHOR_WORKFLOW {
+workflow BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ BRCA_DEGS.csv ] ]
 
     main:
-    BIOC_METAPHOR(ch_input)
+    BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING(ch_input)
 
     emit:
-    results  = BIOC_METAPHOR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METAPHOR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METAPHOR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METAPHOR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING.out.tables
+    plots    = BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING.out.plots
+    objects  = BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING.out.objects
+    versions = BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING.out.versions
 }

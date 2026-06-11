@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: reference=The reference signature matrix (e.g., HumanCellTypeMethAtlas) used to predict cell-type proportions ;; bulk=The bulk sample data frame to be deconvoluted ;; samples=The data frame of new samples to be added to the signature matrix in findSignatures ;; sampleMeta=A data table mapping sample names to their cell-type origins in findSignatures ;; IDs=The column name containing feature IDs (e.g., CpG probe IDs or Gene names) ;; probe_id_locations=A GRanges object containing genomic locations of probe IDs used in BSmeth2Probe ;; WGBS_data=WGBS methylation data in GRanges or methylKit format to be mapped in BSmeth2Probe ;; multipleMapping=Logical indicating whether to allow multiple mapping of WGBS loci to probes ;; cutoff=Maximum distance in base pairs allowed for mapping WGBS loci to probe locations ;; tissueSpecCpGs=Logical; if TRUE, findSignatures constructs a tissue-based methylation signature matrix ;; tissueSpecDMPs=Logical; if TRUE, findSignatures obtains tissue-based DMPs ;; K=Number of top signatures to select when tissueSpecCpGs is TRUE\n- alternatives: None mentioned, but the package supports multiple internal deconvolution models including non-negative least squares regression, support vector regression, quadratic programming, and robust linear regression.\n- when_to_use: Use when you need to estimate cell-type proportions from bulk methylation (WGBS/EPIC) or RNA-seq data, map WGBS genomic coordinates to Illumina probe IDs, or expand/customize a reference signature atlas.\n- pitfalls: tissueSpecCpGs and tissueSpecDMPs cannot both be set to TRUE at the same time in findSignatures ;; For RNA-seq data, the IDs column must contain Gene names instead of probe IDs ;; Always check the partial R-squared values returned by deconvolute to ensure the deconvolution model provides an advantage over basic bimodal profiles.",
+  "workflows": [
+    {
+      "name": "wgbs_deconvolution",
+      "intent": "Map WGBS methylation data to Illumina probe IDs and predict cell-type proportions using a reference atlas.",
+      "input": [
+        "WGBS_GRanges.rda (WGBS methylation data as a GRanges object)",
+        "IlluminaMethEpicB5ProbeIDs (GRanges object containing probe ID locations)",
+        "HumanCellTypeMethAtlas (Reference methylation atlas dataframe)"
+      ],
+      "stages": "1. Load the WGBS data and probe ID locations ;; 2. Map WGBS genomic coordinates to probe IDs using BSmeth2Probe ;; 3. Perform deconvolution on the mapped bulk data using deconvolute.",
+      "code": "load(system.file(\"extdata\", \"WGBS_GRanges.rda\",\n                                     package = \"deconvR\"))\ndata(\"IlluminaMethEpicB5ProbeIDs\")\nmapped_WGBS_data <- BSmeth2Probe(probe_id_locations = IlluminaMethEpicB5ProbeIDs, \n                                 WGBS_data = WGBS_GRanges,\n                                 multipleMapping = TRUE,\n                                 cutoff = 10)\ndeconvolution <- deconvolute(reference = HumanCellTypeMethAtlas, \n                             bulk = mapped_WGBS_data)\ndeconvolution$proportions"
+    },
+    {
+      "name": "atlas_extension_and_signature_generation",
+      "intent": "Extend an existing reference atlas with new sample data or construct tissue-specific CpG/DMP signature matrices.",
+      "input": [
+        "samples (Data frame of new cell type/sample profiles)",
+        "sampleMeta (Data table mapping samples to biosample terms)",
+        "HumanCellTypeMethAtlas (Existing reference atlas to be extended)"
+      ],
+      "stages": "1. Prepare new sample data and metadata ;; 2. Extend the reference atlas using findSignatures ;; 3. Construct tissue-specific CpG signature matrices or DMPs by setting tissueSpecCpGs or tissueSpecDMPs to TRUE in findSignatures.",
+      "code": "samples <- simulateCellMix(3,reference = HumanCellTypeMethAtlas)$simulated\nsampleMeta <- data.table(\"Experiment_accession\" = colnames(samples)[-1],\n                         \"Biosample_term_name\" = \"new cell type\")\nextended_matrix <- findSignatures(samples = samples, \n                                 sampleMeta = sampleMeta, \n                                 atlas = HumanCellTypeMethAtlas,\n                                 IDs = \"IDs\")\n\ndata(\"HumanCellTypeMethAtlas\")\nexampleSamples <- simulateCellMix(1,reference = HumanCellTypeMethAtlas)$simulated\nexampleMeta <- data.table(\"Experiment_accession\" = \"example_sample\",\n                          \"Biosample_term_name\" = \"example_cell_type\")\ncolnames(exampleSamples) <- c(\"CpGs\", \"example_sample\")\ncolnames(HumanCellTypeMethAtlas)[1] <- c(\"CpGs\")\n\nsignatures <- findSignatures(\n  samples = exampleSamples,\n  sampleMeta = exampleMeta,\n  atlas = HumanCellTypeMethAtlas,\n  IDs = \"CpGs\", K = 100, tissueSpecCpGs = TRUE)\n\nsignatures <- findSignatures(\n  samples = exampleSamples,\n  sampleMeta = exampleMeta,\n  atlas = HumanCellTypeMethAtlas,\n  IDs = \"CpGs\", tissueSpecDMPs = TRUE)"
+    }
+  ]
+}

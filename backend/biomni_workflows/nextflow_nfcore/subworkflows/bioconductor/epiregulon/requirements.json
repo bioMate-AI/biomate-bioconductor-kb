@@ -1,0 +1,17 @@
+{
+  "package": "epiregulon",
+  "requirements": [
+    "BiocParallel",
+    "SingleCellExperiment",
+    "epiregulon",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "epiregulon",
+      "scuttle"
+    ]
+  }
+}

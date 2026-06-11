@@ -1,145 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: proBAMr
-// Mapping PSMs back to genome. The package builds SAM file from shotgun proteomics data The package al
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/proBAMr/inst/doc/proBAMr.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("proBAMr")
+// Bioconductor workflow: proBAMr — probam_generation
+// Map peptide-spectrum matches (PSMs) to genomic coordinates and generate a SAM file using GENCODE annotations.
+// Input: test.gtf, coding_seq.fasta, pro_seq.fasta, passedPSM.tab
+// Container: quay.io/biocontainers/bioconductor-probamr:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: proBAMr
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Prepare annotation files from GENCODE GTF and FASTA files using PrepareAnnotationGENCODE
+//  * 2. [Input & Preparation] Load the prepared annotation RData files (exon_anno.RData, proseq.RData, procodingseq.RData)
+//  * 3. [Input & Preparation] Read the PSM table
+//  * 4. [Core Analysis] Convert the PSM table to SAM format using PSMtab2SAM
+//  * 5. [Visualization & Output] Write the SAM file to disk
 
 nextflow.enable.dsl = 2
 
-process BIOC_PROBAMR {
+process BIOC_PROBAMR_PROBAM_GENERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-probamr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-probamr:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-probamr:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_probamr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_probamr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_probamr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(proBAMr)
-    library(PSMtab2SAM)
-    library(PrepareAnnotationGENCODE)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(proBAMr)
+        
+        # Define input file paths from the working directory
+        gtfFile <- "test.gtf"
+        CDSfasta <- "coding_seq.fasta"
+        pepfasta <- "pro_seq.fasta"
+        psmFile <- "passedPSM.tab"
+        
+        # Verify that input files exist
+        for (f in c(gtfFile, CDSfasta, pepfasta, psmFile)) {
+          if (!file.exists(f)) {
+            stop(paste("Required input file missing:", f))
+          }
+        }
+        
+        # Define and create the annotation output directory
+        annotation_path <- "annotation_output"
+        if (!dir.exists(annotation_path)) {
+          dir.create(annotation_path, recursive = TRUE)
+        }
+        
+        # Stage 1: Prepare annotation files from GENCODE GTF and FASTA files
+        PrepareAnnotationGENCODE(gtfFile, CDSfasta, pepfasta, 
+                                 annotation_path, dbsnp=NULL, 
+                                 splice_matrix=FALSE, COSMIC=FALSE)
+        
+        # Stage 2: Load the prepared annotation RData files
+        load(file.path(annotation_path, "exon_anno.RData"))
+        load(file.path(annotation_path, "proseq.RData"))
+        load(file.path(annotation_path, "procodingseq.RData"))
+        
+        # Stage 3: Read the PSM table
+        options(stringsAsFactors=FALSE)
+        passedPSM <- read.table(psmFile, sep='\t', header=TRUE)
+        
+        # Stage 4: Convert the PSM table to SAM format using PSMtab2SAM
+        SAM <- PSMtab2SAM(passedPSM, XScolumn='mvh', exon, proteinseq, 
+                          procodingseq)
+        
+        # Stage 5: Write the SAM file to disk
+        write.table(SAM, file='test.sam', 
+                    sep='\t', quote=FALSE, row.names=FALSE, col.names=FALSE)
+        
+        # Save meaningful results as RDS for downstream analysis
+        saveRDS(SAM, file="SAM_output.rds")
 
-    # --- GENCODE Annotation Preparation ---
-    # Key functions: PrepareAnnotationGENCODE
-    gtfFile <- system.file("extdata", "test.gtf", package="proBAMr")
-    CDSfasta <- system.file("extdata", "coding_seq.fasta", package="proBAMr")
-    pepfasta <- system.file("extdata", "pro_seq.fasta", package="proBAMr")
-    annotation_path <- tempdir()
-    PrepareAnnotationGENCODE(
-        gtfFile, 
-        CDSfasta, 
-        pepfasta, 
-        annotation_path, 
-        dbsnp=NULL, 
-        splice_matrix=FALSE, 
-        COSMIC=FALSE
-    )
-
-    # --- RefSeq Annotation Preparation ---
-    # Key functions: PrepareAnnotationRefseq
-    CDSfasta <- system.file("extdata", "coding_seq.fasta", package="proBAMr")
-    pepfasta <- system.file("extdata", "pro_seq.fasta", package="proBAMr")
-    annotation_path <- tempdir()
-    PrepareAnnotationRefseq(
-        genome="hg19",
-        CDSfasta=CDSfasta,
-        pepfasta=pepfasta,
-        annotation_path=annotation_path,
-        dbsnp=NULL,
-        splice_matrix=FALSE,
-        COSMIC=FALSE
-    )
-
-    # --- PSM to SAM Conversion ---
-    # Key functions: PSMtab2SAM
-    load(system.file("extdata/GENCODE", "exon_anno.RData", package="proBAMr"))
-    load(system.file("extdata/GENCODE", "proseq.RData", package="proBAMr"))
-    load(system.file("extdata/GENCODE", "procodingseq.RData", package="proBAMr"))
-    passedPSM <- read.table(
-        system.file("extdata", "passedPSM.tab", package="proBAMr"),
-        sep="\t",
-        header=TRUE,
-        stringsAsFactors=FALSE
-    )
-    SAM <- PSMtab2SAM(
-        passedPSM,
-        XScolumn="mvh",
-        exon,
-        proteinseq,
-        procodingseq
-    )
-    write.table(
-        SAM,
-        file=file.path(tempdir(), "test.sam"),
-        sep="\t",
-        quote=FALSE,
-        row.names=FALSE,
-        col.names=FALSE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_probamr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_probamr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_probamr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PROBAMR:", paste0("    probamr: ", packageVersion("proBAMr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PROBAMR_PROBAM_GENERATION":',
+        paste0('    proBAMr: ', as.character(packageVersion('proBAMr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_probamr_results.csv
-    touch ${prefix}_probamr_output.rds
-    echo "BIOC_PROBAMR:" > versions.yml
-    echo "    probamr: 0.0.0" >> versions.yml
+    touch ${prefix}_probam_generation.csv versions.yml
     """
 }
 
-
-workflow BIOC_PROBAMR_WORKFLOW {
+workflow BIOC_PROBAMR_PROBAM_GENERATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ test.gtf, coding_seq.fasta, pro_seq.fasta, passedPSM.tab ] ]
 
     main:
-    BIOC_PROBAMR(ch_input)
+    BIOC_PROBAMR_PROBAM_GENERATION(ch_input)
 
     emit:
-    results  = BIOC_PROBAMR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PROBAMR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PROBAMR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PROBAMR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PROBAMR_PROBAM_GENERATION.out.tables
+    plots    = BIOC_PROBAMR_PROBAM_GENERATION.out.plots
+    objects  = BIOC_PROBAMR_PROBAM_GENERATION.out.objects
+    versions = BIOC_PROBAMR_PROBAM_GENERATION.out.versions
 }

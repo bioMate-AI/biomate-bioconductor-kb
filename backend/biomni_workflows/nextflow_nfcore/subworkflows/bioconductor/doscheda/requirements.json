@@ -1,0 +1,11 @@
+{
+  "package": "doscheda",
+  "requirements": [
+    "Doscheda"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Doscheda"
+    ]
+  }
+}

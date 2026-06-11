@@ -1,0 +1,22 @@
+{
+  "package": "sccb2",
+  "requirements": [
+    "DropletUtils",
+    "Matrix",
+    "Seurat",
+    "scCB2"
+  ],
+  "by_workflow": {
+    "detailed_cb2_pipeline.nf": [
+      "Matrix",
+      "Seurat",
+      "scCB2"
+    ],
+    "main.nf": [
+      "DropletUtils",
+      "Matrix",
+      "Seurat",
+      "scCB2"
+    ]
+  }
+}

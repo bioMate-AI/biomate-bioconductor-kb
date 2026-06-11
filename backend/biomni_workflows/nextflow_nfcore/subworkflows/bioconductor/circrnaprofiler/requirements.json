@@ -1,0 +1,27 @@
+{
+  "package": "circrnaprofiler",
+  "requirements": [
+    "BSgenome",
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "BiocManager",
+    "VennDiagram",
+    "circRNAprofiler",
+    "dplyr",
+    "ggplot2",
+    "ggpubr",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "BiocManager",
+      "VennDiagram",
+      "circRNAprofiler",
+      "dplyr",
+      "ggplot2",
+      "ggpubr",
+      "gridExtra"
+    ]
+  }
+}

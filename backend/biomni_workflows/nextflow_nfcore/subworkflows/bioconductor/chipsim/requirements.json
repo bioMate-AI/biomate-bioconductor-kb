@@ -1,0 +1,19 @@
+{
+  "package": "chipsim",
+  "requirements": [
+    "Biostrings",
+    "ChIPsim",
+    "actuar"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "ChIPsim"
+    ],
+    "transcription_factor_binding_simulation.nf": [
+      "Biostrings",
+      "ChIPsim",
+      "actuar"
+    ]
+  }
+}

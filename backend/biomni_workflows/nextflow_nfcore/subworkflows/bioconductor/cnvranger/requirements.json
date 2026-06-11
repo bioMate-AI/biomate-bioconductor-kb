@@ -1,0 +1,53 @@
+{
+  "package": "cnvranger",
+  "requirements": [
+    "AnnotationHub",
+    "BSgenome.Btaurus.UCSC.bosTau6.masked",
+    "CNVRanger",
+    "GenomeInfoDb",
+    "GenomicRanges",
+    "MultiAssayExperiment",
+    "RaggedExperiment",
+    "S4Vectors",
+    "SNPRelate",
+    "SummarizedExperiment",
+    "TCGAutils",
+    "ensembldb",
+    "gdsfmt",
+    "regioneR"
+  ],
+  "by_workflow": {
+    "cnv_expression_eqtl_association.nf": [
+      "AnnotationHub",
+      "CNVRanger",
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "ensembldb"
+    ],
+    "cnv_expression_eqtl_tcga.nf": [
+      "CNVRanger",
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "MultiAssayExperiment",
+      "TCGAutils"
+    ],
+    "cnv_phenotype_gwas.nf": [
+      "CNVRanger",
+      "GenomicRanges",
+      "RaggedExperiment",
+      "SNPRelate",
+      "gdsfmt"
+    ],
+    "main.nf": [
+      "BSgenome.Btaurus.UCSC.bosTau6.masked",
+      "CNVRanger",
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "S4Vectors",
+      "ensembldb",
+      "regioneR"
+    ]
+  }
+}

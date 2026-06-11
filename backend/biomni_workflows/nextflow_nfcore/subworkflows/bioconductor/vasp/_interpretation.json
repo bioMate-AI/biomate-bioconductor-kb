@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: junc.type=In spliceGene, set to \"score\" to calculate 3S scores or \"count\" to obtain raw junction read counts ;; cores=In BMfinder, specifies the number of threads/cores to use for parallel processing ;; gene.select=In spliceGenome, a vector of gene IDs to select for genome-wide calculation (set to NA for all) ;; intron.select=In spliceGenome, a vector of intron IDs to select for genome-wide calculation (set to NA for all) ;; genes=In getGeneinfo, a character vector of gene IDs to retrieve information for\n- alternatives: The Sushi package (specifically plotBedgraph and plotGenes) is mentioned for plotting depth and gene structures, which serves as the underlying engine for VaSP's deprecated visualization functions.\n- when_to_use: Use this package when you have short-read RNA-seq data mapped with HISAT2, assembled with StringTie, and compiled into a Ballgown object, and you want to quantify alternative splicing (3S scores) and identify genotype-specific splicing (GSS) or bimodal splicing distribution features across a population.\n- pitfalls: The visualizing function splicePlot is deprecated and removed because its dependency package Sushi is deprecated. BMfinder will output a warning if the sample size is less than 30, indicating the results should be further tested. spliceGene can only calculate scores for one gene at a time; spliceGenome must be used for genome-wide calculations. The ballgown package itself is deprecated in Bioconductor version 3.24.",
+  "workflows": [
+    {
+      "name": "splicing_quantification_and_gss_discovery",
+      "intent": "Calculate Single Splicing Strength (3S) scores and identify genotype-specific splicing (GSS) events from a Ballgown object.",
+      "input": [
+        "rice.bg (Ballgown object containing transcript assembly and expression information)",
+        "Sample_027.bam (BAM file for extracting read depth)"
+      ],
+      "stages": "1. Calculate 3S scores or junction counts for a specific gene using spliceGene, or genome-wide using spliceGenome. ;; 2. Identify bimodal distribution features (GSS events) using BMfinder. ;; 3. Extract genomic coordinates of the identified GSS introns using structure. ;; 4. Extract read depth from BAM files using getDepth and gene information using getGeneinfo.",
+      "code": "library(VaSP)\ndata(rice.bg)\nscore<-spliceGene(rice.bg, gene=\"MSTRG.183\", junc.type = \"score\")\ncount <- spliceGene(rice.bg, \"MSTRG.183\", junc.type = \"count\")\ngss <- BMfinder(score, cores = 1)\ngss_intron<-structure(rice.bg)$intron\n(gss_intron<-gss_intron[gss_intron$id%in%rownames(gss)])\nrange(gss_intron)\nsplice <- spliceGenome(rice.bg, gene.select = NA, intron.select = NA)\npath <- system.file(\"extdata\", package = \"VaSP\")\nbam_files <- list.files(path, \"*.bam$\")\ndepth <- getDepth(file.path(path, bam_files[1]), \"Chr1\", start = 1171800, end = 1179400)\ngene_id <- c(\"MSTRG.181\", \"MSTRG.182\", \"MSTRG.183\")\ngeneinfo <- getGeneinfo(genes = gene_id, rice.bg)"
+    }
+  ]
+}

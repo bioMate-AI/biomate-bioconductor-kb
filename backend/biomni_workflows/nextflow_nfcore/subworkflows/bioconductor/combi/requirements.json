@@ -1,0 +1,14 @@
+{
+  "package": "combi",
+  "requirements": [
+    "combi"
+  ],
+  "by_workflow": {
+    "constrained_integration.nf": [
+      "combi"
+    ],
+    "main.nf": [
+      "combi"
+    ]
+  }
+}

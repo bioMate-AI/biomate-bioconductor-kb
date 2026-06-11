@@ -1,134 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scClassify
-// scClassify is a multiscale classification framework for single-cell RNA-seq data based on ensemble l
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scClassify/inst/doc/pretrainedModel.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("scClassify")
+// Bioconductor workflow: scClassify — joint_scclassify
+// Perform joint training and cell type prediction on a query dataset using a reference dataset in a single step.
+// Input: reference_expression.csv, reference_labels.csv, query_expression.csv
+// Container: quay.io/biocontainers/bioconductor-scclassify:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Matrix, scClassify
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load and format reference and query expression matrices as sparse matrices (dgCMatrix)
+//  * 2. [Core Analysis] Run joint classification using scClassify()
+//  * 3. [Core Analysis] Inspect the trained cell type tree and prediction results
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCCLASSIFY {
+process BIOC_SCCLASSIFY_JOINT_SCCLASSIFY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scclassify"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scclassify:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scclassify:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scclassify_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scclassify_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scclassify_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(scClassify)
-    library(jsonlite)
-
-    # --- Cell Type Tree Visualization [] ---
-    # Key functions: plotCellTypeTree, cellTypeTree
-    train_model <- trainClassExample_xin
-    model_tree <- cellTypeTree(train_model)
-    plotCellTypeTree(model_tree)
-
-
-    # --- Model Training [] ---
-    # Key functions: train_scClassify
-    train_res <- train_scClassify(
-        exprsMat_train = exprsMat_wang_subset,
-        cellTypes_train = wang_cellTypes,
-        tree = "IDEC",
-        selectFeatures = "limma",
-        algorithm = "WKNN",
-        similarity = "pearson",
-        verbose = FALSE
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library("scClassify")
+    library("Matrix")
+    
+    # 1. Load and format reference and query expression matrices as sparse matrices (dgCMatrix)
+    # Read reference expression matrix (log-normalized, genes as rows, cells as columns)
+    ref_expr <- read.csv("reference_expression.csv", row.names = 1, check.names = FALSE)
+    exprsMat_xin_subset <- as.matrix(ref_expr)
+    exprsMat_xin_subset <- as(exprsMat_xin_subset, "dgCMatrix")
+    
+    # Read reference cell type annotations
+    ref_labels <- read.csv("reference_labels.csv", header = TRUE)
+    xin_cellTypes <- as.character(ref_labels[, 1])
+    
+    # Read query expression matrix (log-normalized, genes as rows, cells as columns)
+    query_expr <- read.csv("query_expression.csv", row.names = 1, check.names = FALSE)
+    exprsMat_wang_subset <- as.matrix(query_expr)
+    exprsMat_wang_subset <- as(exprsMat_wang_subset, "dgCMatrix")
+    
+    # Since query labels are not provided in the user input, we set wang_cellTypes to NULL
+    wang_cellTypes <- NULL
+    
+    # 2. Run joint classification using scClassify()
+    scClassify_res <- scClassify(exprsMat_train = exprsMat_xin_subset,
+                                 cellTypes_train = xin_cellTypes,
+                                 exprsMat_test = list(wang = exprsMat_wang_subset),
+                                 cellTypes_test = list(wang = wang_cellTypes),
+                                 tree = "HOPACH",
+                                 algorithm = "WKNN",
+                                 selectFeatures = c("limma"),
+                                 similarity = c("pearson"),
+                                 returnList = FALSE,
+                                 verbose = FALSE)
+    
+    # 3. Inspect the trained cell type tree and prediction results
+    # Print training model summary
+    print(scClassify_res\$trainRes)
+    
+    # Plot and save the cell type tree
+    pdf("cell_type_tree.pdf", width = 8, height = 6)
+    plotCellTypeTree(cellTypeTree(scClassify_res\$trainRes))
+    dev.off()
+    
+    # Save the prediction results to a CSV file
+    pred_res <- scClassify_res\$testRes\$wang\$pearson_WKNN_limma\$predRes
+    predictions_df <- data.frame(
+      Cell = colnames(exprsMat_wang_subset),
+      Predicted_CellType = pred_res
     )
+    write.csv(predictions_df, "query_predictions.csv", row.names = FALSE)
+    
+    # Save the full scClassify results object
+    saveRDS(scClassify_res, "scClassify_results.rds")
+    
+    # Faithfully attempt to run the documented table function
+    tryCatch({
+      tbl <- table(scClassify_res\$testRes\$wang\$pearson_WKNN_limma\$predRes, wang_cellTypes)
+      print(tbl)
+    }, error = function(e) {
+      cat("\nDistribution of predicted cell types:\n")
+      print(table(scClassify_res\$testRes\$wang\$pearson_WKNN_limma\$predRes))
+    })
 
-
-    # --- Cell Type Prediction [] ---
-    # Key functions: predict_scClassify
-    test_data <- as(exprsMat_wang_subset, "dgCMatrix")
-    pred_res <- predict_scClassify(
-        exprsMat_test = test_data,
-        trainRes = trainClassExample_xin,
-        cellTypes_test = wang_cellTypes,
-        algorithm = "WKNN",
-        features = c("limma"),
-        similarity = c("pearson", "spearman"),
-        prob_threshold = 0.7,
-        verbose = FALSE
-    )
-
-
-    # --- Joint Training and Classification [] ---
-    # Key functions: scClassify
-    scClassify_res <- scClassify(
-        exprsMat_train = exprsMat_wang_subset,
-        cellTypes_train = wang_cellTypes,
-        exprsMat_test = list(wang = exprsMat_wang_subset),
-        cellTypes_test = list(wang = wang_cellTypes),
-        tree = "IDEC",
-        algorithm = "WKNN",
-        selectFeatures = "limma",
-        similarity = "pearson",
-        returnList = FALSE,
-        verbose = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scclassify_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scclassify_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scclassify_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCCLASSIFY:", paste0("    scclassify: ", packageVersion("scClassify"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCCLASSIFY_JOINT_SCCLASSIFY":',
+        paste0('    scClassify: ', as.character(packageVersion('scClassify')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scclassify_results.csv
-    touch ${prefix}_scclassify_output.rds
-    echo "BIOC_SCCLASSIFY:" > versions.yml
-    echo "    scclassify: 0.0.0" >> versions.yml
+    touch ${prefix}_joint_scclassify.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCCLASSIFY_WORKFLOW {
+workflow BIOC_SCCLASSIFY_JOINT_SCCLASSIFY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ reference_expression.csv, reference_labels.csv, query_expression.csv ] ]
 
     main:
-    BIOC_SCCLASSIFY(ch_input)
+    BIOC_SCCLASSIFY_JOINT_SCCLASSIFY(ch_input)
 
     emit:
-    results  = BIOC_SCCLASSIFY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCCLASSIFY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCCLASSIFY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCCLASSIFY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCCLASSIFY_JOINT_SCCLASSIFY.out.tables
+    plots    = BIOC_SCCLASSIFY_JOINT_SCCLASSIFY.out.plots
+    objects  = BIOC_SCCLASSIFY_JOINT_SCCLASSIFY.out.objects
+    versions = BIOC_SCCLASSIFY_JOINT_SCCLASSIFY.out.versions
 }

@@ -1,0 +1,17 @@
+{
+  "package": "affylmgui",
+  "requirements": [
+    "Biobase",
+    "affylmGUI",
+    "limma",
+    "tcltk"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "affylmGUI",
+      "limma",
+      "tcltk"
+    ]
+  }
+}

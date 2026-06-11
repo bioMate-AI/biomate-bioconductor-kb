@@ -1,0 +1,23 @@
+{
+  "package": "flowclust",
+  "requirements": [
+    "flowClust",
+    "flowCore",
+    "flowStats"
+  ],
+  "by_workflow": {
+    "flowcore_integration.nf": [
+      "flowClust",
+      "flowCore"
+    ],
+    "main.nf": [
+      "flowClust",
+      "flowCore"
+    ],
+    "prior_based_clustering.nf": [
+      "flowClust",
+      "flowCore",
+      "flowStats"
+    ]
+  }
+}

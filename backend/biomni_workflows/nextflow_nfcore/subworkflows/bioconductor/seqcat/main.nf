@@ -1,135 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: seqCAT
-// The seqCAT package uses variant calling data (in the form of VCF files) from high throughput sequenc
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/seqCAT/inst/doc/seqCAT.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("seqCAT")
+// Bioconductor workflow: seqcat — snv_profile_comparison_and_similarity_analysis
+// Create SNV profiles from VCF files, compare them to evaluate genetic similarity, and visualize the results.
+// Input: example.vcf.gz
+// Container: quay.io/biocontainers/bioconductor-seqcat:1.32.0--r45hdfd78af_0
+// R packages: ggplot2, seqCAT
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEQCAT {
+process BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seqcat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seqcat:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seqcat:1.28.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-seqcat:1.32.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seqcat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seqcat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seqcat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(seqCAT)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggplot2", "seqCAT")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Profile Creation [SNV Profile Generation] ---
-    # Key functions: create_profile, create_profiles, write_profile
-    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library("seqCAT")
+    library("ggplot2")
+    
+    # Define the input file from the working directory
+    vcf <- "example.vcf.gz"
+    
+    # Verify input file existence
+    if (!file.exists(vcf)) {
+      stop(paste("Error: Required input file '", vcf, "' not found in the working directory.", sep = ""))
+    }
+    
+    # 1. Create individual SNV profiles
+    message("Creating SNV profiles...")
     hct116 <- create_profile(vcf, "HCT116")
     rko <- create_profile(vcf, "RKO", min_depth = 15, filter_gd = FALSE)
-    vcf_dir <- system.file("extdata", package = "seqCAT")
-    profiles <- create_profiles(vcf_dir, pattern = "example")
-    write_profile(hct116, "hct116.profile.txt")
-
-    # --- Profile Filtering [Variant and Duplicate Filtering] ---
-    # Key functions: create_profile, filter_variants, filter_duplicates
-    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
-    rko <- create_profile(vcf, "RKO", min_depth = 15, filter_gd = FALSE)
+    
+    # 2. Filter variants by depth or duplicates
+    message("Filtering variants...")
     rko_filtered <- filter_variants(rko, min_depth = 20)
     rko_deduplicated <- filter_duplicates(rko, filter_pd = TRUE)
-
-    # --- Profile Comparison [Pairwise and Database Comparisons] ---
-    # Key functions: create_profile, read_cosmic, compare_profiles, compare_many
-    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
-    hct116 <- create_profile(vcf, "HCT116")
-    rko <- create_profile(vcf, "RKO")
+    
+    # 3. Compare profiles
+    message("Comparing profiles...")
     hct116_rko <- compare_profiles(hct116, rko)
-    cosmic_file <- system.file(
-        "extdata", "subset_CosmicCLP_MutantExport.tsv.gz", package = "seqCAT"
-    )
-    cosmic <- read_cosmic(cosmic_file, "HCT116")
-    hct116_cosmic <- compare_profiles(hct116, cosmic)
-    many_comparisons <- compare_many(list(hct116, rko))
-
-    # --- Similarity Analysis [Statistical Similarity Calculation] ---
-    # Key functions: create_profile, compare_profiles, calculate_similarity
-    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
-    hct116 <- create_profile(vcf, "HCT116")
-    rko <- create_profile(vcf, "RKO")
-    hke3 <- create_profile(vcf, "HKE3")
-    hct116_rko <- compare_profiles(hct116, rko)
-    hct116_hke3 <- compare_profiles(hct116, hke3)
+    hct116_rko_union <- compare_profiles(hct116, rko, mode = "union")
+    
+    # 4. Calculate similarity statistics
+    message("Calculating similarity statistics...")
     similarity <- calculate_similarity(hct116_rko)
+    
+    hke3 <- create_profile(vcf, "HKE3")
+    hct116_hke3 <- compare_profiles(hct116, hke3)
     similarities <- calculate_similarity(hct116_hke3, similarity, b = 10)
-
-    # --- Visualization [Impact and Heatmap Plotting] ---
-    # Key functions: create_profile, compare_profiles, compare_many, plot_impacts, plot_heatmap
-    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
-    hct116 <- create_profile(vcf, "HCT116")
-    rko <- create_profile(vcf, "RKO")
-    hct116_rko <- compare_profiles(hct116, rko)
+    
+    # 5. Plot variant impact distributions
+    message("Plotting variant impacts...")
     impacts <- plot_impacts(hct116_rko)
-    many <- compare_many(list(hct116, rko))
+    
+    # 6. Perform many-to-many comparisons
+    message("Performing many-to-many comparisons...")
+    profiles <- list(hct116, hke3, rko)
+    many <- compare_many(profiles)
+    
+    # 7. Visualize multiple comparisons
+    message("Plotting heatmap...")
     heatmap <- plot_heatmap(many[[1]])
+    
+    # Save outputs to the working directory
+    message("Saving results to disk...")
+    
+    # Save profiles and comparisons as CSV tables
+    write.csv(as.data.frame(hct116), "hct116_profile.csv", row.names = FALSE)
+    write.csv(as.data.frame(rko), "rko_profile.csv", row.names = FALSE)
+    write.csv(as.data.frame(rko_filtered), "rko_filtered_profile.csv", row.names = FALSE)
+    write.csv(as.data.frame(rko_deduplicated), "rko_deduplicated_profile.csv", row.names = FALSE)
+    write.csv(as.data.frame(hct116_rko), "hct116_rko_comparison.csv", row.names = FALSE)
+    write.csv(as.data.frame(hct116_rko_union), "hct116_rko_union_comparison.csv", row.names = FALSE)
+    write.csv(as.data.frame(similarity), "similarity_hct116_rko.csv", row.names = FALSE)
+    write.csv(as.data.frame(similarities), "similarities_all.csv", row.names = FALSE)
+    
+    # Save the full many-to-many comparison list object
+    saveRDS(many, "many_comparisons.rds")
+    
+    # Save plots as PDFs
+    ggplot2::ggsave("impacts_distribution.pdf", plot = impacts, width = 7, height = 5)
+    ggplot2::ggsave("similarity_heatmap.pdf", plot = heatmap, width = 6, height = 5)
+    
+    message("Pipeline completed successfully!")
 
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seqcat_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seqcat_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seqcat_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEQCAT:", paste0("    seqcat: ", packageVersion("seqCAT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS":',
+        paste0('        seqcat: ', as.character(packageVersion("seqcat")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seqcat_results.csv
-    touch ${prefix}_seqcat_output.rds
-    echo "BIOC_SEQCAT:" > versions.yml
-    echo "    seqcat: 0.0.0" >> versions.yml
+    touch ${prefix}_snv_profile_comparison_and_similarity_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEQCAT_WORKFLOW {
+workflow BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ example.vcf.gz ] ]
 
     main:
-    BIOC_SEQCAT(ch_input)
+    BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SEQCAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEQCAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEQCAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEQCAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS.out.tables
+    plots    = BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS.out.plots
+    objects  = BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS.out.objects
+    versions = BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS.out.versions
 }

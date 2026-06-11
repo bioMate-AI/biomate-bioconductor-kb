@@ -1,0 +1,23 @@
+{
+  "package": "proloc",
+  "requirements": [
+    "BiocParallel",
+    "MSnbase",
+    "pRoloc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "pRoloc"
+    ],
+    "nearest_neighbour_transfer_learning.nf": [
+      "BiocParallel",
+      "MSnbase",
+      "pRoloc"
+    ],
+    "subcellular_resolution_assessment.nf": [
+      "MSnbase",
+      "pRoloc"
+    ]
+  }
+}

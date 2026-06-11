@@ -1,137 +1,118 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GeneOverlap
-// Test two sets of gene lists and visualize the results.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GeneOverlap/inst/doc/GeneOverlap.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GeneOverlap")
+// Bioconductor workflow: GeneOverlap — pairwise_gene_overlap
+// Test the statistical significance of the overlap between two individual gene lists and retrieve detailed association statistics.
+// Input: list1.txt, list2.txt, background_size
+// Container: quay.io/biocontainers/bioconductor-geneoverlap:1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GeneOverlap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create a GeneOverlap object using newGeneOverlap
+//  * 2. [Core Analysis] Run the statistical test using testGeneOverlap
+//  * 3. [Core Analysis] Print detailed results and retrieve specific statistics (intersection, odds ratio, contingency table, genome size) using accessors
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENEOVERLAP {
+process BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-geneoverlap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-geneoverlap:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-geneoverlap:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_geneoverlap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_geneoverlap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_geneoverlap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
     library(GeneOverlap)
-    library(jsonlite)
-
-    # --- Newgeneoverlap [] ---
-    # Key functions: newGeneOverlap
-    go.obj <- newGeneOverlap(hESC.ChIPSeq.list$H3K4me3,
-                             hESC.RNASeq.list$"Exp High",
-                             genome.size=gs.RNASeq)
-    go.obj
-    # --- Testgeneoverlap [] ---
-    # Key functions: testGeneOverlap
+    
+    # Read user inputs from the working directory
+    list1 <- scan("list1.txt", what = character(), quiet = TRUE)
+    list2 <- scan("list2.txt", what = character(), quiet = TRUE)
+    bg_size <- as.integer(scan("background_size", what = integer(), quiet = TRUE)[1])
+    
+    # 1. Create a GeneOverlap object using newGeneOverlap
+    go.obj <- newGeneOverlap(list1, 
+                             list2, 
+                             genome.size=bg_size)
+    
+    # 2. Run the statistical test using testGeneOverlap
     go.obj <- testGeneOverlap(go.obj)
-    go.obj
-    # --- Newgeneoverlap [] ---
-    # Key functions: newGeneOverlap, testGeneOverlap
-    go.obj <- newGeneOverlap(hESC.ChIPSeq.list$H3K4me3,
-                             hESC.RNASeq.list$"Exp Low",
-                             genome.size=gs.RNASeq)
-    go.obj <- testGeneOverlap(go.obj)
+    
+    # 3. Print detailed results and retrieve specific statistics using accessors
     print(go.obj)
-    # --- Head [] ---
-    # Key functions: getIntersection, getOddsRatio, getContbl, getGenomeSize
     head(getIntersection(go.obj))
     getOddsRatio(go.obj)
     getContbl(go.obj)
     getGenomeSize(go.obj)
-    # --- Setlista [] ---
-    # Key functions: setListA, setListB
-    setListA(go.obj) <- hESC.ChIPSeq.list$H3K27me3
-    setListB(go.obj) <- hESC.RNASeq.list$"Exp Medium"
-    go.obj
-    # --- Testgeneoverlap [] ---
-    # Key functions: testGeneOverlap
-    go.obj <- testGeneOverlap(go.obj)
-    go.obj
-    # --- Newgom [] ---
-    # Key functions: newGOM, drawHeatmap
-    gom.obj <- newGOM(hESC.ChIPSeq.list, hESC.RNASeq.list,
-                      gs.RNASeq)
-    drawHeatmap(gom.obj)
-    # --- Getmatrix [] ---
-    # Key functions: getMatrix
-    getMatrix(gom.obj, name="pval")
-    # --- Getnestedlist [] ---
-    # Key functions: getNestedList
-    inter.nl <- getNestedList(gom.obj, name="intersection")
-    str(inter.nl)
-    # --- Newgom [] ---
-    # Key functions: newGOM, drawHeatmap
-    gom.self <- newGOM(hESC.ChIPSeq.list,
-                       genome.size=gs.RNASeq)
-    drawHeatmap(gom.self)
-    # --- Drawheatmap [] ---
-    # Key functions: drawHeatmap
-    drawHeatmap(gom.self, ncolused=5, grid.col="Blues", note.col="black")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_geneoverlap_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_geneoverlap_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_geneoverlap_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENEOVERLAP:", paste0("    geneoverlap: ", packageVersion("GeneOverlap"))),
-        "versions.yml"
+    
+    # Write meaningful results to output files
+    # Save the intersection genes
+    writeLines(getIntersection(go.obj), "intersection_genes.txt")
+    
+    # Save the contingency table
+    write.csv(getContbl(go.obj), "contingency_table.csv", row.names = TRUE)
+    
+    # Save detailed statistics
+    stats_df <- data.frame(
+      GenomeSize = getGenomeSize(go.obj),
+      OddsRatio = getOddsRatio(go.obj),
+      PValue = getPval(go.obj),
+      JaccardIndex = getJaccard(go.obj)
     )
+    write.csv(stats_df, "overlap_statistics.csv", row.names = FALSE)
+    
+    # Save the GeneOverlap object as an RDS file
+    saveRDS(go.obj, "gene_overlap_object.rds")
+
+    writeLines(c(
+        '"BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP":',
+        paste0('    GeneOverlap: ', as.character(packageVersion('GeneOverlap')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_geneoverlap_results.csv
-    touch ${prefix}_geneoverlap_output.rds
-    echo "BIOC_GENEOVERLAP:" > versions.yml
-    echo "    geneoverlap: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_gene_overlap.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENEOVERLAP_WORKFLOW {
+workflow BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ list1.txt, list2.txt, background_size ] ]
 
     main:
-    BIOC_GENEOVERLAP(ch_input)
+    BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP(ch_input)
 
     emit:
-    results  = BIOC_GENEOVERLAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENEOVERLAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENEOVERLAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENEOVERLAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP.out.tables
+    plots    = BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP.out.plots
+    objects  = BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP.out.objects
+    versions = BIOC_GENEOVERLAP_PAIRWISE_GENE_OVERLAP.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "assign",
+  "requirements": [
+    "ASSIGN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ASSIGN"
+    ]
+  }
+}

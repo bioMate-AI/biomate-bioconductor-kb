@@ -1,0 +1,14 @@
+{
+  "package": "isobayes",
+  "requirements": [
+    "IsoBayes"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IsoBayes"
+    ],
+    "user_provided_data_pipeline.nf": [
+      "IsoBayes"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: argc=Integer specifying the number of arguments in argv ;; argv=Character vector of command-line style arguments (e.g., \"-c\" for color path, \"-d\" for data path, \"-o\" for output path, \"-f\" for format, \"-s\" for scale) ;; format=Format of the input file, specified via \"-f\" in argv as either \"CHROMDRAW\" (default) or \"bed\"\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when visualizing chromosome structures (linear karyotypes) or comparing multiple karyotypes against each other (circular karyotypes) with cytogenetic marks like rDNA loci.\n- pitfalls: The first element of the argv vector in chromDraw must always be the package name \"chromDraw\" ;; When defining a centromere in GenomicRanges, the name must be set to \"CENTROMERE\" and the ranges must be [0,0] ;; BED files must contain at least the first nine fields per record ;; In the custom text input format, centromere definitions must immediately follow the block that is directly before the centromere.",
+  "workflows": [
+    {
+      "name": "text_file_karyotype",
+      "intent": "Visualize karyotypes and cytogenetic marks using custom text-based definition and color files.",
+      "input": [
+        "karyotype_definition.txt (plain text file containing karyotype, chromosome, block, centromere, and mark definitions)",
+        "color_definitions.txt (plain text file containing color names and RGB values)"
+      ],
+      "stages": "1. Define output path and input file paths ;; 2. Run visualization using chromDraw with command-line style arguments",
+      "code": "library(chromDraw)\n\nOUTPUTPATH = file.path(getwd());\n\nINPUTPATH = system.file('extdata',\n                        'Ack_and_Stenopetalum_nutans.txt', \n                        package ='chromDraw')\n                        \nCOLORPATH = system.file('extdata',\n                        'default_colors.txt', \n                        package ='chromDraw')\n                        \nchromDraw(argc=7,  \n          argv=c(\"chromDraw\",\"-c\",COLORPATH,\"-d\",INPUTPATH,\"-o\",\nOUTPUTPATH));"
+    },
+    {
+      "name": "genomic_ranges_karyotype",
+      "intent": "Visualize karyotypes and cytogenetic marks directly from R using GenomicRanges and a color data frame.",
+      "input": [
+        "genomic_ranges_object (GRanges object containing chromosome, block, centromere, and color metadata)",
+        "color_dataframe (data.frame containing color names and RGB values)"
+      ],
+      "stages": "1. Create or load GenomicRanges object with karyotype structure ;; 2. Create or load data frame with color definitions ;; 3. Run visualization using chromDrawGR",
+      "code": "library(GenomicRanges)\n\nexampleData <- GRanges(seqnames =Rle(c(\"ACK1\"), c(4)),ranges = \nIRanges(start = c(0, 6700000,0,12400000), \n        end = c(6700000,12400000,0,17000000), \n        names = c(\"A\",\"B\",\"CENTROMERE\",\"C\")),  \n        color = c(\"yellow\",\"yellow\",\"\",\"yellow\")\n       );\n\nname <- c(\"yellow\", \"red\");\nr <- c(255, 255);\ng <- c(255, 0);\nb <- c(0, 0);\nexampleColor <- data.frame(name,r,g,b);\n\nlibrary(chromDraw)\n\nchromDrawGR(list(exampleData), exampleColor);"
+    },
+    {
+      "name": "bed_file_karyotype",
+      "intent": "Visualize karyotypes from a BED format file.",
+      "input": [
+        "bed_file.bed (BED file containing at least the first nine fields per record)"
+      ],
+      "stages": "1. Define output path and BED input file path ;; 2. Run visualization using chromDraw specifying the BED format",
+      "code": "library(chromDraw)\n\nOUTPUTPATH = file.path(getwd());\n\nINPUTPATH = system.file('extdata',\n                        'bed.bed', \n                        package ='chromDraw')\n                        \nchromDraw(argc=7,  \n          argv=c(\"chromDraw\", \"-f\", \"bed\", \"-d\",INPUTPATH, \"-o\",\nOUTPUTPATH));"
+    }
+  ]
+}

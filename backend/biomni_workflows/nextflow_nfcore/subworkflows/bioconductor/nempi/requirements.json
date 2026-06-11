@@ -1,0 +1,22 @@
+{
+  "package": "nempi",
+  "requirements": [
+    "epiNEM",
+    "mnem",
+    "nempi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mnem",
+      "nempi"
+    ],
+    "prior_guided_perturbation_inference.nf": [
+      "epiNEM",
+      "mnem",
+      "nempi"
+    ],
+    "supervised_classification_inference.nf": [
+      "nempi"
+    ]
+  }
+}

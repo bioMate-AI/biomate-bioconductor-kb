@@ -1,0 +1,13 @@
+{
+  "package": "genegeneinter",
+  "requirements": [
+    "GeneGeneInteR",
+    "snpStats"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GeneGeneInteR",
+      "snpStats"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=A matrix of raw integer counts where rows represent genes and columns represent samples ;; groups=A factor defining the experimental groups for each sample ;; paired=A logical value (default FALSE), set to TRUE to perform a paired comparison (e.g., matched tumor and normal samples) ;; normMethod=The normalization method to use, with options \"qtotal\" (default), \"total\", \"geometric\", \"quantile\", \"TMM\", or \"user\" ;; sizeFactor=A numeric vector of user-provided size factors, required when normMethod=\"user\" ;; minRates=A numeric value defining the lower bound of user-defined baseline rates for count differences ;; maxRates=A numeric value defining the upper bound of user-defined baseline rates for count differences ;; minDispersion=A numeric value to penalize dispersion estimation by adding a common dispersion value ;; useaFold=A logical value (default FALSE), set to TRUE to use the alternative aFold method for DE detection via log fold-change ;; design=A model matrix representing the experimental design, used in ABSSeqlm ;; condA=A character vector specifying the baseline condition(s) for comparison in ABSSeqlm ;; condB=A character vector specifying the comparison condition(s) in ABSSeqlm ;; lmodel=A logical value (default TRUE), set to FALSE to suppress the linear model fit from limma in ABSSeqlm\n- alternatives: DESeq (\"geometric\" normalization method) ;; edgeR (\"TMM\" normalization method) ;; baySeq (\"quantile\" normalization method) ;; limma (integrated via ABSSeqlm for complex linear modeling)\n- when_to_use: Use ABSSeq when analyzing RNA-Seq count data to find differentially expressed genes between two or more conditions, especially when fold-change moderation is desired to facilitate gene ranking, or when dealing with complex experimental designs, paired samples, or datasets without replicates.\n- pitfalls: Ensure that input counts are raw, non-negative integers and not pre-normalized or log-transformed. For single-replicate studies, ensure the input count matrix contains exactly two columns (one per group) and the groups factor has exactly two levels. When performing PCA, do not include group information in the ABSDataSet constructor, and use the 4th element of the list returned by genAFold for expression-level adjusted counts.",
+  "workflows": [
+    {
+      "name": "pairwise_de_analysis",
+      "intent": "Perform pairwise differential expression analysis on RNA-Seq count data with replicates using either the standard ABSSeq model or the alternative aFold method.",
+      "input": [
+        "counts.tsv (matrix of raw integer counts)",
+        "groups.csv (metadata file containing group assignments for each sample)"
+      ],
+      "stages": "1. Construct the ABSDataSet object with counts and group factors ;; 2. Run the differential expression analysis pipeline using the ABSSeq wrapper function (optionally enabling aFold) ;; 3. Extract and view the results including fold-changes, p-values, and adjusted p-values.",
+      "code": "obj <- ABSDataSet(simuN5$counts, factor(simuN5$groups))\nobj <- ABSSeq(obj)\nres <- results(obj,c(\"Amean\",\"Bmean\",\"foldChange\",\"pvalue\",\"adj.pvalue\"))\nhead(res)\n\nobj <- ABSDataSet(counts=simuN5$counts, groups=factor(simuN5$groups))\nobj <- ABSSeq(obj, useaFold=TRUE)\nres <- results(obj,c(\"Amean\",\"Bmean\",\"foldChange\",\"pvalue\",\"adj.pvalue\"))\nhead(res)"
+    },
+    {
+      "name": "single_replicate_de_analysis",
+      "intent": "Perform differential expression analysis on RNA-Seq data when no replicates are available.",
+      "input": [
+        "counts_no_replicates.tsv (matrix of raw integer counts containing exactly two columns, one for each condition)"
+      ],
+      "stages": "1. Construct the ABSDataSet object using the two-column count matrix and a two-level group factor ;; 2. Run the ABSSeq pipeline, which automatically handles single-replicate parameter estimation ;; 3. Extract the differential expression results.",
+      "code": "obj <- ABSDataSet(simuN5$counts[,c(1,2)], factor(c(1,2)))\nobj <- ABSSeq(obj)\nres <- results(obj,c(\"Amean\",\"Bmean\",\"foldChange\",\"pvalue\",\"adj.pvalue\"))\nhead(res)"
+    },
+    {
+      "name": "variance_stabilization_and_pca",
+      "intent": "Stabilize count variances across expression levels using the aFold model and perform Principal Component Analysis (PCA) for exploratory data analysis.",
+      "input": [
+        "counts.tsv (matrix of raw integer counts)"
+      ],
+      "stages": "1. Construct the ABSDataSet object without group information ;; 2. Extract normalized counts ;; 3. Perform variance stabilization using genAFold ;; 4. Log2-transform the stabilized counts and run PCA using prcomp.",
+      "code": "obj <- ABSDataSet(counts=simuN5$counts)\ncond <- as.factor(rep(\"hex\",ncol(simuN5$counts)))\ncda <- counts(obj,T)\nsds <- genAFold(cda,cond)\nldat <- log2(sds[[4]])\nPCA <- prcomp(t(ldat), scale = F)\npercentVar <- round(100*PCA$sdev^2/sum(PCA$sdev^2),1)\npc1=PCA$x[,1]\npc2=PCA$x[,2]"
+    },
+    {
+      "name": "complex_design_analysis",
+      "intent": "Perform differential expression analysis for complex experimental designs using linear models in combination with limma.",
+      "input": [
+        "counts.tsv (matrix of raw integer counts)",
+        "design_metadata.csv (metadata containing experimental factors for design matrix construction)"
+      ],
+      "stages": "1. Construct the ABSDataSet object with counts ;; 2. Create a design matrix using model.matrix ;; 3. Run the linear model analysis using ABSSeqlm for pairwise comparisons or ANOVA.",
+      "code": "groups<-factor(simuN5$groups)\nobj <- ABSDataSet(counts=simuN5$counts)\ndesign <- model.matrix(~0+groups)\nres <- ABSSeqlm(obj,design,condA=c(\"groups0\"),condB=c(\"groups1\"))\nhead(res)\n\nres <- ABSSeqlm(obj,design,condA=c(\"groups0\",\"groups1\"))\nhead(res)\n\nres <- ABSSeqlm(obj,design,condA=c(\"groups0\"),condB=c(\"groups1\"),lmodel=FALSE)\nhead(res)"
+    }
+  ]
+}

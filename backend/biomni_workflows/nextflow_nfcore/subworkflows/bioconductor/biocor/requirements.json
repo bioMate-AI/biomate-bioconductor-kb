@@ -1,0 +1,21 @@
+{
+  "package": "biocor",
+  "requirements": [
+    "BioCor",
+    "dynamicTreeCut",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioCor",
+      "org.Hs.eg.db"
+    ],
+    "merge_similarity_sources.nf": [
+      "BioCor"
+    ],
+    "wgcna_integration.nf": [
+      "BioCor",
+      "dynamicTreeCut"
+    ]
+  }
+}

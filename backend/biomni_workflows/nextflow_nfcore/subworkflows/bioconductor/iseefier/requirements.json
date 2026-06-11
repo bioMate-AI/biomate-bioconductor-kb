@@ -1,0 +1,21 @@
+{
+  "package": "iseefier",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggplot2",
+    "iSEEfier",
+    "igraph",
+    "scater",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "iSEEfier",
+      "igraph",
+      "scater",
+      "scuttle"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bin.length=smoothing parameter over the set of reads (default 20) used in compHists ;; whichPos=fragment position from which histograms are computed ('Left.p', 'Right.n', or 'Center') ;; contrast=contrast specification (e.g., 'byCondition' or custom list) in setContrast ;; dist.method=distance method (e.g., 'MMD') in compDists and compPvals ;; Peak.id=specific peak identifier for plotting in plotPeak and plotDISTS4Peak\n- alternatives: DESeq2 (count-based testing, preferred when shape differences are not expected or when only total abundance changes matter) ;; DiffBind (count-based testing, preferred for standard differential binding analysis without shape considerations) ;; MMDiff (older version of the package, MMDiff2 is preferred for better stability, speed, and Shiny integration)\n- when_to_use: Use when analyzing ChIP-Seq data where differences in peak shape (e.g., transcription factor binding or histone modification profiles) are expected or important, rather than just overall read count differences.\n- pitfalls: Requires position-sorted and indexed BAM files ;; Requires pre-defined regions of interest (e.g., MACS2 called peaks) in GRanges format ;; Running compPvals without replicates will trigger a warning (\"no replicates given for group2\") and may affect statistical robustness.",
+  "workflows": [
+    {
+      "name": "chipseq_shape_diff_analysis",
+      "intent": "Detect statistically significant differences in ChIP-Seq read enrichment profiles (peak shapes) between different conditions.",
+      "input": [
+        "sampleSheet.csv (CSV file detailing paths to different samples)",
+        "peaks.GRanges (GenomicRanges object summarizing the peaks/regions of interest)",
+        "sorted_indexed.bam (Position-sorted and indexed BAM files for ChIP-Seq samples and inputs)"
+      ],
+      "stages": "1. Initialize metadata and DBAmmd object (DBAmmd) ;; 2. Set regions of interest (setRegions) ;; 3. Retrieve peak reads from BAM files (getPeakReads) ;; 4. Estimate fragment centers (estimateFragmentCenters) ;; 5. Compute peak histograms (compHists) ;; 6. Compute pairwise distances between samples (compDists) ;; 7. Set experimental contrast (setContrast) ;; 8. Compute p-values for differential shape testing (compPvals) ;; 9. Report and visualize results (reportResults, plotDists, plotPeak, plotDISTS4Peak, runShinyMMDiff2)",
+      "code": "ExperimentData <- list(genome='BSgenome.Mmusculus.UCSC.mm9', dataDir=system.file(\"extdata\", package=\"MMDiffBamSubset\"), sampleSheet=\"Cfp1.csv\")\nMetaData <- list('ExpData' = ExperimentData)\nMMD <- DBAmmd(MetaData)\ndata(\"Cfp1-Peaks\")\nMMD <- setRegions(MMD,Peaks)\nMMD <- getPeakReads(MMD)\nMMD <- estimateFragmentCenters(MMD)\nMMD <- compHists(MMD, bin.length=20, whichPos=\"Center\")\nMMD <- compDists(MMD, dist.method = \"MMD\", run.parallel = FALSE)\nMMD <- setContrast(MMD,contrast='byCondition')\nMMD <- compPvals(MMD,dist.method='MMD')\nplotDists(MMD, dist.method='MMD',whichContrast=1, diff.method='MMD.locfit', bUsePval=FALSE, th=0.1, title=NULL, what=3, xlim=NULL,ylim=NULL,Peak.IDs=NULL, withLegend=TRUE)\nres <- reportResults(MMD)\nPeak.ids <- names(res)\nplotPeak(MMD, Peak.id=Peak.ids[1], NormMethod=NULL,plot.input = FALSE, whichPos=\"Center\",whichContrast = 1)\nplotDISTS4Peak(MMD,Peak.id=Peak.ids[1],dist.method='MMD', whichContrast=1,Zoom=TRUE)\nrunShinyMMDiff2(MMD)"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "package": "bgeedb",
+  "requirements": [
+    "BgeeDB",
+    "Biobase",
+    "topGO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BgeeDB",
+      "topGO"
+    ],
+    "reference_tissue_correlation.nf": [
+      "BgeeDB",
+      "Biobase"
+    ]
+  }
+}

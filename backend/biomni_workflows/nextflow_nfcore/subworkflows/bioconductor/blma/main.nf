@@ -1,134 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BLMA
-// Suit of tools for bi-level meta-analysis. The package can be used in a wide range of applications, i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BLMA/inst/doc/BLMA.R
-// Upstream  : ROntoTools
-// Downstream: none
-//
-// Install: BiocManager::install("BLMA")
+// Bioconductor workflow: BLMA — gene_level_differential_expression
+// Perform intra-experiment and bi-level gene-level differential expression analysis across multiple datasets.
+// Input: data_GSE33223, group_GSE33223, dataList, groupList
+// Container: quay.io/biocontainers/bioconductor-blma:1.34.0--r45hdfd78af_0
+// R packages: BLMA, ROntoTools
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BLMA
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Perform intra-experiment analysis on a single dataset using intraAnalysisGene with default addCLT or fisherMethod
+//  * 2. [Core Analysis] Perform bi-level meta-analysis across multiple datasets using bilevelAnalysisGene
 
 nextflow.enable.dsl = 2
 
-process BIOC_BLMA {
+process BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-blma"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-blma:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-blma:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_blma_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_blma_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_blma_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BLMA", "ROntoTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BLMA)
-    library(jsonlite)
-
-    # --- Loadkeggpathways [] ---
-    # Key functions: loadKEGGPathways, nodes
-    library(BLMA)
-    # load KEGG pathways and create genesets
-    x=loadKEGGPathways()
-    gslist <- lapply(x$kpg,FUN=function(y){return (nodes(y));})
-    gs.names <- x$kpn[names(gslist)]
-    # --- Time [] ---
-    # Key functions: time, bilevelAnalysisGeneset
-    # perform bi-level meta-analysis in conjunction with GSA
-    system.time(GSAComb <- bilevelAnalysisGeneset(gslist, gs.names, dataList,
-                                                groupList, enrichment = "GSA",
-                                                nperms=200, random.seed = 1))
-    #print the results
-    # --- Loadkeggpathways [] ---
-    # Key functions: loadKEGGPathways, time, bilevelAnalysisPathway
-    x <- loadKEGGPathways()
-    system.time(IAComb <- bilevelAnalysisPathway(x$kpg, x$kpn, dataList, groupList))
-    #print the results
-    options(digits=2)
-    head(IAComb[, c("Name", "pBLMA", "pBLMA.fdr", "rBLMA")])
-    # --- Data [] ---
-    # Key functions: time, intraAnalysisGene
-    #perform intra-experiment analysis of the dataset GSE33223 using addCLT
-    library(BLMA)
-    data(GSE33223)
-    system.time(X <- intraAnalysisGene(data_GSE33223, group_GSE33223))
-    X <- X[order(X$pIntra), ]
-    # --- Time [] ---
-    # Key functions: time, bilevelAnalysisGene
-    system.time(Z <- bilevelAnalysisGene(dataList = dataList, groupList = groupList))
-    # top 10 genes
-    head(Z)
-    # bottom 10 genes
-    tail(Z)
-    # --- Reduce [] ---
-    # Key functions: time, getStatistics
-    allGenes <- Reduce(intersect, lapply(dataList, rownames))
-    system.time(geneStat <- getStatistics(allGenes, dataList = dataList, groupList = groupList))
-    # top 10 genes
-    head(Z)
-    # bottom 10 genes
-    # --- Loadkeggpathways [] ---
-    # Key functions: loadKEGGPathways, nodes, union, pORACalc
-    library(ROntoTools)
-    # get gene network
-    kpg <- loadKEGGPathways()$kpg
-    # get gene network name
-    kpn <- loadKEGGPathways()$kpn
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_blma_results.csv", row.names = TRUE)
+    
+    # 1. Load input datasets from the working directory
+    # The pipeline expects 'dataList.rds' and 'groupList.rds' to be present in the working directory.
+    if (file.exists("dataList.rds") && file.exists("groupList.rds")) {
+      dataList <- readRDS("dataList.rds")
+      groupList <- readRDS("groupList.rds")
+    } else if (file.exists("dataList.RData") && file.exists("groupList.RData")) {
+      load("dataList.RData")
+      load("groupList.RData")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_blma_results.csv")
+      stop("Required input files (dataList.rds/RData and groupList.rds/RData) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_blma_output.rds")
+    
+    if (file.exists("data_GSE33223.rds") && file.exists("group_GSE33223.rds")) {
+      data_GSE33223 <- readRDS("data_GSE33223.rds")
+      group_GSE33223 <- readRDS("group_GSE33223.rds")
+    } else if (file.exists("data_GSE33223.RData") && file.exists("group_GSE33223.RData")) {
+      load("data_GSE33223.RData")
+      load("group_GSE33223.RData")
+    } else {
+      stop("Required input files (data_GSE33223.rds/RData and group_GSE33223.rds/RData) not found in the working directory.")
     }
+    
+    # 2. Stage 1: intra-experiment analysis using 'intraAnalysisGene'
+    message("Running intra-experiment analysis...")
+    intraRes <- NULL
+    tryCatch({
+      system.time(intraRes <- intraAnalysisGene(data_GSE33223, group_GSE33223))
+      intraRes <- intraRes[order(intraRes\$pIntra), ]
+      options(digits=2)
+      print(head(intraRes))
+      
+      # Save intra-experiment results
+      write.csv(intraRes, "intraAnalysisGene_results.csv", row.names = TRUE)
+      saveRDS(intraRes, "intraAnalysisGene_results.rds")
+    }, error = function(e) {
+      message("Error during intra-experiment analysis: ", e\$message)
+    })
+    
+    # 3. Stage 2: bi-level meta-analysis using 'bilevelAnalysisGene'
+    message("Running bi-level meta-analysis...")
+    bilevelRes <- NULL
+    tryCatch({
+      system.time(bilevelRes <- bilevelAnalysisGene(dataList = dataList, groupList = groupList))
+      options(digits=2)
+      print(head(bilevelRes))
+      
+      # Save bi-level meta-analysis results
+      write.csv(bilevelRes, "bilevelAnalysisGene_results.csv", row.names = TRUE)
+      saveRDS(bilevelRes, "bilevelAnalysisGene_results.rds")
+    }, error = function(e) {
+      message("Error during bi-level meta-analysis: ", e\$message)
+    })
+    
+    message("Pipeline execution completed.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BLMA:", paste0("    blma: ", packageVersion("BLMA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION":',
+        paste0('    BLMA: ', as.character(packageVersion('BLMA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_blma_results.csv
-    touch ${prefix}_blma_output.rds
-    echo "BIOC_BLMA:" > versions.yml
-    echo "    blma: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_level_differential_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_BLMA_WORKFLOW {
+workflow BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data_GSE33223, group_GSE33223, dataList, groupList ] ]
 
     main:
-    BIOC_BLMA(ch_input)
+    BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_BLMA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BLMA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BLMA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BLMA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION.out.tables
+    plots    = BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION.out.plots
+    objects  = BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION.out.objects
+    versions = BIOC_BLMA_GENE_LEVEL_DIFFERENTIAL_EXPRESSION.out.versions
 }

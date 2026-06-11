@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nonparametric=Boolean indicating whether to use the Non-Parametric background correction method ;; RMA=Boolean indicating whether to use the RMA background correction method (does not require negative controls) ;; MLE=Boolean indicating whether to use the Maximum Likelihood Estimation background correction method ;; GMLE=Boolean indicating whether to use the Generalized Maximum Likelihood Estimation background correction method ;; MCMC=Boolean indicating whether to use the Markov Chain Monte Carlo (Bayesian) background correction method ;; paramEstFile=Prefix string for parameter estimation output files in mbcb.main ;; bgCorrectedFile=Prefix string for background corrected output files in mbcb.main ;; normMethod=Normalization method to apply after background correction (\"none\", \"quant\", or \"median\")\n- alternatives: RMA is noted as an alternative background correction method commonly used on Affymetrix data that does not require negative control beads, whereas the other four methods require negative control files.\n- when_to_use: Use when preprocessing Illumina BeadArray expression data, particularly when negative control probe data is available to improve background correction accuracy.\n- pitfalls: Quantile normalization (normMethod=\"quant\") requires the external packages 'affy' and 'affyio' to be installed. MCMC and GMLE methods are computationally intensive and are set to FALSE by default in standard workflows.",
+  "workflows": [
+    {
+      "name": "illumina_beadarray_background_correction",
+      "intent": "Parse, background-correct, and normalize Illumina BeadArray expression data using model-based techniques.",
+      "input": [
+        "signal.txt (tab-delimited raw expression signal file)",
+        "negative.control.txt (tab-delimited negative control signal file)"
+      ],
+      "stages": "1. Parse the input signal and negative control files ;; 2. Define background correction method logical flags ;; 3. Perform background correction using mbcb.correct or mbcb.main ;; 4. Apply normalization (quantile or median) and read the corrected output files",
+      "code": "data <- mbcb.parseFile('signal.txt', 'negative.control.txt');\nsignal <- data$sig;\nnegCon <- data$con;\nnonparametric <- TRUE;\nRMA<- TRUE;\nMLE <- TRUE;\nGMLE <- FALSE;\nMCMC <- FALSE;\ncor <- mbcb.correct(expressionSignal, negativeControl, nonparametric, RMA, MLE, MCMC, GMLE);\nmbcb.main(expressionSignal, negativeControl, nonparametric, RMA, MLE, MCMC, GMLE, \"param-est\", \"bgCorrected\");\nmbcb.main(expressionSignal, negativeControl, paramEstFile=\"param-est\", bgCorrectedFile=\"bgCorrected\");\nmbcb.main(expressionSignal, negativeControl, normMethod=\"quant\");\nquant_np <- read.csv(\"bgCorrected-NP.csv\", row.names=1)\nmbcb.main(expressionSignal, negativeControl, normMethod=\"median\");\nmedian_np <- read.csv(\"bgCorrected-NP.csv\", row.names=1)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package": "genomicozone",
+  "requirements": [
+    "GenomicOZone",
+    "GenomicRanges",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicOZone",
+      "GenomicRanges",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: wells=A list or data frame of droplet amplitudes (e.g., KRASdata) or a directory path containing amplitude CSV files ;; cMethod=The classification method to use or plot (e.g., \"Cluster\", \"thresholds\", \"kmeans\", \"kmeansMahRain\", \"knn\", \"grid\", \"kmeansSdRain\") ;; ch1Threshold=Linear amplitude threshold for Channel 1 ;; ch2Threshold=Linear amplitude threshold for Channel 2 ;; maxDistances=The maximum Mahalanobis distance from cluster centers, specified as a single value or a named list for each cluster (NN, NP, PN, PP) ;; errorLevel=Standard deviation multiplier for rain filtering, specified as a named list for each cluster ;; trainData=A data frame of droplet amplitudes used as the training set for k-NN classification ;; cl=A vector of classifications for the training set ;; k=The number of nearest neighbors to consider in k-NN classification\n- alternatives: thresholdClassify=Simple linear gating, but subjective and less accurate for leaning or lifting clusters ;; kmeansClassify=Fast, automated clustering, but requires knowing the number of clusters and works best when all wells are classified together to avoid empty cluster issues ;; knnClassify=Uses a clean training set to classify the rest of the plate, which is useful when k-means struggles with noise ;; gridClassify=Manual corner-based gating, which is tedious but useful if clusters have very clear separation but standard algorithms fail ;; mahalanobisRain=Rain filtering that respects the elliptical shape of clusters, whereas sdRain uses standard deviation thresholds along the axes ;; shinyVisApp=A Shiny-based GUI alternative for non-R users\n- when_to_use: Use when analyzing two-channel droplet digital PCR (ddPCR) data to classify droplets, filter out ambiguous \"rain\" droplets, and calculate target DNA concentrations using Poisson statistics.\n- pitfalls: Running k-means on individual wells can fail if some wells have empty clusters; it is highly recommended to classify all wells in a plate together ;; Default maxDistances=3 in mahalanobisRain can be too strict and classify too many valid droplets as rain; fine-tuning using a named list (e.g., list(NN=35, NP=35, PN=35, PP=35)) is often necessary ;; File reading errors (\"duplicate 'row.names' are not allowed\") can occur if the header row column count differs from data rows (e.g., trailing commas/tabs in CSVs) ;; Custom classifications must be formatted as a factor with exact levels: c(\"NN\", \"NP\", \"PN\", \"PP\", \"Rain\", \"N/A\")",
+  "workflows": [
+    {
+      "name": "standard_kmeans_mahalanobis",
+      "intent": "Load raw ddPCR amplitude data, classify droplets using k-means, apply Mahalanobis distance-based rain filtering, and generate a Poisson concentration summary.",
+      "input": [
+        "data/amplitudes (directory containing raw droplet amplitude CSV files exported from QuantaSoft)"
+      ],
+      "stages": "1. Load raw amplitude data into a ddpcrPlate object ;; 2. Classify droplets using the k-means algorithm ;; 3. Apply Mahalanobis distance-based rain filtering with customized cluster distances ;; 4. Generate a Poisson concentration summary",
+      "code": "plate <- ddpcrPlate(wells=KRASdata)\nplate <- kmeansClassify(plate)\nplate <- mahalanobisRain(plate, cMethod=\"kmeans\", maxDistances=list(NN=35, NP=35, PN=35, PP=35))\nkmeansMahRainSummary <- plateSummary(plate, cMethod=\"kmeansMahRain\")\nhead(kmeansMahRainSummary)"
+    },
+    {
+      "name": "knn_classification",
+      "intent": "Classify ddPCR droplets using the k-nearest neighbor (k-NN) algorithm trained on a clean subset of wells.",
+      "input": [
+        "data/amplitudes (directory containing raw droplet amplitude CSV files exported from QuantaSoft)"
+      ],
+      "stages": "1. Load raw amplitude data ;; 2. Subset specific wells to create a clean training plate ;; 3. Classify the training plate using k-means and remove noise with Mahalanobis rain ;; 4. Extract the clean training set using removeDropletClasses ;; 5. Classify the full plate using knnClassify with the training set",
+      "code": "plate <- ddpcrPlate(wells=KRASdata)\ntrainWells <- plate[c(\"E03\", \"A04\")]\ntrainPlate <- ddpcrPlate(wells=trainWells)\ntrainPlate <- kmeansClassify(trainPlate)\ntrainPlate <- mahalanobisRain(trainPlate, cMethod=\"kmeans\", maxDistances=3)\ntrainSet <- removeDropletClasses(trainPlate, cMethod=\"kmeansMahRain\")\ntrainSet <- do.call(rbind, trainSet)\ntrainAmplitudes <- trainSet[, c(\"Ch1.Amplitude\", \"Ch2.Amplitude\")]\ntrainCl <- trainSet$kmeansMahRain\nplate <- knnClassify(plate, trainData=trainAmplitudes, cl=trainCl, k=3)"
+    }
+  ]
+}

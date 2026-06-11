@@ -1,143 +1,168 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ISAnalytics
-// In gene therapy, stem cells are modified using viral vectors to deliver the therapeutic transgene an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ISAnalytics/inst/doc/ISAnalytics.R
-// Upstream  : BiocStyle, DT, RefManageR, devtools, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("ISAnalytics")
+// Bioconductor workflow: isanalytics — clonal_sharing_analysis
+// Analyze and plot shared integration sites between different experimental groups using heatmaps and Venn/Euler diagrams.
+// Input: integration_matrices, association_file
+// Container: quay.io/biocontainers/bioconductor-isanalytics:1.20.1--r45hdfd78af_0
+// R packages: BiocStyle, devtools, dplyr, DT, ggplot2, ISAnalytics, refmanager, sessioninfo
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ISANALYTICS {
+process BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-isanalytics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-isanalytics:1.16.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-isanalytics:1.16.1--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-isanalytics:1.20.1--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_isanalytics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_isanalytics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_isanalytics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocStyle", "devtools", "dplyr", "DT", "ggplot2", "ISAnalytics", "refmanager", "sessioninfo")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
     library(ISAnalytics)
-    library(PrintBibliography)
-    library(jsonlite)
-
-    # --- Data Import [] ---
-    # Key functions: import_association_file, import_single_Vispa2Matrix
-    data_folder <- tempdir()
-    utils::unzip(
-        zipfile = system.file("testdata", "testdata.zip",
-                              package = "ISAnalytics"),
-        exdir = data_folder, overwrite = TRUE
-    )
-    af <- import_association_file(
-        fs::path(data_folder, "barcodes_example_af.tsv.xz"),
-        report_path = NULL
-    )
-    matrix <- import_single_Vispa2Matrix(
-        fs::path(data_folder, "GSE144340_Matrix_542.tsv.xz"),
-        sample_names_to = "ID"
-    )
-
-
-    # --- Descriptive Statistics [] ---
-    # Key functions: sample_statistics, pcr_id_column
-    desc_stats <- sample_statistics(
-        matrix,
-        af,
-        sample_key = pcr_id_column(),
-        value_columns = "Value"
-    )$metadata
-
-
-    # --- Clonal Aggregation [] ---
-    # Key functions: aggregate_values_by_key, aggregate_metadata, pcr_id_column
-    agg_key <- c("SubjectID")
-    agg <- aggregate_values_by_key(
-        matrix, af,
-        key = agg_key,
-        group = "BarcodeSeq",
-        join_af_by = pcr_id_column()
-    )
-    agg_meta_functions <- tibble::tribble(
-        ~Column, ~Function, ~Args, ~Output_colname,
-        "ID", ~ length(unique(.x)), NA, "distinct_id_count"
-    )
-    agg_meta <- aggregate_metadata(
-        af,
-        aggregating_functions = agg_meta_functions,
-        grouping_keys = agg_key
-    )
-
-
-    # --- Abundance Calculation [] ---
-    # Key functions: compute_abundance, reset_dyn_vars_config
-    agg_key <- c("SubjectID")
-    abundance <- compute_abundance(
-        agg,
-        columns = "Value_sum",
-        key = agg_key
-    )
-    reset_dyn_vars_config()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_isanalytics_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_isanalytics_results.csv")
+    library(dplyr)
+    library(ggplot2)
+    
+    # Helper function to load RDS files with or without extension
+    load_r_object <- function(filename) {
+      if (file.exists(filename)) {
+        return(readRDS(filename))
+      } else if (file.exists(paste0(filename, ".rds"))) {
+        return(readRDS(paste0(filename, ".rds")))
+      } else {
+        stop(paste("Required input file not found:", filename))
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_isanalytics_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ISANALYTICS:", paste0("    isanalytics: ", packageVersion("ISAnalytics"))),
-        "versions.yml"
+    
+    # Read user input files from the working directory
+    integration_matrices <- load_r_object("integration_matrices")
+    association_file <- load_r_object("association_file")
+    
+    ## Aggregation by standard key
+    agg <- aggregate_values_by_key(integration_matrices,
+        association_file,
+        value_cols = c("seqCount", "fragmentEstimate")
     )
+    agg <- agg |> dplyr::filter(TimePoint %in% c("0030", "0060"))
+    
+    # Scenario 1: Pairwise sharing with genomic coordinates
+    sharing_1 <- is_sharing(agg,
+        group_key = c(
+            "SubjectID", "CellMarker",
+            "Tissue", "TimePoint"
+        ),
+        n_comp = 2,
+        is_count = TRUE,
+        relative_is_sharing = TRUE,
+        minimal = TRUE,
+        include_self_comp = FALSE,
+        keep_genomic_coord = TRUE
+    )
+    
+    # Scenario 2: Sharing for heatmap plotting
+    sharing_1_b <- is_sharing(agg,
+        group_key = c(
+            "SubjectID", "CellMarker",
+            "Tissue", "TimePoint"
+        ),
+        n_comp = 2,
+        is_count = TRUE,
+        relative_is_sharing = TRUE,
+        minimal = FALSE,
+        include_self_comp = TRUE
+    )
+    heatmaps <- sharing_heatmap(sharing_1_b)
+    
+    # Scenario 3: Sharing for Venn/Euler diagrams
+    sharing_5 <- is_sharing(agg,
+        group_keys = list(
+            g1 = c(
+                "SubjectID", "CellMarker",
+                "Tissue", "TimePoint"
+            ),
+            g2 = c("SubjectID", "CellMarker"),
+            g3 = c("CellMarker", "Tissue")
+        ), table_for_venn = TRUE
+    )
+    
+    sharing_plots1 <- sharing_venn(sharing_5, row_range = 1, euler = TRUE)
+    sharing_plots2 <- sharing_venn(sharing_5, row_range = 1, euler = FALSE)
+    
+    # Write outputs to files
+    saveRDS(sharing_1, "sharing_pairwise_coords.rds")
+    write.csv(sharing_1, "sharing_pairwise_coords.csv", row.names = FALSE)
+    
+    saveRDS(sharing_1_b, "sharing_heatmap_data.rds")
+    
+    pdf("sharing_heatmaps.pdf", width = 10, height = 8)
+    if (!is.null(heatmaps\$absolute)) print(heatmaps\$absolute)
+    if (!is.null(heatmaps\$on_g1)) print(heatmaps\$on_g1)
+    if (!is.null(heatmaps\$on_union)) print(heatmaps\$on_union)
+    dev.off()
+    
+    saveRDS(sharing_5, "sharing_venn_data.rds")
+    
+    pdf("sharing_venn_euler_plots.pdf", width = 8, height = 8)
+    if (length(sharing_plots1) >= 1) plot(sharing_plots1[[1]])
+    if (length(sharing_plots2) >= 1) plot(sharing_plots2[[1]])
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS":',
+        paste0('        isanalytics: ', as.character(packageVersion("isanalytics")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_isanalytics_results.csv
-    touch ${prefix}_isanalytics_output.rds
-    echo "BIOC_ISANALYTICS:" > versions.yml
-    echo "    isanalytics: 0.0.0" >> versions.yml
+    touch ${prefix}_clonal_sharing_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ISANALYTICS_WORKFLOW {
+workflow BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ integration_matrices, association_file ] ]
 
     main:
-    BIOC_ISANALYTICS(ch_input)
+    BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ISANALYTICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ISANALYTICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ISANALYTICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ISANALYTICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS.out.tables
+    plots    = BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS.out.plots
+    objects  = BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS.out.objects
+    versions = BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS.out.versions
 }

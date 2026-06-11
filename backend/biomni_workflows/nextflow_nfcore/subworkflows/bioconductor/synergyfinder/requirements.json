@@ -1,0 +1,21 @@
+{
+  "package": "synergyfinder",
+  "requirements": [
+    "htmlwidgets",
+    "plotly",
+    "synergyfinder"
+  ],
+  "by_workflow": {
+    "higher_order_combinations.nf": [
+      "htmlwidgets",
+      "plotly",
+      "synergyfinder"
+    ],
+    "main.nf": [
+      "synergyfinder"
+    ],
+    "two_drug_with_replicates.nf": [
+      "synergyfinder"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "rcm",
+  "requirements": [
+    "RCM",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "constrained_rcm.nf": [
+      "RCM",
+      "phyloseq"
+    ],
+    "main.nf": [
+      "RCM",
+      "phyloseq"
+    ]
+  }
+}

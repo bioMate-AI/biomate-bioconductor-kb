@@ -1,0 +1,14 @@
+{
+  "package": "river",
+  "requirements": [
+    "RIVER"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RIVER"
+    ],
+    "river_model_application.nf": [
+      "RIVER"
+    ]
+  }
+}

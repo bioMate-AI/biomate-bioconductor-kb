@@ -1,19 +1,13 @@
 #!/usr/bin/env nextflow
 // ============================================================
 // Bioconductor workflow: tanggle — explicit_networks
-// Visualize rooted, directed phylogenetic networks with reticulations from extended Newick format.
-// Input: network.nwk
+// Visualize explicit, rooted phylogenetic networks with reticulations from extended Newick format.
+// Input: network_text
 // Container: quay.io/biocontainers/bioconductor-tanggle:1.16.0--r45hdfd78af_0
-// Requires: ape, ggplot2, ggtree, phangorn, tanggle
-// Visualizations: plot (ggplot/base)
+// R packages: ape, ggplot2, ggtree, phangorn, tanggle
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
-
-// Steps:
-//  * 1. [Input & Preparation] Read the explicit network using read.evonet
-//  * 2. [Visualization & Output] Plot the explicit network using ggevonet with a rectangular or slanted layout
-//  * 3. [Core Analysis] Add tip and node labels using geom_tiplab and geom_nodelab
-//  * 4. [Core Analysis] Customize node points and tip label aesthetics
 
 nextflow.enable.dsl = 2
 
@@ -21,7 +15,7 @@ process BIOC_TANGGLE_EXPLICIT_NETWORKS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "quay.io/biocontainers/bioconductor-tanggle:1.16.0--r45hdfd78af_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -39,44 +33,70 @@ process BIOC_TANGGLE_EXPLICIT_NETWORKS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ape", "ggplot2", "ggtree", "phangorn", "tanggle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
         }
+      }
+    }
     
     # Load required libraries
-    library(tanggle)
-    library(phangorn)
-    library(ggtree)
     library(ape)
     library(ggplot2)
+    library(ggtree)
+    library(phangorn)
+    library(tanggle)
     
-    # 1. Read the explicit network from the user input file
-    z <- read.evonet(file = "network.nwk")
+    # 1. Read the explicit network from the user input file 'network_text'
+    input_file <- "network_text"
+    if (!file.exists(input_file)) {
+      stop("Error: Required input file 'network_text' not found in the working directory.")
+    }
     
-    # Save the parsed network object
-    saveRDS(z, "network_object.rds")
+    # Read the extended Newick string from the file
+    network_string <- paste(readLines(input_file, warn = FALSE), collapse = "\n")
     
-    # 2. Plot the explicit network using ggevonet with a rectangular layout
+    # Parse the network using read.evonet
+    z <- read.evonet(text = network_string)
+    
+    # Save the parsed network object as an RDS file
+    saveRDS(z, file = "evonet_object.rds")
+    
+    # 2. Plot the network using ggevonet with a rectangular layout and add tip and node labels
     p_rect <- ggevonet(z, layout = "rectangular") + geom_tiplab() + geom_nodelab()
-    ggsave("plot_rectangular.pdf", plot = p_rect, width = 8, height = 6)
     
-    # 3. Plot the explicit network using ggevonet with a slanted layout
+    # Save the rectangular layout plot
+    ggsave("network_rectangular.pdf", plot = p_rect, width = 8, height = 6)
+    
+    # 3. Plot the network using a slanted layout and customize tip label colors and node point aesthetics
     p <- ggevonet(z, layout = "slanted") + geom_tiplab() + geom_nodelab()
-    ggsave("plot_slanted.pdf", plot = p, width = 8, height = 6)
     
-    # 4. Customize tip label aesthetics
-    p_custom_tip <- p + geom_tiplab(size=3, color="purple")
-    ggsave("plot_slanted_custom_tiplab.pdf", plot = p_custom_tip, width = 8, height = 6)
+    # Save the base slanted layout plot
+    ggsave("network_slanted_base.pdf", plot = p, width = 8, height = 6)
     
-    # 5. Customize node points aesthetics
-    p_custom_node <- p + geom_nodepoint(color="#b5e521", alpha=1/4, size=10)
-    ggsave("plot_slanted_custom_nodepoint.pdf", plot = p_custom_node, width = 8, height = 6)
+    # Customize tip labels (size=3, color="purple")
+    p_custom_tips <- p + geom_tiplab(size=3, color="purple")
+    ggsave("network_slanted_custom_tips.pdf", plot = p_custom_tips, width = 8, height = 6)
+    
+    # Customize node points (color="#b5e521", alpha=1/4, size=10)
+    p_custom_nodes <- p + geom_nodepoint(color="#b5e521", alpha=1/4, size=10)
+    ggsave("network_slanted_custom_nodes.pdf", plot = p_custom_nodes, width = 8, height = 6)
 
     writeLines(c(
         '"BIOC_TANGGLE_EXPLICIT_NETWORKS":',
-        paste0('    tanggle: ', as.character(packageVersion('tanggle')))
+        paste0('        tanggle: ', as.character(packageVersion("tanggle")))
     ), "versions.yml")
     """
 
@@ -89,7 +109,7 @@ process BIOC_TANGGLE_EXPLICIT_NETWORKS {
 
 workflow BIOC_TANGGLE_EXPLICIT_NETWORKS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), [ network.nwk ] ]
+    ch_input  // channel: [ val(meta), [ network_text ] ]
 
     main:
     BIOC_TANGGLE_EXPLICIT_NETWORKS(ch_input)

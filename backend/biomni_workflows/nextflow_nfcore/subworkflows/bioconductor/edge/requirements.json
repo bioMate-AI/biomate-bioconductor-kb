@@ -1,0 +1,17 @@
+{
+  "package": "edge",
+  "requirements": [
+    "edge"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "edge"
+    ],
+    "sva_de_analysis.nf": [
+      "edge"
+    ],
+    "timecourse_de_analysis.nf": [
+      "edge"
+    ]
+  }
+}

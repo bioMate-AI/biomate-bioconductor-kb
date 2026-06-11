@@ -1,0 +1,14 @@
+{
+  "package": "aseb",
+  "requirements": [
+    "ASEB"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ASEB"
+    ],
+    "protein_acetylation_prediction.nf": [
+      "ASEB"
+    ]
+  }
+}

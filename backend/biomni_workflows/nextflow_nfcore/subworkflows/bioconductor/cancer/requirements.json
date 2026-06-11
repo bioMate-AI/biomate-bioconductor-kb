@@ -1,0 +1,13 @@
+{
+  "package": "cancer",
+  "requirements": [
+    "Biobase",
+    "canceR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "canceR"
+    ]
+  }
+}

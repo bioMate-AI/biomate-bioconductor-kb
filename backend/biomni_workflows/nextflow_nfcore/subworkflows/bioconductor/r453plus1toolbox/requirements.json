@@ -1,0 +1,30 @@
+{
+  "package": "r453plus1toolbox",
+  "requirements": [
+    "BSgenome",
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biostrings",
+    "R453Plus1Toolbox",
+    "Rsamtools",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "gs_mapper_analysis.nf": [
+      "R453Plus1Toolbox"
+    ],
+    "main.nf": [
+      "BSgenome",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "R453Plus1Toolbox"
+    ],
+    "sff_manipulation_qc.nf": [
+      "R453Plus1Toolbox"
+    ],
+    "structural_variant_detection.nf": [
+      "Biostrings",
+      "R453Plus1Toolbox",
+      "Rsamtools",
+      "rtracklayer"
+    ]
+  }
+}

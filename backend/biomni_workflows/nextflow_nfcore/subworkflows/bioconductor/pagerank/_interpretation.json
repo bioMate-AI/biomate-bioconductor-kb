@@ -1,0 +1,65 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: size=removes nodes by residing subgraph sizes in clean_graph ;; damping=re-calculates PageRank with updated damping factor in adjust_graph ;; method=specifies the method (e.g., \"difference\") to filter GRNs in P_graph ;; threshold=statistical significance threshold for keeping regulator-target pairs in P_graph\n- alternatives: ARACNe or other reverse engineering algorithms ;; can be used to generate the initial GRN, which can then be reformatted using aracne_network if stored in a regulon object\n- when_to_use: Use when prioritizing key transcription factors (TFs) in gene regulatory networks (GRNs) using temporal or multiplex PageRank, especially when integrating multi-omics data (ATAC-Seq, HiChIP, RNA-Seq)\n- pitfalls: Input graphs for diff_graph and multiplex_page_rank must have vertex attributes \"name\" (and \"pagerank\" for multiplex) ;; aracne_network expects a regulon object as input ;; accessibility_network and conformation_network require specific genome assemblies and matching promoter/PFM annotations",
+  "workflows": [
+    {
+      "name": "temporal_pagerank",
+      "intent": "Calculate temporal PageRank on two temporally adjacent graphs to identify gained and lost interactions.",
+      "input": [
+        "graph1.RData (igraph object representing the first network)",
+        "graph2.RData (igraph object representing the second network)"
+      ],
+      "stages": "1. Load or create two igraph objects ;; 2. Assign vertex names to both graphs ;; 3. Calculate temporal PageRank using diff_graph",
+      "code": "library(pageRank)\nset.seed(1)\ngraph1 <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)\nigraph::V(graph1)$name <- 1:100\n#the 1st graph with name as vertex attributes\nset.seed(2)\ngraph2 <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)\nigraph::V(graph2)$name <- 1:100\n#the 2nd graph with name as vertex attributes\ndiff_graph(graph1, graph2)"
+    },
+    {
+      "name": "multiplex_pagerank",
+      "intent": "Calculate multiplex PageRank using a base network and a supplemental network.",
+      "input": [
+        "base_graph.RData (igraph object representing the base network)",
+        "supp_graph.RData (igraph object representing the supplemental network)"
+      ],
+      "stages": "1. Load or create base and supplemental igraph objects ;; 2. Assign vertex names and pre-calculate standard PageRank for both graphs ;; 3. Calculate multiplex PageRank using multiplex_page_rank",
+      "code": "set.seed(1)\ngraph1 <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)\nigraph::V(graph1)$name <- 1:100\nigraph::V(graph1)$pagerank <- igraph::page_rank(graph1)$vector\n#the base graph with pagerank and name as vertex attributes.\nset.seed(2)\ngraph2 <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)\nigraph::V(graph2)$name <- 1:100\nigraph::V(graph2)$pagerank <- igraph::page_rank(graph2)$vector\n#the supplemental graph with pagerank and name as vertex attributes.\nmultiplex_page_rank(graph1, graph2)"
+    },
+    {
+      "name": "graph_cleaning_and_adjustment",
+      "intent": "Clean a graph by removing small subgraphs and adjust PageRank calculations with updated parameters.",
+      "input": [
+        "raw_graph.RData (igraph object with vertex names and pre-calculated pagerank)"
+      ],
+      "stages": "1. Clean the graph using clean_graph based on subgraph size ;; 2. Recalculate/adjust PageRank using adjust_graph with a new damping factor",
+      "code": "set.seed(1)\ngraph <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)\nigraph::V(graph)$name <- 1:100\nigraph::V(graph)$pagerank <- igraph::page_rank(graph)$vector\n#the graph to be cleaned, with pagerank and name as vertex attributes.\nclean_graph(graph, size=5)\n\nset.seed(1)\ngraph <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)\nigraph::V(graph)$name <- 1:100\nigraph::V(graph)$pagerank <- igraph::page_rank(graph, damping=0.85)$vector\n#the graph to be adjusted, with pagerank and name as vertex attributes.\nadjust_graph(graph, damping=0.1)"
+    },
+    {
+      "name": "accessibility_grn_generation",
+      "intent": "Build a gene regulatory network from chromatin accessibility peaks and regulator position frequency matrices (PFMs).",
+      "input": [
+        "peaks.csv (data frame of genomic coordinates)",
+        "regulators.csv (vector of regulator names)"
+      ],
+      "stages": "1. Define peak regions, promoter regions, and regulator PFMs ;; 2. Build the network using accessibility_network",
+      "code": "table <- data.frame(Chr=c(\"chr1\", \"chr1\"), Start=c(713689, 856337), End=c(714685, 862152),\n                    row.names=c(\"A\", \"B\"), stringsAsFactors=FALSE)\nregulators=c(\"FOXF2\", \"MZF1\")\n#peaks and regulators to be analyzed\n\nlibrary(GenomicRanges)\nlibrary(GenomicFeatures)\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene)\nlibrary(org.Hs.eg.db)\nlibrary(annotate)\npromoter <- promoters(genes(TxDb.Hsapiens.UCSC.hg19.knownGene))\nnames(promoter) <- getSYMBOL(names(promoter), data=\"org.Hs.eg\")\npromoter <- promoter[!is.na(names(promoter))]\n#get promoter regions\n\nlibrary(JASPAR2018)\nlibrary(TFBSTools)\nlibrary(motifmatchr)\npfm <- getMatrixSet(JASPAR2018, list(species=\"Homo sapiens\"))\npfm <- pfm[unlist(lapply(pfm, function(x) name(x))) %in% regulators]\n#get regulator position frequency matrix (PFM) list\n\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\naccessibility_network(table, promoter, pfm, \"BSgenome.Hsapiens.UCSC.hg19\")"
+    },
+    {
+      "name": "conformation_grn_generation",
+      "intent": "Build a gene regulatory network from chromosome conformation records and regulator position frequency matrices (PFMs).",
+      "input": [
+        "conformation.csv (data frame of conformation interactions)",
+        "regulators.csv (vector of regulator names)"
+      ],
+      "stages": "1. Define conformation interaction regions, promoter regions, and regulator PFMs ;; 2. Build the network using conformation_network",
+      "code": "table <- data.frame(Chr1=c(\"chr1\", \"chr1\"), Position1=c(569265, 713603), Strand1=c(\"+\", \"+\"),\n                    Chr2=c(\"chr4\", \"chr1\"), Position2=c(206628, 715110), Strand2=c(\"+\", \"-\"),\n                    row.names=c(\"A\", \"B\"), stringsAsFactors=FALSE)\nregulators=c(\"FOXF2\", \"MZF1\")\n#peaks and regulators to be analyzed\n\npromoter <- promoters(genes(TxDb.Hsapiens.UCSC.hg19.knownGene))\nnames(promoter) <- getSYMBOL(names(promoter), data=\"org.Hs.eg\")\npromoter <- promoter[!is.na(names(promoter))]\n#get promoter regions\n\npfm <- getMatrixSet(JASPAR2018, list(species=\"Homo sapiens\"))\npfm <- pfm[unlist(lapply(pfm, function(x) name(x))) %in% regulators]\n#get regulator position frequency matrix (PFM) list\n\nconformation_network(table, promoter, pfm, \"BSgenome.Hsapiens.UCSC.hg19\")"
+    },
+    {
+      "name": "grn_filtering_expression",
+      "intent": "Filter a gene regulatory network using joint and marginal probability distributions from expression data.",
+      "input": [
+        "expression_matrix.csv (gene expression matrix)",
+        "network.csv (data frame representing the network)"
+      ],
+      "stages": "1. Prepare expression matrix and network data frame ;; 2. Filter the network using P_graph",
+      "code": "dset <- exprs(dset)\nnet <- do.call(rbind, lapply(1:10, function(i, regulon){\n  data.frame(reg=rep(names(regulon)[i], 10),\n             target=names(regulon[[i]][[1]])[1:10],\n             stringsAsFactors = FALSE)}, regulon=regulon))\nP_graph(dset, net, method=\"difference\", null=NULL, threshold=0.05)"
+    }
+  ]
+}

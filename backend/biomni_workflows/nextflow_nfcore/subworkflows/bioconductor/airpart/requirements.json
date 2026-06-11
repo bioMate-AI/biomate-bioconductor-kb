@@ -1,0 +1,13 @@
+{
+  "package": "airpart",
+  "requirements": [
+    "SingleCellExperiment",
+    "airpart"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "airpart"
+    ]
+  }
+}

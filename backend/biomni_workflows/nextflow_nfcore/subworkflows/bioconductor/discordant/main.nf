@@ -1,135 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: discordant
-// Discordant is an R package that identifies pairs of features that correlate differently between phen
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/discordant/inst/doc/Using_discordant.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("discordant")
+// Bioconductor workflow: discordant — within_omics_discordant
+// Identify pairs of genes that are differentially correlated between two phenotypic groups using a mixture model.
+// Input: counts.csv, coldata.csv
+// Container: 1.34.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: discordant
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DISCORDANT {
+process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-discordant"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-discordant:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-discordant:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_discordant_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_discordant_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_discordant_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(discordant)
-    library(jsonlite)
-
-    # --- Outlier Filtering [Data Preprocessing] ---
-    # Key functions: splitMADOutlier
-    data(TCGA_Breast_miRNASeq)
-    mat.filtered <- splitMADOutlier(
-        TCGA_Breast_miRNASeq,
-        filter0 = TRUE,
-        threshold = 4
-    )
-
-    # --- Correlation Vector Generation [Feature Extraction] ---
-    # Key functions: createVectors
-    data(TCGA_GBM_miRNA_microarray)
-    data(TCGA_GBM_transcript_microarray)
-    groups <- c(rep(1, 10), rep(2, 20))
-    btwn_vectors <- createVectors(
-        x = TCGA_GBM_miRNA_microarray,
-        y = TCGA_GBM_transcript_microarray,
-        groups = groups
-    )
-
-    # --- Discordance Analysis [Differential Association] ---
-    # Key functions: discordantRun
-    btwn_result <- discordantRun(
-        v1 = btwn_vectors$v1,
-        v2 = btwn_vectors$v2,
-        x = TCGA_GBM_miRNA_microarray,
-        y = TCGA_GBM_transcript_microarray
-    )
-    prob_matrix <- btwn_result$probMatrix
-    class_matrix <- btwn_result$classMatrix
-
-    # --- Subsampled Discordance Analysis [Robust Estimation] ---
-    # Key functions: createVectors, discordantRun
-    data(TCGA_Breast_miRNASeq_voom)
-    data(TCGA_Breast_RNASeq_voom)
-    groups_sub <- c(rep(1, 15), rep(2, 42))
-    sub_vectors <- createVectors(
-        x = TCGA_Breast_miRNASeq_voom,
-        y = TCGA_Breast_RNASeq_voom,
-        groups = groups_sub
-    )
-    sub_result <- discordantRun(
-        v1 = sub_vectors$v1,
-        v2 = sub_vectors$v2,
-        x = TCGA_Breast_miRNASeq_voom,
-        y = TCGA_Breast_RNASeq_voom,
-        components = 3,
-        subsampling = TRUE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_discordant_results.csv", row.names = TRUE)
+    
+    # 1. Read input files
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # 2. Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(counts_df), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between counts.csv and coldata.csv.")
+    }
+    
+    counts_matrix <- as.matrix(counts_df[, common_samples])
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # 3. Prepare group vector (must contain 1s and 2s for the two phenotypic groups)
+    cond_factor <- as.factor(coldata\$condition)
+    if (length(levels(cond_factor)) != 2) {
+      stop("Discordant analysis requires exactly two phenotypic groups in the 'condition' column.")
+    }
+    groups <- as.numeric(cond_factor)
+    
+    # 4. Filter outliers using the split MAD approach
+    message("Filtering outliers using split MAD...")
+    filtered_res <- splitMADOutlier(counts_matrix, filter0 = TRUE, threshold = 4)
+    counts_filtered <- filtered_res\$mat.filtered
+    
+    # Fallback if filtering is too stringent
+    if (nrow(counts_filtered) < 5) {
+      message("Warning: Too few features remained after MAD filtering. Proceeding with unfiltered matrix.")
+      counts_filtered <- counts_matrix
+    }
+    
+    # 5. Create correlation vectors for both groups
+    message("Generating correlation vectors...")
+    vectors <- createVectors(x = counts_filtered, groups = groups, cor.method = "spearman")
+    
+    # 6. Run the Discordant mixture model algorithm
+    message("Running Discordant algorithm...")
+    result <- tryCatch({
+      discordantRun(v1 = vectors\$v1, v2 = vectors\$v2, x = counts_filtered, components = 3)
+    }, error = function(e) {
+      message("Error during discordantRun: ", e\$message)
+      return(NULL)
+    })
+    
+    # 7. Process and save outputs
+    if (!is.null(result)) {
+      # Create a tidy table of gene pairs and their posterior probabilities
+      pp_vector <- result\$discordPPVector
+      class_vector <- result\$classVector
+      
+      results_df <- data.frame(
+        Feature_Pair = names(pp_vector),
+        Posterior_Probability = pp_vector,
+        Assigned_Class = class_vector,
+        stringsAsFactors = FALSE
+      )
+      
+      # Sort by posterior probability of differential correlation (descending)
+      results_df <- results_df[order(results_df\$Posterior_Probability, decreasing = TRUE), ]
+      
+      # Write outputs
+      write.csv(results_df, "differential_correlation_pairs.csv", row.names = FALSE)
+      write.csv(as.data.frame(result\$discordPPMatrix), "discord_pp_matrix.csv", row.names = TRUE)
+      message("Analysis completed successfully. Outputs written.")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_discordant_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_discordant_output.rds")
+      # Write empty/informative fallback files if the algorithm failed
+      fail_df <- data.frame(Error = "Discordant run failed. Check if feature size or sample size is sufficient.")
+      write.csv(fail_df, "differential_correlation_pairs.csv", row.names = FALSE)
+      write.csv(fail_df, "discord_pp_matrix.csv", row.names = FALSE)
+      message("Analysis failed. Fallback files written.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DISCORDANT:", paste0("    discordant: ", packageVersion("discordant"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT":',
+        paste0('    discordant: ', as.character(packageVersion('discordant')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_discordant_results.csv
-    touch ${prefix}_discordant_output.rds
-    echo "BIOC_DISCORDANT:" > versions.yml
-    echo "    discordant: 0.0.0" >> versions.yml
+    touch ${prefix}_within_omics_discordant.csv versions.yml
     """
 }
 
-
-workflow BIOC_DISCORDANT_WORKFLOW {
+workflow BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_DISCORDANT(ch_input)
+    BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT(ch_input)
 
     emit:
-    results  = BIOC_DISCORDANT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DISCORDANT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DISCORDANT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DISCORDANT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT.out.tables
+    plots    = BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT.out.plots
+    objects  = BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT.out.objects
+    versions = BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT.out.versions
 }

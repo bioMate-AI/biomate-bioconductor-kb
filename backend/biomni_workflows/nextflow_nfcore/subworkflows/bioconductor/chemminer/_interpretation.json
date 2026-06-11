@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: addH=TRUE/FALSE ;; Controls whether hydrogens are added/included when computing molecular weight (MW), molecular formula (MF), and atom counts. ;; type=1|2|3 ;; In cmp.search, controls the output format (1 for index, 2 for named vector of scores, 3 for data frame). ;; cutoff=value ;; Sets the similarity threshold for searches (cmp.search, fpSim) and clustering (cmp.cluster). ;; mode=\"a1a2b\"|\"a1b\"|\"b\" ;; In jarvisPatrick, controls the strictness of the clustering requirements (strictness and runtime decrease from \"b\" to \"a1a2b\"). ;; extendedAttributes=TRUE ;; In read.SDFset, enables reading extended attributes of V3000 format SDFs. ;; updateByName=TRUE ;; In loadSdf/loadSmiles, overwrites existing database compounds with the same name.\n- alternatives: ChemmineOB=An add-on package integrating OpenBabel for fast format conversions, 3D coordinate generation, and canonicalization. ;; fmcsR=An add-on package for Maximum Common Substructure (MCS) searching and clustering. ;; SQLite database=An alternative to sdfStream for storing and querying large compound datasets efficiently.\n- when_to_use: Use this package when you need to import small molecule libraries, calculate chemical descriptors, perform virtual screening via similarity searches, cluster compounds by structural similarity, or visualize chemical structures.\n- pitfalls: Missing hydrogens in input SD files can lead to incorrect molecular weight and formula calculations unless addH=TRUE is specified. ;; Importing V3000 format SDFs with extendedAttributes=TRUE produces ExtSDF objects, which may not be compatible with all standard SDF methods. ;; Jarvis-Patrick clustering with mode=\"b\" has nearly quadratic run time and is not suitable for very large datasets. ;; write.SDFsplit can output a very large number of files, so it should always be run in a dedicated directory.",
+  "workflows": [
+    {
+      "name": "chemical_structure_analysis_and_clustering",
+      "intent": "Import small molecules, calculate physicochemical properties, generate descriptors, perform similarity searches, cluster the compounds, and visualize the results.",
+      "input": [
+        "sdfsample.sdf (SD file containing small molecule structures)"
+      ],
+      "stages": "1. Import and validate SDF structures ;; 2. Calculate molecular weight, formula, and atom counts ;; 3. Generate atom pair descriptors ;; 4. Perform structural similarity search ;; 5. Cluster compounds using binning clustering ;; 6. Plot chemical structures",
+      "code": "sdfset <- read.SDFset(\"http://faculty.ucr.edu/~tgirke/Documents/R_BioCond/Samples/sdfsample.sdf\")\nvalid <- validSDF(sdfset)\nsdfset <- sdfset[valid]\npropma <- data.frame(MF=MF(sdfset), MW=MW(sdfset), atomcountMA(sdfset))\napset <- sdf2ap(sdfset)\ncmp.search(apset, apset[1], type=3, cutoff = 0.3, quiet=TRUE)\nclusters <- cmp.cluster(db=apset, cutoff = c(0.7, 0.8, 0.9), quiet = TRUE)\nplot(sdfset[1:4], regenCoords=TRUE,print=FALSE)"
+    },
+    {
+      "name": "database_storage_and_querying",
+      "intent": "Store small molecules in an SQLite database, extract custom features, and perform fast SQL-like queries to retrieve compounds.",
+      "input": [
+        "sdfsample (SDFset object containing small molecules)"
+      ],
+      "stages": "1. Initialize SQLite database ;; 2. Load compounds and extract custom features (e.g., ring counts) ;; 3. Query compounds based on feature criteria ;; 4. Retrieve matching compounds as an SDFset",
+      "code": "conn <- initDb(\"test.db\")\nids<-loadSdf(conn,sdfsample, function(sdfset) data.frame(rings(sdfset,type=\"count\",upper=6, arom=TRUE)) )\nresults = findCompounds(conn,\"rings\",c(\"rings <= 1\"))\ncompounds = getCompounds(conn,results)"
+    },
+    {
+      "name": "large_sdf_streaming",
+      "intent": "Stream through a massive SD file to compute descriptors and index molecule positions without loading the entire file into memory.",
+      "input": [
+        "test.sdf (Large SD file containing small molecules)"
+      ],
+      "stages": "1. Define a descriptor extraction function ;; 2. Stream through the SDF and write descriptors to a tabular file ;; 3. Filter the tabular index and retrieve specific molecules of interest",
+      "code": "desc <- function(sdfset) cbind(SDFID=sdfid(sdfset), MW=MW(sdfset), groups(sdfset), APFP=desc2fp(x=sdf2ap(sdfset), descnames=1024, type=\"character\"), AP=sdf2ap(sdfset, type=\"character\"), rings(sdfset, type=\"count\", upper=6, arom=TRUE) )\nsdfStream(input=\"test.sdf\", output=\"matrix.xls\", fct=desc, Nlines=1000)\nindexDF <- read.delim(\"matrix.xls\", row.names=1)[,1:4]\nindexDFsub <- indexDF[indexDF$MW < 400, ]\nsdfset <- read.SDFindex(file=\"test.sdf\", index=indexDFsub, type=\"SDFset\")"
+    }
+  ]
+}

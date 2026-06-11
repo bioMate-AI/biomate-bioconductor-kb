@@ -1,0 +1,20 @@
+{
+  "package": "scfeatures",
+  "requirements": [
+    "ClassifyR",
+    "scFeatures",
+    "survival",
+    "survminer"
+  ],
+  "by_workflow": {
+    "association_study_report.nf": [
+      "scFeatures"
+    ],
+    "main.nf": [
+      "ClassifyR",
+      "scFeatures",
+      "survival",
+      "survminer"
+    ]
+  }
+}

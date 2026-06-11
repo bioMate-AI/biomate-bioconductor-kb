@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: prob=TRUE ;; prob=FALSE\n- alternatives: impute.knn from the impute package for missing value imputation\n- when_to_use: When classifying pediatric brain tumor samples into subtypes using DNA methylation beta values from Illumina Infinium HumanMethylation 450 BeadChip arrays.\n- pitfalls: MethPed cannot be applied to datasets with missing values; checkNA must be used to identify missing values, and they must be imputed before classification. A large number of missing predictor probes (checked via probeMis) can drop predictive accuracy.",
+  "workflows": [
+    {
+      "name": "pediatric_tumor_classification",
+      "intent": "Classify pediatric brain tumor samples into subtypes using DNA methylation beta values, handling potential missing values.",
+      "input": [
+        "methylation_data.csv (matrix, data.frame, or ExpressionSet of DNA methylation beta values from Illumina 450k arrays)"
+      ],
+      "stages": "1. Check for missing values in the input data using checkNA ;; 2. Impute missing values using impute.knn if necessary ;; 3. Run the MethPed classifier to obtain subtype probabilities or binary classifications ;; 4. Check for missing predictor probes using probeMis ;; 5. Summarize and visualize classification results using summary and plot",
+      "code": "library(MethPed)\ndata(MethPed_sample)\nmissingIndex <- checkNA(MethPed_sample)\nmyClassification <- MethPed(MethPed_sample)\nmyClassification\nmyClassification$target_id\nmyClassification$probes\nmyClassification$sample\nmyClassification$probes_missing\nmyClassification$oob_err.rate\nmyClassification$predictions\nsummary(myClassification)\nmyClassification_max <- MethPed(MethPed_sample,prob=FALSE)\nsummary(myClassification_max)\nplot(myClassification)\nprobeMis(myClassification)\ncheckNA(MethPed_sample_missing)\nif(exists(\".Random.seed\")) rm(.Random.seed)\nlibrary(impute)\nimputedData <- impute.knn(MethPed_sample_missing)\nimputedData <- imputedData$data\ncheckNA(imputedData)\nmyClassification <- MethPed(imputedData)\nsummary(myClassification)"
+    }
+  ]
+}

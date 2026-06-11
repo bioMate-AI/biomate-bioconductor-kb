@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nb_clusters=The number of clusters to group the time series into (default is 2) ;; nb_clustering_runs=The number of times to run the clustering algorithm in stability analysis to ensure the global optimum is reached ;; nb_cores=The number of computing cores to use for parallelizing the stability analysis runs (default is 2) ;; time_points=A vector specifying the exact time points of the measurements, used in stability analysis if they are not implicitly defined\n- alternatives: None mentioned for clustering. The package gss is used internally for non-parametric smoothing spline fitting, and SPEM is mentioned only as a source of Biobase ExpressionSet test data.\n- when_to_use: Use this package when you have longitudinal/time series transcriptomics data and want to group genes with similar temporal expression patterns while accounting for gene-specific systematic shifts (random effects) and measurement noise.\n- pitfalls: The Expectation-Maximization (EM) algorithm used for parameter estimation can get stuck in local optima. To avoid suboptimal clustering solutions, users must run stability analysis (using analyse_stability) with multiple runs (e.g., 10 or more) to identify the global optimum. Additionally, choosing too many clusters can lead to overfitting, which should be monitored and validated using silhouette width analysis.",
+  "workflows": [
+    {
+      "name": "text_file_clustering",
+      "intent": "Load time series gene expression data from a text file, perform clustering, run stability analysis to find the global optimum, validate the results with silhouette plots, and generate a comprehensive report.",
+      "input": [
+        "toy_time_series.txt (tab-delimited text file containing time series gene expression data with genes as rows and time points as columns)"
+      ],
+      "stages": "1. Load the time series data from a text file ;; 2. Visualize the raw time series data ;; 3. Perform initial clustering ;; 4. Run stability analysis to find the global optimum ;; 5. Plot the time series for each identified cluster ;; 6. Generate a silhouette plot to validate cluster quality ;; 7. Generate a comprehensive HTML/PDF report",
+      "code": "library(TMixClust)\ntoy_data_file = system.file(\"extdata\", \"toy_time_series.txt\",\n                            package = \"TMixClust\")\ntoy_data = get_time_series_df(toy_data_file)\nplot_time_series_df(toy_data)\ncluster_obj = TMixClust(toy_data, nb_clusters = 3)\nbest_clust_toy_obj = analyse_stability(toy_data, nb_clusters = 3,\n                                   nb_clustering_runs = 10,\n                                   nb_cores = 3)\nfor (i in 1:3) {\n    c_df=toy_data[which(best_clust_toy_obj$em_cluster_assignment==i),]\n    plot_time_series_df(c_df, plot_title = paste(\"cluster\",i))\n}\nplot_silhouette(best_clust_toy_obj)\ngenerate_TMixClust_report(cluster_obj)"
+    },
+    {
+      "name": "expression_set_clustering",
+      "intent": "Load time series gene expression data from a Biobase ExpressionSet object, convert it to a compatible data frame, and perform clustering.",
+      "input": [
+        "sos (Biobase ExpressionSet object containing time series gene expression data)"
+      ],
+      "stages": "1. Load the Biobase ExpressionSet object ;; 2. Convert the ExpressionSet to a time series data frame ;; 3. Perform clustering on the retrieved data frame",
+      "code": "library(TMixClust)\nlibrary(SPEM)\ndata(sos)\nsos_data = get_time_series_df_bio(sos)\nprint(head(sos_data))\ncluster_obj = TMixClust(sos_data, nb_clusters = 3)"
+    }
+  ]
+}

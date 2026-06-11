@@ -1,0 +1,24 @@
+{
+  "package": "cellbench",
+  "requirements": [
+    "CellBench",
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "magrittr",
+    "purrr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CellBench",
+      "SingleCellExperiment",
+      "dplyr",
+      "purrr"
+    ],
+    "method_timing_benchmarking.nf": [
+      "CellBench",
+      "ggplot2",
+      "magrittr"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "flowbeads",
+  "requirements": [
+    "flowBeads",
+    "flowCore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowBeads",
+      "flowCore"
+    ]
+  }
+}

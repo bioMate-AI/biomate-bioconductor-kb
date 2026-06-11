@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cpgsitefile=path to the extended read file (e.g., .txt) ;; allcpgfile=CpG site file containing single CpG information ;; category=category identifier (e.g., \"1\") ;; datafile=matrix or data frame combining MeDIP-seq and MRE-seq counts for control and treatment samples ;; cpgfile=all CpG site bin file ;; mrecpgfile=MRE CpG site file ;; mreratio=ratio of MRE-seq to MeDIP-seq (e.g., 3/7) ;; psd=pseudo count parameter (e.g., 2) ;; mkadded=added marker parameter (e.g., 1) ;; f=f parameter (e.g., 1)\n- alternatives: methylMnM (mentioned for initial data pre-processing steps before running SIMD)\n- when_to_use: Joint analysis of MeDIP-seq and MRE-seq data to identify differentially methylated CpG sites.\n- pitfalls: Input files must be in a specific BED-like format; MRE-seq data strictly requires \"+\" and \"-\" strand information in the mapping process (typically the 6th column). R version must be > 3.5.0.",
+  "workflows": [
+    {
+      "name": "simd_differential_methylation_analysis",
+      "intent": "Jointly analyze MeDIP-seq and MRE-seq data to calculate CpG site-specific p-values and identify differentially methylated regions.",
+      "input": [
+        "H1ESB1_MeDIP_18.extended.txt (MeDIP-seq read file)",
+        "example_data.RData (RData containing pre-processed CpG and MRE site files)"
+      ],
+      "stages": "1. Run EMalgorithm to infer actual short reads from observed fragments for each sample ;; 2. Combine the inferred MeDIP-seq and MRE-seq counts for control and treatment samples ;; 3. Run EMtest to calculate p-values for each CpG site",
+      "code": "library(SIMD)\ndatafile <- system.file(\"extdata\", package=\"methylMnM\")\nfilepath <- datafile[1]\ndirwrite <- paste(setwd(getwd()), \"/\", sep=\"\")\ndata(example_data)\nallcpgfile <- EM_H1ESB1_MeDIP_sigleCpG\nreadshort <- paste(filepath, \"/H1ESB1_MeDIP_18.extended.txt\", sep=\"\")\nwritefile <- paste(dirwrite, \"EM2_H1ESB1_MeDIP_sigleCpG.bed\", sep=\"\")\nreportfile <- paste(dirwrite, \"EM2_H1ESB1_MeDIP_sigleCpG_report.bed\", sep=\"\")\nEMalgorithm(cpgsitefile=readshort, allcpgfile=allcpgfile, category=\"1\",\n            writefile=writefile, reportfile=reportfile)\ndata(example_data)\ndata1 <- EM2_H1ESB1_MeDIP_sigleCpG\ndata2 <- EM2_H1ESB2_MeDIP_sigleCpG\ndata3 <- H1ESB1_MRE_sigleCpG\ndata4 <- H1ESB2_MRE_sigleCpG\ndatafile <- cbind(data1,data2,data3,data4)\nallcpg <- all_CpGsite_bin_chr18\nmrecpg <- three_mre_cpg\ndirwrite <-paste(setwd(getwd()), \"/\", sep=\"\")\nwritefile <- paste(dirwrite, \"pval_EM_H1ESB1_H1ESB21.bed\", sep=\"\")\nreportfile <- paste(dirwrite, \"report_pvalH1ESB1_H1ESB21.bed\", sep=\"\")\nEMtest(datafile=datafile, chrstring=NULL, cpgfile=allcpg,mrecpgfile=mrecpg, \n       writefile=writefile, reportfile=reportfile,mreratio=3/7, psd=2, \n       mkadded=1, f=1)"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: p=A vector of p-values (the only required input for the qvalue function) ;; fdr.level=The level at which to control the FDR, returning a logical vector indicating significance ;; pfdr=An indicator to use the positive false discovery rate estimate, making it more robust for small p-values ;; lambda=The tuning parameter(s) used to estimate pi0, defaulting to seq(0, 0.95, 0.05) ;; pi0.method=The method for automatically handling the tuning parameter in pi0 estimation, either \"smoother\" or \"bootstrap\" ;; trunc=In lfdr, a logical indicating whether local FDR estimates greater than 1 should be set to 1 (default is TRUE) ;; stat=In empPvals, a vector of observed test statistics ;; stat0=In empPvals, a matrix/vector of empirical null statistics (e.g., from bootstrap or permutations) ;; pool=In empPvals, a logical indicating whether to pool the empirical null statistics\n- alternatives: sva=A Bioconductor package recommended when there is dependence among variables in the data, often indicated by a U-shaped p-value histogram ;; Benjamini and Hochberg (1995)=Equivalent to setting lambda = 0 and specifying fdr.level in the qvalue function, which acts as a conservative special case of the Storey methodology\n- when_to_use: Use this package when performing simultaneous hypothesis testing on many features (e.g., differential gene expression across thousands of genes) and you need to control the false discovery rate, estimate the proportion of true nulls, or calculate posterior probabilities of the null hypothesis being true (local FDR).\n- pitfalls: U-shaped p-value histograms are a major red flag indicating that the assumption of null p-values following a Uniform(0,1) distribution is violated. This can occur if a one-sided test was performed on two-sided signal, or if there is strong dependence among variables. Users should also note that q-values are not adjusted p-values (like Bonferroni corrections) and can sometimes be smaller than the original p-values because the maximum possible q-value is capped at the estimated pi0, which is often less than 1.",
+  "workflows": [
+    {
+      "name": "fdr_estimation_from_pvalues",
+      "intent": "Estimate q-values, pi0, and local FDR directly from a vector of user-provided p-values, and visualize the results.",
+      "input": [
+        "hedenfalk$p (vector of p-values from simultaneous hypothesis tests)"
+      ],
+      "stages": "1. Load the package and input p-values ;; 2. Run the qvalue function to perform FDR estimation ;; 3. Extract estimated q-values, pi0, and local FDR ;; 4. Summarize and visualize the results using diagnostic plots and histograms",
+      "code": "library(qvalue)\ndata(hedenfalk)\npvalues <- hedenfalk$p\nqobj <- qvalue(p = pvalues)\nqvalues <- qobj$qvalues\npi0 <- qobj$pi0\nlfdr <- qobj$lfdr\nsummary(qobj)\nplot(qobj)\nhist(qobj)"
+    },
+    {
+      "name": "fdr_estimation_from_test_statistics",
+      "intent": "Calculate empirical p-values from observed and null test statistics, and then estimate q-values and local FDR.",
+      "input": [
+        "hedenfalk$stat (vector of observed test statistics)",
+        "hedenfalk$stat0 (matrix of empirical null statistics generated via permutation or bootstrap)"
+      ],
+      "stages": "1. Load the package and input statistics ;; 2. Calculate empirical p-values using the empPvals function ;; 3. Run the qvalue function on the calculated p-values to estimate FDR",
+      "code": "library(qvalue)\ndata(hedenfalk)\nobs_stats <- hedenfalk$stat\nnull_stats <- hedenfalk$stat0\npvalues <- empPvals(stat = obs_stats, stat0 = null_stats)\nqobj <- qvalue(p = pvalues)"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "package": "gothic",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg18",
+    "GOTHiC"
+  ],
+  "by_workflow": {
+    "gothic_hicup_pipeline.nf": [
+      "GOTHiC"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg18",
+      "GOTHiC"
+    ]
+  }
+}

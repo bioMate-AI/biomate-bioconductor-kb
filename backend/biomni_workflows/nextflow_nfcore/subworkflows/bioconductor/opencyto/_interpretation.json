@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - alias = Name used to label the cell population; must form a uniquely identifiable path with its parent nodes ;;\n    - pop = Population patterns (e.g., \"+\", \"-\", \"+/-\", \"++\", \"+/-+/-\", \"*\") specifying which side of a 1-D gate or quadrant of a 2-D gate to keep ;;\n    - parent = The parent population alias, which must be uniquely identifiable ;;\n    - dims = Comma-separated character string specifying the dimensions (channels or markers) used for gating ;;\n    - gating_method = The name of the gating function (e.g., \"mindensity\", \"singletGate\", \"flowClust\", \"tailgate\", \"quantileGate\", \"boundary\", \"quadGate.tmix\") ;;\n    - gating_args = Named arguments passed directly to the underlying gating function (e.g., \"gate_range=c(1,3)\", \"K=2\", \"target=c(1e5,5e4)\", \"tol=0.05\", \"probs=0.99\") ;;\n    - collapseDataForGating = Logical (TRUE/FALSE); when TRUE, samples are collapsed before gating and the gate is replicated across all samples ;;\n    - groupBy = Variable or numeric value used to group samples before preprocessing or gating ;;\n    - preprocessing_method = Name of the preprocessing function (e.g., \"prior_flowClust\", \"standardize_flowset\") used to generate prior information for gating\n- alternatives:\n    - Manual gating in FlowJo = Traditional manual gating, which can be imported into R using CytoML (e.g., open_flowjo_xml and flowjo_to_gatingset) but is subjective and slow for large datasets ;;\n    - Interactive gating = Prototyping gates directly on a GatingSet using gs_add_gating_method and gs_remove_gating_method without a CSV template\n- when_to_use: Use when analyzing large-scale, high-throughput flow cytometry, CyTOF, or cross-laboratory datasets where manual gating is too time-consuming, subjective, and non-reproducible.\n- pitfalls:\n    - mindensity failure = If there are more than 2 major peaks, mindensity may cut between the wrong peaks. Use gate_range, min, or max in gating_args to restrict the search space, or adjust the smoothing factor (adjust) ;;\n    - Single peak gating = mindensity will fail if only one major peak is detected. Use tailgate (gate_tail) or quantileGate instead ;;\n    - Rare populations = Standard density-based gating may miss rare populations. Use quantileGate with high probs (e.g., 0.99) to capture them ;;\n    - 2D gating dimension order = The order of dimensions in dims (x-axis first, y-axis second) determines how gates are displayed, though it does not affect the gating process itself",
+  "workflows": [
+    {
+      "name": "automated_template_gating",
+      "intent": "Perform automated hierarchical gating on raw FCS files using a predefined CSV gating template.",
+      "input": [
+        "fcsFiles (raw FCS files)",
+        "gtFile (CSV gating template defining the hierarchical gating scheme)"
+      ],
+      "stages": "1. Load raw FCS files into a cytoset and initialize a GatingSet.\n2. Apply compensation using a compensation matrix.\n3. Transform the stained channels (e.g., using estimateLogicle).\n4. Load the gating template from the CSV file.\n5. Apply the gating template to the GatingSet using gt_gating.\n6. Hide intermediate or auxiliary gating nodes and rename populations for clean visualization.\n7. Plot the gating hierarchy and visualize the gates.",
+      "code": "fcsFiles <- list.files(pattern = \"CytoTrol\", flowDataPath, full = TRUE)\ncs  <- load_cytoset_from_fcs(fcsFiles)\ncf <- realize_view(cs[[1]])\ngs <- GatingSet(cs)\ncompMat <- gh_get_compensations(gh)\ncompensate(gs, compMat)\nchnls <- parameters(compMat)\ntrans <- estimateLogicle(gs[[1]], channels = chnls)\ngs <- transform(gs, trans)\ngt_tcell <- gatingTemplate(gtFile)\ngt_gating(gt_tcell, gs)\nlapply(nodesToHide, function(thisNode) gs_pop_set_visibility(gs, thisNode, FALSE))\ngs_pop_set_name(gs, \"cd4+cd8-\", \"cd4\")\ngs_pop_set_name(gs, \"cd4-cd8+\", \"cd8\")\nplot(gs[[1]])\nautoplot(gs[[1]])"
+    },
+    {
+      "name": "interactive_gating_prototyping",
+      "intent": "Interactively prototype and test individual gating methods on a GatingSet without writing a complete CSV template.",
+      "input": [
+        "gs (a pre-loaded, compensated, and transformed GatingSet object)"
+      ],
+      "stages": "1. Add a new population using gs_add_gating_method by specifying gating parameters directly.\n2. Visualize the updated gating tree to inspect the results.\n3. Remove the last added population using gs_remove_gating_method if adjustments are needed.",
+      "code": "gs_add_gating_method(gs, alias = \"non-activated cd4\",\n                         pop = \"--\",\n                         parent = \"cd4\",\n                         dims = \"CD38,HLA\",\n                         gating_method = \"mindensity\")\nplot(gs[[1]])\ngs_remove_gating_method(gs)\nplot(gs[[1]])"
+    }
+  ]
+}

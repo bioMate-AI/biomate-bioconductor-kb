@@ -1,0 +1,17 @@
+{
+  "package": "msstatslip",
+  "requirements": [
+    "MSstatsLiP",
+    "data.table",
+    "gghighlight",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSstatsLiP",
+      "data.table",
+      "gghighlight",
+      "tidyverse"
+    ]
+  }
+}

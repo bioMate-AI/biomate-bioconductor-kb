@@ -1,113 +1,236 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DEGraph
-// DEGraph implements recent hypothesis testing methods which directly assess whether a particular gene
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DEGraph/inst/doc/DEGraph.R
-// Upstream  : KEGGgraph, RBGL, Rgraphviz, corpcor, fields
-// Downstream: none
-//
-// Install: BiocManager::install("DEGraph")
+// Bioconductor workflow: DEGraph — network_differential_expression_testing
+// Perform topology-based multivariate differential expression testing on gene networks and visualize the results.
+// Input: exprData, classData, grList, annData
+// Container: quay.io/biocontainers/bioconductor-degraph:1.62.0--r45hdfd78af_0
+// R packages: R.utils, corpcor, DEGraph, fields, KEGGgraph, lattice, marray, RBGL, Rgraphviz
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DEGraph, KEGGgraph, R.utils, Rgraphviz, corpcor, fields, lattice, marray
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Calculate individual gene t-statistics for visualization. 2. Perform multivariate testing on each network using testOneGraph with 
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEGRAPH {
+process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-degraph"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-degraph:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-degraph:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_degraph_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_degraph_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_degraph_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DEGraph)
-    library(jsonlite)
-
-    # --- Data Loading and ID Mapping [Data Loading and ID Mapping] ---
-    # Key functions: translateGeneID2KEGGID
-    data("Loi2008_DEGraphVignette", package="DEGraph")
-    exprData <- exprLoi2008
-    classData <- classLoi2008
-    grList <- grListKEGG
-    keggIDs <- translateGeneID2KEGGID(rownames(exprData))
-
-    # --- Pathway-Based Multivariate Testing [Pathway-Based Multivariate Testing] ---
-    # Key functions: testOneGraph
-    prop <- 0.2
-    resList <- list()
-    for (ii in seq_along(grList)) {
-        gr <- grList[[ii]]
-        res <- testOneGraph(gr, exprData, classData, prop=prop)
-        resList[[names(grList)[ii]]] <- res
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("R.utils", "corpcor", "DEGraph", "fields", "KEGGgraph", "lattice", "marray", "RBGL", "Rgraphviz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(DEGraph)
+        library(R.utils)
+        library(corpcor)
+        library(KEGGgraph)
+        library(Rgraphviz)
+        library(fields)
+        library(lattice)
+        library(marray)
+        
+        verbose <- TRUE
+        
+        # -------------------------------------------------------------------------
+        # 1. Read User Input Files
+        # -------------------------------------------------------------------------
+        # The pipeline reads exactly these files from the working directory
+        exprData  <- readRDS("exprData.rds")
+        classData <- readRDS("classData.rds")
+        grList    <- readRDS("grList.rds")
+        annData   <- readRDS("annData.rds")
+        
+        # -------------------------------------------------------------------------
+        # 2. Calculate Individual Gene t-statistics for Visualization
+        # -------------------------------------------------------------------------
+        classes <- unique(classData)
+        X1 <- t(exprData[, classData == classes[1]])
+        X2 <- t(exprData[, classData == classes[2]])
+        ttpv <- c()
+        tts <- c()
+        for(i in 1:ncol(X1)) {
+          tt <- t.test(X1[,i], X2[,i])
+          ttpv[i] <- unlist(tt\$p.value)
+          tts[i]  <- unlist(tt\$statistic)
+        }
+        names(ttpv) <- names(tts) <- rownames(exprData)
+        
+        # Save gene-level statistics
+        gene_stats <- data.frame(
+          GeneID = rownames(exprData),
+          t_statistic = tts,
+          p_value = ttpv,
+          stringsAsFactors = FALSE
+        )
+        write.csv(gene_stats, "gene_level_stats.csv", row.names = FALSE)
+        
+        # -------------------------------------------------------------------------
+        # 3. Perform Multivariate Testing on Each Network
+        # -------------------------------------------------------------------------
+        prop <- 0.2
+        resList <- NULL
+        for (ii in seq(along=grList)) {
+          gr <- grList[[ii]]
+          res <- testOneGraph(gr, exprData, classData, verbose=verbose, prop=prop)
+          resList <- c(resList, list(res))
+        }
+        resNames <- names(grList)
+        pLabels <- sapply(grList, attr, "label")
+        
+        # -------------------------------------------------------------------------
+        # 4. Filter Out NULL Results (no connected component of size > 1)
+        # -------------------------------------------------------------------------
+        isNULL <- sapply(resList, is.null)
+        if (sum(isNULL)) {
+          grList[isNULL]
+          resList <- resList[!isNULL]
+          resNames <- names(grList)[!isNULL]
+          pLabels <- pLabels[!isNULL]
+        }
+        
+        # Save raw results list
+        saveRDS(resList, "resList.rds")
+        
+        # -------------------------------------------------------------------------
+        # 5. Extract p-values and Identify Significant Networks
+        # -------------------------------------------------------------------------
+        resL <- sapply(resList, length)
+        graphNames <- rep(resNames, times=resL)
+        pathwayNames <- rep(pLabels, times=resL)
+        
+        graphList <- NULL
+        for (res in resList) {
+          grl <- lapply(res, FUN=function(x) {
+            x\$graph
+          })
+          graphList <- c(graphList, as.list(grl))
+        }
+        
+        ndims <- NULL
+        for (res in resList) {
+          ndim <- sapply(res, FUN=function(x) {
+            x\$k
+          })
+          ndims <- c(ndims, ndim)
+        }
+        
+        pKEGG <- NULL
+        for (res in resList) {
+          pp <- sapply(res, FUN=function(x) {
+            x\$p.value
+          })
+          pKEGG <- cbind(pKEGG, pp)
+        }
+        colnames(pKEGG) <- graphNames
+        rn <- rownames(pKEGG)
+        rownames(pKEGG)[grep("Fourier", rn)] <- paste("T2 (", round(100*prop), "% Fourier components)", sep="")
+        
+        # Save pathway p-values
+        write.csv(pKEGG, "pathway_pvalues.csv", row.names = TRUE)
+        
+        # -------------------------------------------------------------------------
+        # 6. Translate Gene IDs and Visualize Significant Networks
+        # -------------------------------------------------------------------------
+        if (exists("maPalette", mode="function")) {
+          pal <- maPalette(low="red", high="green", mid="black", k=100)
+        } else {
+          pal <- heat.colors(100)
+        }
+        
+        shift <- tts
+        names(shift) <- translateGeneID2KEGGID(names(tts))
+        fSignif <- which(pKEGG[2,] < 0.05)
+        fSignif <- fSignif[order(pKEGG[2,fSignif])]
+        
+        # Plot significant pathways to a PDF file
+        pdf("DEGraph_significant_pathways.pdf", width=10, height=8)
+        
+        if (length(fSignif) > 0) {
+          # Plot up to the top 5 significant pathways
+          num_plots <- min(5, length(fSignif))
+          for (i in 1:num_plots) {
+            gIdx <- fSignif[i]
+            gr <- graphList[[gIdx]]
+            mm <- match(translateKEGGID2GeneID(nodes(gr)), rownames(annData))
+            dn <- annData[mm, 1]
+            
+            # Plot the valued graph
+            res <- plotValuedGraph(gr, values=shift, nodeLabels=dn, qMax=0.95, colorPalette=pal, height=40, lwd=1, cex=0.3, verbose=verbose)
+            stext(side=3, pos=0, pathwayNames[gIdx])
+            ps <- signif(pKEGG[, gIdx], 2)
+            txt1 <- paste("p(T2)=", ps[1], sep="")
+            txt2 <- paste("p(T2F[", ndims[gIdx], "])=", ps[2], sep="")
+            txt <- paste(txt1, txt2, sep="\n")
+            stext(side=3, pos=1, txt)
+            image.plot(legend.only=TRUE, zlim=range(res\$breaks), col=pal, legend.shrink=0.3, legend.width=0.8, legend.lab="t-scores", legend.mar=3.3)
+          }
+        } else {
+          plot.new()
+          text(0.5, 0.5, "No significant pathways found (p < 0.05)")
+        }
+        
+        dev.off()
 
-    # --- Pathway Visualization [Pathway Visualization] ---
-    # Key functions: plotValuedGraph, translateKEGGID2GeneID, translateGeneID2KEGGID
-    gr <- grList[[1]]
-    geneSymbols <- translateKEGGID2GeneID(nodes(gr))
-    values <- rowMeans(exprData[, classData == 1]) -
-        rowMeans(exprData[, classData == 0])
-    names(values) <- translateGeneID2KEGGID(rownames(exprData))
-    res <- plotValuedGraph(gr, values=values, nodeLabels=geneSymbols,
-        qMax=0.95, height=40, lwd=1, cex=0.3)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_degraph_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_degraph_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_degraph_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEGRAPH:", paste0("    degraph: ", packageVersion("DEGraph"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING":',
+        paste0('    DEGraph: ', as.character(packageVersion('DEGraph')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_degraph_results.csv
-    touch ${prefix}_degraph_output.rds
-    echo "BIOC_DEGRAPH:" > versions.yml
-    echo "    degraph: 0.0.0" >> versions.yml
+    touch ${prefix}_network_differential_expression_testing.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEGRAPH_WORKFLOW {
+workflow BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprData, classData, grList, annData ] ]
 
     main:
-    BIOC_DEGRAPH(ch_input)
+    BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING(ch_input)
 
     emit:
-    results  = BIOC_DEGRAPH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEGRAPH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEGRAPH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEGRAPH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING.out.tables
+    plots    = BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING.out.plots
+    objects  = BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING.out.objects
+    versions = BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING.out.versions
 }

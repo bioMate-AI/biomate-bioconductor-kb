@@ -1,135 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CFAssay
-// The package provides functions for calculation of linear-quadratic cell survival curves and for ANOV
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CFAssay/inst/doc/cfassay.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CFAssay")
+// Bioconductor workflow: CFAssay — lq_survival_curve_analysis
+// Fit linear-quadratic cell survival curves to colony formation assay data, evaluate goodness-of-fit, and compare curves between different experimental groups.
+// Input: cellsurv_data.txt
+// Container: quay.io/biocontainers/bioconductor-cfassay:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CFAssay
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load and inspect the data
+//  * 2. [Core Analysis] Fit the LQ model for a single cell line/group
+//  * 3. [Core Analysis] Print fit coefficients and calculate mean survival fractions
+//  * 4. [Visualization & Output] Generate diagnostic plots for individual experiments
+//  * 5. [Core Analysis] Compare two survival curves statistically
+//  * 6. [Visualization & Output] Plot the compared curves together
 
 nextflow.enable.dsl = 2
 
-process BIOC_CFASSAY {
+process BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cfassay"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cfassay:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cfassay:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cfassay_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cfassay_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cfassay_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load the required library
     library(CFAssay)
-    library(jsonlite)
-
-    # --- Table [] ---
-    # Key functions: file
-    library(CFAssay)
-    datatab <- read.table(system.file("doc", "expl1_cellsurvcurves.txt",
-                                      package="CFAssay"), header=TRUE, sep="\t")
-    # --- Subset [] ---
-    # Key functions: cellsurvLQfit
-    X <- subset(datatab, cline=="okf6TERT1")
-      dim(X)
-      fit <- cellsurvLQfit(X)
-      print(fit)
-    # --- Fig1 [] ---
-    # Key functions: pes, sfpmean
+    
+    # 1. Load and inspect the data
+    datatab <- read.table("cellsurv_data.txt", header=TRUE, sep="\t")
+    names(datatab)
+    head(datatab, 3)
+    
+    # Extract unique cell lines from the data
+    clines <- unique(as.character(datatab\$cline))
+    cline1 <- clines[1]
+    cline2 <- clines[2]
+    
+    # 2. Fit the LQ model for a single cell line/group
+    X <- subset(datatab, cline==cline1)
+    dim(X)
+    fit <- cellsurvLQfit(X)
+    
+    # 3. Print fit coefficients and calculate mean survival fractions
+    # Save printed fit to a text file
+    sink(paste0("fit_", cline1, "_summary.txt"))
+    print(fit)
+    sink()
+    
+    # Print to console
+    print(fit)
+    
+    # Generate mean survival curve plot
+    pdf(paste0(cline1, "_mean_fit_plot.pdf"))
     plot(fit)
-      S0 <- pes(X)$S0
-      names(S0) <- pes(X)$Exp
-      sfpmean(X, S0)
-    # --- Pdf [] ---
-    # Key functions: plotExp, off
-    ##   pdf("okf6TERT1_experimental_plots.pdf")
-    ##   	plotExp(fit)
-    ##   dev.off()
-    # --- Subset [] ---
-    # Key functions: cellsurvLQfit, plotExp
-    ##   X <- subset(datatab, cline=="cal33")
-    ##   dim(X)
-    ##   fit <- cellsurvLQfit(X)
-    ##   print(fit)
-    ##   plot(fit)
-    # --- Cellsurvlqdiff [] ---
-    # Key functions: cellsurvLQdiff
+    dev.off()
+    
+    S0 <- pes(X)\$S0
+    names(S0) <- pes(X)\$Exp
+    sf_mean <- sfpmean(X, S0)
+    write.csv(sf_mean, paste0(cline1, "_sfpmean.csv"), row.names=TRUE)
+    
+    # 4. Generate diagnostic plots for individual experiments
+    pdf(paste0(cline1, "_experimental_plots.pdf"))
+    plotExp(fit)
+    dev.off()
+    
+    # 5. Compare two survival curves statistically
     fitcomp <- cellsurvLQdiff(datatab, curvevar="cline")
-      print(fitcomp)
-    # --- Fig2 [] ---
-    # Key functions: cellsurvLQfit
-    plot(cellsurvLQfit(subset(datatab, cline=="okf6TERT1")), col=1)
-      plot(cellsurvLQfit(subset(datatab, cline=="cal33")), col=2, add=TRUE)
-      legend(0, 0.02, c("OKF6/TERT1", "CAL 33"), text.col=1:2)
-    # --- Table [] ---
-    # Key functions: file
-    datatab <- read.table(system.file("doc", "exp2_2waycfa.txt", package="CFAssay"),
-                          header=TRUE, sep="\t")
-    # --- cfa2way [] ---
-    # Key functions: cfa2way
-    fitcomp <- cfa2way(datatab, A="siRNA", B="x5fuCis", param="A/B")
-    # --- Pdf [] ---
-    # Key functions: plotExp, off
-    ##   pdf("TwoWay_experimental_plots.pdf")
-    ##     plotExp(fitcomp, labels=c(A="siRNA", B="x5fuCis"))
-    ##   dev.off()
+    
+    # Save printed comparison to a text file
+    sink("fitcomp_summary.txt")
+    print(fitcomp)
+    sink()
+    
+    # Print to console
+    print(fitcomp)
+    
+    # 6. Plot the compared curves together
+    pdf("compared_curves_plot.pdf")
+    plot(cellsurvLQfit(subset(datatab, cline==cline1)), col=1)
+    plot(cellsurvLQfit(subset(datatab, cline==cline2)), col=2, add=TRUE)
+    legend(0, 0.02, c(cline1, cline2), text.col=1:2)
+    dev.off()
+    
+    # Save RDS objects for downstream analysis
+    saveRDS(fit, paste0("fit_", cline1, ".rds"))
+    saveRDS(fitcomp, "fitcomp.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cfassay_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cfassay_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cfassay_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CFASSAY:", paste0("    cfassay: ", packageVersion("CFAssay"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS":',
+        paste0('    CFAssay: ', as.character(packageVersion('CFAssay')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cfassay_results.csv
-    touch ${prefix}_cfassay_output.rds
-    echo "BIOC_CFASSAY:" > versions.yml
-    echo "    cfassay: 0.0.0" >> versions.yml
+    touch ${prefix}_lq_survival_curve_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CFASSAY_WORKFLOW {
+workflow BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cellsurv_data.txt ] ]
 
     main:
-    BIOC_CFASSAY(ch_input)
+    BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CFASSAY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CFASSAY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CFASSAY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CFASSAY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS.out.tables
+    plots    = BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS.out.plots
+    objects  = BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS.out.objects
+    versions = BIOC_CFASSAY_LQ_SURVIVAL_CURVE_ANALYSIS.out.versions
 }

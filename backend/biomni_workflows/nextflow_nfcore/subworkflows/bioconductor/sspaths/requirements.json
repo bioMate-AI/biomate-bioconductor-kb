@@ -1,0 +1,15 @@
+{
+  "package": "sspaths",
+  "requirements": [
+    "SummarizedExperiment",
+    "ggplot2",
+    "ssPATHS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "ssPATHS"
+    ]
+  }
+}

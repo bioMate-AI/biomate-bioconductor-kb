@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None specified in the provided documentation text.\n- alternatives: DOSE (preferred for Disease Ontology, Network of Cancer Gene, and DisGeNET analyses) ;; ReactomePA (preferred for Reactome Pathway analysis) ;; RDAVIDWebService (preferred for DAVID functional annotation) ;; ChIPseeker (preferred for functional profiles of genomic coordinates)\n- when_to_use: Appropriate when analyzing genomic coordinates, gene lists, or gene clusters to identify enriched biological themes, pathways, or diseases, and when comparing functional profiles across multiple experimental conditions or gene clusters.\n- pitfalls: None specified in the provided documentation text.",
+  "workflows": [
+    {
+      "name": "over_representation_analysis",
+      "intent": "Identify over-represented biological terms and pathways in a list of genes of interest.",
+      "input": [
+        "gene_list.txt (a list of gene identifiers, such as Entrez IDs or symbols)"
+      ],
+      "stages": "1. Import the gene list ;; 2. Perform enrichment analysis using functions like enrichGO, enrichKEGG, enricher, enrichMKEGG, enrichWP, or enrichDAVID ;; 3. Map gene IDs to readable symbols using setReadable ;; 4. Simplify GO terms to reduce redundancy using simplify ;; 5. Visualize results using barplot, dotplot, cnetplot, emapplot, or goplot.",
+      "code": ""
+    },
+    {
+      "name": "gene_set_enrichment_analysis",
+      "intent": "Perform gene set enrichment analysis on a ranked list of genes to identify coordinated pathway changes.",
+      "input": [
+        "ranked_gene_list.txt (a list of genes ranked by a numeric score, such as fold change)"
+      ],
+      "stages": "1. Prepare the ranked gene list ;; 2. Run GSEA using functions like gseGO, gseKEGG, gseMKEGG, gseWP, or GSEA ;; 3. Visualize enrichment scores and distributions using gseaplot or ridgeplot.",
+      "code": ""
+    },
+    {
+      "name": "biological_theme_comparison",
+      "intent": "Compare functional profiles and enriched pathways across multiple gene clusters.",
+      "input": [
+        "gene_clusters.csv (a table mapping genes to their respective clusters or experimental conditions)"
+      ],
+      "stages": "1. Prepare multiple gene clusters ;; 2. Compare clusters using the compareCluster function ;; 3. Visualize comparison results using dotplot, cnetplot, or emapplot.",
+      "code": ""
+    }
+  ]
+}

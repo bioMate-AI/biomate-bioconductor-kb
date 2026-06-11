@@ -1,0 +1,11 @@
+{
+  "package": "ebsea",
+  "requirements": [
+    "EBSEA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBSEA"
+    ]
+  }
+}

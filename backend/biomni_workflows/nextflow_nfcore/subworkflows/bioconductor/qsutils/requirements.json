@@ -1,0 +1,30 @@
+{
+  "package": "qsutils",
+  "requirements": [
+    "Biostrings",
+    "QSutils",
+    "ape",
+    "pwalign"
+  ],
+  "by_workflow": {
+    "complexity_and_diversity_analysis.nf": [
+      "Biostrings",
+      "QSutils",
+      "ape",
+      "pwalign"
+    ],
+    "genotyping.nf": [
+      "Biostrings",
+      "QSutils",
+      "ape"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "QSutils"
+    ],
+    "strand_intersection.nf": [
+      "Biostrings",
+      "QSutils"
+    ]
+  }
+}

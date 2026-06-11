@@ -1,0 +1,52 @@
+{
+  "package": "genomicdistributions",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GenomeInfoDb",
+    "GenomicDistributions",
+    "GenomicRanges",
+    "biomaRt",
+    "data.table",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "custom_reference_generation.nf": [
+      "GenomicDistributions"
+    ],
+    "feature_distance_analysis.nf": [
+      "GenomicDistributions",
+      "GenomicRanges",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "genomic_partition_analysis.nf": [
+      "GenomeInfoDb",
+      "GenomicDistributions",
+      "GenomicRanges",
+      "biomaRt",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicDistributions",
+      "GenomicRanges",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "sequence_composition_analysis.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicDistributions",
+      "GenomicRanges",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "signal_specificity_analysis.nf": [
+      "GenomicDistributions",
+      "GenomicRanges",
+      "data.table",
+      "ggplot2",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "mirnatap",
+  "requirements": [
+    "miRNAtap",
+    "org.Hs.eg.db",
+    "topGO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "miRNAtap",
+      "org.Hs.eg.db",
+      "topGO"
+    ]
+  }
+}

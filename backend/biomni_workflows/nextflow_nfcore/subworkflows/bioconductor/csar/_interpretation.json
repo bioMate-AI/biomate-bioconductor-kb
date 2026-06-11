@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: file=Prefix for intermediate output files generated during analysis (e.g., nhits, scores, permutations) ;; chr=Vector of chromosome names to analyze ;; chrL=Vector of chromosome lengths corresponding to the chr parameter ;; times=Scaling factor/multiplier used in ChIPseqScore and score2wig to control precision ;; nn=Permutation run identifier/index used in permutatedWinScores and getPermutatedWinScores ;; FDR=False discovery rate threshold (e.g., 0.05) used to calculate the score threshold\n- alternatives: multtest=Mentioned as an alternative R package for multiple testing correction that could be less conservative than the built-in FDR calculation\n- when_to_use: Use when analyzing ChIP-seq data to identify protein-bound genomic regions (peaks) at single-nucleotide resolution, especially when a control sample is available and permutation-based FDR control is desired\n- pitfalls: PCR artifacts can cause high numbers of duplicated reads. CSAR requires that the number of extended reads overlapping a position is supported by both strands independently (taking the minimum value of both strands). If strand information is missing, incorrect, or poorly balanced, this strand-independent validation step may fail or lead to loss of signal",
+  "workflows": [
+    {
+      "name": "chip_seq_peak_calling_and_annotation",
+      "intent": "Identify protein-bound genomic regions from ChIP-seq data, map them to genes, and calculate FDR thresholds using permutation.",
+      "input": [
+        "sample_reads.tsv (mapped ChIP-seq sample reads with columns Nhits, lengthRead, strand, chr, pos)",
+        "control_reads.tsv (mapped ChIP-seq control reads with columns Nhits, lengthRead, strand, chr, pos)",
+        "genes.gff (annotated gene features data frame)"
+      ],
+      "stages": "1. Calculate extended read overlaps per nucleotide using mappedReads2Nhits ;; 2. Calculate read-enrichment scores using ChIPseqScore ;; 3. Identify candidate enriched regions using sigWin ;; 4. Export scores to WIG format using score2wig ;; 5. Calculate distance of candidate regions to genes using distance2Genes ;; 6. Identify genes with peaks using genesWithPeaks ;; 7. Generate permutated datasets and calculate permutated window scores using permutatedWinScores ;; 8. Load permutated scores using getPermutatedWinScores ;; 9. Calculate FDR threshold using getThreshold",
+      "code": "library(CSAR)\ndata(\"CSAR-dataset\");\nhead(sampleSEP3_test)\nhead(controlSEP3_test)\nnhitsS<-mappedReads2Nhits(sampleSEP3_test,file=\"sampleSEP3_test\",chr=c(\"CHR1v01212004\"),chrL=c(10000))\nnhitsC<-mappedReads2Nhits(controlSEP3_test,file=\"controlSEP3_test\",chr=c(\"CHR1v01212004\"),chrL=c(10000))\nnhitsC$filenames\nnhitsS$filenames\ntest<-ChIPseqScore(control=nhitsC,sample=nhitsS,file=\"test\",times=10000)\ntest$filenames\nwin<-sigWin(test)\nhead(win)\nscore2wig(test,file=\"test.wig\",times=10000)\nd<-distance2Genes(win=win,gff=TAIR8_genes_test)\nd\ngenes<-genesWithPeaks(d)\nhead(genes)\npermutatedWinScores(nn=1,sample=sampleSEP3_test,control=controlSEP3_test,fileOutput=\"test\",chr=c(\"CHR1v01212004\"),chrL=c(100000))\npermutatedWinScores(nn=2,sample=sampleSEP3_test,control=controlSEP3_test,fileOutput=\"test\",chr=c(\"CHR1v01212004\"),chrL=c(100000))\nnulldist<-getPermutatedWinScores(file=\"test\",nn=1:2)\ngetThreshold(winscores=values(win)$score,permutatedScores=nulldist,FDR=.05)"
+    }
+  ]
+}

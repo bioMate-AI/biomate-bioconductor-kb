@@ -1,0 +1,14 @@
+{
+  "package": "regsplice",
+  "requirements": [
+    "regsplice"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "regsplice"
+    ],
+    "rna_seq_step_by_step.nf": [
+      "regsplice"
+    ]
+  }
+}

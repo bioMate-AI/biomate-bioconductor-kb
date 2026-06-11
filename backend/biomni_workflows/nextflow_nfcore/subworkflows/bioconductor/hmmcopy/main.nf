@@ -1,106 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HMMcopy
-// Corrects GC and mappability biases for readcounts (i.e. coverage) in non-overlapping windows of fixe
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HMMcopy/inst/doc/HMMcopy.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("HMMcopy")
+// Bioconductor workflow: hmmcopy — single_sample_correction_and_segmentation
+// Correct GC and mappability biases in a single sample and segment the copy number profile.
+// Input: tumour.wig, gc.wig, map.wig
+// Container: quay.io/biocontainers/bioconductor-hmmcopy:1.52.0--r45h01b2380_0
+// R packages: HMMcopy
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_HMMCOPY {
+process BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hmmcopy"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hmmcopy:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hmmcopy:1.48.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-hmmcopy:1.52.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hmmcopy_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hmmcopy_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hmmcopy_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HMMsegment)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("HMMcopy")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Correctreadcount [] ---
-    # Key functions: correctReadcount
-    normal_copy <- correctReadcount(normal_reads)
-    normal_copy[1000:1010, ]
-    # --- Hmmsegment [] ---
-    # Key functions: HMMsegment
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Set options and load required library
+    options(stringsAsFactors = TRUE)
+    library(HMMcopy)
+    
+    # Define input file paths in the working directory
+    tfile <- "tumour.wig"
+    gfile <- "gc.wig"
+    mfile <- "map.wig"
+    
+    # Verify that all required input files exist
+    if (!file.exists(tfile)) {
+      stop("Error: Input file 'tumour.wig' not found in the working directory.")
+    }
+    if (!file.exists(gfile)) {
+      stop("Error: Input file 'gc.wig' not found in the working directory.")
+    }
+    if (!file.exists(mfile)) {
+      stop("Error: Input file 'map.wig' not found in the working directory.")
+    }
+    
+    # 1. Load and correct read counts using wigsToRangedData and correctReadcount
+    message("Loading and correcting read counts...")
+    tumour_copy <- correctReadcount(wigsToRangedData(tfile, gfile, mfile))
+    
+    # 2. Segment the corrected copy number profile using HMMsegment
+    message("Segmenting copy number profile...")
     tumour_segments <- HMMsegment(tumour_copy)
-    # --- Log [] ---
-    # Key functions: lob
-    somatic_copy <- tumour_copy
-    # LOGARITHM IDENTITY: log(a) - log(b) == lob(a / b)
-    somatic_copy$copy <- tumour_copy$copy - normal_copy$copy
-    # --- Hmmsegment [] ---
-    # Key functions: HMMsegment, plotSegments
-    somatic_segments <- HMMsegment(somatic_copy, newmu_param, verbose = FALSE)
-    par(cex.main = 0.5, cex.lab = 0.5, cex.axis = 0.5, mar = c(2, 1.5, 0, 0), mgp = c(1, 0.5, 0))
-    plotSegments(somatic_copy, somatic_segments, pch = ".",
-      ylab = "Tumour Copy Number", xlab = "Chromosome Position")
-    # --- Tolatex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hmmcopy_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hmmcopy_results.csv")
+    
+    # 3. Visualize the segments and states using plotSegments and stateCols
+    message("Generating visualization plot...")
+    pdf("tumour_segments_plot.pdf", width = 10, height = 6)
+    plotSegments(tumour_copy, tumour_segments, pch = ".", ylab = "Tumour Copy Number", xlab = "Chromosome Position")
+    cols <- stateCols()
+    legend("topleft", c("HOMD", "HETD", "NEUT", "GAIN", "AMPL", "HLAMP"), fill = cols, horiz = TRUE, bty = "n", cex = 0.5)
+    dev.off()
+    
+    # 4. Write named output files for the results
+    message("Saving output files...")
+    
+    # Save corrected copy number profile
+    saveRDS(tumour_copy, "tumour_copy.rds")
+    write.csv(as.data.frame(tumour_copy), "tumour_copy.csv", row.names = FALSE)
+    
+    # Save segmentation results
+    saveRDS(tumour_segments, "tumour_segments.rds")
+    if (!is.null(tumour_segments\$segs)) {
+      write.csv(tumour_segments\$segs, "tumour_segments.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hmmcopy_output.rds")
-    }
+    
+    message("Pipeline completed successfully. Outputs saved to 'tumour_copy.rds', 'tumour_copy.csv', 'tumour_segments.rds', 'tumour_segments.csv', and 'tumour_segments_plot.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HMMCOPY:", paste0("    hmmcopy: ", packageVersion("HMMcopy"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION":',
+        paste0('        hmmcopy: ', as.character(packageVersion("hmmcopy")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hmmcopy_results.csv
-    touch ${prefix}_hmmcopy_output.rds
-    echo "BIOC_HMMCOPY:" > versions.yml
-    echo "    hmmcopy: 0.0.0" >> versions.yml
+    touch ${prefix}_single_sample_correction_and_segmentation.csv versions.yml
     """
 }
 
-
-workflow BIOC_HMMCOPY_WORKFLOW {
+workflow BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tumour.wig, gc.wig, map.wig ] ]
 
     main:
-    BIOC_HMMCOPY(ch_input)
+    BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION(ch_input)
 
     emit:
-    results  = BIOC_HMMCOPY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HMMCOPY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HMMCOPY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HMMCOPY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION.out.tables
+    plots    = BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION.out.plots
+    objects  = BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION.out.objects
+    versions = BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION.out.versions
 }

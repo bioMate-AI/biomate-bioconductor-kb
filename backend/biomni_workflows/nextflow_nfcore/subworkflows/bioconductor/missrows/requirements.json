@@ -1,0 +1,18 @@
+{
+  "package": "missrows",
+  "requirements": [
+    "MultiAssayExperiment",
+    "ggplot2",
+    "missRows"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "missRows"
+    ],
+    "tune_imputations.nf": [
+      "ggplot2",
+      "missRows"
+    ]
+  }
+}

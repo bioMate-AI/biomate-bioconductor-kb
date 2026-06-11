@@ -1,95 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: FISHalyseR
-// FISHalyseR provides functionality to process and analyse digital cell culture images, in particular 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/FISHalyseR/inst/doc/FISHalyseR.R
-// Upstream  : knitr
-// Downstream: none
-//
-// Install: BiocManager::install("FISHalyseR")
+// Bioconductor workflow: fishalyser — manual_threshold_and_cleanup
+// Manually compute probe/cell masks and clean up artifacts using thresholding and particle analysis to determine optimal size parameters.
+// Input: SampleFISHgray.jpg
+// Container: quay.io/biocontainers/bioconductor-fishalyser:1.44.0--r45hdfd78af_0
+// R packages: FISHalyseR, knitr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_FISHALYSER {
+process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fishalyser"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fishalyser:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-fishalyser:1.40.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-fishalyser:1.44.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fishalyser_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fishalyser_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fishalyser_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("FISHalyseR", "knitr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(FISHalyseR)
-    library(jsonlite)
-
-    # --- analyse Particles [] ---
-    # Key functions: analyseParticles
-    fProbes1 = paste(TempDir,'/',"exImgMaxEntropyProbes1.jpg",sep='')
+    
+    # Input file
+    f <- "SampleFISHgray.jpg"
+    
+    if (!file.exists(f)) {
+      stop(paste("Input file", f, "not found in the working directory."))
+    }
+    
+    # ---------------------------------------------------------
+    # Stage 1: Compute Probe Mask using Max Entropy Threshold
+    # ---------------------------------------------------------
+    img = readImage(f)
+    
+    t = calculateMaxEntropy(img)
+    img[img<t] <- 0
+    img[img>=t] <- 1
+    
+    # Save intermediate probe mask
+    fProbes1 = "exImgMaxEntropyProbes1.jpg"
+    writeImage(img, fProbes1)
+    
+    # ---------------------------------------------------------
+    # Stage 2: Clean up Probe Mask (Remove small/large particles)
+    # ---------------------------------------------------------
     img = readImage(fProbes1)
+    
     anaImg <- analyseParticles(img, 20, 5,0)
-    # --- process F I S H [] ---
-    # Key functions: processFISH
-    illuCorrection = system.file( "extdata", "SampleFISHillu.jpg", package="FISHalyseR")
-    combinedImage <- system.file( "extdata", "SampleFISH.jpg", package="FISHalyseR")
-    red_Og   <- system.file( "extdata", "SampleFISH_R.jpg", package="FISHalyseR")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fishalyser_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fishalyser_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fishalyser_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FISHALYSER:", paste0("    fishalyser: ", packageVersion("FISHalyseR"))),
-        "versions.yml"
+    writeImage(anaImg, "exImgProbes1Clean.jpg")
+    
+    # ---------------------------------------------------------
+    # Stage 3: Compute Cell Mask using Otsu Threshold
+    # ---------------------------------------------------------
+    img = readImage(f)
+    
+    t = calculateThreshold(img)
+    img[img<t] <- 0
+    img[img>=t] <- 1
+    
+    # Save intermediate cell mask
+    fCellMask = "exImgOtsuCellMask.jpg"
+    writeImage(img, fCellMask)
+    
+    # ---------------------------------------------------------
+    # Stage 4: Clean up Cell Mask (Remove small/large particles)
+    # ---------------------------------------------------------
+    img = readImage(fCellMask)
+    
+    anaImg <- analyseParticles(img, 20000, 1000,0)
+    writeImage(anaImg, "exImgCellMaskClean.jpg")
+    
+    # ---------------------------------------------------------
+    # Stage 5: Generate Summary and Outputs
+    # ---------------------------------------------------------
+    probe_mask_clean <- readImage("exImgProbes1Clean.jpg")
+    cell_mask_clean <- readImage("exImgCellMaskClean.jpg")
+    
+    probe_pixels <- sum(probe_mask_clean > 0)
+    cell_pixels <- sum(cell_mask_clean > 0)
+    
+    summary_df <- data.frame(
+      Metric = c("Total_Probe_Pixels", "Total_Cell_Pixels"),
+      Value = c(probe_pixels, cell_pixels)
     )
+    
+    write.csv(summary_df, "mask_summary.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP":',
+        paste0('        fishalyser: ', as.character(packageVersion("fishalyser")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fishalyser_results.csv
-    touch ${prefix}_fishalyser_output.rds
-    echo "BIOC_FISHALYSER:" > versions.yml
-    echo "    fishalyser: 0.0.0" >> versions.yml
+    touch ${prefix}_manual_threshold_and_cleanup.csv versions.yml
     """
 }
 
-
-workflow BIOC_FISHALYSER_WORKFLOW {
+workflow BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ SampleFISHgray.jpg ] ]
 
     main:
-    BIOC_FISHALYSER(ch_input)
+    BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP(ch_input)
 
     emit:
-    results  = BIOC_FISHALYSER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FISHALYSER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FISHALYSER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FISHALYSER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP.out.tables
+    plots    = BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP.out.plots
+    objects  = BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP.out.objects
+    versions = BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP.out.versions
 }

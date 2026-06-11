@@ -1,0 +1,17 @@
+{
+  "package": "tcc",
+  "requirements": [
+    "TCC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TCC"
+    ],
+    "multi_group_replicates.nf": [
+      "TCC"
+    ],
+    "paired_two_group.nf": [
+      "TCC"
+    ]
+  }
+}

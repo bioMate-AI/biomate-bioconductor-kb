@@ -1,124 +1,101 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: miRLAB
-// Provide tools exploring miRNA-mRNA relationships, including popular miRNA target prediction methods,
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/miRLAB/inst/doc/miRLAB-vignette.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("miRLAB")
+// Bioconductor workflow: mirlab — validate_specific_mirna_targets
+// Predict miRNA-mRNA relationships and validate the top predicted targets of a specific miRNA against ground truth.
+// Input: dataset.csv, groundtruth.csv
+// Container: quay.io/biocontainers/bioconductor-mirlab:1.40.0--r45hdfd78af_0
+// R packages: miRLAB
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIRLAB {
+process BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mirlab"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mirlab:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mirlab:1.36.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-mirlab:1.40.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mirlab_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mirlab_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mirlab_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Extopk)
-    library(IDA)
-    library(Lasso)
-    library(MI)
-    library(Pearson)
-    library(Read)
-    library(Validation)
-    library(jsonlite)
-
-    # --- Code Block 1 [] ---
-    # Key functions: Pearson, MI, IDA, Lasso
-    library(miRLAB)
-    dataset=system.file("extdata", "EMT35.csv", package="miRLAB")
-    cause=1:35 #column 1:35 are miRNAs
-    effect=36:1189 #column 36:1189 are mRNAs
-    #predict miRNA targets using Pearson correlation
-    # --- Code Block 2 [] ---
-    # Key functions: Pearson, bRank, Validation
-    library(miRLAB)
-    #validate the results of the top100 targets of each miRNA predicted
-    #by the four methods
-    dataset=system.file("extdata", "ToyEMT.csv", package="miRLAB")
-    pearson=Pearson(dataset, 1:3, 4:18)
-    # --- Code Block 3 [] ---
-    # Key functions: Pearson, Extopk, Validation
-    library(miRLAB)
-    #validate the results of the top100 targets of each miRNA predicted
-    #by the four methods
-    dataset=system.file("extdata", "ToyEMT.csv", package="miRLAB")
-    EMTresults=Pearson(dataset, 1:3, 4:18)
-    # --- Code Block 4 [] ---
-    # Key functions: Read
-    library(miRLAB)
-    dataset=system.file("extdata", "ToyEMT.csv", package="miRLAB")
-    dataset=Read(dataset)
-    dataset[1:5,1:7]
-    # --- Code Block 5 [] ---
-    # Key functions: Read
-    library(miRLAB)
-    groundtruth=system.file("extdata", "Toygroundtruth.csv", package="miRLAB")
-    groundtruth=Read(groundtruth)
-    groundtruth[1:5,]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mirlab_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mirlab_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mirlab_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("miRLAB")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIRLAB:", paste0("    mirlab: ", packageVersion("miRLAB"))),
-        "versions.yml"
-    )
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required library
+    library(miRLAB)
+    
+    # Define the input file paths as specified by the user
+    dataset <- "dataset.csv"
+    groundtruth <- "groundtruth.csv"
+    
+    # 1. Predict miRNA-mRNA relationships using Pearson correlation
+    pearson <- Pearson(dataset, 1:3, 4:18)
+    
+    # 2. Extract the top predicted targets for a specific miRNA (the 3rd miRNA, top 10 targets)
+    miR200aTop10 <- bRank(pearson, 3, 10, TRUE)
+    
+    # 3. Validate the top predicted targets against the ground truth
+    miR200aTop10Confirmed <- Validation(miR200aTop10, groundtruth)
+    
+    # Save the results to output files
+    write.csv(as.data.frame(miR200aTop10), "miR200aTop10.csv", row.names = TRUE)
+    write.csv(as.data.frame(miR200aTop10Confirmed), "miR200aTop10Confirmed.csv", row.names = TRUE)
+    saveRDS(pearson, "pearson_correlation_matrix.rds")
+
+    writeLines(c(
+        '"BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS":',
+        paste0('        mirlab: ', as.character(packageVersion("mirlab")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mirlab_results.csv
-    touch ${prefix}_mirlab_output.rds
-    echo "BIOC_MIRLAB:" > versions.yml
-    echo "    mirlab: 0.0.0" >> versions.yml
+    touch ${prefix}_validate_specific_mirna_targets.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIRLAB_WORKFLOW {
+workflow BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ dataset.csv, groundtruth.csv ] ]
 
     main:
-    BIOC_MIRLAB(ch_input)
+    BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS(ch_input)
 
     emit:
-    results  = BIOC_MIRLAB.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIRLAB.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIRLAB.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIRLAB.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS.out.tables
+    plots    = BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS.out.plots
+    objects  = BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS.out.objects
+    versions = BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS.out.versions
 }

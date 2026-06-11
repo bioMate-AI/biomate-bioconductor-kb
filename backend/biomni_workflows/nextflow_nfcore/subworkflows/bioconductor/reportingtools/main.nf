@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_REPORTINGTOOLS {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-reportingtools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-reportingtools:2.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-reportingtools:2.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -43,33 +42,73 @@ process BIOC_REPORTINGTOOLS {
     library(HTMLReport)
     library(jsonlite)
 
-    # --- Data Publishing [] ---
+    # --- Report Initialization [] ---
+    # Key functions: HTMLReport
+    report <- HTMLReport(
+        shortName = "de_report",
+        title = "Differential Expression Analysis Report",
+        reportDirectory = "reports"
+    )
+
+    # --- Publishing Tabular Data [] ---
     # Key functions: publish
     my.df <- data.frame(
         EGID = c("103", "104", "105", "106", "107"),
         RPKM = c(4, 5, 3, 100, 75),
         DE = c("Yes", "Yes", "No", "No", "No")
     )
-    ReportingTools::publish(my.df, report)
+    publish(
+        object = my.df,
+        htmlRep = report,
+        tableId = "expression_table"
+    )
 
+    # --- Adding Hyperlinks [] ---
+    # Key functions: Link, publish
+    gene_ids <- c("103", "104", "105", "106", "107")
+    gene_links <- Link(
+        ids = gene_ids,
+        base = "https://www.ncbi.nlm.nih.gov/gene/"
+    )
+    linked.df <- data.frame(
+        Gene = gene_links,
+        RPKM = c(4, 5, 3, 100, 75)
+    )
+    publish(
+        object = linked.df,
+        htmlRep = report,
+        tableId = "linked_table"
+    )
 
-    # --- Report Finalization [] ---
+    # --- Finalizing Report [] ---
     # Key functions: finish
-    ReportingTools::finish(report)
+    finish(
+        htmlRep = report
+    )
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_reportingtools_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_reportingtools_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_reportingtools_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_reportingtools_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_reportingtools_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_reportingtools_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_REPORTINGTOOLS:", paste0("    reportingtools: ", packageVersion("ReportingTools"))),
+        c("BIOC_REPORTINGTOOLS:", paste0("    reportingtools: ", as.character(packageVersion("ReportingTools")))),
         "versions.yml"
     )
     """

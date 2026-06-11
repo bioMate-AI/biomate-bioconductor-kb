@@ -1,0 +1,14 @@
+{
+  "package": "isoformswitchanalyzer",
+  "requirements": [
+    "IsoformSwitchAnalyzeR"
+  ],
+  "by_workflow": {
+    "detailed_isoform_switch_workflow.nf": [
+      "IsoformSwitchAnalyzeR"
+    ],
+    "main.nf": [
+      "IsoformSwitchAnalyzeR"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "package": "trna",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "Structstrings",
+    "ggplot2",
+    "tRNA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "Structstrings",
+      "tRNA"
+    ],
+    "trna_feature_comparison_and_visualization.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "tRNA"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "package": "mia",
+  "requirements": [
+    "MultiAssayExperiment",
+    "TreeSummarizedExperiment",
+    "ggplot2",
+    "mia",
+    "phyloseq",
+    "scater"
+  ],
+  "by_workflow": {
+    "abundance_transformation_and_rarefaction.nf": [
+      "MultiAssayExperiment",
+      "mia"
+    ],
+    "community_diversity_and_ordination.nf": [
+      "ggplot2",
+      "mia",
+      "scater"
+    ],
+    "main.nf": [
+      "TreeSummarizedExperiment",
+      "mia",
+      "phyloseq"
+    ]
+  }
+}

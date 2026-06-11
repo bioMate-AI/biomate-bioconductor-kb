@@ -1,0 +1,15 @@
+{
+  "package": "agdex",
+  "requirements": [
+    "AGDEX",
+    "Biobase",
+    "GSEABase"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AGDEX",
+      "Biobase",
+      "GSEABase"
+    ]
+  }
+}

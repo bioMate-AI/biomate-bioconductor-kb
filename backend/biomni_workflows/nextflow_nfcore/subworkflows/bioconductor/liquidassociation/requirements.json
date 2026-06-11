@@ -1,0 +1,16 @@
+{
+  "package": "liquidassociation",
+  "requirements": [
+    "Biobase",
+    "LiquidAssociation"
+  ],
+  "by_workflow": {
+    "genome_wide_triplet_screening.nf": [
+      "LiquidAssociation"
+    ],
+    "main.nf": [
+      "Biobase",
+      "LiquidAssociation"
+    ]
+  }
+}

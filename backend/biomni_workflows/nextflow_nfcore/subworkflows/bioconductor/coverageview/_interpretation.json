@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - reads_mapped=Total number of aligned reads used for normalization; if not provided, CoverageView calculates this automatically.\n  - coordfile=Path to a BED file containing coordinates of genomic regions of interest (e.g., TSS, gene bodies).\n  - extend=Number of nucleotides to extend on each side of the coordinates in the BED file when computing the coverage matrix.\n  - bin_width=Width of the bins (in nucleotides) into which the genomic regions are split for calculating average coverage.\n  - no_windows=Number of genomic bins to divide each genomic interval into (used when intervals have varying lengths, like gene bodies).\n  - offset=Number of bins to extend before the start and after the end coordinates.\n  - num_cores=Number of processors to use for parallel processing.\n  - normalization=Normalization method, e.g., \"rpm\" (reads per million) to allow comparison between samples.\n  - do=Arithmetic operation to perform when comparing two samples, such as \"ratio\", \"log2ratio\", or \"substraction\".\n- alternatives:\n  - MACS=A peak-calling algorithm mentioned as the tool used to identify enriched regions and generate the input BED files before using CoverageView.\n  - Bowtie=A short-read aligner mentioned as the tool used to align FASTQ files to the reference genome to produce the input BAM files.\n- when_to_use: Use this package when you need to visualize read-enrichment patterns (e.g., transcription factor binding, histone modifications) around specific genomic features (like TSS or gene bodies) across single or multiple samples, or when comparing transcriptome coverage in RNA-seq.\n- pitfalls:\n  - Comparing samples with different sequencing depths without setting the normalization parameter (e.g., normalization=\"rpm\") will lead to incorrect comparative profiles.\n  - BAM files must be indexed (having a corresponding .bai file in the same directory) to be processed.",
+  "workflows": [
+    {
+      "name": "single_sample_coverage_profile",
+      "intent": "Calculate and visualize coverage profiles and heatmaps around specific genomic coordinates (e.g., TSS) for a single BAM or BigWIG sample.",
+      "input": [
+        "FoxA1.chr19.bam (BAM alignment file)",
+        "FoxA1.chr19.bam.bai (BAM index file)",
+        "FoxA1.chr19.bed (BED file with coordinates)"
+      ],
+      "stages": "1. Instantiate CoverageBamFile object ;; 2. Calculate coverage matrix around coordinates ;; 3. Draw coverage profile ;; 4. Write coverage matrix to file ;; 5. Draw coverage heatmap",
+      "code": "trm<-CoverageBamFile(\"./FoxA1.chr19.bam\",reads_mapped=168042)\nFoxA1_chr19<-cov.matrix(trm,coordfile=tss_chr19_bed,extend=1000,num_cores=2,bin_width=10)\ndraw.profile(FoxA1_chr19,ylab=\"avg coverage\",outfile=\"FoxA1_chr19.png\",main=\"FoxA1 chr19\")\nwrite.profile(FoxA1_chr19,outfile=\"FoxA1_chr19.txt\")\ndraw.heatmap(FoxA1_chr19,outfile=\"FoxA1_chr19_heatmap.png\")"
+    },
+    {
+      "name": "multi_sample_comparison",
+      "intent": "Compare normalized coverage profiles and heatmaps across gene bodies between multiple samples (e.g., ChIP-seq treatment vs. control).",
+      "input": [
+        "H3K4me3.chr19.bam (Treatment BAM file)",
+        "H3K4me3_Control.chr19.bam (Control BAM file)",
+        "H3K4me3.chr19.bed (BED file with gene coordinates)"
+      ],
+      "stages": "1. Instantiate CoverageBamFile objects for treatment and control ;; 2. Calculate normalized coverage matrices across gene windows ;; 3. Combine matrices into a list ;; 4. Draw comparative profile ;; 5. Draw comparative heatmap",
+      "code": "trm<-CoverageBamFile(\"./H3K4me3.chr19.bam\",reads_mapped=864924)\nctl<-CoverageBamFile(\"./H3K4me3_Control.chr19.bam\",reads_mapped=319369)\nDF_H3K4me3<-cov.matrix(trm,coordfile=H3K4me3_chr19_bed,no_windows=100,offset=10,num_cores=2,normalization=\"rpm\")\nDF_H3K4me3_ctl<-cov.matrix(ctl,coordfile=H3K4me3_chr19_bed,no_windows=100,offset=10,num_cores=2,normalization=\"rpm\")\ninput_list=list(DF_H3K4me3,DF_H3K4me3_ctl) \ndraw.profile(data=input_list,ylab=\"avg coverage\",outfile=\"H3K4me3cmp.png\",main=\"H3K4me3\")\ndraw.heatmap(data=input_list,outfile=\"H3K4me3cmp_heatmap.png\")"
+    },
+    {
+      "name": "sample_ratio_and_interval_analysis",
+      "intent": "Calculate coverage ratios, log2ratios, or subtractions between two samples across genomic regions or a specific coordinate interval, and export the results.",
+      "input": [
+        "H3K4me3.chr19.bam (Treatment BAM file)",
+        "H3K4me3_Control.chr19.bam (Control BAM file)",
+        "H3K4me3.chr19.nopeaks.bed (BED file with coordinates)"
+      ],
+      "stages": "1. Instantiate CoverageBamFile objects ;; 2. Calculate log2ratio coverage matrix across BED coordinates ;; 3. Draw ratio profile ;; 4. Calculate ratio across a specific genomic interval ;; 5. Export interval ratios to WIG format",
+      "code": "trm<-CoverageBamFile(\"./H3K4me3.chr19.bam\",reads_mapped=864924)\nctl<-CoverageBamFile(\"./H3K4me3_Control.chr19.bam\",reads_mapped=319369)\nDF_H3K4me3_nopeaks_ratios=cov.matrix(trm,ctl,coordfile=H3K4me3_chr19_nopeaks_bed,no_windows=100,offset=10,num_cores=2,normalization=\"rpm\",do=\"log2ratio\")\ndraw.profile(DF_H3K4me3_nopeaks_ratios,ylab=\"avg coverage\",outfile=\"H3K4me3nopeaks_ratios.png\",main=\"H3K4me3 ratio\")\nchr19_246050_247000.ratios=cov.interval(trm,ctl,bin_width=1,chr=\"chr19\",start=246050,end=247000,do='ratio')\nexport.wig(chr19_246050_247000.ratios,outfile=\"chr19_246050_247000.ratios.wig\")"
+    }
+  ]
+}

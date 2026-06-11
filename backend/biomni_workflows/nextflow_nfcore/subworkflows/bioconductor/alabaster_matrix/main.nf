@@ -1,97 +1,195 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: alabaster.matrix
-// Save matrices, arrays and similar objects into file artifacts, and load them back into memory. This 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/alabaster.matrix/inst/doc/userguide.R
-// Upstream  : BiocStyle, Matrix
-// Downstream: none
-//
-// Install: BiocManager::install("alabaster.matrix")
+// Bioconductor workflow: alabaster_matrix — alabaster_matrix_roundtrip_pca
+// Read a feature-by-sample matrix, serialize it to disk using alabaster.matrix representations (dense and sparse), deserialize it back to verify integrity, and pe
+// Input: input.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DelayedArray, Matrix, alabaster.base, alabaster.matrix, alabaster_matrix
+// Visualizations: PCA plot
+// QC: input validation
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ALABASTER_MATRIX {
+process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-alabaster_matrix"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-alabaster.matrix:1.6.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-alabaster.matrix:1.6.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_alabaster_matrix_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_alabaster_matrix_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_alabaster_matrix_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries and read input defensively
+    library(alabaster.base)
     library(alabaster.matrix)
-    library(jsonlite)
-
-    # --- Rsparsematrix [] ---
-    # Key functions: rsparsematrix, tempfile, saveObject, files
-    ---------------------------------------------------------------------
     library(Matrix)
-    y <- rsparsematrix(1000, 100, density=0.05)
-    library(alabaster.matrix)
-    tmp <- tempfile()
-    # --- Readobject [] ---
-    # Key functions: readObject
-    ---------------------------------------------------------------------
-    roundtrip <- readObject(tmp)
-    class(roundtrip)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_alabaster_matrix_results.csv", row.names = TRUE)
+    library(DelayedArray)
+    
+    # Read input.csv defensively
+    if (!file.exists("input.csv")) {
+      stop("Error: input.csv not found in the working directory.")
+    }
+    
+    df <- read.csv("input.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    
+    # Determine row names from 'feature_id' or the first column
+    if ("feature_id" %in% colnames(df)) {
+      row_names <- df\$feature_id
+      df\$feature_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_alabaster_matrix_results.csv")
+      row_names <- df[, 1]
+      df <- df[, -1, drop = FALSE]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_alabaster_matrix_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ALABASTER_MATRIX:", paste0("    alabaster_matrix: ", packageVersion("alabaster.matrix"))),
-        "versions.yml"
+    
+    # Convert remaining columns to a numeric matrix
+    mat <- as.matrix(df)
+    class(mat) <- "numeric"
+    rownames(mat) <- row_names
+    
+    # Handle potential missing values or non-numeric artifacts safely
+    mat[is.na(mat)] <- 0
+    
+    message(sprintf("Successfully loaded matrix with %d features and %d samples.", nrow(mat), ncol(mat)))
+    
+    # Stage 2: Convert to different matrix representations
+    # alabaster.matrix supports standard R matrices, sparse matrices, and DelayedMatrices
+    dense_mat <- mat
+    sparse_mat <- as(mat, "CsparseMatrix") # dgCMatrix representation
+    delayed_mat <- DelayedArray(mat)
+    
+    # Stage 3: Serialize matrices to disk using alabaster.base / alabaster.matrix
+    # We create temporary directories to store the serialized artifacts
+    stage_dir_dense <- tempfile("stage_dense")
+    stage_dir_sparse <- tempfile("stage_sparse")
+    
+    message("Saving dense matrix to: ", stage_dir_dense)
+    alabaster.base::saveObject(dense_mat, stage_dir_dense)
+    
+    message("Saving sparse matrix to: ", stage_dir_sparse)
+    alabaster.base::saveObject(sparse_mat, stage_dir_sparse)
+    
+    # Stage 4: Deserialize matrices back to verify round-trip fidelity
+    message("Reading objects back from disk...")
+    roundtrip_dense <- alabaster.base::readObject(stage_dir_dense)
+    roundtrip_sparse <- alabaster.base::readObject(stage_dir_sparse)
+    
+    # Verify that the round-tripped matrices match the original data
+    stopifnot(all.equal(as.matrix(roundtrip_dense), mat, check.attributes = FALSE))
+    stopifnot(all.equal(as.matrix(roundtrip_sparse), mat, check.attributes = FALSE))
+    message("Fidelity check passed: Round-tripped matrices are identical to the original input.")
+    
+    # Stage 5: Downstream Analysis (PCA) on the restored matrix
+    # We perform PCA on the restored dense matrix representation
+    pca_coords <- tryCatch({
+      # Filter out zero-variance features to avoid PCA errors
+      vars <- apply(roundtrip_dense, 1, var)
+      keep <- !is.na(vars) & vars > 0
+      filtered_mat <- roundtrip_dense[keep, , drop = FALSE]
+      
+      if (nrow(filtered_mat) >= 2 && ncol(filtered_mat) >= 2) {
+        # Perform PCA on transposed matrix (samples as rows, features as columns)
+        pca <- prcomp(t(filtered_mat), scale. = TRUE)
+        pcs <- as.data.frame(pca\$x[, 1:min(2, ncol(pca\$x)), drop = FALSE])
+        # Ensure we have both PC1 and PC2 columns
+        if (ncol(pcs) < 2) {
+          pcs\$PC2 <- 0
+        }
+        colnames(pcs)[1:2] <- c("PC1", "PC2")
+        pcs
+      } else {
+        stop("Not enough features or samples with variance for PCA.")
+      }
+    }, error = function(e) {
+      warning("PCA failed, falling back to summary statistics: ", e\$message)
+      # Fallback: use column means and column sums as proxy coordinates
+      data.frame(
+        PC1 = colMeans(roundtrip_dense),
+        PC2 = colSums(roundtrip_dense),
+        row.names = colnames(roundtrip_dense)
+      )
+    })
+    
+    # Add sample names explicitly to the output
+    pca_coords\$sample_id <- rownames(pca_coords)
+    pca_coords <- pca_coords[, c("sample_id", "PC1", "PC2")]
+    
+    # Stage 6: Write outputs to the working directory
+    write.csv(pca_coords, "pca_results.csv", row.names = FALSE)
+    message("Saved PCA results to pca_results.csv")
+    
+    # Generate diagnostic visualization
+    pdf("pca_plot.pdf", width = 7, height = 7)
+    plot(
+      pca_coords\$PC1, 
+      pca_coords\$PC2, 
+      xlab = "PC1 / Column Mean (Fallback)", 
+      ylab = "PC2 / Column Sum (Fallback)", 
+      main = "Sample Projection (alabaster.matrix Round-trip)",
+      col = "royalblue", 
+      pch = 19, 
+      cex = 1.5
     )
+    text(
+      pca_coords\$PC1, 
+      pca_coords\$PC2, 
+      labels = pca_coords\$sample_id, 
+      pos = 3, 
+      cex = 0.8, 
+      col = "darkgray"
+    )
+    grid()
+    dev.off()
+    message("Saved PCA plot to pca_plot.pdf")
+
+    writeLines(c(
+        '"BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA":',
+        paste0('    alabaster_matrix: ', as.character(packageVersion('alabaster_matrix')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_alabaster_matrix_results.csv
-    touch ${prefix}_alabaster_matrix_output.rds
-    echo "BIOC_ALABASTER_MATRIX:" > versions.yml
-    echo "    alabaster_matrix: 0.0.0" >> versions.yml
+    touch ${prefix}_alabaster_matrix_roundtrip_pca.csv versions.yml
     """
 }
 
-
-workflow BIOC_ALABASTER_MATRIX_WORKFLOW {
+workflow BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ALABASTER_MATRIX(ch_input)
+    BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA(ch_input)
 
     emit:
-    results  = BIOC_ALABASTER_MATRIX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ALABASTER_MATRIX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ALABASTER_MATRIX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ALABASTER_MATRIX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA.out.tables
+    plots    = BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA.out.plots
+    objects  = BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA.out.objects
+    versions = BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA.out.versions
 }

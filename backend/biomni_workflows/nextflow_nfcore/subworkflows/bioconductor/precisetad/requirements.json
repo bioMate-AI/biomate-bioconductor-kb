@@ -1,0 +1,18 @@
+{
+  "package": "precisetad",
+  "requirements": [
+    "GenomicRanges",
+    "e1071",
+    "preciseTAD"
+  ],
+  "by_workflow": {
+    "cross_cell_type_prediction.nf": [
+      "preciseTAD"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "e1071",
+      "preciseTAD"
+    ]
+  }
+}

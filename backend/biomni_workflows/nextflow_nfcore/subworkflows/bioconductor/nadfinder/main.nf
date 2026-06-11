@@ -1,131 +1,152 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NADfinder
-// Nucleolus is an important structure inside the nucleus in eukaryotic cells. It is the site for trans
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NADfinder/inst/doc/NADfinder.R
-// Upstream  : SummarizedExperiment, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("NADfinder")
+// Bioconductor workflow: nadfinder — single_pair_nad_seq
+// Identify nucleolar-associated domains (NADs) from a single pair of nucleolus-associated DNA and genomic DNA sequencing samples.
+// Input: nucleolus.bam, genomic.bam
+// Container: quay.io/biocontainers/bioconductor-nadfinder:1.34.0--r45hdfd78af_0
+// R packages: BSgenome.Mmusculus.UCSC.mm10, GenomicAlignments, Rsamtools, NADfinder, rtracklayer, SummarizedExperiment
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NADFINDER {
+process BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nadfinder"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nadfinder:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nadfinder:1.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-nadfinder:1.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nadfinder_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nadfinder_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nadfinder_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Mmusculus.UCSC.mm10", "GenomicAlignments", "Rsamtools", "NADfinder", "rtracklayer", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(NADfinder)
-    library(jsonlite)
-
-    # --- Ratio Calculation [] ---
-    # Key functions: log2se
-    dat <- log2se(
-        se = single.count,
-        nucleolusCols = "N18.subsampled.srt.bam",
-        genomeCols = "G18.subsampled.srt.bam",
-        transformation = "log2CPMRatio"
-    )
-
-
-    # --- Chromosome Smoothing [] ---
-    # Key functions: smoothRatiosByChromosome, cumulativePercentage
-    datList <- smoothRatiosByChromosome(
-        se = dat,
-        chr = c("chr18", "chr19"),
-        N = 100
-    )
-    cum_pct <- cumulativePercentage(datList[["chr18"]])
-
-
-    # --- Peak Calling [] ---
-    # Key functions: trimPeaks, callPeaks
-    peaks_list <- lapply(
-        datList,
-        trimPeaks,
-        backgroundPercentage = 0.25,
-        cutoffAdjPvalue = 0.05,
-        countFilter = 1000
-    )
-    peaks_gr <- unlist(GenomicRanges::GRangesList(peaks_list))
-
-
-    # --- Signal Visualization [] ---
-    # Key functions: plotSig
-    ideo_file <- system.file(
-        "extdata", "ideo.mm10.rds",
-        package = "NADfinder"
-    )
-    ideo <- readRDS(ideo_file)
-    plotSig(
-        ideo = ideo,
-        grList = GenomicRanges::GRangesList(peaks_gr),
-        mcolName = "AveSig",
-        layout = list("chr18"),
-        parameterList = list(types = "heatmap")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nadfinder_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nadfinder_results.csv")
+    library(SummarizedExperiment)
+    library(BSgenome.Mmusculus.UCSC.mm10)
+    library(GenomicAlignments)
+    library(Rsamtools)
+    
+    # Define input files in the working directory
+    nucleolus_bam <- "nucleolus.bam"
+    genomic_bam <- "genomic.bam"
+    
+    # Ensure BAM files are indexed
+    for (bf in c(nucleolus_bam, genomic_bam)) {
+      if (!file.exists(paste0(bf, ".bai"))) {
+        message("Indexing ", bf, "...")
+        indexBam(bf)
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nadfinder_output.rds")
+    
+    # Set parameters
+    path <- "."
+    bamFiles <- c(nucleolus_bam, genomic_bam)
+    ws <- 50000
+    step <- 5000
+    backgroundPercentage <- 0.25
+    
+    # 1. Calculate read coverage in sliding windows using tileCount
+    se <- tileCount(reads=file.path(path, bamFiles), 
+                    genome=Mmusculus, 
+                    windowSize=ws, 
+                    step=step, 
+                    mode = IntersectionNotStrict, 
+                    dataOverSamples = FALSE)
+    
+    # 2. Compute log2 ratios of nucleolus vs genomic DNA using log2se
+    # Dynamically retrieve column names to avoid path mismatch issues
+    nucleolus_col <- colnames(se)[1]
+    genomic_col <- colnames(se)[2]
+    
+    dat <- log2se(se, 
+                  nucleolusCols = nucleolus_col, 
+                  genomeCols = genomic_col, 
+                  transformation = "log2CPMRatio")
+    
+    # 3. Smooth ratios per chromosome using smoothRatiosByChromosome
+    # Ensure we only use chromosomes present in the dataset
+    target_chrs <- intersect(c("chr18", "chr19"), seqlevels(se))
+    if (length(target_chrs) == 0) {
+      target_chrs <- seqlevels(se)[1]
     }
+    
+    datList <- smoothRatiosByChromosome(dat, chr = target_chrs, N = 100)
+    
+    # 4. Assess quality using cumulativePercentage
+    pdf("cumulative_percentage.pdf")
+    cumulativePercentage(datList[[target_chrs[1]]])
+    dev.off()
+    
+    # 5. Call and trim peaks using trimPeaks
+    peaks <- lapply(datList, 
+                    trimPeaks, 
+                    backgroundPercentage=backgroundPercentage, 
+                    cutoffAdjPvalue=0.05, 
+                    countFilter=1000)
+    
+    # 6. Export peaks to CSV format
+    peaks.gr <- unlist(GRangesList(peaks))
+    write.csv(as.data.frame(unname(peaks.gr)), "peaklist.csv", row.names=FALSE)
+    
+    # Save RDS of the smoothed ratios for downstream analysis
+    saveRDS(datList, "smoothed_ratios.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NADFINDER:", paste0("    nadfinder: ", packageVersion("NADfinder"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ":',
+        paste0('        nadfinder: ', as.character(packageVersion("nadfinder")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nadfinder_results.csv
-    touch ${prefix}_nadfinder_output.rds
-    echo "BIOC_NADFINDER:" > versions.yml
-    echo "    nadfinder: 0.0.0" >> versions.yml
+    touch ${prefix}_single_pair_nad_seq.csv versions.yml
     """
 }
 
-
-workflow BIOC_NADFINDER_WORKFLOW {
+workflow BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ nucleolus.bam, genomic.bam ] ]
 
     main:
-    BIOC_NADFINDER(ch_input)
+    BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ(ch_input)
 
     emit:
-    results  = BIOC_NADFINDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NADFINDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NADFINDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NADFINDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ.out.tables
+    plots    = BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ.out.plots
+    objects  = BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ.out.objects
+    versions = BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ.out.versions
 }

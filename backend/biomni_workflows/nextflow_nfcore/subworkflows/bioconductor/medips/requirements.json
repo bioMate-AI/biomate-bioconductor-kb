@@ -1,0 +1,17 @@
+{
+  "package": "medips",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "MEDIPS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "MEDIPS"
+    ],
+    "quality_control_analysis.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "MEDIPS"
+    ]
+  }
+}

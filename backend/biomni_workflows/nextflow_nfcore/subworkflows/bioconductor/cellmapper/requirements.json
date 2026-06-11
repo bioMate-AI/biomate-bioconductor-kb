@@ -1,0 +1,16 @@
+{
+  "package": "cellmapper",
+  "requirements": [
+    "CellMapper",
+    "ExperimentHub"
+  ],
+  "by_workflow": {
+    "custom_data_search.nf": [
+      "CellMapper"
+    ],
+    "main.nf": [
+      "CellMapper",
+      "ExperimentHub"
+    ]
+  }
+}

@@ -1,134 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: spicyR
-// The spicyR package provides a framework for performing inference on changes in spatial relationships
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/spicyR/inst/doc/spicyR.R
-// Upstream  : BiocStyle, SpatialDatasets, SpatialExperiment, dplyr, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("spicyR")
+// Bioconductor workflow: spicyR — pairwise_localization_modeling
+// Test for changes in pairwise cell type localization across conditions using linear or mixed-effects models.
+// Input: kerenSPE, diabetesData
+// Container: quay.io/biocontainers/bioconductor-spicyr:1.22.0--r45hdfd78af_0
+// R packages: SummarizedExperiment, BiocStyle, dplyr, ggplot2, spatialdatasets, SpatialExperiment, spicyR, survival
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPICYR {
+process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-spicyr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spicyr:1.18.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-spicyr:1.18.1--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-spicyr:1.22.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_spicyr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_spicyr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_spicyr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SummarizedExperiment", "BiocStyle", "dplyr", "ggplot2", "spatialdatasets", "SpatialExperiment", "spicyR", "survival")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required packages
+    library(SummarizedExperiment)
+    
+    # Define S4 class union workaround for the inheritance bug
+    methods::setClassUnion("ExpData", c("matrix", "dgCMatrix", "ExpressionSet",
+                                        "SummarizedExperiment"))
+    
     library(spicyR)
-    library(Surv)
-    library(jsonlite)
-
-    # --- Significance Visualization [] ---
-    # Key functions: signifPlot, spicyBoxPlot
+    library(ggplot2)
+    library(SpatialExperiment)
+    library(dplyr)
+    library(survival)
+    
+    # Helper function to load inputs from the working directory
+    load_input <- function(filename) {
+      if (file.exists(filename)) {
+        return(readRDS(filename))
+      } else if (file.exists(paste0(filename, ".rds"))) {
+        return(readRDS(paste0(filename, ".rds")))
+      } else {
+        stop(paste("Required input file not found:", filename))
+      }
+    }
+    
+    # Read user inputs
+    kerenSPE <- load_input("kerenSPE")
+    diabetesData <- load_input("diabetesData")
+    
+    # 1. Test for change in localization for a specific pair of cells
+    spicyTestPair <- spicy(
+      kerenSPE,
+      condition = "tumour_type",
+      from = "CD8_T_cell",
+      to = "Neutrophils"
+    )
+    
+    # Extract and save results for the specific pair
+    testPairResults <- topPairs(spicyTestPair)
+    write.csv(testPairResults, "spicyTestPair_results.csv", row.names = TRUE)
+    saveRDS(spicyTestPair, "spicyTestPair.rds")
+    
+    # 2. Test for change in localization for all pairwise cell combinations
+    spicyTest <- spicy(
+      kerenSPE,
+      condition = "tumour_type"
+    )
+    
+    # Extract and save results for all pairwise combinations
+    testResults <- topPairs(spicyTest)
+    write.csv(testResults, "spicyTest_results.csv", row.names = TRUE)
+    saveRDS(spicyTest, "spicyTest.rds")
+    
+    # 3. Extract image-level L-function metrics using bind()
+    bindResults <- bind(spicyTest)
+    write.csv(bindResults, "spicyTest_bind.csv", row.names = TRUE)
+    
+    # 4. Visualize significant relationships using signifPlot()
+    pdf("signifPlot.pdf", width = 8, height = 8)
     signifPlot(
-        spicyTest,
-        breaks = c(-3, 3, 1),
-        marksToPlot = c("Macrophages", "DC_or_Mono", "dn_T_CD3",
-                        "Neutrophils", "CD8_T_cell", "Keratin_Tumour")
+      spicyTest,
+      breaks = c(-3, 3, 1),
+      marksToPlot = c("Macrophages", "DC_or_Mono", "dn_T_CD3", "Neutrophils",
+                      "CD8_T_cell", "Keratin_Tumour")
     )
-    spicyBoxPlot(
-        results = spicyTest,
-        rank = 1
+    dev.off()
+    
+    # 5. Generate boxplots for specific cell-cell relationships using spicyBoxPlot()
+    pdf("spicyBoxPlot.pdf", width = 6, height = 6)
+    spicyBoxPlot(results = spicyTest, 
+                 # from = "Macrophages",
+                 # to = "dn_T_CD3"
+                 rank = 1)
+    dev.off()
+    
+    # 6. Perform mixed-effects modeling by specifying the subject parameter
+    spicyMixedTest <- spicy(
+      diabetesData,
+      condition = "stage",
+      subject = "case"
     )
+    
+    # Extract and save mixed-effects modeling results
+    mixedResults <- topPairs(spicyMixedTest)
+    write.csv(mixedResults, "spicyMixedTest_results.csv", row.names = TRUE)
+    saveRDS(spicyMixedTest, "spicyMixedTest.rds")
 
-
-    # --- Spatial Graph Conversion and Testing [] ---
-    # Key functions: convPairs, spicy, topPairs
-    pairAbundances <- convPairs(
-        kerenSPE,
-        colPair = "knn_interaction_graph"
-    )
-    spicyTestColPairs <- spicy(
-        kerenSPE,
-        condition = "tumour_type",
-        alternateResult = pairAbundances,
-        weights = FALSE
-    )
-    topColPairs <- topPairs(spicyTestColPairs)
-
-
-    # --- Pairwise Association Estimation [] ---
-    # Key functions: getPairwise
-    kerenSubset <- kerenSPE[, colData(kerenSPE)$imageID == "24"]
-    pairwiseAssoc <- getPairwise(
-        kerenSubset,
-        sigma = 20,
-        Rs = 100
-    )
-    pairwiseDF <- as.data.frame(pairwiseAssoc)
-
-
-    # --- Spatial Image Plotting [] ---
-    # Key functions: plotImage
-    plotImage(
-        kerenSPE,
-        "24",
-        from = "Keratin_Tumour",
-        to = "Neutrophils"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spicyr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spicyr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spicyr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPICYR:", paste0("    spicyr: ", packageVersion("spicyR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING":',
+        paste0('        spicyR: ', as.character(packageVersion("spicyR")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_spicyr_results.csv
-    touch ${prefix}_spicyr_output.rds
-    echo "BIOC_SPICYR:" > versions.yml
-    echo "    spicyr: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_localization_modeling.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPICYR_WORKFLOW {
+workflow BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ kerenSPE, diabetesData ] ]
 
     main:
-    BIOC_SPICYR(ch_input)
+    BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING(ch_input)
 
     emit:
-    results  = BIOC_SPICYR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPICYR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPICYR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPICYR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING.out.tables
+    plots    = BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING.out.plots
+    objects  = BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING.out.objects
+    versions = BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING.out.versions
 }

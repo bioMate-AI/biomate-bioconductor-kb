@@ -1,0 +1,11 @@
+{
+  "package": "epidecoder",
+  "requirements": [
+    "epidecodeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "epidecodeR"
+    ]
+  }
+}

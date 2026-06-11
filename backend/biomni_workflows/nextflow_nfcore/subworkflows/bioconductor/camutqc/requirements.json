@@ -1,0 +1,14 @@
+{
+  "package": "camutqc",
+  "requirements": [
+    "CaMutQC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CaMutQC"
+    ],
+    "multi_caller_integration.nf": [
+      "CaMutQC"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "package": "motifstack",
+  "requirements": [
+    "RColorBrewer",
+    "ade4",
+    "ggplot2",
+    "htmlwidgets",
+    "motifStack"
+  ],
+  "by_workflow": {
+    "advanced_grouped_layouts.nf": [
+      "RColorBrewer",
+      "ade4",
+      "motifStack"
+    ],
+    "ggplot2_motif_plotting.nf": [
+      "ggplot2",
+      "motifStack"
+    ],
+    "interactive_motif_browsing.nf": [
+      "ade4",
+      "htmlwidgets",
+      "motifStack"
+    ],
+    "main.nf": [
+      "motifStack"
+    ],
+    "motif_cloud_and_signatures.nf": [
+      "RColorBrewer",
+      "ade4",
+      "motifStack"
+    ],
+    "multiple_motif_stack_and_tree.nf": [
+      "RColorBrewer",
+      "motifStack"
+    ]
+  }
+}

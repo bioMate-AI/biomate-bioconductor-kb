@@ -1,0 +1,19 @@
+{
+  "package": "made4",
+  "requirements": [
+    "ade4",
+    "made4",
+    "scatterplot3d"
+  ],
+  "by_workflow": {
+    "coinertia_analysis.nf": [
+      "ade4",
+      "made4"
+    ],
+    "main.nf": [
+      "ade4",
+      "made4",
+      "scatterplot3d"
+    ]
+  }
+}

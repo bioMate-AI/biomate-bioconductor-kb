@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: A=The primary query region set (GRanges, data.frame, BED file, or UCSC/IGV character strings) ;; B=The secondary region set to compare against A ;; ntimes=The number of permutations/randomizations to perform ;; randomize.function=The function used to randomize region set A (e.g., randomizeRegions, circularRandomizeRegions, resampleRegions) ;; evaluate.function=The function used to evaluate the association (e.g., numOverlaps, meanDistance, meanInRegion) ;; genome=The genome assembly name (e.g., \"hg19\") or specification to define chromosome lengths ;; mask=Genomic regions to exclude from randomization (e.g., centromeres, unmappable regions) ;; count.once=Logical parameter passed to numOverlaps to count a region in A at most once even if it overlaps multiple regions in B ;; mc.set.seed=Must be set to FALSE when using parallel execution with set.seed to ensure reproducibility ;; per.chromosome=Logical parameter for randomizeRegions to restrict randomization within the same chromosome ;; non.overlapping=Logical parameter for randomizeRegions to prevent randomized regions from overlapping each other\n- alternatives: Pure C implementations like bedtools can be preferred for faster raw overlap calculations when R integration is not required. Specific region-level analysis tools should be used instead of regioneR if the goal is to identify which specific regions in a set are associated, rather than testing the overall association of the set as a whole.\n- when_to_use: Use this package when you need to statistically assess whether two genomic region sets (e.g., ChIP-seq peaks, CpG islands, promoters, mutated regions) overlap or associate more (or less) than expected by chance. It is also appropriate when you want to determine if a genomic association is highly dependent on exact positioning (local effect) or is a broader regional effect using local Z-scores.\n- pitfalls: Using too few permutations (e.g., ntimes=50) limits the minimum achievable p-value and can produce less accurate results. Failing to use named parameters in permTest (due to the ellipsis operator forwarding arguments) can cause hard-to-debug errors. Forgetting to set mc.set.seed = FALSE alongside set.seed() when running parallelized tests leads to non-reproducible results. Using randomizeRegions with dense masks or non-overlapping constraints can be extremely slow compared to circularRandomizeRegions or resampleRegions.",
+  "workflows": [
+    {
+      "name": "overlap_permutation_test",
+      "intent": "Statistically evaluate whether two genomic region sets overlap more (or less) than expected by chance using a permutation test.",
+      "input": [
+        "cpgHMM.txt (CpG islands region set file)",
+        "UCSC.promoters.hg19.bed (Gene promoters region set file)"
+      ],
+      "stages": "1. Load region sets using toGRanges ;; 2. Filter out non-canonical chromosomes using filterChromosomes ;; 3. Subset regions if necessary to speed up analysis ;; 4. Run the permutation test using overlapPermTest ;; 5. Plot the permutation test results using plot",
+      "code": "cpgHMM <- toGRanges(\"http://www.haowulab.org/software/makeCGI/model-based-cpg-islands-hg19.txt\")\npromoters <- toGRanges(\"http://gattaca.imppc.org/regioner/data/UCSC.promoters.hg19.bed\")\ncpgHMM <- filterChromosomes(cpgHMM, organism=\"hg\", chr.type=\"canonical\")\npromoters <- filterChromosomes(promoters, organism=\"hg\", chr.type=\"canonical\")\ncpgHMM_2K <- sample(cpgHMM, 2000)\npt <- overlapPermTest(cpgHMM_2K, promoters, ntimes=1000, genome=\"hg19\", count.once=TRUE)\nplot(pt)"
+    },
+    {
+      "name": "local_zscore_analysis",
+      "intent": "Evaluate whether a detected genomic association is highly dependent on the exact position of the regions (local effect) or is a broad regional effect.",
+      "input": [
+        "Rad21.gz (ChIP-seq peaks for Rad21)",
+        "Ctcf.gz (ChIP-seq peaks for CTCF)"
+      ],
+      "stages": "1. Load region sets using toGRanges ;; 2. Filter chromosomes using filterChromosomes ;; 3. Subset regions if necessary to speed up analysis ;; 4. Run the permutation test using permTest ;; 5. Calculate local Z-scores by shifting regions using localZScore ;; 6. Plot the local Z-score profile using plot",
+      "code": "HepG2_Rad21 <- toGRanges(gzfile(\"Rad21.gz\"), header=FALSE)\nHepG2_Ctcf <- toGRanges(gzfile(\"Ctcf.gz\"), header=FALSE)\npromoters <- toGRanges(\"http://gattaca.imppc.org/regioner/data/UCSC.promoters.hg19.bed\")\npromoters <- filterChromosomes(promoters, organism=\"hg19\")\nHepG2_Rad21_5K <- sample(HepG2_Rad21, 5000)\npt_Rad21_5k_vs_Ctcf <- permTest(A=HepG2_Rad21_5K, B=HepG2_Ctcf, ntimes=1000, randomize.function=circularRandomizeRegions, evaluate.function=numOverlaps, count.once=TRUE, genome=\"hg19\", mc.set.seed=FALSE, mc.cores=4)\nlz_Rad21_vs_Ctcf_1 <- localZScore(A=HepG2_Rad21_5K, B=HepG2_Ctcf, pt=pt_Rad21_5k_vs_Ctcf, window=1000, step=50, count.once=TRUE)\nplot(lz_Rad21_vs_Ctcf_1, main=\"Rad21_5k vs CTCF (1Kbp)\")"
+    }
+  ]
+}

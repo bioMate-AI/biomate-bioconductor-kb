@@ -1,90 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: multiscan
-// Estimates gene expressions from several laser scans of the same microarray
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/multiscan/inst/doc/multiscan.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("multiscan")
+// Bioconductor workflow: multiscan — estimate_gene_expression_multiscan
+// Estimate gene expressions from multiple laser scans of a single microarray and perform model diagnostics.
+// Input: intensity_data.csv
+// Container: quay.io/biocontainers/bioconductor-multiscan:1.70.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: multiscan
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the raw intensity data
+//  * 2. [Core Analysis] Fit the non-linear functional regression model using multiscan
+//  * 3. [Core Analysis] Inspect the fitted model object
+//  * 4. [Core Analysis] Extract the estimated gene expressions
+//  * 5. [Visualization & Output] Plot the fitted model and diagnostic residuals
 
 nextflow.enable.dsl = 2
 
-process BIOC_MULTISCAN {
+process BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-multiscan"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-multiscan:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-multiscan:1.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_multiscan_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_multiscan_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_multiscan_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(multiscan)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: multiscan
-    data(murine)
-    fit<-multiscan(murine)
-    fit
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_multiscan_results.csv", row.names = TRUE)
+    
+    # 1. Load the raw intensity data
+    # Read the user input file 'intensity_data.csv'
+    raw_data <- read.csv("intensity_data.csv", header = TRUE, check.names = FALSE)
+    
+    # Process the data to ensure it is a numeric matrix/data frame
+    # If the first column is non-numeric (e.g., probe IDs), set them as row names
+    if (!is.numeric(raw_data[[1]])) {
+      row_names <- raw_data[[1]]
+      murine <- as.matrix(raw_data[, -1, drop = FALSE])
+      rownames(murine) <- row_names
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_multiscan_results.csv")
+      murine <- as.matrix(raw_data)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_multiscan_output.rds")
+    
+    # 2. Fit the non-linear functional regression model using multiscan
+    fit<-multiscan(murine)
+    
+    # 3. Inspect the fitted model object
+    fit
+    str(fit)
+    
+    # 4. Extract the estimated gene expressions
+    gene.exprs<-fit\$mu
+    
+    # Save the estimated gene expressions to a CSV file
+    probe_ids <- rownames(murine)
+    if (is.null(probe_ids)) {
+      probe_ids <- seq_len(nrow(murine))
     }
+    expression_df <- data.frame(ProbeID = probe_ids, EstimatedExpression = gene.exprs)
+    write.csv(expression_df, "gene_expression_estimates.csv", row.names = FALSE)
+    
+    # Save the fitted model object as an RDS file
+    saveRDS(fit, "multiscan_fit.rds")
+    
+    # 5. Plot the fitted model and diagnostic residuals
+    # Save the fitted model plot
+    pdf("multiscan_fit_plot.pdf", width = 7, height = 7)
+    plot(fit)
+    dev.off()
+    
+    # Save the diagnostic residuals plot
+    pdf("multiscan_diagnostics_plot.pdf", width = 8, height = 8)
+    op<-par(mfrow=c(2,2))
+    plot(fit,residual=TRUE)
+    par(op)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MULTISCAN:", paste0("    multiscan: ", packageVersion("multiscan"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN":',
+        paste0('    multiscan: ', as.character(packageVersion('multiscan')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_multiscan_results.csv
-    touch ${prefix}_multiscan_output.rds
-    echo "BIOC_MULTISCAN:" > versions.yml
-    echo "    multiscan: 0.0.0" >> versions.yml
+    touch ${prefix}_estimate_gene_expression_multiscan.csv versions.yml
     """
 }
 
-
-workflow BIOC_MULTISCAN_WORKFLOW {
+workflow BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ intensity_data.csv ] ]
 
     main:
-    BIOC_MULTISCAN(ch_input)
+    BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN(ch_input)
 
     emit:
-    results  = BIOC_MULTISCAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MULTISCAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MULTISCAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MULTISCAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN.out.tables
+    plots    = BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN.out.plots
+    objects  = BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN.out.objects
+    versions = BIOC_MULTISCAN_ESTIMATE_GENE_EXPRESSION_MULTISCAN.out.versions
 }

@@ -1,0 +1,29 @@
+{
+  "package": "scone",
+  "requirements": [
+    "BiocParallel",
+    "DelayedArray",
+    "HDF5Array",
+    "Seurat",
+    "SingleCellExperiment",
+    "rhdf5",
+    "scater",
+    "scone"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "scone"
+    ],
+    "psinorm_standalone_normalization.nf": [
+      "DelayedArray",
+      "HDF5Array",
+      "Seurat",
+      "SingleCellExperiment",
+      "rhdf5",
+      "scater",
+      "scone"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "tscan",
+  "requirements": [
+    "TSCAN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TSCAN"
+    ]
+  }
+}

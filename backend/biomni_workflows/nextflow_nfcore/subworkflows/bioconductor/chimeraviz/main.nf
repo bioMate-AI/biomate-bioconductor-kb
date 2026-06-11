@@ -1,105 +1,124 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: chimeraviz
-// chimeraviz manages data from fusion gene finders and provides useful visualization tools.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/chimeraviz/inst/doc/chimeraviz-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("chimeraviz")
+// Bioconductor workflow: chimeraviz — supporting_reads_alignment_and_plotting
+// Extract and align supporting RNA-seq reads to a custom fusion junction reference sequence and visualize the alignment.
+// Input: defuse_833ke_results.filtered.tsv, reads_supporting_defuse_fusion_5267.1.fq, reads_supporting_defuse_fusion_5267.2.fq
+// Container: quay.io/biocontainers/bioconductor-chimeraviz:1.36.0--r45hdfd78af_0
+// R packages: chimeraviz
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIMERAVIZ {
+process BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chimeraviz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chimeraviz:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chimeraviz:1.32.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chimeraviz:1.36.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chimeraviz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chimeraviz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chimeraviz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("chimeraviz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load chimeraviz library
     library(chimeraviz)
-    library(jsonlite)
-
-    # --- Write Fusion Reference [] ---
-    # Key functions: write_fusion_reference
-    ---------------------------------------------------------------------
-    referenceFilename <- "reference.fa"
-    write_fusion_reference(fusion = fusion, filename = referenceFilename)
-    # --- Add Fusion Reads Alignment [] ---
-    # Key functions: add_fusion_reads_alignment
-    ---------------------------------------------------------------------
-    # Add bamfile of fusion reads to the fusion oject
-    fusion <- add_fusion_reads_alignment(fusion, bamfile5267)
-    # --- Get Fusion By Gene Name [] ---
-    # Key functions: get_fusion_by_gene_name
-    ---------------------------------------------------------------------
-    # See if we can find any fusions involving RCC1
-    get_fusion_by_gene_name(fusions, "RCC1")
-    # --- Get Fusion By Id [] ---
-    # Key functions: get_fusion_by_id
-    ---------------------------------------------------------------------
-    # Extract the specific fusion
+    
+    # Define input files from the working directory
+    defuse833ke <- "defuse_833ke_results.filtered.tsv"
+    fastq1 <- "reads_supporting_defuse_fusion_5267.1.fq"
+    fastq2 <- "reads_supporting_defuse_fusion_5267.2.fq"
+    
+    # 1. Import fusion data and select the target fusion event
+    fusions <- import_defuse(defuse833ke, "hg19", 1)
     fusion <- get_fusion_by_id(fusions, 5267)
+    
+    # 2. Write the fusion junction reference sequence to a FASTA file
+    referenceFilename <- "reference.fa"
+    reference_filename <- "reference.fa" # Define both to ensure compatibility with documented code variables
+    write_fusion_reference(fusion = fusion, filename = referenceFilename)
+    
+    # 3. Source alignment wrapper scripts and align supporting reads to the reference
+    # Using find.package to locate the script without using system.file
+    rsubread_script <- file.path(find.package("chimeraviz"), "scripts", "rsubread.R")
+    source(rsubread_script)
+    
+    # Create index
+    rsubread_index(reference_fasta = reference_filename)
+    
+    # Align reads
+    rsubread_align(
+      reference_name = reference_filename,
+      fastq1 = fastq1,
+      fastq2 = fastq2,
+      output_bam_filename = "fusion_alignment")
+    
+    # 4. Add the resulting BAM alignment to the Fusion object
+    bamfile5267 <- "fusion_alignment.bam"
+    fusion <- add_fusion_reads_alignment(fusion, bamfile5267)
+    
+    # 5. Plot the aligned supporting reads across the fusion junction and save to PDF
+    pdf("fusion_reads_plot.pdf", width = 12, height = 6)
+    plot_fusion_reads(fusion)
+    dev.off()
+    
+    # Save the final fusion object as an RDS file
+    saveRDS(fusion, "fusion_object.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chimeraviz_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chimeraviz_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chimeraviz_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIMERAVIZ:", paste0("    chimeraviz: ", packageVersion("chimeraviz"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING":',
+        paste0('        chimeraviz: ', as.character(packageVersion("chimeraviz")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chimeraviz_results.csv
-    touch ${prefix}_chimeraviz_output.rds
-    echo "BIOC_CHIMERAVIZ:" > versions.yml
-    echo "    chimeraviz: 0.0.0" >> versions.yml
+    touch ${prefix}_supporting_reads_alignment_and_plotting.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIMERAVIZ_WORKFLOW {
+workflow BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ defuse_833ke_results.filtered.tsv, reads_supporting_defuse_fusion_5267.1.fq, reads_supporting_defuse_fusion_5267.2.fq ] ]
 
     main:
-    BIOC_CHIMERAVIZ(ch_input)
+    BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING(ch_input)
 
     emit:
-    results  = BIOC_CHIMERAVIZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIMERAVIZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIMERAVIZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIMERAVIZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING.out.tables
+    plots    = BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING.out.plots
+    objects  = BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING.out.objects
+    versions = BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING.out.versions
 }

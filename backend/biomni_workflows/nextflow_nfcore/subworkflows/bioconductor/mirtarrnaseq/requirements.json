@@ -1,0 +1,29 @@
+{
+  "package": "mirtarrnaseq",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "mirTarRnaSeq",
+    "reshape2",
+    "tidyr",
+    "viridis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "mirTarRnaSeq",
+      "reshape2"
+    ],
+    "mirna_mrna_correlation_multi_timepoint.nf": [
+      "dplyr",
+      "ggplot2",
+      "mirTarRnaSeq",
+      "reshape2",
+      "tidyr",
+      "viridis"
+    ],
+    "mirna_mrna_relationship_two_timepoint.nf": [
+      "mirTarRnaSeq"
+    ]
+  }
+}

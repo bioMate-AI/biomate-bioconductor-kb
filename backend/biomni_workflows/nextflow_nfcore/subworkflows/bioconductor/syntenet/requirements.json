@@ -1,0 +1,19 @@
+{
+  "package": "syntenet",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "htmlwidgets",
+    "labdsv",
+    "syntenet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "htmlwidgets",
+      "labdsv",
+      "syntenet"
+    ]
+  }
+}

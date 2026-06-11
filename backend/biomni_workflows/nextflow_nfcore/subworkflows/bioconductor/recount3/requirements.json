@@ -1,0 +1,21 @@
+{
+  "package": "recount3",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "recount3"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "recount3"
+    ]
+  }
+}

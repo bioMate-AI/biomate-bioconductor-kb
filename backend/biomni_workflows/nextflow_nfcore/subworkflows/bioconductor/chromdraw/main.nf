@@ -1,131 +1,117 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: chromDraw
-// ChromDraw is a R package for drawing the schemes of karyotype(s) in the linear and circular fashion.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/chromDraw/inst/doc/chromDraw.R
-// Upstream  : GenomicRanges
-// Downstream: none
-//
-// Install: BiocManager::install("chromDraw")
+// Bioconductor workflow: chromdraw — text_file_karyotype
+// Visualize karyotypes and cytogenetic marks using custom text-based definition and color files.
+// Input: karyotype_definition.txt, color_definitions.txt
+// Container: quay.io/biocontainers/bioconductor-chromdraw:2.40.0--r45ha27e39d_0
+// R packages: chromDraw, GenomicRanges
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHROMDRAW {
+process BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chromdraw"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chromdraw:2.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chromdraw:2.36.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chromdraw:2.40.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chromdraw_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chromdraw_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chromdraw_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("chromDraw", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required library
     library(chromDraw)
-    library(GRanges)
-    library(IRanges)
-    library(Rle)
-    library(jsonlite)
-
-    # --- Karyotype Visualization from Genomic Ranges [] ---
-    # Key functions: chromDrawGR
-    chromDraw::chromDrawGR(
-        list(exampleData),
-        exampleColor
-    )
-
-
-    # --- Karyotype Visualization from Text Files [] ---
-    # Key functions: chromDraw
-    outputPath <- file.path(getwd())
-    inputPath <- system.file(
-        "extdata",
-        "Ack_and_Stenopetalum_nutans.txt",
-        package = "chromDraw"
-    )
-    colorPath <- system.file(
-        "extdata",
-        "default_colors.txt",
-        package = "chromDraw"
-    )
-    chromDraw::chromDraw(
-        argc = 7,
-        argv = c(
-            "chromDraw", "-c", colorPath, "-d", inputPath, "-o", outputPath
-        )
-    )
-
-
-    # --- Karyotype Visualization from BED Files [] ---
-    # Key functions: chromDraw
-    outputPath <- file.path(getwd())
-    inputPath <- system.file(
-        "extdata",
-        "bed.bed",
-        package = "chromDraw"
-    )
-    chromDraw::chromDraw(
-        argc = 7,
-        argv = c(
-            "chromDraw", "-f", "bed", "-d", inputPath, "-o", outputPath
-        )
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chromdraw_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chromdraw_results.csv")
+    
+    # 1. Define output path and input file paths
+    # The pipeline reads exactly these files from the working directory as specified
+    INPUTPATH <- file.path(getwd(), "karyotype_definition.txt")
+    COLORPATH <- file.path(getwd(), "color_definitions.txt")
+    OUTPUTPATH <- file.path(getwd())
+    
+    # Verify that the required input files exist before running
+    if (!file.exists(INPUTPATH)) {
+      stop(paste("Required input file missing:", INPUTPATH))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chromdraw_output.rds")
+    if (!file.exists(COLORPATH)) {
+      stop(paste("Required color file missing:", COLORPATH))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHROMDRAW:", paste0("    chromdraw: ", packageVersion("chromDraw"))),
-        "versions.yml"
+    
+    # 2. Run visualization using chromDraw with command-line style arguments
+    # The first element of the argv vector must always be the package name "chromDraw"
+    # argc is set to 7, representing the 7 elements in the argv vector
+    status <- chromDraw(
+      argc = 7,  
+      argv = c(
+        "chromDraw",
+        "-c", COLORPATH,
+        "-d", INPUTPATH,
+        "-o", OUTPUTPATH
+      )
     )
+    
+    # 3. Write named output files for the meaningful results
+    # Save the execution status of the chromDraw run
+    saveRDS(status, file = file.path(OUTPUTPATH, "chromDraw_status.rds"))
+    
+    # Print execution status
+    cat("chromDraw execution completed with status code:", status, "\n")
+
+    writeLines(c(
+        '"BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE":',
+        paste0('        chromdraw: ', as.character(packageVersion("chromdraw")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chromdraw_results.csv
-    touch ${prefix}_chromdraw_output.rds
-    echo "BIOC_CHROMDRAW:" > versions.yml
-    echo "    chromdraw: 0.0.0" >> versions.yml
+    touch ${prefix}_text_file_karyotype.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHROMDRAW_WORKFLOW {
+workflow BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ karyotype_definition.txt, color_definitions.txt ] ]
 
     main:
-    BIOC_CHROMDRAW(ch_input)
+    BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE(ch_input)
 
     emit:
-    results  = BIOC_CHROMDRAW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHROMDRAW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHROMDRAW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHROMDRAW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE.out.tables
+    plots    = BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE.out.plots
+    objects  = BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE.out.objects
+    versions = BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE.out.versions
 }

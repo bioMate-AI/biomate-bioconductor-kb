@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: edgelist_ppi=A data frame representing the protein-protein interaction network as an edge list ;; paralogs=A data frame containing paralogous gene pairs ;; grn=A data frame representing the gene regulatory network as an edge list ;; lambda_vec=A character vector of previously identified lambda motifs, used to speed up delta and bifan motif identification ;; n=The number of permutations/simulations to run in generate_nulls() (N >= 1000 is recommended for real analyses) ;; observed=A named list of observed motif counts ;; nulls=A list of numeric vectors representing the null distributions of motif frequencies\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when analyzing gene regulatory networks and/or protein-protein interaction networks to understand how gene duplication (e.g., whole-genome or small-scale duplications) affects network topology, motif enrichment, and interaction similarity.\n- pitfalls: Generating null distributions with generate_nulls() can be computationally intensive; while parallelization via BiocParallel is supported, the overhead of copying data to multiple cores may sometimes make it slower than single-core execution. ;; Finding delta and bifan motifs from scratch can be slow; it is highly recommended to pass a pre-calculated lambda_vec to find_delta() and find_bifan() to avoid redundant calculations.",
+  "workflows": [
+    {
+      "name": "motif_analysis",
+      "intent": "Identify network motifs (PPI V, V, lambda, delta, bifan) in GRN and PPI networks, and evaluate their statistical significance using simulated null distributions.",
+      "input": [
+        "grn_edgelist.tsv (Gene regulatory network edge list)",
+        "ppi_edgelist.tsv (Protein-protein interaction network edge list)",
+        "paralog_pairs.tsv (Paralogous gene pairs)"
+      ],
+      "stages": "1. Find PPI V motifs using find_ppi_v() ;; 2. Find V motifs using find_v() ;; 3. Find Lambda motifs using find_lambda() ;; 4. Find Delta motifs using find_delta() by passing the identified lambda motifs ;; 5. Find Bifan motifs using find_bifan() by passing the identified lambda motifs ;; 6. Generate null distributions of motif frequencies using generate_nulls() ;; 7. Calculate Z-scores for observed motif frequencies using calculate_Z()",
+      "code": "ppi_v <- find_ppi_v(gma_ppi, paralogs)\nv <- find_v(grn, paralogs)\nlambda <- find_lambda(grn, paralogs)\ndelta <- find_delta(edgelist_ppi = gma_ppi, lambda_vec = lambda)\nbifan <- find_bifan(paralogs = paralogs, lambda_vec = lambda)\ngenerate_nulls(grn, paralogs, gma_ppi, n = 5)\nobserved <- list(\n    lambda = length(lambda), \n    bifan = length(bifan), \n    V = length(v),\n    PPI_V = length(ppi_v),\n    delta = length(delta)\n)\ncalculate_Z(observed, nulls)"
+    },
+    {
+      "name": "interaction_similarity",
+      "intent": "Calculate the Sorensen-Dice similarity index for paralogous gene pairs to evaluate interaction similarity.",
+      "input": [
+        "ppi_edgelist.tsv (Protein-protein interaction network edge list)",
+        "paralog_pairs.tsv (Paralogous gene pairs)"
+      ],
+      "stages": "1. Calculate Sorensen-Dice similarity using sd_similarity() ;; 2. Summarize the similarity scores",
+      "code": "sim <- sd_similarity(gma_ppi, paralogs)\nhead(sim)\nsummary(sim$sorensen_dice)"
+    }
+  ]
+}

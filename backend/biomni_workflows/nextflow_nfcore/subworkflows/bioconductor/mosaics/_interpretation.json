@@ -1,0 +1,61 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: PET=indicates single-end (FALSE) or paired-end (TRUE) data ;; fragLen=average fragment length (default 200 bp, ignored for PET) ;; binSize=resolution of bin-level data (default equals fragLen) ;; capping=maximum reads allowed to start at each nucleotide to exclude PCR artifacts (default 0, no capping) ;; bgEst=background estimation approach ('rMOM' for high depth, 'matchLow' for low depth, 'automatic') ;; analysisType=type of analysis ('IO' for input-only two-sample, 'TS' for two-sample with mappability/GC, 'OS' for one-sample with mappability/GC) ;; signalModel=number of signal components ('1S', '2S', or 'BIC') ;; truncProb=proportion of bins not considered outliers in control data (default works well, can be lowered to e.g. 0.80 to improve fit) ;; decoding=decoding method for HMM peak calling ('posterior' or 'viterbi')\n- alternatives: CSEM (ChIP-Seq multi-read allocator) can be used to allocate multi-reads into a BED file before running constructBins with fileFormat=\"csem\"\n- when_to_use: Use two-sample analysis without genomic features (analysisType=\"IO\") for deeply sequenced ChIP-seq data. Use two-sample analysis with genomic features (analysisType=\"TS\") for low sequencing depth. Use one-sample analysis (analysisType=\"OS\") when a matched control sample is unavailable. Use MOSAiCS-HMM (mosaicsFitHMM/mosaicsPeakHMM) for broad peaks (e.g., histone modifications).\n- pitfalls: Automatic background estimation (bgEst=\"automatic\") can sometimes over-estimate background, resulting in too few peaks; explicitly set bgEst=\"rMOM\" or \"matchLow\" to fix this. Outliers in control data can affect background estimation; lower truncProb (e.g., to 0.80) to improve the fit. Using byChr=TRUE in constructBins requires separate chromosome-wise analysis, whereas byChr=FALSE (genome-wide) is recommended for more stable model fitting. You must run extractReads and findSummit before exporting peaks to narrowPeak or broadPeak formats.",
+  "workflows": [
+    {
+      "name": "punctuated_peak_calling",
+      "intent": "Identify narrow/punctuated peaks (e.g., transcription factor binding) using ChIP and matched control samples without genomic features.",
+      "input": [
+        "wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam (ChIP aligned reads)",
+        "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam (Control aligned reads)"
+      ],
+      "stages": "1. Construct bin-level files from aligned reads ;; 2. Read bin-level data into R ;; 3. Fit the MOSAiCS model ;; 4. Call peaks ;; 5. Export peak calling results ;; 6. Generate wiggle files for visualization",
+      "code": "constructBins( infile=system.file( file.path(\"extdata\",\"wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"), \n    fileFormat=\"bam\", outfileLoc=\"./\", \n    byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL, \n    PET=FALSE, fragLen=200, binSize=200, capping=0 )\nconstructBins( infile=system.file( file.path(\"extdata\",\"wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"), \n    fileFormat=\"bam\", outfileLoc=\"./\", \n    byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL, \n    PET=FALSE, fragLen=200, binSize=200, capping=0 )\n\nfileName <- c(\n    \"wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt\",\n    \"wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt\")\n\nbinTFBS <- readBins( type=c(\"chip\",\"input\"), fileName=fileName )\nfitTFBS <- mosaicsFit( binTFBS, analysisType=\"IO\", bgEst=\"rMOM\" )\npeakTFBS <- mosaicsPeak( fitTFBS, signalModel=\"2S\", FDR=0.05, \nmaxgap=200, minsize=50, thres=10 )\n\nexport( peakTFBS, type=\"txt\", filename=\"peakTFBS.txt\" )\nexport( peakTFBS, type=\"bed\", filename=\"peakTFBS.bed\" )\nexport( peakTFBS, type=\"gff\", filename=\"peakTFBS.gff\" )\n\ngenerateWig( infile=system.file( file.path(\"extdata\",\"wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"), \n    fileFormat=\"bam\", outfileLoc=\"./\", \n    byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL, \n    PET=FALSE, fragLen=200, span=200, capping=0, normConst=1 )"
+    },
+    {
+      "name": "broad_peak_calling_hmm",
+      "intent": "Identify broad peaks (e.g., histone modifications) using ChIP and matched control samples with HMM and post-processing.",
+      "input": [
+        "wgEncodeBroadHistoneGm12878H3k4me3StdAlnRep1_chr22_sorted.bam (ChIP aligned reads)",
+        "wgEncodeBroadHistoneGm12878ControlStdAlnRep1_chr22_sorted.bam (Control aligned reads)"
+      ],
+      "stages": "1. Construct bin-level files ;; 2. Read bin-level data ;; 3. Fit initial MOSAiCS model ;; 4. Fit MOSAiCS-HMM model ;; 5. Call peaks using HMM ;; 6. Extract read-level data ;; 7. Find peak summits ;; 8. Adjust peak boundaries ;; 9. Filter peaks",
+      "code": "constructBins( infile=system.file( file.path(\"extdata\",\"wgEncodeBroadHistoneGm12878H3k4me3StdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"), \n    fileFormat=\"bam\", outfileLoc=\"./\", \n    byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL, \n    PET=FALSE, fragLen=200, binSize=200, capping=0 )\nconstructBins( infile=system.file( file.path(\"extdata\",\"wgEncodeBroadHistoneGm12878ControlStdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"), \n    fileFormat=\"bam\", outfileLoc=\"./\", \n    byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL, \n    PET=FALSE, fragLen=200, binSize=200, capping=0 )\n\nfileName <- c(\n    \"wgEncodeBroadHistoneGm12878H3k4me3StdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt\",\n    \"wgEncodeBroadHistoneGm12878ControlStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt\")\n\nbinHM <- readBins( type=c(\"chip\",\"input\"), fileName=fileName)\nfitHM <- mosaicsFit( binHM, analysisType=\"IO\", bgEst=\"rMOM\" )\nhmmHM <- mosaicsFitHMM( fitHM, signalModel = \"2S\", \n\tinit=\"mosaics\", init.FDR = 0.05, parallel=FALSE, nCore=8 )\npeakHM <- mosaicsPeakHMM( hmmHM, FDR = 0.05, decoding=\"posterior\",\n  thres=10, parallel=FALSE, nCore=8 )\n\npeakHM <- extractReads( peakHM,\n  chipFile=system.file( file.path(\"extdata\",\"wgEncodeBroadHistoneGm12878H3k4me3StdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"),\n  chipFileFormat=\"bam\", chipPET=FALSE, chipFragLen=200,\n  controlFile=system.file( file.path(\"extdata\",\"wgEncodeBroadHistoneGm12878ControlStdAlnRep1_chr22_sorted.bam\"), package=\"mosaicsExample\"), \n  controlFileFormat=\"bam\", controlPET=FALSE, controlFragLen=200, parallel=FALSE, nCore=8 )\n\npeakHM <- findSummit( peakHM, parallel=FALSE, nCore=8 )\npeakHM <- adjustBoundary( peakHM, parallel=FALSE, nCore=8 )\npeakHM <- filterPeak( peakHM, parallel=FALSE, nCore=8 )"
+    },
+    {
+      "name": "two_sample_genomic_features",
+      "intent": "Identify peaks in low-depth ChIP-seq data by incorporating mappability, GC content, and sequence ambiguity.",
+      "input": [
+        "chip_chr21.txt (ChIP bin data)",
+        "input_chr21.txt (Control bin data)",
+        "M_chr21.txt (Mappability score)",
+        "GC_chr21.txt (GC content score)",
+        "N_chr21.txt (Sequence ambiguity score)"
+      ],
+      "stages": "1. Read bin-level data with genomic features ;; 2. Fit MOSAiCS model with TS analysis type ;; 3. Call peaks",
+      "code": "exampleBinData <- readBins( type=c(\"chip\",\"input\",\"M\",\"GC\",\"N\"),\n    fileName=c( system.file( file.path(\"extdata\",\"chip_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"input_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"M_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"GC_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"N_chr21.txt\"), package=\"mosaicsExample\") ) )\n\nexampleFit <- mosaicsFit( exampleBinData, analysisType=\"TS\", bgEst=\"automatic\" )\nOneSamplePeak <- mosaicsPeak( exampleFit, signalModel=\"2S\", FDR=0.05,\nmaxgap=200, minsize=50, thres=10 )"
+    },
+    {
+      "name": "one_sample_genomic_features",
+      "intent": "Identify peaks when no matched control sample is available, using genomic features.",
+      "input": [
+        "chip_chr21.txt (ChIP bin data)",
+        "M_chr21.txt (Mappability score)",
+        "GC_chr21.txt (GC content score)",
+        "N_chr21.txt (Sequence ambiguity score)"
+      ],
+      "stages": "1. Read bin-level data with genomic features ;; 2. Fit MOSAiCS model with OS analysis type ;; 3. Call peaks",
+      "code": "exampleBinData <- readBins( type=c(\"chip\",\"M\",\"GC\",\"N\"),\n    fileName=c( system.file( file.path(\"extdata\",\"chip_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"M_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"GC_chr21.txt\"), package=\"mosaicsExample\"),\n    system.file( file.path(\"extdata\",\"N_chr21.txt\"), package=\"mosaicsExample\") ) )\n\nexampleFit <- mosaicsFit( exampleBinData, analysisType=\"OS\", bgEst=\"automatic\" )\nexamplePeak <- mosaicsPeak( exampleFit, signalModel=\"2S\", FDR=0.05,\nmaxgap=200, minsize=50, thres=10 )"
+    },
+    {
+      "name": "convenient_pipeline",
+      "intent": "Run the entire two-sample punctuated peak calling pipeline in a single function call.",
+      "input": [
+        "STAT1_ChIP_eland_results.txt (ChIP aligned reads)",
+        "STAT1_control_eland_results.txt (Control aligned reads)"
+      ],
+      "stages": "1. Run the complete pipeline using mosaicsRunAll",
+      "code": "mosaicsRunAll( \n    chipFile=\"/scratch/eland/STAT1_ChIP_eland_results.txt\", \n    chipFileFormat=\"eland_result\", \n    controlFile=\"/scratch/eland/STAT1_control_eland_results.txt\", \n    controlFileFormat=\"eland_result\", \n    binfileDir=\"/scratch/bin/\", \n    peakFile=c(\"/scratch/peak/STAT1_peak_list.bed\", \n               \"/scratch/peak/STAT1_peak_list.gff\"),\n    peakFileFormat=c(\"bed\", \"gff\"),\n    reportSummary=TRUE, \n    summaryFile=\"/scratch/reports/mosaics_summary.txt\", \n    reportExploratory=TRUE, \n    exploratoryFile=\"/scratch/reports/mosaics_exploratory.pdf\", \n    reportGOF=TRUE, \n    gofFile=\"/scratch/reports/mosaics_GOF.pdf\",\n    byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=\"chrM\",\n    PET=FALSE, FDR=0.05, fragLen=200, binSize=fragLen, capping=0,\n    bgEst=\"rMOM\", signalModel=\"BIC\", parallel=TRUE, nCore=8 )"
+    }
+  ]
+}

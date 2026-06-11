@@ -1,0 +1,11 @@
+{
+  "package": "gpumagic",
+  "requirements": [
+    "gpuMagic"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gpuMagic"
+    ]
+  }
+}

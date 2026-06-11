@@ -1,0 +1,23 @@
+{
+  "package": "glimma",
+  "requirements": [
+    "DESeq2",
+    "Glimma",
+    "edgeR",
+    "htmlwidgets",
+    "limma"
+  ],
+  "by_workflow": {
+    "limma_voom_glimma.nf": [
+      "Glimma",
+      "edgeR",
+      "htmlwidgets",
+      "limma"
+    ],
+    "main.nf": [
+      "DESeq2",
+      "Glimma",
+      "htmlwidgets"
+    ]
+  }
+}

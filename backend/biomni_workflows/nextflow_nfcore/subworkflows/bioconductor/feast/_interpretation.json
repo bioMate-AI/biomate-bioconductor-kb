@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: thre=dropout rate threshold used in process_Y to filter out genes (default is 2) ;; k=the number of clusters, which must be specified based on prior knowledge of cell types ;; dim_reduce=dimension reduction method in FEAST, set to \"irlba\" for large datasets ;; split=logical parameter in FEAST_fast to split extremely large datasets (sample size > 5000) into chunks ;; batch_size=size of chunks when split is TRUE (e.g., 1000) ;; top=vector of integers specifying the number of top features to evaluate (e.g., c(200, 500, 1000, 2000))\n- alternatives: Unsupervised feature selection methods based on statistical moments of gene-wise expression distributions (which FEAST outperforms) ;; FEAST_fast instead of FEAST for fast calculation on large datasets ;; TSCAN_Clust vs SC3_Clust for downstream clustering evaluation\n- when_to_use: When performing cell clustering on single-cell RNA-seq count matrices and wanting to select the most informative marker genes to improve clustering accuracy.\n- pitfalls: The Consensus step can take a long time for large datasets (sample size > 2000); users should use FEAST_fast or specify dim_reduce=\"irlba\" for large datasets. The number of clusters k must be kept consistent across all iterations and clustering steps. Extremely large datasets (sample size > 5000) require setting split = TRUE and batch_size in FEAST_fast to run in parallel.",
+  "workflows": [
+    {
+      "name": "step_by_step_evaluation",
+      "intent": "Perform consensus clustering, calculate gene-level F-statistics, evaluate multiple top feature subsets using TSCAN or SC3, and validate using Mean Squared Error (MSE).",
+      "input": [
+        "Y (raw count expression matrix with genes as rows and cells as columns)",
+        "k (integer, number of clusters)"
+      ],
+      "stages": "1. Preprocess the count matrix using process_Y to filter genes based on dropout rate.\n2. Perform consensus clustering using Consensus to get initial cluster labels.\n3. Calculate gene-level significance using cal_F2 and rank genes.\n4. Perform downstream clustering (e.g., TSCAN_Clust or SC3_Clust) on different top feature subsets.\n5. Normalize the matrix using Norm_Y and calculate Mean Squared Error (MSE) using cal_MSE to identify the optimal feature set.",
+      "code": "Y = process_Y(Y, thre = 2)\ncon_res = Consensus(Y, k=k)\nF_res = cal_F2(Y, con_res$cluster)\nixs = order(F_res$F_scores, decreasing = TRUE)\ntops = c(500, 1000, 2000)\ncluster_res = NULL\nfor (top in tops){\n    tmp_ixs = ixs[1:top]\n    tmp_markers = rownames(Y)[tmp_ixs]\n    tmp_res = TSCAN_Clust(Y, k = k, input_markers = tmp_markers)\n    cluster_res[[toString(top)]] = tmp_res\n}\nYnorm = Norm_Y(Y)\nmse_res = NULL\nfor (top in names(cluster_res)){\n    tmp_res = cluster_res[[top]]\n    tmp_cluster = tmp_res$cluster\n    tmp_mse = cal_MSE(Ynorm = Ynorm, cluster = tmp_cluster)\n    mse_res = c(mse_res, tmp_mse)\n}\nnames(mse_res) = names(cluster_res)"
+    },
+    {
+      "name": "model_selection_and_visualization",
+      "intent": "Run consensus clustering, evaluate multiple feature sizes using a short model selection function, and visualize the validation results.",
+      "input": [
+        "Y (raw count expression matrix with genes as rows and cells as columns)",
+        "k (integer, number of clusters)",
+        "trueclass (vector of true cell type labels for visualization)"
+      ],
+      "stages": "1. Preprocess the count matrix using process_Y.\n2. Perform consensus clustering using Consensus.\n3. Run model selection using Select_Model_short_TSCAN or Select_Model_short_SC3.\n4. Visualize the results using Visual_Rslt.",
+      "code": "Y = process_Y(Y, thre = 2)\ncon_res = Consensus(Y, k=k)\nmod_res = Select_Model_short_TSCAN(Y, cluster = con_res$cluster, top = c(200, 500, 1000, 2000))\nlibrary(ggpubr)\nPP = Visual_Rslt(model_cv_res = mod_res, trueclass = trueclass)\nprint(PP$ggobj)"
+    },
+    {
+      "name": "fast_feature_selection",
+      "intent": "Directly obtain gene rankings using the FEAST or FEAST_fast wrapper functions for downstream analysis.",
+      "input": [
+        "Y (raw count expression matrix with genes as rows and cells as columns)",
+        "k (integer, number of clusters)"
+      ],
+      "stages": "1. Preprocess the count matrix using process_Y.\n2. Run the FEAST or FEAST_fast wrapper function to obtain ranked gene indices.",
+      "code": "Y = process_Y(Y, thre = 2)\nixs = FEAST(Y, k=k)\n#ixs = FEAST_fast(Y, k=k)\n#ixs = FEAST_fast(Y, k=k, split=TRUE, batch_size = 1000)"
+    }
+  ]
+}

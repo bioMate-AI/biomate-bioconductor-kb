@@ -1,0 +1,28 @@
+{
+  "package": "atena",
+  "requirements": [
+    "BiocParallel",
+    "Rsamtools",
+    "SummarizedExperiment",
+    "TxDb.Dmelanogaster.UCSC.dm6.ensGene",
+    "atena"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "Rsamtools",
+      "SummarizedExperiment",
+      "atena"
+    ],
+    "telescope_quantification.nf": [
+      "BiocParallel",
+      "SummarizedExperiment",
+      "atena"
+    ],
+    "tetranscripts_quantification.nf": [
+      "BiocParallel",
+      "TxDb.Dmelanogaster.UCSC.dm6.ensGene",
+      "atena"
+    ]
+  }
+}

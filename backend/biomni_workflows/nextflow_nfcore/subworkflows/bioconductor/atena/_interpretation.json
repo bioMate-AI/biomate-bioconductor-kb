@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genome=The genome version (e.g., \"dm6\") used to fetch RepeatMasker annotations ;; parsefun=The parsing function used to process RepeatMasker annotations (e.g., rmskidentity, rmskbasicparser, OneCodeToFindThemAll, rmskatenaparser) ;; strict=Logical parameter for OneCodeToFindThemAll; if TRUE, filters out elements with <80% identity or <80 bp length ;; insert=Maximum distance in bp to merge fragmented elements with the same name in OneCodeToFindThemAll ;; BPPARAM=A BiocParallel parameter object (e.g., SerialParam() or MulticoreParam()) to control parallel execution ;; teFeatures=A GRanges or GRangesList object containing transposable element annotations ;; geneFeatures=A GRanges or GRangesList object containing gene annotations for joint quantification ;; singleEnd=Logical indicating whether the input BAM files are single-end ;; ignoreStrand=Logical indicating whether to ignore strand information during overlap detection ;; suboptimalAlignmentCutoff=Cutoff value for the difference between alignment and suboptimal alignment scores in ERVmap (set to NA to disable filtering) ;; suboptimalAlignmentTag=The BAM tag storing the suboptimal alignment score in ERVmap (\"XS\", \"none\", or \"auto\") ;; aggregateby=Character vector of column names in the TE annotations used to aggregate expression quantifications ;; fragments=Logical controlling how read filtering and counting criteria are applied to paired-end read mates\n- alternatives: The original command-line implementations of ERVmap, TEtranscripts, and Telescope. atena is preferred when working within the R/Bioconductor ecosystem to seamlessly integrate TE quantification with downstream differential expression analysis packages like DESeq2 or edgeR.\n- when_to_use: Use when analyzing RNA-seq data to quantify the expression of transposable elements (such as LTRs, LINEs, SINEs, and DNA transposons) either at the locus level or aggregated at the subfamily/family level, with or without joint host gene expression quantification.\n- pitfalls: Standard RNA-seq pipelines discard multi-mapping reads, which leads to underestimation of TE expression; atena requires BAM files that retain multi-mapping reads (with secondary alignments or NH tags). The original ERVmap method assumes BWA-aligned BAM files with XS tags; if using other aligners (like STAR), suboptimalAlignmentTag must be set to \"none\" or \"auto\", and suboptimalAlignmentCutoff should be adjusted based on the aligner's mismatch penalty. Fragmented TE annotations from RepeatMasker can lead to incorrect quantification; using parsers like rmskatenaparser() or OneCodeToFindThemAll is highly recommended to assemble fragments.",
+  "workflows": [
+    {
+      "name": "ervmap_quantification",
+      "intent": "Quantify transposable element expression from RNA-seq BAM files using the ERVmap selective filtering method.",
+      "input": [
+        "*.bam (RNA-seq alignment files)",
+        "rmskLTR (parsed transposable element annotations as GRanges or GRangesList)"
+      ],
+      "stages": "1. Retrieve and parse TE annotations using annotaTEs() and getLTRs() ;; 2. Build the ERVmap parameter object using ERVmapParam() ;; 3. Quantify expression using qtex()",
+      "code": "rmskann <- annotaTEs(genome=\"dm6\", parsefun=rmskidentity)\nteann <- annotaTEs(genome=\"dm6\", parsefun=OneCodeToFindThemAll, strict=FALSE,\n                   insert=500, BPPARAM=SerialParam(progress=FALSE))\nrmskLTR <- getLTRs(teann, relLength=0.8, fullLength=TRUE, partial=TRUE,\n                   otherLTR=TRUE)\nbamfiles <- list.files(system.file(\"extdata\", package=\"atena\"),\n                       pattern=\"*.bam\", full.names=TRUE)\nempar <- ERVmapParam(bamfiles, \n                     teFeatures=rmskLTR, \n                     singleEnd=TRUE, \n                     ignoreStrand=TRUE, \n                     suboptimalAlignmentCutoff=NA)\nemq <- qtex(empar)"
+    },
+    {
+      "name": "telescope_quantification",
+      "intent": "Quantify transposable element expression from RNA-seq BAM files using the Telescope Bayesian EM reassignment method.",
+      "input": [
+        "*.bam (RNA-seq alignment files)",
+        "rmskLTR (parsed transposable element annotations as GRanges or GRangesList)"
+      ],
+      "stages": "1. Retrieve and parse TE annotations using annotaTEs() and getLTRs() ;; 2. Build the Telescope parameter object using TelescopeParam() ;; 3. Quantify expression using qtex()",
+      "code": "teann <- annotaTEs(genome=\"dm6\", parsefun=OneCodeToFindThemAll, strict=FALSE,\n                   insert=500, BPPARAM=SerialParam(progress=FALSE))\nrmskLTR <- getLTRs(teann, relLength=0.8, fullLength=TRUE, partial=TRUE,\n                   otherLTR=TRUE)\nbamfiles <- list.files(system.file(\"extdata\", package=\"atena\"),\n                       pattern=\"*.bam\", full.names=TRUE)\ntspar <- TelescopeParam(bfl=bamfiles, \n                        teFeatures=rmskLTR, \n                        singleEnd=TRUE, \n                        ignoreStrand=TRUE)\ntsq <- qtex(tspar)"
+    },
+    {
+      "name": "tetranscripts_quantification",
+      "intent": "Quantify transposable element and gene expression jointly from RNA-seq BAM files using the TEtranscripts EM reassignment method.",
+      "input": [
+        "*.bam (RNA-seq alignment files)",
+        "rmskLTR (parsed transposable element annotations as GRanges or GRangesList)",
+        "gannot (gene annotations as GRangesList, e.g., from TxDb)"
+      ],
+      "stages": "1. Retrieve and parse TE annotations using annotaTEs() and getLTRs() ;; 2. Load gene annotations from a TxDb object using exonsBy() ;; 3. Build the TEtranscripts parameter object using TEtranscriptsParam() ;; 4. Quantify expression using qtex()",
+      "code": "teann <- annotaTEs(genome=\"dm6\", parsefun=OneCodeToFindThemAll, strict=FALSE,\n                   insert=500, BPPARAM=SerialParam(progress=FALSE))\nrmskLTR <- getLTRs(teann, relLength=0.8, fullLength=TRUE, partial=TRUE,\n                   otherLTR=TRUE)\nlibrary(TxDb.Dmelanogaster.UCSC.dm6.ensGene)\ntxdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene\ngannot <- exonsBy(txdb, by=\"gene\")\nbamfiles <- list.files(system.file(\"extdata\", package=\"atena\"),\n                       pattern=\"*.bam\", full.names=TRUE)\nttpar <- TEtranscriptsParam(bamfiles, \n                            teFeatures=rmskLTR,\n                            geneFeatures=gannot,\n                            singleEnd=TRUE, \n                            ignoreStrand=TRUE, \n                            aggregateby=\"repName\")\nttq <- qtex(ttpar)"
+    }
+  ]
+}

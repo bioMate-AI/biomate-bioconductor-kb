@@ -1,0 +1,22 @@
+{
+  "package": "cellnoptr",
+  "requirements": [
+    "CellNOptR",
+    "doParallel"
+  ],
+  "by_workflow": {
+    "cross_validation.nf": [
+      "CellNOptR",
+      "doParallel"
+    ],
+    "ilp_optimization.nf": [
+      "CellNOptR"
+    ],
+    "main.nf": [
+      "CellNOptR"
+    ],
+    "two_time_point_ga.nf": [
+      "CellNOptR"
+    ]
+  }
+}

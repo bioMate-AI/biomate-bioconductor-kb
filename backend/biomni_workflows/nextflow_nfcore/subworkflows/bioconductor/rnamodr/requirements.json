@@ -1,0 +1,25 @@
+{
+  "package": "rnamodr",
+  "requirements": [
+    "GenomicFeatures",
+    "RNAmodR",
+    "Rsamtools",
+    "rtracklayer",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "RNAmodR",
+      "Rsamtools",
+      "rtracklayer",
+      "txdbmaker"
+    ],
+    "multi_sample_comparison_and_visualization.nf": [
+      "GenomicFeatures",
+      "RNAmodR",
+      "rtracklayer",
+      "txdbmaker"
+    ]
+  }
+}

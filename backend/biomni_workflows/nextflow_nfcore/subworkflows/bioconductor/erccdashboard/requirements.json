@@ -1,0 +1,19 @@
+{
+  "package": "erccdashboard",
+  "requirements": [
+    "erccdashboard",
+    "ggplot2",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "erccdashboard",
+      "ggplot2",
+      "gridExtra"
+    ],
+    "microarray_analysis.nf": [
+      "erccdashboard",
+      "gridExtra"
+    ]
+  }
+}

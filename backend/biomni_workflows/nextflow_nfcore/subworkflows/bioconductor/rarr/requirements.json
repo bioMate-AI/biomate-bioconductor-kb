@@ -1,0 +1,15 @@
+{
+  "package": "rarr",
+  "requirements": [
+    "Rarr",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rarr",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

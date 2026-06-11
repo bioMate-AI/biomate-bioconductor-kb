@@ -1,0 +1,27 @@
+{
+  "package": "philr",
+  "requirements": [
+    "TreeSummarizedExperiment",
+    "ape",
+    "dplyr",
+    "ggplot2",
+    "ggtree",
+    "glmnet",
+    "mia",
+    "philr",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TreeSummarizedExperiment",
+      "ape",
+      "dplyr",
+      "ggplot2",
+      "ggtree",
+      "glmnet",
+      "mia",
+      "philr",
+      "tidyr"
+    ]
+  }
+}

@@ -1,130 +1,141 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MSstatsConvert
-// MSstatsConvert provides tools for importing reports of Mass Spectrometry data processing tools into 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MSstatsConvert/inst/doc/msstats_data_format.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MSstatsConvert")
+// Bioconductor workflow: MSstatsConvert — label_free_maxquant_workflow
+// Import, clean, preprocess, and balance label-free or SRM mass spectrometry data (e.g., MaxQuant output) for downstream MSstats analysis.
+// Input: mq_ev.csv, mq_pg.csv, annotation.csv
+// Container: quay.io/biocontainers/bioconductor-msstatsconvert:1.20.0--r45ha27e39d_1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MSstatsConvert
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Set up logging settings using MSstatsLogsSettings
+//  * 2. [Input & Preparation] Import raw files using MSstatsImport
+//  * 3. [Core Analysis] Clean the imported data using MSstatsClean
+//  * 4. [Input & Preparation] Create annotation using MSstatsMakeAnnotation
+//  * 5. [Core Analysis] Preprocess and filter the data using MSstatsPreprocess
+//  * 6. [Input & Preparation] Create a balanced design using MSstatsBalancedDesign
+//  * 7. [Visualization & Output] Save session info using MSstatsSaveSessionInfo
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSSTATSCONVERT {
+process BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msstatsconvert"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msstatsconvert:1.16.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-msstatsconvert:1.16.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msstatsconvert_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msstatsconvert_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msstatsconvert_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MSstatsLogsSettings)
-    library(MSstatsSaveSessionInfo)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(MSstatsConvert)
-    library(jsonlite)
-
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-      )
-
-    # --- Logs [] ---
-    # Key functions: MSstatsLogsSettings, log_file.log
-    library(MSstatsConvert)
-    # default - creates a new file
+    
+    # 1. Set up logging settings
     MSstatsLogsSettings(use_log_file = TRUE, append = FALSE) 
-
-    # default - creates a new file
-    MSstatsLogsSettings(use_log_file = TRUE, append = TRUE, 
-                        log_file_path = "log_file.log") 
-
-    # switches logging off
-    MSstatsLogsSettings(use_log_file = FALSE, append = FALSE) 
-
-    # switches off logs and messages
-    MSstatsLogsSettings(use_log_file = FALSE, verbose = FALSE) 
-
-    ## -----------------------------------------------------------------------------
-
-    # --- Eval = False [] ---
-    # Key functions: MSstatsBalancedDesign, greater, remove
-    # list(
-    #   list(score_column = "Intensity", score_threshold = 1,
-    #        direction = "greater", behavior = "remove",
-    #        handle_na = "remove", fill_value = NA, filter = TRUE, drop = FALSE
-    #        )
-    # )
-
-    ## -----------------------------------------------------------------------------
+    
+    # 2. Import raw files from the working directory
+    maxquant_evidence = read.csv("mq_ev.csv")
+    maxquant_proteins = read.csv("mq_pg.csv")
+    
+    maxquant_imported = MSstatsImport(list(evidence = maxquant_evidence,
+                                           protein_groups = maxquant_proteins),
+                                      type = "MSstats", tool = "MaxQuant")
+    
+    # 3. Clean the imported data
+    maxquant_cleaned = MSstatsClean(maxquant_imported, protein_id_col = "Proteins")
+    
+    # 4. Create annotation using the annotation file in the working directory
+    maxquant_annotation = read.csv("annotation.csv")
+    maxquant_annotation = MSstatsMakeAnnotation(maxquant_cleaned,
+                                                maxquant_annotation,
+                                                Run = "Rawfile")
+    
+    # 5. Preprocess and filter the data
+    m_filter = list(col_name = "PeptideSequence", 
+                    pattern = "M", 
+                    filter = TRUE, 
+                    drop_column = FALSE)
+    
+    oxidation_filter = list(col_name = "Modifications", 
+                            pattern = "Oxidation", 
+                            filter = TRUE, 
+                            drop_column = TRUE)
+    
+    feature_columns = c("PeptideSequence", "PrecursorCharge")
+    
+    maxquant_processed = MSstatsPreprocess(
+      maxquant_cleaned, 
+      maxquant_annotation,
+      feature_columns,
+      remove_shared_peptides = TRUE, 
+      remove_single_feature_proteins = FALSE,
+      pattern_filtering = list(oxidation = oxidation_filter,
+                               m = m_filter),
+      feature_cleaning = list(remove_features_with_few_measurements = TRUE,
+                              summarize_multiple_psms = max),
+      columns_to_fill = list("FragmentIon" = NA,
+                             "ProductCharge" = NA,
+                             "IsotopeLabelType" = "L"))
+    
+    # 6. Create a balanced design
     maxquant_balanced = MSstatsBalancedDesign(maxquant_processed, feature_columns)
-    head(maxquant_balanced)
-    dim(maxquant_balanced)
-    dim(maxquant_processed)
+    
+    # 7. Save session info
+    MSstatsSaveSessionInfo()
+    
+    # Write output files
+    write.csv(maxquant_processed, "maxquant_processed.csv", row.names = FALSE)
+    write.csv(maxquant_balanced, "maxquant_balanced.csv", row.names = FALSE)
+    saveRDS(maxquant_balanced, "maxquant_balanced.rds")
 
-    openms_balanced = MSstatsBalancedDesign(openms_processed, feature_columns_tmt)
-    head(openms_balanced)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msstatsconvert_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msstatsconvert_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msstatsconvert_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSSTATSCONVERT:", paste0("    msstatsconvert: ", packageVersion("MSstatsConvert"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW":',
+        paste0('    MSstatsConvert: ', as.character(packageVersion('MSstatsConvert')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msstatsconvert_results.csv
-    touch ${prefix}_msstatsconvert_output.rds
-    echo "BIOC_MSSTATSCONVERT:" > versions.yml
-    echo "    msstatsconvert: 0.0.0" >> versions.yml
+    touch ${prefix}_label_free_maxquant_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSSTATSCONVERT_WORKFLOW {
+workflow BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mq_ev.csv, mq_pg.csv, annotation.csv ] ]
 
     main:
-    BIOC_MSSTATSCONVERT(ch_input)
+    BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_MSSTATSCONVERT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSSTATSCONVERT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSSTATSCONVERT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSSTATSCONVERT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW.out.tables
+    plots    = BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW.out.plots
+    objects  = BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW.out.objects
+    versions = BIOC_MSSTATSCONVERT_LABEL_FREE_MAXQUANT_WORKFLOW.out.versions
 }

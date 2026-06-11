@@ -1,0 +1,21 @@
+{
+  "package": "decipher",
+  "requirements": [
+    "Biostrings",
+    "DECIPHER",
+    "RSQLite"
+  ],
+  "by_workflow": {
+    "fish_probe_design.nf": [
+      "DECIPHER",
+      "RSQLite"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "DECIPHER"
+    ],
+    "microarray_design_and_analysis.nf": [
+      "DECIPHER"
+    ]
+  }
+}

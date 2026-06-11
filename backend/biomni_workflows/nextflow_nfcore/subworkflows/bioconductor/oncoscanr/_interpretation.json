@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: kit.coverage=Genomic coverage object (e.g., oncoscan_na33.cov) containing start/end coordinates for each chromosomal arm, used to restrict segments and calculate percentages ;; threshold=The percentage threshold of altered bases required to declare an arm globally altered (default is 80% or 90% depending on the function; set to 0 to output raw percentages) ;; gender=Optional parameter in workflow_oncoscan.chas to specify sample gender for sex chromosome handling\n- alternatives: conumee=Mentioned as an alternative Bioconductor package to obtain CNV data, which can then be processed using oncoscanr to compute HRD scores\n- when_to_use: Use when you have CNV segment data from ChAS (Affymetrix Chromosome Analysis Suite) or ASCAT and want to compute genomic instability metrics, including HRD scores (LST, HR-LOH, nLST, gLOH), TDplus scores (for CDK12-mutated tumors), and arm-level gains/losses\n- pitfalls: The package assumes all input segments are correct and true without performing upstream quality control ;; ChAS input files must contain the columns 'Type', 'CN State', and 'Full Location' ;; ASCAT input files must contain the columns 'chr', 'startpos', 'endpos', 'nMajor', and 'nMinor' ;; OncoScan does not cover the p arms of chromosomes 13, 14, 15, and 22, and coverage on 21p is only partial and excluded from standard workflows ;; LOH segments from ChAS are independent of copy number segments and can overlap copy loss, requiring adjustment via adjust_loh() to avoid redundant information",
+  "workflows": [
+    {
+      "name": "chas_custom_workflow",
+      "intent": "Load, clean, and perform custom step-by-step analysis of ChAS CNV data to compute individual HRD, TDplus, and arm-level alteration scores.",
+      "input": [
+        "chas_file.txt (ChAS export text file containing Type, CN State, and Full Location columns)"
+      ],
+      "stages": "1. Load ChAS file using load_chas ;; 2. Clean and filter segments using trim_to_coverage, adjust_loh, merge_segments, and prune_by_size ;; 3. Identify arm-level alterations using armlevel_alt ;; 4. Compute individual HRD scores (LST, HR-LOH, gLOH, nLST) using score_lst, score_loh, score_gloh, score_estwgd, and score_nlst ;; 5. Compute TDplus score using score_td",
+      "code": "library(magrittr)\n\n# Load the ChAS file\nchas.fn <- system.file(\"extdata\", \"chas_example.txt\", package = \"oncoscanR\")\nsegments <- load_chas(chas.fn, oncoscan_na33.cov)\n\n# Clean the segments: restricted to Oncoscan coverage, LOH not overlapping\n# with copy loss segments, smooth&merge segments within 300kb and prune\n# segments smaller than 300kb.\nsegs.clean <- trim_to_coverage(segments, oncoscan_na33.cov) %>%\n    adjust_loh() %>%\n    merge_segments() %>%\n    prune_by_size()\n\n# Then we need to compute the arm-level alteration for loss and LOH since many \n# scores discard arms that are globally altered.\narms.loss <- names(get_loss_segments(segs.clean) %>%\n        armlevel_alt(kit.coverage = oncoscan_na33.cov))\narms.loh <- names(get_loh_segments(segs.clean) %>%\n        armlevel_alt(kit.coverage = oncoscan_na33.cov))\n\n# Get the number of LST\nlst <- score_lst(segs.clean, oncoscan_na33.cov)\n\n# Get the number of HR-LOH\nhrloh <- score_loh(segs.clean, arms.loh, arms.loss, oncoscan_na33.cov)\n\n# Get the genomic LOH score\ngloh <- score_gloh(segs.clean, arms.loh, arms.loss, oncoscan_na33.cov)\n\n# Get the number of nLST\nwgd <- score_estwgd(segs.clean, oncoscan_na33.cov)  # Get the avg CN, including 21p\nnlst <- score_nlst(segs.clean, wgd[\"WGD\"], oncoscan_na33.cov)\n\nprint(c(LST=lst, `HR-LOH`=hrloh, gLOH=gloh, nLST=nlst))\n\ntd <- score_td(segs.clean)\nprint(td$TDplus)"
+    },
+    {
+      "name": "chas_standard_workflow",
+      "intent": "Run the complete standard analysis workflow on a ChAS export file using a single wrapper function.",
+      "input": [
+        "chas_file.txt (ChAS export text file containing Type, CN State, and Full Location columns)"
+      ],
+      "stages": "1. Run the automated workflow using workflow_oncoscan.chas",
+      "code": "segs.filename <- system.file('extdata', 'LST_gene_list_full_location.txt', \n                             package = 'oncoscanR')\ndat <- workflow_oncoscan.chas(segs.filename)\n\nmessage(paste('Arms with copy loss:', \n              paste(dat$armlevel$LOSS, collapse = ', ')))\nmessage(paste('Arms with copy gains:', \n              paste(dat$armlevel$GAIN, collapse = ', ')))\nmessage(paste('HRD score:', dat$scores$HRD))"
+    },
+    {
+      "name": "ascat_standard_workflow",
+      "intent": "Run the complete standard analysis workflow on an ASCAT output file.",
+      "input": [
+        "ascat_file.txt (ASCAT output text file containing chr, startpos, endpos, nMajor, and nMinor columns)"
+      ],
+      "stages": "1. Run the automated workflow using workflow_oncoscan.ascat",
+      "code": "library(jsonlite)\nsegs.filename <- system.file('extdata', 'ascat_example.txt', \n                             package = 'oncoscanR')\ndat <- workflow_oncoscan.ascat(segs.filename)\ntoJSON(dat, auto_unbox=TRUE, pretty=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "package": "treg",
+  "requirements": [
+    "SingleCellExperiment",
+    "TREG",
+    "dplyr",
+    "ggplot2",
+    "pheatmap",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "TREG",
+      "dplyr",
+      "ggplot2",
+      "pheatmap",
+      "tibble",
+      "tidyr"
+    ]
+  }
+}

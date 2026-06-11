@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: files=The input data obtained from the csv files ;; template=A data frame containing information about the individual ddPCR runs ;; numOfMarkers=The number of primary clusters expected according to the experiment setup (can be ignored if template is provided) ;; sensitivity=Tweaks clustering partition (sensible values 0.1 to 2, default 1; higher values divide into more clusters, lower merges them) ;; similarityParam=Threshold for assigning ambiguous rain droplets (default 0.95; ratio of distances between clusters) ;; distanceParam=Ratio for assigning rain between two clusters (default 0.8, where 20% goes to lower and 80% to higher) ;; fast=Run a simpler, 10x faster version using only flowDensity (default FALSE) ;; multithread=Distribute algorithm among CPU cores (not available on Windows, default FALSE) ;; constantControl=The name of a marker used as a constant control for normalization in calculateCPDs\n- alternatives: runDensity=Uses flowDensity to find local peaks, preferred for quick overview or clean data (run when fast=TRUE) ;; runSam=Uses SamSPECTRAL for spectral clustering, preferred for complex cluster shapes ;; runPeaks=Uses flowPeaks for k-means and density peak finding, alternative clustering approach\n- when_to_use: Use when analyzing multiplexed, non-orthogonal ddPCR data (up to 4 targets per reaction) to automatically cluster droplets, assign targets, and calculate copies per droplet (CPD) without manual gating.\n- pitfalls: multithread=TRUE is not supported on Windows platforms ;; Setting similarityParam too low (near 0) results in none of the rain droplets being counted, while setting it to 1 counts all droplets regardless of ambiguity ;; fast=TRUE is faster but may miss complex clusters compared to the full ensemble algorithm",
+  "workflows": [
+    {
+      "name": "ddpcr_clustering_and_analysis",
+      "intent": "Automatically cluster ddPCR droplet amplitudes, assign targets, and calculate copies per droplet (CPD) using a template.",
+      "input": [
+        "csv (raw droplet amplitude files from Bio-Rad QX100/QX200)",
+        "csv (run template file containing well, sample type, number of markers, and marker names)"
+      ],
+      "stages": "1. Load raw ddPCR amplitude files using readFiles ;; 2. Load the experiment template using readTemplate ;; 3. Run the main clustering and target assignment algorithm using ddPCRclust ;; 4. Visualize the clustered droplets using ggplot2",
+      "code": "library(ddPCRclust)\n# Read files\nexampleFiles <- list.files(paste0(find.package('ddPCRclust'), '/extdata'),\n                           full.names = TRUE)\nfiles <- readFiles(exampleFiles[3])\n# To read all example files uncomment the following line\n# files <- readFiles(exampleFiles[1:8])\n\n# Read template\ntemplate <- readTemplate(exampleFiles[9])\n\n# Run ddPCRclust\nresult <- ddPCRclust(files, template)\n\n# Plot the results\nlibrary(ggplot2)\np <- ggplot(data = result$B01$data,\n            mapping = aes(x = Ch2.Amplitude, y = Ch1.Amplitude))\np <- p + geom_point(aes(color = factor(Cluster)), size = .5, na.rm = TRUE) +\n     ggtitle('B01 example')+theme_bw() + theme(legend.position='none')\np"
+    }
+  ]
+}

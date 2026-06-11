@@ -1,0 +1,14 @@
+{
+  "package": "mergeomics",
+  "requirements": [
+    "Mergeomics"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Mergeomics"
+    ],
+    "meta_msea.nf": [
+      "Mergeomics"
+    ]
+  }
+}

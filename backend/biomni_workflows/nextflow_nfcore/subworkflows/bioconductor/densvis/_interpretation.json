@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dens_frac=The fraction of optimization steps that consider density preservation (e.g., 0.5) ;; dens_lambda=The weight given to density preservation relative to the standard objective function (e.g., 0.5)\n- alternatives: Rtsne::Rtsne for standard t-SNE ;; uwot::umap or densvis::umap for standard UMAP\n- when_to_use: Use when performing non-linear dimensionality reduction on high-dimensional datasets (like scRNA-seq) where preserving the original local density of clusters is important for accurate biological interpretation.\n- pitfalls: Standard t-SNE/UMAP can produce misleading visualisations where cluster area does not represent its true high-dimensional density. t-SNE embeddings can be sensitive to initialization, so running the algorithm multiple times with different seeds is recommended to ensure robustness. densmap relies on Python via basilisk, which will trigger a virtual environment setup on its first run.",
+  "workflows": [
+    {
+      "name": "density_preserving_tsne",
+      "intent": "Perform density-preserving t-SNE dimensionality reduction on high-dimensional data.",
+      "input": [
+        "data[, 1:2] (numeric matrix or data frame of high-dimensional features, such as normalized gene expression values)"
+      ],
+      "stages": "1. Run density-preserving t-SNE using densne ;; 2. Extract the low-dimensional coordinates for visualization",
+      "code": "fit1 <- densne(data[, 1:2], dens_frac = 0.5, dens_lambda = 0.5)"
+    },
+    {
+      "name": "density_preserving_umap",
+      "intent": "Perform density-preserving UMAP dimensionality reduction on high-dimensional data.",
+      "input": [
+        "data[, 1:2] (numeric matrix or data frame of high-dimensional features, such as normalized gene expression values)"
+      ],
+      "stages": "1. Run density-preserving UMAP using densmap ;; 2. Extract the low-dimensional coordinates for visualization",
+      "code": "fit1 <- densmap(data[, 1:2], dens_frac = 0.5, dens_lambda = 0.5)"
+    }
+  ]
+}

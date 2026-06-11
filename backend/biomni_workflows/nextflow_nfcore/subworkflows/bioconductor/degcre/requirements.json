@@ -1,0 +1,23 @@
+{
+  "package": "degcre",
+  "requirements": [
+    "DegCre",
+    "GenomicRanges",
+    "InteractionSet",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "magick",
+    "org.Hs.eg.db",
+    "plotgardener"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DegCre",
+      "GenomicRanges",
+      "InteractionSet",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "magick",
+      "org.Hs.eg.db",
+      "plotgardener"
+    ]
+  }
+}

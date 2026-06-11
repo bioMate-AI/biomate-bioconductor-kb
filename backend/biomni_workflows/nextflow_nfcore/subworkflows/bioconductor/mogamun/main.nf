@@ -1,123 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MOGAMUN
-// MOGAMUN is a multi-objective genetic algorithm that identifies active modules in a multiplex biologi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MOGAMUN/inst/doc/MOGAMUN_Vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MOGAMUN")
+// Bioconductor workflow: mogamun — active_module_identification
+// Identify active modules in a multiplex biological network using differential expression data and multi-objective genetic optimization.
+// Input: Sample_DE.csv, Sample_NodesScore.csv, NetworkLayersDir
+// Container: quay.io/biocontainers/bioconductor-mogamun:1.20.0--r45hdfd78af_0
+// R packages: MOGAMUN
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MOGAMUN {
+process BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mogamun"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mogamun:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mogamun:1.16.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-mogamun:1.20.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mogamun_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mogamun_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mogamun_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MOGAMUN")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
     library(MOGAMUN)
-    library(jsonlite)
-
-    # --- Data Loading [] ---
-    # Key functions: mogamun_load_data
-    dePath <- system.file(
-        "extdata/DE/Sample_DE.csv", 
-        package = "MOGAMUN"
-    )
-    scoresPath <- system.file(
-        "extdata/DE/Sample_NodesScore.csv", 
-        package = "MOGAMUN"
-    )
-    layersPath <- paste0(
-        system.file("extdata/LayersMultiplex", package = "MOGAMUN"), 
-        "/"
-    )
-    loadedData <- mogamun_load_data(
-        EvolutionParameters = parameters,
-        DifferentialExpressionPath = dePath,
-        NodesScoresPath = scoresPath,
-        NetworkLayersDir = layersPath,
-        Layers = "23"
-    )
-
-
-    # --- Multi-Objective Optimization Run [] ---
-    # Key functions: mogamun_run
-    mogamun_run(
-        LoadedData = loadedData,
-        ResultsDir = "./mogamun_results"
-    )
-
-
-    # --- Post-processing and Visualization [] ---
-    # Key functions: mogamun_postprocess
+    
+    # Define input paths based on user-provided files in the working directory
+    dePath <- "Sample_DE.csv"
+    scoresPath <- "Sample_NodesScore.csv"
+    layersPath <- "NetworkLayersDir/"
+    
+    # Validate that the required inputs exist
+    if (!file.exists(dePath)) {
+      stop("Required input file 'Sample_DE.csv' not found in the working directory.")
+    }
+    if (!dir.exists(layersPath)) {
+      stop("Required input directory 'NetworkLayersDir' not found in the working directory.")
+    }
+    
+    # Dynamically identify the unique starting characters of the network layer files
+    layer_files <- list.files("NetworkLayersDir", full.names = FALSE)
+    layer_files <- layer_files[grep("^[a-zA-Z0-9]", layer_files)]
+    if (length(layer_files) == 0) {
+      stop("No valid network layer files found in NetworkLayersDir.")
+    }
+    first_chars <- unique(substr(layer_files, 1, 1))
+    layers_string <- paste(first_chars, collapse = "")
+    
+    # 1. Initialize evolution and general parameters
+    parameters <- mogamun_init(Generations = 1, PopSize = 10)
+    
+    # 2. Load differential expression data and multiplex network layers
+    loadedData <-
+        mogamun_load_data(
+            EvolutionParameters = parameters,
+            DifferentialExpressionPath = dePath,
+            NodesScoresPath = scoresPath,
+            NetworkLayersDir = layersPath,
+            Layers = layers_string
+        )
+    
+    # Save the loaded data object for reproducibility
+    saveRDS(loadedData, file = "mogamun_loaded_data.rds")
+    
+    # 3. Run the genetic algorithm
+    mogamun_run(LoadedData = loadedData, ResultsDir = '.')
+    
+    # 4. Post-process the results
     mogamun_postprocess(
-        LoadedData = loadedData,
-        ExperimentDir = "./mogamun_results",
+        LoadedData = loadedData, 
+        ExperimentDir = '.', 
         VisualizeInCytoscape = FALSE
     )
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mogamun_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mogamun_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mogamun_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MOGAMUN:", paste0("    mogamun: ", packageVersion("MOGAMUN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION":',
+        paste0('        mogamun: ', as.character(packageVersion("mogamun")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mogamun_results.csv
-    touch ${prefix}_mogamun_output.rds
-    echo "BIOC_MOGAMUN:" > versions.yml
-    echo "    mogamun: 0.0.0" >> versions.yml
+    touch ${prefix}_active_module_identification.csv versions.yml
     """
 }
 
-
-workflow BIOC_MOGAMUN_WORKFLOW {
+workflow BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Sample_DE.csv, Sample_NodesScore.csv, NetworkLayersDir ] ]
 
     main:
-    BIOC_MOGAMUN(ch_input)
+    BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION(ch_input)
 
     emit:
-    results  = BIOC_MOGAMUN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MOGAMUN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MOGAMUN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MOGAMUN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION.out.tables
+    plots    = BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION.out.plots
+    objects  = BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION.out.objects
+    versions = BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION.out.versions
 }

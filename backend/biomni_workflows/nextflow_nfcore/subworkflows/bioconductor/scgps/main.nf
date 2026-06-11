@@ -1,159 +1,254 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scGPS
-// The package implements two main algorithms to answer two key questions: a SCORE (Stable Clustering a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scGPS/inst/doc/vignette.R
-// Upstream  : DOSE, ReactomePA, clusterProfiler, dplyr, locfit
-// Downstream: none
-//
-// Install: BiocManager::install("scGPS")
+// Bioconductor workflow: scGPS — subpopulation_identification_and_characterisation
+// Identify stable cell clusters in single-cell expression data using CORE or SCORE, visualize them, and find marker genes.
+// Input: ExpressionMatrix, GeneMetadata, CellMetadata
+// Container: quay.io/biocontainers/bioconductor-scgps:1.24.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, clusterProfiler, DOSE, dplyr, locfit, ReactomePA, scGPS
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ReactomePA, SingleCellExperiment, clusterProfiler, locfit, scGPS
+// Visualizations: dot plot
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create scGPS object
+//  * 2. [Core Analysis] Run CORE clustering or SCORE bagging clustering
+//  * 3. [Core Analysis] Extract optimal clustering and update the scGPS object
+//  * 4. [Visualization & Output] Plot clustering dendrograms and optimal cluster bars
+//  * 5. [Core Analysis] Compare clustering with tSNE dimensional reduction
+//  * 6. [Core Analysis] Find differential marker genes and annotate clusters
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCGPS {
+process BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scgps"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scgps:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scgps:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scgps_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scgps_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scgps_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "clusterProfiler", "DOSE", "dplyr", "locfit", "ReactomePA", "scGPS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+    
+    # Load required libraries
     library(scGPS)
-    library(CORE_bagging)
-    library(CORE_clustering)
-    library(jsonlite)
-
-    # --- Subpopulation Prediction [] ---
-    # Key functions: bootstrap_prediction
-    c_selectID <- 1
-    genes <- training_gene_sample$Merged_unique
-    cluster_mixedpop1 <- colData(mixedpop1)[, 1]
-    cluster_mixedpop2 <- colData(mixedpop2)[, 1]
-    LSOLDA_dat <- bootstrap_prediction(
-        nboots = 3, mixedpop1 = mixedpop1,
-        mixedpop2 = mixedpop2, genes = genes,
-        c_selectID = c_selectID, listData = list(),
-        cluster_mixedpop1 = cluster_mixedpop1,
-        cluster_mixedpop2 = cluster_mixedpop2,
-        trainset_ratio = 0.7
-    )
-
-
-    # --- Prediction Evaluation [] ---
-    # Key functions: summary_prediction_lda, summary_prediction_lasso, summary_accuracy, summary_deviance
-    sum_pred_lda <- summary_prediction_lda(
-        LSOLDA_dat = LSOLDA_dat, nPredSubpop = 4
-    )
-    sum_pred_lasso <- summary_prediction_lasso(
-        LSOLDA_dat = LSOLDA_dat, nPredSubpop = 4
-    )
-    acc_summary <- summary_accuracy(object = LSOLDA_dat)
-    dev_summary <- summary_deviance(object = LSOLDA_dat)
-
-
-    # --- Clustering with CORE [] ---
-    # Key functions: CORE_clustering, new_scGPS_object
-    day5 <- day_5_cardio_cell_sample
-    cellnames <- data.frame(
-        "Cluster" = day5$dat5_clusters,
-        "cellBarcodes" = colnames(day5$dat5_counts)
-    )
-    mixedpop2 <- new_scGPS_object(
-        ExpressionMatrix = day5$dat5_counts,
-        GeneMetadata = day5$dat5geneInfo, CellMetadata = cellnames
-    )
-    CORE_cluster <- CORE_clustering(
-        mixedpop2, remove_outlier = c(0), PCA = FALSE
-    )
-
-
-    # --- Clustering with SCORE [] ---
-    # Key functions: CORE_bagging, new_scGPS_object
-    day5 <- day_5_cardio_cell_sample
-    cellnames <- data.frame(
-        "Cluster" = day5$dat5_clusters,
-        "cellBarcodes" = colnames(day5$dat5_counts)
-    )
-    mixedpop2 <- new_scGPS_object(
-        ExpressionMatrix = day5$dat5_counts,
-        GeneMetadata = day5$dat5geneInfo, CellMetadata = cellnames
-    )
-    SCORE_test <- CORE_bagging(
-        mixedpop2, remove_outlier = c(0), PCA = FALSE,
-        bagging_run = 20, subsample_proportion = 0.8
-    )
-
-
-    # --- Dimensionality Reduction and Visualisation [] ---
-    # Key functions: tSNE, plot_reduced, plot_CORE, plot_optimal_CORE
-    t_results <- tSNE(expression.mat = assay(mixedpop2))
-    p_reduced <- plot_reduced(
-        t_results, color_fac = factor(colData(mixedpop2)[, 1]),
-        palletes = 1:length(unique(colData(mixedpop2)[, 1]))
-    )
-    p_core <- plot_CORE(
-        CORE_cluster$tree, CORE_cluster$Cluster,
-        color_branch = c("#208eb7", "#6ce9d3", "#1c5e39")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scgps_results.csv", row.names = TRUE)
+    library(locfit)
+    library(DOSE)
+    library(ReactomePA)
+    library(clusterProfiler)
+    
+    # Helper function to read input files with various extensions
+    read_input_file <- function(base_name) {
+      possible_extensions <- c(".rds", ".RDS", ".csv", ".CSV", ".tsv", ".TSV", ".txt", ".TXT")
+      for (ext in possible_extensions) {
+        file_path <- paste0(base_name, ext)
+        if (file.exists(file_path)) {
+          message("Reading: ", file_path)
+          if (tolower(ext) == ".rds") {
+            return(readRDS(file_path))
+          } else if (tolower(ext) == ".csv") {
+            return(read.csv(file_path, row.names = 1, check.names = FALSE))
+          } else if (tolower(ext) %in% c(".tsv", ".txt")) {
+            return(read.delim(file_path, row.names = 1, check.names = FALSE))
+          }
+        }
+      }
+      stop("Could not find input file for: ", base_name)
+    }
+    
+    # Read user inputs
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    expr_mat <- as.matrix(read_input_file("ExpressionMatrix"))
+    gene_metadata <- as.data.frame(read_input_file("GeneMetadata"))
+    cell_metadata <- as.data.frame(read_input_file("CellMetadata"))
+    
+    # Format CellMetadata to match the required structure
+    if (!all(c("Cluster", "cellBarcodes") %in% colnames(cell_metadata))) {
+      col_barcodes <- NULL
+      for (col in colnames(cell_metadata)) {
+        if (any(cell_metadata[[col]] %in% colnames(expr_mat))) {
+          col_barcodes <- col
+          break
+        }
+      }
+      if (is.null(col_barcodes)) {
+        col_barcodes <- colnames(cell_metadata)[1]
+      }
+      col_cluster <- setdiff(colnames(cell_metadata), col_barcodes)[1]
+      if (is.na(col_cluster)) {
+        cell_metadata\$Cluster <- 1
+        col_cluster <- "Cluster"
+      }
+      cellnames <- data.frame(
+        Cluster = cell_metadata[[col_cluster]],
+        cellBarcodes = cell_metadata[[col_barcodes]],
+        stringsAsFactors = FALSE
+      )
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scgps_results.csv")
+      cellnames <- cell_metadata[, c("Cluster", "cellBarcodes")]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scgps_output.rds")
+    
+    # 1. Create scGPS object
+    mixedpop2 <- new_scGPS_object(ExpressionMatrix = expr_mat,
+                                  GeneMetadata = gene_metadata,
+                                  CellMetadata = cellnames)
+    
+    # 2. Run CORE clustering
+    CORE_cluster <- CORE_clustering(mixedpop2, remove_outlier = c(0), PCA=FALSE)
+    
+    # 3. Extract optimal clustering and update the scGPS object
+    key_height <- CORE_cluster\$optimalClust\$KeyStats\$Height
+    optimal_res <- CORE_cluster\$optimalClust\$OptimalRes
+    optimal_index = which(key_height == optimal_res)
+    
+    clustering_after_outlier_removal <- unname(unlist(
+     CORE_cluster\$Cluster[[optimal_index]]))
+    corresponding_cells_after_outlier_removal <- CORE_cluster\$cellsForClustering
+    original_cells_before_removal <- colData(mixedpop2)[,2]
+    corresponding_index <- match(corresponding_cells_after_outlier_removal,
+                                original_cells_before_removal )
+    
+    mixedpop2_post_clustering <- mixedpop2[,corresponding_index]
+    colData(mixedpop2_post_clustering)[,1] <- clustering_after_outlier_removal
+    
+    # 4. Run SCORE bagging clustering
+    SCORE_test <- CORE_bagging(mixedpop2, remove_outlier = c(0), PCA=FALSE,
+                                    bagging_run = 20, subsample_proportion = .8)
+    
+    # Open PDF device for plots
+    pdf("scGPS_plots.pdf", width = 10, height = 8)
+    
+    # 5. Plot clustering dendrograms and optimal cluster bars
+    p1 <- plot_CORE(CORE_cluster\$tree, CORE_cluster\$Cluster, 
+        color_branch = c("#208eb7", "#6ce9d3", "#1c5e39", "#8fca40", "#154975",
+            "#b1c8eb"))
+    
+    plot_optimal_CORE(original_tree= CORE_cluster\$tree,
+                     optimal_cluster = unlist(CORE_cluster\$Cluster[optimal_index]),
+                     shift = -2000)
+    
+    plot_CORE(SCORE_test\$tree, list_clusters = SCORE_test\$Cluster)
+    
+    plot_optimal_CORE(original_tree= SCORE_test\$tree,
+                     optimal_cluster = unlist(SCORE_test\$Cluster[
+                        SCORE_test\$optimal_index]),
+                     shift = -100)
+    
+    # 6. Compare clustering with tSNE dimensional reduction
+    t <- tSNE(expression.mat=assay(mixedpop2))
+    p2 <- plot_reduced(t, color_fac = factor(colData(mixedpop2)[,1]),
+                          palletes =1:length(unique(colData(mixedpop2)[,1])))
+    print(p2)
+    
+    # 7. Find differential marker genes and annotate clusters
+    DEgenes <- find_markers(expression_matrix=assay(mixedpop2),
+                                cluster = colData(mixedpop2)[,1],
+                                selected_cluster=unique(colData(mixedpop2)[,1]))
+    
+    # Extract genes for annotation
+    if (is.list(DEgenes) && length(DEgenes) > 0) {
+      genes <- NULL
+      for (i in seq_along(DEgenes)) {
+        if (is.data.frame(DEgenes[[i]]) && "id" %in% colnames(DEgenes[[i]])) {
+          genes <- as.character(DEgenes[[i]]\$id)
+          break
+        }
+      }
+      if (is.null(genes)) {
+        genes <- rownames(assay(mixedpop2))
+      }
+    } else {
+      genes <- rownames(assay(mixedpop2))
     }
+    
+    genes <- unique(na.omit(genes))
+    if (length(genes) > 500) {
+      genes <- genes[1:500]
+    }
+    
+    enrichment_test <- tryCatch({
+      annotate_clusters(genes, pvalueCutoff=0.05, gene_symbol=TRUE)
+    }, error = function(e) {
+      message("Warning: annotate_clusters failed. Error: ", e\$message)
+      NULL
+    })
+    
+    if (!is.null(enrichment_test)) {
+      tryCatch({
+        p_enrich <- clusterProfiler::dotplot(enrichment_test, showCategory=10, font.size = 6)
+        print(p_enrich)
+      }, error = function(e) {
+        message("Warning: plotting enrichment failed. Error: ", e\$message)
+      })
+    }
+    
+    dev.off()
+    
+    # Save RDS outputs
+    saveRDS(mixedpop2_post_clustering, "mixedpop2_post_clustering.rds")
+    saveRDS(CORE_cluster, "CORE_cluster.rds")
+    saveRDS(SCORE_test, "SCORE_test.rds")
+    saveRDS(DEgenes, "DEgenes.rds")
+    if (!is.null(enrichment_test)) {
+      saveRDS(enrichment_test, "enrichment_test.rds")
+    }
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCGPS:", paste0("    scgps: ", packageVersion("scGPS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION":',
+        paste0('    scGPS: ', as.character(packageVersion('scGPS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scgps_results.csv
-    touch ${prefix}_scgps_output.rds
-    echo "BIOC_SCGPS:" > versions.yml
-    echo "    scgps: 0.0.0" >> versions.yml
+    touch ${prefix}_subpopulation_identification_and_characterisation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCGPS_WORKFLOW {
+workflow BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ExpressionMatrix, GeneMetadata, CellMetadata ] ]
 
     main:
-    BIOC_SCGPS(ch_input)
+    BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION(ch_input)
 
     emit:
-    results  = BIOC_SCGPS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCGPS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCGPS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCGPS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION.out.tables
+    plots    = BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION.out.plots
+    objects  = BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION.out.objects
+    versions = BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION.out.versions
 }

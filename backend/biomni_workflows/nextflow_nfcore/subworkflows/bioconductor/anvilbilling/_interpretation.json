@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: start=The start date of the billing period to query (YYYY-MM-DD format) ;; end=The end date of the billing period to query (YYYY-MM-DD format) ;; project=The GCP project ID used to transmit cost data to BigQuery ;; dataset=The GCP dataset ID where billing export data is stored ;; table=The GCP table name for billing data in BigQuery ;; billing_code=The billing code associated with the request ;; key=The key type used to subset billing data (e.g., \"terra-submission-id\", \"cromwell-workflow-id\", \"goog-dataproc-cluster-name\")\n- alternatives: Google Cloud Platform Console=Useful for high-level cost tracking but lacks the ability to easily drill down into specific Terra/AnVIL tasks, CPU/RAM usage, or workflow-level costs ;; Bioconductor's AnVIL package=Specifically the Leonardo service (Leonardo()$getRuntime()) can be used to determine the user of active clusters, whereas AnVILBilling is used for post-hoc billing analysis\n- when_to_use: Use this package when you need to monitor, audit, or plan costs for cloud-based analysis projects on the Terra/AnVIL platform, specifically to attribute costs to specific submissions, workflows, or notebook clusters.\n- pitfalls: Billing data is generally available only 1 day after incurring charges, so real-time monitoring is not possible ;; Users must manually set up a BigQuery dataset export in GCP and ensure they have BigQuery scope on the billing project before using the package ;; The exploratory app browse_reck requires proper Google authentication.",
+  "workflows": [
+    {
+      "name": "reckon_and_analyze_billing_data",
+      "intent": "Query GCP BigQuery billing export data for a specific time range and analyze costs associated with Terra submissions, workflows, and RAM usage.",
+      "input": [
+        "GCP BigQuery billing export table (containing daily exported Google Cloud billing data for the Terra project)"
+      ],
+      "stages": "1. Define billing parameters and initialize a request using setup_billing_request ;; 2. Execute the billing query and retrieve data using reckon ;; 3. Extract specific identifiers (such as submission IDs) using getValues ;; 4. Filter the billing records for a specific identifier using subsetByKeyValue ;; 5. Retrieve detailed SKU breakdowns using AnVILBilling:::getSkus ;; 6. Calculate total submission costs using getSubmissionCost ;; 7. Retrieve RAM consumption details using getSubmissionRam",
+      "code": "library(AnVILBilling)\nlibrary(dplyr)\nlibrary(magrittr)\nlibrary(BiocStyle)\n\n# setup_billing_request(start, end, project, dataset, table, billing_code)\n\ndemo_rec\n\nv = getValues(demo_rec@reckoning, \"terra-submission-id\")\nv\n\ns = subsetByKeyValue(demo_rec@reckoning, \"terra-submission-id\", v)\ns\n\nnames(s)\n\nAnVILBilling:::getSkus(s)\n\ndata(demo_rec) # makes rec\nv = getValues(demo_rec@reckoning, \"terra-submission-id\")[1] # for instance\ngetSubmissionCost(demo_rec@reckoning,v)\n\ndata(demo_rec) # makes rec\nv = getValues(demo_rec@reckoning, \"terra-submission-id\")[1] # for instance\ngetSubmissionRam(demo_rec@reckoning,v)"
+    }
+  ]
+}

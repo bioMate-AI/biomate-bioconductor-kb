@@ -4,6 +4,8 @@
 // Center batches in log-expression space on a per-gene basis while preserving sparsity (best for technical replicates).
 // Input: sce1, sce2
 // Container: quay.io/biocontainers/bioconductor-batchelor:1.26.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, batchelor, scater, scran, scuttle
+// Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, batchelor, scater, scran, scuttle
 // Visualizations: PCA plot
 // QC: diagnostic MA/PCA QC, cell QC metrics, highly-variable feature selection
@@ -37,14 +39,25 @@ process BIOC_BATCHELOR_BATCH_RESCALING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "batchelor", "scater", "scran", "scuttle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries
-    library(SingleCellExperiment)
     library(batchelor)
     library(scran)
     library(scater)

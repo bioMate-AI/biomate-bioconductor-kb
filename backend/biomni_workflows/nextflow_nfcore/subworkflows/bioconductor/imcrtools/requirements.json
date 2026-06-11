@@ -1,0 +1,29 @@
+{
+  "package": "imcrtools",
+  "requirements": [
+    "BiocParallel",
+    "EBImage",
+    "RColorBrewer",
+    "SingleCellExperiment",
+    "SpatialExperiment",
+    "data.table",
+    "dplyr",
+    "ggplot2",
+    "ggraph",
+    "imcRtools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "EBImage",
+      "RColorBrewer",
+      "SingleCellExperiment",
+      "SpatialExperiment",
+      "data.table",
+      "dplyr",
+      "ggplot2",
+      "ggraph",
+      "imcRtools"
+    ]
+  }
+}

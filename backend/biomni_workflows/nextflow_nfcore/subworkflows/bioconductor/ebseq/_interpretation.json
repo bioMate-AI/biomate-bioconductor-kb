@@ -1,0 +1,48 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - Data=A G-by-S (genes) or I-by-S (isoforms) matrix of raw, unnormalized expression counts.\n    - Conditions=A factor vector of length S indicating the experimental condition of each sample.\n    - sizeFactors=A vector of sample-specific normalization factors, typically calculated using MedianNorm or QuantileNorm.\n    - NgVector=A vector indicating the uncertainty group (Ig group) for each transcript. Required for isoform-level analysis; set to NULL for gene-level analysis.\n    - maxround=The maximum number of EM iterations. Set to 5 in examples for speed, but in practice, more iterations are required to reach convergence.\n    - AllParti=A matrix defining the expression patterns to test in multi-condition analysis, generated via GetPatterns.\n    - FDR=The target False Discovery Rate (e.g., 0.05) used in GetDEResults to control false discoveries.\n    - Method=Set to \"classic\" in GetDEResults to obtain results comparable to older versions of EBSeq (<= 1.7.0).\n- alternatives:\n    - MedianNorm: Reproduces the median normalization approach used in DESeq; preferred for standard RNA-seq count normalization.\n    - QuantileNorm: Performs upper-quantile normalization (e.g., 75th percentile); preferred if specified by experimental design.\n    - RSEM .ngvec file: Can be used as the NgVector when working with de-novo assembled transcriptomes where gene-isoform relationships are unknown.\n- when_to_use:\n    - Use when identifying differentially expressed genes or isoforms from RNA-seq count data.\n    - Highly recommended for isoform-level analysis to prevent reduced power in single-isoform genes and high false discovery rates in multi-isoform genes.\n    - Suitable for both two-condition comparisons and complex multi-condition designs (e.g., 3 or more conditions), with or without biological replicates.\n- pitfalls:\n    - Input data must be raw, unnormalized counts. Do not input FPKM, TPM, or otherwise pre-normalized values.\n    - For isoform-level analysis, failing to specify the NgVector (or using an incorrect one) will compromise the empirical Bayes variance adjustment.\n    - Always check EM algorithm convergence by inspecting the Alpha, Beta, and P values across iterations; 5 iterations are rarely sufficient for real data.\n    - Verify model assumptions post-analysis using QQP (Q-Q plots) and DenNHist (density plots) to ensure the Beta prior fits the empirical data.",
+  "workflows": [
+    {
+      "name": "gene_de_two_conditions",
+      "intent": "Identify differentially expressed genes between two biological conditions using empirical Bayes modeling.",
+      "input": [
+        "gene_counts.csv (Matrix of raw gene counts where rows are genes and columns are samples)",
+        "sample_conditions.csv (Vector indicating the condition of each sample)"
+      ],
+      "stages": "1. Calculate sample normalization factors using MedianNorm.\n2. Run the empirical Bayes test for two conditions using EBTest.\n3. Extract DE genes and posterior probabilities using GetDEResults.\n4. Calculate posterior fold changes using PostFC.\n5. Check EM convergence and model fit diagnostics using QQP and DenNHist.",
+      "code": "Sizes=MedianNorm(GeneMat)\nEBOut=EBTest(Data=GeneMat, Conditions=as.factor(rep(c(\"C1\",\"C2\"),each=5)),sizeFactors=Sizes, maxround=5)\nEBDERes=GetDEResults(EBOut, FDR=0.05)\nGeneFC=PostFC(EBOut)\nPlotPostVsRawFC(EBOut,GeneFC)\nEBOut$Alpha\nEBOut$Beta\nEBOut$P\nQQP(EBOut)\nDenNHist(EBOut)"
+    },
+    {
+      "name": "isoform_de_two_conditions",
+      "intent": "Identify differentially expressed isoforms between two biological conditions while accounting for isoform estimation uncertainty.",
+      "input": [
+        "isoform_counts.csv (Matrix of raw isoform counts where rows are isoforms and columns are samples)",
+        "isoform_annotations.csv (Vectors containing isoform names and their corresponding parent gene names)",
+        "sample_conditions.csv (Vector indicating the condition of each sample)"
+      ],
+      "stages": "1. Calculate sample normalization factors using MedianNorm.\n2. Assign isoforms to uncertainty groups (Ig groups) using GetNg.\n3. Run the empirical Bayes test for isoforms using EBTest with the NgVector parameter.\n4. Extract DE isoforms and posterior probabilities using GetDEResults.\n5. Calculate posterior fold changes using PostFC.\n6. Perform diagnostics and check model fit using PolyFitPlot, QQP, and DenNHist.",
+      "code": "IsoSizes=MedianNorm(IsoMat)\nNgList=GetNg(IsoNames, IsosGeneNames)\nIsoNgTrun=NgList$IsoformNgTrun\nIsoEBOut=EBTest(Data=IsoMat, NgVector=IsoNgTrun, Conditions=as.factor(rep(c(\"C1\",\"C2\"),each=5)),sizeFactors=IsoSizes, maxround=5)\nIsoEBDERes=GetDEResults(IsoEBOut, FDR=0.05)\nIsoFC=PostFC(IsoEBOut)\nIsoEBOut$Alpha\nIsoEBOut$Beta\nIsoEBOut$P\nPolyFitValue=vector(\"list\",3)\nfor(i in 1:3)\n    PolyFitValue[[i]]=PolyFitPlot(IsoEBOut$C1Mean[[i]], IsoEBOut$C1EstVar[[i]],5)\nQQP(IsoEBOut)\nDenNHist(IsoEBOut)"
+    },
+    {
+      "name": "gene_de_multi_conditions",
+      "intent": "Identify gene expression patterns and group genes into distinct expression profiles across three or more biological conditions.",
+      "input": [
+        "multi_condition_gene_counts.csv (Matrix of raw gene counts across multiple conditions)",
+        "multi_conditions.csv (Vector indicating the condition of each sample)"
+      ],
+      "stages": "1. Generate all possible expression patterns across conditions using GetPatterns.\n2. Calculate sample normalization factors using MedianNorm.\n3. Run the multi-condition empirical Bayes test using EBMultiTest.\n4. Extract posterior probabilities for each pattern and the Maximum A Posteriori (MAP) pattern using GetMultiPP.\n5. Calculate fold changes across conditions using GetMultiFC.\n6. Perform diagnostics using QQP and DenNHist.",
+      "code": "Conditions=c(\"C1\",\"C1\",\"C2\",\"C2\",\"C3\",\"C3\")\nPosParti=GetPatterns(Conditions)\nParti=PosParti[-3,]\nMultiSize=MedianNorm(MultiGeneMat)\nMultiOut=EBMultiTest(MultiGeneMat,NgVector=NULL,Conditions=Conditions, AllParti=Parti, sizeFactors=MultiSize, maxround=5)\nMultiPP=GetMultiPP(MultiOut)\nMultiFC=GetMultiFC(MultiOut)\nQQP(MultiOut)\nDenNHist(MultiOut)"
+    },
+    {
+      "name": "isoform_de_multi_conditions",
+      "intent": "Identify isoform expression patterns across three or more biological conditions while accounting for isoform estimation uncertainty.",
+      "input": [
+        "multi_condition_isoform_counts.csv (Matrix of raw isoform counts across multiple conditions)",
+        "isoform_annotations.csv (Vectors containing isoform names and parent gene names)",
+        "multi_conditions.csv (Vector indicating the condition of each sample)"
+      ],
+      "stages": "1. Calculate sample normalization factors using MedianNorm.\n2. Assign isoforms to uncertainty groups (Ig groups) using GetNg.\n3. Generate all possible expression patterns across conditions using GetPatterns.\n4. Run the multi-condition empirical Bayes test for isoforms using EBMultiTest with the NgVector parameter.\n5. Extract posterior probabilities for each pattern and the MAP pattern using GetMultiPP.\n6. Calculate fold changes across conditions using GetMultiFC.\n7. Perform diagnostics using QQP and DenNHist.",
+      "code": "IsoMultiSize=MedianNorm(IsoMultiMat)\nNgList.Multi=GetNg(IsoNames.Multi, IsosGeneNames.Multi)\nIsoNgTrun.Multi=NgList.Multi$IsoformNgTrun\nConditions=c(\"C1\",\"C1\",\"C2\",\"C2\",\"C3\",\"C3\",\"C4\",\"C4\")\nPosParti.4Cond=GetPatterns(Conditions)\nParti.4Cond=PosParti.4Cond[c(1,2,3,8,15),]\nIsoMultiOut=EBMultiTest(IsoMultiMat, NgVector=IsoNgTrun.Multi,Conditions=Conditions, AllParti=Parti.4Cond, sizeFactors=IsoMultiSize, maxround=5)\nIsoMultiPP=GetMultiPP(IsoMultiOut)\nIsoMultiFC=GetMultiFC(IsoMultiOut)\nQQP(IsoMultiOut)\nDenNHist(IsoMultiOut)"
+    }
+  ]
+}

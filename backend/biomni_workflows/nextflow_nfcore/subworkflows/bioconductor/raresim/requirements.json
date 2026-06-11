@@ -1,0 +1,16 @@
+{
+  "package": "raresim",
+  "requirements": [
+    "RAREsim",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "estimate_expected_variants_with_defaults.nf": [
+      "RAREsim"
+    ],
+    "main.nf": [
+      "RAREsim",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,105 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rSWeeP
-// "Spaced Words Projection (SWeeP)" is a method for representing biological sequences using vectors pr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rSWeeP/inst/doc/rSWeeP.R
-// Upstream  : ape
-// Downstream: none
-//
-// Install: BiocManager::install("rSWeeP")
+// Bioconductor workflow: rSWeeP — sequence_vectorization_and_phylogeny
+// Vectorize biological sequences from FASTA files, construct a phylogenetic tree, and evaluate taxonomic consistency.
+// Input: directory, metadata_mitochondrial.csv
+// Container: quay.io/biocontainers/bioconductor-rsweep:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ape, rSWeeP
+// Visualizations: PCA plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Vectorize sequences using SWeePlite
+//  * 2. [Core Analysis] Calculate distance matrix using dist
+//  * 3. [Input & Preparation] Build phylogenetic tree using Neighbor-Joining (nj)
+//  * 4. [Core Analysis] Evaluate tree consistency using PCCI and PMPG
+//  * 5. [Core Analysis] Perform PCA on vectorized sequences using prcomp
 
 nextflow.enable.dsl = 2
 
-process BIOC_RSWEEP {
+process BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rsweep"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rsweep:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rsweep:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rsweep_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rsweep_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rsweep_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PCCI)
-    library(PMPG)
-    library(jsonlite)
-
-    # --- Plot Tree1 [] ---
-    # Key functions: dist, nj, root
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(rSWeeP)
     library(ape)
-    # get the distance matrix
-    mdist = dist(sw$proj,method='euclidean')
-    # use the NJ algorithm to build the tree
+    
+    # 1. Vectorize sequences using SWeePlite
+    # User input: 'directory' containing FASTA files
+    path = "directory/"
+    sw = SWeePlite(path,seqtype='AA',mask=c(4),psz=1000)
+    sw\$info
+    
+    # Save SWeeP projection object
+    saveRDS(sw, "sweep_output.rds")
+    
+    # 2. Calculate distance matrix using dist
+    mdist = dist(sw\$proj,method='euclidean')
+    
+    # 3. Build phylogenetic tree using Neighbor-Joining (nj)
     tr = nj(mdist)
-    # --- Eval Tree [] ---
-    # Key functions: frame, PCCI, PMPG
-    data = data.frame(sp=mt$fileName,family=mt$family)
-    PCCI(tr,data) # PhyloTaxonomic Consistency Cophenetic Index
-    PMPG(tr,data) # Percentage of Mono or Paraphyletic Groups
-    # --- Pca [] ---
-    # Key functions: prcomp
-    pca_output <- prcomp (sw$proj , scale = FALSE)
+    
+    # Root the tree with the first tip
+    if (length(tr\$tip.label) > 0) {
+      tr = root(tr, outgroup = tr\$tip.label[1])
+    }
+    
+    # Save phylogenetic tree
+    write.tree(tr, "phylogenetic_tree.nwk")
+    
+    # Plot tree to PDF
+    pdf("phylogenetic_tree.pdf", width = 10, height = 10)
+    plot(tr)
+    dev.off()
+    
+    # 4. Evaluate tree consistency using PCCI and PMPG
+    # User input: 'metadata_mitochondrial.csv'
+    pathmetadata <- "metadata_mitochondrial.csv"
+    mt = read.csv(pathmetadata,header=TRUE)
+    
+    data = data.frame(sp=mt\$fileName,family=mt\$family) 
+    
+    pcci_res = PCCI(tr,data)
+    pmpg_res = PMPG(tr,data)
+    
+    # Save consistency metrics
+    write.csv(pcci_res\$tab, "pcci_results.csv", row.names = FALSE)
+    write.csv(pmpg_res\$tab, "pmpg_results.csv", row.names = FALSE)
+    
+    # 5. Perform PCA on vectorized sequences using prcomp
+    pca_output <- prcomp (sw\$proj , scale = FALSE)
+    
+    # Save PCA coordinates
+    write.csv(pca_output\$x, "pca_coordinates.csv", row.names = TRUE)
+    
+    # Plot PCA to PDF
+    pdf("pca_plots.pdf", width = 9, height = 7)
     par(mfrow=c(1,2))
-    plot(pca_output$x[,1],pca_output$x[,2],xlab = 'PC-1' , ylab = 'PC-2' , pch =20 , col = mt$id)
-    legend("bottomright",unique(mt$family),col=as.character(c(1:length(unique(mt$family)))),pch=20)
-    plot(pca_output$x[,3],pca_output$x[,4],xlab = 'PC-3' , ylab = 'PC-4' , pch =20 , col = mt$id)
+    family_colors <- as.numeric(factor(mt\$family, levels = unique(mt\$family)))
+    plot(pca_output\$x[,1],pca_output\$x[,2],xlab = 'PC-1' , ylab = 'PC-2' , pch =20 , col = family_colors)
+    legend("bottomright",unique(mt\$family),col=as.character(c(1:length(unique(mt\$family)))),pch=20)
+    plot(pca_output\$x[,3],pca_output\$x[,4],xlab = 'PC-3' , ylab = 'PC-4' , pch =20 , col = family_colors)
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rsweep_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rsweep_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rsweep_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RSWEEP:", paste0("    rsweep: ", packageVersion("rSWeeP"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY":',
+        paste0('    rSWeeP: ', as.character(packageVersion('rSWeeP')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rsweep_results.csv
-    touch ${prefix}_rsweep_output.rds
-    echo "BIOC_RSWEEP:" > versions.yml
-    echo "    rsweep: 0.0.0" >> versions.yml
+    touch ${prefix}_sequence_vectorization_and_phylogeny.csv versions.yml
     """
 }
 
-
-workflow BIOC_RSWEEP_WORKFLOW {
+workflow BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ directory, metadata_mitochondrial.csv ] ]
 
     main:
-    BIOC_RSWEEP(ch_input)
+    BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY(ch_input)
 
     emit:
-    results  = BIOC_RSWEEP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RSWEEP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RSWEEP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RSWEEP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY.out.tables
+    plots    = BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY.out.plots
+    objects  = BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY.out.objects
+    versions = BIOC_RSWEEP_SEQUENCE_VECTORIZATION_AND_PHYLOGENY.out.versions
 }

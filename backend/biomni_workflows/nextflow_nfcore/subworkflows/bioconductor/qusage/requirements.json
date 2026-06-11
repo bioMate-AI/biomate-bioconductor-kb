@@ -1,0 +1,15 @@
+{
+  "package": "qusage",
+  "requirements": [
+    "Biobase",
+    "nlme",
+    "qusage"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "nlme",
+      "qusage"
+    ]
+  }
+}

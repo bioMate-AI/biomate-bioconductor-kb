@@ -1,0 +1,15 @@
+{
+  "package": "igvr",
+  "requirements": [
+    "GenomicRanges",
+    "igvR",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "igvR",
+      "rtracklayer"
+    ]
+  }
+}

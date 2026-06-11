@@ -1,0 +1,16 @@
+{
+  "package": "semdist",
+  "requirements": [
+    "SemDist",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "evaluate_predictions_ru_mi.nf": [
+      "SemDist"
+    ],
+    "main.nf": [
+      "SemDist",
+      "org.Hs.eg.db"
+    ]
+  }
+}

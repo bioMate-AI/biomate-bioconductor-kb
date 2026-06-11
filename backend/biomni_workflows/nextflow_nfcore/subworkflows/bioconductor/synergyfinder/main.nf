@@ -1,138 +1,194 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: synergyfinder
-// Efficient implementations for analyzing pre-clinical multiple drug combination datasets. It provides
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/synergyfinder/inst/doc/User_tutorual_of_the_SynergyFinder_plus.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("synergyfinder")
+// Bioconductor workflow: synergyfinder — two_drug_without_replicates
+// Analyze and visualize synergy and sensitivity for two-drug combinations without replicates.
+// Input: drug_screening_data.csv
+// Container: quay.io/biocontainers/bioconductor-synergyfinder:3.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: synergyfinder
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Reshape and pre-process the input data using ReshapeData
+//  * 2. [Core Analysis] Calculate synergy scores for multiple reference models using CalculateSynergy
+//  * 3. [Core Analysis] Calculate sensitivity scores (IC50, RI, CSS) using CalculateSensitivity
+//  * 4. [Visualization & Output] Visualize dose-response curves, heatmaps, 2D contours, synergy barometers, and synergy-sensitivity plots
 
 nextflow.enable.dsl = 2
 
-process BIOC_SYNERGYFINDER {
+process BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-synergyfinder"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-synergyfinder:3.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-synergyfinder:3.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_synergyfinder_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_synergyfinder_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_synergyfinder_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(synergyfinder)
-    library(PlotSensitivitySynergy)
-    library(ReshapeData)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+        # Load required library
+        library(synergyfinder)
+        
+        # 1. Read user input data
+        input_data <- read.csv("drug_screening_data.csv", stringsAsFactors = FALSE)
+        
+        # 2. Reshape and pre-process the input data
+        res <- ReshapeData(
+          data = input_data,
+          data_type = "viability",
+          impute = TRUE,
+          impute_method = NULL,
+          noise = TRUE,
+          seed = 1
+        )
+        
+        # 3. Calculate synergy scores for multiple reference models
+        res <- CalculateSynergy(
+          data = res,
+          method = c("ZIP", "HSA", "Bliss", "Loewe"),
+          Emin = NA,
+          Emax = NA,
+          correct_baseline = "non"
+        )
+        
+        # 4. Calculate sensitivity scores (IC50, RI, CSS)
+        res <- CalculateSensitivity(
+          data = res,
+          correct_baseline = "non"
+        )
+        
+        # 5. Save tabular results
+        write.csv(res\$drug_pairs, "drug_pairs_metrics.csv", row.names = FALSE)
+        write.csv(res\$synergy_scores, "synergy_scores.csv", row.names = FALSE)
+        saveRDS(res, "synergy_sensitivity_results.rds")
+        
+        # 6. Generate and save visualizations to a PDF file
+        pdf("synergy_plots.pdf", width = 10, height = 8)
+        
+        # Dynamically get the first block_id to avoid hardcoding
+        first_block <- res\$drug_pairs\$block_id[1]
+        
+        # Dose-response curves
+        for (i in c(1, 2)){
+          PlotDoseResponseCurve(
+            data = res,
+            plot_block = first_block,
+            drug_index = i,
+            plot_new = FALSE,
+            record_plot = FALSE
+          )
+        }
+        
+        # 2-Drug Heatmap
+        p_heatmap <- Plot2DrugHeatmap(
+          data = res,
+          plot_block = first_block,
+          drugs = c(1, 2),
+          plot_value = "response",
+          dynamic = FALSE,
+          summary_statistic = c("mean",  "median")
+        )
+        print(p_heatmap)
+        
+        # 2-Drug Contour
+        p_contour <- Plot2DrugContour(
+          data = res,
+          plot_block = first_block,
+          drugs = c(1, 2),
+          plot_value = "response",
+          dynamic = FALSE,
+          summary_statistic = c("mean", "median")
+        )
+        print(p_contour)
+        
+        # Get valid concentrations for the first block to avoid hardcoded values
+        block1_scores <- res\$synergy_scores[res\$synergy_scores\$block_id == first_block, ]
+        comb_scores <- block1_scores[block1_scores\$conc1 > 0 & block1_scores\$conc2 > 0, ]
+        if (nrow(comb_scores) > 0) {
+          plot_concs <- c(comb_scores\$conc1[1], comb_scores\$conc2[1])
+        } else {
+          plot_concs <- c(block1_scores\$conc1[1], block1_scores\$conc2[1])
+        }
+        
+        # Synergy Barometer
+        p_barometer <- PlotBarometer(
+          data = res,
+          plot_block = first_block,
+          plot_concs = plot_concs, 
+          needle_text_offset = 2.5
+        )
+        print(p_barometer)
+        
+        # Multi-Drug Barplot
+        p_multibar <- PlotMultiDrugBar(
+          data = res,
+          plot_block = first_block,
+          plot_value = c("response", "ZIP_synergy", "Loewe_synergy", "HSA_synergy", "Bliss_synergy"),
+          sort_by = "response",
+          highlight_row = plot_concs,
+          highlight_label_size = 8
+        )
+        print(p_multibar)
+        
+        # Synergy-Sensitivity Plot
+        p_sens_syn <- PlotSensitivitySynergy(
+          data = res,
+          plot_synergy = "ZIP",
+          show_labels = TRUE,
+          dynamic = FALSE
+        )
+        print(p_sens_syn)
+        
+        dev.off()
 
-    # --- Synergy Calculation [] ---
-    # Key functions: CalculateSynergy
-    res <- CalculateSynergy(
-        data = res,
-        method = c("ZIP", "HSA", "Bliss", "Loewe"),
-        Emin = NA,
-        Emax = NA,
-        correct_baseline = "non"
-    )
-
-
-    # --- Sensitivity Analysis [] ---
-    # Key functions: CalculateSensitivity
-    res <- CalculateSensitivity(
-        data = res,
-        correct_baseline = "non"
-    )
-
-
-    # --- Dose-Response and Synergy Heatmap Visualization [] ---
-    # Key functions: PlotDoseResponseCurve, Plot2DrugHeatmap
-    PlotDoseResponseCurve(
-        data = res,
-        plot_block = 1,
-        drug_index = 1,
-        plot_new = FALSE,
-        record_plot = FALSE
-    )
-    Plot2DrugHeatmap(
-        data = res,
-        plot_block = 1,
-        drugs = c(1, 2),
-        plot_value = "ZIP_synergy",
-        dynamic = FALSE
-    )
-
-
-    # --- Advanced Synergy and Sensitivity Visualization [] ---
-    # Key functions: PlotBarometer, PlotSensitivitySynergy
-    PlotBarometer(
-        data = res,
-        plot_block = 1,
-        plot_concs = c(9.7656, 50),
-        needle_text_offset = 2.5
-    )
-    PlotSensitivitySynergy(
-        data = res,
-        plot_synergy = "ZIP",
-        show_labels = TRUE,
-        dynamic = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_synergyfinder_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_synergyfinder_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_synergyfinder_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SYNERGYFINDER:", paste0("    synergyfinder: ", packageVersion("synergyfinder"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES":',
+        paste0('    synergyfinder: ', as.character(packageVersion('synergyfinder')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_synergyfinder_results.csv
-    touch ${prefix}_synergyfinder_output.rds
-    echo "BIOC_SYNERGYFINDER:" > versions.yml
-    echo "    synergyfinder: 0.0.0" >> versions.yml
+    touch ${prefix}_two_drug_without_replicates.csv versions.yml
     """
 }
 
-
-workflow BIOC_SYNERGYFINDER_WORKFLOW {
+workflow BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ drug_screening_data.csv ] ]
 
     main:
-    BIOC_SYNERGYFINDER(ch_input)
+    BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES(ch_input)
 
     emit:
-    results  = BIOC_SYNERGYFINDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SYNERGYFINDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SYNERGYFINDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SYNERGYFINDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES.out.tables
+    plots    = BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES.out.plots
+    objects  = BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES.out.objects
+    versions = BIOC_SYNERGYFINDER_TWO_DRUG_WITHOUT_REPLICATES.out.versions
 }

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pattern=A regular expression defining the barcode backbone, where brackets () capture the barcode or UMI sequence ;; pattern_type=A named integer vector (e.g., c(\"UMI\" = 1, \"barcode\" = 2)) mapping the capture groups in the pattern to their respective types ;; cell_barcode_tag=The cell barcode field tag in the SAM file (default is \"CR\" in Cell Ranger output) ;; umi_tag=The UMI field tag in the SAM file (default is \"UR\" in Cell Ranger output) ;; depth=The minimum read or UMI count threshold required for a barcode to pass filtering ;; isUpdate=Logical; if TRUE, filters the cleanBc slot (e.g., after UMI curing), otherwise filters the messyBc slot ;; doFish=Logical; if TRUE, searches for low-depth identical barcodes to rescue their UMI counts ;; isUniqueUMI=Logical; if TRUE, treats UMIs as absolutely unique and keeps only the most abundant barcode per UMI ;; dist_thresh=An integer specifying the edit distance threshold for merging similar barcode sequences ;; dist_method=The distance algorithm for evaluating barcode similarity (\"hamm\" for Hamming or \"leven\" for Levenshtein)\n- alternatives: None mentioned in the documentation, though standard external command-line tools like samtools are recommended for preprocessing BAM files to SAM format.\n- when_to_use: Appropriate for genetic lineage tracing, clonal tracking, CRISPR gRNA screening, immune repertoire sequencing, and metagenome amplicon data analysis where barcodes and UMIs are embedded in sequencing reads.\n- pitfalls: In the messyBc slot, barcode_seq values may not be unique because different full read sequences can contain the same barcode sequence due to UMI variations or mutations in constant regions ;; Using bc_cure_depth with isUpdate = FALSE on UMI data will discard UMI information and merge identical barcodes across different UMI-barcode tags before filtering ;; Ensure the row names of the metadata data frame are strictly consistent with the sample names.",
+  "workflows": [
+    {
+      "name": "fastq_lineage_barcoding",
+      "intent": "Perform quality control, filter, extract, cure, and quantify lineage barcodes and UMIs from raw FASTQ files.",
+      "input": [
+        "fq_files (vector of paths to fastq.gz files)",
+        "metadata (data.frame containing sample metadata with row names matching sample names)"
+      ],
+      "stages": "1. Evaluate sequence quality using bc_seq_qc and visualize with bc_plot_seqQc ;; 2. Filter low-quality reads using bc_seq_filter ;; 3. Extract barcodes and UMIs using bc_extract ;; 4. Subset samples using bc_subset (optional) ;; 5. Filter UMI-barcode tags using bc_cure_umi ;; 6. Filter by sequence/UMI depth using bc_cure_depth ;; 7. Cluster and merge similar barcodes using bc_cure_cluster ;; 8. Visualize barcode distributions using bc_plot_single, bc_plot_mutual, or bc_plot_pair ;; 9. Export quantified barcodes using bc_2df, bc_2dt, or bc_2matrix",
+      "code": "example_data <- system.file(\"extdata\", \"mef_test_data\", package = \"CellBarcode\")\nfq_files <- dir(example_data, \"fastq.gz\", full=TRUE)\n\n# prepare metadata for the samples\nmetadata <- stringr::str_split_fixed(basename(fq_files), \"_\", 10)[, c(4, 6)]\nmetadata <- as.data.frame(metadata)\nsample_name <- apply(metadata, 1, paste, collapse = \"_\")\ncolnames(metadata) = c(\"cell_number\", \"replication\")\n# metadata should has the row names consistent to the sample names\nrownames(metadata) = sample_name\n\nqc_noFilter <- bc_seq_qc(fq_files)\nbc_plot_seqQc(qc_noFilter)\n\nfq_filter <- bc_seq_filter(\n  fq_files,\n  min_average_quality = 30,\n  min_read_length = 60,\n  sample_name = sample_name)\n\npattern <- \"([ACGA]{12})CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT\"\nbc_obj_umi <- bc_extract(\n  fq_filter,\n  sample_name = sample_name,\n  pattern = pattern,\n  maxLDist = 0,\n  pattern_type = c(UMI = 1, barcode = 2))\n\nbc_obj_umi_sub <- bc_obj_umi[, c(\"781_mixa\", \"781_mixb\")]\n\nbc_obj_umi_sub <- bc_cure_umi(\n    bc_obj_umi_sub, depth = 1, \n    isUniqueUMI = TRUE, \n    doFish = TRUE)\n\nbc_obj_umi_sub <- bc_cure_depth(bc_obj_umi_sub, depth = 3, isUpdate = TRUE)\n\nbc_cure_cluster(bc_obj_umi_sub)\n\nbc_plot_single(bc_obj_umi_sub)\n\nbc_2df(bc_obj_umi_sub)\n\nbc_2matrix(bc_obj_umi_sub)"
+    },
+    {
+      "name": "scrnaseq_sam_lineage_barcoding",
+      "intent": "Extract lineage barcodes, cell barcodes, and UMIs from 10X Genomics single-cell RNA-seq SAM files.",
+      "input": [
+        "sam_file (path to a SAM file derived from CellRanger BAM output)"
+      ],
+      "stages": "1. Extract lineage barcodes, cell barcodes, and UMIs using bc_extract_sc_sam",
+      "code": "sam_file <- system.file(\"extdata\", \"scRNASeq_10X.sam\", package = \"CellBarcode\")\n\nd = bc_extract_sc_sam(\n   sam = sam_file,\n   pattern = \"AGATCAG(.*)TGTGGTA\",\n   cell_barcode_tag = \"CR\",\n   umi_tag = \"UR\"\n)"
+    }
+  ]
+}

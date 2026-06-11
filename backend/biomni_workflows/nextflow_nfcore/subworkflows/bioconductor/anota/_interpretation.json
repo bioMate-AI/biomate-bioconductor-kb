@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dataT=Matrix or data frame of cytosolic mRNA levels ;; dataP=Matrix or data frame of translationally active mRNA levels (polysome or ribosome-bound mRNA) ;; phenoVec=Vector specifying the sample class/phenotype for each sample ;; useRVM=Logical indicating whether to use the Random Variance Model to adjust within-gene variance ;; nDfbSimData=Number of simulated data sets to generate for dfbeta outlier frequency estimation\n- alternatives: Direct comparison of translationally active mRNA (ignores cytosolic changes, which confounds transcription/stability with translation) ;; Log ratio approach (subtracting log cytosolic from log translationally active mRNA, which can lead to spurious correlations and false conclusions compared to APV)\n- when_to_use: When analyzing genome-wide translational control using parallel quantification of cytosolic mRNA and actively translating mRNA (via polysome microarrays or ribosome profiling) with at least 3 replicate experiments per group.\n- pitfalls: Outlier samples can generate an excessive number of highly influential data points ;; Systematic errors in polysome fraction cut-offs can cause a high abundance of class-slope interactions ;; Strong deviation of residuals from normality may require alternative normalization ;; Unrealistic slopes (<0 or >1) can affect the analysis and should be filtered or flagged ;; RVM requires the empirical variances to fit a theoretical F-distribution, which is highly sensitive to data normalization.",
+  "workflows": [
+    {
+      "name": "translational_efficiency_analysis",
+      "intent": "Perform quality control, test regression assumptions, and identify significantly translationally regulated genes using APV.",
+      "input": [
+        "dataT (matrix or data frame of cytosolic mRNA levels)",
+        "dataP (matrix or data frame of translationally active/polysomal mRNA levels)",
+        "phenoVec (character or factor vector of sample phenotypes)"
+      ],
+      "stages": "1. Perform quality control of influential data points and interactions using anotaPerformQc ;; 2. Assess residual normality using anotaResidOutlierTest ;; 3. Identify significantly translationally regulated genes using anotaGetSigGenes ;; 4. Filter and plot significant genes using anotaPlotSigGenes",
+      "code": "library(\"anota\")\n data(anotaDataSet)\n anotaQcOut <- anotaPerformQc(dataT=anotaDataT[1:200,], dataP=anotaDataP[1:200,], phenoVec=anotaPhenoVec, nDfbSimData=500, useProgBar=FALSE)\n anotaResidOut <- anotaResidOutlierTest(anotaQcObj=anotaQcOut, useProgBar=FALSE)\n anotaSigOut <- anotaGetSigGenes(dataT=anotaDataT[1:200,], dataP=anotaDataP[1:200,], phenoVec=anotaPhenoVec, anotaQcObj=anotaQcOut, useRVM=FALSE, useProgBar=FALSE)\nanotaSelected <- anotaPlotSigGenes(anotaSigObj=anotaSigOut, selContr=1, maxP=0.1, minSlope=(-0.5), maxSlope=1.5, selDeltaPT=0.5)"
+    }
+  ]
+}

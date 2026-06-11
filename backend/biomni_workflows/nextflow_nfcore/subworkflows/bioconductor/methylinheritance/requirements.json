@@ -1,0 +1,13 @@
+{
+  "package": "methylinheritance",
+  "requirements": [
+    "methylInheritance",
+    "methylKit"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "methylInheritance",
+      "methylKit"
+    ]
+  }
+}

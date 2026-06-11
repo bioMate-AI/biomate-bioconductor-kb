@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ref_matrix=Normalized microarray or RNA-seq reference matrix with probe sets/genes as rows and samples as columns ;; query_mat=Normalized microarray or RNA-seq query matrix with query samples to be classified ;; chip1=Chip name of the reference matrix (e.g., 'hgu133plus2') ;; chip2=Chip name of the query matrix (can be ignored if same as chip1) ;; fun1=Summarization method ('mean' or 'median', default 'median') to specify the number of marker genes used for classification ;; fun2=Summarization method ('mean' or 'median', default 'mean') to summarize probe sets belonging to the same gene when chips differ ;; gene.ids.type=Type of gene identifiers for RNA-seq ('ensembl', 'refseq', or 'ucsc', default 'ensembl') ;; write2File=Logical indicating whether to write classification results to a file ;; out.dir=Path to directory for writing results (default is current working directory) ;; res.list=Result list from classifyProfile() or classifyProfile.rnaseq() passed to get.heatmap()\n- alternatives: classifyProfile.svm() and classifyProfile.rnaseq.svm() use Support Vector Machines (SVM) from the e1071 package as an alternative classification method to the default Shared Marker Genes (SMG) algorithm.\n- when_to_use: Appropriate for classifying microarray or RNA-seq gene expression profiles of query samples (e.g., cell lines, tissues, disease states) against a reference dataset of known classes, such as validating in vitro derived cells/organoids against in vivo counterparts or classifying disease types.\n- pitfalls: All replicates of a sample type must have the exact same label/name in the reference matrix. It is highly recommended to use at least 3 replicates for each sample type in the reference matrix. Reference and query matrices should be processed and normalized in the same way. Using all marker genes without filtering can bias classification toward sample types with the most marker genes; the package handles this via fun1 filtering, but users should be aware of this algorithm detail.",
+  "workflows": [
+    {
+      "name": "microarray_classification",
+      "intent": "Classify microarray gene expression profiles using a reference matrix and visualize the results.",
+      "input": [
+        "micro_refmat (normalized microarray reference matrix with probe sets as rows and samples as columns)",
+        "micro_testmat (normalized microarray query matrix to be classified)"
+      ],
+      "stages": "1. Load reference and query microarray matrices ;; 2. Classify profiles using the Shared Marker Genes (SMG) algorithm with classifyProfile() ;; 3. Visualize classification results as a heatmap using get.heatmap() ;; 4. Classify profiles using Support Vector Machines (SVM) with classifyProfile.svm()",
+      "code": "library(sampleClassifierData)\ndata(\"se_micro_refmat\")\nmicro_refmat <- assay(se_micro_refmat)\ndata(\"se_micro_testmat\")\nmicro_testmat <- assay(se_micro_testmat)\nres1.list <- classifyProfile(ref_matrix=micro_refmat, query_mat=micro_testmat,\nchip1=\"hgu133plus2\",chip2=\"hgu133a\", write2File=FALSE)\nget.heatmap(res1.list)\nres1.svm.df <- classifyProfile.svm(ref_matrix=micro_refmat, query_mat=micro_testmat,\nchip1=\"hgu133plus2\",chip2=\"hgu133a\")"
+    },
+    {
+      "name": "rnaseq_classification",
+      "intent": "Classify RNA-seq gene expression profiles using a reference matrix and visualize the results.",
+      "input": [
+        "rnaseq_refmat (RNA-seq reference matrix with genes as rows and samples as columns)",
+        "rnaseq_testmat (RNA-seq query matrix to be classified)"
+      ],
+      "stages": "1. Load reference and query RNA-seq matrices ;; 2. Classify profiles using the Shared Marker Genes (SMG) algorithm with classifyProfile.rnaseq() ;; 3. Visualize classification results as a heatmap using get.heatmap() ;; 4. Classify profiles using Support Vector Machines (SVM) with classifyProfile.rnaseq.svm()",
+      "code": "library(sampleClassifierData)\ndata(\"se_rnaseq_refmat\")\nrnaseq_refmat <- assay(se_rnaseq_refmat)\ndata(\"se_rnaseq_testmat\")\nrnaseq_testmat <- assay(se_rnaseq_testmat)\nres2.list <- classifyProfile.rnaseq(ref_matrix=rnaseq_refmat, query_mat=rnaseq_testmat, \ngene.ids.type=\"ensembl\",write2File=FALSE)\nget.heatmap(res2.list)\nres2.svm.df <- classifyProfile.rnaseq.svm(ref_matrix=rnaseq_refmat, query_mat=rnaseq_testmat, \ngene.ids.type=\"ensembl\")"
+    }
+  ]
+}

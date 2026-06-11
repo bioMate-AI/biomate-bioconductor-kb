@@ -1,0 +1,11 @@
+{
+  "package": "clippda",
+  "requirements": [
+    "clippda"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "clippda"
+    ]
+  }
+}

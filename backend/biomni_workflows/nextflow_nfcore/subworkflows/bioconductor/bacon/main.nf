@@ -1,90 +1,162 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bacon
-// Bacon can be used to remove inflation and bias often observed in epigenome- and transcriptome-wide a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bacon/inst/doc/bacon.R
-// Upstream  : BiocParallel
-// Downstream: none
-//
-// Install: BiocManager::install("bacon")
+// Bioconductor workflow: bacon — single_set_correction
+// Correct bias and inflation for a single vector of association test statistics.
+// Input: y
+// Container: quay.io/biocontainers/bioconductor-bacon:1.38.0--r45h01b2380_0
+// R packages: bacon, BiocParallel
+// Bioconductor: 3.20 | R: 4.4
+// Requires: bacon
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the Gibbs sampler to estimate the empirical null distribution using bacon
+//  * 2. [Core Analysis] Extract estimated parameters, inflation, and bias using estimates, inflation, and bias
+//  * 3. [Core Analysis] Diagnose the Gibbs sampler fit using traces, posteriors, and fit
+//  * 4. [Visualization & Output] Plot diagnostic histogram and QQ-plots using plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_BACON {
+process BIOC_BACON_SINGLE_SET_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bacon"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bacon:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bacon:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(summarizedexperiment)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bacon_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bacon_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bacon_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bacon", "BiocParallel")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(bacon)
-    library(jsonlite)
-
-    # --- Rnormmix analysis [] ---
-    # Key functions: rnormmix, bacon, estimates, inflation, bias, traces, runif, replicate
-    zs <- cbind(zs, matrix(zs, nrow=5000, ncol=9))
-    colnames(zs) <- c(paste0("A", 1:10))
-    rownames(zs) <- 1:5000
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bacon_results.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 0: Read User Input
+    # -----------------------------------------------------------------------------
+    # The pipeline expects a file named 'y' (or 'y.csv' / 'y.txt') in the working directory
+    # containing a single vector of z-scores.
+    if (file.exists("y")) {
+      y <- scan("y", quiet = TRUE)
+    } else if (file.exists("y.csv")) {
+      y <- read.csv("y.csv", header = FALSE)[[1]]
+    } else if (file.exists("y.txt")) {
+      y <- scan("y.txt", quiet = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bacon_results.csv")
+      stop("Error: Input file 'y' containing z-scores not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bacon_output.rds")
+    
+    # Ensure y is a numeric vector
+    y <- as.numeric(y)
+    y <- y[!is.na(y)]
+    
+    if (length(y) == 0) {
+      stop("Error: Input vector 'y' is empty or contains no valid numeric values.")
     }
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Run the Gibbs sampler to estimate the empirical null distribution
+    # -----------------------------------------------------------------------------
+    bc <- bacon(y)
+    print(bc)
+    
+    # Save the Bacon object
+    saveRDS(bc, "bacon_object.rds")
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Extract estimated parameters, inflation, and bias
+    # -----------------------------------------------------------------------------
+    est <- estimates(bc)
+    inf <- inflation(bc)
+    bi <- bias(bc)
+    
+    # Save estimates to CSV
+    write.csv(as.data.frame(est), "estimates.csv", row.names = FALSE)
+    
+    # Save inflation and bias to CSV
+    inf_bias_df <- data.frame(inflation = inf, bias = bi)
+    write.csv(inf_bias_df, "inflation_bias.csv", row.names = FALSE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Diagnose the Gibbs sampler fit
+    # -----------------------------------------------------------------------------
+    pdf("traces.pdf")
+    traces(bc, burnin=FALSE)
+    dev.off()
+    
+    pdf("posteriors.pdf")
+    posteriors(bc)
+    dev.off()
+    
+    pdf("fit.pdf")
+    fit(bc, n=100)
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Plot diagnostic histogram and QQ-plots
+    # -----------------------------------------------------------------------------
+    pdf("plot_hist.pdf")
+    plot(bc, type="hist")
+    dev.off()
+    
+    pdf("plot_qq.pdf")
+    plot(bc, type="qq")
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BACON:", paste0("    bacon: ", packageVersion("bacon"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BACON_SINGLE_SET_CORRECTION":',
+        paste0('    bacon: ', as.character(packageVersion('bacon')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bacon_results.csv
-    touch ${prefix}_bacon_output.rds
-    echo "BIOC_BACON:" > versions.yml
-    echo "    bacon: 0.0.0" >> versions.yml
+    touch ${prefix}_single_set_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_BACON_WORKFLOW {
+workflow BIOC_BACON_SINGLE_SET_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(summarizedexperiment) ]
+    ch_input  // channel: [ val(meta), [ y ] ]
 
     main:
-    BIOC_BACON(ch_input)
+    BIOC_BACON_SINGLE_SET_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_BACON.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BACON.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BACON.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BACON.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BACON_SINGLE_SET_CORRECTION.out.tables
+    plots    = BIOC_BACON_SINGLE_SET_CORRECTION.out.plots
+    objects  = BIOC_BACON_SINGLE_SET_CORRECTION.out.objects
+    versions = BIOC_BACON_SINGLE_SET_CORRECTION.out.versions
 }

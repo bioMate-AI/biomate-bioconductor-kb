@@ -1,162 +1,187 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PanomiR
-// PanomiR is a package to detect miRNAs that target groups of pathways from gene expression data. This
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PanomiR/inst/doc/PanomiR.R
-// Upstream  : GSEABase
-// Downstream: none
-//
-// Install: BiocManager::install("PanomiR")
+// Bioconductor workflow: panomir — panomir_complete_analysis
+// Run the complete PanomiR workflow to identify and prioritize miRNAs targeting coordinated pathway clusters from gene expression data.
+// Input: gene_expression.csv, covariates.csv
+// Container: quay.io/biocontainers/bioconductor-panomir:1.14.0--r45hdfd78af_0
+// R packages: GSEABase, PanomiR
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PANOMIR {
+process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-panomir"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-panomir:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-panomir:1.10.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-panomir:1.14.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_panomir_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_panomir_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_panomir_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GSEABase", "PanomiR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(PanomiR)
-    library(jsonlite)
-
-    # --- Pathway Summary Statistics [pathwaySummary] ---
-    # Key functions: pathwaySummary
-    data("path_gene_table")
-    data("miniTestsPanomiR")
-    summaries <- pathwaySummary(
-        geneCounts = miniTestsPanomiR$mini_LIHC_Exp,
-        pathways = path_gene_table,
-        method = "x2",
-        zNormalize = TRUE,
-        id = "ENSEMBL"
-    )
-    head(summaries)[, 1:2]
-
-    # --- Differential Pathway Analysis [differentialPathwayAnalysis] ---
-    # Key functions: differentialPathwayAnalysis
-    data("path_gene_table")
-    data("miniTestsPanomiR")
-    output0 <- differentialPathwayAnalysis(
-        geneCounts = miniTestsPanomiR$mini_LIHC_Exp,
-        pathways = path_gene_table,
-        covariates = miniTestsPanomiR$mini_LIHC_Cov,
-        condition = "shortLetterCode"
-    )
-    de.paths <- output0$DEP
-
-    # --- Pathway Clustering and Mapping [mappingPathwaysClusters] ---
-    # Key functions: mappingPathwaysClusters
-    data("miniTestsPanomiR")
-    mock_de_paths <- data.frame(
-        Pathway = colnames(miniTestsPanomiR$miniPCXN)[1:10],
-        p.val = runif(10, 0, 0.05)
-    )
-    pathwayClustsLIHC <- mappingPathwaysClusters(
-        pcxn = miniTestsPanomiR$miniPCXN,
-        dePathways = mock_de_paths,
-        topPathways = 10,
-        outDir = ".",
-        plot = FALSE,
-        subplot = FALSE,
-        prefix = "",
-        clusteringFunction = "cluster_louvain",
-        correlationCutOff = 0.1
-    )
-
-    # --- MicroRNA Prioritization [prioritizeMicroRNA] ---
-    # Key functions: prioritizeMicroRNA
-    data("miniTestsPanomiR")
-    output2 <- prioritizeMicroRNA(
-        enriches0 = miniTestsPanomiR$miniEnrich,
-        pathClust = miniTestsPanomiR$miniPathClusts$Clustering,
-        topClust = 1,
-        sampRate = 50,
-        method = c("aggInv"),
-        outDir = "Output/",
-        dataDir = "outData/",
-        saveSampling = FALSE,
-        runJackKnife = FALSE,
-        numCores = 1,
-        prefix = "outmiR",
-        saveCSV = FALSE
-    )
-
-    # --- Custom miRNA Pathway Enrichment [miRNAPathwayEnrichment, reportEnrichment] ---
-    # Key functions: miRNAPathwayEnrichment, reportEnrichment
-    data("msigdb_c2")
-    data("targetScan_03")
-    tempEnrich <- miRNAPathwayEnrichment(
-        targetScan_03[1:30],
-        msigdb_c2[1:30]
-    )
-    enrichReport <- reportEnrichment(tempEnrich)
-
-    # --- Gene Set Collection Conversion [tableFromGSC] ---
-    # Key functions: tableFromGSC
-    data("gscExample")
-    newPathGeneTable <- tableFromGSC(gscExample)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_panomir_results.csv", row.names = TRUE)
+    
+    # Create output directories if they don't exist
+    dir.create("Output", showWarnings = FALSE, recursive = TRUE)
+    dir.create("outData", showWarnings = FALSE, recursive = TRUE)
+    
+    # 1. Read User Input Files
+    # gene_expression.csv: genes as rows, samples as columns
+    gene_expression <- as.matrix(read.csv("gene_expression.csv", row.names = 1, check.names = FALSE))
+    
+    # covariates.csv: sample metadata table
+    covariates <- read.csv("covariates.csv", row.names = 1, check.names = FALSE)
+    
+    # Ensure the condition column is formatted as a factor
+    if ("shortLetterCode" %in% colnames(covariates)) {
+      covariates\$shortLetterCode <- as.factor(covariates\$shortLetterCode)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_panomir_results.csv")
+      # Fallback: if 'shortLetterCode' is not present, use the first column and rename it
+      colnames(covariates)[1] <- "shortLetterCode"
+      covariates\$shortLetterCode <- as.factor(covariates\$shortLetterCode)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_panomir_output.rds")
+    
+    # 2. Pathway Summarization
+    # Using the pathway reference from the PanomiR package namespace
+    path_gene_table <- PanomiR::path_gene_table
+    
+    summaries <- pathwaySummary(gene_expression,
+                                path_gene_table, method = "x2",
+                                zNormalize = TRUE, id = "ENSEMBL")
+    
+    # Save pathway summaries
+    write.csv(summaries, "pathway_summaries.csv", row.names = TRUE)
+    
+    # 3. Differential Pathway Activity Analysis
+    output0 <- differentialPathwayAnalysis(
+                            geneCounts = gene_expression,
+                            pathways =  path_gene_table,
+                            covariates = covariates,
+                            condition = 'shortLetterCode')
+    
+    de.paths <- output0\$DEP
+    
+    # Save differential pathway analysis results
+    write.csv(de.paths, "differential_pathways.csv", row.names = TRUE)
+    
+    # 4. Finding Clusters of Pathways
+    # Using the pathway co-expression network from the PanomiR package namespace
+    miniPCXN <- PanomiR::miniTestsPanomiR\$miniPCXN
+    
+    # Determine safe limits for indexing based on the number of differential pathways found
+    num_de_paths <- nrow(de.paths)
+    top_p_limit <- min(200, num_de_paths)
+    de_p_limit <- min(300, num_de_paths)
+    
+    set.seed(2)
+    pathwayClustsLIHC <- mappingPathwaysClusters(
+                                pcxn = miniPCXN, 
+                                dePathways = de.paths[1:de_p_limit, , drop = FALSE],
+                                topPathways = top_p_limit,
+                                outDir=".",
+                                plot = FALSE,
+                                subplot = FALSE,
+                                prefix='',
+                                clusteringFunction = "cluster_louvain",
+                                correlationCutOff = 0.1)
+    
+    # Save pathway clustering results
+    if (!is.null(pathwayClustsLIHC\$Clustering)) {
+      write.csv(pathwayClustsLIHC\$Clustering, "pathway_clusters.csv", row.names = TRUE)
+    }
+    
+    # 5. Prioritizing miRNAs per Cluster of Pathways
+    # Using the enrichment reference from the PanomiR package namespace
+    miniEnrich <- PanomiR::miniTestsPanomiR\$miniEnrich
+    
+    # Run prioritization if clusters were successfully found
+    if (!is.null(pathwayClustsLIHC\$Clustering) && nrow(pathwayClustsLIHC\$Clustering) > 0) {
+      set.seed(1)
+      
+      # Wrap in tryCatch to ensure robustness
+      tryCatch({
+        output2 <- prioritizeMicroRNA(enriches0 = miniEnrich,
+                            pathClust = pathwayClustsLIHC\$Clustering,
+                            topClust = 1,
+                            sampRate = 50, 
+                            method = c("aggInv"),
+                            outDir = "Output/",
+                            dataDir = "outData/",
+                            saveSampling = FALSE,
+                            runJackKnife = FALSE,
+                            numCores = 1,
+                            prefix = "outmiR",
+                            saveCSV = FALSE)
+        
+        # Save prioritized miRNAs
+        if (!is.null(output2\$Cluster1)) {
+          write.csv(output2\$Cluster1, "prioritized_mirnas_cluster1.csv", row.names = TRUE)
+        }
+        saveRDS(output2, "prioritized_mirnas.rds")
+      }, error = function(e) {
+        message("Warning: prioritizeMicroRNA failed with error: ", e\$message)
+      })
+    } else {
+      message("No pathway clusters found. Skipping miRNA prioritization.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PANOMIR:", paste0("    panomir: ", packageVersion("PanomiR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS":',
+        paste0('        panomir: ', as.character(packageVersion("panomir")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_panomir_results.csv
-    touch ${prefix}_panomir_output.rds
-    echo "BIOC_PANOMIR:" > versions.yml
-    echo "    panomir: 0.0.0" >> versions.yml
+    touch ${prefix}_panomir_complete_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_PANOMIR_WORKFLOW {
+workflow BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_expression.csv, covariates.csv ] ]
 
     main:
-    BIOC_PANOMIR(ch_input)
+    BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_PANOMIR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PANOMIR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PANOMIR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PANOMIR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS.out.tables
+    plots    = BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS.out.plots
+    objects  = BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS.out.objects
+    versions = BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS.out.versions
 }

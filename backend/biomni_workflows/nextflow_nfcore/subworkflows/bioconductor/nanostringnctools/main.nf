@@ -1,116 +1,199 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NanoStringNCTools
-// Tools for NanoString Technologies nCounter Technology. Provides support for reading RCC files into a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NanoStringNCTools/inst/doc/Introduction.R
-// Upstream  : ggiraph, ggthemes, pheatmap
-// Downstream: GeomxTools, GeoMxWorkflows
-//
-// Install: BiocManager::install("NanoStringNCTools")
+// Bioconductor workflow: nanostringnctools — nanostring_ncounter_analysis
+// Read raw NanoString RCC/RLF files, perform quality control, normalize counts, and visualize results.
+// Input: rcc_files, rlf_file, sample_annotation
+// Container: quay.io/biocontainers/bioconductor-nanostringnctools:1.18.0--r45hdfd78af_0
+// R packages: ggiraph, ggplot2, ggthemes, htmlwidgets, NanoStringNCTools, pheatmap
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NANOSTRINGNCTOOLS {
+process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nanostringnctools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nanostringnctools:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nanostringnctools:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-nanostringnctools:1.18.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nanostringnctools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nanostringnctools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nanostringnctools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggiraph", "ggplot2", "ggthemes", "htmlwidgets", "NanoStringNCTools", "pheatmap")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    #===============================================================================
+    # Pipeline: nanostring_ncounter_analysis
+    # Description: Read raw NanoString RCC/RLF files, perform quality control,
+    #              normalize counts, and visualize results.
+    #===============================================================================
+    
     library(NanoStringNCTools)
-    library(jsonlite)
-
-    # --- Design [] ---
-    # Key functions: design, dimLabels, protocolData, sampleNames
-    ---------------------------------------------------------------------
-    # assign design information
+    library(ggthemes)
+    library(ggiraph)
+    library(pheatmap)
+    library(ggplot2)
+    library(htmlwidgets)
+    
+    #-------------------------------------------------------------------------------
+    # 1. Locate and Validate User Input Files in the Working Directory
+    #-------------------------------------------------------------------------------
+    
+    # Search for RCC files in the current working directory
+    rcc_files <- list.files(path = ".", pattern = "\\\\.RCC\$", ignore.case = TRUE, full.names = TRUE)
+    
+    # Search for the RLF file in the current working directory
+    rlf_file <- list.files(path = ".", pattern = "\\\\.rlf\$", ignore.case = TRUE, full.names = TRUE)[1]
+    
+    # Search for the sample annotation CSV file in the current working directory
+    sample_annotation <- list.files(path = ".", pattern = "pheno|annotation.*\\\\.csv\$", ignore.case = TRUE, full.names = TRUE)[1]
+    
+    # Validate that all required inputs are present
+    if (length(rcc_files) == 0) {
+      stop("Error: No RCC files found in the working directory.")
+    }
+    if (is.na(rlf_file) || !file.exists(rlf_file)) {
+      stop("Error: RLF file not found in the working directory.")
+    }
+    if (is.na(sample_annotation) || !file.exists(sample_annotation)) {
+      stop("Error: Sample annotation CSV file not found in the working directory.")
+    }
+    
+    message(paste("Found", length(rcc_files), "RCC files."))
+    message(paste("Using RLF file:", rlf_file))
+    message(paste("Using sample annotation:", sample_annotation))
+    
+    #-------------------------------------------------------------------------------
+    # 2. Load Raw Data and Initialize NanoStringRCCSet
+    #-------------------------------------------------------------------------------
+    
+    demoData <- readNanoStringRccSet(rcc_files, rlfFile = rlf_file, phenoDataFile = sample_annotation)
+    
+    #-------------------------------------------------------------------------------
+    # 3. Assign Design and Adjust Dimension Labels
+    #-------------------------------------------------------------------------------
+    
     design(demoData) <- ~ `Treatment`
-    design(demoData)
-    # check the column names to use as labels for the features and samples respectively
-    # --- Head [] ---
-    # Key functions: sData
-    ---------------------------------------------------------------------
-    # summarize log2 counts for each feature
-    head(summary(demoData, MARGIN = 1), 2)
-    # summarize log2 counts for each sample
-    head(summary(demoData, MARGIN = 2), 2)
-    # --- Negativecontrolsubset [] ---
-    # Key functions: negativeControlSubset
-    ---------------------------------------------------------------------
+    protocolData(demoData)[["Sample ID"]] <- sampleNames(demoData)
+    dimLabels(demoData)[2] <- "Sample ID"
+    
+    #-------------------------------------------------------------------------------
+    # 4. Quality Control Flagging and Visualization
+    #-------------------------------------------------------------------------------
+    
+    demoData <- setQCFlags(demoData,
+                           qcCutoffs = list(Housekeeper = c(failingCutoff = 32, passingCutoff = 100), 
+                                            Imaging = c(fovCutoff = 0.75), 
+                                            BindingDensity = c(minimumBD = 0.1, maximumBD = 2.25, maximumBDSprint = 1.8), 
+                                            ERCCLinearity = c(correlationValue = 0.95), 
+                                            ERCCLoD = c(standardDeviations = 2)))
+    
+    # Generate and save interactive QC plots as HTML widgets
+    htmlwidgets::saveWidget(girafe(ggobj = autoplot(demoData, type = "housekeep-geom")), "qc_housekeep_geom.html")
+    htmlwidgets::saveWidget(girafe(ggobj = autoplot(demoData, type = "lane-bindingDensity")), "qc_lane_bindingDensity.html")
+    htmlwidgets::saveWidget(girafe(ggobj = autoplot(demoData, type = "lane-fov")), "qc_lane_fov.html")
+    htmlwidgets::saveWidget(girafe(ggobj = autoplot(demoData, type = "ercc-linearity")), "qc_ercc_linearity.html")
+    
+    # Also save static versions of the QC plots to a single PDF
+    pdf("qc_plots_summary.pdf", width = 8, height = 6)
+    print(autoplot(demoData, type = "housekeep-geom"))
+    print(autoplot(demoData, type = "lane-bindingDensity"))
+    print(autoplot(demoData, type = "lane-fov"))
+    print(autoplot(demoData, type = "ercc-linearity"))
+    dev.off()
+    
+    #-------------------------------------------------------------------------------
+    # 5. Subset Data (Extract Negative Controls)
+    #-------------------------------------------------------------------------------
+    
     neg_set <- negativeControlSubset(demoData)
-    class(neg_set)
-    # --- Assaydataelement [] ---
-    # Key functions: assayDataElement, assayDataApply, esBy
-    ---------------------------------------------------------------------
-    # calculate the log counts of gene expressions for each sample
-    assayDataElement(demoData, "demoElem") <-
-      assayDataApply(demoData, MARGIN=2, FUN=log, base=10, elt="exprs")
-    assayDataElement(demoData, "demoElem")[1:3, 1:2]
-    # --- Girafe [] ---
-    # Key functions: girafe, autoplot, featureNames
-    ---------------------------------------------------------------------
-    girafe( ggobj = autoplot( demoData , "boxplot-feature" , index = featureNames(demoData)[3] , elt = "exprs" ) )
-    autoplot( demoData , "heatmap-genes" , elt = "exprs_norm" )
+    
+    #-------------------------------------------------------------------------------
+    # 6. Normalization
+    #-------------------------------------------------------------------------------
+    
+    demoData <- normalize(demoData, type="nSolver", fromELT = "exprs", toELT = "exprs_norm")
+    
+    #-------------------------------------------------------------------------------
+    # 7. Visualization of Normalized Expression (Heatmap)
+    #-------------------------------------------------------------------------------
+    
+    pdf("heatmap_normalized_genes.pdf", width = 10, height = 8)
+    print(autoplot(demoData, type = "heatmap-genes", elt = "exprs_norm", heatmapGroup = c("Treatment", "BRAFGenotype"), 
+             show_colnames_gene_limit = 10, show_rownames_gene_limit = 40,
+             log2scale = FALSE))
+    dev.off()
+    
+    #-------------------------------------------------------------------------------
+    # 8. Transform and Export Results
+    #-------------------------------------------------------------------------------
+    
+    # Munge negative controls
+    neg_ctrls <- munge(neg_set, ~exprs)
+    write.csv(neg_ctrls, "negative_controls_expression.csv", row.names = FALSE)
+    
+    # Transform normalized expression matrix to data frame
+    exprs_df <- transform(assayData(demoData)[["exprs_norm"]])
+    write.csv(exprs_df, "normalized_expression_matrix.csv", row.names = TRUE)
+    
+    # Save the complete normalized NanoStringRCCSet object
+    saveRDS(demoData, "normalized_demoData.rds")
+    
+    message("Pipeline completed successfully. Outputs written to working directory.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nanostringnctools_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nanostringnctools_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nanostringnctools_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NANOSTRINGNCTOOLS:", paste0("    nanostringnctools: ", packageVersion("NanoStringNCTools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS":',
+        paste0('        nanostringnctools: ', as.character(packageVersion("nanostringnctools")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nanostringnctools_results.csv
-    touch ${prefix}_nanostringnctools_output.rds
-    echo "BIOC_NANOSTRINGNCTOOLS:" > versions.yml
-    echo "    nanostringnctools: 0.0.0" >> versions.yml
+    touch ${prefix}_nanostring_ncounter_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_NANOSTRINGNCTOOLS_WORKFLOW {
+workflow BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rcc_files, rlf_file, sample_annotation ] ]
 
     main:
-    BIOC_NANOSTRINGNCTOOLS(ch_input)
+    BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_NANOSTRINGNCTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NANOSTRINGNCTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NANOSTRINGNCTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NANOSTRINGNCTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS.out.tables
+    plots    = BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS.out.plots
+    objects  = BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS.out.objects
+    versions = BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS.out.versions
 }

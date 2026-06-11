@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: DEGpath=File path to the DEG list of interest (CSV or TSV) ;; genename=Name of the column containing HUGO gene names ;; sampsize=Sample size of the DEG analysis ;; iters=Number of resampling iterations for bootstrapping (default 100,000; can use 50,000 for speed) ;; headers=Character vector defining column names for log fold change and adjusted p-value (default assumes DESeq2 \"log2FoldChange\" and \"padj\") ;; scorelist=Output of pathwayAnalysis() or a list of such outputs ;; labeltext=Indication of which values to use to label points in bubblePlot (\"Pval\" or \"LogFC\") ;; labelsize=Numeric value for point label text size in bubblePlot (default = 0.25) ;; samplenames=Character vector of names for labeling each output in metaHeatmap ;; pvalcut=P-value cutoff for metaHeatmap (default = 0.05) ;; pathway=Name of the WikiPathway to be plotted in cytoPath ;; figpath=File path where the Cytoscape figure will be saved.\n- alternatives: Upstream differential expression analysis packages like DESeq2 or limma are used to generate the input DEG list. RCy3 is used internally by cytoPath to interface with Cytoscape.\n- when_to_use: Use when you have a list of differentially expressed genes (DEGs) with fold changes and p-values from RNA-seq or microarray data and want to assess, score, and visualize metabolic pathway dysregulation.\n- pitfalls: A seed MUST be set before running pathwayAnalysis() to ensure reproducible bootstrapping results, and it must remain the same throughout the analysis ;; metaHeatmap() cannot be produced if there are no pathways significantly dysregulated below the specified p-value cutoff (pvalcut) ;; metaHeatmap() is only useful when comparing multiple DEG lists/groups and will not work for a single DEG list ;; cytoPath() requires a local instance of Cytoscape running and the RCy3 package installed to render the plot.",
+  "workflows": [
+    {
+      "name": "single_deg_metabolic_profiling",
+      "intent": "Assess metabolic dysregulation from a single DEG list and visualize the profile using a bubble plot.",
+      "input": [
+        "BRCA_DEGS.csv (DEG list containing HUGO gene names, log fold change, and adjusted p-values)"
+      ],
+      "stages": "1. Set seed for reproducible bootstrapping ;; 2. Run pathway analysis using pathwayAnalysis() ;; 3. Visualize the metabolic profile using bubblePlot() ;; 4. Plot the bubble plot using plot()",
+      "code": "set.seed(1234)\n\nbrca <- pathwayAnalysis(DEGpath = system.file(\"extdata/BRCA_DEGS.csv\",\n                        package = \"MetaPhOR\"),\n                        genename = \"X\",\n                        sampsize = 1095,\n                        iters = 50000,\n                        headers = c(\"logFC\", \"adj.P.Val\"))\n\npval <- bubblePlot(scorelist = brca,\n                    labeltext = \"Pval\",\n                    labelsize = .85)\nplot(pval)\n\nlogfc <- bubblePlot(scorelist = brca,\n                    labeltext = \"LogFC\",\n                    labelsize = .85)\nplot(logfc)"
+    },
+    {
+      "name": "multi_deg_comparative_profiling",
+      "intent": "Compare metabolic profiles across multiple groups or conditions using a heatmap.",
+      "input": [
+        "BRCA_DEGS.csv (DEG list for condition 1)",
+        "OVCA_Scores.csv (Pre-calculated pathway scores for condition 2)",
+        "PRAD_Scores.csv (Pre-calculated pathway scores for condition 3)"
+      ],
+      "stages": "1. Run pathway analysis for each condition using pathwayAnalysis() ;; 2. Load pre-calculated scores for comparison conditions ;; 3. Combine the scores into a list ;; 4. Generate a comparative heatmap using metaHeatmap()",
+      "code": "ovca <- read.csv(system.file(\"extdata/OVCA_Scores.csv\", package = \"MetaPhOR\"),\n                header = TRUE,\n                row.names = 1)\nprad <- read.csv(system.file(\"extdata/PRAD_Scores.csv\", package = \"MetaPhOR\"),\n                header = TRUE,\n                row.names = 1)\n\nall.scores <- list(brca, ovca, prad)\nnames <- c(\"BRCA\", \"OVCA\", \"PRAD\")\n\nmetaHeatmap(scorelist = all.scores,\n            samplenames = names,\n            pvalcut = 0.05)"
+    },
+    {
+      "name": "pathway_network_modeling",
+      "intent": "Model individual metabolic pathways using transcriptional changes of individual genes and visualize them in Cytoscape.",
+      "input": [
+        "BRCA_DEGS.csv (DEG list containing HUGO gene names, log fold change, and adjusted p-values)"
+      ],
+      "stages": "1. Identify a pathway of interest ;; 2. Render and save the pathway model using cytoPath() (requires a running local Cytoscape instance)",
+      "code": "cytoPath(pathway = \"Tryptophan Metabolism\",\n            DEGpath = \"BRCA_DEGS.csv\",\n            figpath = paste(getwd(), \"BRCA_Tryptophan_Pathway\", sep = \"/\"),\n            genename = \"X\",\n            headers = c(\"logFC\", \"adj.P.Val\"))"
+    }
+  ]
+}

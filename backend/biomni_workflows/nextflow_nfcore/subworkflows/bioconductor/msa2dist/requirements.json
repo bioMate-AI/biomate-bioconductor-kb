@@ -1,0 +1,21 @@
+{
+  "package": "msa2dist",
+  "requirements": [
+    "Biostrings",
+    "MSA2dist",
+    "ape",
+    "dplyr",
+    "ggplot2",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "MSA2dist",
+      "ape",
+      "dplyr",
+      "ggplot2",
+      "tidyr"
+    ]
+  }
+}

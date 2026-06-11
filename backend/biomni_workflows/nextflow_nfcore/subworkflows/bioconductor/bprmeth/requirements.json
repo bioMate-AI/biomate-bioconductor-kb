@@ -1,0 +1,11 @@
+{
+  "package": "bprmeth",
+  "requirements": [
+    "BPRMeth"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BPRMeth"
+    ]
+  }
+}

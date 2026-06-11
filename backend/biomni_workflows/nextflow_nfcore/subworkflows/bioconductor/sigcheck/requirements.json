@@ -1,0 +1,19 @@
+{
+  "package": "sigcheck",
+  "requirements": [
+    "Biobase",
+    "MLInterfaces",
+    "SigCheck"
+  ],
+  "by_workflow": {
+    "classification_analysis.nf": [
+      "Biobase",
+      "MLInterfaces",
+      "SigCheck"
+    ],
+    "main.nf": [
+      "Biobase",
+      "SigCheck"
+    ]
+  }
+}

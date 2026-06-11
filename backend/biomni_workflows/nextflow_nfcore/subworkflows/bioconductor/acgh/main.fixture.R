@@ -1,0 +1,5 @@
+library(aCGH)
+datadir <- file.path(system.file(package = "aCGH"), "examples")
+file.copy(file.path(datadir, "clones.info.ex.txt"), "clones.info.ex.txt", overwrite = TRUE)
+file.copy(file.path(datadir, "log2.ratios.ex.txt"), "log2.ratios.ex.txt", overwrite = TRUE)
+file.copy(file.path(datadir, "pheno.type.ex.txt"), "pheno.type.ex.txt", overwrite = TRUE)

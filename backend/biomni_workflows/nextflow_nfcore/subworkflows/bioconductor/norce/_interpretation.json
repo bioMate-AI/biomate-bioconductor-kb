@@ -1,0 +1,57 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: org_assembly=Keyword specifying the organism assembly (e.g., 'hg19', 'hg38', 'mm10') ;; near=Logical indicating whether to retrieve closest genes based on neighborhood ;; upstream/downstream=Numeric interval in bp (default 10 kb) controlling neighborhood search range ;; searchRegion=Region type ('all', 'exon', 'intron') to restrict neighborhood analysis ;; target=Logical indicating whether to filter miRNA genes using TargetScan predictions ;; isTADSearch=Logical indicating whether to restrict neighborhood coding genes to the same TAD boundaries ;; TAD=BED formatted custom TAD boundaries or pre-defined TAD object ;; express=Logical indicating whether to filter/augment using correlation analysis ;; isCustomExp=Logical indicating whether to use custom expression datasets (exp1 and exp2) for correlation ;; pathwayType=Pathway database type ('kegg', 'reactome', 'wiki', 'other')\n- alternatives: None mentioned.\n- when_to_use: Use this package when you have a set of non-coding RNAs (such as lncRNAs, miRNAs, snoRNAs, circRNAs) or genomic regions and want to perform functional GO or pathway enrichment analysis by linking them to neighboring or spatially proximal protein-coding genes.\n- pitfalls: The pre-computed correlation database miRCancer.db must be downloaded locally and its path provided to databaseFile when using express = TRUE without custom expression data. Custom expression matrices (exp1 and exp2) must have patient samples as rows and genes as columns, with gene names as headers (or specified via label1 and label2). Custom GMT files require setting pathwayType to 'other' and specifying gmtName.",
+  "workflows": [
+    {
+      "name": "go_enrichment_ncrna_genes",
+      "intent": "Perform GO enrichment analysis for a list of ncRNA genes using neighborhood, custom TAD boundaries, or correlation.",
+      "input": [
+        "brain_disorder_ncRNA (ncRNA gene list)",
+        "DER-18_TAD_adultbrain.txt (custom TAD boundaries BED file)",
+        "miRCancer.db (local correlation database)"
+      ],
+      "stages": "1. Set neighborhood parameters using setParameters ;; 2. Run GO enrichment based on neighborhood using geneGOEnricher ;; 3. Run GO enrichment incorporating custom TAD boundaries using geneGOEnricher ;; 4. Run GO enrichment incorporating correlation analysis using geneGOEnricher ;; 5. Export and visualize results using writeEnrichment, drawDotPlot, createNetwork, and getGoDag",
+      "code": "type <- c('downstream','upstream')\nvalue <- c(2000,30000)\nsetParameters(type,value)\nsetParameters(\"searchRegion\", \"exon\")\nncGO<-geneGOEnricher(gene = brain_disorder_ncRNA, org_assembly='hg19', near=TRUE, genetype = 'Ensembl_gene')\ncus_TAD<-system.file(\"extdata\", \"DER-18_TAD_adultbrain.txt\", package = \"NoRCE\")\ntad_custom <- rtracklayer::import(cus_TAD, format = 'bed')\nncGO_tad <- geneGOEnricher(gene = brain_disorder_ncRNA, org_assembly = 'hg19', genetype = 'Ensembl_gene', isTADSearch = TRUE, TAD = tad_custom)\nncGO_tad <- geneGOEnricher(gene = brain_disorder_ncRNA, org_assembly = 'hg19', genetype = 'Ensembl_gene',near = TRUE, express = TRUE, databaseFile = '\\\\miRCancer\\\\miRCancer.db', cancer = 'GBMLGG')\nwriteEnrichment(mrnaObject = ncGO,fileName = \"result.txt\",sept = \"\\t\",type = \"pvalue\")\nwriteEnrichment(mrnaObject = ncGO,fileName = \"result.txt\",sept = \"\\t\",type = \"pvalue\", n = 5)\ndrawDotPlot(mrnaObject = ncGO, type = \"pvalue\", n = 25)\ncreateNetwork(mrnaObject = ncGO, type = 'pvalue', n = 2, isNonCode = TRUE)\ngetGoDag(mrnaObject = ncGO,type = 'pvalue', n = 2,filename = 'dag.png', imageFormat = \"png\")"
+    },
+    {
+      "name": "go_enrichment_ncrna_regions",
+      "intent": "Perform GO enrichment analysis for genomic regions of interest.",
+      "input": [
+        "ncRegion.txt (BED formatted genomic regions)"
+      ],
+      "stages": "1. Import BED file using rtracklayer::import ;; 2. Run region-based GO enrichment using geneRegionGOEnricher",
+      "code": "setParameters(\"searchRegion\", \"all\")\nregions<-system.file(\"extdata\", \"ncRegion.txt\", package = \"NoRCE\")\nregionNC <- rtracklayer::import(regions, format = \"BED\")\nregionGO<-geneRegionGOEnricher(region = regionNC, org_assembly= 'hg19', near = TRUE)"
+    },
+    {
+      "name": "go_enrichment_mirna",
+      "intent": "Perform GO enrichment for miRNA genes using target prediction, TAD boundaries, and custom co-expression data.",
+      "input": [
+        "brain_mirna (miRNA gene list)",
+        "mirna (miRNA expression matrix)",
+        "mrna (mRNA expression matrix)"
+      ],
+      "stages": "1. Run GO enrichment using neighborhood and target prediction using mirnaGOEnricher ;; 2. Run GO enrichment incorporating TAD boundaries using mirnaGOEnricher ;; 3. Run GO enrichment incorporating custom co-expression data using mirnaGOEnricher",
+      "code": "mirGO<-mirnaGOEnricher(gene = brain_mirna, org_assembly='hg19', near=TRUE, target=TRUE)\nmirGO<-mirnaGOEnricher(gene = brain_mirna, org_assembly='hg19', near=TRUE, isTADSearch = TRUE, TAD = tad_hg19)\nmiGO1 <- mirnaGOEnricher(gene = brain_mirna, org_assembly = 'hg19', target = TRUE, express = TRUE, isCustomExp = TRUE, exp1 = mirna, exp2 = mrna)\nmiGO1 <- mirnaGOEnricher(gene = brain_mirna, org_assembly = 'hg19', target = TRUE, express = TRUE, isCustomExp = TRUE, exp1 = mirna, exp2 = mrna, isUnionCorGene = TRUE)"
+    },
+    {
+      "name": "pathway_enrichment",
+      "intent": "Perform pathway enrichment (KEGG, Reactome, WikiPathways, or custom GMT) for ncRNA genes.",
+      "input": [
+        "brain_mirna (miRNA gene list)",
+        "brain_disorder_ncRNA (ncRNA gene list)",
+        "custom.gmt (custom GMT file)"
+      ],
+      "stages": "1. Run KEGG pathway enrichment for miRNAs using mirnaPathwayEnricher ;; 2. Run Reactome pathway enrichment for ncRNAs using genePathwayEnricher ;; 3. Run WikiPathways enrichment for ncRNAs using genePathwayEnricher ;; 4. Run custom GMT pathway enrichment using genePathwayEnricher ;; 5. Visualize pathway diagrams using getKeggDiagram and getReactomeDiagram",
+      "code": "miPathway <- mirnaPathwayEnricher(gene = brain_mirna, org_assembly = 'hg19', near = TRUE, target = TRUE)\nsetParameters(\"pathwayType\",\"reactome\")\nnc2 <- genePathwayEnricher(gene = brain_disorder_ncRNA, org_assembly =  'hg19', near = TRUE, genetype = 'Ensembl_gene')\ntype <- c('pathwayType', 'pAdjust')\nvalue<-c('wiki', 'bonferroni')\nsetParameters(type,value)\nnc2 <- genePathwayEnricher(gene = brain_disorder_ncRNA, org_assembly =  'hg19', near = TRUE, genetype = 'Ensembl_gene')\nsetParameters(\"pathwayType\",\"other\")\nwp.gmt <- \"custom.gmt\"\nncGO_bader <- genePathwayEnricher(gene = brain_disorder_ncRNA, org_assembly = 'hg19',genetype = 'Ensembl_gene',gmtName = wp.gmt)\ngetKeggDiagram(mrnaObject = ncRNAPathway, org_assembly ='hg19', pathway = ncRNAPathway@ID[1])\ngetReactomeDiagram(mrnaObject = ncRNAPathway, pathway = miGO1@ID[3], imageFormat = \"png\")"
+    },
+    {
+      "name": "biotype_analysis",
+      "intent": "Filter and extract biotype-specific gene lists from GTF files.",
+      "input": [
+        "temp.gtf (GTF annotation file)"
+      ],
+      "stages": "1. Filter GTF file for specific biotypes using filterBiotype ;; 2. Extract gene-biotype relationships using extractBiotype",
+      "code": "biotypes <- c('unprocessed_pseudogene','transcribed_unprocessed_pseudogene')\nfileImport<-system.file(\"extdata\", \"temp.gtf\", package = \"NoRCE\")\nextrResult <- filterBiotype(fileImport, biotypes)\ngtf <- extractBiotype(gtfFile = fileImport)"
+    }
+  ]
+}

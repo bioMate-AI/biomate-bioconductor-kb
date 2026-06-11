@@ -1,136 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scFeatures
-// scFeatures constructs multi-view representations of single-cell and spatial data. scFeatures is a to
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scFeatures/inst/doc/scFeatures_overview.R
-// Upstream  : ClassifyR, S4Vectors, survival, survminer
-// Downstream: none
-//
-// Install: BiocManager::install("scFeatures")
+// Bioconductor workflow: scFeatures — feature_generation_and_downstream_analysis
+// Generate multi-view features from single-cell RNA-seq data and perform downstream classification or survival analysis.
+// Input: expression_matrix.rds, metadata.csv
+// Container: quay.io/biocontainers/bioconductor-scfeatures:1.6.0--r44hdfd78af_0
+// R packages: ClassifyR, S4Vectors, scFeatures, survival, survminer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ClassifyR, scFeatures, survival, survminer
+// Visualizations: survival plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load single-cell expression and metadata
+//  * 2. [Core Analysis] Generate multi-view features using scFeatures
+//  * 3. [Core Analysis] Perform cross-validated classification using ClassifyR::crossValidate
+//  * 4. [Core Analysis] Perform hierarchical clustering and survival analysis using hclust and survival::survfit
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCFEATURES {
+process BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scfeatures"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scfeatures:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scfeatures:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scfeatures_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scfeatures_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scfeatures_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ClassifyR", "S4Vectors", "scFeatures", "survival", "survminer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
     library(scFeatures)
-    library(jsonlite)
-
-    # --- Feature Extraction [scfeatures] ---
-    # Key functions: scFeatures
-    data("example_scrnaseq", package = "scFeatures")
-    scfeatures_result <- scFeatures(
-        data = example_scrnaseq@assays$RNA@data,
-        sample = example_scrnaseq$sample,
-        celltype = example_scrnaseq$celltype,
-        feature_types = "gene_mean_celltype",
-        type = "scrna",
-        ncores = 1,
-        species = "Homo sapiens"
-    )
-    feature_matrix <- scfeatures_result$gene_mean_celltype
-
-    # --- Classification Modeling [classifyr] ---
-    # Key functions: crossValidate, performancePlot
-    X <- feature_matrix
-    y_df <- example_scrnaseq@meta.data[!duplicated(example_scrnaseq$sample), ]
-    y <- y_df[match(rownames(X), y_df$sample), ]$condition
-    cv_result <- ClassifyR::crossValidate(
+    library(ClassifyR)
+    library(survival)
+    library(survminer)
+    
+    # 1. Load single-cell expression and metadata
+    expr_mat <- readRDS("expression_matrix.rds")
+    cell_metadata <- read.csv("metadata.csv", stringsAsFactors = FALSE)
+    
+    if (!"condition" %in% colnames(cell_metadata)) {
+      stop("Error: 'condition' column not found in metadata.csv. Please ensure the metadata contains a 'condition' column for classification.")
+    }
+    
+    # 2. Generate multi-view features using scFeatures
+    scfeatures_result <- scFeatures(data = expr_mat, sample = cell_metadata\$sample, celltype = cell_metadata\$celltype,
+                                    feature_types = "gene_mean_celltype"  , 
+                                    type = "scrna",  
+                                    ncores = 1,  
+                                    species = "Homo sapiens")
+    
+    feature_gene_mean_celltype <- scfeatures_result\$gene_mean_celltype
+    
+    # inspect the first 5 rows and first 5 columns
+    feature_gene_mean_celltype[1:5, 1:5]
+    
+    # inspect the dimension of the matrix
+    dim(feature_gene_mean_celltype)
+    
+    # 3. Perform cross-validated classification using ClassifyR::crossValidate
+    # X is the feature type generated
+    # y is the condition for classification
+    X <- feature_gene_mean_celltype
+    y <- cell_metadata[!duplicated(cell_metadata\$sample), ]
+    y <- y[match(rownames(X), y\$sample), ]\$condition
+    
+    # run the classification model using random forest
+    result <- ClassifyR::crossValidate(
         X, y,
-        classifier = "randomForest",
-        nCores = 1,
-        nFolds = 3,
-        nRepeats = 5
+        classifier = "randomForest", nCores = 2,
+        nFolds = 3, nRepeats = 5
     )
-    plot_obj <- ClassifyR::performancePlot(results = cv_result)
-
-    # --- Survival Analysis [survival] ---
-    # Key functions: hclust, cutree
-    X_t <- t(feature_matrix)
-    dist_matrix <- as.dist(1 - cor(X_t, method = "pearson"))
-    hclust_res <- hclust(dist_matrix, method = "ward.D2")
+    
+    pdf("classification_performance_plot.pdf", width = 7, height = 5)
+    print(ClassifyR::performancePlot(results = result))
+    dev.off()
+    
+    # 4. Perform hierarchical clustering and survival analysis using hclust and survival::survfit
+    X <- feature_gene_mean_celltype
+    X <- t(X)
+    
+    # run hierarchical clustering
+    hclust_res <- hclust(
+        as.dist(1 - cor(X, method = "pearson")),
+        method = "ward.D2"
+    )
+    
+    set.seed(1)
+    # generate some survival outcome, including the survival days and the censoring outcome
+    survival_day <- sample(1:100, ncol(X))
+    censoring <- sample(0:1, ncol(X), replace = TRUE)
+    
     cluster_res <- cutree(hclust_res, k = 2)
-    survival_day <- seq_len(ncol(X_t)) * 10
-    censoring <- rep(c(0, 1), length.out = ncol(X_t))
-    metadata <- data.frame(
-        cluster = factor(cluster_res),
-        survival_day = survival_day,
-        censoring = censoring
+    metadata <- data.frame( cluster = factor(cluster_res),
+                            survival_day = survival_day,
+                            censoring = censoring)
+    
+    # plot survival curve
+    fit <- survfit(
+        Surv(survival_day, censoring) ~ cluster,
+        data = metadata
     )
-
-    # --- Association Study Reporting [scfeatures] ---
-    # Key functions: run_association_study_report
-    data("scfeatures_result", package = "scFeatures")
-    output_folder <- tempdir()
-    run_association_study_report(
-        scfeatures_result,
-        output_folder
+    ggsurv <- ggsurvplot(fit,
+        conf.int = FALSE, risk.table = TRUE,
+        risk.table.col = "strata", pval = TRUE
     )
+    
+    pdf("survival_curve_plot.pdf", width = 7, height = 7)
+    print(ggsurv)
+    dev.off()
+    
+    # Save meaningful results to files
+    saveRDS(scfeatures_result, "scfeatures_result.rds")
+    write.csv(feature_gene_mean_celltype, "feature_gene_mean_celltype.csv", row.names = TRUE)
+    write.csv(metadata, "survival_metadata_clusters.csv", row.names = TRUE)
 
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scfeatures_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scfeatures_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scfeatures_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCFEATURES:", paste0("    scfeatures: ", packageVersion("scFeatures"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS":',
+        paste0('    scFeatures: ', as.character(packageVersion('scFeatures')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scfeatures_results.csv
-    touch ${prefix}_scfeatures_output.rds
-    echo "BIOC_SCFEATURES:" > versions.yml
-    echo "    scfeatures: 0.0.0" >> versions.yml
+    touch ${prefix}_feature_generation_and_downstream_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCFEATURES_WORKFLOW {
+workflow BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.rds, metadata.csv ] ]
 
     main:
-    BIOC_SCFEATURES(ch_input)
+    BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCFEATURES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCFEATURES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCFEATURES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCFEATURES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS.out.tables
+    plots    = BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS.out.plots
+    objects  = BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS.out.objects
+    versions = BIOC_SCFEATURES_FEATURE_GENERATION_AND_DOWNSTREAM_ANALYSIS.out.versions
 }

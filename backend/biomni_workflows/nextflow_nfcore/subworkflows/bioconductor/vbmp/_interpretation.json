@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: X=Training covariate/feature matrix ;; t.class=Training target class vector (factors or integers 1:n) ;; X.TEST=Test covariate/feature matrix ;; t.class.TEST=Test target class vector ;; theta=Vector of initial scale covariance parameters (one per feature) ;; control=List of optional control settings including bThetaEstimate (boolean to enable/disable covariance parameter estimation), bMonitor (boolean to monitor progress), maxIts (maximum iterations), sKernelType (e.g., \"iprod\" for linear inner product), Thresh (convergence threshold), and bPlotFitting (boolean to plot diagnostics)\n- alternatives: SVM multiclass classifier (mentioned as the baseline method compared against in the breast cancer study)\n- when_to_use: Use when performing multi-class classification on genomic or clinical datasets where probabilistic class membership, feature selection/weighting (ARD), and non-linear decision boundaries are required.\n- pitfalls: Estimating covariance parameters (bThetaEstimate=TRUE) on high-dimensional datasets (e.g., thousands of genes) is computationally intensive; for such data, a linear inner product kernel (sKernelType=\"iprod\") with fixed theta (bThetaEstimate=FALSE) is preferred. Avoid using the placeholder/fake prediction function designed only for package testing.",
+  "workflows": [
+    {
+      "name": "multiclass_gp_classification_with_ard",
+      "intent": "Train a Gaussian Process multinomial probit classifier with Automatic Relevance Determination (ARD) to estimate feature importance and predict classes on low-to-medium dimensional data.",
+      "input": [
+        "dataXtTrain$X (training feature matrix)",
+        "dataXtTrain$t.class (training class labels)",
+        "dataXtTest$X (test feature matrix)",
+        "dataXtTest$t.class (test class labels)"
+      ],
+      "stages": "1. Initialize covariance scale parameters (theta) and maximum iterations ;; 2. Run variational Bayesian multinomial probit regression using vbmp with theta estimation enabled ;; 3. Compute out-of-sample prediction error using predError ;; 4. Plot convergence and ARD diagnostics using plotDiagnostics",
+      "code": "theta <- rep(1., ncol(dataXtTrain$X));\nmax.train.iter <- 12;\nres <- vbmp( dataXtTrain$X, dataXtTrain$t.class,\n             dataXtTest$X, dataXtTest$t.class, theta, \n             control=list(bThetaEstimate=T, bMonitor=T, maxIts=max.train.iter)); \npredError(res);   \nplotDiagnostics(res);"
+    },
+    {
+      "name": "high_dimensional_cross_validation",
+      "intent": "Perform cross-validation on high-dimensional gene expression data using a linear inner product kernel without covariance parameter estimation.",
+      "input": [
+        "brca.x (gene expression matrix)",
+        "brca.y (target class vector)"
+      ],
+      "stages": "1. Define a cross-validation prediction function wrapping vbmp with linear inner product kernel and fixed theta ;; 2. Partition data into cross-validation folds ;; 3. Iterate through folds to predict class labels using predClass ;; 4. Calculate the cross-validated error rate",
+      "code": "predictVBMP <- function(x) {\n    sKernelType <- \"iprod\";  \n    Thresh      <- 1e-8; \n    theta       <- rep(1.0, ncol(brca.x));\n    max.train.iter <- 24;\n    resX <- vbmp( brca.x[!x,], brca.y[!x], \n                  brca.x[ x,], brca.y[ x], \n                  theta,  control=list(bThetaEstimate=F, \n                  bPlotFitting=F, maxIts=max.train.iter, \n                  sKernelType=sKernelType, Thresh=Thresh));      \n    predClass(resX);\n}\nn     <- nrow(brca.x);\nKfold <- n; # number of folds , if equal to n then LOO\nsamps <- sample(rep(1:Kfold, length=n), n, replace=FALSE); \nres   <- rep(NA, n);\nprint(paste(\"Crossvalidation started...... (\",n,\"steps )\"));\nfor (x in 1:Kfold) {\n    cat(paste(x,\", \",ifelse(x%%10==0,\"\\n\",\"\"),sep=\"\")); \n    flush.console();\n    res[samps==x] <- predictVBMP(samps==x); \n}\nCVerrorRate <- round(sum(res!=brca.y)/n,2);"
+    }
+  ]
+}

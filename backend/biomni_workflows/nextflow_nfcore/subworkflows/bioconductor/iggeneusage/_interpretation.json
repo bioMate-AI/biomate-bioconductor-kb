@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ud=A data.frame containing the processed Ig gene usage data with columns: individual_id, condition, gene_name, gene_usage_count, and optionally replicate ;; mcmc_warmup=Number of MCMC warmup iterations per chain (default: 500) ;; mcmc_steps=Total number of MCMC steps per chain including warmups (default: 1500) ;; mcmc_chains=Number of MCMC chains to run (default: 4) ;; mcmc_cores=Number of CPU cores to use for parallel chain execution ;; hdi_lvl=Highest density interval level (default: 0.95) ;; adapt_delta=MCMC target acceptance rate (default: 0.95) ;; max_treedepth=Tree depth evaluated at each step (default: 12)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Appropriate when analyzing immunoglobulin (Ig) or T-cell receptor (TCR) gene usage counts across different biological conditions (e.g., healthy vs. diseased) to identify biased gene usage while accounting for zero-inflation and over-dispersion.\n- pitfalls: MCMC sampling warnings or errors (e.g., divergences, low energy, low effective sample size, or Rhat >= 1.05) indicate poor model convergence; users should consult the Stan manual and adjust parameters like adapt_delta or max_treedepth. LOO analysis can be computationally demanding as it runs the MCMC model repeatedly, discarding one repertoire at a time. Ensure the input data frame contains the exact column names required (individual_id, condition, gene_name, gene_usage_count, and optionally replicate).",
+  "workflows": [
+    {
+      "name": "differential_gene_usage_analysis",
+      "intent": "Detect differential gene usage (DGU) between biological conditions using a Bayesian zero-inflated beta-binomial model.",
+      "input": [
+        "data.frame (containing columns individual_id, condition, gene_name, gene_usage_count, and optionally replicate)"
+      ],
+      "stages": "1. Run the differential gene usage analysis using DGU() ;; 2. Inspect the model fit and check MCMC diagnostics using summary() and rstan::check_hmc_diagnostics() ;; 3. Extract and visualize results such as condition-specific gene usage (gu), differential gene usage (dgu), and posterior predictive checks (ppc)",
+      "code": "M <- DGU(ud = d_zibb_3, # input data\n         mcmc_warmup = 300, # how many MCMC warm-ups per chain (default: 500)\n         mcmc_steps = 1500, # how many MCMC steps per chain (default: 1,500)\n         mcmc_chains = 3, # how many MCMC chain to run (default: 4)\n         mcmc_cores = 1, # how many PC cores to use? (e.g. parallel chains)\n         hdi_lvl = 0.95, # highest density interval level (de fault: 0.95)\n         adapt_delta = 0.8, # MCMC target acceptance rate (default: 0.95)\n         max_treedepth = 10) # tree depth evaluated at each step (default: 12)\n\nsummary(M)\n\nrstan::check_hmc_diagnostics(M$fit)"
+    },
+    {
+      "name": "leave_one_out_robustness_analysis",
+      "intent": "Assert the robustness of the probability of DGU (pi) and the effect size (gamma) by performing a fully Bayesian leave-one-out (LOO) analysis.",
+      "input": [
+        "data.frame (containing columns individual_id, condition, gene_name, gene_usage_count)"
+      ],
+      "stages": "1. Run the leave-one-out analysis using LOO() ;; 2. Extract and combine the gene usage (gu) and differential gene usage (dgu) results from each LOO iteration ;; 3. Visualize the variability of effect size (gamma), probability of DGU (pi), and gene usage across iterations",
+      "code": "L <- LOO(ud = d_zibb_3, # input data\n         mcmc_warmup = 500, # how many MCMC warm-ups per chain (default: 500)\n         mcmc_steps = 1000, # how many MCMC steps per chain (default: 1,500)\n         mcmc_chains = 1, # how many MCMC chain to run (default: 4)\n         mcmc_cores = 1, # how many PC cores to use? (e.g. parallel chains)\n         hdi_lvl = 0.95, # highest density interval level (de fault: 0.95)\n         adapt_delta = 0.8, # MCMC target acceptance rate (default: 0.95)\n         max_treedepth = 10) # tree depth evaluated at each step (default: 12)\n\nL_gu <- do.call(rbind, lapply(X = L, FUN = function(x){return(x$gu)}))\nL_dgu <- do.call(rbind, lapply(X = L, FUN = function(x){return(x$dgu)}))"
+    }
+  ]
+}

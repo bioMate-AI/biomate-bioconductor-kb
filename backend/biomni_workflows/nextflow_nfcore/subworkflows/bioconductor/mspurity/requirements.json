@@ -1,0 +1,15 @@
+{
+  "package": "mspurity",
+  "requirements": [
+    "MSnbase",
+    "msPurity",
+    "xcms"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "msPurity",
+      "xcms"
+    ]
+  }
+}

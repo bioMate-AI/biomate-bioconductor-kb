@@ -1,163 +1,226 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: monaLisa
-// Useful functions to work with sequence motifs in the analysis of genomics data. These include method
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/monaLisa/inst/doc/selecting_motifs_with_randLassoStabSel.R
-// Upstream  : Biostrings, ComplexHeatmap, JASPAR2020, SummarizedExperiment, TFBSTools
-// Downstream: none
-//
-// Install: BiocManager::install("monaLisa")
+// Bioconductor workflow: monalisa — binned_motif_enrichment
+// Identify enriched motifs in genomic regions grouped into multiple bins based on a continuous numerical value (e.g., methylation changes).
+// Input: peaks.bed, methylation_changes.tsv, motifs.jaspar
+// Container: quay.io/biocontainers/bioconductor-monalisa:1.16.0--r45hdfd78af_0
+// R packages: BSgenome.Mmusculus.UCSC.mm10, GenomicRanges, Biostrings, circlize, ComplexHeatmap, JASPAR2020, monaLisa, rtracklayer, SummarizedExperiment, TFBSTools
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MONALISA {
+process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-monalisa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-monalisa:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-monalisa:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-monalisa:1.16.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_monalisa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_monalisa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_monalisa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Mmusculus.UCSC.mm10", "GenomicRanges", "Biostrings", "circlize", "ComplexHeatmap", "JASPAR2020", "monaLisa", "rtracklayer", "SummarizedExperiment", "TFBSTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(GenomicRanges)
+    library(SummarizedExperiment)
+    library(TFBSTools)
+    library(BSgenome.Mmusculus.UCSC.mm10)
     library(monaLisa)
-    library(HeatmapAnnotation)
-    library(RNGkind)
-    library(jsonlite)
-
-    # --- Data Loading and Motif Preparation [monaLisa] ---
-    # Key functions: getMatrixSet
-    gr_path <- system.file("extdata", "atac_liver_vs_lung.rds",
-                           package = "monaLisa")
-    gr <- readRDS(gr_path)
-    pfms <- JASPAR2020::getMatrixSet(
-        JASPAR2020::JASPAR2020,
-        list(matrixtype = "PFM", tax_group = "vertebrates")
-    )
-    pwms <- TFBSTools::toPWM(pfms[1:100])
-
-    # --- Motif Search and Hit Detection [monaLisa] ---
-    # Key functions: findMotifHits
-    peakSeq <- Biostrings::getSeq(
-        BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10,
-        gr
-    )
-    hits <- findMotifHits(
-        query = pwms,
-        subject = peakSeq,
-        min.score = 10.0,
-        BPPARAM = BiocParallel::SerialParam()
-    )
-
-    # --- Predictor Matrix Preparation [monaLisa] ---
-    # Key functions: findMotifHits
-    TFBSmatrix <- unclass(table(
-        factor(seqnames(hits), levels = seqlevels(hits)),
-        factor(hits$pwmname, levels = TFBSTools::name(pwms))
-    ))
-    TFBSmatrix <- TFBSmatrix[, colSums(TFBSmatrix) > 0]
-    fMono <- Biostrings::oligonucleotideFrequency(
-        peakSeq, width = 1L, as.prob = TRUE
-    )
-    fDi <- Biostrings::oligonucleotideFrequency(
-        peakSeq, width = 2L, as.prob = TRUE
-    )
-    fracGC <- fMono[, "G"] + fMono[, "C"]
-    oeCpG <- (fDi[, "CG"] + 0.01) / (fMono[, "G"] * fMono[, "C"] + 0.01)
-    TFBSmatrix <- cbind(fracGC, oeCpG, TFBSmatrix)
-
-    # --- Stability Selection [monaLisa] ---
-    # Key functions: randLassoStabSel
-    se <- randLassoStabSel(
-        x = TFBSmatrix,
-        y = gr$logFC_liver_vs_lung,
-        cutoff = 0.8
-    )
-    selected_tfs <- colnames(se)[se$selected]
-
-    # --- Stability and Selection Plotting [monaLisa] ---
-    # Key functions: plotStabilityPaths, plotSelectionProb
-    plotStabilityPaths(se)
-    plotSelectionProb(
-        se,
-        directional = TRUE,
-        col = c("red", "blue"),
-        main = "TF Selection Probabilities"
-    )
-    selected_features <- colnames(se)[se$selected]
-
-    # --- Motif Correlation and Logo Visualization [monaLisa] ---
-    # Key functions: seqLogoGrob, annoSeqlogo
-    sel <- colnames(se)[se$selected]
-    se_sub <- se[, sel]
-    se_sub <- se_sub[, !colnames(se_sub) %in% c("oeCpG", "fracGC")]
-    TFBSmatrixCorSel <- cor(TFBSmatrix[, colnames(se_sub)], method = "pearson")
-    pfmsSel <- pfms[match(colnames(TFBSmatrixCorSel), TFBSTools::name(pfms))]
-    maxwidth <- max(sapply(TFBSTools::Matrix(pfmsSel), ncol))
-    seqlogoGrobs <- lapply(pfmsSel, seqLogoGrob, xmax = maxwidth)
-    hmSeqlogo <- ComplexHeatmap::rowAnnotation(
-        logo = annoSeqlogo(seqlogoGrobs, which = "row"),
-        annotation_width = grid::unit(2, "inch"),
-        show_annotation_name = FALSE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_monalisa_results.csv", row.names = TRUE)
+    library(ComplexHeatmap)
+    library(circlize)
+    library(rtracklayer)
+    
+    # ==========================================
+    # 1. Load genomic regions and select subset
+    # ==========================================
+    
+    if (!file.exists("peaks.bed")) {
+        stop("Required input file 'peaks.bed' not found in the working directory.")
+    }
+    if (!file.exists("methylation_changes.tsv")) {
+        stop("Required input file 'methylation_changes.tsv' not found in the working directory.")
+    }
+    if (!file.exists("motifs.jaspar")) {
+        stop("Required input file 'motifs.jaspar' not found in the working directory.")
+    }
+    
+    # Read genomic regions from BED file
+    lmr <- rtracklayer::import(con = "peaks.bed", format = "bed")
+    
+    # Read methylation changes and associate with the peaks
+    meth_data <- read.delim("methylation_changes.tsv", header = TRUE, sep = "\t")
+    
+    if ("deltaMeth" %in% colnames(meth_data)) {
+        lmr\$deltaMeth <- meth_data\$deltaMeth
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_monalisa_results.csv")
+        # Fallback to the first numeric column if 'deltaMeth' is not explicitly named
+        numeric_cols <- sapply(meth_data, is.numeric)
+        if (any(numeric_cols)) {
+            lmr\$deltaMeth <- meth_data[[which(numeric_cols)[1]]]
+        } else {
+            stop("No numeric column found in 'methylation_changes.tsv' to use as deltaMeth.")
+        }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_monalisa_output.rds")
+    
+    # Select subset of genomic regions
+    set.seed(1)
+    sample_size <- min(10000, length(lmr))
+    lmrsel <- lmr[ sample(x = length(lmr), size = sample_size, replace = FALSE) ]
+    
+    # ==========================================
+    # 2. Bin genomic regions based on numerical values
+    # ==========================================
+    
+    bins <- bin(x = lmrsel\$deltaMeth, binmode = "equalN", nElement = 800, minAbsX = 0.3)
+    
+    # Save binning information
+    write.csv(as.data.frame(table(bins)), "bin_counts.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 3. Prepare motifs (get PFMs and convert to PWMs)
+    # ==========================================
+    
+    # Read PFMs from the user-provided JASPAR file
+    pfms <- TFBSTools::readJASPARMatrix("motifs.jaspar", matrixClass = "PFM")
+    pwms <- TFBSTools::toPWM(pfms)
+    
+    # ==========================================
+    # 4. Resize genomic regions and extract sequences
+    # ==========================================
+    
+    lmrsel <- trim(resize(lmrsel, width = median(width(lmrsel)), fix = "center"))
+    lmrseqs <- getSeq(BSgenome.Mmusculus.UCSC.mm10, lmrsel)
+    
+    # ==========================================
+    # 5. Run diagnostics on sequence composition
+    # ==========================================
+    
+    pdf("plot_bin_diagnostics_GCfrac.pdf", width = 7, height = 5)
+    plotBinDiagnostics(seqs = lmrseqs, bins = bins, aspect = "GCfrac")
+    dev.off()
+    
+    pdf("plot_bin_diagnostics_dinucfreq.pdf", width = 8, height = 6)
+    plotBinDiagnostics(seqs = lmrseqs, bins = bins, aspect = "dinucfreq")
+    dev.off()
+    
+    # ==========================================
+    # 6. Run binned motif enrichment
+    # ==========================================
+    
+    se <- calcBinnedMotifEnrR(seqs = lmrseqs, bins = bins, pwmL = pwms)
+    
+    # Manually populate the motif.pfm metadata to ensure downstream motifSimilarity works
+    rowData(se)\$motif.pfm <- pfms[rownames(se)]
+    
+    # Save the complete SummarizedExperiment object
+    saveRDS(se, "binned_motif_enrichment_results.rds")
+    
+    # Export raw enrichment values to CSV
+    write.csv(as.data.frame(assay(se, "log2enr")), "motif_log2_enrichment.csv")
+    write.csv(as.data.frame(assay(se, "negLog10Padj")), "motif_negLog10Padj.csv")
+    
+    # ==========================================
+    # 7. Filter and plot results
+    # ==========================================
+    
+    sel <- apply(assay(se, "negLog10Padj"), 1, function(x) max(abs(x), 0, na.rm = TRUE)) > 4.0
+    seSel <- se[sel, ]
+    
+    # Save selected enriched motifs
+    saveRDS(seSel, "selected_enriched_motifs.rds")
+    
+    if (nrow(seSel) > 0) {
+        pdf("motif_heatmaps_clustered_default.pdf", width = 8, height = 10)
+        tryCatch({
+            plotMotifHeatmaps(x = seSel, which.plots = c("log2enr", "negLog10Padj"), width = 2.0, cluster = TRUE, maxEnr = 2, maxSig = 10, show_motif_GC = TRUE)
+        }, error = function(e) {
+            message("Could not generate default clustered heatmap: ", e\$message)
+        })
+        dev.off()
+    }
+    
+    # ==========================================
+    # 8. Cluster motifs by similarity and plot
+    # ==========================================
+    
+    if (nrow(seSel) > 1) {
+        SimMatSel <- motifSimilarity(rowData(seSel)\$motif.pfm)
+        hcl <- hclust(as.dist(1 - SimMatSel), method = "average")
+        
+        pdf("motif_heatmaps_clustered_similarity.pdf", width = 10, height = 12)
+        tryCatch({
+            plotMotifHeatmaps(x = seSel, which.plots = c("log2enr", "negLog10Padj"), width = 1.8, cluster = hcl, maxEnr = 2, maxSig = 10, show_dendrogram = TRUE, show_seqlogo = TRUE, width.seqlogo = 1.2)
+        }, error = function(e) {
+            message("Could not generate similarity-clustered heatmap: ", e\$message)
+        })
+        dev.off()
+    } else if (nrow(seSel) == 1) {
+        pdf("motif_heatmaps_single.pdf", width = 8, height = 6)
+        tryCatch({
+            plotMotifHeatmaps(x = seSel, which.plots = c("log2enr", "negLog10Padj"), width = 1.8, cluster = FALSE, maxEnr = 2, maxSig = 10, show_dendrogram = FALSE, show_seqlogo = TRUE, width.seqlogo = 1.2)
+        }, error = function(e) {
+            message("Could not generate single motif heatmap: ", e\$message)
+        })
+        dev.off()
+    } else {
+        message("No motifs met the significance threshold (negLog10Padj > 4.0). Skipping clustering plots.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MONALISA:", paste0("    monalisa: ", packageVersion("monaLisa"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT":',
+        paste0('        monalisa: ', as.character(packageVersion("monalisa")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_monalisa_results.csv
-    touch ${prefix}_monalisa_output.rds
-    echo "BIOC_MONALISA:" > versions.yml
-    echo "    monalisa: 0.0.0" >> versions.yml
+    touch ${prefix}_binned_motif_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_MONALISA_WORKFLOW {
+workflow BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peaks.bed, methylation_changes.tsv, motifs.jaspar ] ]
 
     main:
-    BIOC_MONALISA(ch_input)
+    BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_MONALISA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MONALISA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MONALISA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MONALISA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT.out.tables
+    plots    = BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT.out.plots
+    objects  = BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT.out.objects
+    versions = BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT.out.versions
 }

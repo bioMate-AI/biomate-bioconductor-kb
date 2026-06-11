@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxmiss=maximum percentage of missing values allowed per probe before removal ;; nchrom=number of autosomal chromosomes to keep ;; method=normalization method (e.g., \"median\" or \"mode\") ;; smoothOutliers=logical indicating whether to smooth outliers before normalization ;; undo.splits=method used to undo splits in segmentation (e.g., \"sdundo\") ;; undo.SD=standard deviation threshold for undoing splits ;; clen=segment length threshold distinguishing short and long segments ;; relSDlong=relative SD parameter for long segments ;; nclass=number of copy number states to call (typically 5) ;; cellularity=vector of tumor cell fractions per sample to correct for normal cell contamination\n- alternatives: DNAcopy is used internally for segmentation and outlier smoothing, but CGHcall provides a wrapper with advanced split-undoing criteria for short vs. long segments. impute.knn from the impute package is used internally for missing value imputation.\n- when_to_use: Use when analyzing array CGH data from tumor samples where you need to call copy number states (loss, normal, gain, amplification, double loss) while accounting for varying tumor cellularity and segment lengths.\n- pitfalls: Small sample sizes can cause the internal impute.knn function to fail unless the parameter k is manually adjusted (e.g., from 10 to 4). The ExpandCGHcall step can produce very large objects for large arrays. Post-segmentation normalization (postsegnormalize) is critical to correctly align the zero level before calling.",
+  "workflows": [
+    {
+      "name": "acgh_aberration_calling",
+      "intent": "Preprocess, normalize, segment, and call copy number aberrations from raw array CGH data while correcting for tumor cellularity.",
+      "input": [
+        "Wilting (a data frame or matrix of raw array CGH data with genomic coordinates and log2 ratios)"
+      ],
+      "stages": "1. Convert raw data to cghRaw object ;; 2. Preprocess data to filter missing values and impute ;; 3. Normalize log2 ratios and smooth outliers ;; 4. Segment data using DNAcopy wrapper ;; 5. Perform post-segmentation normalization to adjust zero level ;; 6. Call copy number aberrations with cellularity correction ;; 7. Expand the call object for downstream analysis ;; 8. Plot individual profiles and summary/frequency plots",
+      "code": "library(CGHcall)\ndata(Wilting)\nWilting <- make_cghRaw(Wilting)\ncghdata <- preprocess(Wilting, maxmiss=30, nchrom=22)\nnorm.cghdata <- normalize(cghdata, method=\"median\", smoothOutliers=TRUE)\nnorm.cghdata <- norm.cghdata[,1:2]\nseg.cghdata <- segmentData(norm.cghdata, method=\"DNAcopy\",undo.splits=\"sdundo\",undo.SD=3, clen=10, relSDlong=5)\npostseg.cghdata <- postsegnormalize(seg.cghdata)\ntumor.prop <- c(0.75, 0.9)\nresult <- CGHcall(postseg.cghdata,nclass=5,cellularity=tumor.prop)\nresult <- ExpandCGHcall(result,postseg.cghdata)\nplot(result[,1])\nplot(result[,2])\nsummaryPlot(result)\nfrequencyPlotCalls(result)"
+    }
+  ]
+}

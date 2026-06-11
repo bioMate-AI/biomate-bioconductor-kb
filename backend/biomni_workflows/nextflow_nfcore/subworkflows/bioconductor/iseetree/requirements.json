@@ -1,0 +1,21 @@
+{
+  "package": "iseetree",
+  "requirements": [
+    "S4Vectors",
+    "TreeSummarizedExperiment",
+    "ape",
+    "iSEEtree",
+    "mia",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "TreeSummarizedExperiment",
+      "ape",
+      "iSEEtree",
+      "mia",
+      "scater"
+    ]
+  }
+}

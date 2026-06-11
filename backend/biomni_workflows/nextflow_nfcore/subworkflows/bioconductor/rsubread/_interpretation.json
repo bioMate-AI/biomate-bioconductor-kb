@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: basename/index=base name of the index to build or use ;; reference=path to reference FASTA file ;; readfile1/readfile2=paths to input FASTQ/FASTA/SAM/BAM files ;; type=sequencing type (0/'rna' for RNA, 1/'dna' for DNA) ;; annot.ext=user-provided annotation data frame ;; isPairedEnd=logical indicating paired-end reads in featureCounts ;; input.mode=input format for cellCounts (\"FASTQ\" or \"BCL\")\n- alternatives: Use subjunc instead of align for alternative splicing, exon-level expression, and variant detection because subjunc performs global alignment and reports exon-exon junctions ;; Use specialized transcript-level quantification tools instead of featureCounts for transcript-level quantification to resolve multi-transcript overlaps\n- when_to_use: Appropriate for aligning bulk RNA-seq or gDNA-seq reads, quantifying gene-level expression, detecting exon-exon junctions, and quantifying 10x Genomics single-cell RNA-seq data\n- pitfalls: Using align (local alignment) instead of subjunc (global alignment) when alternative splicing or junction detection is required ;; Mismatched chromosome names between the annotation file and the reference genome index ;; Using incompatible name-sorted paired-end BAM files in featureCounts without repairing them first",
+  "workflows": [
+    {
+      "name": "bulk_rna_seq_alignment_and_quantification",
+      "intent": "Align bulk RNA-seq reads to a reference genome and quantify gene-level expression.",
+      "input": [
+        "reference.fa (Reference genome FASTA file)",
+        "reads.txt.gz (Single-end sequence reads)",
+        "reads1.txt.gz (Paired-end read 1 sequence file)",
+        "reads2.txt.gz (Paired-end read 2 sequence file)"
+      ],
+      "stages": "1. Build reference genome index using buildindex ;; 2. Align single-end or paired-end reads using align ;; 3. Quantify gene-level expression using featureCounts",
+      "code": "library(Rsubread)\nref <- system.file(\"extdata\",\"reference.fa\",package=\"Rsubread\")\nbuildindex(basename=\"reference_index\",reference=ref)\nreads <- system.file(\"extdata\",\"reads.txt.gz\",package=\"Rsubread\")\nalign.stat <- align(index=\"reference_index\",readfile1=reads,output_file=\"alignResults.BAM\",phredOffset=64)\nreads1 <- system.file(\"extdata\",\"reads1.txt.gz\",package=\"Rsubread\")\nreads2 <- system.file(\"extdata\",\"reads2.txt.gz\",package=\"Rsubread\")\nalign.stat2 <- align(index=\"reference_index\",readfile1=reads1,readfile2=reads2,output_file=\"alignResultsPE.BAM\",phredOffset=64)\nann <- data.frame(GeneID=c(\"gene1\",\"gene1\",\"gene2\",\"gene2\"),Chr=\"chr_dummy\",Start=c(100,1000,3000,5000),End=c(500,1800,4000,5500),Strand=c(\"+\",\"+\",\"-\",\"-\"),stringsAsFactors=FALSE)\nfc_SE <- featureCounts(\"alignResults.BAM\",annot.ext=ann)\nfc_PE <- featureCounts(\"alignResultsPE.BAM\",annot.ext=ann,isPairedEnd=TRUE)"
+    },
+    {
+      "name": "single_cell_rna_seq_quantification",
+      "intent": "Align and quantify 10x Genomics single-cell RNA-seq data to produce a UMI count matrix.",
+      "input": [
+        "hg38_chr1.fa.gz (Reference genome FASTA file)",
+        "reads_R1.fastq.gz (Barcode and UMI read file)",
+        "reads_R2.fastq.gz (RNA sequence read file)"
+      ],
+      "stages": "1. Build reference genome index using buildindex ;; 2. Define sample sheet with barcode/UMI and read files ;; 3. Quantify single-cell expression using cellCounts",
+      "code": "library(Rsubread)\nbuildindex(paste0(temp.dir,\"/chr1\"), paste0(temp.dir,\"/cellCounts-Example/hg38_chr1.fa.gz\"))\nsample.sheet <- data.frame(BarcodeUMIFile = paste0(temp.dir,\"/cellCounts-Example/reads_R1.fastq.gz\"), ReadFile = paste0(temp.dir,\"/cellCounts-Example/reads_R2.fastq.gz\"), SampleName=\"Example\", stringsAsFactors=FALSE)\ncounts <- cellCounts(paste0(temp.dir,\"/chr1\"), sample.sheet,  nthreads=1, input.mode=\"FASTQ\", annot.inbuilt=\"hg38\")"
+    }
+  ]
+}

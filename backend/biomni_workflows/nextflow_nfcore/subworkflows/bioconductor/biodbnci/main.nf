@@ -1,117 +1,189 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: biodbNci
-// The biodbNci library is an extension of the biodb framework package. It provides access to biodbNci,
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/biodbNci/inst/doc/biodbNci.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("biodbNci")
+// Bioconductor workflow: biodbNci — nci_cactus_annotation
+// Annotate a list of chemical identifiers (names, CAS, or NSC numbers) with structural and chemical metadata from the NCI CACTUS database.
+// Input: input.csv
+// Container: 1.10.0--r44he5774e6_0
+// R packages: biodb, biodbNci
+// Bioconductor: 3.20 | R: 4.4
+// Requires: biodb, biodbNci
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIODBNCI {
+process BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biodbnci"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biodbnci:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biodbnci:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biodbnci_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biodbnci_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biodbnci_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biodb", "biodbNci")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries safely
+    library(biodb)
     library(biodbNci)
-    library(jsonlite)
-
-    # --- Getfactory [] ---
-    # Key functions: getFactory, createConn
-    ---------------------------------------------------------------------
-    conn <- mybiodb$getFactory()$createConn('nci.cactus')
-    # --- Getentryids [] ---
-    # Key functions: getEntryIds
-    ---------------------------------------------------------------------
-    ids <- conn$getEntryIds(2)
-    ids
-    # --- Getentry [] ---
-    # Key functions: getEntry
-    ---------------------------------------------------------------------
-    entries <- conn$getEntry(ids)
-    entries
-    # --- Entriestodataframe [] ---
-    # Key functions: entriesToDataframe
-    ---------------------------------------------------------------------
-    x <- mybiodb$entriesToDataframe(entries)
-    x
-    # --- Wschemicalidentifierresolver [] ---
-    # Key functions: wsChemicalIdentifierResolver
-    ---------------------------------------------------------------------
-    conn$wsChemicalIdentifierResolver(structid='C=O', repr='InChI')
-    # --- Convcastoinchi [] ---
-    # Key functions: convCasToInchi, convCasToInchikey
-    ---------------------------------------------------------------------
-    conn$convCasToInchi('87605-72-9')
-    conn$convCasToInchikey('87605-72-9')
-    # --- Terminate [] ---
-    # Key functions: terminate
-    ---------------------------------------------------------------------
-    mybiodb$terminate()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biodbnci_results.csv", row.names = TRUE)
+    
+    # Stage 2: Read and parse input defensively
+    input_file <- "input.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
+    }
+    
+    data <- read.csv(input_file, stringsAsFactors = FALSE, check.names = FALSE)
+    
+    # Extract identifiers from the input
+    # Supports: 'feature_id' column, single-column list, or row names
+    if ("feature_id" %in% colnames(data)) {
+      ids <- data\$feature_id
+    } else if (ncol(data) == 1) {
+      ids <- data[[1]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biodbnci_results.csv")
+      ids <- rownames(data)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biodbnci_output.rds")
+    
+    # Clean and deduplicate identifiers
+    ids <- unique(as.character(ids))
+    ids <- ids[ids != "" & !is.na(ids)]
+    
+    if (length(ids) == 0) {
+      stop("No valid chemical identifiers found in the input file.")
     }
+    
+    message(paste("Loaded", length(ids), "unique identifiers for NCI CACTUS annotation."))
+    
+    # Stage 3: Initialize biodb and the NCI connector
+    bd <- biodb::newBiodb()
+    conn <- bd\$getFactory()\$createConn('nci')
+    
+    # Stage 4: Query NCI CACTUS database with error handling
+    entries <- list()
+    for (id in ids) {
+      message(paste("Querying NCI CACTUS for:", id))
+      tryCatch({
+        # Retrieve entry using the biodb connector
+        entry <- conn\$getEntry(id)
+        if (!is.null(entry)) {
+          entries <- c(entries, entry)
+        }
+      }, error = function(e) {
+        warning(paste("Failed to retrieve entry for:", id, "-", e\$message))
+      })
+    }
+    
+    # Stage 5: Process results and build output dataframe
+    if (length(entries) > 0) {
+      # Convert retrieved biodb entries to a standard data frame
+      df_entries <- bd\$entriesToDataframe(entries)
+      message(paste("Successfully annotated", nrow(df_entries), "compounds."))
+    } else {
+      warning("No annotations could be retrieved from NCI CACTUS.")
+      # Fallback to an empty dataframe with expected columns
+      df_entries <- data.frame(
+        query_id = ids,
+        name = NA,
+        formula = NA,
+        molecular.weight = NA,
+        smiles = NA,
+        inchi = NA,
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    # Write the annotation results to CSV
+    write.csv(df_entries, "nci_annotations.csv", row.names = FALSE)
+    message("Saved annotations to 'nci_annotations.csv'.")
+    
+    # Stage 6: Generate diagnostic visualization
+    pdf("mass_distribution.pdf", width = 7, height = 5)
+    
+    # Check if molecular weight column exists and has numeric values
+    mw_col <- grep("molecular.weight|mass|mw", colnames(df_entries), value = TRUE, ignore.case = TRUE)
+    has_mw <- FALSE
+    
+    if (length(mw_col) > 0) {
+      mw_values <- as.numeric(df_entries[[mw_col[1]]])
+      mw_values <- mw_values[!is.na(mw_values)]
+      if (length(mw_values) > 0) {
+        has_mw <- TRUE
+        hist(mw_values, 
+             col = "skyblue", 
+             border = "white",
+             main = "Molecular Weight Distribution of Annotated Compounds",
+             xlab = "Molecular Weight (g/mol)",
+             ylab = "Frequency")
+      }
+    }
+    
+    if (!has_mw) {
+      # Fallback plot if no molecular weight data is available
+      plot(1, type = "n", axes = FALSE, xlab = "", ylab = "")
+      text(1, 1, "No Molecular Weight data available\nfor visualization.", cex = 1.2, col = "red")
+    }
+    
+    dev.off()
+    message("Saved visualization to 'mass_distribution.pdf'.")
+    
+    # Stage 7: Clean up biodb instance
+    bd\$terminate()
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIODBNCI:", paste0("    biodbnci: ", packageVersion("biodbNci"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION":',
+        paste0('    biodbNci: ', as.character(packageVersion('biodbNci')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biodbnci_results.csv
-    touch ${prefix}_biodbnci_output.rds
-    echo "BIOC_BIODBNCI:" > versions.yml
-    echo "    biodbnci: 0.0.0" >> versions.yml
+    touch ${prefix}_nci_cactus_annotation.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIODBNCI_WORKFLOW {
+workflow BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BIODBNCI(ch_input)
+    BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION(ch_input)
 
     emit:
-    results  = BIOC_BIODBNCI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIODBNCI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIODBNCI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIODBNCI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION.out.tables
+    plots    = BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION.out.plots
+    objects  = BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION.out.objects
+    versions = BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION.out.versions
 }

@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: in_gtf=Input GTF file defining genomic coordinates of existing genes, required to have a gene_id attribute in the ninth column ;; in_bamv=A vector of input BAM files containing RNA-seq alignments, which must be strand-specific paired-end ('fr-firststrand') ;; method=Prediction method keyword (e.g., 'plcf', 'plst', 'cfmg', 'cftc', 'stmg', 'cf', 'st') ;; genome=Genome name for defining chromosome sizes in defIgRanges() ('hg19', 'hg38', 'mm9', 'mm10') ;; radius=Distance threshold (default 10 kb) away from known genes to define intergenic ranges ;; min_n_exon=Minimum number of exons (default 2) for selecting transcript models in selModel() ;; min_tr_len=Minimum total length of exons and introns (default 200 bp) for selecting transcript models in selModel()\n- alternatives: Supports seven transcript prediction methods: pooling alignments then building with Cufflinks ('plcf') or StringTie ('plst'); building individually then merging with Cuffmerge ('cfmg'), TACO ('cftc'), or StringTie-merge ('stmg'); or predicting from a single dataset using Cufflinks ('cf') or StringTie ('st').\n- when_to_use: Use when you have strand-specific paired-end RNA-seq datasets and want to define, predict, filter, and evaluate novel transcript models specifically within intergenic regions.\n- pitfalls: Only supports strand-specific paired-end RNA-seq data with the 'fr-firststrand' protocol ;; Input GTF files must have a 'gene_id' attribute in the ninth column for defIgRanges() and a 'transcript_id' attribute for selModel() ;; Requires external command-line tools (Cufflinks, StringTie, or TACO) which must be installed or allowed to auto-download ;; On macOS, pre-compiled Cufflinks versions 2.2.1 and 2.2.0 have issues processing BAM files, so version 2.1.1 is recommended.",
+  "workflows": [
+    {
+      "name": "convenient_wrapper_runpram",
+      "intent": "Predict intergenic transcript models from gene annotations and RNA-seq alignments using the convenient wrapper function runPRAM.",
+      "input": [
+        "in.gtf (GTF file of existing gene annotations)",
+        "SZP.bam (Strand-specific paired-end RNA-seq alignment file)",
+        "TLC.bam (Strand-specific paired-end RNA-seq alignment file)"
+      ],
+      "stages": "1. Define input files and output path ;; 2. Run the wrapper function runPRAM to predict transcript models.",
+      "code": "in_gtf = system.file('extdata/demo/in.gtf', package='pram')\n\nin_bamv = c(system.file('extdata/demo/SZP.bam', package='pram'),\n            system.file('extdata/demo/TLC.bam', package='pram') )\n\npred_out_gtf = tempfile(fileext='.gtf')\n\n##\n## assuming the stringtie binary is in folder /usr/local/stringtie-1.3.3/\n##\npram::runPRAM(  in_gtf, in_bamv, pred_out_gtf, method='plst',\n                stringtie='/usr/loca/stringtie-1.3.3/stringtie')"
+    },
+    {
+      "name": "step_by_step_pram_workflow",
+      "intent": "Predict, select, and evaluate intergenic transcript models using the step-by-step PRAM workflow.",
+      "input": [
+        "defIgRanges_in.gtf (GTF file of existing gene annotations)",
+        "CMPRep2.sortedByCoord.raw.bam (Strand-specific paired-end RNA-seq alignment file)",
+        "selModel_in.gtf (GTF file containing predicted transcript models to be selected)",
+        "plcf.tsv (TSV file containing genomic coordinates of predicted model exons)",
+        "tgt.tsv (TSV file containing genomic coordinates of real target exons)"
+      ],
+      "stages": "1. Define intergenic genomic ranges using defIgRanges() ;; 2. Extract intergenic RNA-seq alignments using prepIgBam() ;; 3. Build transcript models using buildModel() ;; 4. Select transcript models based on genomic features using selModel() ;; 5. Evaluate predicted models against true targets using evalModel().",
+      "code": "pram::defIgRanges(system.file('extdata/gtf/defIgRanges_in.gtf', package='pram'),\n                genome = 'hg38')\n\nfinbam =system.file('extdata/bam/CMPRep2.sortedByCoord.raw.bam', \n                    package='pram')\n\niggrs = GenomicRanges::GRanges('chr10:77236000-77247000:+')\n\nfoutbam = tempfile(fileext='.bam')\n\npram::prepIgBam(finbam, iggrs, foutbam)\n\nfbams = c(  system.file('extdata/bam/CMPRep1.sortedByCoord.clean.bam',\n                        package='pram'),\n            system.file('extdata/bam/CMPRep2.sortedByCoord.clean.bam',\n                        package='pram') )\n\nfoutgtf = tempfile(fileext='.gtf')\n\n##\n## assuming the stringtie binary is in folder /usr/local/stringtie-1.3.3/\n##\npram::buildModel(fbams, foutgtf, method='plst',\n                stringtie='/usr/loca/stringtie-1.3.3/stringtie')\n\nfin_gtf = system.file('extdata/gtf/selModel_in.gtf', package='pram')\n\nfout_gtf = tempfile(fileext='.gtf')\n\npram::selModel(fin_gtf, fout_gtf)\n\nfmdl = system.file('extdata/benchmark/plcf.tsv', package='pram')\nftgt = system.file('extdata/benchmark/tgt.tsv',  package='pram')\n\nmdldt = data.table::fread(fmdl, header=TRUE, sep=\"\\t\")\ntgtdt = data.table::fread(ftgt, header=TRUE, sep=\"\\t\")\n\npram::evalModel(mdldt, tgtdt)"
+    }
+  ]
+}

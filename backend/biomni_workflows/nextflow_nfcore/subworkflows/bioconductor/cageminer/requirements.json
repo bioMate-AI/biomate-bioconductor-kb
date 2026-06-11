@@ -1,0 +1,19 @@
+{
+  "package": "cageminer",
+  "requirements": [
+    "BioNERO",
+    "GenomicRanges",
+    "IRanges",
+    "SummarizedExperiment",
+    "cageminer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioNERO",
+      "GenomicRanges",
+      "IRanges",
+      "SummarizedExperiment",
+      "cageminer"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "filterffpe",
+  "requirements": [
+    "FilterFFPE",
+    "Rsamtools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FilterFFPE",
+      "Rsamtools"
+    ]
+  }
+}

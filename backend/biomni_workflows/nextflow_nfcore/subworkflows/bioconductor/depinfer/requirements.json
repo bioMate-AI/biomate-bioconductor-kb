@@ -1,0 +1,31 @@
+{
+  "package": "depinfer",
+  "requirements": [
+    "BiocParallel",
+    "DepInfeR",
+    "RColorBrewer",
+    "dplyr",
+    "ggbeeswarm",
+    "ggplot2",
+    "ggrepel",
+    "missForest",
+    "pheatmap",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "DepInfeR",
+      "RColorBrewer",
+      "dplyr",
+      "ggbeeswarm",
+      "ggplot2",
+      "ggrepel",
+      "missForest",
+      "pheatmap",
+      "tibble",
+      "tidyr"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "ebcoexpress",
+  "requirements": [
+    "EBcoexpress"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBcoexpress"
+    ]
+  }
+}

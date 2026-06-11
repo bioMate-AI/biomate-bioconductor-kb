@@ -1,0 +1,21 @@
+{
+  "package": "scclassify",
+  "requirements": [
+    "Matrix",
+    "scClassify"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Matrix",
+      "scClassify"
+    ],
+    "predict_pretrained.nf": [
+      "Matrix",
+      "scClassify"
+    ],
+    "train_custom_model.nf": [
+      "Matrix",
+      "scClassify"
+    ]
+  }
+}

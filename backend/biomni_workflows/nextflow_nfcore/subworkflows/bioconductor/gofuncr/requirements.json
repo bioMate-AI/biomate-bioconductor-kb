@@ -1,0 +1,26 @@
+{
+  "package": "gofuncr",
+  "requirements": [
+    "GOfuncR"
+  ],
+  "by_workflow": {
+    "binomial_test.nf": [
+      "GOfuncR"
+    ],
+    "contingency_test.nf": [
+      "GOfuncR"
+    ],
+    "custom_annotations_and_coordinates.nf": [
+      "GOfuncR"
+    ],
+    "go_graph_exploration_and_utilities.nf": [
+      "GOfuncR"
+    ],
+    "main.nf": [
+      "GOfuncR"
+    ],
+    "wilcoxon_test.nf": [
+      "GOfuncR"
+    ]
+  }
+}

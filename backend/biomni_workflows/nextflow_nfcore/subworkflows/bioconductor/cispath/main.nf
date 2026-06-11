@@ -1,165 +1,121 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cisPath
-// cisPath is an R package that uses web browsers to visualize and manage protein-protein interaction n
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cisPath/inst/doc/cisPath.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("cisPath")
+// Bioconductor workflow: cisPath — ppi_path_visualization
+// Identify shortest interaction paths among a set of proteins and generate an interactive HTML visualization.
+// Input: protein_list.txt, ppi_data.tsv
+// Container: quay.io/biocontainers/bioconductor-cispath:1.46.0--r44he5774e6_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cisPath
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Format the raw PPI data into the required format using format_ppi
+//  * 2. [Visualization & Output] Run the path-finding algorithm and generate the HTML visualization using cisPath
 
 nextflow.enable.dsl = 2
 
-process BIOC_CISPATH {
+process BIOC_CISPATH_PPI_PATH_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cispath"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cispath:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cispath:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cispath_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cispath_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cispath_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load the required library
     library(cisPath)
-    library(jsonlite)
-
-    # --- Example1 [] ---
-    # Key functions: path, tempdir, getMappingFile
-    library(cisPath)
-      sprotFile <- system.file("extdata", "uniprot_sprot_human10.dat",
-                                                package="cisPath")
-      mappingFile <- file.path(tempdir(), "mappingFile.txt")
-      getMappingFile(sprotFile, output=mappingFile)
-    # --- Example2 [] ---
-    # Key functions: path, tempdir, formatSTRINGPPI
-    STRINGPPI <- file.path(tempdir(), "STRINGPPI.txt")
-      fileFromSTRING <- system.file("extdata", "protein.links.txt",
-                                                 package="cisPath")
-      formatSTRINGPPI(fileFromSTRING, mappingFile, "9606", output=STRINGPPI, 700)
-    # --- Example3 1 [] ---
-    # Key functions: path, tempdir, formatSIFfile
-    input <- system.file("extdata", "Homo_sapiens_PINA2.sif", package="cisPath")
-      PINA2PPI <- file.path(tempdir(), "PINA2PPI.txt")
-      formatSIFfile(input, mappingFile, output=PINA2PPI)
-    # --- Example3 2 [] ---
-    # Key functions: path, tempdir, formatPINAPPI
-    input <- system.file("extdata", "Homo_sapiens_PINA100.txt", package="cisPath")
-      PINAPPI <- file.path(tempdir(), "PINAPPI.txt")
-      formatPINAPPI(input, output=PINAPPI)
-    # --- Example4 [] ---
-    # Key functions: path, tempdir, formatiRefIndex
-    input <- system.file("extdata", "9606.mitab.100.txt", package="cisPath")
-      iRefIndex <- file.path(tempdir(), "iRefIndex.txt")
-      formatiRefIndex(input, output=iRefIndex)
-    # --- Example5 [] ---
-    # Key functions: path, tempdir, combinePPI
-    output <- file.path(tempdir(), "allPPI.txt")
-      combinePPI(c(PINA2PPI, iRefIndex, STRINGPPI), output)
-    # --- Example6 [] ---
-    # Key functions: path, tempdir, networkView
-    infoFile <- system.file("extdata", "PPI_Info.txt", package="cisPath")
-      outputDir <- file.path(tempdir(), "networkView")
-      networkView(infoFile, c("MAGI1","TP53BP2","TP53", "PTEN"), outputDir,
-                                       FALSE, c(1,1,1,0), displayMore=TRUE)
-    # --- Example7 [] ---
-    # Key functions: path, tempdir, networkView
-    infoFile <- system.file("extdata", "PPI_Info.txt", package="cisPath")
-      outputDir <- file.path(tempdir(), "networkView2")
-      inputFile <- system.file("extdata", "networkView.txt", package="cisPath")
-      rt <- read.table(inputFile, sep=",", comment.char="", header=TRUE)
-      proteins <- as.vector(rt[,1])
-    # --- Example8 [] ---
-    # Key functions: path, tempdir, cisPath
-    infoFile <- system.file("extdata", "PPI_Info.txt", package="cisPath")
-      outputDir <- file.path(tempdir(), "TP53_example1")
-      results <- cisPath(infoFile, outputDir, "TP53", c("MAGI1", "GH1"),
-                                                           byStep=TRUE)
-    # --- Example9 [] ---
-    # Key functions: path, tempdir, cisPath
-    infoFile <- system.file("extdata", "PPI_Info.txt", package="cisPath")
-      outputDir <- file.path(tempdir(), "TP53_example2")
-      results <- cisPath(infoFile, outputDir, "TP53",
-                         targetProteins=c("Q96QZ7", "P01241"), swissProtID=TRUE)
-      results
-    # --- Example10 [] ---
-    # Key functions: path, tempdir, cisPath
-    infoFile <- system.file("extdata", "PPI_Info.txt", package="cisPath")
-      outputDir <- file.path(tempdir(), "TP53_example3")
-      results <- cisPath(infoFile, outputDir, "TP53")
-      results
-    # --- Example11 [] ---
-    # Key functions: path, tempdir, cisPath
-    infoFile <- system.file("extdata", "PPI_Info.txt", package="cisPath")
-      outputDir <- file.path(tempdir(), "cisPathResult")
-      results <- cisPath(infoFile, outputDir)
-    # --- Example12 [] ---
-    # Key functions: create, path, cisPath
-    ##   outputDir <- "/home/user/TP53"
-    ##   # Create the output directory
-    ##   dir.create(outputDir, showWarnings = FALSE, recursive = TRUE)
-    ##   # infoFile: site where the PPI data file will be saved.
-    ##   infoFile <- file.path(outputDir, "Homo_sapiens_PPI.txt")
-    # --- Example13 [] ---
-    # Key functions: path, tempdir, easyEditor
-    outputDir <- file.path(tempdir(), "easyEditor")
-      easyEditor(outputDir)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cispath_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cispath_results.csv")
+    
+    # Define input file paths
+    interaction_file <- "ppi_data.tsv"
+    protein_list_file <- "protein_list.txt"
+    
+    # Validate input files existence
+    if (!file.exists(interaction_file)) {
+      stop("Input file 'ppi_data.tsv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cispath_output.rds")
+    if (!file.exists(protein_list_file)) {
+      stop("Input file 'protein_list.txt' not found in the working directory.")
     }
+    
+    # Read the protein list from the user input file
+    proteinList <- readLines(protein_list_file)
+    proteinList <- trimws(proteinList)
+    proteinList <- proteinList[proteinList != ""]
+    
+    # Define the output directory for the HTML visualization
+    output_dir <- "cisPath_output"
+    if (!dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE)
+    }
+    
+    # Stage 1: Format the raw PPI data into the required format
+    # Documented call: infoFile <- format_ppi(interaction_file, source="STRING", species="9606")
+    infoFile <- file.path(output_dir, "formatted_ppi.txt")
+    formatSTRINGppi(interaction_file, infoFile)
+    
+    # Stage 2: Run the path-finding algorithm and generate the HTML visualization
+    # Documented call: cisPath(infoFile, proteinList, outFolder=tempdir())
+    cisPath(infoFile, output_dir, proteinList)
+    
+    # Write a summary file of the execution results
+    summary_file <- file.path(output_dir, "run_summary.txt")
+    writeLines(c(
+      paste("Execution Date:", Sys.time()),
+      paste("Input PPI File:", interaction_file),
+      paste("Formatted PPI File:", infoFile),
+      paste("Number of Query Proteins:", length(proteinList)),
+      "Query Proteins:",
+      paste(proteinList, collapse = ", ")
+    ), con = summary_file)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CISPATH:", paste0("    cispath: ", packageVersion("cisPath"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CISPATH_PPI_PATH_VISUALIZATION":',
+        paste0('    cisPath: ', as.character(packageVersion('cisPath')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cispath_results.csv
-    touch ${prefix}_cispath_output.rds
-    echo "BIOC_CISPATH:" > versions.yml
-    echo "    cispath: 0.0.0" >> versions.yml
+    touch ${prefix}_ppi_path_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_CISPATH_WORKFLOW {
+workflow BIOC_CISPATH_PPI_PATH_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ protein_list.txt, ppi_data.tsv ] ]
 
     main:
-    BIOC_CISPATH(ch_input)
+    BIOC_CISPATH_PPI_PATH_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_CISPATH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CISPATH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CISPATH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CISPATH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CISPATH_PPI_PATH_VISUALIZATION.out.tables
+    plots    = BIOC_CISPATH_PPI_PATH_VISUALIZATION.out.plots
+    objects  = BIOC_CISPATH_PPI_PATH_VISUALIZATION.out.objects
+    versions = BIOC_CISPATH_PPI_PATH_VISUALIZATION.out.versions
 }

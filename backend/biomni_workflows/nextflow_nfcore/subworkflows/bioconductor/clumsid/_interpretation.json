@@ -1,0 +1,47 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rt_tolerance=In mergeMS2spectra(), controls the retention time window (in seconds) for merging redundant spectra. Set very low (e.g., 1s) for DI-MS/MS to only merge consecutive scans, or higher (e.g., 60s) for LC-MS/MS. ;; mz_tolerance=In mergeMS2spectra() and distanceMatrix(), controls the mass accuracy tolerance. Use small values (e.g., 10ppm or 3e-5) for high-resolution data, and larger values (e.g., 0.02 Da) for low-resolution instruments. ;; min_peaks=In extractPseudospectra(), specifies the minimum number of peaks required to extract a pseudospectrum. ;; min_similarity=In networkplot(), sets the minimum spectral similarity threshold for displaying edges in correlation networks (default is 0.1, but 0.4 is recommended for low-resolution data to reduce noise). ;; h=In HCplot(), defines the height threshold for cutting dendrograms to color-code clusters. ;; tolerance=In findFragment(), specifies the relative mass tolerance for finding specific fragment ions (e.g., 0.5/315 for unit mass resolution around m/z 315).\n- alternatives: CAMERA=Used in conjunction with metaMS for GC-EI-MS data preprocessing to generate xsAnnotate objects, which are then passed to CluMSID's extractPseudospectra() instead of using standard MS2 extraction. ;; metaMS=Used for GC-EI-MS peak picking and running CAMERA (via runCAMERA()) because standard xcms/CAMERA workflows can struggle with GC-EI-MS data. ;; MetaboliteDetector=An external program mentioned for GC-EI-MS feature annotation, whose outputs can be imported into CluMSID using writeFeaturelist() and addAnnotations().\n- when_to_use: Use CluMSID when you want to explore chemodiversity, group structurally related metabolites, or facilitate feature annotation in metabolomics datasets (LC-MS/MS, DI-MS/MS, or GC-EI-MS) by clustering similar mass spectra.\n- pitfalls: Merging DI-MS/MS spectra with a large rt_tolerance (e.g., 250s) risks merging spectra from different but structurally similar analytes. ;; Low-resolution data (GC-EI-MS or low-res LC-MS/MS) has high between-cluster similarities because fragments with different chemical compositions but the same unit resolution mass cannot be distinguished, leading to \"warmer\" heatmaps and chaotic network plots if default thresholds are used. ;; High-resolution methods should always be favored over low-resolution methods for feature annotation due to mass accuracy benefits.",
+  "workflows": [
+    {
+      "name": "di_ms2_highres",
+      "intent": "Extract, merge, and cluster MS2 spectra from high-resolution Direct Infusion (DI-MS/MS) data.",
+      "input": [
+        "PA14_maxis_DI.mzXML (high-resolution DI-MS/MS raw data file)"
+      ],
+      "stages": "1. Extract MS2 spectra using extractMS2spectra() ;; 2. Merge redundant spectra with a tight retention time tolerance using mergeMS2spectra() ;; 3. Generate a spectral similarity distance matrix using distanceMatrix() ;; 4. Visualize similarities with a circularized dendrogram using HCplot()",
+      "code": "ms2list <- extractMS2spectra (DIfile)\nfeatlist <- mergeMS2spectra (ms2list, rt_tolerance = 1 )\ndistmat <- distanceMatrix (featlist)\nHCplot (distmat, cex = 0.5 )"
+    },
+    {
+      "name": "gc_ei_ms_lowres",
+      "intent": "Extract, annotate, and cluster MS1 pseudospectra from low-resolution GC-EI-MS data using CAMERA and metaMS.",
+      "input": [
+        "1800802_TD_pool_total_1.cdf (GC-EI-MS raw data file)",
+        "GC_post.csv (external metabolite annotation table)"
+      ],
+      "stages": "1. Run peak picking and CAMERA annotation using metaMS::runCAMERA() ;; 2. Extract pseudospectra using extractPseudospectra() ;; 3. Export feature list for manual annotation using writeFeaturelist() ;; 4. Plot individual pseudospectra using specplot() ;; 5. Add external annotations using addAnnotations() ;; 6. Generate a distance matrix with low-resolution mass tolerance using distanceMatrix() ;; 7. Visualize similarities using heatmaps, dendrograms, and correlation networks using HCplot() and networkplot() ;; 8. Search for specific diagnostic fragment ions using findFragment()",
+      "code": "xA <- metaMS :: runCAMERA (xcms :: xcmsSet (pool), chrom = \"GC\" , settings = metaMS :: metaSetting (TSQXLS.GC, \"CAMERA\" ))\npslist <- extractPseudospectra (xA, min_peaks = 0 )\nwriteFeaturelist (pslist, \"GC_pre.csv\" )\nspecplot (pslist[[ 27 ]])\napslist <- addAnnotations ( featlist = pslist, annolist = system.file ( \"extdata\" , \"GC_post.csv\" , package = \"CluMSIDdata\" ))\npseudodistmat <- distanceMatrix (apslist, mz_tolerance = 0.02 )\nHCplot (pseudodistmat, type = \"heatmap\" , cexRow = 0.4 , cexCol = 0.4 , margins = c ( 7 , 7 ))\nnetworkplot (pseudodistmat, highlight_annotated = TRUE , show_labels = TRUE , exclude_singletons = TRUE )\nnetworkplot (pseudodistmat, highlight_annotated = TRUE , show_labels = TRUE , exclude_singletons = TRUE , min_similarity = 0.4 )\nHCplot (pseudodistmat, h = 0.7 , cex = 0.5 )\nfragmentlist <- findFragment (apslist, mz = 315 , tolerance = 0.5 / 315 )\nvapply ( X = fragmentlist, FUN = accessID, FUN.VALUE = integer ( 1 ))"
+    },
+    {
+      "name": "lc_ms2_lowres",
+      "intent": "Extract, merge, and cluster MS2 spectra from low-resolution LC-MS/MS data.",
+      "input": [
+        "PA14_amazon_lowres.mzXML (low-resolution LC-MS/MS raw data file)"
+      ],
+      "stages": "1. Extract MS2 spectra using extractMS2spectra() ;; 2. Merge redundant spectra with a low-resolution mass tolerance using mergeMS2spectra() ;; 3. Generate a distance matrix using distanceMatrix() ;; 4. Visualize similarities using multidimensional scaling (MDSplot), heatmaps, and dendrograms (HCplot)",
+      "code": "ms2list <- extractMS2spectra (lowresfile)\nfeatlist <- mergeMS2spectra (ms2list, mz_tolerance = 0.02 )\ndistmat <- distanceMatrix (featlist)\nMDSplot (distmat)\nHCplot (distmat, type = \"heatmap\" , cexRow = 0.1 , cexCol = 0.1 , margins = c ( 6 , 6 ))\nHCplot (distmat, h = 0.8 , cex = 0.3 )"
+    },
+    {
+      "name": "lc_ms2_multi_file_external_peaks",
+      "intent": "Extract MS2 spectra from multiple raw files, merge them using an external peak list, add annotations, and cluster them.",
+      "input": [
+        "YH1_GA7_01_10463.mzML (raw data file 1)",
+        "AX1_GB5_01_10470.mzML (raw data file 2)",
+        "LP1_GB3_01_10467.mzML (raw data file 3)",
+        "BR1_GB6_01_10471.mzML (raw data file 4)",
+        "m_mtbls433_metabolite_profiling_mass_spectrometry_v2_maf.tsv (external peak list and annotation table)"
+      ],
+      "stages": "1. Extract MS2 spectra from multiple files using extractMS2spectra() and combine them ;; 2. Format the external peak table to match CluMSID requirements ;; 3. Merge spectra matching the external peak table using mergeMS2spectra() ;; 4. Add external annotations using addAnnotations() ;; 5. Generate a distance matrix using distanceMatrix() ;; 6. Visualize similarities using HCplot() and plot individual annotated spectra using specplot() and getSpectrum()",
+      "code": "YH1list <- extractMS2spectra (YH1)\nAX1list <- extractMS2spectra (AX1)\nLP1list <- extractMS2spectra (LP1)\nBR1list <- extractMS2spectra (BR1)\nraw_oillist <- c (YH1list, AX1list, LP1list, BR1list)\nmtbls_df <- readr :: read_delim (raw_mtbls_df, \" \\t \" ) %>% dplyr :: mutate ( metabolite_identification = stringr :: str_replace (metabolite_identification, \"unknown\" , \"\" )) %>% dplyr :: mutate ( id = paste0 ( \"M\" , mass_to_charge, \"T\" , retention_time)) %>% dplyr :: mutate ( retention_time = retention_time * 60 ) %>% dplyr :: select (id, mass_to_charge, retention_time, metabolite_identification) %>% dplyr :: rename ( mz = mass_to_charge, rt = retention_time, annotation = metabolite_identification)\noillist <- mergeMS2spectra (raw_oillist, peaktable = mtbls_df[, 1 : 3 ], exclude_unmatched = TRUE , rt_tolerance = 60 , mz_tolerance = 3e-5 )\nfl <- featureList (oillist)\nfl_annos <- dplyr :: left_join (fl, mtbls_df, by = \"id\" )\nannolist <- addAnnotations (oillist, fl_annos, annotationColumn = 6 )\ndistmat <- distanceMatrix (annolist, mz_tolerance = 3e-5 )\nHCplot (distmat, h = 0.7 , cex = 0.7 )\nspecplot ( getSpectrum (annolist, \"annotation\" , \"Stearic acid\" ))\nspecplot ( getSpectrum (annolist, \"annotation\" , \"Arachidic acid\" ))"
+    }
+  ]
+}

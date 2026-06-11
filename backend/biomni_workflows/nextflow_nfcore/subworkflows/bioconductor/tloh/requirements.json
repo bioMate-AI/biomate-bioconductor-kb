@@ -1,0 +1,19 @@
+{
+  "package": "tloh",
+  "requirements": [
+    "GenomicRanges",
+    "VariantAnnotation",
+    "dplyr",
+    "purrr",
+    "tLOH"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "VariantAnnotation",
+      "dplyr",
+      "purrr",
+      "tLOH"
+    ]
+  }
+}

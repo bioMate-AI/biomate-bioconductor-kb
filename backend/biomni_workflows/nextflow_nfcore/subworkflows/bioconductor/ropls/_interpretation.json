@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: predI=Number of predictive components (Integer). If NA (default for PCA), components are computed until cumulative variance exceeds 50% (up to 10). For OPLS, single response modeling requires 1 predictive component ;; orthoI=Number of orthogonal components (Integer). Set to NA or a specific number for OPLS ;; algoC=Algorithm character (e.g., NIPALS can be selected, default is SVD if no missing values) ;; permI=Number of permutations for permutation testing (default is 20; can be increased to e.g., 1000 for rigorous p-value estimation) ;; subset=Subset of samples to use for training (e.g., \"odd\" or specific indices) ;; typeVc=Type of plot to generate (e.g., \"x-score\", \"permutation\") ;; parAsColFcVn=Factor or vector to color samples in plots ;; parLabVc=Labels for plotting ;; parPaletteVc=Color palette vector ;; fig.pdfC=Figure output control (e.g., \"none\" to suppress PDF generation)\n- alternatives: SIMCA-P (commercial software) ;; K-OPLS (kernel-based OPLS package in R) ;; muma (single linear OPLS implementation in R) ;; phenomis (for importing/exporting data to text files)\n- when_to_use: When analyzing high-dimensional, multi-collinear omics datasets (e.g., metabolomics, proteomics, transcriptomics) where the number of features often exceeds the number of samples. It is appropriate for unsupervised visualization (PCA), supervised regression/classification (PLS, OPLS), and feature selection (VIP values).\n- pitfalls: Overfitting: High risk of perfect PLS-DA classification by chance when features exceed samples. Must check Q2Y significance via permutation testing (permI) ;; Unbalanced classes in PLS-DA: Unbalanced class sizes introduce bias in the decision rule, penalizing the larger class. Resampling or external procedures are recommended ;; Multiclass PLS-DA: PLS2 implementation with multiple classes suffers from unbalanced 0/1 proportions, making results indicative only; modeling each class separately is recommended ;; OPLS VIP: Classical VIP is not useful for single-response OPLS (identical across orthogonal components, univariate). Use predictive VIP (getVipVn(model)) and orthogonal VIP (getVipVn(model, orthoL = TRUE)) instead.",
+  "workflows": [
+    {
+      "name": "pca_analysis",
+      "intent": "Perform unsupervised Principal Component Analysis for visualization and outlier detection.",
+      "input": [
+        "dataMatrix.tsv (numeric matrix of samples as rows and variables as columns)"
+      ],
+      "stages": "1. Run PCA using opls ;; 2. Plot default summary figures ;; 3. Customize score plots with sample metadata coloring and labels",
+      "code": "sacurine.pca <- opls(sacurine$dataMatrix)\nplot(sacurine.pca)\ngenderFc <- sacurine$sampleMetadata[, \"gender\"]\nplot(sacurine.pca, typeVc = \"x-score\", parAsColFcVn = genderFc)\nplot(sacurine.pca, typeVc = \"x-score\", parAsColFcVn = genderFc, parLabVc = as.character(sacurine$sampleMetadata[, \"age\"]), parPaletteVc = c(\"green4\", \"magenta\"))"
+    },
+    {
+      "name": "supervised_pls_opls",
+      "intent": "Perform supervised classification or regression with cross-validation, permutation testing, and performance evaluation on a test set.",
+      "input": [
+        "dataMatrix.tsv (numeric matrix of samples as rows and variables as columns)",
+        "sampleMetadata.tsv (sample metadata containing the response variable)"
+      ],
+      "stages": "1. Run PLS-DA or OPLS-DA using opls ;; 2. Train model on a subset of samples ;; 3. Evaluate predictions on training and test subsets ;; 4. Extract VIP values for feature selection",
+      "code": "sacurine.plsda <- opls(sacurine$dataMatrix, genderFc)\nsacurine.oplsda <- opls(sacurine$dataMatrix, genderFc, predI = 1, orthoI = NA)\nsacurine.oplsda <- opls(sacurine$dataMatrix, genderFc, predI = 1, orthoI = NA, subset = \"odd\")\ntrainVi <- getSubsetVi(sacurine.oplsda)\nconfusion_train.tb <- table(genderFc[trainVi], fitted(sacurine.oplsda))\nconfusion_test.tb <- table(genderFc[-trainVi], predict(sacurine.oplsda, sacurine$dataMatrix[-trainVi, ]))\nvipVn <- getVipVn(opls(sacurine$dataMatrix, ageVn, predI = 1, orthoI = NA, fig.pdfC = \"none\"))"
+    },
+    {
+      "name": "summarized_experiment_workflow",
+      "intent": "Perform PLS-DA or OPLS-DA directly on a SummarizedExperiment object and extract results.",
+      "input": [
+        "SummarizedExperiment object (containing assay data and colData metadata)"
+      ],
+      "stages": "1. Run PLS-DA using opls on the SummarizedExperiment ;; 2. Extract the updated object with scores and loadings ;; 3. Extract and plot the model scores",
+      "code": "sac.se <- opls(sac.se, \"gender\")\nhead(SummarizedExperiment::colData(sac.se))\nhead(SummarizedExperiment::rowData(sac.se))\nsac_opls.ls <- getOpls(sac.se)\nplot(sac_opls.ls[[\"gender_PLSDA\"]], typeVc = \"x-score\")\nplot_score(sac.se, model.c = \"gender_PLSDA\", plotly.l = TRUE, info.vc = \"all\")"
+    },
+    {
+      "name": "multi_assay_experiment_workflow",
+      "intent": "Build PLS-DA models in parallel for multiple datasets within a MultiAssayExperiment.",
+      "input": [
+        "MultiAssayExperiment object (containing multiple omics datasets)"
+      ],
+      "stages": "1. Run PLS-DA using opls on the MultiAssayExperiment ;; 2. Extract individual models ;; 3. Plot scores for a specific dataset",
+      "code": "nci.mae <- opls(nci.mae, \"cancer\", predI = 2, fig.pdfC = \"none\")\nSummarizedExperiment::colData(nci.mae[[\"agilent\"]])\nmae_opls.ls <- getOpls(nci.mae)\nplot(mae_opls.ls[[\"agilent\"]][[\"cancer_PLSDA\"]], typeVc = \"x-score\")"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "sparsenetgls",
+  "requirements": [
+    "Matrix",
+    "sparsenetgls"
+  ],
+  "by_workflow": {
+    "ggm_accuracy_assessment.nf": [
+      "Matrix",
+      "sparsenetgls"
+    ],
+    "main.nf": [
+      "Matrix",
+      "sparsenetgls"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "cnanorm",
+  "requirements": [
+    "CNAnorm"
+  ],
+  "by_workflow": {
+    "advanced_ploidy_estimation_workflow.nf": [
+      "CNAnorm"
+    ],
+    "main.nf": [
+      "CNAnorm"
+    ]
+  }
+}

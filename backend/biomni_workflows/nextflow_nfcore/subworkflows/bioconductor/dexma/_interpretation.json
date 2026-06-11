@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: listEX=A list of expression matrices, dataframes, or ExpressionSets ;; listPheno=A list of phenodata dataframes (can be NULL if listEX contains ExpressionSets) ;; namePheno=Column names or positions in pheno identifying the comparison groups ;; expGroups=Experimental group names or positions ;; refGroups=Reference group names or positions ;; finalID=Target gene ID format (\"GeneSymbol\", \"Entrez\", \"Ensembl\") ;; organism=Organism name for gene ID mapping ;; typeMethod=Meta-analysis method (\"FEM\", \"REM\", \"Fisher\", \"Stouffer\", \"maxP\", \"minP\", \"ACAT\") ;; missAllow=Maximum proportion of missing values allowed per sample ;; proportionData=Minimum proportion of datasets a gene must be present in ;; scaling=Scaling method for heatmap (\"zscor\", \"swr\", \"rscale\", \"none\")\n- alternatives: swamp package (prince and prince.plot) is used for visualizing batch effects before correction ;; limma package is recommended for RNA-Seq normalization prior to DExMA analysis\n- when_to_use: Use when combining multiple independent transcriptomic datasets (microarray or normalized RNA-Seq) to identify robust differentially expressed genes, especially when datasets have different gene annotations or missing genes.\n- pitfalls: Ensure all datasets are log2-transformed (using dataLog) and mapped to the same gene ID (using allSameID) before running meta-analysis. Always perform a heterogeneity test (heterogeneityTest) to choose between Fixed Effects Model (FEM) and Random Effects Model (REM). Samples not belonging to either experimental or reference groups are excluded during object creation.",
+  "workflows": [
+    {
+      "name": "standard_meta_analysis",
+      "intent": "Perform a complete gene expression meta-analysis workflow including data preparation, annotation harmonization, log transformation, heterogeneity testing, optional imputation, meta-analysis, and heatmap visualization.",
+      "input": [
+        "listMatrixEX (list of gene expression matrices)",
+        "listPhenodatas (list of phenodata dataframes)"
+      ],
+      "stages": "1. Create meta-analysis object ;; 2. Harmonize gene IDs ;; 3. Log-transform data ;; 4. Test for heterogeneity ;; 5. Impute missing genes (optional) ;; 6. Perform meta-analysis ;; 7. Visualize results via heatmap",
+      "code": "phenoGroups = c(\"condition\", \"condition\", \"state\", \"state\")\nphenoCases = list(Study1 = \"Diseased\", Study2 = c(\"Diseased\", \"ill\"),\n                    Study3 = \"Diseased\", Study4 = \"ill\")\nphenoControls = list(Study1 = \"Healthy\", Study2 = c(\"Healthy\", \"control\"),\n                    Study3 = \"Healthy\", Study4 = \"control\")\nnewObjectMA <- createObjectMA(listEX=listMatrixEX,\n                                listPheno = listPhenodatas,\n                                namePheno=phenoGroups,\n                                expGroups=phenoCases, \n                                refGroups = phenoControls)\nnewObjectMA <- allSameID(newObjectMA, finalID=\"GeneSymbol\", organism = \"Homo sapiens\")\nnewObjectMA <- dataLog(newObjectMA)\nheterogeneityTest(newObjectMA)\nimputation <- missGenesImput(maObject, k =7)\nmaObject_imput <- imputation$objectMA\nresultsMA <- metaAnalysisDE(newObjectMA, typeMethod=\"REM\",\n                            missAllow=0.3, proportionData=0.50)\nmakeHeatmap(objectMA=newObjectMA, resMA=resultsMA, scaling = \"zscor\", \n            regulation = \"all\", numSig=40,\n            fdrSig = 0.05, logFCSig = 1.5, show_rownames = TRUE)"
+    },
+    {
+      "name": "batch_effect_correction",
+      "intent": "Detect and remove batch effects from individual datasets and calculate individual study effect sizes or p-values.",
+      "input": [
+        "listMatrixEX (list of gene expression matrices)",
+        "listPhenodatas (list of phenodata dataframes)"
+      ],
+      "stages": "1. Detect batch effects using principal components ;; 2. Remove batch effects ;; 3. Calculate individual study effect sizes ;; 4. Calculate individual study p-values",
+      "code": "library(swamp)\npheno <- listPhenodatas$Study2\npheno <- pheno[,apply(pheno,2,function(x) length(table(x)))>1]\npheno <- data.frame(apply(pheno, 2, factor), stringsAsFactors = TRUE) \nres_prince <- prince(listMatrixEX$Study2, pheno,top=ncol(listMatrixEX$Study2))\nprince.plot(res_prince,note=TRUE , notecex=0.5)\nlistMatrixEX$Study2 <- batchRemove(listMatrixEX$Study2, listPhenodatas$Study2, \n                                    formula=~gender+race, \n                                    mainCov = \"race\", nameGroup=\"condition\")\neffects <- calculateES(newObjectMA)\npvalues <- pvalueIndAnalysis(newObjectMA)"
+    },
+    {
+      "name": "download_geo_data",
+      "intent": "Download public microarray datasets from NCBI GEO for meta-analysis.",
+      "input": [
+        "GEOobjects (vector of GEO accession IDs)"
+      ],
+      "stages": "1. Download GEO datasets",
+      "code": "GEOobjects<- c(\"GSE4588\", \"GSE10325\")\ndataGEO<-downloadGEOData(GEOobjects)"
+    }
+  ]
+}

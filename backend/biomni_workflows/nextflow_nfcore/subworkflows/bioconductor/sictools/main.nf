@@ -1,91 +1,174 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SICtools
-// This package is to find SNV/Indel differences between two bam files with near relationship in a way 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SICtools/inst/doc/SICtools.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SICtools")
+// Bioconductor workflow: sictools — snp_diff_detection
+// Detect single nucleotide variant (SNV) differences between two closely related BAM files across a genomic region of interest.
+// Input: bam1.bam, bam2.bam, ref.fasta
+// Container: quay.io/biocontainers/bioconductor-sictools:1.30.0--r43h54b6a8d_0
+// R packages: Rsamtools, SICtools
+// Bioconductor: 3.18 | R: 4.3
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SICTOOLS {
+process BIOC_SICTOOLS_SNP_DIFF_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sictools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sictools:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sictools:1.36.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-sictools:1.30.0--r43h54b6a8d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sictools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sictools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sictools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "SICtools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(SICtools)
-    library(jsonlite)
-
-    # --- Indeldiff [] ---
-    # Key functions: indelDiff
-    ---------------------------------------------------------------------
-    indelDiffDf <- indelDiff(bam1,bam2,refFsa,'chr07',828514,828914,pValueCutOff=1,gtDistCutOff=0)
-    indelDiffDfSort <- indelDiffDf[order(indelDiffDf$p.value,indelDiffDf$d.value),]
-    indelDiffDfSort
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sictools_results.csv", row.names = TRUE)
+    library(Rsamtools)
+    
+    # Define input file paths from the working directory
+    bam1 <- "bam1.bam"
+    bam2 <- "bam2.bam"
+    refFsa <- "ref.fasta"
+    
+    # Verify that input files exist
+    if (!file.exists(bam1)) {
+      stop(paste("Required input file missing:", bam1))
+    }
+    if (!file.exists(bam2)) {
+      stop(paste("Required input file missing:", bam2))
+    }
+    if (!file.exists(refFsa)) {
+      stop(paste("Required input file missing:", refFsa))
+    }
+    
+    # Ensure BAM files are indexed (required for pileup/applyPileups)
+    if (!file.exists(paste0(bam1, ".bai")) && !file.exists(gsub("\\\\.bam\$", ".bai", bam1))) {
+      message("Indexing bam1.bam...")
+      tryCatch(indexBam(bam1), error = function(e) warning("Failed to index bam1.bam: ", e\$message))
+    }
+    if (!file.exists(paste0(bam2, ".bai")) && !file.exists(gsub("\\\\.bam\$", ".bai", bam2))) {
+      message("Indexing bam2.bam...")
+      tryCatch(indexBam(bam2), error = function(e) warning("Failed to index bam2.bam: ", e\$message))
+    }
+    
+    # Ensure Reference FASTA is indexed
+    if (!file.exists(paste0(refFsa, ".fai"))) {
+      message("Indexing ref.fasta...")
+      tryCatch(indexFa(refFsa), error = function(e) warning("Failed to index ref.fasta: ", e\$message))
+    }
+    
+    # Dynamically determine a valid genomic region from the BAM header to ensure runnability
+    hdr <- scanBamHeader(bam1)
+    targets <- hdr[[1]]\$targets
+    
+    if (length(targets) == 0) {
+      stop("No chromosomes/targets found in the BAM header of bam1.bam")
+    }
+    
+    regChr <- names(targets)[1]
+    
+    # Find a region with reads to avoid empty outputs, or default to the first 50kb
+    param <- ScanBamParam(what = c("pos", "qwidth"), seqnames = regChr)
+    bam_reads <- scanBam(bam1, param = param)[[1]]
+    valid_pos <- bam_reads\$pos[!is.na(bam_reads\$pos)]
+    
+    if (length(valid_pos) > 0) {
+      regStart <- min(valid_pos)
+      regEnd <- max(valid_pos + bam_reads\$qwidth[!is.na(bam_reads\$pos)] - 1)
+      # Limit region size to prevent excessive runtimes
+      if ((regEnd - regStart) > 100000) {
+        regEnd <- regStart + 100000
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sictools_results.csv")
+      regStart <- 1
+      regEnd <- min(50000, as.numeric(targets[1]))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sictools_output.rds")
+    
+    message(sprintf("Running snpDiff on region %s:%d-%d", regChr, regStart, regEnd))
+    
+    # Run snpDiff to calculate p-values and d-values for SNVs in the target region
+    snpDiffDf <- snpDiff(bam1, bam2, refFsa, regChr, regStart, regEnd, pValueCutOff=1, baseDistCutOff=0)
+    
+    # Sort the resulting data frame by p-value and d-value to identify candidate variants
+    if (!is.null(snpDiffDf) && nrow(snpDiffDf) > 0) {
+      snpDiffDfSort <- snpDiffDf[order(snpDiffDf\$p.value, snpDiffDf\$d.value), ]
+    } else {
+      message("No SNV differences detected in the specified region.")
+      snpDiffDfSort <- data.frame()
     }
+    
+    # Write outputs
+    write.csv(snpDiffDfSort, "snp_diff_results.csv", row.names = FALSE)
+    saveRDS(snpDiffDfSort, "snp_diff_results.rds")
+    
+    # Generate diagnostic plot
+    pdf("snp_diff_plot.pdf")
+    if (!is.null(snpDiffDf) && nrow(snpDiffDf) > 0) {
+      plot(-log10(snpDiffDf\$p.value), snpDiffDf\$d.value, col='brown',
+           xlab="-log10(p-value)", ylab="d-value", 
+           main=paste("SNV Differences in", regChr))
+    } else {
+      plot(1, type="n", axes=FALSE, xlab="", ylab="")
+      text(1, 1, "No SNV differences detected to plot.")
+    }
+    dev.off()
+    
+    message("Workflow completed successfully. Outputs written to 'snp_diff_results.csv', 'snp_diff_results.rds', and 'snp_diff_plot.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SICTOOLS:", paste0("    sictools: ", packageVersion("SICtools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SICTOOLS_SNP_DIFF_DETECTION":',
+        paste0('        sictools: ', as.character(packageVersion("sictools")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sictools_results.csv
-    touch ${prefix}_sictools_output.rds
-    echo "BIOC_SICTOOLS:" > versions.yml
-    echo "    sictools: 0.0.0" >> versions.yml
+    touch ${prefix}_snp_diff_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_SICTOOLS_WORKFLOW {
+workflow BIOC_SICTOOLS_SNP_DIFF_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bam1.bam, bam2.bam, ref.fasta ] ]
 
     main:
-    BIOC_SICTOOLS(ch_input)
+    BIOC_SICTOOLS_SNP_DIFF_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_SICTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SICTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SICTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SICTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SICTOOLS_SNP_DIFF_DETECTION.out.tables
+    plots    = BIOC_SICTOOLS_SNP_DIFF_DETECTION.out.plots
+    objects  = BIOC_SICTOOLS_SNP_DIFF_DETECTION.out.objects
+    versions = BIOC_SICTOOLS_SNP_DIFF_DETECTION.out.versions
 }

@@ -45,6 +45,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:
+    from fix_bioc_versions_heredoc import sanitize_text as _sanitize_versions
+except Exception:                                  # pragma: no cover
+    def _sanitize_versions(t):  # noqa: E704 - no-op fallback
+        return t
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 BIOC_DIR = Path(__file__).resolve().parents[1] / \
@@ -429,6 +436,8 @@ def rewrite_main_nf(pkg: str, steps: list[str]) -> bool:
                    + new_body
                    + content[save_m.start():])
 
+    # Never leave a bash versions.yml heredoc inside the Rscript block (R-evaluated -> crash).
+    new_content = _sanitize_versions(new_content)
     nf_path.write_text(new_content)
     return True
 

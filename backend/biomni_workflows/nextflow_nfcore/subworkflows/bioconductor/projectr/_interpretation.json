@@ -1,0 +1,47 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=The target dataset matrix to be projected into the pattern space ;; loadings=A matrix of continuous values (e.g., PCA eigenvectors, NMF/CoGAPS amplitude matrix, correlation matrix) with unique rownames representing the feature space ;; dataNames=A vector of unique names (e.g., gene symbols) for the rows of the target dataset to match features with the loadings if rownames(data) is not used ;; loadingsNames=A vector of unique names for the rows of loadings to match features with the data if rownames(loadings) is not used ;; NP=Vector of integers indicating which columns of the loadings object to use (default NA uses the entire matrix) ;; full=Logical indicating whether to return the full model fit (including the underlying limma lmFit model) or just the projected patterns ;; mode=Specifies whether to run projectionDriveR in confidence interval mode ('CI') or p-value mode ('PV')\n- alternatives: The package internally utilizes limma::lmFit for least-squares regression during NMF/CoGAPS projection. For downstream analysis of differential features, the documentation demonstrates using the fgsea package for gene set enrichment analysis and Seurat objects for multivariate analysis via multivariateAnalysisR.\n- when_to_use: Use this package when you want to integrate heterogeneous high-dimensional datasets (e.g., cross-platform, cross-species, or different omics types) by projecting a target dataset into a pre-defined biological feature space. It is also appropriate when you need to identify specific driver genes associated with a projected pattern that differ between two cell groups or conditions.\n- pitfalls: Incongruities in feature mapping (e.g., mismatched gene symbol formats or different rownames) between the target data and the loadings will throw errors or result in an empty mapping. Users must ensure that rownames match or manually supply aligned vectors to dataNames and loadingsNames. The order of names in these vectors must strictly match the row order of their respective matrices.",
+  "workflows": [
+    {
+      "name": "pca_nmf_projection",
+      "intent": "Project a target expression matrix into a latent space defined by PCA eigenvectors or NMF/CoGAPS amplitude loadings.",
+      "input": [
+        "target_expression.csv (Matrix of gene expression values for the target samples to be projected)",
+        "training_expression.csv (Matrix of gene expression values used to define the PCA or NMF/CoGAPS loadings)"
+      ],
+      "stages": "1. Perform PCA on the training dataset using prcomp or load pre-computed CoGAPS amplitude loadings. ;; 2. Project the target dataset into the defined loadings space using projectR.",
+      "code": "pc.RNAseq6l3c3t<-prcomp(t(p.RNAseq6l3c3t))\nPCA2ESepi <- projectR(data = p.ESepiGen4c1l$mRNA.Seq,loadings=pc.RNAseq6l3c3t, full=TRUE, dataNames=map.ESepiGen4c1l[[\"GeneSymbols\"]])\nNMF2ESepi <- projectR(p.ESepiGen4c1l$mRNA.Seq,loadings=AP,full=TRUE, dataNames=map.ESepiGen4c1l[[\"GeneSymbols\"]])"
+    },
+    {
+      "name": "clustering_projection",
+      "intent": "Define continuous weights for genes based on cluster membership and test for significant overlap between different clustering results.",
+      "input": [
+        "target_expression.csv (Matrix of gene expression values)",
+        "cluster_assignments.csv (Cluster definitions or assignments for the genes/samples)"
+      ],
+      "stages": "1. Generate continuous weights for genes based on their correlation to the mean of their assigned cluster using cluster2pattern. ;; 2. Test for statistically significant overlap between two sets of patterns or clusters using a hypergeometric test via intersectoR.",
+      "code": "kClust<-kmeans(t(p.RNAseq6l3c3t),centers=nP)\nkpattern<-cluster2pattern(clusters = kClust, NP = nP, data = p.RNAseq6l3c3t)\nintersectoR(pSet1 = NA, pSet2 = NA, pval = 0.05, full = FALSE, k = NULL)"
+    },
+    {
+      "name": "correlation_projection",
+      "intent": "Create a gene-wise correlation matrix for a reference gene and project target data into this correlation space.",
+      "input": [
+        "target_expression.csv (Matrix of gene expression values for the target samples)",
+        "reference_expression.csv (Matrix of gene expression values containing the reference gene)"
+      ],
+      "stages": "1. Calculate within-dataset correlation of all genes to the expression pattern of a reference gene using correlateR. ;; 2. Project the target dataset into the resulting correlation-based pattern space using projectR.",
+      "code": "cor2T<-correlateR(genes=\"T\", dat=p.RNAseq6l3c3t, threshtype=\"N\", threshold=10, absR=TRUE)\ncor2T <- cor2T@corM\ncor2ESepi <- projectR(p.ESepiGen4c1l$mRNA.Seq,loadings=cor2T[[1]],full=FALSE, dataNames=map.ESepiGen4c1l$GeneSymbols)"
+    },
+    {
+      "name": "differential_feature_drivers",
+      "intent": "Identify and visualize differential features (genes) between two cell groups weighted by their loadings in a specific latent space.",
+      "input": [
+        "group1_expression.csv (Expression matrix for cell group 1)",
+        "group2_expression.csv (Expression matrix for cell group 2)",
+        "pattern_loadings.csv (Feature-by-pattern loadings matrix defining the latent space)"
+      ],
+      "stages": "1. Run projectionDriveR in Confidence Interval (\"CI\") mode to identify significantly different features. ;; 2. Run projectionDriveR in P-value (\"PV\") mode to perform Welch t-tests and generate volcano plot data. ;; 3. Plot confidence intervals of the estimates using plotConfidenceIntervals. ;; 4. Customize volcano plots and adjust fold-change/p-value thresholds using pdVolcano.",
+      "code": "drivers_ci <- projectionDriveR(microglial_counts, #expression matrix\n                                       glial_counts, #expression matrix\n                                       loadings = microglial_fl, #feature x pattern dataframe\n                                       loadingsNames = NULL,\n                                       pattern_name = pattern_to_weight, #column name\n                                       pvalue = 1e-5, #pvalue before bonferroni correction\n                                       display = T,\n                                       normalize_pattern = T, #normalize feature weights\n                                       mode = \"CI\") #confidence interval mode\n\ndrivers_pv <- projectionDriveR(microglial_counts, #expression matrix\n                                       glial_counts, #expression matrix\n                                       loadings = microglial_fl, #feature x pattern dataframe\n                                       loadingsNames = NULL,\n                                       pattern_name = pattern_to_weight, #column name\n                                       pvalue = 1e-5, #pvalue before bonferroni correction\n                                       display = T,\n                                       normalize_pattern = T, #normalize feature weights\n                                       mode = \"PV\") #confidence interval mode\n\nplots_list <- plotConfidenceIntervals(conf_intervals, #mean difference in expression confidence intervals\n                                      sort = F, #should genes be sorted by estimates\n                                      weights = drivers_ci$normalized_weights[rownames(conf_intervals)],\n                                      pattern_name = pattern_to_weight,\n                                      weights_clip = 0.99,\n                                      weights_vis_norm = \"none\")\n\ndrivers_pv_mod <- pdVolcano(drivers_pv, FC = 0.5, pvalue = 1e-7)"
+    }
+  ]
+}

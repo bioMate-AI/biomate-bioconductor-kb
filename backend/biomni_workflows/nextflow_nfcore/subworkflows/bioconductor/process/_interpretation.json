@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=\"loess\" in bslnoff specifies the baseline subtraction method ;; bw=0.1 in bslnoff controls the bandwidth for loess baseline subtraction ;; span=81 in isPeak controls the span for peak detection ;; sm.span=11 in isPeak controls the smoothing span for peak detection ;; cutoff=1500 in renorm and quality defines the m/z threshold below which data is ignored due to chemical noise\n- alternatives: Individual spectrum peak detection and alignment (using pk2bmkr) vs. Mean spectrum peak detection (using aveSpec, isPeak, and getPeaks2). The mean spectrum approach is simpler and faster, and can be performed on raw or pre-processed spectra.\n- when_to_use: When processing raw mass spectrometry (proteomics) data files (e.g., SELDI/MALDI CSV files) to remove baseline drift, normalize intensities, detect peaks, perform quality control, and align peaks across samples to identify proto-biomarkers.\n- pitfalls: Avoid using a large sm.span in isPeak because excessive smoothing can obscure short and wide peaks and reduce peak location precision ;; A spectrum should be discarded during quality control if it simultaneously meets three conditions: Quality < 0.4, Retain < 0.1, and peak count < 1/2 of the mean peak number in the chip.",
+  "workflows": [
+    {
+      "name": "individual_spectrum_alignment",
+      "intent": "Process individual mass spectrometry files, normalize them, detect peaks, assess quality, and align peaks across spectra to identify proto-biomarkers.",
+      "input": [
+        "testdir (directory containing raw mass spectrometry CSV files)"
+      ],
+      "stages": "1. Baseline subtraction of raw spectra using rmBaseline ;; 2. Renormalization of spectra using renorm ;; 3. Peak identification in individual spectra using getPeaks ;; 4. Quality assessment of spectra using quality ;; 5. Peak alignment and proto-biomarker identification using pk2bmkr",
+      "code": "testdir <- system.file(\"Test\", package = \"PROcess\")\ntestM <- rmBaseline(testdir)\nrtM <- renorm(testM, cutoff=1500)\npeakfile <- paste(tempdir(), \"testpeakinfo.csv\", sep = \"/\")\ngetPeaks(rtM, peakfile)\nqualRes <- quality(testM, peakfile, cutoff=1500)\nprint(qualRes)\nbmkfile <- paste(tempdir(), \"testbiomarker.csv\", sep = \"/\")\ntestBio <- pk2bmkr(peakfile, rtM, bmkfile)\nmzs <- as.numeric(rownames(rtM))\nmatplot(mzs, rtM, type = \"l\", xlim = c(1000, 10000),\nylab=\"intensities\", main=\"proto-biomarkers\")\nbks <- getMzs(testBio)\nprint(round(bks))\nabline(v = bks, col = \"green\")"
+    },
+    {
+      "name": "mean_spectrum_peak_detection",
+      "intent": "Detect peaks using the average spectrum of all samples and quantify them in individual pre-processed spectra for a faster alternative workflow.",
+      "input": [
+        "fs (vector of file paths to raw mass spectrometry CSV files)",
+        "rtM (matrix of normalized, baseline-subtracted spectra from individual processing)"
+      ],
+      "stages": "1. Compute the grand average spectrum using aveSpec ;; 2. Subtract baseline from the average spectrum using bslnoff ;; 3. Detect peaks on the average spectrum using isPeak ;; 4. Quantify the detected peaks in individual spectra using getPeaks2",
+      "code": "fdat <- system.file(\"Test\", package=\"PROcess\")\nfs <- list.files(fdat, pattern=\"\\\\.*csv\\\\.*\", full.names=TRUE)\ngrandAve <- aveSpec(fs)\nmzs <- grandAve[,1]\ngrandOff <- bslnoff(grandAve[mzs>0,], method=\"loess\",\n        plot=T, bw=0.1)\ngrandPkg <- isPeak(grandOff[grandOff[,1]>1500,], zerothrsh=1,\nplot=T, ratio=0.1)\ngrandpvec <- round(grandPkg[grandPkg$peak, \"mz\"])\nprint(as.vector(grandpvec))\ngrandBmk <- getPeaks2(rtM, grandpvec)"
+    }
+  ]
+}

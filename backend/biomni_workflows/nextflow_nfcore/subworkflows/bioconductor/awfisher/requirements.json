@@ -1,0 +1,16 @@
+{
+  "package": "awfisher",
+  "requirements": [
+    "AWFisher",
+    "limma"
+  ],
+  "by_workflow": {
+    "biomarker_categorization_and_pattern_detection.nf": [
+      "AWFisher",
+      "limma"
+    ],
+    "main.nf": [
+      "AWFisher"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "demuxsnp",
+  "requirements": [
+    "ComplexHeatmap",
+    "EnsDb.Hsapiens.v86",
+    "SingleCellExperiment",
+    "VariantAnnotation",
+    "demuxSNP",
+    "viridisLite"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "EnsDb.Hsapiens.v86",
+      "SingleCellExperiment",
+      "VariantAnnotation",
+      "demuxSNP",
+      "viridisLite"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "tfarm",
+  "requirements": [
+    "GenomicRanges",
+    "TFARM",
+    "plyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "TFARM",
+      "plyr"
+    ]
+  }
+}

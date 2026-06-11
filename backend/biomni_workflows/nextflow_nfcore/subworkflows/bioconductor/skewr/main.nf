@@ -1,108 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: skewr
-// The skewr package is a tool for visualizing the output of the Illumina Human Methylation 450k BeadCh
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/skewr/inst/doc/skewr.R
-// Upstream  : minfiData
-// Downstream: none
-//
-// Install: BiocManager::install("skewr")
+// Bioconductor workflow: skewr — illumina_450k_qc_and_visualization
+// Load raw Illumina 450k IDAT files, preprocess/normalize them, fit skew-normal mixture models to the intensity distributions, and generate diagnostic panel plots
+// Input: baseDir, melon.raw
+// Container: quay.io/biocontainers/bioconductor-skewr:1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: skewr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Retrieve barcodes from IDAT directory using getBarcodes
+//  * 2. [Input & Preparation] Load raw data into a MethyLumiSet using getMethyLumiSet
+//  * 3. [Core Analysis] Preprocess/normalize the data using preprocess
+//  * 4. [Core Analysis] Estimate skew-normal mixture model parameters for methylated and unmethylated probes across Type I-red, Type I-green, and Type II 
+//  * 5. [Core Analysis] Group the mixture models into lists (methylated first, then unmethylated)
+//  * 6. [Visualization & Output] Generate diagnostic panel plots or individual frame plots using panelPlots
 
 nextflow.enable.dsl = 2
 
-process BIOC_SKEWR {
+process BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-skewr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-skewr:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-skewr:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_skewr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_skewr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_skewr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(skewr)
-    library(jsonlite)
-
-    # --- Parameter Estimation [] ---
-    # Key functions: getSNparams
-    sn.raw.meth.I.red <- skewr::getSNparams(
-        melon.raw, "M", "I-red"
-    )
-    sn.raw.unmeth.I.red <- skewr::getSNparams(
-        melon.raw, "U", "I-red"
-    )
-    sn.raw.meth.II <- skewr::getSNparams(
-        melon.raw, "M", "II"
-    )
-
-
-    # --- Visualization and Panel Plotting [] ---
-    # Key functions: panelPlots
-    raw.I.red.mixes <- list(sn.raw.meth.I.red, sn.raw.unmeth.I.red)
-    skewr::panelPlots(
-        melon.raw,
-        raw.I.red.mixes,
-        raw.I.green.mixes,
-        raw.II.mixes,
-        norm = "Raw"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_skewr_results.csv", row.names = TRUE)
+    
+    # Define input paths
+    baseDir <- "baseDir"
+    melon_raw_path <- "melon.raw"
+    melon_raw_rds_path <- "melon.raw.rds"
+    
+    # Validate and read user inputs
+    if (!dir.exists(baseDir)) {
+      stop(paste("Error: baseDir directory does not exist at:", baseDir))
+    }
+    
+    if (file.exists(melon_raw_path)) {
+      melon.raw <- readRDS(melon_raw_path)
+    } else if (file.exists(melon_raw_rds_path)) {
+      melon.raw <- readRDS(melon_raw_rds_path)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_skewr_results.csv")
+      stop("Error: melon.raw or melon.raw.rds file not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_skewr_output.rds")
+    
+    # 1. Retrieve barcodes from IDAT directory
+    barcodes <- getBarcodes(path = baseDir)
+    if (length(barcodes) == 0) {
+      stop("Error: No barcodes found in the specified baseDir.")
     }
+    
+    # 2. Load raw data into a MethyLumiSet
+    # Process up to the first 2 barcodes as in the documented workflow
+    num_barcodes_to_use <- min(2, length(barcodes))
+    methylumiset.raw <- getMethyLumiSet(path = baseDir, barcodes = barcodes[1:num_barcodes_to_use])
+    
+    # 3. Preprocess/normalize the data
+    methylumiset.illumina <- preprocess(methylumiset.raw, norm = 'illumina', bg.corr = FALSE)
+    
+    # Save the preprocessed MethyLumiSet object
+    saveRDS(methylumiset.illumina, file = "methylumiset_illumina.rds")
+    
+    # 4. Estimate skew-normal mixture model parameters
+    sn.raw.meth.I.red <- getSNparams(melon.raw, 'M', 'I-red')
+    sn.raw.unmeth.I.red <- getSNparams(melon.raw, 'U', 'I-red')
+    sn.raw.meth.I.green <- getSNparams(melon.raw, 'M', 'I-green')
+    sn.raw.unmeth.I.green <- getSNparams(melon.raw, 'U', 'I-green')
+    sn.raw.meth.II <- getSNparams(melon.raw, 'M', 'II')
+    sn.raw.unmeth.II <- getSNparams(melon.raw, 'U', 'II')
+    
+    # 5. Group the mixture models into lists (methylated first, then unmethylated)
+    raw.I.red.mixes <- list(sn.raw.meth.I.red, sn.raw.unmeth.I.red)
+    raw.I.green.mixes <- list(sn.raw.meth.I.green, sn.raw.unmeth.I.green)
+    raw.II.mixes <- list(sn.raw.meth.II, sn.raw.unmeth.II)
+    
+    # Save the estimated mixture models
+    saveRDS(raw.I.red.mixes, file = "raw_I_red_mixes.rds")
+    saveRDS(raw.I.green.mixes, file = "raw_I_green_mixes.rds")
+    saveRDS(raw.II.mixes, file = "raw_II_mixes.rds")
+    
+    # 6. Generate diagnostic panel plots and individual frame plots
+    pdf("panel_plots_raw.pdf", width = 10, height = 10)
+    panelPlots(melon.raw, raw.I.red.mixes, raw.I.green.mixes,
+               raw.II.mixes, norm = 'Raw')
+    dev.off()
+    
+    pdf("frame_plots_raw.pdf", width = 10, height = 10)
+    panelPlots(melon.raw, raw.I.red.mixes, raw.I.green.mixes,
+               raw.II.mixes, plot='frames', frame.nums=c(1,3), norm='Raw')
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SKEWR:", paste0("    skewr: ", packageVersion("skewr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION":',
+        paste0('    skewr: ', as.character(packageVersion('skewr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_skewr_results.csv
-    touch ${prefix}_skewr_output.rds
-    echo "BIOC_SKEWR:" > versions.yml
-    echo "    skewr: 0.0.0" >> versions.yml
+    touch ${prefix}_illumina_450k_qc_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_SKEWR_WORKFLOW {
+workflow BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ baseDir, melon.raw ] ]
 
     main:
-    BIOC_SKEWR(ch_input)
+    BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_SKEWR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SKEWR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SKEWR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SKEWR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION.out.tables
+    plots    = BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION.out.plots
+    objects  = BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION.out.objects
+    versions = BIOC_SKEWR_ILLUMINA_450K_QC_AND_VISUALIZATION.out.versions
 }

@@ -1,103 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: geneplotter
-// Functions for plotting genomic data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/geneplotter/inst/doc/byChroms.R
-// Upstream  : annotate
-// Downstream: HD2013SGI, Hiiragi2013, maEndToEnd
-//
-// Install: BiocManager::install("geneplotter")
+// Bioconductor workflow: geneplotter — whole_genome_expression_plotting
+// Visualize expression levels across all chromosomes using a reference genome
+// Input: sample.ExpressionSet, hgu95av2
+// Container: quay.io/biocontainers/bioconductor-geneplotter:1.88.0--r45hdfd78af_0
+// R packages: Biobase, annotate, geneplotter, hgu95av2.db
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, geneplotter, hgu95av2.db
+// Visualizations: image plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load expression data and calculate statistics
+//  * 2. [Input & Preparation] Build a chromLocation object using buildChromLocation
+//  * 3. [Visualization & Output] Initialize the chromosome plot using cPlot
+//  * 4. [Visualization & Output] Color the genes on the chromosome plot using cColor
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENEPLOTTER {
+process BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-geneplotter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-geneplotter:1.84.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-geneplotter:1.84.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_geneplotter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_geneplotter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_geneplotter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(geneplotter)
-    library(jsonlite)
-
-    # --- unlist [] ---
-    # Key functions: unlist
-    library("annotate")
-    library("hu6800.db")
-    lens <- unlist(eapply(hu6800CHR, length))
-    # --- split [] ---
-    # Key functions: split
-    strand <- as.list(hu6800CHRLOC)
-    splits <- split(strand, chrs2)
-    length(splits)
-    # --- build Chrom Location [] ---
-    # Key functions: buildChromLocation
-    newChrClass <- buildChromLocation("hu6800")
-    # --- c Plot [] ---
-    # Key functions: cPlot
-    library(geneplotter)
-    newChrClass@chromLocs <- newChrClass@chromLocs[order(as.numeric(names(newChrClass@chromLocs)))]
-    newChrClass@chromInfo <- newChrClass@chromInfo[order(as.numeric(names(newChrClass@chromInfo)))]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_geneplotter_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_geneplotter_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "annotate", "geneplotter", "hgu95av2.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_geneplotter_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(geneplotter)
+            library(Biobase)
+            library(hgu95av2.db)
+            
+            # 1. Load expression data and calculate statistics
+            # Read the ExpressionSet object from the working directory
+            if (file.exists("sample.ExpressionSet")) {
+              eset <- readRDS("sample.ExpressionSet")
+            } else if (file.exists("sample.ExpressionSet.rds")) {
+              eset <- readRDS("sample.ExpressionSet.rds")
+            } else {
+              stop("Error: sample.ExpressionSet file not found in the working directory.")
+            }
+            
+            # Define the t-test function as documented
+            mytt <- function(y, cov2) {
+              ys <- split( y, cov2 )
+              t.test( ys[[1]], ys[[2]] )
+            }
+            
+            # Apply the t-test across features
+            ttout <- esApply(eset, 1, mytt, eset\$type)
+            
+            # Extract means and classify into deciles
+            s1means <- sapply(ttout, function(x) x\$estimate[1])
+            s2means <- sapply(ttout, function(x) x\$estimate[2])
+            deciles <- quantile(c(s1means, s2means), probs=seq(0,1,.1))
+            s1class <- cut(s1means, deciles)
+            names(s1class) <- names(s1means)
+            s2class <- cut(s2means, deciles)
+            names(s2class) <- names(s2means)
+            
+            # Save statistics to a CSV file
+            stats_df <- data.frame(
+              Gene = names(s1means),
+              Group1_Mean = s1means,
+              Group2_Mean = s2means,
+              Group1_Class = as.character(s1class),
+              Group2_Class = as.character(s2class),
+              stringsAsFactors = FALSE
+            )
+            write.csv(stats_df, "expression_statistics.csv", row.names = FALSE)
+            
+            # 2. Build a chromLocation object using buildChromLocation
+            chrObj <- buildChromLocation("hgu95av2")
+            saveRDS(chrObj, "chrom_location.rds")
+            
+            # 3 & 4. Initialize the chromosome plot and color the genes
+            # Set up PDF output device
+            pdf("chrom_expression_plot.pdf", width = 12, height = 8)
+            
+            cols <- dChip.colors(10)
+            def.par <- par(no.readonly = TRUE) # save default, for resetting...
+            nf <- layout(matrix(1:3, nr=1), widths=c(5,5,2))
+            
+            # Plot Group 1
+            cPlot(chrObj)
+            cColor(featureNames(eset), cols[s1class], chrObj)
+            
+            # Plot Group 2
+            cPlot(chrObj)
+            cColor(featureNames(eset), cols[s2class], chrObj)
+            
+            # Plot color legend
+            image(1, 1:10, matrix(1:10, nc=10), col=cols, axes=FALSE, xlab="", ylab="")
+            axis(2, at=(1:10), labels=levels(s1class), las=1)
+            
+            # Reset par and close device
+            par(def.par)
+            dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENEPLOTTER:", paste0("    geneplotter: ", packageVersion("geneplotter"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING":',
+        paste0('    geneplotter: ', as.character(packageVersion('geneplotter')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_geneplotter_results.csv
-    touch ${prefix}_geneplotter_output.rds
-    echo "BIOC_GENEPLOTTER:" > versions.yml
-    echo "    geneplotter: 0.0.0" >> versions.yml
+    touch ${prefix}_whole_genome_expression_plotting.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENEPLOTTER_WORKFLOW {
+workflow BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample.ExpressionSet, hgu95av2 ] ]
 
     main:
-    BIOC_GENEPLOTTER(ch_input)
+    BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING(ch_input)
 
     emit:
-    results  = BIOC_GENEPLOTTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENEPLOTTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENEPLOTTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENEPLOTTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING.out.tables
+    plots    = BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING.out.plots
+    objects  = BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING.out.objects
+    versions = BIOC_GENEPLOTTER_WHOLE_GENOME_EXPRESSION_PLOTTING.out.versions
 }

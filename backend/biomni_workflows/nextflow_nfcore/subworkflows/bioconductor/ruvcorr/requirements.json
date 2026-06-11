@@ -1,0 +1,11 @@
+{
+  "package": "ruvcorr",
+  "requirements": [
+    "RUVcorr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RUVcorr"
+    ]
+  }
+}

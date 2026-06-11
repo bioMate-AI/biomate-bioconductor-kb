@@ -1,0 +1,17 @@
+{
+  "package": "fmcsr",
+  "requirements": [
+    "ChemmineR",
+    "fmcsR"
+  ],
+  "by_workflow": {
+    "batch_search_and_clustering.nf": [
+      "ChemmineR",
+      "fmcsR"
+    ],
+    "main.nf": [
+      "ChemmineR",
+      "fmcsR"
+    ]
+  }
+}

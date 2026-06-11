@@ -1,0 +1,11 @@
+{
+  "package": "chipseqr",
+  "requirements": [
+    "ChIPseqR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChIPseqR"
+    ]
+  }
+}

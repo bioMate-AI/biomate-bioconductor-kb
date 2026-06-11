@@ -1,0 +1,13 @@
+{
+  "package": "apeglm",
+  "requirements": [
+    "apeglm",
+    "emdbook"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "apeglm",
+      "emdbook"
+    ]
+  }
+}

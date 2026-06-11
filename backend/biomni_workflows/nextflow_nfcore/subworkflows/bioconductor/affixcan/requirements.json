@@ -1,0 +1,20 @@
+{
+  "package": "affixcan",
+  "requirements": [
+    "AffiXcan",
+    "MultiAssayExperiment",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "k_fold_cross_validation.nf": [
+      "AffiXcan",
+      "MultiAssayExperiment",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "AffiXcan",
+      "MultiAssayExperiment",
+      "SummarizedExperiment"
+    ]
+  }
+}

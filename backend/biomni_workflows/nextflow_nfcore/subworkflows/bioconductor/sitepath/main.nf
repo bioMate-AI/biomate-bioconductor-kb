@@ -1,131 +1,216 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: sitePath
-// Using site polymorphism is one of the ways to cluster DNA/protein sequences but it is possible for t
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/sitePath/inst/doc/sitePath.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("sitePath")
+// Bioconductor workflow: sitepath — fixed_and_parallel_mutations_analysis
+// Identify fixed substitutions and parallel mutations from a phylogenetic tree and multiple sequence alignment.
+// Input: tree_file, alignment_file
+// Container: quay.io/biocontainers/bioconductor-sitepath:1.26.0--r45ha27e39d_0
+// R packages: ape, sitePath
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SITEPATH {
+process BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sitepath"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sitepath:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sitepath:1.22.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-sitepath:1.26.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sitepath_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sitepath_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sitepath_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SNPsites)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ape", "sitePath")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- bad tree example [] ---
-    # Key functions: ggtree
-    bad_tree <- read.tree(system.file("extdata", "WNV.newick", package = "sitePath"))
-    ggtree::ggtree(bad_tree) + ggplot2::ggtitle("Do not use a tree like this")
-    # --- Import Sequence Alignment [] ---
-    # Key functions: addMSA
-    alignment_file <- system.file("extdata", "ZIKV.fasta", package = "sitePath")
-    options(list("cl.cores" = 1)) # Set this bigger than 1 to use multiprocessing
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(sitePath)
+    library(ape)
+    
+    # Define input files in the working directory as specified by the user
+    tree_file <- "tree_file"
+    alignment_file <- "alignment_file"
+    
+    # 1. Import phylogenetic tree using read.tree
+    tree <- read.tree(tree_file)
+    
+    # Set multiprocessing options
+    options(list("cl.cores" = 1))
+    
+    # 2. Import and align sequence data with the tree using addMSA
     paths <- addMSA(tree, msaPath = alignment_file, msaFormat = "fasta")
-    # --- Choose Threshold [] ---
-    # Key functions: sneakPeek
+    
+    # 3. Pre-assess lineage thresholds using sneakPeek
+    pdf("preassessment_plot.pdf")
     preassessment <- sneakPeek(paths, makePlot = TRUE)
-    # --- Identify Phylogenetic Pathways [] ---
-    # Key functions: lineagePath
+    dev.off()
+    
+    # 4. Resolve phylogenetic pathways using lineagePath
     paths <- lineagePath(preassessment, 18)
-    # --- Minimize Entropy [] ---
-    # Key functions: sitesMinEntropy
+    saveRDS(paths, "lineage_paths.rds")
+    
+    pdf("lineage_paths_plot.pdf")
+    plot(paths)
+    dev.off()
+    
+    # 5. Perform entropy minimization using sitesMinEntropy
     minEntropy <- sitesMinEntropy(paths)
-    # --- Find Fixation Mutations [] ---
-    # Key functions: fixationSites, allSitesName
+    saveRDS(minEntropy, "min_entropy.rds")
+    
+    # 6. Detect fixation sites using fixationSites
     fixations <- fixationSites(minEntropy)
+    saveRDS(fixations, "fixation_sites.rds")
+    
     allSites <- allSitesName(fixations)
-    # --- Extract Site Path [] ---
-    # Key functions: extractSite
-    sp <- extractSite(fixations, 139)
-    # --- Extract Tip Names [] ---
-    # Key functions: extractTips
-    extractTips(fixations, 139)
-    # --- Plot Site Path [] ---
-    # Key functions: plotSingleSite
-    plot(sp)
-    plotSingleSite(fixations, 139)
-    # --- Find Parallel Mutations [] ---
-    # Key functions: parallelSites, plotSingleSite
+    write.csv(data.frame(Fixation_Site = allSites), "fixation_sites.csv", row.names = FALSE)
+    
+    # 8. Extract and visualize specific sites using extractSite, extractTips, plotSingleSite, and plot
+    # Wrap site-specific extractions in tryCatch to handle cases where user data lacks these specific sites
+    tryCatch({
+      sp <- extractSite(fixations, 139)
+      saveRDS(sp, "extracted_site_139.rds")
+      
+      pdf("extracted_site_139_plot.pdf")
+      plot(sp)
+      dev.off()
+    }, error = function(e) {
+      message("Skipping site 139 extraction/plot: ", e\$message)
+    })
+    
+    tryCatch({
+      tips_139 <- extractTips(fixations, 139)
+      saveRDS(tips_139, "extracted_tips_139.rds")
+    }, error = function(e) {
+      message("Skipping site 139 tips extraction: ", e\$message)
+    })
+    
+    tryCatch({
+      pdf("fixation_site_139_single_plot.pdf")
+      plotSingleSite(fixations, 139)
+      dev.off()
+    }, error = function(e) {
+      message("Skipping site 139 single plot: ", e\$message)
+    })
+    
+    pdf("fixation_sites_overall_plot.pdf")
     plot(fixations)
+    dev.off()
+    
+    # 7. Detect parallel mutation sites using parallelSites
     paraSites <- parallelSites(minEntropy, minSNP = 1, mutMode = "exact")
-    plotSingleSite(paraSites, 105)
-    # --- plot Single Site [] ---
-    # Key functions: plotSingleSite
-    plotSingleSite(paths, 139)
-    plotSingleSite(paths, 763)
-    # --- Find SNP Sites [] ---
-    # Key functions: SNPsites, plotMutSites, plotSingleSite
+    saveRDS(paraSites, "parallel_sites.rds")
+    
+    paraSites_names <- allSitesName(paraSites)
+    write.csv(data.frame(Parallel_Site = paraSites_names), "parallel_sites.csv", row.names = FALSE)
+    
+    tryCatch({
+      pdf("parallel_site_105_plot.pdf")
+      plotSingleSite(paraSites, 105)
+      dev.off()
+    }, error = function(e) {
+      message("Skipping parallel site 105 plot: ", e\$message)
+    })
+    
+    pdf("parallel_sites_overall_plot.pdf")
+    plot(paraSites)
+    dev.off()
+    
+    tryCatch({
+      pdf("paths_site_139_plot.pdf")
+      plotSingleSite(paths, 139)
+      dev.off()
+    }, error = function(e) {
+      message("Skipping paths site 139 plot: ", e\$message)
+    })
+    
+    tryCatch({
+      pdf("paths_site_763_plot.pdf")
+      plotSingleSite(paths, 763)
+      dev.off()
+    }, error = function(e) {
+      message("Skipping paths site 763 plot: ", e\$message)
+    })
+    
+    # Miscellaneous / SNPsites
     snps <- SNPsites(paths)
+    write.csv(data.frame(SNP_Site = snps), "snp_sites.csv", row.names = FALSE)
+    
+    pdf("mut_sites_plot.pdf")
     plotMutSites(snps)
-    plotSingleSite(paths, snps[4])
+    dev.off()
+    
+    tryCatch({
+      if (length(snps) >= 4) {
+        pdf("paths_snp_4_plot.pdf")
+        plotSingleSite(paths, snps[4])
+        dev.off()
+      }
+    }, error = function(e) {
+      message("Skipping SNP 4 plot: ", e\$message)
+    })
+    
+    tryCatch({
+      if (length(snps) >= 5) {
+        pdf("paths_snp_5_plot.pdf")
+        plotSingleSite(paths, snps[5])
+        dev.off()
+      }
+    }, error = function(e) {
+      message("Skipping SNP 5 plot: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sitepath_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sitepath_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sitepath_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SITEPATH:", paste0("    sitepath: ", packageVersion("sitePath"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS":',
+        paste0('        sitepath: ', as.character(packageVersion("sitepath")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sitepath_results.csv
-    touch ${prefix}_sitepath_output.rds
-    echo "BIOC_SITEPATH:" > versions.yml
-    echo "    sitepath: 0.0.0" >> versions.yml
+    touch ${prefix}_fixed_and_parallel_mutations_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SITEPATH_WORKFLOW {
+workflow BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tree_file, alignment_file ] ]
 
     main:
-    BIOC_SITEPATH(ch_input)
+    BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SITEPATH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SITEPATH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SITEPATH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SITEPATH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS.out.tables
+    plots    = BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS.out.plots
+    objects  = BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS.out.objects
+    versions = BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS.out.versions
 }

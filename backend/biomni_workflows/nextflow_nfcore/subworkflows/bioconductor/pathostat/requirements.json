@@ -1,0 +1,11 @@
+{
+  "package": "pathostat",
+  "requirements": [
+    "PathoStat"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PathoStat"
+    ]
+  }
+}

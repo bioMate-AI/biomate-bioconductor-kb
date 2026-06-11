@@ -1,0 +1,14 @@
+{
+  "package": "teqc",
+  "requirements": [
+    "TEQC"
+  ],
+  "by_workflow": {
+    "detailed_qc_analysis.nf": [
+      "TEQC"
+    ],
+    "main.nf": [
+      "TEQC"
+    ]
+  }
+}

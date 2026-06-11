@@ -1,0 +1,23 @@
+{
+  "package": "bnbc",
+  "requirements": [
+    "GenomeInfoDb",
+    "GenomicRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "bnbc"
+  ],
+  "by_workflow": {
+    "hic_normalization_from_cooler.nf": [
+      "GenomeInfoDb",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "bnbc"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "S4Vectors",
+      "bnbc"
+    ]
+  }
+}

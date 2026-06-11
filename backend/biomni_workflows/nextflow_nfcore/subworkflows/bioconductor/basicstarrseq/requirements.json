@@ -1,0 +1,15 @@
+{
+  "package": "basicstarrseq",
+  "requirements": [
+    "BasicSTARRseq",
+    "GenomicAlignments",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BasicSTARRseq",
+      "GenomicAlignments",
+      "GenomicRanges"
+    ]
+  }
+}

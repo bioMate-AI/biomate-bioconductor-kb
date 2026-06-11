@@ -1,105 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Glimma
-// This package produces interactive visualizations for RNA-seq data analysis, utilizing output from li
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Glimma/inst/doc/DESeq2.R
-// Upstream  : AnnotationHub, DESeq2, edgeR, limma, scRNAseq
-// Downstream: RNAseq123
-//
-// Install: BiocManager::install("Glimma")
+// Bioconductor workflow: Glimma — deseq2_glimma
+// Run a complete DESeq2 differential expression analysis on user-provided RNA-seq counts and metadata, and generate interactive Glimma MDS and MA plots.
+// Input: counts.csv, coldata.csv
+// Container: 2.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DESeq2, Glimma, htmlwidgets
+// Visualizations: interactive MDS
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GLIMMA {
+process BIOC_GLIMMA_DESEQ2_GLIMMA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-glimma"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-glimma:2.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-glimma:2.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_glimma_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_glimma_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_glimma_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DESeq)
-    library(DESeqDataSetFromMatrix)
-    library(jsonlite)
-
-    # --- Readrds [] ---
-    # Key functions: DESeqDataSetFromMatrix
-    ---------------------------------------------------------------------
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(Glimma)
-    library(edgeR)
     library(DESeq2)
-    dge <- readRDS(system.file("RNAseq123/dge.rds", package = "Glimma"))
-    # --- Glimmamds [] ---
-    # Key functions: glimmaMDS
-    ---------------------------------------------------------------------
-    glimmaMDS(dds)
-    # --- Deseq [] ---
-    # Key functions: DESeq
-    ---------------------------------------------------------------------
-    dds <- DESeq(dds, quiet=TRUE)
-    # --- Glimmama [] ---
-    # Key functions: glimmaMA
-    ---------------------------------------------------------------------
-    glimmaMA(dds)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_glimma_results.csv", row.names = TRUE)
+    library(htmlwidgets)
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    
+    # Read counts and coldata
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # Set row names of counts to gene_id
+    if ("gene_id" %in% colnames(counts_df)) {
+        rownames(counts_df) <- counts_df\$gene_id
+        counts_df\$gene_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_glimma_results.csv")
+        rownames(counts_df) <- counts_df[, 1]
+        counts_df[, 1] <- NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_glimma_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GLIMMA:", paste0("    glimma: ", packageVersion("Glimma"))),
-        "versions.yml"
+    
+    # Ensure sample names match between coldata and counts
+    rownames(coldata_df) <- coldata_df\$sample
+    common_samples <- intersect(colnames(counts_df), coldata_df\$sample)
+    counts_df <- counts_df[, common_samples, drop = FALSE]
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    
+    # Convert counts to integer matrix
+    counts_matrix <- as.matrix(counts_df)
+    class(counts_matrix) <- "integer"
+    
+    # Ensure condition is a factor
+    coldata_df\$condition <- as.factor(coldata_df\$condition)
+    
+    # Create DESeqDataSet
+    dds <- DESeqDataSetFromMatrix(
+        countData = counts_matrix,
+        colData = coldata_df,
+        design = ~ condition
     )
+    
+    # Add gene annotations to rowData if available
+    rowData(dds)\$GeneID <- rownames(dds)
+    
+    # ==========================================
+    # Stage 2: Interactive MDS Plotting
+    # ==========================================
+    
+    # Generate and save interactive MDS plot
+    mds_plot <- glimmaMDS(dds)
+    htmlwidgets::saveWidget(mds_plot, "glimma_mds_deseq2.html", selfcontained = TRUE)
+    
+    # ==========================================
+    # Stage 3: Differential Expression & MA Plot
+    # ==========================================
+    
+    # Run DESeq2 pipeline
+    dds <- DESeq(dds, quiet = TRUE)
+    
+    # Generate and save interactive MA plot
+    ma_plot <- glimmaMA(dds)
+    htmlwidgets::saveWidget(ma_plot, "glimma_ma_deseq2.html", selfcontained = TRUE)
+
+    writeLines(c(
+        '"BIOC_GLIMMA_DESEQ2_GLIMMA":',
+        paste0('    Glimma: ', as.character(packageVersion('Glimma')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_glimma_results.csv
-    touch ${prefix}_glimma_output.rds
-    echo "BIOC_GLIMMA:" > versions.yml
-    echo "    glimma: 0.0.0" >> versions.yml
+    touch ${prefix}_deseq2_glimma.csv versions.yml
     """
 }
 
-
-workflow BIOC_GLIMMA_WORKFLOW {
+workflow BIOC_GLIMMA_DESEQ2_GLIMMA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GLIMMA(ch_input)
+    BIOC_GLIMMA_DESEQ2_GLIMMA(ch_input)
 
     emit:
-    results  = BIOC_GLIMMA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GLIMMA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GLIMMA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GLIMMA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GLIMMA_DESEQ2_GLIMMA.out.tables
+    plots    = BIOC_GLIMMA_DESEQ2_GLIMMA.out.plots
+    objects  = BIOC_GLIMMA_DESEQ2_GLIMMA.out.objects
+    versions = BIOC_GLIMMA_DESEQ2_GLIMMA.out.versions
 }

@@ -1,0 +1,28 @@
+{
+  "package": "dearseq",
+  "requirements": [
+    "BiocSet",
+    "SummarizedExperiment",
+    "dearseq",
+    "edgeR",
+    "ggplot2",
+    "matrixStats",
+    "readxl"
+  ],
+  "by_workflow": {
+    "gene_set_analysis.nf": [
+      "BiocSet",
+      "SummarizedExperiment",
+      "dearseq",
+      "ggplot2",
+      "matrixStats",
+      "readxl"
+    ],
+    "main.nf": [
+      "SummarizedExperiment",
+      "dearseq",
+      "edgeR",
+      "readxl"
+    ]
+  }
+}

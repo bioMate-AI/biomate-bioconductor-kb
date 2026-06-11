@@ -1,0 +1,11 @@
+{
+  "package": "snpediar",
+  "requirements": [
+    "SNPediaR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SNPediaR"
+    ]
+  }
+}

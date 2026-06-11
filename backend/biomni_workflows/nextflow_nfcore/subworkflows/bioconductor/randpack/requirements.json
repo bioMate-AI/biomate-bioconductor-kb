@@ -1,0 +1,11 @@
+{
+  "package": "randpack",
+  "requirements": [
+    "randPack"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "randPack"
+    ]
+  }
+}

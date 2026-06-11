@@ -1,0 +1,32 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - af=Allele frequency of the variant in the tumor sample (numeric, between 0 and 1).\n  - tcn=Total copy number at the position of the variant.\n  - purity=Purity or tumor cell content of the sample (numeric, between 0 and 1).\n  - c_normal=Expected copy number at the position of the variant in normal tissue (1 for gonosomes in males, 2 for autosomes and female gonosomes).\n  - sex=Sex of the sample (\"male\"/\"female\" or \"m\"/\"f\").\n  - ploidy=Ground ploidy of the sample.\n  - somCna=GRanges object containing genomic segments with total copy number (tcn) and LOH status (cna_type).\n  - somSmallVars=GRanges object containing somatic small variants with REF, ALT, AF, and gene columns.\n  - germSmallVars=GRanges object containing germline small variants with REF, ALT, AF, and gene columns.\n  - geneModel=GRanges object containing the gene model for the reference genome (must contain a \"gene\" metadata column).\n  - bamDna=Path to the indexed DNA alignment BAM file.\n  - vcf=Path to the VCF file for extended SNP phasing.\n  - haploBlocks=GRanges object containing predefined haploblock regions for haplotype phasing.\n- alternatives:\n  - None mentioned in the documentation.\n- when_to_use:\n  - Use this package when analyzing cancer genomes to determine the zygosity status of genes (e.g., whether tumor-suppressor genes have lost all wild-type copies due to mutations, deletions, or LOH).\n- pitfalls:\n  - All input variants (SNVs, Indels, and sCNAs) must originate from a fully clonal tumor; subclonal samples will produce unreliable results.\n  - Large-scale deletions cannot be evaluated without providing the sample ploidy (otherwise, the tool warns and assumes a diploid case of ploidy=2).\n  - High numbers of input genes or variants can exponentially increase runtime; users should restrict the gene model to genes of interest and filter out low-relevance variants or SNPs before running.\n  - Variants in genomic regions lacking copy number information in the `somCna` object are excluded by default unless `assumeSomCnaGaps = TRUE` and ground ploidy is provided.",
+  "workflows": [
+    {
+      "name": "variant_copy_calculation",
+      "intent": "Calculate the number of copies affected by individual germline or somatic variants.",
+      "input": [
+        "GR_GERM_SMALL_VARS (GRanges of germline variants)",
+        "GR_SOM_SMALL_VARS (GRanges of somatic variants)",
+        "GR_SCNA (GRanges of somatic copy number alterations)"
+      ],
+      "stages": "1. Extract variant allele frequency and chromosome.\n2. Extract total copy number at the variant position.\n3. Calculate affected copies for germline variants using `aff_germ_copies()`.\n4. Calculate affected copies for somatic variants using `aff_som_copies()`.\n5. Calculate affected copies for a set of variants using `predict_per_variant()`.",
+      "code": "AF = elementMetadata(GR_GERM_SMALL_VARS[1])[[\"af\"]]\nCHR = seqnames(GR_GERM_SMALL_VARS[1]) %>%\n  as.character()\n\nTCN = elementMetadata(\n  subsetByOverlaps(GR_SCNA, GR_GERM_SMALL_VARS[1])\n  )[[\"tcn\"]]\n\naff_germ_copies(af=AF,\n                tcn=TCN,\n                purity=PURITY,\n                chr=CHR,\n                sex=SEX)\n\nAF = elementMetadata(GR_SOM_SMALL_VARS[1])[[\"af\"]]\nCHR = seqnames(GR_SOM_SMALL_VARS[1]) %>%\n  as.character()\nTCN = elementMetadata(\n  subsetByOverlaps(GR_SCNA, GR_SOM_SMALL_VARS[1])\n  )[[\"tcn\"]]\n\naff_som_copies(af=AF,\n               chr=CHR,\n               tcn=TCN,\n               purity=PURITY,\n               sex=SEX)\n\npredict_per_variant(purity=PURITY, \n                    sex=SEX,\n                    somCna=GR_SCNA,\n                    somSmallVars=GR_SOM_SMALL_VARS)"
+    },
+    {
+      "name": "gene_zygosity_prediction",
+      "intent": "Predict the zygosity of a set of genes in a sample by phasing multiple variants and determining if wild-type copies remain.",
+      "input": [
+        "FILE_BAM (indexed DNA alignment BAM file)",
+        "VCF (variant call file for SNP phasing)",
+        "GR_SCNA (GRanges of somatic copy number alterations)",
+        "GR_SOM_SMALL_VARS (GRanges of somatic small variants)",
+        "GR_GERM_SMALL_VARS (GRanges of germline small variants)",
+        "GR_GENE_MODEL (GRanges of the gene model)",
+        "GR_HAPLOBLOCKS (GRanges of predefined haploblock regions)"
+      ],
+      "stages": "1. Run `predict_zygosity()` with all variant, copy number, alignment, and annotation inputs.\n2. Generate an overview of the full prediction results using `ZP_ov()`.\n3. Inspect detailed variant, phasing, and read-level phasing information for a specific gene using `gene_ov()`.",
+      "code": "fp <- predict_zygosity(\n  purity = PURITY, \n  ploidy = PLOIDY,\n  sex = SEX,\n  somCna = GR_SCNA, \n  somSmallVars = GR_SOM_SMALL_VARS, \n  germSmallVars = GR_GERM_SMALL_VARS, \n  geneModel = GR_GENE_MODEL,\n  bamDna = FILE_BAM,\n  vcf=VCF,\n  haploBlocks = GR_HAPLOBLOCKS\n)\n\nZP_ov(fp)\n\ngene_ov(fp, OR2J1)"
+    }
+  ]
+}

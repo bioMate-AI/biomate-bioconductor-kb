@@ -1,0 +1,27 @@
+{
+  "package": "chipseeker",
+  "requirements": [
+    "ChIPseeker",
+    "GenomicRanges",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "ggplot2",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChIPseeker",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "ggplot2"
+    ],
+    "peak_annotation_and_feature_distribution.nf": [
+      "ChIPseeker",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "org.Hs.eg.db"
+    ],
+    "peak_overlap_significance_and_geo_mining.nf": [
+      "ChIPseeker",
+      "GenomicRanges",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene"
+    ]
+  }
+}
