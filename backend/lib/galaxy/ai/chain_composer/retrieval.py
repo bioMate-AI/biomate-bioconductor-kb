@@ -385,6 +385,54 @@ def _load_typeflow_adjacency(db_path: Path) -> Dict[str, List[str]]:
     return adjacency
 
 
+def retrieve_two_hop_chains(
+    upstream_workflow_names: Sequence[str],
+    db_path: Optional[Path] = None,
+    top_k_per_upstream: int = 3,
+) -> Dict[str, List[Tuple[str, str]]]:
+    """For each upstream workflow, return up to top_k 2-hop paths (B, C)
+    such that upstream → B → C is reachable via canonical typed edges.
+
+    Each 2-hop path is ranked by combined in-degree of B and C (popular
+    middle and tail nodes surface first). Returns {upstream: [(B, C), ...]}
+    skipping upstream names not in the type-flow graph.
+
+    Used by the composer to surface natural 3-step chains to the LLM at
+    prompt-construction time without requiring any curated chain to exist.
+    """
+    db_path = db_path or _DEFAULT_DB
+    if not db_path.exists():
+        return {}
+    adj = _load_typeflow_adjacency(db_path)
+    # Compute in-degree once across the whole graph for ranking
+    in_degree: Dict[str, int] = {}
+    for _src, dsts in adj.items():
+        for d in dsts:
+            in_degree[d] = in_degree.get(d, 0) + 1
+
+    out: Dict[str, List[Tuple[str, str]]] = {}
+    for upstream in upstream_workflow_names:
+        hop1_list = adj.get(upstream)
+        if not hop1_list:
+            continue
+        # Walk to 2nd hop. Cap exploration so very high-fanout nodes don't blow up.
+        seen_paths: Set[Tuple[str, str]] = set()
+        for b in hop1_list[:30]:  # cap first-hop fanout
+            for c in adj.get(b, [])[:30]:
+                if c == upstream or c == b:
+                    continue
+                path = (b, c)
+                if path not in seen_paths:
+                    seen_paths.add(path)
+        ranked = sorted(
+            seen_paths,
+            key=lambda p: (-(in_degree.get(p[0], 0) + in_degree.get(p[1], 0)), p[0], p[1]),
+        )
+        if ranked:
+            out[upstream] = ranked[:top_k_per_upstream]
+    return out
+
+
 def retrieve_downstream_via_types(
     upstream_workflow_names: Sequence[str],
     db_path: Optional[Path] = None,
