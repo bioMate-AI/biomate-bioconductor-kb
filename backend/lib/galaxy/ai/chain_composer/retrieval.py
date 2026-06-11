@@ -16,7 +16,7 @@ import sqlite3
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from .pattern_loader import Pattern, load_patterns
 
@@ -240,6 +240,176 @@ def retrieve_patterns(
 # ─────────────────────────────────────────────────────────────────────────
 
 _WF_INDEX_CACHE: Dict[Tuple[str, float], Tuple["_BM25Index", Dict[str, "ScoredWorkflow"]]] = {}
+
+# Type-flow adjacency cache keyed on the same (db_path, mtime) tuple.
+# Built lazily on first call to retrieve_downstream_via_types().
+_TYPEFLOW_CACHE: Dict[Tuple[str, float], Dict[str, List[str]]] = {}
+
+
+# Regex patterns for canonical input tokens hiding inside Bioc's freeform
+# input_types descriptions. Keeps the type-flow graph from missing the
+# entire Bioc-consumer subspace (where input_types is prose, not flat tokens).
+_BIOC_INPUT_PATTERNS = [
+    (re.compile(r"\bcounts?\b.*\bmatrix\b|\braw\s+counts?\b|counts?\.(?:tsv|csv|txt)", re.I), "counts_matrix"),
+    (re.compile(r"\bexpression\s+matrix\b|\bexpressionset\b|\bnormalized\s+expression", re.I), "expression_matrix"),
+    (re.compile(r"\bsingle\s*cell\s+experiment\b|\bsingle\s*-?\s*cell\b|\bsce\s+object\b|\bh5ad\b", re.I), "singlecellexperiment"),
+    (re.compile(r"\bseurat\s+object\b", re.I), "seurat_object"),
+    (re.compile(r"\bsummarizedexperiment\b|\bSE\s+object\b", re.I), "summarizedexperiment"),
+    (re.compile(r"\bvcf\b|\bvariant\s+call", re.I), "vcf"),
+    (re.compile(r"\bbam\b|\baligned\s+(?:reads|bam)\b", re.I), "bam"),
+    (re.compile(r"\bfasta\b|\bgenome\s+sequence\b", re.I), "fasta"),
+    (re.compile(r"\bgwas\b|\bsummary\s+statistics\b|\bassociation\s+test", re.I), "gwas_summary_statistics"),
+    (re.compile(r"\bgene\s+list\b|\bDEGs?\b|\bsignificant\s+genes\b", re.I), "gene_list"),
+    (re.compile(r"\bmicroarray\b|\baffymetrix\b|\baffybatch\b|\bcel\s+file", re.I), "expression_matrix"),
+]
+
+# Cross-edges for new Bioc-flavored output kinds → likely downstream input
+# kinds. Extends the existing _PLANNER_ALIASES at the type-flow layer.
+_TYPEFLOW_OUT_ALIASES = {
+    "de_table":              ["de_table", "gene_list", "differential_expression"],
+    "expression_matrix":     ["expression_matrix", "counts_matrix"],
+    "counts_matrix":         ["counts_matrix", "counts"],
+    "summarizedexperiment":  ["summarizedexperiment", "se"],
+    "singlecellexperiment":  ["singlecellexperiment", "sce", "h5ad"],
+    "enrichment_results":    ["enrichment_results", "gene_list"],
+    "pathway_results":       ["pathway_results"],
+    "gwas_summary_statistics": ["gwas_summary_statistics"],
+    "copy_number_segments":  ["copy_number_segments"],
+    "mutational_signatures": ["mutational_signatures"],
+    "normalized_data":       ["normalized_data"],
+    "cluster_assignments":   ["cluster_assignments"],
+    "vcf":                   ["vcf"],
+    "annotated_vcf":         ["annotated_vcf", "vcf"],
+}
+
+
+def _canonical_inputs_from_freeform(raw: List[Any]) -> List[str]:
+    """Extract canonical input-type tokens from a workflow's input_types list,
+    including freeform Bioc descriptions like "counts.tsv (matrix of raw...)"."""
+    out = set()
+    for t in raw:
+        if not isinstance(t, str):
+            continue
+        s = t.strip()
+        if not s:
+            continue
+        # Direct canonical hit
+        if len(s) < 35 and "(" not in s:
+            out.add(s.lower())
+            continue
+        # Freeform — pattern-match
+        for pat, label in _BIOC_INPUT_PATTERNS:
+            if pat.search(s):
+                out.add(label)
+    return sorted(out)
+
+
+def _load_typeflow_adjacency(db_path: Path) -> Dict[str, List[str]]:
+    """Build a workflow → downstream-consumers adjacency map via typed edges.
+
+    Returns {source_workflow_name: [downstream_workflow_name, ...]}. Cached
+    on (db_path, mtime) — same invalidation policy as the workflow index.
+
+    Only workflows with both real output_types AND extractable canonical
+    inputs participate. Excludes:
+    - empty/null typed I/O
+    - Bioc stub outputs (table/csv + plot/pdf + object/rds with no other kinds)
+    """
+    key = (str(db_path), db_path.stat().st_mtime)
+    cached = _TYPEFLOW_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute(
+            "SELECT name, input_types, output_types "
+            "FROM workflows WHERE executable=1 "
+            "AND input_types NOT IN ('','[]') AND output_types NOT IN ('','[]')"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    bioc_stub = sorted(["table/csv", "plot/pdf", "object/rds"])
+    nodes: Dict[str, Dict[str, List[str]]] = {}
+    for name, in_raw, out_raw in rows:
+        try:
+            ins_raw = json.loads(in_raw or "[]")
+            outs_raw = json.loads(out_raw or "[]")
+        except Exception:
+            continue
+        # Skip pure-stub Bioc rows that haven't been re-inferred
+        outs_clean = [t for t in outs_raw if isinstance(t, str) and len(t) < 35 and "(" not in t]
+        if not outs_clean or sorted(outs_clean) == bioc_stub:
+            continue
+        ins_canonical = _canonical_inputs_from_freeform(ins_raw)
+        if not ins_canonical:
+            continue
+        nodes[name] = {"ins": ins_canonical, "outs": [o.lower() for o in outs_clean]}
+
+    # Build input-token → workflows index
+    by_input: Dict[str, List[str]] = {}
+    for name, info in nodes.items():
+        for t in info["ins"]:
+            by_input.setdefault(t, []).append(name)
+
+    # Build adjacency: src → [dst...] when any of src.outs satisfies any of dst.ins.
+    # First pass: collect raw adjacency. Second pass: rank downstream by their
+    # total in-degree (workflows that consume the most upstream are most
+    # broadly applicable — surface them first in the prompt).
+    raw_adj: Dict[str, Set[str]] = {}
+    for src_name, src in nodes.items():
+        downstream_set: Set[str] = set()
+        for o in src["outs"]:
+            for cand in [o] + _TYPEFLOW_OUT_ALIASES.get(o, []):
+                downstream_set.update(by_input.get(cand, []))
+        downstream_set.discard(src_name)
+        if downstream_set:
+            raw_adj[src_name] = downstream_set
+
+    # Compute global in-degree across the graph for ranking
+    in_degree: Dict[str, int] = {}
+    for src_name, dsts in raw_adj.items():
+        for d in dsts:
+            in_degree[d] = in_degree.get(d, 0) + 1
+
+    # Rank each adjacency list by (in_degree desc, name asc) so popular
+    # consumers surface first but the order stays deterministic.
+    adjacency: Dict[str, List[str]] = {}
+    for src_name, dsts in raw_adj.items():
+        adjacency[src_name] = sorted(
+            dsts, key=lambda n: (-in_degree.get(n, 0), n)
+        )
+
+    _TYPEFLOW_CACHE[key] = adjacency
+    return adjacency
+
+
+def retrieve_downstream_via_types(
+    upstream_workflow_names: Sequence[str],
+    db_path: Optional[Path] = None,
+    top_k: int = 5,
+) -> Dict[str, List[str]]:
+    """For each upstream workflow name, return up to top_k downstream consumers
+    reachable via canonical typed edges. Empty list when no typed downstream
+    exists in the graph.
+
+    Returns a dict: {upstream_name: [downstream_name, ...]} preserving order
+    of the input list, dropping upstream names not in the type-flow graph.
+
+    Used by the composer to surface natural-chain options to the LLM at
+    prompt-construction time.
+    """
+    db_path = db_path or _DEFAULT_DB
+    if not db_path.exists():
+        return {}
+    adj = _load_typeflow_adjacency(db_path)
+    out: Dict[str, List[str]] = {}
+    for name in upstream_workflow_names:
+        downstream = adj.get(name)
+        if downstream:
+            out[name] = downstream[:top_k]
+    return out
 
 
 def _extract_v2_signal(annotation_v2: str) -> str:
