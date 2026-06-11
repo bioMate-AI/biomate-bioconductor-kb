@@ -54,6 +54,7 @@ BioMate AI is a software-as-a-service computational biology platform founded in 
 
 - [Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results](https://biomate.ai/blog-llm-core.html): How BioMate coordinates specialized AI systems for routing, analysis, QC, and narrative generation
 - [The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate](https://biomate.ai/blog-bioconductor.html): Full Bioconductor R methods available through plain-English requests
+- [Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It](https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html): Ungrounded LLMs cite real Bioconductor functions only 71.4% of the time; structure grounding raises it to 88.2%, and real execution is the ground truth
 - [Keeping Current: How BioMate Discovers and Validates New Analytical Tools](https://biomate.ai/blog-auto-discovery.html): Continuous tool monitoring, validation, and human-reviewed addition to the workflow index
 - [Context That Compounds: BioMate's Hierarchical Memory for Scientific Research](https://biomate.ai/blog-memory.html): Multi-tier memory that learns lab preferences, QC standards, and workflows over time
 - [Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search](https://biomate.ai/blog-workflow-routing.html): Vector embeddings, domain scoring, and LLM reasoning for accurate workflow routing
