@@ -161,6 +161,49 @@ separate PR.
 
 ---
 
+## Update — Galaxy history is the source of truth (user correction)
+
+The user pushed back on the Q3 fix with: *"why are you extra-keeping the
+dataset blocks in chat history when Galaxy history already keeps the
+input and output?"* — and they were correct. The architectural truth:
+
+1. **Galaxy history** is the durable, authoritative store for uploaded
+   datasets. Every dataset has a stable `id` and lives in the user's
+   Galaxy history regardless of chat lifecycle.
+2. **`sessionDatasets`** (loaded server-side from `req.session` ∪
+   `chat_sessions.datasets` rehydration) is the structured projection.
+3. **The chat LLM never saw it.** It was passed into the backend
+   `generate_workflow` call (`session_datasets` field) but **NOT into
+   the chat LLM's system prompt**. The LLM's only visibility into
+   "what's attached" was the verbose `[Galaxy dataset: …]` text blocks
+   inlined into the user message — which is exactly why I was
+   preserving them in chat history.
+
+### Architectural fix (this commit)
+
+- Added `sessionDatasetsBlock` in `galaxy-assistant.ts` — emits a
+  `<session_datasets>` section with `name | id=<uuid> | type=<t>` per
+  attached dataset (~80 bytes each, hard cap 32 entries), wired into
+  both branches of the chat system prompt.
+- The block explicitly tells the LLM that Galaxy history is canonical
+  and to use the listed IDs with `read_file` / `run_code` /
+  workflow parameters — and not to re-ask for uploads.
+- Chat-history selector keeps the dataset-block retention as a
+  belt-and-suspenders fallback for any code path not yet migrated to
+  read from `<session_datasets>` — but it is no longer load-bearing.
+
+### Why this beats my previous fix
+
+| Aspect | Previous (preserve dataset blocks in history) | Now (inject `<session_datasets>`) |
+|---|---|---|
+| Truth ownership | Implicit (blocks must survive selection) | Explicit (Galaxy history → sessionDatasets) |
+| Cost per turn | ~200 B per attachment × every turn | ~80 B per attachment × 1 block (capped) |
+| Survives session restore | Only if block is in last N turns | Always — reloaded from chat_sessions.datasets |
+| Survives compression | No — summarizer paraphrases UUIDs away | Yes — system prompt isn't compressed |
+| LLM needs to find IDs | Scan back through messages | Read directly from the bulletin |
+
+---
+
 ## Action plan from this audit
 
 | # | Action | Status |

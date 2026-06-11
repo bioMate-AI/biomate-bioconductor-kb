@@ -14,8 +14,13 @@
  * of Claude's 200K context on history alone. See docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md, question #3.
  *
  * This module is the principled middle ground:
- *   (a) Dataset-attachment messages are ALWAYS retained verbatim — they
- *       carry UUIDs that downstream tools need to read.
+ *   (a) Dataset-attachment messages are retained verbatim — belt-and-
+ *       suspenders defense. The CANONICAL path for the LLM to know which
+ *       datasets are attached is the <session_datasets> block injected
+ *       directly into the system prompt every turn (see
+ *       galaxy-assistant.ts:sessionDatasetsBlock). Preserving the inline
+ *       blocks here is a fallback for any code path that hasn't been
+ *       migrated yet.
  *   (b) Recency comes next — most recent messages added until the byte
  *       budget is nearly exhausted.
  *   (c) Long assistant messages are head-truncated to keep intent without
