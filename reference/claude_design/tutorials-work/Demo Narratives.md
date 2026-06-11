@@ -358,6 +358,132 @@ Voiceover scripts for the four primary tutorials. Each beat is tagged `[mm:ss–
 
 ---
 
+## 6 · Bioconductor · scRNA-seq → pseudobulk DE (`bioc-sc-routing`, 19 steps, ~3 min)
+
+> **Scenario context.** A scientist asks BioMate for "scRNA-seq with condition DE." We follow BioMate routing to the OSCA stack, the cell QC, clustering, parallel marker detection + SingleR annotation, the pseudoreplication trap-and-fix beat, and the seven-tab After-run report.
+
+**[00:00–00:13]** · **[Step 1 — Welcome, centered]**
+"Same agent, a single-cell request. BioMate routes to the OSCA stack, clusters and annotates in parallel, then runs condition differential expression the statistically correct way — pseudobulk. About three minutes — route, cluster, annotate, pseudobulk DE, report."
+
+**[00:15–00:26]** · **[Step 2 — Seven phases with parallel branch]**
+"Seven phases. QC, normalise, feature and PCA, cluster, markers and annotation in parallel, then pseudobulk DE. Marker detection and annotation both read the clustered object, so they're grouped to run concurrently."
+
+**[00:28–00:40]** · **[Step 3 — Routed to the OSCA stack]**
+"BioMate works backward from the goal. Condition DE with DeSeq-two means a single cell experiment with scran and scater — not Seurat — so the final pseudobulk step hands off with no lossy conversion. Routing is the whole object ecosystem, not just one tool."
+
+**[00:42–00:54]** · **[Step 4 — Phase A · cell QC]**
+"Phase A. emptyDrops separates real cells from ambient barcodes. perCellQCMetrics flags high-mitochondrial and low-count cells. Nine thousand eight hundred and fourteen of twelve thousand four hundred and two cells retained."
+
+**[00:56–01:08]** · **[Step 5 — One SCE throughout]**
+"QC and normalisation fold into a single cell experiment carrying counts, log-counts, metadata, and size factors. Every step below — including the pseudobulk DeSeq-two — reads from this one object. Staying SCE-native avoids a lossy conversion at the end."
+
+**[01:10–01:21]** · **[Step 6 — Phases B–D done · 11 clusters]**
+"Normalisation, highly-variable-gene selection plus PCA, and graph-based clustering with buildSNNGraph plus Louvain are complete. Eleven clusters. The UMAP is a picture, not the clustering — clusters come from the SNN graph."
+
+**[01:23–01:34]** · **[Step 7 — Parallel markers + annotation]**
+"Phases E and F open together. scoreMarkers and SingleR — against the Human Primary Cell Atlas — both read the clustered object, so the engine fans them out and tracks the join. Independent steps run concurrently; dependent ones wait."
+
+**[01:36–01:51]** · **[Step 8 — Pseudobulk teaching beat]** *(extended dwell)*
+"The key teaching beat. The QC block flags the trap — testing thousands of cells as replicates is pseudoreplication. The agent block gives the fix — aggregate to pseudobulk, so the six samples are the real replicates. Then DeSeq-two per cell type. The agent corrects the stats trap before running the test."
+
+**[01:53–02:05]** · **[Step 9 — Chain complete, centered]**
+"All seven phases done. Routed to OSCA, clustered, annotated in parallel, then pseudobulk DE. CD-eight T cells are the strongest responder — two hundred and fourteen DE genes on true replicates. Next, we walk every tab of the report."
+
+**[02:07–02:16]** · **[Step 10 — Tabs overview]**
+"Every completed run produces a structured report. Seven tabs — findings, outputs, methods, parameters, software, citations, and the QC audit. Same order as the bulk tutorial."
+
+**[02:18–02:28]** · **[Step 11 — Findings tab]**
+"The findings tab. Headline metric and figures from the manifest — DE genes per cell type, cell-type composition, and QC retention. Pseudobulk means significance rests on the six biological replicates."
+
+**[02:30–02:39]** · **[Step 12 — Outputs tab]**
+"Outputs. Files grouped by phase and step — the UMAP, the marker heatmap, per-cell-type DE tables, and the cell-type calls. View previews inline; download grabs one or all."
+
+**[02:41–02:52]** · **[Step 13 — Inline preview]**
+"Clicking view on the UMAP renders it inline. Nine thousand eight hundred and fourteen cells coloured by the eight SingleR cell types, with a legend. The UMAP is for visualisation; clusters come from the SNN graph."
+
+**[02:54–03:03]** · **[Step 14 — Methods tab]**
+"Methods. Paste-ready prose — emptyDrops QC, scran normalisation, SNN and Louvain clustering, SingleR annotation, and aggregateAcrossCells into DeSeq-two. With versions and parameters."
+
+**[03:05–03:14]** · **[Step 15 — Parameters tab]**
+"Parameters. Phase, step, parameter, value — emptyDrops FDR, highly-variable-gene count, SNN k, the SingleR reference, and the pseudobulk design. A ready supplementary table."
+
+**[03:16–03:24]** · **[Step 16 — Software tab]**
+"Software. Exact versions — DropletUtils, scran, scater, SingleR, DeSeq-two. Match these with the parameters tab and you reproduce the run."
+
+**[03:26–03:36]** · **[Step 17 — Citations tab]**
+"Citations. Amezquita twenty-twenty for OSCA, Lun twenty-nineteen for emptyDrops, Aran twenty-nineteen for SingleR, Love twenty-fourteen for DeSeq-two. Pre-bundled in the download report."
+
+**[03:38–03:49]** · **[Step 18 — QC audit tab]**
+"The QC audit tab. Cells retained, size-factor range, cluster count, pruned clusters, and the replicate-unit gate — sample, not cell. The replicate-unit gate is what enforces pseudobulk over naive per-cell DE."
+
+**[03:51–04:04]** · **[Step 19 — Wrap-up, centered]**
+"That's the single-cell thread. Route to OSCA, cluster, annotate in parallel, pseudobulk DE, and a seven-tab report. One object, one request, statistically honest DE. Compare with the bulk and methylation tutorials — same agent, different data."
+
+---
+
+## 7 · Bioconductor · 450k methylation → DMRs (`bioc-methyl-routing`, 19 steps, ~3 min)
+
+> **Scenario context.** A scientist asks BioMate for "differential methylation analysis on 450k IDAT files." We follow routing to minfi, the GenomicRatioSet handoff, DMP and DMR calling, the CpG-density bias correction beat (the centerpiece), and the seven-tab After-run report.
+
+**[00:00–00:13]** · **[Step 1 — Welcome, centered]**
+"A methylation-array request. This chain rides a genomic backbone object instead of a count matrix — probe coordinates travel with the data, so region-level analysis is possible. About three minutes — IDAT, genomic ratio set, DMRs, CpG-corrected GO, report."
+
+**[00:15–00:26]** · **[Step 2 — Five phases]**
+"Five phases. Read IDAT, QC and normalise, DMP calling, DMR calling, and CpG-corrected enrichment. The panel shows the same five phases the chat narrates. Each phase lists its real minfi steps, parameters, and outputs."
+
+**[00:28–00:38]** · **[Step 3 — Routed to minfi]**
+"Raw IDAT plus a four-fifty-k manifest routes to minfi, because the downstream DMR step needs a genomic object, not a plain matrix. The input format picks the whole ecosystem, not just one tool."
+
+**[00:40–00:51]** · **[Step 4 — Phase A · read IDAT]**
+"Phase A. minfi's read-meth-array-exp reads the IDAT pairs into a methyl set — raw methylated and unmethylated intensities, four hundred and fifty thousand probes by twenty-four samples. The running phase auto-expands."
+
+**[00:53–01:04]** · **[Step 5 — GenomicRatioSet handoff]**
+"After QC and normalisation the object is a genomic ratio set. Beta values with each probe's genomic coordinate. That genomic ranges backbone is what lets the next step collapse CpGs into regions. Methyl set, genomic ratio set, data frame, genomic ranges — each typed."
+
+**[01:06–01:18]** · **[Step 6 — Phase C · DMP calling]**
+"Phase C. Per-CpG differential methylation with limma eBayes on M-values, design tilde group. Twelve thousand four hundred and three significant CpGs at false discovery rate under zero point zero five, passed on to bumphunter. M-values for testing; beta values for reporting."
+
+**[01:20–01:32]** · **[Step 7 — Phase D · 847 DMRs]**
+"Phase D. bumphunter with one thousand bootstraps collapses adjacent significant CpGs into eight hundred and forty-seven regions — a genomic ranges object of DMRs, ready for enrichment. Region-level analysis is only possible because coordinates rode along."
+
+**[01:34–01:47]** · **[Step 8 — CpG-density bias correction]** *(extended dwell)*
+"The teaching beat. The QC block flags the trap — a normal GO over-represents CpG-rich promoters on the array. The agent block gives the fix — missMethyl gometh weights genes by CpG count, so enrichment p-values stay calibrated. The agent reaches for the array-aware tool, not the generic one."
+
+**[01:49–02:00]** · **[Step 9 — Chain complete, centered]**
+"All five phases done. minfi read, normalised, DMPs, bumphunter DMRs, and CpG-corrected GO. Eight hundred and forty-seven DMRs from twelve thousand four hundred and three significant CpGs. Next, we walk every tab of the report."
+
+**[02:02–02:11]** · **[Step 10 — Tabs overview]**
+"Seven tabs — findings, outputs, methods, parameters, software, citations, and the QC audit. Same structure as the other two Bioconductor tutorials."
+
+**[02:13–02:22]** · **[Step 11 — Findings tab]**
+"The findings tab. Headline plus figures from the manifest — DMR direction, hyper or hypo, top CpG-corrected GO terms, and probe-QC retention. Numbers read from the run."
+
+**[02:24–02:35]** · **[Step 12 — Outputs tab]**
+"Outputs. Files by phase and step — the DMP table with twelve thousand four hundred and three CpGs, the DMR object with eight hundred and forty-seven regions as genomic ranges, and the CpG-corrected GO enrichment. View previews; download grabs one or all."
+
+**[02:37–02:48]** · **[Step 13 — Inline preview · DMR manhattan]**
+"Clicking view on the DMR tracks PNG renders it inline — negative log-ten p across chromosomes, with the eight hundred and forty-seven significant DMRs above the region-wide threshold highlighted."
+
+**[02:50–03:00]** · **[Step 14 — Methods tab]**
+"Methods. Paste-ready — read-meth-array, detection-p QC, SNP and cross-reactive filtering, preprocessQuantile, limma DMPs, bumphunter DMRs, gometh enrichment — with versions and parameters."
+
+**[03:02–03:11]** · **[Step 15 — Parameters tab]**
+"Parameters. Phase, step, parameter, value — detection-p cutoff, the M-value design, bumphunter bootstraps and cutoff, the gometh array type. A ready supplementary table."
+
+**[03:13–03:21]** · **[Step 16 — Software tab]**
+"Software. Exact versions — minfi, limma, bumphunter, missMethyl. Match these with the parameters tab and you reproduce the run."
+
+**[03:23–03:33]** · **[Step 17 — Citations tab]**
+"Citations. Aryee twenty-fourteen for minfi, Jaffe twenty-twelve for bumphunter, Phipson twenty-sixteen for missMethyl, Ritchie twenty-fifteen for limma. Pre-bundled in the download report."
+
+**[03:35–03:45]** · **[Step 18 — QC audit tab]**
+"The QC audit tab. Samples read, probes retained, significant-CpG count, DMR count, and the CpG-bias-corrected flag. The bias-corrected gate is what enforces gometh over a generic GO test."
+
+**[03:47–04:00]** · **[Step 19 — Wrap-up, centered]**
+"That's the epigenomics thread. A genomic ranges backbone, DMPs, DMRs, CpG-corrected enrichment, and a seven-tab report. A different object lineage from the other two tutorials, the same orchestration. That completes the three Bioconductor demos."
+
+---
+
 ## Recording notes
 
 - **Timings.** Each beat is tagged `[mm:ss–mm:ss]` cumulative. Computed at **150 wpm + 1.5 s pause** between beats, 5 s floor per beat. Target budgets: tutorials 1–3 ≈ 3 min, tutorial 4a ≈ 7 min, tutorial 4b ≈ 3 min. Treat as a target, not a metronome — leave room to breathe.
