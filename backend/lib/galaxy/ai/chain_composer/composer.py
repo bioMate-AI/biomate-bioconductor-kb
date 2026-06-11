@@ -31,6 +31,7 @@ from .retrieval import (
     ScoredPattern,
     ScoredWorkflow,
     retrieve_curated_chains,
+    retrieve_downstream_via_types,
     retrieve_patterns,
     retrieve_workflows,
 )
@@ -540,6 +541,20 @@ def _build_prompt(
         extras = sorted(n for n in chain_step_names if not any(w.name == n for w in top_workflows))
         if extras:
             parts.append("  Curated-chain step names also valid: " + ", ".join(f"`{n}`" for n in extras))
+
+    # Type-flow graph hints: for the top-3 candidate workflows, look up their
+    # canonical downstream consumers via the typed-edge adjacency map. This
+    # surfaces natural multi-step chain options to the LLM without requiring
+    # any hand-curated chain to exist for the query.
+    if top_workflows:
+        downstream = retrieve_downstream_via_types(
+            [w.name for w in top_workflows[:3]],
+            top_k=5,
+        )
+        if downstream:
+            parts.append("\nTYPED DOWNSTREAM HINTS (these consumers typically chain after the named candidate via canonical data types — use as natural follow-on steps when the query implies more than one stage):")
+            for upstream, dsts in downstream.items():
+                parts.append(f"- after `{upstream}`: " + ", ".join(f"`{d}`" for d in dsts))
 
     if verifier_feedback:
         parts.append("\nPRIOR ATTEMPT FAILED VERIFICATION — fix these issues:")
