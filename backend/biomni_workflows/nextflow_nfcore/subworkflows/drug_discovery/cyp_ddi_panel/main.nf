@@ -407,7 +407,7 @@ process HEPATIC_CLEARANCE {
     def hep_sf     = params.hepatocyte_scalingFactor
     def liver_wt   = params.liver_weight_g
     def fu_mic     = params.fu_mic
-    def fu_plasma  = params.fu_plasma ?: 'null'
+    def fu_plasma  = params.fu_plasma ?: 'None'
     def rb         = params.blood_to_plasma_ratio
     """
     set -euo pipefail
@@ -587,9 +587,9 @@ process DDI_RISK_ASSESSMENT {
     path "qc_metrics.json",          emit: qc_metrics
 
     script:
-    def max_dose_mg   = params.max_clinical_dose_mg ?: 'null'
+    def max_dose_mg   = params.max_clinical_dose_mg ?: 'None'
     def dose_route    = params.dose_route
-    def fu_plasma_p   = params.fu_plasma ?: 'null'
+    def fu_plasma_p   = params.fu_plasma ?: 'None'
     """
     set -euo pipefail
     pip install rdkit numpy 2>/dev/null || true
