@@ -4,7 +4,7 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 14 of 16 candidate workflows verified end-to-end. 2 are
+**Result:** 15 of 17 candidate workflows verified end-to-end. 2 are
 code-ready, each blocked by an issue independent of the QC code path.
 
 ## Verified workflows
@@ -29,6 +29,7 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 12 | ivive_hepatic_clearance | IVIVE_HEPATIC_CLEARANCE | `ivive_fold_error` | ≤ 2 | GOLD Obach 1999 Drug Metab Dispos 27:1350; fold_error only emitted when `clh_observed_ml_min_kg` param supplied | 2bd4e370 06-10 19:33:12 |
 | 13 | predict_admet_properties | PREDICT_ADMET_PROPERTIES | `herg_ic50_uM` + `ames_positive` + `dili_risk` | hERG ≥10μM / Ames neg / DILI != high | GOLD Redfern 2003 + Sanguinetti 2006 (hERG) / SILVER Kazius 2005 (Ames) / SILVER Mulliner 2016 (DILI); gate TRIGGERED on terfenadine (canonical hERG positive control, IC50 0.24μM) AND on its high DILI risk — exactly as expected | 7482bb1e 06-10 19:44:27 |
 | 14 | cyp_ddi_panel | DDI_RISK_ASSESSMENT | `overall_recommendation` | NOT_EXPECTED / INVESTIGATE / CLINICAL_STUDY_RECOMMENDED | GOLD FDA 2020 In Vitro DDI Guidance (R1 ≥ 1.02 INVESTIGATE; R1 ≥ 1.1 CLINICAL); requires `null`→`None` Groovy interpolation fix (`420639060`) | aae555da 06-11 19:32:10 |
+| 15 | nca_pknca | NCA_PKNCA_ANALYSIS | `auc_extrap_pct_max` | ≤ 20% | GOLD FDA 2003 BA/BE Guidance; required `route` synonym canonicalization fix (`873bf21f2`) — PKNCA only accepts `extravascular`/`intravascular`. Advisory warning on `t_half_h` null fine — that is a downstream attribute, not the gate metric. Fixture: `s3://biomate-nextflow-work/fixtures/nca/synthetic_pk_theo_nca.csv` (12 subjects × 10 timepoints, derived from popPK Theophylline-style data) | 61562ea6 06-11 21:54:57 |
 
 ## Code-ready but blocked
 
