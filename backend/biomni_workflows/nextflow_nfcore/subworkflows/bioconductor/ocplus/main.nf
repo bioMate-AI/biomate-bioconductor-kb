@@ -52,7 +52,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     EFFECT_SIZE <- 1.0
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     cat("Loading input data...\n")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -86,7 +86,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
                 nrow(counts_filtered), ncol(counts_filtered)))
     
     # ==========================================
-    # Stage 2: Empirical Operating Characteristics (EOC)
+    # --- Empirical Operating Characteristics (EOC) ---
     # ==========================================
     cat("Running Empirical Operating Characteristics (EOC)...\n")
     sim1 <- EOC(counts_filtered, group_labels, plot = FALSE)
@@ -131,7 +131,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Mixture Model for p0 Estimation
+    # --- Mixture Model for p0 Estimation ---
     # ==========================================
     cat("Estimating p0 using mixture t-distributions...\n")
     p0_mix <- NA
@@ -151,7 +151,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     write.csv(p0_df, "p0_estimates.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Sample Size & Design Planning
+    # --- Sample Size & Design Planning ---
     # ==========================================
     cat("Performing sample size planning...\n")
     # Use the empirical fdr1d p0 estimate for planning, fallback to 0.9 if invalid
@@ -161,7 +161,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     write.csv(as.data.frame(ss_plan), "sample_size_planning.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 7: Export Tables and Generate Plots
+    # --- Export Tables and Generate Plots ---
     # ==========================================
     cat("Exporting results and generating diagnostic plots...\n")
     

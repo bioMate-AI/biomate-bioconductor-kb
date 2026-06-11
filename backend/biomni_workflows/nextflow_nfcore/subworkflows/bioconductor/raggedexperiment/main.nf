@@ -102,16 +102,16 @@ process BIOC_RAGGEDEXPERIMENT_RAGGED_EXPERIMENT_GENOMIC_INTEGRATION {
     
     message("Stage 3: Performing rectangularization assays...")
     
-    # 1. Sparse Assay representation
+    # --- Sparse Assay representation ---
     sparse_mat <- sparseAssay(re, "score")
     
-    # 2. Compact Assay representation (collapsing identical ranges)
+    # --- Compact Assay representation (collapsing identical ranges) ---
     compact_mat <- compactAssay(re, "score")
     
-    # 3. Disjoin Assay representation (resolving overlapping ranges)
+    # --- Disjoin Assay representation (resolving overlapping ---
     disjoin_mat <- disjoinAssay(re, "score", simplifyDisjoin = mean)
     
-    # 4. Qreduce Assay representation (reducing to a query region)
+    # --- Qreduce Assay representation (reducing to a query region) ---
     # Define query regions as the disjoint ranges across all samples
     query <- disjoin(unlist(grl))
     if (length(query) == 0) {

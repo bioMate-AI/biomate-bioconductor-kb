@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read model metadata, drug metadata, and time-volume experiment data. 2. Read experimental design batch list. 3. Read molecular pro
+//  * 1. [Input & Preparation] Read model metadata, drug metadata, and time-volume
+//  * 2. [Input & Preparation] Read experimental design batch list
+//  * 3. [Input & Preparation] Read molecular profiles (ExpressionSet)
+//  * 4. [Input & Preparation] Read the mapping table between model IDs and molecular
+//  * 5. [Input & Preparation] Construct the XevaSet using createXevaSet
+//  * 6. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +55,7 @@ process BIOC_XEVA_CREATE_XEVA_OBJECT {
     library(Xeva)
     library(Biobase)
     
-    # 1. Read model metadata, drug metadata, and time-volume experiment data
+    # --- Read model metadata, drug metadata, and time-volume ---
     if (!file.exists("model.csv")) {
       stop("Required input file 'model.csv' not found in the working directory.")
     }
@@ -69,7 +74,7 @@ process BIOC_XEVA_CREATE_XEVA_OBJECT {
     experiment <- read.csv("experiments.csv")
     head(experiment)
     
-    # 2. Read experimental design batch list
+    # --- Read experimental design batch list ---
     if (!file.exists("batch_list.rds")) {
       stop("Required input file 'batch_list.rds' not found in the working directory.")
     }
@@ -78,21 +83,21 @@ process BIOC_XEVA_CREATE_XEVA_OBJECT {
       print(expDesign[[1]])
     }
     
-    # 3. Read molecular profiles (ExpressionSet)
+    # --- Read molecular profiles (ExpressionSet) ---
     if (!file.exists("rnaseq.rds")) {
       stop("Required input file 'rnaseq.rds' not found in the working directory.")
     }
     RNASeq <- readRDS("rnaseq.rds")
     print(RNASeq)
     
-    # 4. Read the mapping table between model IDs and molecular sample IDs
+    # --- Read the mapping table between model IDs and molecular ---
     if (!file.exists("modelToExpressionMap.csv")) {
       stop("Required input file 'modelToExpressionMap.csv' not found in the working directory.")
     }
     modToBiobaseMap <- read.csv("modelToExpressionMap.csv")
     head(modToBiobaseMap)
     
-    # 5. Construct the XevaSet using createXevaSet
+    # --- Construct the XevaSet using createXevaSet ---
     xeva.set <- createXevaSet(
       name = "example xevaSet",
       model = model,
@@ -105,7 +110,7 @@ process BIOC_XEVA_CREATE_XEVA_OBJECT {
     
     print(xeva.set)
     
-    # 6. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     saveRDS(xeva.set, file = "xeva_set.rds")
     
     # Save a text summary of the created XevaSet

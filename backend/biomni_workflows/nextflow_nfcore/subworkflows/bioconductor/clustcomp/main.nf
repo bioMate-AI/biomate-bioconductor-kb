@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Perform initial flat-versus-flat comparison and layout optimization using the barycentre algorithm. 2. Manually adjust node coordi
+//  * 1. [Visualization & Output] Perform initial flat-versus-flat comparison and layout
+//  * 2. [Visualization & Output] Manually adjust node coordinates or layout orientation to
+//  * 3. [Visualization & Output] Construct a one-to-one mapping of superclusters using the
+//  * 4. [Visualization & Output] Visualize the supercluster mapping in the bipartite graph
 
 nextflow.enable.dsl = 2
 
@@ -87,13 +90,13 @@ process BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON {
     flat1 <- as.vector(flat1)
     flat2 <- as.vector(flat2)
     
-    # 1. Perform initial flat-versus-flat comparison and layout optimization using the barycentre algorithm.
+    # --- Perform initial flat-versus-flat comparison and layout ---
     pdf("flat_vs_flat_initial.pdf", width = 7, height = 7)
     res_initial <- flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = FALSE)
     dev.off()
     saveRDS(res_initial, "flat_vs_flat_initial_results.rds")
     
-    # 2. Manually adjust node coordinates or layout orientation to improve visualization aesthetics.
+    # --- Manually adjust node coordinates or layout orientation to ---
     # We dynamically generate coordinates based on the number of unique clusters in the inputs to ensure robustness.
     pdf("flat_vs_flat_coords.pdf", width = 7, height = 7)
     res_coords <- flatVSflat(flat1, flat2, 
@@ -109,13 +112,13 @@ process BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON {
     dev.off()
     saveRDS(res_evenly, "flat_vs_flat_evenly_results.rds")
     
-    # 3. Construct a one-to-one mapping of superclusters using the greedy algorithm.
+    # --- Construct a one-to-one mapping of superclusters using the ---
     pdf("sc_mapping.pdf", width = 7, height = 7)
     myMapping<-SCmapping(flat1, flat2)
     dev.off()
     saveRDS(myMapping, "myMapping.rds")
     
-    # 4. Visualize the supercluster mapping in the bipartite graph.
+    # --- Visualize the supercluster mapping in the bipartite graph ---
     pdf("flat_vs_flat_greedy.pdf", width = 7, height = 7)
     res_greedy <- flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = TRUE)
     dev.off()

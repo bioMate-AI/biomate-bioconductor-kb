@@ -48,7 +48,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     library(miaSim)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'matrix.csv' or 'coldata.csv' not found.")
@@ -80,7 +80,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     x0[x0 <= 0] <- 0.1
     
     # ==========================================
-    # STAGE 2: Generate Interaction & Resource Matrices
+    # --- Generate Interaction & Resource Matrices ---
     # ==========================================
     message("Generating interaction matrices...")
     # Generate interactions from power-law distribution
@@ -93,7 +93,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     E_matrix <- randomE(n_species = n_species, n_resources = n_species * 2)
     
     # ==========================================
-    # STAGE 3: Run Simulation Models
+    # --- Run Simulation Models ---
     # ==========================================
     message("Running simulations...")
     
@@ -146,7 +146,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     })
     
     # ==========================================
-    # STAGE 4: Export Simulated Abundance Matrices
+    # --- Export Simulated Abundance Matrices ---
     # ==========================================
     write_simulation_csv <- function(tse, filename) {
       if (!is.null(tse)) {
@@ -171,7 +171,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     write_simulation_csv(tse_logistic, "logistic_simulation.csv")
     
     # ==========================================
-    # STAGE 5: Visualization of Trajectories
+    # --- Visualization of Trajectories ---
     # ==========================================
     pdf("simulation_plots.pdf", width = 10, height = 8)
     par(mfrow = c(3, 2), mar = c(4, 4, 3, 1))

@@ -65,7 +65,7 @@ process BIOC_ALEVINQC_CUSTOM_PLOTTING_AND_DATA_EXTRACTION {
                  "Please ensure the directory contains 'alevin/' and 'aux_info/' subdirectories and 'cmd_info.json'.", sep = ""))
     }
     
-    # 1. Read the alevin output into an R object using readAlevinQC()
+    # --- Read the alevin output into an R object using ---
     message("Reading Alevin QC data from: ", baseDir)
     alevin <- readAlevinQC(baseDir = baseDir)
     
@@ -73,7 +73,7 @@ process BIOC_ALEVINQC_CUSTOM_PLOTTING_AND_DATA_EXTRACTION {
     saveRDS(alevin, file = "alevin_qc_data.rds")
     message("Saved alevin QC object to 'alevin_qc_data.rds'")
     
-    # 2. Inspect cell barcode tables and summary tables
+    # --- Inspect cell barcode tables and summary tables ---
     message("\n--- Cell Barcode Table (Head) ---")
     print(head(alevin\$cbTable))
     write.csv(alevin\$cbTable, file = "alevin_cbTable.csv", row.names = FALSE)
@@ -94,7 +94,7 @@ process BIOC_ALEVINQC_CUSTOM_PLOTTING_AND_DATA_EXTRACTION {
     print(knitr::kable(alevin\$versionTable))
     write.csv(as.data.frame(alevin\$versionTable), file = "versionTable.csv")
     
-    # 3. Generate individual plots and save them to a PDF
+    # --- Generate individual plots and save them to a PDF ---
     pdf_filename <- "alevin_qc_plots.pdf"
     message("\nGenerating diagnostic plots and saving to '", pdf_filename, "'...")
     pdf(pdf_filename, width = 8, height = 6)

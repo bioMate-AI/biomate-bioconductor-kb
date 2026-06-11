@@ -49,7 +49,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Import Data & Construct Objects
+    # --- Import Data & Construct Objects ---
     # ==========================================
     message("Stage 1: Importing BED intervals and metadata...")
     
@@ -108,7 +108,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     rownames(gi) <- annot\$name
     
     # ==========================================
-    # STAGE 2: Standardization & Size Calculation
+    # --- Standardization & Size Calculation ---
     # ==========================================
     message("Stage 2: Standardizing intervals and calculating sizes...")
     
@@ -120,7 +120,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     annotation(gi_closed)\$size <- sizes
     
     # ==========================================
-    # STAGE 3: Set Operations (Union & Complement)
+    # --- Set Operations (Union & Complement) ---
     # ==========================================
     message("Stage 3: Performing set operations (Union and Complement)...")
     
@@ -135,7 +135,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     annotation(gi_complement)\$type <- "complement_interval"
     
     # ==========================================
-    # STAGE 4: Overlap & Distance Analysis
+    # --- Overlap & Distance Analysis ---
     # ==========================================
     message("Stage 4: Analyzing overlaps and nearest-neighbor distances...")
     
@@ -182,7 +182,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 5: Exporting Results
+    # --- Exporting Results ---
     # ==========================================
     message("Stage 5: Writing output files...")
     

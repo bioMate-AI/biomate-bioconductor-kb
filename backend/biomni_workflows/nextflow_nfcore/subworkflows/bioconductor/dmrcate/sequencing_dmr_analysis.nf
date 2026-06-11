@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Annotate sequencing data and model differential methylation using sequencing.annotate. 2. (Optional) Adjust the FDR threshold of t
+//  * 1. [Visualization & Output] Annotate sequencing data and model differential
+//  * 2. [Visualization & Output] Adjust the FDR threshold of the annotated object
+//  * 3. [Visualization & Output] Call DMRs
+//  * 4. [Visualization & Output] Extract genomic coordinates of the identified DMRs
+//  * 5. [Visualization & Output] Plot specific DMRs
 
 nextflow.enable.dsl = 2
 
@@ -85,18 +89,18 @@ process BIOC_DMRCATE_SEQUENCING_DMR_ANALYSIS {
     cols <- color_map[as.character(tissue)]
     names(cols) <- tissue
     
-    # 1. Annotate sequencing data and model differential methylation
+    # --- Annotate sequencing data and model differential ---
     seq_annot <- sequencing.annotate(bis_1072, methdesign, all.cov = TRUE, 
                                      contrasts = TRUE, cont.matrix = cont.mat, 
                                      coef = "treg_vs_tcon", fdr=0.05)
     
-    # 2. Adjust the FDR threshold of the annotated object
+    # --- Adjust the FDR threshold of the annotated object ---
     seq_annot <- changeFDR(seq_annot, 0.25)
     
-    # 3. Call DMRs
+    # --- Call DMRs ---
     dmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)
     
-    # 4. Extract genomic coordinates of the identified DMRs
+    # --- Extract genomic coordinates of the identified DMRs ---
     treg_vs_tcon.ranges <- extractRanges(dmrcate.res, genome="mm10")
     
     # Save results
@@ -104,7 +108,7 @@ process BIOC_DMRCATE_SEQUENCING_DMR_ANALYSIS {
     saveRDS(treg_vs_tcon.ranges, "treg_vs_tcon_ranges.rds")
     write.csv(as.data.frame(treg_vs_tcon.ranges), "treg_vs_tcon_ranges.csv", row.names=FALSE)
     
-    # 5. Plot specific DMRs
+    # --- Plot specific DMRs ---
     tryCatch({
       if (length(treg_vs_tcon.ranges) >= 1) {
         pdf("treg_vs_tcon_dmr1_plot.pdf", width=10, height=8)

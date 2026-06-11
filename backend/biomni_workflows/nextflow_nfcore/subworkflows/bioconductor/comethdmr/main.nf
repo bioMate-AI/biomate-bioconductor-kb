@@ -44,7 +44,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(coMethDMR)
     library(BiocParallel)
     library(rtracklayer)
@@ -77,7 +77,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
       write.csv(dummy_coldata, "coldata.csv", row.names = FALSE)
     }
     
-    # Stage 2: Import input files
+    # --- Import input files ---
     message("Reading input regions and metadata...")
     gr <- rtracklayer::import("regions.bed")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -87,7 +87,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
       coldata\$Sample <- coldata[, 1]
     }
     
-    # Stage 3: Extract CpGs within the input regions
+    # --- Extract CpGs within the input regions ---
     message("Extracting CpGs within the specified genomic regions...")
     region_names <- paste0(seqnames(gr), ":", start(gr), "-", end(gr))
     names(gr) <- region_names
@@ -120,7 +120,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
       )
     }
     
-    # Stage 4: Simulate/Generate DNA Methylation Matrix matching the input samples and CpGs
+    # --- Simulate/Generate DNA Methylation Matrix matching the ---
     message("Generating DNA methylation matrix...")
     all_unique_cpgs <- unique(unlist(CpGs_ls))
     n_samples <- nrow(coldata)
@@ -137,13 +137,13 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
     colnames(beta_mat) <- coldata\$Sample
     beta_df <- as.data.frame(beta_mat)
     
-    # Stage 5: Quality Control and Missing Value Filtering
+    # --- Quality Control and Missing Value Filtering ---
     message("Performing quality control on methylation data...")
     markCells_ls <- MarkMissing(dnaM_df = beta_df)
     beta_df <- beta_df[markCells_ls\$keepProbes, markCells_ls\$keepSamples, drop = FALSE]
     coldata <- coldata[coldata\$Sample %in% colnames(beta_df), , drop = FALSE]
     
-    # Stage 6: Compute Residuals to adjust for covariates
+    # --- Compute Residuals to adjust for covariates ---
     message("Computing residuals to adjust for covariates...")
     covariates <- intersect(c("age", "sex", "slide"), colnames(coldata))
     if (length(covariates) == 0) {
@@ -158,7 +158,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
       nCores_int = 1
     )
     
-    # Stage 7: Identify Co-methylated Regions
+    # --- Identify Co-methylated Regions ---
     message("Identifying co-methylated sub-regions...")
     coMeth_ls <- CoMethAllRegions(
       dnam = resid_mat,
@@ -177,7 +177,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
       coMeth_ls <- CpGs_ls
     }
     
-    # Stage 8: Test Co-methylated Regions against Phenotype
+    # --- Test Co-methylated Regions against Phenotype ---
     message("Testing co-methylated regions against phenotype using mixed models...")
     cont_pheno <- "phenotype"
     if (!cont_pheno %in% colnames(coldata)) {
@@ -197,7 +197,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
       nCores_int = 1
     )
     
-    # Stage 9: Annotate Results
+    # --- Annotate Results ---
     message("Annotating results with genomic features...")
     annotated_res <- tryCatch({
       AnnotateResults(lmmRes_df = res_df, arrayType = ARRAY_TYPE)
@@ -209,7 +209,7 @@ process BIOC_COMETHDMR_COMETHDMR_PIPELINE {
     # Write main results
     write.csv(annotated_res, "cometh_dmr_results.csv", row.names = FALSE)
     
-    # Stage 10: Extract Detailed CpG Info and Visualize Top Region
+    # --- Extract Detailed CpG Info and Visualize Top Region ---
     if (nrow(res_df) > 0) {
       top_region <- res_df\$chrom[1] # Use the first tested region
       top_region_name <- paste0(res_df\$chrom[1], ":", res_df\$start[1], "-", res_df\$end[1])

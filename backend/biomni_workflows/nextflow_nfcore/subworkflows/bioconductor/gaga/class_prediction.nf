@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the GaGa model on training data using fitGG and parest. 2. Predict the class of new samples and obtain posterior probabilities
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Define Expression Patterns
+//  * 3. [Core Analysis] Fit the GaGa Model (fitGG and parest)
+//  * 4. [Core Analysis] Predict Class of New Samples (classpred)
+//  * 5. [Core Analysis] Save Outputs and Generate Diagnostic Plots
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +55,7 @@ process BIOC_GAGA_CLASS_PREDICTION {
     library(gaga)
     
     # -------------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # -------------------------------------------------------------------------
     # Read the normalized expression matrix for training samples
     training_expr <- as.matrix(read.csv("training_expression.csv", row.names = 1))
@@ -70,7 +74,7 @@ process BIOC_GAGA_CLASS_PREDICTION {
     }
     
     # -------------------------------------------------------------------------
-    # 2. Define Expression Patterns
+    # --- Define Expression Patterns ---
     # -------------------------------------------------------------------------
     unique_groups <- unique(groups)
     if (length(unique_groups) != 2) {
@@ -82,7 +86,7 @@ process BIOC_GAGA_CLASS_PREDICTION {
     colnames(patterns) <- unique_groups
     
     # -------------------------------------------------------------------------
-    # 3. Fit the GaGa Model (fitGG and parest)
+    # --- Fit the GaGa Model (fitGG and parest) ---
     # -------------------------------------------------------------------------
     message("Fitting GaGa model via Gibbs sampling...")
     gg1 <- fitGG(training_expr, groups, patterns=patterns, nclust=1, method='Gibbs', B=1000, trace=FALSE)
@@ -91,7 +95,7 @@ process BIOC_GAGA_CLASS_PREDICTION {
     gg1 <- parest(gg1, x=training_expr, groups, burnin=100, alpha=.05)
     
     # -------------------------------------------------------------------------
-    # 4. Predict Class of New Samples (classpred)
+    # --- Predict Class of New Samples (classpred) ---
     # -------------------------------------------------------------------------
     message("Predicting class for the new samples...")
     # Dynamically set ngene to be at most the number of available genes
@@ -109,7 +113,7 @@ process BIOC_GAGA_CLASS_PREDICTION {
     }
     
     # -------------------------------------------------------------------------
-    # 5. Save Outputs and Generate Diagnostic Plots
+    # --- Save Outputs and Generate Diagnostic Plots ---
     # -------------------------------------------------------------------------
     # Save the fitted model object
     saveRDS(gg1, "fitted_gaga_model.rds")

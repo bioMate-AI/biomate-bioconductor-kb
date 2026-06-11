@@ -48,7 +48,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     library(Pviz)
     
     # ==========================================
-    # STAGE 1: Read and Validate Input Data
+    # --- Read and Validate Input Data ---
     # ==========================================
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
@@ -77,7 +77,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     }
     
     # ==========================================
-    # STAGE 2: Reconstruct Reference Sequence & Align
+    # --- Reconstruct Reference Sequence & Align ---
     # ==========================================
     # Create a synthetic reference protein sequence by concatenating unique peptides
     unique_peps <- unique(peptides)
@@ -93,7 +93,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     })
     
     # ==========================================
-    # STAGE 3: Aggregate Intensities by Condition
+    # --- Aggregate Intensities by Condition ---
     # ==========================================
     conds <- unique(coldata_df\$condition)
     if (length(conds) < 1) {
@@ -124,7 +124,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     }
     
     # ==========================================
-    # STAGE 4: Construct Clade and Aggregate Tables
+    # --- Construct Clade and Aggregate Tables ---
     # ==========================================
     # Simulate/assign clades "A" and "B" to demonstrate comparative clade tracks
     restab_A <- data.frame(
@@ -157,7 +157,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     write.csv(restab_aggregate, "restab_aggregate.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Build Pviz Tracks
+    # --- Build Pviz Tracks ---
     # ==========================================
     # 1. Protein Axis Track
     pat <- ProteinAxisTrack(addNC = TRUE, littleTicks = TRUE)
@@ -193,7 +193,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     ctB <- CladeTrack(restab, clade = "B", type = "l", legend = TRUE)
     
     # ==========================================
-    # STAGE 6: Generate and Save Visualizations
+    # --- Generate and Save Visualizations ---
     # ==========================================
     # Define plotting range (focus on a region with high peptide density)
     plot_from <- 1

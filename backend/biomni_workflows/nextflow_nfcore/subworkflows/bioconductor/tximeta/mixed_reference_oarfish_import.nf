@@ -60,7 +60,7 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
     })
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Locate and read coldata (sample metadata table)
@@ -134,7 +134,7 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
     }
     
     # ==========================================
-    # 2. Run tximeta Pipeline
+    # --- Run tximeta Pipeline ---
     # ==========================================
     
     # Import un-ranged data using importData with type="oarfish"
@@ -151,7 +151,7 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
     se_with_ranges <- updateMetadata(se, txpData=novel_gr, ranges=TRUE)
     
     # ==========================================
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save digest inspection tables

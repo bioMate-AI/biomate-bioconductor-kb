@@ -56,10 +56,10 @@ process BIOC_BSGENOME_CONSTANT_WIDTH_DICTIONARY_SEARCH {
     library(BSgenome)
     library(BSgenome.Celegans.UCSC.ce2)
     
-    # 1. Read the input query patterns from the working directory
+    # --- Read the input query patterns from the working directory ---
     ce2dict0 <- readDNAStringSet("ce2dict0.fa", "fasta")
     
-    # 2. Define the writeHits function exactly as documented
+    # --- Define the writeHits function exactly as documented ---
     writeHits <- function(seqname, matches, strand, file="", append=FALSE)
     {
         if (file.exists(file) && !append)
@@ -76,7 +76,7 @@ process BIOC_BSGENOME_CONSTANT_WIDTH_DICTIONARY_SEARCH {
                     row.names=FALSE, col.names=!append)
     }
     
-    # 3. Define the runOneStrandAnalysis function exactly as documented
+    # --- Define the runOneStrandAnalysis function exactly as ---
     runOneStrandAnalysis <- function(dict0, bsgenome, seqnames, strand,
                                      outfile="", append=FALSE)
     {
@@ -96,7 +96,7 @@ process BIOC_BSGENOME_CONSTANT_WIDTH_DICTIONARY_SEARCH {
         }
     }
     
-    # 4. Define the runAnalysis2 function exactly as documented
+    # --- Define the runAnalysis2 function exactly as documented ---
     runAnalysis2 <- function(dict0, outfile="")
     {
         library(BSgenome.Celegans.UCSC.ce2)
@@ -106,13 +106,13 @@ process BIOC_BSGENOME_CONSTANT_WIDTH_DICTIONARY_SEARCH {
         runOneStrandAnalysis(dict0, genome, seqnames, "-", outfile=outfile, append=TRUE)
     }
     
-    # 5. Truncate the patterns to a constant width of 15
+    # --- Truncate the patterns to a constant width of 15 ---
     ce2dict0cw15 <- DNAStringSet(ce2dict0, end=15)
     
-    # 6. Run the analysis
+    # --- Run the analysis ---
     runAnalysis2(ce2dict0cw15, outfile="ce2dict0cw15_ana2.txt")
     
-    # 7. Export additional meaningful outputs
+    # --- Export additional meaningful outputs ---
     if (file.exists("ce2dict0cw15_ana2.txt")) {
         hits <- read.table("ce2dict0cw15_ana2.txt", header=TRUE, sep="\t")
         write.csv(hits, "ce2dict0cw15_ana2_summary.csv", row.names=FALSE)

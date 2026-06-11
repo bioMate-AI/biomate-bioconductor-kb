@@ -54,7 +54,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     
     input_file <- "input.csv"
@@ -87,7 +87,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     ids <- ids[ids != ""]
     
     # ==========================================
-    # STAGE 2: Initialize Organism.dplyr Source
+    # --- Initialize Organism.dplyr Source ---
     # ==========================================
     
     # Create a temporary SQLite database combining TxDb and OrgDb
@@ -97,7 +97,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
                         orgdb = org.Hs.eg.db)
     
     # ==========================================
-    # STAGE 3: Query and Annotate Features
+    # --- Query and Annotate Features ---
     # ==========================================
     
     # Extract tables from the organism source
@@ -157,7 +157,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     write.csv(annotated_df, "annotated_features.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Functional Annotation (GO Terms)
+    # --- Functional Annotation (GO Terms) ---
     # ==========================================
     
     if ("go" %in% src_tbls(src)) {
@@ -173,7 +173,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     # Plot top 30 genes by transcript count

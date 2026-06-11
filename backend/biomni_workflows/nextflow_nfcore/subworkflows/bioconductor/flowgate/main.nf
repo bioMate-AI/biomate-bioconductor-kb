@@ -63,13 +63,13 @@ process BIOC_FLOWGATE_INTERACTIVE_MANUAL_GATING {
     path_to_fcs <- "path_to_fcs"
     path_to_comp <- "compmatrix"
     
-    # 1. Read FCS files into a flowSet
+    # --- Read FCS files into a flowSet ---
     fs <- read.flowSet(path = path_to_fcs, pattern = ".FCS\$", full.names = TRUE)
     
-    # 2. Convert the flowSet to a GatingSet
+    # --- Convert the flowSet to a GatingSet ---
     gs <- GatingSet(fs)
     
-    # 3. Read and apply compensation
+    # --- Read and apply compensation ---
     comp_matrix <- read.table(path_to_comp, header = TRUE, skip = 2, check.names = FALSE)
     comp <- compensation(comp_matrix)
     gs <- compensate(gs, comp)
@@ -78,7 +78,7 @@ process BIOC_FLOWGATE_INTERACTIVE_MANUAL_GATING {
     print(colnames(gs))
     print(markernames(gs))
     
-    # 4. Interactively draw gates
+    # --- Interactively draw gates ---
     # Gate 1: Leukocytes (Polygon gate on FSC-H vs SSC-H)
     gs_gate_interactive(gs, filterId = "Leukocytes", dims = list("FSC-H", "SSC-H"))
     
@@ -122,11 +122,11 @@ process BIOC_FLOWGATE_INTERACTIVE_MANUAL_GATING {
     print(p_quad)
     dev.off()
     
-    # 5. Save and reload the GatingSet
+    # --- Save and reload the GatingSet ---
     save_gs(gs, "GvHD GatingSet.gs")
     gs <- load_gs(file.path("GvHD GatingSet.gs"))
     
-    # 6. Retrieve and export population statistics
+    # --- Retrieve and export population statistics ---
     # Population counts
     counts <- gs_pop_get_count_fast(gs)
     write.csv(counts, "population_counts.csv", row.names = FALSE)

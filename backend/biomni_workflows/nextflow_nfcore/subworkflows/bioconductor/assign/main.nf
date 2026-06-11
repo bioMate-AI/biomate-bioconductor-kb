@@ -54,7 +54,7 @@ process BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING {
     }
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (probe/gene-by-sample)
@@ -82,7 +82,7 @@ process BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING {
     }
     
     # ==========================================
-    # Stage 2: Construct Pathway Signatures
+    # --- Construct Pathway Signatures ---
     # ==========================================
     
     # Identify highly variable genes to construct mock pathway signatures
@@ -105,7 +105,7 @@ process BIOC_ASSIGN_ASSIGN_PATHWAY_PROFILING {
     testLabel <- coldata\$condition
     
     # ==========================================
-    # Stage 3: Run ASSIGN Step-by-Step Pipeline
+    # --- Run ASSIGN Step-by-Step Pipeline ---
     # ==========================================
     
     message("Step 1: Preprocessing data...")

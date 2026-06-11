@@ -49,7 +49,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     library(ncdf4)
     
     # ==========================================
-    # STAGE 1: Read Inputs & Generate Raw GC-MS NetCDF Files
+    # --- Read Inputs & Generate Raw GC-MS NetCDF Files ---
     # ==========================================
     message("Stage 1: Reading inputs and generating dummy NetCDF files...")
     
@@ -140,7 +140,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     }
     
     # ==========================================
-    # STAGE 2: Create TargetSearch Metadata Files
+    # --- Create TargetSearch Metadata Files ---
     # ==========================================
     message("Stage 2: Creating TargetSearch metadata files...")
     
@@ -175,7 +175,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     writeLines(lib_lines, "library.txt")
     
     # ==========================================
-    # STAGE 3: TargetSearch Preprocessing & RI Correction
+    # --- TargetSearch Preprocessing & RI Correction ---
     # ==========================================
     message("Stage 3: Running TargetSearch RI correction...")
     
@@ -193,7 +193,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     outliers <- FAMEoutliers(samples, RImatrix, threshold = 3)
     
     # ==========================================
-    # STAGE 4: Library Search & Metabolite Profiling
+    # --- Library Search & Metabolite Profiling ---
     # ==========================================
     message("Stage 4: Performing library search and profiling...")
     
@@ -216,7 +216,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     finalProfile <- ProfileCleanUp(MetabProfile, timeSplit = 500, r_thres = 0.90)
     
     # ==========================================
-    # STAGE 5: Export Results & Generate Diagnostic Plots
+    # --- Export Results & Generate Diagnostic Plots ---
     # ==========================================
     message("Stage 5: Exporting results and generating plots...")
     

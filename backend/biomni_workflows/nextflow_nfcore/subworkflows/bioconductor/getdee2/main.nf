@@ -47,7 +47,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
     library(getDEE2)
     library(S4Vectors)
     
-    # 1. Read local input files
+    # --- Read local input files ---
     message("Reading local input files...")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     local_counts <- read.csv("counts.csv", check.names = FALSE)
@@ -76,7 +76,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
       q(save = "no", status = 0)
     }
     
-    # 2. Auto-detect species from DEE2 metadata
+    # --- Auto-detect species from DEE2 metadata ---
     message("Detecting species for the provided SRA accessions...")
     species_list <- c("celegans", "hsapiens", "mmusculus", "dmelanogaster", "athaliana", "drerio", "rnorvegicus")
     detected_species <- NULL
@@ -107,7 +107,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
       })
     }
     
-    # 3. Fetch standardized data from DEE2
+    # --- Fetch standardized data from DEE2 ---
     se_dee2 <- NULL
     legacy_dee2 <- NULL
     
@@ -129,7 +129,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
       })
     }
     
-    # 4. Process and write outputs
+    # --- Process and write outputs ---
     # Output 1: Standardized Gene Counts
     if (!is.null(se_dee2)) {
       dee2_counts <- assays(se_dee2)\$counts

@@ -49,7 +49,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Input Processing & Parameter Estimation
+    # --- Input Processing & Parameter Estimation ---
     # ==========================================
     
     # Read user-provided input files
@@ -103,7 +103,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     diff_abun_features <- max(1, round(features * 0.2)) # 20% of features are DA
     
     # ==========================================
-    # STAGE 2: Single-Feature Longitudinal Simulation
+    # --- Single-Feature Longitudinal Simulation ---
     # ==========================================
     
     message("Simulating single-feature longitudinal trends...")
@@ -144,7 +144,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     )
     
     # ==========================================
-    # STAGE 3: Multi-Feature Community Simulation
+    # --- Multi-Feature Community Simulation ---
     # ==========================================
     
     message("Simulating multi-feature community data...")
@@ -170,7 +170,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     )
     
     # ==========================================
-    # STAGE 4: Downstream Integration & Object Conversion
+    # --- Downstream Integration & Object Conversion ---
     # ==========================================
     
     message("Converting simulated datasets to Bioconductor objects...")
@@ -192,7 +192,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     })
     
     # ==========================================
-    # STAGE 5: Exporting Results & Visualizations
+    # --- Exporting Results & Visualizations ---
     # ==========================================
     
     message("Writing outputs to disk...")

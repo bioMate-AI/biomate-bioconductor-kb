@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Center the gene expression matrix and identify negative control genes. 2. Define the sparse dictionary learning parameters in `par
+//  * 1. [Input & Preparation] Read user input files
+//  * 2. [Input & Preparation] Define the sparse dictionary learning parameters and run
+//  * 3. [Input & Preparation] Define parameters and run iterative RUV (SVD-based)
+//  * 4. [Input & Preparation] Generate diagnostic PCA plots
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +54,7 @@ process BIOC_RUVNORMALIZE_ITERATIVE_RUV {
         library(RUVnormalize)
         library(spams)
         
-        # 1. Read user input files
+        # --- Read user input files ---
         # Read expression matrix (samples as rows, genes as columns)
         Y <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
         
@@ -71,7 +74,7 @@ process BIOC_RUVNORMALIZE_ITERATIVE_RUV {
         scIdx <- as.matrix(read.csv("replicates_mapping.csv", header = FALSE))
         storage.mode(scIdx) <- "integer"
         
-        # 2. Define the sparse dictionary learning parameters and run iterative RUV (Replicate-based)
+        # --- Define the sparse dictionary learning parameters and run ---
         cEps <- 1e-6
         maxIter <- 30
         p <- 20
@@ -93,7 +96,7 @@ process BIOC_RUVNORMALIZE_ITERATIVE_RUV {
         saveRDS(iRes_rep, "iterative_ruv_rep_results.rds")
         write.csv(iRes_rep\$cY, "corrected_expression_rep.csv", row.names = TRUE)
         
-        # 3. Define parameters and run iterative RUV (SVD-based)
+        # --- Define parameters and run iterative RUV (SVD-based) ---
         paramXb <- list()
         paramXb\$K <- p
         paramXb\$D <- matrix(c(0.),nrow = 0,ncol=0)
@@ -111,7 +114,7 @@ process BIOC_RUVNORMALIZE_ITERATIVE_RUV {
         saveRDS(iRes_svd, "iterative_ruv_svd_results.rds")
         write.csv(iRes_svd\$cY, "corrected_expression_svd.csv", row.names = TRUE)
         
-        # 4. Generate diagnostic PCA plots
+        # --- Generate diagnostic PCA plots ---
         pdf("pca_comparison.pdf", width = 12, height = 4)
         par(mfrow = c(1, 3))
         

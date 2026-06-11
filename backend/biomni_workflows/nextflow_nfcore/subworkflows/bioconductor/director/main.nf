@@ -43,11 +43,11 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(Director)
     library(htmltools)
     
-    # Stage 2: Read and parse the input file defensively
+    # --- Read and parse the input file defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -99,7 +99,7 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
       values <- values[top_idx]
     }
     
-    # Stage 3: Construct the regulatory cascade data frame
+    # --- Construct the regulatory cascade data frame ---
     # We map the input genes to upstream regulators (miRNAs) and downstream pathways
     set.seed(42)
     mirnas <- c("miR-21-5p", "miR-145-5p", "miR-29b-3p", "miR-9-5p", "miR-155-5p")
@@ -127,7 +127,7 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
     # Save the processed cascade data
     write.csv(cascade_df, "cascade_data.csv", row.names = FALSE)
     
-    # Stage 4: Generate the interactive Sankey diagram using Director
+    # --- Generate the interactive Sankey diagram using Director ---
     # We use tryCatch to handle potential variations in the Director API
     html_widget <- tryCatch({
       Director::director(
@@ -151,7 +151,7 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
       })
     })
     
-    # Stage 5: Save the interactive visualization
+    # --- Save the interactive visualization ---
     # Since Director utilizes htmltools, we save the widget/HTML output
     tryCatch({
       htmltools::save_html(html_widget, file = "regulatory_cascade.html")

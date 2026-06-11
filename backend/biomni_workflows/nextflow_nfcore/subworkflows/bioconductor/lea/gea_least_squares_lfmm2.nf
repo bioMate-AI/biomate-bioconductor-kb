@@ -56,7 +56,7 @@ process BIOC_LEA_GEA_LEAST_SQUARES_LFMM2 {
     library(LEA)
     
     # -----------------------------------------------------------------------------
-    # 1. Load User Inputs
+    # --- Load User Inputs ---
     # -----------------------------------------------------------------------------
     # The pipeline expects 'Y' (genotype matrix) and 'X' (environmental variables)
     # to be present in the working directory as RDS or CSV files.
@@ -78,7 +78,7 @@ process BIOC_LEA_GEA_LEAST_SQUARES_LFMM2 {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Execution of the LFMM2 Workflow
+    # --- Execution of the LFMM2 Workflow ---
     # -----------------------------------------------------------------------------
     # Open PDF device to save all visualization plots
     pdf("lfmm2_analysis_plots.pdf", width = 8, height = 6)
@@ -127,7 +127,7 @@ process BIOC_LEA_GEA_LEAST_SQUARES_LFMM2 {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # 3. Save Meaningful Results
+    # --- Save Meaningful Results ---
     # -----------------------------------------------------------------------------
     saveRDS(mod.lfmm2, "mod_lfmm2_K2.rds")
     saveRDS(mod, "mod_lfmm2_K3.rds")

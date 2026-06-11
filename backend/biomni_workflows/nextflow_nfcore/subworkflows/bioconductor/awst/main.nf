@@ -50,7 +50,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input datasets...")
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -73,7 +73,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message(sprintf("Initial dataset dimensions: %d genes, %d samples", nrow(se), ncol(se)))
     
     # ==========================================
-    # Stage 2: Pre-filtering Lowly Expressed Genes
+    # --- Pre-filtering Lowly Expressed Genes ---
     # ==========================================
     message("Pre-filtering lowly expressed genes...")
     # Filter out genes with low average counts across all samples (default threshold: 10)
@@ -89,7 +89,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message(sprintf("Genes remaining after pre-filtering: %d", nrow(se)))
     
     # ==========================================
-    # Stage 3: Normalization & AWST Transformation
+    # --- Normalization & AWST Transformation ---
     # ==========================================
     message("Performing full-quantile normalization...")
     # Full-quantile normalization is recommended prior to AWST to stabilize parameters
@@ -106,7 +106,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message("Saved AWST-transformed counts to 'awst_transformed_counts.csv'")
     
     # ==========================================
-    # Stage 4: Entropy-based Gene Filtering
+    # --- Entropy-based Gene Filtering ---
     # ==========================================
     message("Filtering uninformative genes using entropy...")
     # Remove genes that contribute little to sample distances
@@ -123,7 +123,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message(sprintf("Saved filtered AWST counts (%d genes) to 'filtered_awst_counts.csv'", nrow(filtered_se)))
     
     # ==========================================
-    # Stage 5: Diagnostics and Visualization
+    # --- Diagnostics and Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     

@@ -52,7 +52,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     library(htmlwidgets)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read counts and coldata
@@ -96,7 +96,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     dge <- calcNormFactors(dge)
     
     # ==========================================
-    # Stage 2: Interactive MDS Plotting
+    # --- Interactive MDS Plotting ---
     # ==========================================
     
     # Generate and save interactive MDS plot
@@ -104,7 +104,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     htmlwidgets::saveWidget(mds_plot, "glimma_mds_limma.html", selfcontained = TRUE)
     
     # ==========================================
-    # Stage 3: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     
     # Create design matrix
@@ -119,7 +119,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     coef_idx <- ncol(design)
     
     # ==========================================
-    # Stage 4: Interactive MA and Volcano Plots
+    # --- Interactive MA and Volcano Plots ---
     # ==========================================
     
     # Generate and save interactive MA plot

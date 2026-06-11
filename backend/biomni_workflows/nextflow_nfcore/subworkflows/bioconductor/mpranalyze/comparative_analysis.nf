@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] (Optional) Create interaction factors for barcode and condition if performing allelic/mutagenesis comparisons where barcodes are n
+//  * 1. [Input & Preparation] Read User Inputs
+//  * 2. [Input & Preparation] Execute Documented Workflow
+//  * 3. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +52,7 @@ process BIOC_MPRANALYZE_COMPARATIVE_ANALYSIS {
             # Load required library
             library(MPRAnalyze)
             
-            # 1. Read User Inputs
+            # --- Read User Inputs ---
             ce.dnaCounts <- as.matrix(read.delim("dna_counts.tsv", header = TRUE, row.names = 1, check.names = FALSE))
             ce.rnaCounts <- as.matrix(read.delim("rna_counts.tsv", header = TRUE, row.names = 1, check.names = FALSE))
             ce.colAnnot <- read.delim("col_annotations.tsv", header = TRUE, row.names = 1, stringsAsFactors = FALSE)
@@ -63,7 +65,7 @@ process BIOC_MPRANALYZE_COMPARATIVE_ANALYSIS {
             }
             ce.control <- as.logical(raw_vals)
             
-            # 2. Execute Documented Workflow
+            # --- Execute Documented Workflow ---
             obj <- MpraObject(dnaCounts = ce.dnaCounts, rnaCounts = ce.rnaCounts, 
                               dnaAnnot = ce.colAnnot, rnaAnnot = ce.colAnnot, 
                               controls = ce.control)
@@ -83,7 +85,7 @@ process BIOC_MPRANALYZE_COMPARATIVE_ANALYSIS {
             
             res <- testLrt(obj)
             
-            # 3. Save Outputs
+            # --- Save Outputs ---
             write.csv(res, "comparative_analysis_results.csv", row.names = TRUE)
             saveRDS(obj, "mpra_object.rds")
             

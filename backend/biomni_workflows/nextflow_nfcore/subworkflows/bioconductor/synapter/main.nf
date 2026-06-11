@@ -48,7 +48,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
     library(synapter)
     library(MSnbase)
     
-    # Stage 1: Read input files
+    # --- Read input files ---
     message("Stage 1: Reading input files...")
     intensity_df <- read.csv("intensity.csv", stringsAsFactors = FALSE)
     coldata_df <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -58,7 +58,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
       stop("Input intensity.csv must contain a 'feature_id' column.")
     }
     
-    # Stage 2: Generate mock PLGS-compatible files from input data
+    # --- Generate mock PLGS-compatible files from input data ---
     # synapter requires PLGS peptide files and a FASTA database to perform matching.
     message("Stage 2: Generating PLGS-compatible inputs for synapter...")
     
@@ -143,7 +143,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
     )
     write.csv(quant3d_df, "quant3d.csv", row.names = FALSE)
     
-    # Stage 3: Run synapter matching pipeline
+    # --- Run synapter matching pipeline ---
     message("Stage 3: Running synapter matching pipeline...")
     
     # Initialize output files to guarantee existence
@@ -173,7 +173,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
       findEMRTs(obj)
       rescueEMRTs(obj)
       
-      # Stage 4: Export matched results and generate diagnostic plots
+      # --- Export matched results and generate diagnostic plots ---
       message("Stage 4: Exporting results and generating diagnostic plots...")
       
       # Export matched peptides

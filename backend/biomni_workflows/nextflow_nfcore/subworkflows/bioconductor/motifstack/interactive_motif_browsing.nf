@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Call browseMotifs with specified layout and dimensions
+//  * 1. [Core Analysis] Tree layout
+//  * 2. [Core Analysis] Radial Phylogeny layout
 
 nextflow.enable.dsl = 2
 
@@ -70,7 +71,7 @@ process BIOC_MOTIFSTACK_INTERACTIVE_MOTIF_BROWSING {
     phylog <- readRDS("phylog.rds")
     
     # Execute the interactive motif browsing workflow as documented
-    # 1. Tree layout
+    # --- Tree layout ---
     widget_tree <- browseMotifs(
       pfms = pfms, 
       phylog = phylog, 
@@ -80,7 +81,7 @@ process BIOC_MOTIFSTACK_INTERACTIVE_MOTIF_BROWSING {
       baseHeight = 15
     )
     
-    # 2. Radial Phylogeny layout
+    # --- Radial Phylogeny layout ---
     widget_radial <- browseMotifs(
       pfms = pfms, 
       phylog = phylog, 

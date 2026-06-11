@@ -47,7 +47,7 @@ process BIOC_RUVCORR_RUVCORR_COEXPRESSION_CLEANING {
     # Load required libraries
     library(RUVcorr)
     
-    # Stage 1: Load and align data
+    # --- Load and align data ---
     counts_df <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts_df)) {
       rownames(counts_df) <- counts_df\$gene_id
@@ -71,7 +71,7 @@ process BIOC_RUVCORR_RUVCORR_COEXPRESSION_CLEANING {
     # Transpose expression matrix: RUVcorr expects samples as rows, genes as columns
     expr <- t(counts)
     
-    # Stage 2: Visualize experimental design
+    # --- Visualize experimental design ---
     pdf("design_plot.pdf")
     tryCatch({
       plotDesign(coldata, c("condition"), c("Condition"), orderby="condition")
@@ -81,7 +81,7 @@ process BIOC_RUVCORR_RUVCORR_COEXPRESSION_CLEANING {
     })
     dev.off()
     
-    # Stage 3: Select empirical negative control genes
+    # --- Select empirical negative control genes ---
     # We define a small set of "genes of interest" (reference genes) to exclude from negative controls
     all_genes <- colnames(expr)
     n_genes <- length(all_genes)
@@ -103,7 +103,7 @@ process BIOC_RUVCORR_RUVCORR_COEXPRESSION_CLEANING {
     })
     dev.off()
     
-    # Stage 4: Apply RUVNaiveRidge
+    # --- Apply RUVNaiveRidge ---
     # Run a small grid of parameters (k=1,2 and nu=0,500) to find the best cleaning
     k_vals <- c(1, 2)
     nu_vals <- c(0, 500)
@@ -120,7 +120,7 @@ process BIOC_RUVCORR_RUVCORR_COEXPRESSION_CLEANING {
     # Save cleaned expression matrix (transposed back to gene-by-sample)
     write.csv(t(CleanData), "cleaned_expression.csv")
     
-    # Stage 5: Diagnostic Plots
+    # --- Diagnostic Plots ---
     pdf("rle_plots.pdf")
     tryCatch({
       RLEPlot(expr, CleanData, name = c("Raw", "RUV"), title = "RLE Plot (Boxplots)", method = "IQR.boxplots")
@@ -151,7 +151,7 @@ process BIOC_RUVCORR_RUVCORR_COEXPRESSION_CLEANING {
     })
     dev.off()
     
-    # Stage 6: Gene Prioritisation
+    # --- Gene Prioritisation ---
     # Define candidate genes (e.g., next few genes after reference genes)
     cand_start <- length(na_index) + 1
     cand_end <- min(cand_start + 4, n_genes)

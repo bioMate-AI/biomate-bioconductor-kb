@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the plot with make_escheR(), optionally specifying dimred. 2. Add a binned ground layer using add_ground_bin(). 3. Add 
+//  * 1. [Visualization & Output] Read the user input file
+//  * 2. [Visualization & Output] Ensure the SpatialExperiment object has the required
+//  * 3. [Visualization & Output] Execute the documented escheR point binning workflow
+//  * 4. [Visualization & Output] Save the resulting plot to a PDF file
 
 nextflow.enable.dsl = 2
 
@@ -55,14 +58,14 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
     library(scater)
     library(scuttle)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     if (!file.exists("spe.rds")) {
       stop("Error: 'spe.rds' file not found in the working directory.")
     }
     
     spe <- readRDS("spe.rds")
     
-    # 2. Ensure the SpatialExperiment object has the required components for the workflow
+    # --- Ensure the SpatialExperiment object has the required ---
     # Ensure PCA dimensionality reduction exists
     if (!"PCA" %in% reducedDimNames(spe)) {
       message("PCA not found in reducedDimNames. Computing PCA...")
@@ -106,7 +109,7 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
       }
     }
     
-    # 3. Execute the documented escheR point binning workflow
+    # --- Execute the documented escheR point binning workflow ---
     p <- make_escheR(
       spe,
       dimred = "PCA"
@@ -122,7 +125,7 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
       scale_color_discrete(name = "Spatial Domains") +
       theme_minimal()
     
-    # 4. Save the resulting plot to a PDF file
+    # --- Save the resulting plot to a PDF file ---
     output_pdf <- "escheR_binned_spatial_plot.pdf"
     ggsave(filename = output_pdf, plot = p, width = 8, height = 7)
     message(paste("Successfully saved binned spatial visualization to", output_pdf))

@@ -47,7 +47,7 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
     # Load required libraries
     library(DrugVsDisease)
     
-    # Stage 1: Load and preprocess user input data
+    # --- Load and preprocess user input data ---
     message("Stage 1: Loading input files...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv")
@@ -64,7 +64,7 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
     row_vars <- apply(counts, 1, var)
     counts <- counts[row_vars > 1e-5, , drop = FALSE]
     
-    # Stage 2: Calculate Differential Expression and Ranks using Base R
+    # --- Calculate Differential Expression and Ranks using Base R ---
     message("Stage 2: Calculating differential expression and ranking genes...")
     conditions <- unique(coldata\$condition)
     if (length(conditions) < 2) {
@@ -100,11 +100,11 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
       pvalues = matrix(pvals, ncol = 1, dimnames = list(rownames(counts), contrast_name))
     )
     
-    # Stage 3: Select Ranked Lists
+    # --- Select Ranked Lists ---
     message("Stage 3: Selecting ranked lists for classification...")
     selprofiles <- selectrankedlists(profile, 1)
     
-    # Stage 4: Classify Profile against Reference Database
+    # --- Classify Profile against Reference Database ---
     message("Stage 4: Running profile classification...")
     # We use a high signif.fdr (1.1) to guarantee output generation even with small custom datasets
     results <- tryCatch({
@@ -122,7 +122,7 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
       NULL
     })
     
-    # Stage 5: Save Outputs and Generate Visualizations
+    # --- Save Outputs and Generate Visualizations ---
     message("Stage 5: Saving results and generating plots...")
     if (!is.null(results) && length(results) > 0) {
       df_results <- as.data.frame(results[[1]])

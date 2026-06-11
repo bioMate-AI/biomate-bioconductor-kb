@@ -71,30 +71,30 @@ process BIOC_SPIKY_CFMEDIP_QUANT_BEDPE {
     # Load the reference spike-in database from the package namespace
     spike <- spiky::spike
     
-    # 1. Scan genomic BEDPE to get genomic coverage
+    # --- Scan genomic BEDPE to get genomic coverage ---
     message("Scanning genomic BEDPE...")
     genomic_coverage <- scan_genomic_bedpe(genomic_bedpe_path, genome="hg38")
     
-    # 2. Scan spike-in BEDPE to get spike coverage
+    # --- Scan spike-in BEDPE to get spike coverage ---
     message("Scanning spike BEDPE...")
     spikes_coverage <- scan_spike_bedpe(spike_bedpe_path, spike=spike)
     
-    # 3. Calculate methylation specificity
+    # --- Calculate methylation specificity ---
     message("Calculating methylation specificity...")
     methyl_spec <- methylation_specificity(spikes_coverage, spike=spike)
     print(methyl_spec)
     
-    # 4. Fit Gaussian GLM on spike-in data
+    # --- Fit Gaussian GLM on spike-in data ---
     message("Fitting Gaussian GLM...")
     gaussian_glm <- model_glm_pmol(spikes_coverage, spike=spike)
     print(summary(gaussian_glm))
     
-    # 5. Predict molar concentration (pmol) for genomic regions
+    # --- Predict molar concentration (pmol) for genomic regions ---
     message("Predicting pmol concentration...")
     sample_data_pmol <- predict_pmol(gaussian_glm, genomic_coverage, bsgenome="BSgenome.Hsapiens.UCSC.hg38", ret="df")
     print(head(sample_data_pmol, n=1))
     
-    # 6. Bin and adjust molar concentration into genomic windows
+    # --- Bin and adjust molar concentration into genomic windows ---
     message("Binning pmol concentration...")
     sample_binned_data <- bin_pmol(sample_data_pmol)
     print(head(sample_binned_data, n=1))

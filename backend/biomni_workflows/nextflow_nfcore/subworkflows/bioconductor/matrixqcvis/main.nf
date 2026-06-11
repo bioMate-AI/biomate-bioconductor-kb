@@ -51,7 +51,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Load Data and Construct SummarizedExperiment
+    # --- Load Data and Construct SummarizedExperiment ---
     # ==========================================
     
     # Read input files
@@ -89,7 +89,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     se <- se[!is.na(se_sds) & se_sds > 0, ]
     
     # ==========================================
-    # STAGE 2: Missing Value Diagnostics
+    # --- Missing Value Diagnostics ---
     # ==========================================
     
     # 1. Samples measured/missing barplot
@@ -116,7 +116,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Normalization, Transformation, and Imputation
+    # --- Normalization, Transformation, and Imputation ---
     # ==========================================
     
     a_raw <- assay(se)
@@ -154,7 +154,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     assay(se_processed) <- a_imputed
     
     # ==========================================
-    # STAGE 4: Post-Processing Quality Control
+    # --- Post-Processing Quality Control ---
     # ==========================================
     
     # 1. CV comparison across processing stages
@@ -198,7 +198,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     ggsave("qc_sum_distances.pdf", plot = p_sum_dist, width = 8, height = 6)
     
     # ==========================================
-    # STAGE 5: Dimension Reduction
+    # --- Dimension Reduction ---
     # ==========================================
     
     pca_res <- tryCatch({
@@ -230,7 +230,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     
     conds <- factor(colData(se_processed)\$condition)

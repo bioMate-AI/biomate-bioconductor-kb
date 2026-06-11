@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Plot the posterior probabilities of ranked genes to visualize the significance threshold. 2. Plot gene expression profiles across 
+//  * 1. [Visualization & Output] Plot Ranked Significant Genes
+//  * 2. [Visualization & Output] Plot Gene Expression Profiles
+//  * 3. [Visualization & Output] Plot Genes Discriminant Power
+//  * 4. [Visualization & Output] Plot Gene Networks
 
 nextflow.enable.dsl = 2
 
@@ -123,13 +126,13 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     pdf("geNetClassifier_diagnostic_plots.pdf", width = 10, height = 8)
     
     # ==========================================
-    # STAGE 1: Plot Ranked Significant Genes
+    # --- Plot Ranked Significant Genes ---
     # ==========================================
     plot(leukemiasClassifier@genesRanking)
     plot(leukemiasClassifier@genesRanking, numGenesPlot=3000, lpThreshold=0.80)
     
     # ==========================================
-    # STAGE 2: Plot Gene Expression Profiles
+    # --- Plot Gene Expression Profiles ---
     # ==========================================
     topGenes <- getRanking(getTopRanking(leukemiasClassifier@classificationGenes,numGenesClass=1), showGeneID=TRUE)\$geneID
     
@@ -142,7 +145,7 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     plotExpressionProfiles(leukemiasEset[,trainSamples], leukemiasClassifier, sampleLabels=sample_labels_col, fileName="leukExprs_trainSamples.pdf")
     
     # ==========================================
-    # STAGE 3: Plot Genes Discriminant Power
+    # --- Plot Genes Discriminant Power ---
     # ==========================================
     # Dynamically select the first classification gene
     all_class_genes <- getRanking(leukemiasClassifier@classificationGenes, showGeneID=TRUE)\$geneID
@@ -161,7 +164,7 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     write.csv(discPowerTable, "discriminant_power_table.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Plot Gene Networks
+    # --- Plot Gene Networks ---
     # ==========================================
     clGenesSubNet <- getSubNetwork(leukemiasClassifier@genesNetwork, leukemiasClassifier@classificationGenes)
     clGenesInfo <- genesDetails(leukemiasClassifier@classificationGenes)

@@ -57,7 +57,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -85,7 +85,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     storage.mode(mat) <- "numeric"
     
     # ==========================================
-    # STAGE 2: Initialize SCArraySat Object
+    # --- Initialize SCArraySat Object ---
     # ==========================================
     message("Initializing SCArraySat object...")
     # Attempt to instantiate using standard constructors
@@ -101,7 +101,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Normalization
+    # --- Normalization ---
     # ==========================================
     message("Normalizing data...")
     sat_obj <- tryCatch({
@@ -121,7 +121,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Dimensionality Reduction
+    # --- Dimensionality Reduction ---
     # ==========================================
     message("Performing dimensionality reduction...")
     pcs <- as.numeric(Sys.getenv("pc_components", unset = "5"))
@@ -147,7 +147,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Clustering
+    # --- Clustering ---
     # ==========================================
     message("Clustering cells...")
     res <- as.numeric(Sys.getenv("cluster_resolution", unset = "0.8"))
@@ -172,7 +172,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Extract Results and Export
+    # --- Extract Results and Export ---
     # ==========================================
     message("Extracting results...")
     
@@ -215,7 +215,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     message("Saved cluster assignments to scarray_sat_clusters.csv")
     
     # ==========================================
-    # STAGE 7: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("scarray_sat_dimred.pdf", width = 7, height = 6)

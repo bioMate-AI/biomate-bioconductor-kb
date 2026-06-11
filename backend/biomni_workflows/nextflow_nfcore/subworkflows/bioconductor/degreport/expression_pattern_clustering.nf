@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Prepare transformed expression matrix. 2. Detect expression patterns using degPatterns
+//  * 1. [Input & Preparation] Save the full degPatterns output object
+//  * 2. [Input & Preparation] Save the gene-to-cluster mapping table
+//  * 3. [Input & Preparation] Save the plot
 
 nextflow.enable.dsl = 2
 
@@ -100,15 +102,15 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
     # === END DOCUMENTED CODE ===
     
     # Save meaningful results
-    # 1. Save the full degPatterns output object
+    # --- Save the full degPatterns output object ---
     saveRDS(res, "deg_patterns_results.rds")
     
-    # 2. Save the gene-to-cluster mapping table
+    # --- Save the gene-to-cluster mapping table ---
     if (!is.null(res\$df)) {
       write.csv(res\$df, "expression_patterns_cl_membership.csv", row.names = FALSE)
     }
     
-    # 3. Save the plot
+    # --- Save the plot ---
     if (!is.null(res\$plot)) {
       pdf("expression_patterns_plot.pdf", width = 10, height = 8)
       print(res\$plot)

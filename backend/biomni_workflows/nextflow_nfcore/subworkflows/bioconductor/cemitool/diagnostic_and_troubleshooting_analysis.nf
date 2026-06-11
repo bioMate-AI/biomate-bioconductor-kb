@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data. 2. Run cemitool to create a CEMiTool object. 3. Generate a diagnostic report using diagnostic_report to visu
+//  * 1. [Visualization & Output] Load expression data
+//  * 2. [Visualization & Output] Run cemitool to create a CEMiTool object
+//  * 3. [Visualization & Output] Generate a diagnostic report
 
 nextflow.enable.dsl = 2
 
@@ -49,7 +51,7 @@ process BIOC_CEMITOOL_DIAGNOSTIC_AND_TROUBLESHOOTING_ANALYSIS {
     # Load required library
     library("CEMiTool")
     
-    # 1. Load expression data
+    # --- Load expression data ---
     # The pipeline reads the user-provided 'expression_data.csv' file.
     # This file must contain gene symbols in rows (first column) and samples in columns.
     if (!file.exists("expression_data.csv")) {
@@ -61,10 +63,10 @@ process BIOC_CEMITOOL_DIAGNOSTIC_AND_TROUBLESHOOTING_ANALYSIS {
     # Convert to matrix and then data.frame to ensure proper formatting
     expr0 <- as.data.frame(as.matrix(expr0))
     
-    # 2. Run cemitool to create a CEMiTool object
+    # --- Run cemitool to create a CEMiTool object ---
     cem <- cemitool(expr0)
     
-    # 3. Generate a diagnostic report
+    # --- Generate a diagnostic report ---
     # This generates an HTML report to visualize sample clustering, mean-variance relationship,
     # Q-Q plot, and beta selection.
     diagnostic_report(cem)

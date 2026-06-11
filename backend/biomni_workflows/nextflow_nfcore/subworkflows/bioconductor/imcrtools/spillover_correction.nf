@@ -57,7 +57,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     library(CATALYST)
     library(SingleCellExperiment)
     
-    # 1. Read single-spot data using readSCEfromTXT
+    # --- Read single-spot data using readSCEfromTXT ---
     # Create a temporary directory to hold the single-metal spot TXT file
     txt_dir <- "txt_temp_dir"
     if (!dir.exists(txt_dir)) {
@@ -68,7 +68,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     path <- txt_dir
     sce_txt <- readSCEfromTXT(path)
     
-    # 2. Read single-spot data using readSCEfromTIFF
+    # --- Read single-spot data using readSCEfromTIFF ---
     # Create a temporary directory to hold the single-metal spot TIFF file
     tiff_dir <- "tiff_temp_dir"
     if (!dir.exists(tiff_dir)) {
@@ -82,7 +82,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     
     sce <- readSCEfromTIFF(path, image_df_path, panel_df_path)
     
-    # 3. Perform quality control visualization using plotSpotHeatmap
+    # --- Perform quality control visualization using ---
     pdf("spot_heatmap.pdf")
     p1 <- plotSpotHeatmap(sce)
     if (!is.null(p1)) print(p1)
@@ -93,7 +93,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     if (!is.null(p2)) print(p2)
     dev.off()
     
-    # 4. Sum consecutive pixels using binAcrossPixels to enhance weak signals
+    # --- Sum consecutive pixels using binAcrossPixels to enhance ---
     sce2 <- binAcrossPixels(sce, bin_size = 5)
     
     pdf("spot_heatmap_binned.pdf")
@@ -101,7 +101,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     if (!is.null(p3)) print(p3)
     dev.off()
     
-    # 5. Assign and filter pixels using CATALYST functions and filterPixels
+    # --- Assign and filter pixels using CATALYST functions and ---
     bc_key <- as.numeric(unique(sce\$sample_mass))
     assay(sce, "exprs") <- asinh(counts(sce)/5)
     sce <- assignPrelim(sce, bc_key = bc_key)
@@ -109,7 +109,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     sce <- applyCutoffs(sce)
     sce <- filterPixels(sce)
     
-    # 6. Estimate the spillover matrix using computeSpillmat
+    # --- Estimate the spillover matrix using computeSpillmat ---
     sce <- computeSpillmat(sce)
     spillover_matrix <- metadata(sce)\$spillover_matrix
     

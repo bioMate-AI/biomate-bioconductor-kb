@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the dks and cubature packages and the simulated dataset. 2. Run the dks function to compute the double KS p-value, posterior 
+//  * 1. [Visualization & Output] Load the simulated dataset from the working directory
+//  * 2. [Visualization & Output] Run the dks function to compute the double KS p-value,
+//  * 3. [Visualization & Output] Calculate the posterior distribution for the first study
+//  * 4. [Visualization & Output] Calculate a 80% credible set
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +54,7 @@ process BIOC_DKS_DOUBLE_KS_DIAGNOSTIC {
     library(dks)
     library(cubature)
     
-    # 1. Load the simulated dataset from the working directory
+    # --- Load the simulated dataset from the working directory ---
     # We check for common formats: P.csv, P.tsv, P.rds, or a file named P
     if (file.exists("P.csv")) {
       P <- as.matrix(read.csv("P.csv", header = TRUE, check.names = FALSE))
@@ -80,7 +83,7 @@ process BIOC_DKS_DOUBLE_KS_DIAGNOSTIC {
     # Print dimensions of the input matrix
     print(dim(P))
     
-    # 2. Run the dks function to compute the double KS p-value, posterior probabilities,
+    # --- Run the dks function to compute the double KS p-value, ---
     # and generate diagnostic plots.
     pdf("dks_diagnostic_plots.pdf", width = 12, height = 4)
     dks1 <- dks(P, plot = TRUE)
@@ -89,7 +92,7 @@ process BIOC_DKS_DOUBLE_KS_DIAGNOSTIC {
     # Save the dks results
     saveRDS(dks1, "dks_results.rds")
     
-    # 3. Calculate the posterior distribution for the first study
+    # --- Calculate the posterior distribution for the first study ---
     delta <- 0.1
     dist1 <- pprob.dist(P[, 1])
     
@@ -106,7 +109,7 @@ process BIOC_DKS_DOUBLE_KS_DIAGNOSTIC {
     points(0, 0, col = "blue", cex = 1, pch = 19)
     dev.off()
     
-    # 4. Calculate a 80% credible set
+    # --- Calculate a 80% credible set ---
     cred1 <- cred.set(dist1, delta = 0.1, level = 0.80)
     
     # Save the credible set results

@@ -68,7 +68,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_STEPWISE {
     barcodeExample <- trimws(barcodeExample)
     barcodeExample <- barcodeExample[barcodeExample != ""]
     
-    # 1. Demultiplex reads using demultiplex
+    # --- Demultiplex reads using demultiplex ---
     de <- demultiplex(
       project = "example",
       experiment = c("1h1"),
@@ -92,7 +92,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_STEPWISE {
     # Save demultiplexing intermediate results
     saveRDS(de, "demultiplex_results.rds")
     
-    # 2. Build Rsubread index
+    # --- Build Rsubread index ---
     indexBase <- "reference_index"
     Rsubread::buildindex(
       basename = indexBase,
@@ -100,7 +100,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_STEPWISE {
       indexSplit = FALSE
     )
     
-    # 3. Align reads using alignRsubread
+    # --- Align reads using alignRsubread ---
     al <- alignRsubread(
       de,
       indexBase,
@@ -115,7 +115,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_STEPWISE {
     # Save alignment intermediate results
     saveRDS(al, "alignment_results.rds")
     
-    # 4. Count UMIs using countUMI
+    # --- Count UMIs using countUMI ---
     # Dynamically construct cellPerWell vector to match the length of the input barcode list
     num_barcodes <- length(barcodeExample)
     num_ones <- max(0, num_barcodes - 2)
@@ -136,7 +136,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_STEPWISE {
     saveRDS(sce, "scruff_sce.rds")
     write.csv(as.matrix(SingleCellExperiment::counts(sce)), "umi_counts.csv", row.names = TRUE)
     
-    # 5. Plot QC metrics
+    # --- Plot QC metrics ---
     qc <- qcplots(sce)
     
     # Save QC plots to PDF

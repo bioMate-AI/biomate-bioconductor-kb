@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read sample metadata and import quantification data using tximeta. 2. Scale inferential replicates using scaleInfReps. 3. Filter o
+//  * 1. [Input & Preparation] Read sample metadata
+//  * 2. [Input & Preparation] Import quantification data using tximeta
+//  * 3. [Input & Preparation] Scale inferential replicates
+//  * 4. [Input & Preparation] Filter out low-expression features
+//  * 5. [Input & Preparation] Compute isoform proportions per gene
+//  * 6. [Input & Preparation] Run differential testing on isoform proportions using
+//  * 7. [Input & Preparation] Write outputs
 
 nextflow.enable.dsl = 2
 
@@ -51,27 +57,27 @@ process BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE {
         library(tximeta)
         library(fishpond)
         
-        # 1. Read sample metadata
+        # --- Read sample metadata ---
         coldata <- read.csv("coldata.csv")
         
-        # 2. Import quantification data using tximeta
+        # --- Import quantification data using tximeta ---
         y <- tximeta(coldata)
         
-        # 3. Scale inferential replicates
+        # --- Scale inferential replicates ---
         y <- scaleInfReps(y)
         
-        # 4. Filter out low-expression features
+        # --- Filter out low-expression features ---
         y <- labelKeep(y)
         y <- y[mcols(y)\$keep,]
         
-        # 5. Compute isoform proportions per gene
+        # --- Compute isoform proportions per gene ---
         iso <- isoformProportions(y)
         
-        # 6. Run differential testing on isoform proportions using swish
+        # --- Run differential testing on isoform proportions using ---
         set.seed(1)
         iso <- swish(iso, x="condition")
         
-        # 7. Write outputs
+        # --- Write outputs ---
         # Save the full SummarizedExperiment object with results
         saveRDS(iso, "dtu_isoform_proportions_results.rds")
         

@@ -49,7 +49,7 @@ process BIOC_EDS_EDS_ALEVIN_IMPORT_PIPELINE {
     library(eds)
     library(Matrix)
     
-    # Stage 1: Read input metadata and prepare dimensions
+    # --- Read input metadata and prepare dimensions ---
     counts_file <- "counts.csv"
     coldata_file <- "coldata.csv"
     
@@ -67,7 +67,7 @@ process BIOC_EDS_EDS_ALEVIN_IMPORT_PIPELINE {
     num_genes <- length(gene_names)
     num_cells <- length(cell_names)
     
-    # Stage 2: Attempt to read using the eds package (readEDS)
+    # --- Attempt to read using the eds package (readEDS) ---
     # Since EDS is a specialized binary format, we attempt to write a mock binary file
     # and read it. If it fails or is incompatible, we gracefully fall back to the 
     # parsed CSV matrix to ensure pipeline robustness.
@@ -98,7 +98,7 @@ process BIOC_EDS_EDS_ALEVIN_IMPORT_PIPELINE {
     if (file.exists("quants_mat_rows.txt")) file.remove("quants_mat_rows.txt")
     if (file.exists("quants_mat.gz")) file.remove("quants_mat.gz")
     
-    # Stage 3: Construct SummarizedExperiment and align metadata
+    # --- Construct SummarizedExperiment and align metadata ---
     common_cells <- intersect(colnames(mat), rownames(coldata))
     if (length(common_cells) == 0) {
       stop("No overlapping cells found between counts and coldata.")
@@ -112,7 +112,7 @@ process BIOC_EDS_EDS_ALEVIN_IMPORT_PIPELINE {
       colData = coldata
     )
     
-    # Stage 4: Quality Control and Filtering
+    # --- Quality Control and Filtering ---
     # Calculate cell-level QC metrics
     lib_sizes <- colSums(assay(se, "counts"))
     genes_detected <- colSums(assay(se, "counts") > 0)
@@ -128,13 +128,13 @@ process BIOC_EDS_EDS_ALEVIN_IMPORT_PIPELINE {
     keep_genes <- rowSums(assay(se_filtered, "counts") > 0) >= 1
     se_filtered <- se_filtered[keep_genes, ]
     
-    # Stage 5: Normalization (Counts Per Million - CPM)
+    # --- Normalization (Counts Per Million - CPM) ---
     counts_filtered <- assay(se_filtered, "counts")
     cpm <- sweep(counts_filtered, 2, colSums(counts_filtered), "/") * 1e6
     cpm[is.nan(cpm)] <- 0 # Handle division by zero if any
     assay(se_filtered, "normcounts") <- cpm
     
-    # Stage 6: Write Outputs
+    # --- Write Outputs ---
     # 1. QC Metrics
     qc_df <- as.data.frame(colData(se))
     write.csv(qc_df, "qc_metrics.csv", row.names = TRUE)

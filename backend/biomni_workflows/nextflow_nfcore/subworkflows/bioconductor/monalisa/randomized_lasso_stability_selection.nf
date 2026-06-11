@@ -64,7 +64,7 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
     library(rtracklayer)
     library(BiocParallel)
     
-    # 1. Load genomic regions and response vector from user input files
+    # --- Load genomic regions and response vector from user input ---
     message("Loading genomic regions and accessibility changes...")
     gr <- rtracklayer::import("atac_peaks.bed", format = "bed")
     acc <- read.delim("accessibility_changes.tsv", header = TRUE, stringsAsFactors = FALSE)
@@ -91,7 +91,7 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
       }
     }
     
-    # 2. Scan regions for motif hits using findMotifHits to build a predictor matrix
+    # --- Scan regions for motif hits using findMotifHits to build ---
     message("Loading and processing motifs...")
     pfms <- TFBSTools::readJASPARMatrix("motifs.jaspar", matrixClass = "PFM")
     
@@ -110,7 +110,7 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
     zero_TF <- colSums(TFBSmatrix) == 0
     TFBSmatrix <- TFBSmatrix[, !zero_TF, drop = FALSE]
     
-    # 3. Calculate additional sequence composition predictors and append to the predictor matrix
+    # --- Calculate additional sequence composition predictors and ---
     message("Calculating sequence composition predictors...")
     fMono <- oligonucleotideFrequency(peakSeq, width = 1L, as.prob = TRUE)
     fDi <- oligonucleotideFrequency(peakSeq, width = 2L, as.prob = TRUE)
@@ -118,7 +118,7 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
     oeCpG <- (fDi[, "CG"] + 0.01) / (fMono[, "G"] * fMono[, "C"] + 0.01)
     TFBSmatrix <- cbind(fracGC, oeCpG, TFBSmatrix)
     
-    # 4. Run randomized Lasso stability selection using randLassoStabSel
+    # --- Run randomized Lasso stability selection using ---
     message("Running randomized Lasso stability selection...")
     set.seed(123)
     se <- randLassoStabSel(x = TFBSmatrix, y = gr\$logFC_liver_vs_lung, cutoff = 0.8)
@@ -126,7 +126,7 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
     # Save the SummarizedExperiment object
     saveRDS(se, "stability_selection_results.rds")
     
-    # 5. Plot stability paths using plotStabilityPaths
+    # --- Plot stability paths using plotStabilityPaths ---
     message("Generating stability path plots...")
     pdf("stability_paths.pdf", width = 8, height = 6)
     plotStabilityPaths(se)
@@ -137,13 +137,13 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
     plotStabilityPaths(se, labelPaths = TRUE)
     dev.off()
     
-    # 6. Plot selection probabilities using plotSelectionProb
+    # --- Plot selection probabilities using plotSelectionProb ---
     message("Generating selection probability plot...")
     pdf("selection_probabilities.pdf", width = 8, height = 6)
     plotSelectionProb(se, directional = TRUE, ylimext = 0.5)
     dev.off()
     
-    # 7. Visualize correlation structure of selected motifs using Heatmap
+    # --- Visualize correlation structure of selected motifs using ---
     sel <- colnames(se)[se\$selected]
     
     if (length(sel) > 0) {

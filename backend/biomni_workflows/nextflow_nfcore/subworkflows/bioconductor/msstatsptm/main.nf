@@ -50,7 +50,7 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     library(data.table)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -89,7 +89,7 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     rownames(prot_counts) <- prot_names
     
     # ==========================================
-    # Stage 2: Format Data for MSstatsPTM
+    # --- Format Data for MSstatsPTM ---
     # ==========================================
     
     message("Formatting data into MSstats standard 10-column format...")
@@ -156,14 +156,14 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     input_list <- list(PTM = ptm_input, PROTEIN = prot_input)
     
     # ==========================================
-    # Stage 3: Data Summarization
+    # --- Data Summarization ---
     # ==========================================
     
     message("Summarizing PTM and Protein datasets...")
     summarized <- dataSummarizationPTM(input_list, verbose = FALSE)
     
     # ==========================================
-    # Stage 4: Statistical Modeling & Adjustment
+    # --- Statistical Modeling & Adjustment ---
     # ==========================================
     
     message("Setting up contrast matrix...")
@@ -217,7 +217,7 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     }
     
     # ==========================================
-    # Stage 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic and results plots...")

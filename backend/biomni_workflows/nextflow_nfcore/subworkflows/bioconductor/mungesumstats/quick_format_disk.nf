@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Read the summary statistics file and standardise headers using read_sumstats. 2. Write the standardised data to disk as a compress
+//  * 1. [Visualization & Output] Read the summary statistics file and standardise headers
+//  * 2. [Visualization & Output] Write the standardised data to disk as a compressed,
 
 nextflow.enable.dsl = 2
 
@@ -64,10 +65,10 @@ process BIOC_MUNGESUMSTATS_QUICK_FORMAT_DISK {
     # Define output path in the working directory
     formatted_path <- "eduAttainOkbay_standardised.tsv.gz"
     
-    # 1. Read the summary statistics file and standardise headers using read_sumstats
+    # --- Read the summary statistics file and standardise headers ---
     dat <- MungeSumstats::read_sumstats(path = eduAttainOkbayPth, standardise_headers = TRUE)
     
-    # 2. Write the standardised data to disk as a compressed, tabix-indexed file using write_sumstats
+    # --- Write the standardised data to disk as a compressed, ---
     formatted_path <- MungeSumstats::write_sumstats(sumstats_dt = dat, save_path = formatted_path, tabix_index = TRUE, write_vcf = FALSE, return_path = TRUE)
     
     # Print the final path of the formatted file

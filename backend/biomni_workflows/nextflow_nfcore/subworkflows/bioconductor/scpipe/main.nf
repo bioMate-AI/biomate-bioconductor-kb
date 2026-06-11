@@ -48,7 +48,7 @@ process BIOC_SCPIPE_SCPIPE_QC_PIPELINE {
     library(scPipe)
     
     # ==========================================
-    # Stage 1: Load Input Data & Align Samples
+    # --- Load Input Data & Align Samples ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -84,7 +84,7 @@ process BIOC_SCPIPE_SCPIPE_QC_PIPELINE {
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Create SingleCellExperiment Object
+    # --- Create SingleCellExperiment Object ---
     # ==========================================
     
     message("Creating SingleCellExperiment object...")
@@ -98,7 +98,7 @@ process BIOC_SCPIPE_SCPIPE_QC_PIPELINE {
     gene_id_type(sce) <- "ensembl_gene_id"
     
     # ==========================================
-    # Stage 3: Initialize QC Slots & Mapping Stats
+    # --- Initialize QC Slots & Mapping Stats ---
     # ==========================================
     
     message("Initializing QC metrics and mapping statistics...")
@@ -124,14 +124,14 @@ process BIOC_SCPIPE_SCPIPE_QC_PIPELINE {
     demultiplex_info(sce) <- demux_df
     
     # ==========================================
-    # Stage 4: Calculate QC Metrics
+    # --- Calculate QC Metrics ---
     # ==========================================
     
     message("Calculating QC metrics...")
     sce <- calculate_QC_metrics(sce)
     
     # ==========================================
-    # Stage 5: Outlier Detection
+    # --- Outlier Detection ---
     # ==========================================
     
     message("Detecting low-quality outlier cells...")
@@ -141,7 +141,7 @@ process BIOC_SCPIPE_SCPIPE_QC_PIPELINE {
     qc_results <- as.data.frame(colData(sce))
     
     # ==========================================
-    # Stage 6: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ==========================================
     
     message("Generating diagnostic QC plots...")
@@ -171,7 +171,7 @@ process BIOC_SCPIPE_SCPIPE_QC_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 7: Filter Outliers & Save Outputs
+    # --- Filter Outliers & Save Outputs ---
     # ==========================================
     
     message("Filtering out low-quality cells...")

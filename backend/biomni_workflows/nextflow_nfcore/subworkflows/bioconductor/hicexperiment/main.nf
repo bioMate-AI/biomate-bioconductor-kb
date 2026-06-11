@@ -44,7 +44,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
           }
         }
     
-        # Stage 1: Load required libraries
+        # --- Load required libraries ---
         library(HiCExperiment)
         library(GenomicRanges)
         library(S4Vectors)
@@ -140,7 +140,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
         # Convert to GInteractions object
         gi <- df2gi(gi_df)
     
-        # Stage 2: Build HiCExperiment objects and normalize counts
+        # --- Build HiCExperiment objects and normalize counts ---
         message("Stage 2: Building HiCExperiment objects and normalizing counts...")
     
         hic_list <- list()
@@ -178,7 +178,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
           hic_list[[s_name]] <- hic
         }
     
-        # Stage 3: Multi-sample Aggregation and Differential Analysis
+        # --- Multi-sample Aggregation and Differential Analysis ---
         message("Stage 3: Performing differential interaction analysis...")
     
         # Extract normalized scores into a matrix
@@ -237,7 +237,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
         write.csv(results_df, "differential_interactions.csv", row.names = FALSE)
         message("Saved differential interactions to differential_interactions.csv")
     
-        # Stage 4: Visualization and Diagnostics
+        # --- Visualization and Diagnostics ---
         message("Stage 4: Generating diagnostic plots...")
     
         pdf("hic_analysis_plots.pdf", width = 10, height = 5)

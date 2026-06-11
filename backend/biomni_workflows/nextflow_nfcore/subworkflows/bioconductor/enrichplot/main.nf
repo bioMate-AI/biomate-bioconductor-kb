@@ -51,7 +51,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Reading input data...")
     input_data <- read.csv("input.csv", stringsAsFactors = FALSE, check.names = FALSE)
@@ -108,7 +108,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     }
     
     # ==========================================
-    # STAGE 2: Build Custom Pathway Annotation
+    # --- Build Custom Pathway Annotation ---
     # ==========================================
     # To guarantee offline execution and successful enrichment results,
     # we dynamically construct a pathway database containing the input genes.
@@ -138,7 +138,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     )
     
     # ==========================================
-    # STAGE 3: Perform ORA and GSEA
+    # --- Perform ORA and GSEA ---
     # ==========================================
     message("Running Over-Representation Analysis (ORA)...")
     ora_res <- clusterProfiler::enricher(
@@ -168,7 +168,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     write.csv(as.data.frame(gsea_res), "gsea_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Generate enrichplot Visualizations
+    # --- Generate enrichplot Visualizations ---
     # ==========================================
     message("Generating enrichplot visualizations...")
     

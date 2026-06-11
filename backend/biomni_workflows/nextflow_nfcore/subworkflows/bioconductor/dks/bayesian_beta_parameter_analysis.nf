@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate the posterior distribution of the Beta hyperparameters using pprob.dist. 2. Plot the posterior distribution using the im
+//  * 1. [Visualization & Output] Calculate the posterior distribution of the Beta
+//  * 2. [Visualization & Output] Plot the posterior distribution
+//  * 3. [Visualization & Output] Calculate the credible set of the hyperparameters
+//  * 4. [Visualization & Output] Plot the credible set
 
 nextflow.enable.dsl = 2
 
@@ -70,11 +73,11 @@ process BIOC_DKS_BAYESIAN_BETA_PARAMETER_ANALYSIS {
       stop("Error: Input matrix P must have at least one column.")
     }
     
-    # Stage 1: Calculate the posterior distribution of the Beta hyperparameters
+    # --- Calculate the posterior distribution of the Beta ---
     delta <- 0.1
     dist1 <- pprob.dist(P[,1])
     
-    # Stage 2: Plot the posterior distribution
+    # --- Plot the posterior distribution ---
     alpha <- seq(0.1,10,by=delta)
     beta <- seq(0.1,10,by=delta)
     
@@ -85,10 +88,10 @@ process BIOC_DKS_BAYESIAN_BETA_PARAMETER_ANALYSIS {
     points(0,0,col="blue",cex=1,pch=19)	
     dev.off()
     
-    # Stage 3: Calculate the credible set of the hyperparameters
+    # --- Calculate the credible set of the hyperparameters ---
     cred1 <- cred.set(dist1,delta=0.1, level=0.80)
     
-    # Stage 4: Plot the credible set
+    # --- Plot the credible set ---
     alpha <- seq(0.1,10,by=delta)
     beta <- seq(0.1,10,by=delta)
     

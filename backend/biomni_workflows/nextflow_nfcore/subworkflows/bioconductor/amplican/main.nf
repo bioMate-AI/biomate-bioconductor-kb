@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define paths to the configuration file and fastq folder. 2. Run the complete amplican pipeline to perform alignment, filtering, no
+//  * 1. [Visualization & Output] Define paths to the configuration file and fastq folder
+//  * 2. [Visualization & Output] Run the complete amplican pipeline to perform alignment,
+//  * 3. [Visualization & Output] Load alignment results and look up specific alignments in
 
 nextflow.enable.dsl = 2
 
@@ -49,7 +51,7 @@ process BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE {
     # Load required libraries
     library(amplican)
     
-    # 1. Define paths to the configuration file and fastq folder from user input
+    # --- Define paths to the configuration file and fastq folder ---
     config <- "config.csv"
     fastq_folder <- "fastq_folder"
     results_folder <- "results_output"
@@ -59,10 +61,10 @@ process BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE {
       dir.create(results_folder, recursive = TRUE)
     }
     
-    # 2. Run the complete amplican pipeline to perform alignment, filtering, normalization, and report generation
+    # --- Run the complete amplican pipeline to perform alignment, ---
     amplicanPipeline(config, fastq_folder, results_folder)
     
-    # 3. Load alignment results and look up specific alignments in human-readable format
+    # --- Load alignment results and look up specific alignments in ---
     # Dynamically locate the generated RDS alignment file to adapt the system.file call
     rds_files <- list.files(file.path(results_folder, "alignments", "temp"), pattern = "\\\\.rds\$", full.names = TRUE)
     if (length(rds_files) > 0) {

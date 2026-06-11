@@ -47,7 +47,7 @@ process BIOC_NDEXR_NDEX_NETWORK_RETRIEVAL {
     # Load required libraries
     library(ndexr)
     
-    # Stage 1: Read input defensively
+    # --- Read input defensively ---
     input_file <- "input.csv"
     genes <- c("EGFR") # Default fallback
     
@@ -79,7 +79,7 @@ process BIOC_NDEXR_NDEX_NETWORK_RETRIEVAL {
       genes <- c("EGFR")
     }
     
-    # Stage 2: Connect to NDEx server
+    # --- Connect to NDEx server ---
     message("Connecting to NDEx server...")
     ndexcon <- tryCatch({
       ndex_connect()
@@ -115,7 +115,7 @@ process BIOC_NDEXR_NDEX_NETWORK_RETRIEVAL {
     )
     
     if (!is.null(ndexcon)) {
-      # Stage 3: Search for networks matching the primary gene of interest
+      # --- Search for networks matching the primary gene of interest ---
       search_term <- genes[1]
       message("Searching NDEx for: ", search_term)
       
@@ -130,7 +130,7 @@ process BIOC_NDEXR_NDEX_NETWORK_RETRIEVAL {
       })
       
       if (nrow(search_results) > 0) {
-        # Stage 4: Retrieve top network details
+        # --- Retrieve top network details ---
         top_network_id <- search_results[1, "externalId"]
         message("Selected network ID: ", top_network_id)
         
@@ -175,7 +175,7 @@ process BIOC_NDEXR_NDEX_NETWORK_RETRIEVAL {
       }
     }
     
-    # Stage 5: Write outputs to working directory
+    # --- Write outputs to working directory ---
     write.csv(search_results, "ndex_search_results.csv", row.names = FALSE)
     write.csv(net_summary_df, "selected_network_summary.csv", row.names = FALSE)
     write.csv(net_metadata, "selected_network_metadata.csv", row.names = FALSE)

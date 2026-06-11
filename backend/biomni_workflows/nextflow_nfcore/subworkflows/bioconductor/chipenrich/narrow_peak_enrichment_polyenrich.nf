@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the path to the gene sets file. 2. Run Poly-Enrich analysis using polyenrich() with standard count-based method. 3. Run Pol
+//  * 1. [Input & Preparation] Read User Inputs from Working Directory
+//  * 2. [Input & Preparation] Run Poly-Enrich (Standard Count-Based Method)
+//  * 3. [Input & Preparation] Run Poly-Enrich (Weighted Method & Enhancer Locus)
+//  * 4. [Input & Preparation] Generate and Save QC Plots
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +63,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT_POLYENRICH {
     library(chipenrich)
     
     # ---------------------------------------------------------
-    # 1. Read User Inputs from Working Directory
+    # --- Read User Inputs from Working Directory ---
     # ---------------------------------------------------------
     
     # Locate the peaks_E2F4 file (can be a path to .bed, .narrowPeak, or a text file)
@@ -91,7 +94,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT_POLYENRICH {
     }
     
     # ---------------------------------------------------------
-    # 2. Run Poly-Enrich (Standard Count-Based Method)
+    # --- Run Poly-Enrich (Standard Count-Based Method) ---
     # ---------------------------------------------------------
     message("Running Poly-Enrich with standard count-based method...")
     
@@ -113,7 +116,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT_POLYENRICH {
     saveRDS(results_std, file = "polyenrich_standard_full.rds")
     
     # ---------------------------------------------------------
-    # 3. Run Poly-Enrich (Weighted Method & Enhancer Locus)
+    # --- Run Poly-Enrich (Weighted Method & Enhancer Locus) ---
     # ---------------------------------------------------------
     message("Running Poly-Enrich with weighted method and enhancer locus definition...")
     
@@ -135,7 +138,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT_POLYENRICH {
     saveRDS(results_wt, file = "polyenrich_weighted_full.rds")
     
     # ---------------------------------------------------------
-    # 4. Generate and Save QC Plots
+    # --- Generate and Save QC Plots ---
     # ---------------------------------------------------------
     tryCatch({
       message("Generating QC plots...")

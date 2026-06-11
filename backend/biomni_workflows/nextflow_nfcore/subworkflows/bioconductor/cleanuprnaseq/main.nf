@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Build an EnsDb database from the reference GTF file using ensDbFromGtf. 2. Generate Simplified Annotation Format (SAF) files for g
+//  * 1. [Visualization & Output] Build an EnsDb database from the reference GTF file
+//  * 2. [Visualization & Output] Generate Simplified Annotation Format (SAF) files
+//  * 3. [Visualization & Output] Create a SummarizedCounts object
+//  * 4. [Visualization & Output] Summarize reads and import Salmon quantifications
+//  * 5. [Visualization & Output] Generate diagnostic plots
+//  * 6. [Visualization & Output] Correct for gDNA contamination
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +68,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     options(timeout = max(3000, getOption("timeout")))
     tmp_dir <- tempdir()
     
-    # 1. Build an EnsDb database from the reference GTF file
+    # --- Build an EnsDb database from the reference GTF file ---
     gtf_gz <- "example.gtf.gz"
     gtf <- "example.gtf"
     if (!file.exists(gtf)) {
@@ -78,7 +83,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
       version = 110
     )
     
-    # 2. Generate Simplified Annotation Format (SAF) files
+    # --- Generate Simplified Annotation Format (SAF) files ---
     bam_file <- "K084CD7PCD1N.srt.bam"
     saf_list <- get_saf(
       ensdb_sqlite = hs_ensdb_sqlite,
@@ -86,7 +91,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
       mitochondrial_genome = "MT"
     )
     
-    # 3. Create a SummarizedCounts object
+    # --- Create a SummarizedCounts object ---
     col_data <- read.delim("example.colData.txt", as.is = TRUE)
     
     # Standardize paths to the working directory
@@ -116,7 +121,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     
     sc <- create_summarizedcounts(lib_strand = 0, colData = col_data)
     
-    # 4. Summarize reads and import Salmon quantifications
+    # --- Summarize reads and import Salmon quantifications ---
     capture.output({
       counts_list <- summarize_reads(
         SummarizedCounts = sc,
@@ -137,7 +142,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     sc\$set_salmon_quant(salmon_counts)
     sc\$set_salmon_quant_opposite(salmon_counts)
     
-    # 5. Generate diagnostic plots
+    # --- Generate diagnostic plots ---
     pdf("cleanup_diagnostics.pdf", width = 10, height = 8)
     
     p_assignment_stat <- plot_assignment_stat(SummarizedCounts = sc)
@@ -166,7 +171,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     
     dev.off()
     
-    # 6. Correct for gDNA contamination
+    # --- Correct for gDNA contamination ---
     # Global median per-base read coverage subtraction
     global_correction <- correct_global(SummarizedCounts = sc)
     saveRDS(global_correction, "global_correction_results.rds")

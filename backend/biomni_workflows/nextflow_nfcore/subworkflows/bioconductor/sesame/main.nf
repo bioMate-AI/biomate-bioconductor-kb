@@ -56,7 +56,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     })
     
     # ==========================================
-    # STAGE 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input data...")
     
@@ -90,7 +90,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     class(beta_matrix) <- "numeric"
     
     # ==========================================
-    # STAGE 2: Preprocessing & Quality Control
+    # --- Preprocessing & Quality Control ---
     # ==========================================
     message("Preprocessing and imputing missing values...")
     
@@ -120,7 +120,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     }
     
     # ==========================================
-    # STAGE 3: Differential Methylation Locus (DML)
+    # --- Differential Methylation Locus (DML) ---
     # ==========================================
     message("Running DML modeling...")
     
@@ -157,7 +157,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     message("DML results saved to dml_results.csv")
     
     # ==========================================
-    # STAGE 4: Differentially Methylated Regions (DMR)
+    # --- Differentially Methylated Regions (DMR) ---
     # ==========================================
     message("Running DMR analysis...")
     
@@ -191,7 +191,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     write.csv(dmr_result, "dmr_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     

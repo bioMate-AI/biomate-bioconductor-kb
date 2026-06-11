@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define a helper function to run cv_survclust with the type parameter set to "mut" across multiple rounds for a given k. 2. Execute
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Define Cross-Validation Helper Function
+//  * 3. [Visualization & Output] Execute Cross-Validation across k = 2 to 7
+//  * 4. [Visualization & Output] Summarize and Plot Cross-Validation Performance Metrics
+//  * 5. [Visualization & Output] Consolidate Cluster Assignments and Perform Survival
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +57,7 @@ process BIOC_SURVCLUST_SINGLE_OMIC_CLUSTERING {
     library(BiocParallel)
     
     # -----------------------------------------------------------------------------
-    # 1. Load User Input Files
+    # --- Load User Input Files ---
     # -----------------------------------------------------------------------------
     # The pipeline reads uvm_mut_dat and uvm_survdat from the working directory.
     # It supports both RDS (preferred for lists/matrices) and CSV formats.
@@ -76,7 +80,7 @@ process BIOC_SURVCLUST_SINGLE_OMIC_CLUSTERING {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Define Cross-Validation Helper Function
+    # --- Define Cross-Validation Helper Function ---
     # -----------------------------------------------------------------------------
     cv_rounds <- 10
     
@@ -91,7 +95,7 @@ process BIOC_SURVCLUST_SINGLE_OMIC_CLUSTERING {
     }
     
     # -----------------------------------------------------------------------------
-    # 3. Execute Cross-Validation across k = 2 to 7
+    # --- Execute Cross-Validation across k = 2 to 7 ---
     # -----------------------------------------------------------------------------
     # Run cross-validation using parallel processing
     uvm_mut_cv.fit <- bplapply(2:7, cvrounds_mut)
@@ -100,7 +104,7 @@ process BIOC_SURVCLUST_SINGLE_OMIC_CLUSTERING {
     saveRDS(uvm_mut_cv.fit, "uvm_mut_cv_fit.rds")
     
     # -----------------------------------------------------------------------------
-    # 4. Summarize and Plot Cross-Validation Performance Metrics
+    # --- Summarize and Plot Cross-Validation Performance Metrics ---
     # -----------------------------------------------------------------------------
     ss_stats <- getStats(uvm_mut_cv.fit, kk=7, cvr=10)
     saveRDS(ss_stats, "ss_stats.rds")
@@ -111,7 +115,7 @@ process BIOC_SURVCLUST_SINGLE_OMIC_CLUSTERING {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # 5. Consolidate Cluster Assignments and Perform Survival Analysis
+    # --- Consolidate Cluster Assignments and Perform Survival ---
     # -----------------------------------------------------------------------------
     # Compute the single-platform weighted distance matrix and consolidate cluster assignments
     k4 <- cv_voting(uvm_mut_cv.fit, getDist(uvm_mut_dat, uvm_survdat), pick_k=4)

@@ -49,7 +49,7 @@ process BIOC_MSPURITY_LC_MS_MS_PURITY_MATCHING {
     library(MSnbase)
     
     # ---------------------------------------------------------
-    # Stage 1: Read Input Metadata and Features
+    # --- Read Input Metadata and Features ---
     # ---------------------------------------------------------
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     matrix_data <- read.csv("matrix.csv", row.names = 1, stringsAsFactors = FALSE)
@@ -60,7 +60,7 @@ process BIOC_MSPURITY_LC_MS_MS_PURITY_MATCHING {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Generate Dummy mzML Files for Analysis
+    # --- Generate Dummy mzML Files for Analysis ---
     # ---------------------------------------------------------
     # Since msPurity requires raw mass spectrometry files (mzML), we dynamically
     # generate minimal valid mzML files containing both MS1 and MS2 spectra
@@ -105,14 +105,14 @@ process BIOC_MSPURITY_LC_MS_MS_PURITY_MATCHING {
     }
     
     # ---------------------------------------------------------
-    # Stage 3: Precursor Ion Purity Assessment (purityA)
+    # --- Precursor Ion Purity Assessment (purityA) ---
     # ---------------------------------------------------------
     # Assess precursor purity using Gaussian isolation window normalisation
     pa <- purityA(mzML_files, iwNorm = TRUE, iwNormFun = iwNormGauss(sdlim = 3, minOff = -0.5, maxOff = 0.5))
     write.csv(pa@puritydf, "purity_df.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 4: XCMS Feature Detection and Grouping
+    # --- XCMS Feature Detection and Grouping ---
     # ---------------------------------------------------------
     msdata <- readMSData(mzML_files, mode = 'onDisk', msLevel. = 1)
     rtr <- c(30, 90)
@@ -131,13 +131,13 @@ process BIOC_MSPURITY_LC_MS_MS_PURITY_MATCHING {
     xcmsObj <- groupChromPeaks(xcmsObj, param = pdp)
     
     # ---------------------------------------------------------
-    # Stage 5: Map Fragmentation Spectra to XCMS Features
+    # --- Map Fragmentation Spectra to XCMS Features ---
     # ---------------------------------------------------------
     pa <- frag4feature(pa = pa, xcmsObj = xcmsObj)
     write.csv(pa@grped_df, "grped_df.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 6: Filter and Average Fragmentation Spectra
+    # --- Filter and Average Fragmentation Spectra ---
     # ---------------------------------------------------------
     pa <- filterFragSpectra(pa)
     pa <- averageAllFragSpectra(pa)
@@ -146,7 +146,7 @@ process BIOC_MSPURITY_LC_MS_MS_PURITY_MATCHING {
     createMSP(pa, msp_file_pth = "fragmentation_spectra.msp")
     
     # ---------------------------------------------------------
-    # Stage 7: Create Spectral Database and Perform Matching
+    # --- Create Spectral Database and Perform Matching ---
     # ---------------------------------------------------------
     q_dbPth <- createDatabase(pa = pa, xcmsObj = xcmsObj, outDir = ".", dbName = 'lcmsms-processing.sqlite')
     
@@ -165,7 +165,7 @@ process BIOC_MSPURITY_LC_MS_MS_PURITY_MATCHING {
     }
     
     # ---------------------------------------------------------
-    # Stage 8: Anticipated Purity Assessment (purityX)
+    # --- Anticipated Purity Assessment (purityX) ---
     # ---------------------------------------------------------
     px <- tryCatch({
       purityX(xset = as(xcmsObj, 'xcmsSet'), cores = 1, ilim = 0)

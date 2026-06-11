@@ -51,7 +51,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     library(BiocGenerics)
     
     # ==========================================
-    # Stage 1: Load and Process User Expression Data
+    # --- Load and Process User Expression Data ---
     # ==========================================
     
     message("Loading user expression data...")
@@ -109,7 +109,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     }
     
     # ==========================================
-    # Stage 2: Integrate with CTdata Reference
+    # --- Integrate with CTdata Reference ---
     # ==========================================
     
     message("Loading CTdata reference datasets...")
@@ -127,7 +127,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     }
     
     # ==========================================
-    # Stage 3: Annotate with Promoter Methylation
+    # --- Annotate with Promoter Methylation ---
     # ==========================================
     
     message("Integrating promoter methylation data...")
@@ -155,7 +155,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     })
     
     # ==========================================
-    # Stage 4: Annotate with Demethylation Induction
+    # --- Annotate with Demethylation Induction ---
     # ==========================================
     
     message("Integrating DAC (demethylating agent) treatment data...")
@@ -174,7 +174,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     })
     
     # ==========================================
-    # Stage 5: Annotate with CCLE CT Correlation
+    # --- Annotate with CCLE CT Correlation ---
     # ==========================================
     
     message("Integrating CCLE CT-gene correlation matrix...")
@@ -202,7 +202,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     message("Saved annotated gene table to 'ct_annotated_genes.csv'")
     
     # ==========================================
-    # Stage 6: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic plots...")

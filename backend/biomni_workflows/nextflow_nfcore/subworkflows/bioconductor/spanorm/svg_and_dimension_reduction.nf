@@ -13,7 +13,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Identify SVGs using SpaNormSVG; 2. Extract top SVGs using topSVGs; 3. Perform PCA using SpaNormPCA; 4. Run UMAP using runUMAP
+//  * 1. [Core Analysis] Read the user-provided Normalised SpatialExperiment object
+//  * 2. [Core Analysis] Identify Spatially Variable Genes (SVGs)
+//  * 3. [Core Analysis] Extract top SVGs
+//  * 4. [Core Analysis] Clean up gene names (replace hyphens with dots)
+//  * 5. [Core Analysis] Perform PCA using SpaNormPCA
+//  * 6. [Core Analysis] Run UMAP
+//  * 7. [Core Analysis] Plot UMAP and save to PDF
+//  * 8. [Core Analysis] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +70,7 @@ process BIOC_SPANORM_SVG_AND_DIMENSION_REDUCTION {
         library(scater)
         library(ggplot2)
         
-        # 1. Read the user-provided Normalised SpatialExperiment object
+        # --- Read the user-provided Normalised SpatialExperiment object ---
         input_file <- "normalised_spatial_experiment.rds"
         if (!file.exists(input_file)) {
           stop(paste("Error: Input file", input_file, "not found in the working directory."))
@@ -71,13 +78,13 @@ process BIOC_SPANORM_SVG_AND_DIMENSION_REDUCTION {
         
         HumanDLPFC <- readRDS(input_file)
         
-        # 2. Identify Spatially Variable Genes (SVGs)
+        # --- Identify Spatially Variable Genes (SVGs) ---
         HumanDLPFC = SpaNormSVG(HumanDLPFC)
         
-        # 3. Extract top SVGs
+        # --- Extract top SVGs ---
         svgs = topSVGs(HumanDLPFC, n = 10)
         
-        # 4. Clean up gene names (replace hyphens with dots)
+        # --- Clean up gene names (replace hyphens with dots) ---
         rownames(HumanDLPFC) = gsub("-", ".", rownames(HumanDLPFC))
         if (is.character(svgs)) {
           svgs = gsub("-", ".", svgs)
@@ -85,19 +92,19 @@ process BIOC_SPANORM_SVG_AND_DIMENSION_REDUCTION {
           rownames(svgs) = gsub("-", ".", rownames(svgs))
         }
         
-        # 5. Perform PCA using SpaNormPCA
+        # --- Perform PCA using SpaNormPCA ---
         HumanDLPFC = SpaNormPCA(HumanDLPFC, ncomponents = 50, svg.fdr = 0.2, nsvgs = Inf)
         
-        # 6. Run UMAP
+        # --- Run UMAP ---
         HumanDLPFC = runUMAP(HumanDLPFC, n_neighbors = 20, min_dist = 0.3)
         
-        # 7. Plot UMAP and save to PDF
+        # --- Plot UMAP and save to PDF ---
         pdf("umap_plot.pdf", width = 8, height = 6)
         p <- plotUMAP(HumanDLPFC)
         print(p)
         dev.off()
         
-        # 8. Save outputs
+        # --- Save outputs ---
         write.csv(as.data.frame(svgs), "top_svgs.csv", row.names = TRUE)
         saveRDS(HumanDLPFC, "processed_spatial_experiment.rds")
         

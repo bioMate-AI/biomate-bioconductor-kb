@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load source and target annotation files and the HomoloGene database. 2. Map source probe sets to Entrez Gene IDs. 3. Find target s
+//  * 1. [Visualization & Output] Load source and target annotation files and the
+//  * 2. [Visualization & Output] Map source probe sets to Entrez Gene IDs
+//  * 3. [Visualization & Output] Find target species orthologous Gene IDs using getHOMOLOG
+//  * 4. [Visualization & Output] Map target Gene IDs to target probe sets using getPROBESET
+//  * 5. [Visualization & Output] Compact and clean the mapped lists using compactList to
+//  * 6. [Visualization & Output] Combine and write the final mapping table to a text file
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +65,7 @@ process BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING {
     library(annotationTools)
     library(stats)
     
-    # 1. Load source and target annotation files and the HomoloGene database
+    # --- Load source and target annotation files and the ---
     annotation_HGU133Plus2 <- read.csv('HG-U133_Plus_2_annot.csv',
                                        colClasses = 'character', comment.char = '#')
     annotation_Mouse4302 <- read.csv('Mouse430_2_annot.csv',
@@ -68,19 +73,19 @@ process BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING {
     homologene <- read.delim('homologene.data', header = FALSE)
     target_species <- 10090
     
-    # 2. Map source probe sets to Entrez Gene IDs
+    # --- Map source probe sets to Entrez Gene IDs ---
     ps_HGU133Plus2 <- annotation_HGU133Plus2[, 1]
     gid_HGU133Plus2 <- getGENEID(ps_HGU133Plus2, annotation_HGU133Plus2)
     length_gid_HGU133Plus2 <- sapply(gid_HGU133Plus2, function(x) { length(x) })
     
-    # 3. Find target species orthologous Gene IDs using getHOMOLOG
+    # --- Find target species orthologous Gene IDs using getHOMOLOG ---
     gid_Mouse4302 <- getHOMOLOG(unlist(gid_HGU133Plus2), target_species, homologene)
     length_gid_Mouse4302 <- sapply(gid_Mouse4302, function(x) { length(x) })
     
-    # 4. Map target Gene IDs to target probe sets using getPROBESET
+    # --- Map target Gene IDs to target probe sets using getPROBESET ---
     ps_Mouse4302 <- getPROBESET(unlist(gid_Mouse4302), annotation_Mouse4302)
     
-    # 5. Compact and clean the mapped lists using compactList to handle multi-mapping
+    # --- Compact and clean the mapped lists using compactList to ---
     ps_Mouse4302_1 <- compactList(ps_Mouse4302, length_gid_Mouse4302)
     ps_Mouse4302_2 <- compactList(ps_Mouse4302_1, length_gid_HGU133Plus2)
     gid_Mouse4302_1 <- compactList(gid_Mouse4302, length_gid_HGU133Plus2)
@@ -94,7 +99,7 @@ process BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING {
       if (length(x) > 1) na.omit(x) else x
     })
     
-    # 6. Combine and write the final mapping table to a text file
+    # --- Combine and write the final mapping table to a text file ---
     orthoTable <- cbind(ps_HGU133Plus2, listToCharacterVector(gid_HGU133Plus2, sep = ','),
                         listToCharacterVector(gid_Mouse4302_1, sep = ','),
                         listToCharacterVector(ps_Mouse4302_2, sep = ','))

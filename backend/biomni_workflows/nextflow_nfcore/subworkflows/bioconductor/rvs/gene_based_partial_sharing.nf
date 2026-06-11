@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Precompute sharing probabilities, carrier subset sizes, and equivalent subset counts for all possible carrier configurations in ea
+//  * 1. [Input & Preparation] Load pedigree structures from RDS
+//  * 2. [Input & Preparation] Precompute sharing probabilities, carrier subset sizes,
+//  * 3. [Input & Preparation] Load VCF file and convert to SnpMatrix objects
+//  * 4. [Input & Preparation] Align SnpMatrix objects and pedigree objects into named
+//  * 5. [Input & Preparation] Run the gene-based joint analysis using RVgene
+//  * 6. [Input & Preparation] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +57,7 @@ process BIOC_RVS_GENE_BASED_PARTIAL_SHARING {
     library(kinship2)
     library(VariantAnnotation)
     
-    # 1. Load pedigree structures from RDS
+    # --- Load pedigree structures from RDS ---
     if (!file.exists("pedigree_structures.rds")) {
       stop("Error: pedigree_structures.rds not found in the working directory.")
     }
@@ -71,7 +76,7 @@ process BIOC_RVS_GENE_BASED_PARTIAL_SHARING {
       names(samplePedigrees) <- fam_names
     }
     
-    # 2. Precompute sharing probabilities, carrier subset sizes, and equivalent subset counts
+    # --- Precompute sharing probabilities, carrier subset sizes, ---
     ex.pattern.prob.list <- list()
     ex.N.list <- list()
     ex.nequiv.list <- list()
@@ -113,7 +118,7 @@ process BIOC_RVS_GENE_BASED_PARTIAL_SHARING {
       ex.nequiv.list[[fam_name]] <- nequiv.vec
     }
     
-    # 3. Load VCF file and convert to SnpMatrix objects
+    # --- Load VCF file and convert to SnpMatrix objects ---
     if (!file.exists("family_variants.vcf")) {
       stop("Error: family_variants.vcf not found in the working directory.")
     }
@@ -121,7 +126,7 @@ process BIOC_RVS_GENE_BASED_PARTIAL_SHARING {
     vcf_all <- readVcf("family_variants.vcf", genome = "hg19")
     vcf_samples <- colnames(vcf_all)
     
-    # 4. Align SnpMatrix objects and pedigree objects into named lists
+    # --- Align SnpMatrix objects and pedigree objects into named ---
     ex.SnpMatrix.list <- list()
     ex.ped.obj <- list()
     
@@ -158,7 +163,7 @@ process BIOC_RVS_GENE_BASED_PARTIAL_SHARING {
       sites <- integer(0)
     }
     
-    # 5. Run the gene-based joint analysis using RVgene
+    # --- Run the gene-based joint analysis using RVgene ---
     if (length(ex.SnpMatrix.list) > 0 && length(sites) > 0) {
       results <- RVgene(
         ex.SnpMatrix.list,
@@ -170,7 +175,7 @@ process BIOC_RVS_GENE_BASED_PARTIAL_SHARING {
         type = "count"
       )
       
-      # 6. Save outputs
+      # --- Save outputs ---
       # Save results as RDS
       saveRDS(results, "rvgene_results.rds")
       

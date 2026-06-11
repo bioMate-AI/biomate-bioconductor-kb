@@ -51,7 +51,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     library(tidyr)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -129,7 +129,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 2: Normalization and Filtering
+    # --- Normalization and Filtering ---
     # ==========================================
     message("Stage 2: Normalizing and filtering data...")
     object <- remove_all_zero_row(object)
@@ -137,7 +137,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     object <- compute_data_table(object)
     
     # ==========================================
-    # STAGE 3: Statistical Analysis (Hits)
+    # --- Statistical Analysis (Hits) ---
     # ==========================================
     message("Stage 3: Performing statistical hit identification...")
     
@@ -248,7 +248,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 4: Export Results Table
+    # --- Export Results Table ---
     # ==========================================
     message("Stage 4: Exporting results table...")
     
@@ -282,7 +282,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     write.csv(final_results, "screenr_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Generate Diagnostic & Result Plots
+    # --- Generate Diagnostic & Result Plots ---
     # ==========================================
     message("Stage 5: Generating diagnostic and result plots...")
     

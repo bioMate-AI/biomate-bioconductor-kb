@@ -48,7 +48,7 @@ process BIOC_INTERCELLAR_INTERCELLAR_CCI_ANALYSIS {
     library(InterCellar)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     counts_file <- "counts.csv"
@@ -102,7 +102,7 @@ process BIOC_INTERCELLAR_INTERCELLAR_CCI_ANALYSIS {
     rownames(cluster_means) <- rownames(log_cpm)
     
     # ==========================================
-    # Stage 2: Generate Candidate CCI Data Frame
+    # --- Generate Candidate CCI Data Frame ---
     # ==========================================
     
     # Select top highly expressed genes to form candidate pairs
@@ -137,7 +137,7 @@ process BIOC_INTERCELLAR_INTERCELLAR_CCI_ANALYSIS {
     cci_df <- cci_df[cci_df\$score > 0.1, ]
     
     # ==========================================
-    # Stage 3: InterCellar Analysis Pipeline
+    # --- InterCellar Analysis Pipeline ---
     # ==========================================
     
     # 1. Check and reorder interaction pairs (R-L to L-R)
@@ -160,7 +160,7 @@ process BIOC_INTERCELLAR_INTERCELLAR_CCI_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 4: Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     write.csv(cci_checked, "cci_processed.csv", row.names = FALSE)

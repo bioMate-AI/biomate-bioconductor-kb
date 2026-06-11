@@ -52,7 +52,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     library(utils)
     
     # ==========================================
-    # Stage 1: Load and Pre-process Input Data
+    # --- Load and Pre-process Input Data ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -84,7 +84,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     log_intensity <- log_intensity[valid_features, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     # ==========================================
     
     message("Performing differential abundance analysis...")
@@ -121,7 +121,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     stats_res <- stats_res[order(stats_res\$P_Value), ]
     
     # ==========================================
-    # Stage 3: ID Mapping using ginmappeR
+    # --- ID Mapping using ginmappeR ---
     # ==========================================
     
     message("Mapping identifiers using ginmappeR...")
@@ -155,7 +155,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     write.csv(top_proteins, "differential_abundance_mapped.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Retrieve Similar Gene Clusters
+    # --- Retrieve Similar Gene Clusters ---
     # ==========================================
     
     message("Retrieving UniProt similar gene clusters...")
@@ -188,7 +188,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     write.csv(similar_genes_df, "similar_genes_top_protein.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic plots...")

@@ -49,7 +49,7 @@ process BIOC_OMXPLORE_OMXPLORE_OMICS_EXPLORATION {
     library(MultiAssayExperiment)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     
@@ -93,7 +93,7 @@ process BIOC_OMXPLORE_OMXPLORE_OMICS_EXPLORATION {
     }
     
     # ==========================================
-    # Stage 2: Convert to Bioconductor Containers
+    # --- Convert to Bioconductor Containers ---
     # ==========================================
     message("Stage 2: Converting data to omXplore-compatible containers...")
     
@@ -117,7 +117,7 @@ process BIOC_OMXPLORE_OMXPLORE_OMICS_EXPLORATION {
     })
     
     # ==========================================
-    # Stage 3: Principal Component Analysis (PCA)
+    # --- Principal Component Analysis (PCA) ---
     # ==========================================
     message("Stage 3: Running Principal Component Analysis...")
     
@@ -156,7 +156,7 @@ process BIOC_OMXPLORE_OMXPLORE_OMICS_EXPLORATION {
     }
     
     # ==========================================
-    # Stage 4: Exploratory Visualizations
+    # --- Exploratory Visualizations ---
     # ==========================================
     message("Stage 4: Generating exploratory plots...")
     
@@ -220,7 +220,7 @@ process BIOC_OMXPLORE_OMXPLORE_OMICS_EXPLORATION {
     message("Exploratory plots saved to 'exploratory_plots.pdf'.")
     
     # ==========================================
-    # Stage 5: Connected Components Analysis
+    # --- Connected Components Analysis ---
     # ==========================================
     message("Stage 5: Performing Connected Components analysis...")
     

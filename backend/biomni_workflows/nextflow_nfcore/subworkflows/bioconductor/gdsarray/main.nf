@@ -49,7 +49,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read and Clean Input Defensively
+    # --- Read and Clean Input Defensively ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found in the working directory.")
@@ -78,7 +78,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     mat[is.na(mat)] <- 0
     
     # ==========================================
-    # STAGE 2: Create GDS File from Matrix
+    # --- Create GDS File from Matrix ---
     # ==========================================
     gds_path <- "input_data.gds"
     if (file.exists(gds_path)) {
@@ -93,7 +93,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     closefn.gds(f)
     
     # ==========================================
-    # STAGE 3: Represent GDS Nodes as GDSArrays
+    # --- Represent GDS Nodes as GDSArrays ---
     # ==========================================
     # Instantiate GDSArray for the main data matrix
     gds_arr <- GDSArray(gds_path, "assay/data")
@@ -115,7 +115,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     gds_nodes <- gdsnodes(gf)
     
     # ==========================================
-    # STAGE 4: Delayed Operations & Filtering
+    # --- Delayed Operations & Filtering ---
     # ==========================================
     # Perform delayed log-transformation (no memory overhead)
     log_arr <- log1p(gds_arr)
@@ -129,7 +129,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     filtered_arr <- log_arr[keep_idx, , drop = FALSE]
     
     # ==========================================
-    # STAGE 5: SummarizedExperiment Integration
+    # --- SummarizedExperiment Integration ---
     # ==========================================
     se <- SummarizedExperiment(
       assays = list(log_counts = filtered_arr),
@@ -143,7 +143,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     )
     
     # ==========================================
-    # STAGE 6: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     # 1. Processed matrix (realize the delayed array to in-memory matrix for writing)
     write.csv(as.matrix(assay(se, "log_counts")), "processed_features.csv", row.names = TRUE)
@@ -159,7 +159,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     write.csv(gds_report, "gds_structure.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Cleanup and Resource Release
+    # --- Cleanup and Resource Release ---
     # ==========================================
     tryCatch({
       releaseGDS(gds_path)

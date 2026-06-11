@@ -44,7 +44,7 @@ process BIOC_CYTOFPOWER_CYTOFPOWER_PARAMETER_ESTIMATION_AND_SIMULATION {
           }
         }
     
-    # Stage 1: Load required libraries and validate inputs
+    # --- Load required libraries and validate inputs ---
     library(CyTOFpower)
     library(MASS)
     
@@ -59,7 +59,7 @@ process BIOC_CYTOFPOWER_CYTOFPOWER_PARAMETER_ESTIMATION_AND_SIMULATION {
     intensity_df <- read.csv("intensity.csv", check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Preprocess and align data
+    # --- Preprocess and align data ---
     if (!"feature_id" %in% colnames(intensity_df)) {
       colnames(intensity_df)[1] <- "feature_id"
     }
@@ -94,7 +94,7 @@ process BIOC_CYTOFPOWER_CYTOFPOWER_PARAMETER_ESTIMATION_AND_SIMULATION {
     message("Control condition identified as: ", control_cond)
     message("Treatment condition identified as: ", treat_cond)
     
-    # Stage 3: Estimate Negative Binomial parameters and Fold Changes
+    # --- Estimate Negative Binomial parameters and Fold Changes ---
     markers <- rownames(intensity_matrix)
     n_markers <- length(markers)
     
@@ -173,7 +173,7 @@ process BIOC_CYTOFPOWER_CYTOFPOWER_PARAMETER_ESTIMATION_AND_SIMULATION {
     write.csv(param_df, "personalized_parameters.csv", row.names = FALSE)
     message("Saved estimated parameters to 'personalized_parameters.csv'")
     
-    # Stage 4: Run Offline Power Simulation
+    # --- Run Offline Power Simulation ---
     n_donors <- if (has_donors) length(unique(coldata[[donor_col[1]]])) else sum(coldata\$condition == control_cond)
     if (n_donors < 3) {
       n_donors <- 5 # Minimum recommended donors for stable power estimation
@@ -258,7 +258,7 @@ process BIOC_CYTOFPOWER_CYTOFPOWER_PARAMETER_ESTIMATION_AND_SIMULATION {
     write.csv(power_df, "simulated_power_results.csv", row.names = FALSE)
     message("Saved simulated power results to 'simulated_power_results.csv'")
     
-    # Stage 5: Generate Diagnostic and Power Report
+    # --- Generate Diagnostic and Power Report ---
     pdf("power_analysis_report.pdf", width = 8, height = 10)
     par(mfrow = c(3, 1), mar = c(5, 4, 4, 2) + 0.1)
     

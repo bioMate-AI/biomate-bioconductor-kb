@@ -50,7 +50,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     library(GenomicRanges)
     
     # -------------------------------------------------------------------------
-    # Stage 1: Read Input Files
+    # --- Read Input Files ---
     # -------------------------------------------------------------------------
     message("Reading input files...")
     
@@ -84,7 +84,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 2: Download and Parse NCBI Genome Reports
+    # --- Download and Parse NCBI Genome Reports ---
     # -------------------------------------------------------------------------
     message("Fetching genome reports from NCBI...")
     
@@ -119,7 +119,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 3: Taxonomic Extraction and Matching
+    # --- Taxonomic Extraction and Matching ---
     # -------------------------------------------------------------------------
     message("Extracting taxonomic information...")
     
@@ -134,7 +134,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     merged_metadata <- merge(coldata, proks, by = "Genus", all.x = TRUE, suffixes = c(".local", ".ncbi"))
     
     # -------------------------------------------------------------------------
-    # Stage 4: Annotate Genomic Ranges
+    # --- Annotate Genomic Ranges ---
     # -------------------------------------------------------------------------
     message("Annotating genomic intervals...")
     
@@ -160,7 +160,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     message("Saved annotated regions to 'annotated_regions.csv'")
     
     # -------------------------------------------------------------------------
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # -------------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

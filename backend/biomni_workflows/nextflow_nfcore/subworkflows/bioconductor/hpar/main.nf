@@ -48,7 +48,7 @@ process BIOC_HPAR_HPA_PROTEOMICS_ANNOTATION {
     library(hpar)
     library(BiocGenerics)
     
-    # 1. Load Experimental Proteomics Data
+    # --- Load Experimental Proteomics Data ---
     message("Loading experimental proteomics data...")
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
@@ -63,7 +63,7 @@ process BIOC_HPAR_HPA_PROTEOMICS_ANNOTATION {
         colnames(intensity_df)[1] <- "feature_id"
     }
     
-    # 2. Perform Differential Abundance Analysis (Simple Two-Group Comparison)
+    # --- Perform Differential Abundance Analysis (Simple Two-Group ---
     message("Performing differential abundance analysis...")
     samples <- coldata_df\$sample
     conditions <- coldata_df\$condition
@@ -107,13 +107,13 @@ process BIOC_HPAR_HPA_PROTEOMICS_ANNOTATION {
         }
     }
     
-    # 3. Fetch Human Protein Atlas (HPA) Datasets
+    # --- Fetch Human Protein Atlas (HPA) Datasets ---
     message("Fetching Human Protein Atlas datasets...")
     subcell_loc <- hpaSubcellularLoc()
     norm_tissue <- hpaNormalTissue()
     secretome <- hpaSecretome()
     
-    # 4. Map Experimental Features to HPA Annotations
+    # --- Map Experimental Features to HPA Annotations ---
     message("Mapping experimental features to HPA annotations...")
     # Determine if feature_ids are Ensembl IDs or Gene Symbols
     sample_ids <- head(intensity_df\$feature_id, 50)
@@ -184,7 +184,7 @@ process BIOC_HPAR_HPA_PROTEOMICS_ANNOTATION {
     write.csv(annotated_df, "hpa_annotated_proteomics.csv", row.names = FALSE)
     message("Annotated proteomics data written to 'hpa_annotated_proteomics.csv'.")
     
-    # 5. Generate Visualizations and Diagnostic Plots
+    # --- Generate Visualizations and Diagnostic Plots ---
     message("Generating summary visualizations...")
     pdf("hpa_proteomics_summary.pdf", width = 10, height = 8)
     
@@ -235,7 +235,7 @@ process BIOC_HPAR_HPA_PROTEOMICS_ANNOTATION {
     dev.off()
     message("Summary plots saved to 'hpa_proteomics_summary.pdf'.")
     
-    # 6. Export HPA Metadata
+    # --- Export HPA Metadata ---
     message("Exporting HPA metadata...")
     metadata_conn <- file("hpa_metadata.txt")
     writeLines(c(

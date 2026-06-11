@@ -65,7 +65,7 @@ process BIOC_ALEVINQC_STATIC_QC_REPORT {
                  "and 'cmd_info.json' is present."))
     }
     
-    # Stage 1: Check that all required alevin files are available
+    # --- Check that all required alevin files are available ---
     message("Checking Alevin input files...")
     checkAlevinInputFiles(baseDir = baseDir)
     
@@ -75,14 +75,14 @@ process BIOC_ALEVINQC_STATIC_QC_REPORT {
       dir.create(outputDir, recursive = TRUE)
     }
     
-    # Stage 2: Generate the QC report
+    # --- Generate the QC report ---
     message("Generating static QC report...")
     alevinQCReport(baseDir = baseDir, sampleId = "testSample", 
                    outputFile = "alevinReport.html", 
                    outputFormat = "html_document",
                    outputDir = outputDir, forceOverwrite = TRUE)
     
-    # Stage 3: Extract and save additional meaningful results (tables and plots)
+    # --- Extract and save additional meaningful results (tables ---
     message("Reading Alevin QC data for exporting tables and plots...")
     alevin <- readAlevinQC(baseDir = baseDir)
     

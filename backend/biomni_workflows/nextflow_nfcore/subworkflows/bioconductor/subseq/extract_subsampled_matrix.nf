@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Generate the subsampled matrix at a specific proportion using generateSubsampledMatrix
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Execute Documented Workflow
+//  * 3. [Core Analysis] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +61,7 @@ process BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX {
     library(subSeq)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     
     # Read hammer.counts (matrix of raw RNA-seq counts)
@@ -96,7 +98,7 @@ process BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX {
     hammer.counts <- as.matrix(hammer.counts)
     
     # -----------------------------------------------------------------------------
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # -----------------------------------------------------------------------------
     
     submatrix = generateSubsampledMatrix(hammer.counts, .1, seed=seed)
@@ -104,7 +106,7 @@ process BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX {
     sum(submatrix)
     
     # -----------------------------------------------------------------------------
-    # 3. Write Outputs
+    # --- Write Outputs ---
     # -----------------------------------------------------------------------------
     
     # Save the generated subsampled matrix

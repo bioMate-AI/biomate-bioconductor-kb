@@ -48,7 +48,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
     library(a4Classif)
     library(Biobase)
     
-    # Stage 1: Load and preprocess input data
+    # --- Load and preprocess input data ---
     message("Loading input datasets...")
     exprs_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     if ("gene_id" %in% colnames(exprs_df)) {
@@ -77,7 +77,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
     phenoData <- new("AnnotatedDataFrame", data = coldata)
     eset <- ExpressionSet(assayData = exprs_matrix, phenoData = phenoData)
     
-    # Stage 2: Lasso Classification
+    # --- Lasso Classification ---
     message("Running Lasso Classification...")
     resultLasso <- tryCatch({
       lassoClass(object = eset, groups = "condition")
@@ -100,7 +100,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
       dev.off()
     }
     
-    # Stage 3: PAM Classification
+    # --- PAM Classification ---
     message("Running PAM Classification...")
     resultPam <- tryCatch({
       pamClass(object = eset, groups = "condition")
@@ -123,7 +123,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
       dev.off()
     }
     
-    # Stage 4: Random Forest Classification
+    # --- Random Forest Classification ---
     message("Running Random Forest Classification...")
     resultRf <- tryCatch({
       rfClass(object = eset, groups = "condition")
@@ -146,7 +146,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
       dev.off()
     }
     
-    # Stage 5: ROC Curve Visualization
+    # --- ROC Curve Visualization ---
     message("Generating ROC Curve...")
     target_gene <- rownames(eset)[1]
     pdf("roc_curve.pdf")

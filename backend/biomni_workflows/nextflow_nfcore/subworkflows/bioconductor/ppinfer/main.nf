@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the network and extract the largest connected component. 2. Compute the regularized Laplacian kernel matrix using net.kernel.
+//  * 1. [Visualization & Output] Load the network and target proteins
+//  * 2. [Visualization & Output] Compute the regularized Laplacian kernel
+//  * 3. [Visualization & Output] Prepare target proteins
+//  * 4. [Visualization & Output] Infer closely related proteins
+//  * 5. [Visualization & Output] Over-Representation Analysis (ORA)
+//  * 6. [Visualization & Output] Gene Set Enrichment Analysis (GSEA)
+//  * 7. [Visualization & Output] Visualize Enrichment Network
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +69,7 @@ process BIOC_PPINFER_CUSTOM_NETWORK_PROTEIN_INFERENCE {
             library(ggplot2)
             
             # ==========================================
-            # 1. Load the network and target proteins
+            # --- Load the network and target proteins ---
             # ==========================================
             
             # Read network.gml (supports GML format or RDS of graphNEL/igraph)
@@ -99,12 +105,12 @@ process BIOC_PPINFER_CUSTOM_NETWORK_PROTEIN_INFERENCE {
             examplePathways <- fgsea::gmtPathways("pathways.gmt")
             
             # ==========================================
-            # 2. Compute the regularized Laplacian kernel
+            # --- Compute the regularized Laplacian kernel ---
             # ==========================================
             K <- net.kernel(sg)
             
             # ==========================================
-            # 3. Prepare target proteins
+            # --- Prepare target proteins ---
             # ==========================================
             gene.names <- V(sg)\$name
             rownames(K) <- gene.names
@@ -125,7 +131,7 @@ process BIOC_PPINFER_CUSTOM_NETWORK_PROTEIN_INFERENCE {
             }
             
             # ==========================================
-            # 4. Infer closely related proteins
+            # --- Infer closely related proteins ---
             # ==========================================
             set.seed(123)
             cv_folds <- min(10, length(myInterestingGenes))
@@ -146,7 +152,7 @@ process BIOC_PPINFER_CUSTOM_NETWORK_PROTEIN_INFERENCE {
             saveRDS(infer, "protein_inference_final.rds")
             
             # ==========================================
-            # 5. Over-Representation Analysis (ORA)
+            # --- Over-Representation Analysis (ORA) ---
             # ==========================================
             result.ORA <- ORA(examplePathways, gene.id[1:10])
             write.csv(result.ORA, "ORA_results.csv", row.names = FALSE)
@@ -160,7 +166,7 @@ process BIOC_PPINFER_CUSTOM_NETWORK_PROTEIN_INFERENCE {
             dev.off()
             
             # ==========================================
-            # 6. Gene Set Enrichment Analysis (GSEA)
+            # --- Gene Set Enrichment Analysis (GSEA) ---
             # ==========================================
             index <- !is.na(infer\$score)
             gene.id <- infer\$top[index]
@@ -184,7 +190,7 @@ process BIOC_PPINFER_CUSTOM_NETWORK_PROTEIN_INFERENCE {
             dev.off()
             
             # ==========================================
-            # 7. Visualize Enrichment Network
+            # --- Visualize Enrichment Network ---
             # ==========================================
             pdf("enrichment_network.pdf", width = 10, height = 10)
             enrich.net(result.GSEA, examplePathways, node.id = 'pathway',

@@ -55,7 +55,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     output_pdf <- "edir_summary_plots.pdf"
     
     # ==========================================
-    # Stage 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -89,7 +89,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     message("Found ", length(genes), " unique gene(s) to query.")
     
     # ==========================================
-    # Stage 2: Query EDIR Database (Tabular & GInteractions)
+    # --- Query EDIR Database (Tabular & GInteractions) ---
     # ==========================================
     results_list <- list()
     interactions_list <- list()
@@ -127,7 +127,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     }
     
     # ==========================================
-    # Stage 3: Process and Save Outputs
+    # --- Process and Save Outputs ---
     # ==========================================
     
     # Save tabular results
@@ -151,7 +151,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     }
     
     # ==========================================
-    # Stage 4: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf(output_pdf, width = 8, height = 6)

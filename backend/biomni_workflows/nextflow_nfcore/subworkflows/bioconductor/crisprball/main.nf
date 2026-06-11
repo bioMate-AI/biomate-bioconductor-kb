@@ -52,7 +52,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     library(htmltools)
     
     # ==========================================
-    # STAGE 1: Defensive Input Ingress & Parsing
+    # --- Defensive Input Ingress & Parsing ---
     # ==========================================
     message("Stage 1: Reading and parsing input data...")
     
@@ -118,7 +118,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Quality Control (QC) Visualization
+    # --- Quality Control (QC) Visualization ---
     # ==========================================
     message("Stage 2: Generating Quality Control plots...")
     
@@ -190,7 +190,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     message("QC plots saved to 'qc_plots.html'.")
     
     # ==========================================
-    # STAGE 3: Gene-Level Summary Generation
+    # --- Gene-Level Summary Generation ---
     # ==========================================
     message("Stage 3: Performing differential abundance analysis to build gene summary...")
     
@@ -239,7 +239,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     message("Gene summary table saved to 'gene_summary.csv'.")
     
     # ==========================================
-    # STAGE 4: Gene-Level Visualization
+    # --- Gene-Level Visualization ---
     # ==========================================
     message("Stage 4: Generating Gene-Level plots...")
     

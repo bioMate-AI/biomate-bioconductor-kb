@@ -50,7 +50,7 @@ process BIOC_MAPREDICTDSC_MAPREDICTDSC_CLASSIFICATION_PIPELINE {
     library(class)
     
     # ==========================================
-    # STAGE 1: Defensive Input Loading & Parsing
+    # --- Defensive Input Loading & Parsing ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -103,7 +103,7 @@ process BIOC_MAPREDICTDSC_MAPREDICTDSC_CLASSIFICATION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 2: Train/Test Splitting & Annotation
+    # --- Train/Test Splitting & Annotation ---
     # ==========================================
     
     samples <- colnames(expr_matrix)
@@ -129,7 +129,7 @@ process BIOC_MAPREDICTDSC_MAPREDICTDSC_CLASSIFICATION_PIPELINE {
     gs <- as.data.frame(gs)
     
     # ==========================================
-    # STAGE 3: Feature Selection (t-test)
+    # --- Feature Selection (t-test) ---
     # ==========================================
     
     train_data <- expr_matrix[, train_samples, drop = FALSE]
@@ -147,7 +147,7 @@ process BIOC_MAPREDICTDSC_MAPREDICTDSC_CLASSIFICATION_PIPELINE {
     message("Selected features for classification: ", paste(selected_features, collapse = ", "))
     
     # ==========================================
-    # STAGE 4: Model Training & Prediction
+    # --- Model Training & Prediction ---
     # ==========================================
     
     x_train <- t(train_data[selected_features, , drop = FALSE])
@@ -197,7 +197,7 @@ process BIOC_MAPREDICTDSC_MAPREDICTDSC_CLASSIFICATION_PIPELINE {
     colnames(knn_prob) <- colnames(gs)
     
     # ==========================================
-    # STAGE 5: Model Aggregation & Evaluation
+    # --- Model Aggregation & Evaluation ---
     # ==========================================
     
     # Structure models for aggregateDSC
@@ -222,7 +222,7 @@ process BIOC_MAPREDICTDSC_MAPREDICTDSC_CLASSIFICATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 6: Exporting Results & Visualization
+    # --- Exporting Results & Visualization ---
     # ==========================================
     
     # Save predictions

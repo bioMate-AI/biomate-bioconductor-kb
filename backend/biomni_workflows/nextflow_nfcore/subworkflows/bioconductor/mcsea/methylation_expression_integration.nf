@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run integration and correlation analysis using mCSEAIntegrate()
+//  * 1. [Core Analysis] GSEA results list from mCSEATest
+//  * 2. [Core Analysis] Matrix of gene expression values (genes as rows, samples
 
 nextflow.enable.dsl = 2
 
@@ -50,10 +51,10 @@ process BIOC_MCSEA_METHYLATION_EXPRESSION_INTEGRATION {
     library(mCSEA)
     
     # Read user input files from the working directory
-    # 1. GSEA results list from mCSEATest
+    # --- GSEA results list from mCSEATest ---
     myResults <- readRDS("mCSEATest_results.rds")
     
-    # 2. Matrix of gene expression values (genes as rows, samples as columns)
+    # --- Matrix of gene expression values (genes as rows, samples ---
     expr_df <- read.table("gene_expression.matrix", header = TRUE, row.names = 1, sep = "", check.names = FALSE)
     exprTest <- as.matrix(expr_df)
     

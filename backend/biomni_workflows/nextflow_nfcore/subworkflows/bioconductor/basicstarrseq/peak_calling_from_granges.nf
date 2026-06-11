@@ -69,20 +69,20 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_GRANGES {
       stop(paste("Required input file missing:", inputFileName))
     }
     
-    # 1. Read BAM files into GRanges objects
+    # --- Read BAM files into GRanges objects ---
     message("Reading alignment pairs from BAM files...")
     starrseqGRanges <- granges(readGAlignmentPairs(starrseqFileName))
     inputGRanges <- granges(readGAlignmentPairs(inputFileName))
     
-    # 2. Initialize STARRseqData object
+    # --- Initialize STARRseqData object ---
     message("Initializing STARRseqData object...")
     data <- STARRseqData(sample=starrseqGRanges, control=inputGRanges)
     
-    # 3. Call peaks using getPeaks
+    # --- Call peaks using getPeaks ---
     message("Calling peaks...")
     peaks <- getPeaks(data)
     
-    # 4. Write output files
+    # --- Write output files ---
     message("Writing results to output files...")
     
     # Save the GRanges object as an RDS file

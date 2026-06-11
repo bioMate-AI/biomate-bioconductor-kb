@@ -51,7 +51,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     library(GenomicRanges)
     
     # ------------------------------------------------------------------------------
-    # Stage 1: Load Input Data and Generate Mock Transcript Sequences
+    # --- Load Input Data and Generate Mock Transcript Sequences ---
     # ------------------------------------------------------------------------------
     message("Stage 1: Loading expression data and generating transcript sequences...")
     
@@ -81,7 +81,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     mcols(seqs)\$ORF.length <- sample(500:800, n_genes, replace = TRUE)
     
     # ------------------------------------------------------------------------------
-    # Stage 2: Construct a Custom KdModel
+    # --- Construct a Custom KdModel ---
     # ------------------------------------------------------------------------------
     message("Stage 2: Constructing custom KdModel...")
     
@@ -93,7 +93,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     kd_model <- getKdModel(kd = kd_data, mirseq = mir_seq, name = "custom-mock-miR")
     
     # ------------------------------------------------------------------------------
-    # Stage 3: Scan Transcripts for miRNA Binding Sites
+    # --- Scan Transcripts for miRNA Binding Sites ---
     # ------------------------------------------------------------------------------
     message("Stage 3: Scanning transcripts for binding sites...")
     
@@ -107,7 +107,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     )
     
     # ------------------------------------------------------------------------------
-    # Stage 4: Aggregate Matches and Predict Repression
+    # --- Aggregate Matches and Predict Repression ---
     # ------------------------------------------------------------------------------
     message("Stage 4: Aggregating matches to predict target repression...")
     
@@ -128,7 +128,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     }
     
     # ------------------------------------------------------------------------------
-    # Stage 5: Integrate with Expression Data and Save Results
+    # --- Integrate with Expression Data and Save Results ---
     # ------------------------------------------------------------------------------
     message("Stage 5: Integrating repression predictions with expression data...")
     
@@ -162,7 +162,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     write.csv(merged_data, "mirna_targets_repression.csv", row.names = FALSE)
     
     # ------------------------------------------------------------------------------
-    # Stage 6: Visualizations and Diagnostics
+    # --- Visualizations and Diagnostics ---
     # ------------------------------------------------------------------------------
     message("Stage 6: Generating diagnostic plots and alignments...")
     

@@ -69,7 +69,7 @@ process BIOC_QSUTILS_GENOTYPING_UNKNOWN_HAPLOTYPES {
       stop(paste("Required input file missing:", refs_filepath))
     }
     
-    # 1. Load target sequence and reference sequences using ReadAmplSeqs
+    # --- Load target sequence and reference sequences using ---
     # (Adapting the documented code to use the local user input files)
     filepath <- target_filepath
     lst2Geno <- ReadAmplSeqs(filepath, type = "DNA")
@@ -87,16 +87,16 @@ process BIOC_QSUTILS_GENOTYPING_UNKNOWN_HAPLOTYPES {
       RefSeqs <- lstRefs\$hseqs
     }
     
-    # 2. Compute distance matrix using DNA.dist from ape
+    # --- Compute distance matrix using DNA.dist from ape ---
     dm <- as.matrix(DNA.dist(c(hseq, RefSeqs), model = "K80"))
     
-    # 3. Extract distances between references and from target to references
+    # --- Extract distances between references and from target to ---
     dgrp <- dm[-1, -1]
     d <- dm[1, -1]
     grp <- factor(substr(rownames(dgrp), 1, 1))
     hr <- as.integer(grp)
     
-    # 4. Classify the target sequence using DBrule
+    # --- Classify the target sequence using DBrule ---
     dsc <- DBrule(dgrp, hr, d, levels(grp))
     
     # Save meaningful results to output files

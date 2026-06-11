@@ -49,7 +49,7 @@ process BIOC_ALABASTER_BASE_ALABASTER_OBJECT_SERIALIZATION {
     library(alabaster.base)
     
     # ==========================================
-    # STAGE 1: Defensive Input Reading & Parsing
+    # --- Defensive Input Reading & Parsing ---
     # ==========================================
     
     input_file <- "input.csv"
@@ -100,7 +100,7 @@ process BIOC_ALABASTER_BASE_ALABASTER_OBJECT_SERIALIZATION {
     }
     
     # ==========================================
-    # STAGE 2: Construct the S4 DataFrame Object
+    # --- Construct the S4 DataFrame Object ---
     # ==========================================
     
     message("Constructing S4 DataFrame object...")
@@ -140,7 +140,7 @@ process BIOC_ALABASTER_BASE_ALABASTER_OBJECT_SERIALIZATION {
     }
     
     # ==========================================
-    # STAGE 3: Serialize Object using Alabaster
+    # --- Serialize Object using Alabaster ---
     # ==========================================
     
     save_dir <- "alabaster_data_store"
@@ -153,7 +153,7 @@ process BIOC_ALABASTER_BASE_ALABASTER_OBJECT_SERIALIZATION {
     alabaster.base::saveObject(df_s4, save_dir)
     
     # ==========================================
-    # STAGE 4: Deserialize and Validate Object
+    # --- Deserialize and Validate Object ---
     # ==========================================
     
     message("Reading S4 object back from disk...")
@@ -173,7 +173,7 @@ process BIOC_ALABASTER_BASE_ALABASTER_OBJECT_SERIALIZATION {
     }
     
     # ==========================================
-    # STAGE 5: Downstream Analysis & Outputs
+    # --- Downstream Analysis & Outputs ---
     # ==========================================
     
     message("Generating final outputs...")

@@ -68,7 +68,7 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
     }
     
     # ==========================================
-    # Step 1: Construct bin-level files
+    # --- Construct bin-level files ---
     # ==========================================
     message("Constructing bin-level files...")
     constructBins( infile=chip_file, 
@@ -82,7 +82,7 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
         PET=FALSE, fragLen=200, binSize=200, capping=0 )
     
     # ==========================================
-    # Step 2: Read bin-level data
+    # --- Read bin-level data ---
     # ==========================================
     message("Reading bin-level data...")
     fileName <- c(
@@ -98,7 +98,7 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
     dev.off()
     
     # ==========================================
-    # Step 3: Fit initial MOSAiCS model
+    # --- Fit initial MOSAiCS model ---
     # ==========================================
     message("Fitting initial MOSAiCS model...")
     fitHM <- mosaicsFit( binHM, analysisType="IO", bgEst="rMOM" )
@@ -109,7 +109,7 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
     dev.off()
     
     # ==========================================
-    # Step 4: Fit MOSAiCS-HMM model
+    # --- Fit MOSAiCS-HMM model ---
     # ==========================================
     message("Fitting MOSAiCS-HMM model...")
     hmmHM <- mosaicsFitHMM( fitHM, signalModel = "2S", 
@@ -121,14 +121,14 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
     dev.off()
     
     # ==========================================
-    # Step 5: Call peaks using HMM
+    # --- Call peaks using HMM ---
     # ==========================================
     message("Calling peaks using HMM...")
     peakHM <- mosaicsPeakHMM( hmmHM, FDR = 0.05, decoding="posterior",
       thres=10, parallel=FALSE, nCore=8 )
     
     # ==========================================
-    # Step 6: Extract read-level data
+    # --- Extract read-level data ---
     # ==========================================
     message("Extracting read-level data...")
     peakHM <- extractReads( peakHM,
@@ -138,19 +138,19 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
       controlFileFormat="bam", controlPET=FALSE, controlFragLen=200, parallel=FALSE, nCore=8 )
     
     # ==========================================
-    # Step 7: Find peak summits
+    # --- Find peak summits ---
     # ==========================================
     message("Finding peak summits...")
     peakHM <- findSummit( peakHM, parallel=FALSE, nCore=8 )
     
     # ==========================================
-    # Step 8: Adjust peak boundaries
+    # --- Adjust peak boundaries ---
     # ==========================================
     message("Adjusting peak boundaries...")
     peakHM <- adjustBoundary( peakHM, parallel=FALSE, nCore=8 )
     
     # ==========================================
-    # Step 9: Filter peaks
+    # --- Filter peaks ---
     # ==========================================
     message("Filtering peaks...")
     peakHM <- filterPeak( peakHM, parallel=FALSE, nCore=8 )

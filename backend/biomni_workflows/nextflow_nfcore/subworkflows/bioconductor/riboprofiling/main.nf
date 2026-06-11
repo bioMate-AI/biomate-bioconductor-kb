@@ -54,7 +54,7 @@ process BIOC_RIBOPROFILING_RIBOPROFILING_ANALYSIS {
     library(S4Vectors)
     
     # ---------------------------------------------------------
-    # Stage 1: Load Input Data and Metadata
+    # --- Load Input Data and Metadata ---
     # ---------------------------------------------------------
     message("Stage 1: Loading input data...")
     
@@ -86,7 +86,7 @@ process BIOC_RIBOPROFILING_RIBOPROFILING_ANALYSIS {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Build Annotation Features (CDS, 5'UTR, 3'UTR)
+    # --- Build Annotation Features (CDS, 5'UTR, 3'UTR) ---
     # ---------------------------------------------------------
     message("Stage 2: Building annotation features...")
     
@@ -139,7 +139,7 @@ process BIOC_RIBOPROFILING_RIBOPROFILING_ANALYSIS {
     names(dummy_seqs) <- chroms
     
     # ---------------------------------------------------------
-    # Stage 3: Quality Control, Recalibration, and Counting
+    # --- Quality Control, Recalibration, and Counting ---
     # ---------------------------------------------------------
     message("Stage 3: Running RiboProfiling pipeline per sample...")
     
@@ -213,7 +213,7 @@ process BIOC_RIBOPROFILING_RIBOPROFILING_ANALYSIS {
     }
     
     # ---------------------------------------------------------
-    # Stage 4: Exporting Tables and Generating Diagnostics
+    # --- Exporting Tables and Generating Diagnostics ---
     # ---------------------------------------------------------
     message("Stage 4: Exporting results and generating diagnostic plots...")
     

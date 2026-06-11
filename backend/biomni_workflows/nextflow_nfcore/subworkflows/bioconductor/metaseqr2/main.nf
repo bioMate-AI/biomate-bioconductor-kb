@@ -52,7 +52,7 @@ process BIOC_METASEQR2_RNA_SEQ_PIPELINE {
       }
     }
     
-    # 1. Set random seed for reproducible downsampling in plots
+    # --- Set random seed for reproducible downsampling in plots ---
     set.seed(42)
     
     # Load required library
@@ -63,7 +63,7 @@ process BIOC_METASEQR2_RNA_SEQ_PIPELINE {
     sampleListMm9 <- readRDS("sampleListMm9.rds")
     libsizeListMm9 <- readRDS("libsizeListMm9.rds")
     
-    # 2. Run the main pipeline function metaseqr2 with specified normalization, 
+    # --- Run the main pipeline function metaseqr2 with specified ---
     # statistical algorithms, filtering, and output directory.
     result <- metaseqr2(
         counts=mm9GeneCounts,
@@ -114,11 +114,11 @@ process BIOC_METASEQR2_RNA_SEQ_PIPELINE {
         outList=TRUE
     )
     
-    # 3. Inspect the resulting differential expression data
+    # --- Inspect the resulting differential expression data ---
     de_results <- result[["data"]][["adult_8_weeks_vs_e14.5"]]
     print(head(de_results))
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete result object
     saveRDS(result, "metaseqr2_pipeline_result.rds")
     

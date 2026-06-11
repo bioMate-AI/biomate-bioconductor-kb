@@ -47,7 +47,7 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     library(BrowserViz)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Read and Parse Input Data Defensively
+    # --- Read and Parse Input Data Defensively ---
     # ----------------------------------------------------------------------
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -101,7 +101,7 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     write.csv(summary_df, "summary_stats.csv", row.names = FALSE)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Create a Custom HTML/JS Client for BrowserViz
+    # --- Create a Custom HTML/JS Client for BrowserViz ---
     # ----------------------------------------------------------------------
     # We dynamically generate a lightweight HTML/JS client that implements
     # the BrowserViz WebSocket protocol to handle standard commands.
@@ -184,7 +184,7 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     writeLines(html_content, html_file)
     
     # ----------------------------------------------------------------------
-    # Stage 3: Initialize BrowserViz and Run Interactive Session
+    # --- Initialize BrowserViz and Run Interactive Session ---
     # ----------------------------------------------------------------------
     session_log <- c(
       "BrowserViz Session Log",

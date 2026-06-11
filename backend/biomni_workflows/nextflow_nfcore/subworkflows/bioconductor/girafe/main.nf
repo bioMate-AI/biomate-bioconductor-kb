@@ -44,14 +44,14 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
           }
         }
     
-    # Stage 1: Load Required Libraries
+    # --- Load Required Libraries ---
     library(girafe)
     library(genomeIntervals)
     library(rtracklayer)
     library(S4Vectors)
     library(GenomicRanges)
     
-    # Stage 2: Import Input Data
+    # --- Import Input Data ---
     message("Stage 2: Importing input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' not found in the working directory.")
@@ -68,7 +68,7 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
       message("Optional coldata.csv not found. Proceeding with default settings.")
     }
     
-    # Stage 3: Construct AlignedGenomeIntervals Object
+    # --- Construct AlignedGenomeIntervals Object ---
     message("Stage 3: Constructing AlignedGenomeIntervals object...")
     
     # Extract fields for GenomeIntervals construction
@@ -107,12 +107,12 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
                reads = reads,
                char_id = char_id)
     
-    # Stage 4: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     message("Stage 4: Filtering low-abundance intervals...")
     min_reads <- 1
     agi_filtered <- agi[reads(agi) >= min_reads]
     
-    # Stage 5: Core Analysis - Interval Reduction & Merging
+    # --- Core Analysis - Interval Reduction & Merging ---
     message("Stage 5: Merging overlapping intervals and summing read counts...")
     agi_reduced <- reduce(agi_filtered)
     
@@ -135,7 +135,7 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
     write.csv(reduced_df, "reduced_intervals.csv", row.names = FALSE)
     message("Saved reduced intervals to 'reduced_intervals.csv'.")
     
-    # Stage 6: Coverage Calculation & Export
+    # --- Coverage Calculation & Export ---
     message("Stage 6: Calculating genome-wide coverage...")
     cov <- coverage(agi_filtered)
     
@@ -169,7 +169,7 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
       message("No coverage detected. Created empty 'coverage.bedGraph'.")
     }
     
-    # Stage 7: Diagnostics & Visualization
+    # --- Diagnostics & Visualization ---
     message("Stage 7: Generating diagnostic plots...")
     pdf("analysis_plots.pdf", width = 8, height = 10)
     par(mfrow = c(3, 1))

@@ -50,7 +50,7 @@ process BIOC_COMPOUNDDB_METABOLOMICS_COMPOUND_DB_ANNOTATION {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read intensity matrix and sample metadata
@@ -70,7 +70,7 @@ process BIOC_COMPOUNDDB_METABOLOMICS_COMPOUND_DB_ANNOTATION {
     message("Loaded ", length(feature_ids), " features and ", ncol(intensity_matrix), " samples.")
     
     # ==========================================
-    # STAGE 2: Generate Custom Compound Annotations
+    # --- Generate Custom Compound Annotations ---
     # ==========================================
     
     # Generate deterministic mock chemical formulas and exact masses for the features
@@ -103,7 +103,7 @@ process BIOC_COMPOUNDDB_METABOLOMICS_COMPOUND_DB_ANNOTATION {
     )
     
     # ==========================================
-    # STAGE 3: Build CompDb and IonDb Databases
+    # --- Build CompDb and IonDb Databases ---
     # ==========================================
     
     # Initialize an empty SQLite database file
@@ -138,7 +138,7 @@ process BIOC_COMPOUNDDB_METABOLOMICS_COMPOUND_DB_ANNOTATION {
     idb <- insertIon(idb, ion_df)
     
     # ==========================================
-    # STAGE 4: Query Database and Annotate Features
+    # --- Query Database and Annotate Features ---
     # ==========================================
     
     # Retrieve full ion and compound annotations from the IonDb
@@ -151,7 +151,7 @@ process BIOC_COMPOUNDDB_METABOLOMICS_COMPOUND_DB_ANNOTATION {
     merged_data <- merge(annotated_ions, intensity_df, by.x = "name", by.y = "feature_id")
     
     # ==========================================
-    # STAGE 5: Downstream Group Comparison
+    # --- Downstream Group Comparison ---
     # ==========================================
     
     # Perform simple group comparison if condition metadata is available
@@ -178,7 +178,7 @@ process BIOC_COMPOUNDDB_METABOLOMICS_COMPOUND_DB_ANNOTATION {
     }
     
     # ==========================================
-    # STAGE 6: Export Outputs and Visualization
+    # --- Export Outputs and Visualization ---
     # ==========================================
     
     # Write the annotated intensity table

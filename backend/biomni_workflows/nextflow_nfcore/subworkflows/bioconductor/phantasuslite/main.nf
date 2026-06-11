@@ -47,7 +47,7 @@ process BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE {
     library(Biobase)
     library(phantasusLite)
     
-    # Stage 1: Load input data
+    # --- Load input data ---
     counts_df <- read.csv("counts.csv", check.names = FALSE)
     rownames(counts_df) <- counts_df\$gene_id
     counts_df\$gene_id <- NULL
@@ -61,7 +61,7 @@ process BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE {
     counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, , drop = FALSE]
     
-    # Stage 2: Prepare ExpressionSet with structured titles for condition inference
+    # --- Prepare ExpressionSet with structured titles for ---
     # To demonstrate inferCondition, we construct structured titles (e.g., "Condition_Replicate")
     cond_groups <- split(coldata\$sample, coldata\$condition)
     replicate_indices <- unsplit(lapply(cond_groups, seq_along), coldata\$condition)
@@ -70,18 +70,18 @@ process BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE {
     pheno_data <- AnnotatedDataFrame(coldata)
     es <- ExpressionSet(assayData = counts_matrix, phenoData = pheno_data)
     
-    # Stage 3: Infer conditions and replicates
+    # --- Infer conditions and replicates ---
     # This automatically parses es\$title to populate es\$condition and es\$replicate
     es <- inferCondition(es)
     
-    # Stage 4: Export to GCT format
+    # --- Export to GCT format ---
     gct_file <- "expression_matrix.gct"
     writeGct(es, gct_file)
     
-    # Stage 5: Import back from GCT format to verify integrity
+    # --- Import back from GCT format to verify integrity ---
     es_imported <- readGct(gct_file)
     
-    # Stage 6: Save outputs
+    # --- Save outputs ---
     inferred_metadata <- pData(es_imported)
     write.csv(inferred_metadata, "inferred_metadata.csv", row.names = TRUE)
     

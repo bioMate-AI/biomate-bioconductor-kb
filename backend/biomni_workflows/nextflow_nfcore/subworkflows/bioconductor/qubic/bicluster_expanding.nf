@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the QUBIC algorithm with the seedbicluster parameter and consistency level f
+//  * 1. [Core Analysis] Read User Inputs
+//  * 2. [Core Analysis] Run the QUBIC algorithm with the seedbicluster parameter
+//  * 3. [Core Analysis] Write Named Output Files
 
 nextflow.enable.dsl = 2
 
@@ -49,7 +51,7 @@ process BIOC_QUBIC_BICLUSTER_EXPANDING {
         # Load the required QUBIC package
         library(QUBIC)
         
-        # 1. Read User Inputs
+        # --- Read User Inputs ---
         if (!file.exists("expression_matrix.csv")) {
           stop("Error: 'expression_matrix.csv' not found in the working directory.")
         }
@@ -64,12 +66,12 @@ process BIOC_QUBIC_BICLUSTER_EXPANDING {
         # Read the existing QUBICBiclustResult object
         res <- readRDS("existing_biclusters.rds")
         
-        # 2. Run the QUBIC algorithm with the seedbicluster parameter and consistency level f
+        # --- Run the QUBIC algorithm with the seedbicluster parameter ---
         # (This matches the documented vignette code exactly)
         res5 <- qubiclust(x = ecoli, seedbicluster = res, f = 0.25, verbose = FALSE)
         summary(res5)
         
-        # 3. Write Named Output Files
+        # --- Write Named Output Files ---
         # Save the complete expanded bicluster result object
         saveRDS(res5, "expanded_biclusters.rds")
         

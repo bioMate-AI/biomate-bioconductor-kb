@@ -49,7 +49,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     library(rtracklayer)
     library(GenomicRanges)
     
-    # Stage 1: Import and Parse Input Data
+    # --- Import and Parse Input Data ---
     message("Loading input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
@@ -78,7 +78,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
       message("Loaded coldata.csv with ", nrow(coldata), " rows.")
     }
     
-    # Stage 2: Cluster CpGs into Regions
+    # --- Cluster CpGs into Regions ---
     message("Clustering CpGs into regions...")
     min_cpg <- 3
     max_gap <- 750
@@ -93,7 +93,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     )
     message(paste("Created", length(regions), "CpG clusters/regions."))
     
-    # Stage 3: Estimate Window Thresholds
+    # --- Estimate Window Thresholds ---
     n_cpg <- sum(sapply(regions, length))
     message(paste("Total CpGs in clusters:", n_cpg))
     
@@ -126,7 +126,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
       return(NULL)
     })
     
-    # Stage 4: Run DMRScan
+    # --- Run DMRScan ---
     run_dmrscan <- function(regions, window_sizes, thresholds, method_name) {
       if (is.null(thresholds)) {
         message(paste("Skipping DMRScan for", method_name, "due to missing thresholds."))
@@ -148,7 +148,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     results_sampling <- run_dmrscan(regions, window_sizes, thresholds_sampling, "sampling")
     results_siegmund <- run_dmrscan(regions, window_sizes, thresholds_siegmund, "siegmund")
     
-    # Stage 5: Export Results
+    # --- Export Results ---
     write_results <- function(gr_res, filename) {
       if (length(gr_res) > 0) {
         df <- as.data.frame(gr_res)
@@ -174,7 +174,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     write_results(results_sampling, "dmrscan_results_sampling.csv")
     write_results(results_siegmund, "dmrscan_results_siegmund.csv")
     
-    # Stage 6: Visualization / Diagnostics
+    # --- Visualization / Diagnostics ---
     pdf("dmr_report.pdf", width = 8, height = 6)
     op <- par(mfrow = c(2, 1))
     

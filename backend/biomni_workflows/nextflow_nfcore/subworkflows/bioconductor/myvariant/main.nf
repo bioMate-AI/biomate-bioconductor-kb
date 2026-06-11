@@ -49,7 +49,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
     library(VariantAnnotation)
     library(S4Vectors)
     
-    # Stage 1: Read input VCF
+    # --- Read input VCF ---
     message("Reading input VCF file...")
     vcf_file <- "input.vcf"
     if (!file.exists(vcf_file)) {
@@ -60,7 +60,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
     vcf <- readVcf(vcf_file, genome="hg19")
     message(sprintf("Successfully loaded VCF with %d variants.", nrow(vcf)))
     
-    # Stage 2: Format HGVS IDs
+    # --- Format HGVS IDs ---
     message("Formatting HGVS IDs...")
     hgvs_snps <- tryCatch({
       formatHgvs(vcf, variant_type="snp")
@@ -95,7 +95,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       return(df_std)
     }
     
-    # Stage 3: Retrieve Annotations via HGVS (getVariants)
+    # --- Retrieve Annotations via HGVS (getVariants) ---
     ann_df <- data.frame()
     if (length(all_hgvs) > 0) {
       message("Querying MyVariant.info using HGVS IDs...")
@@ -113,7 +113,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 4: Query via rsIDs (queryVariants)
+    # --- Query via rsIDs (queryVariants) ---
     rs_df <- data.frame()
     rsids <- c()
     if (!is.null(names(rowRanges(vcf)))) {
@@ -141,7 +141,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 5: Write Outputs
+    # --- Write Outputs ---
     message("Writing output CSV files...")
     if (nrow(ann_df) > 0) {
       write.csv(ann_df, "hgvs_annotations.csv", row.names=FALSE)
@@ -155,7 +155,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       write.csv(data.frame(Warning="No rsID annotations retrieved"), "rsid_annotations.csv", row.names=FALSE)
     }
     
-    # Stage 6: Generate Visualizations
+    # --- Generate Visualizations ---
     message("Generating summary PDF...")
     pdf("variant_summary.pdf", width=10, height=6)
     par(mfrow=c(1, 2))

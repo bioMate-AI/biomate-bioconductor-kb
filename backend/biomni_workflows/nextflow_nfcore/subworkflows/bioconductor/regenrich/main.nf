@@ -105,19 +105,19 @@ process BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS {
     
     message("Stage 4: Running the RegEnrich pipeline...")
     
-    # 1. Differential expression analysis
+    # --- Differential expression analysis ---
     message("Step 4.1: Running differential expression analysis...")
     object <- regenrich_diffExpr(object)
     
-    # 2. Regulator-target network inference
+    # --- Regulator-target network inference ---
     message("Step 4.2: Inferring regulator-target network...")
     object <- regenrich_network(object)
     
-    # 3. Enrichment analysis
+    # --- Enrichment analysis ---
     message("Step 4.3: Performing enrichment analysis...")
     object <- regenrich_enrich(object)
     
-    # 4. Regulator scoring and ranking
+    # --- Regulator scoring and ranking ---
     message("Step 4.4: Scoring and ranking regulators...")
     object <- regenrich_rankScore(object)
     

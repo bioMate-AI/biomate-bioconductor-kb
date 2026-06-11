@@ -61,10 +61,10 @@ process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {
     # - barcodes.tsv
     dir <- "."
     
-    # 1. Read 10x Genomics data to create an scNMFSet object
+    # --- Read 10x Genomics data to create an scNMFSet object ---
     sc <- read_10x(dir = dir, count = 'matrix.mtx', genes = 'genes.tsv', barcodes = 'barcodes.tsv')
     
-    # 2. Filter cells based on UMI count thresholds
+    # --- Filter cells based on UMI count thresholds ---
     # Capture any diagnostic plots generated during filtering
     pdf("qc_cell_filtering.pdf")
     sc <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
@@ -74,7 +74,7 @@ process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {
     markers <- c('CD4','CD8A','CD8B','CD19','CD3G','CD3D',
                  'CD3Z','CD14')
     
-    # 3. Filter genes with rescue of genes with modes at nonzero counts
+    # --- Filter genes with rescue of genes with modes at nonzero ---
     pdf("qc_gene_filtering.pdf")
     sc_rescue <- filter_genes(sc, markers = markers, vmr.min = 1.5, min.cells.expressed = 50,
                               rescue.genes = TRUE, progress.bar = FALSE)
@@ -84,11 +84,11 @@ process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {
     rownames(sc_rescue) <- rowData(sc_rescue)[,2]
     sb <- sc_rescue
     
-    # 4. Perform Bayesian NMF factorization across a range of ranks
+    # --- Perform Bayesian NMF factorization across a range of ranks ---
     set.seed(42) # Ensure reproducibility
     sb <- vb_factorize(sb, ranks = seq(2,7), nrun = 5, verbose = 1, Tol = 1e-4, progress.bar = FALSE)
     
-    # 5. Determine the optimal rank using marginal likelihood (evidence)
+    # --- Determine the optimal rank using marginal likelihood ---
     measures_df <- measure(sb)
     write.csv(measures_df, "bayesian_nmf_measures.csv", row.names = FALSE)
     
@@ -99,7 +99,7 @@ process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {
     opt_rank <- optimal_rank(sb)
     saveRDS(opt_rank, "optimal_rank.rds")
     
-    # 6. Visualize basis (feature) and coefficient (cell) maps
+    # --- Visualize basis (feature) and coefficient (cell) maps ---
     pdf("feature_map.pdf")
     feature_map(sb, markers = markers, rank = 5, max.per.cluster = 4, gene.name = rowData(sb)[,2],
              cexRow = 0.7)
@@ -114,12 +114,12 @@ process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {
     cell_map(sb, rank = 5)
     dev.off()
     
-    # 7. Visualize clusters using t-SNE
+    # --- Visualize clusters using t-SNE ---
     pdf("visualize_clusters.pdf")
     visualize_clusters(sb, rank = 5, cex = 0.7)
     dev.off()
     
-    # 8. Build and plot a hierarchical tree of clusters across ranks
+    # --- Build and plot a hierarchical tree of clusters across ---
     tree <- build_tree(sb, rmax = 5)
     tree <- rename_tips(tree, rank = 5, tip.labels = cell_type)
     

@@ -68,7 +68,7 @@ process BIOC_NGSREPORTS_NGS_LOG_FILE_IMPORT_AND_VISUALIZATION {
     quastLog        <- "quast_log.tsv"
     
     # ==========================================
-    # STAGE 1: Import log files using importNgsLogs()
+    # --- Import log files using importNgsLogs() ---
     # ==========================================
     
     # 1. Import Trimmomatic log
@@ -93,7 +93,7 @@ process BIOC_NGSREPORTS_NGS_LOG_FILE_IMPORT_AND_VISUALIZATION {
     
     
     # ==========================================
-    # STAGE 2: Plot alignment summaries using plotAlignmentSummary()
+    # --- Plot alignment summaries using plotAlignmentSummary() ---
     # ==========================================
     
     # 1. Plot Bowtie alignment summary
@@ -106,7 +106,7 @@ process BIOC_NGSREPORTS_NGS_LOG_FILE_IMPORT_AND_VISUALIZATION {
     
     
     # ==========================================
-    # STAGE 3: Plot assembly statistics using plotAssemblyStats()
+    # --- Plot assembly statistics using plotAssemblyStats() ---
     # ==========================================
     
     # 1. Plot BUSCO assembly completeness

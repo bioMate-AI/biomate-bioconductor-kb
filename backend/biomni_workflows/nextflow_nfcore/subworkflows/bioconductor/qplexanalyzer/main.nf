@@ -51,7 +51,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     library(limma)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ---------------------------------------------------------
     
     # Read input files
@@ -100,7 +100,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     exprs(MSnset_data) <- exprs(MSnset_data) + 1.01
     
     # ---------------------------------------------------------
-    # Stage 2: Quality Control Visualizations
+    # --- Quality Control Visualizations ---
     # ---------------------------------------------------------
     
     pdf("qc_plots.pdf", width = 8, height = 6)
@@ -116,7 +116,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 3: Data Normalization
+    # --- Data Normalization ---
     # ---------------------------------------------------------
     
     message("Normalizing data...")
@@ -131,7 +131,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     }
     
     # ---------------------------------------------------------
-    # Stage 4: Aggregation of Peptides to Proteins
+    # --- Aggregation of Peptides to Proteins ---
     # ---------------------------------------------------------
     
     message("Aggregating peptide intensities to protein level...")
@@ -158,7 +158,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 5: Optional Regression Analysis (for qPLEX-RIME)
+    # --- Optional Regression Analysis (for qPLEX-RIME) ---
     # ---------------------------------------------------------
     
     if ("IgG" %in% pData(MSnset_Pnorm)\$SampleGroup) {
@@ -176,7 +176,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     }
     
     # ---------------------------------------------------------
-    # Stage 6: Differential Statistical Analysis
+    # --- Differential Statistical Analysis ---
     # ---------------------------------------------------------
     
     message("Performing differential statistical analysis...")

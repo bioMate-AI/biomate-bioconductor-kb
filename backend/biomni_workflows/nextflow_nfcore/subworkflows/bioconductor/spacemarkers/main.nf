@@ -53,7 +53,7 @@ process BIOC_SPACEMARKERS_SPACE_MARKERS_ANALYSIS {
     library(viridis)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -88,7 +88,7 @@ process BIOC_SPACEMARKERS_SPACE_MARKERS_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Generate Spatial Patterns & Reconstruction
+    # --- Generate Spatial Patterns & Reconstruction ---
     # ==========================================
     message("Stage 2: Generating spatial patterns and reconstruction matrix...")
     
@@ -146,7 +146,7 @@ process BIOC_SPACEMARKERS_SPACE_MARKERS_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 3: Execute SpaceMarkers Analysis
+    # --- Execute SpaceMarkers Analysis ---
     # ==========================================
     message("Stage 3: Running SpaceMarkers analyses...")
     
@@ -196,7 +196,7 @@ process BIOC_SPACEMARKERS_SPACE_MARKERS_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 4: Export Results
+    # --- Export Results ---
     # ==========================================
     message("Stage 4: Exporting results to CSV...")
     
@@ -216,7 +216,7 @@ process BIOC_SPACEMARKERS_SPACE_MARKERS_ANALYSIS {
     write.csv(enrich_table, "interacting_genes_enrichment.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic and spatial plots...")
     

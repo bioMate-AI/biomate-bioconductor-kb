@@ -50,7 +50,7 @@ process BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE {
     library(doParallel)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing data...")
     
@@ -90,7 +90,7 @@ process BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE {
     message(paste("Processing", ncol(data_subset), "genes across", n_samples, "samples with cut =", cut_val))
     
     # ==========================================
-    # Stage 2: Screen Triplets using fastMLA
+    # --- Screen Triplets using fastMLA ---
     # ==========================================
     message("Stage 2: Screening triplets with fastMLA...")
     
@@ -118,7 +118,7 @@ process BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 3: Significance Testing via CNM
+    # --- Significance Testing via CNM ---
     # ==========================================
     message("Stage 3: Testing significance with mass.CNM...")
     
@@ -144,7 +144,7 @@ process BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Robust Bootstrap Estimation
+    # --- Robust Bootstrap Estimation ---
     # ==========================================
     message("Stage 4: Running robust bootstrap estimation for complex triplets...")
     
@@ -181,7 +181,7 @@ process BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 5: Visualization of Top Triplet
+    # --- Visualization of Top Triplet ---
     # ==========================================
     message("Stage 5: Generating liquid association diagnostic plots...")
     

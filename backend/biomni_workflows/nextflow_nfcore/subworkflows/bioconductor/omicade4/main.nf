@@ -48,7 +48,7 @@ process BIOC_OMICADE4_OMICADE4_MULTI_OMICS_INTEGRATION {
     library(omicade4)
     
     # ==========================================
-    # STAGE 1: Defensive Input Loading & Parsing
+    # --- Defensive Input Loading & Parsing ---
     # ==========================================
     
     input_file <- "input.csv"
@@ -71,7 +71,7 @@ process BIOC_OMICADE4_OMICADE4_MULTI_OMICS_INTEGRATION {
     }
     
     # ==========================================================
-    # STAGE 2: Multi-Omics Layer Simulation / Splitting (QC)
+    # --- Multi-Omics Layer Simulation / Splitting (QC) ---
     # ==========================================================
     
     # MCIA requires multiple datasets (list of data frames) with identical columns (samples).
@@ -138,7 +138,7 @@ process BIOC_OMICADE4_OMICADE4_MULTI_OMICS_INTEGRATION {
     }
     
     # ==========================================
-    # STAGE 3: Multiple Co-inertia Analysis (MCIA)
+    # --- Multiple Co-inertia Analysis (MCIA) ---
     # ==========================================
     
     message("Performing Multiple Co-inertia Analysis (MCIA)...")
@@ -151,7 +151,7 @@ process BIOC_OMICADE4_OMICADE4_MULTI_OMICS_INTEGRATION {
     print(class(mcoin))
     
     # ==========================================
-    # STAGE 4: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     message("Generating MCIA diagnostic plots...")
@@ -167,7 +167,7 @@ process BIOC_OMICADE4_OMICADE4_MULTI_OMICS_INTEGRATION {
     dev.off()
     
     # ==========================================
-    # STAGE 5: Feature Selection & Export
+    # --- Feature Selection & Export ---
     # ==========================================
     
     message("Selecting highly covariant features...")

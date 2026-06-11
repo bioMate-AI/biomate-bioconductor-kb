@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data and phenotype factor. 2. Define a collection of gene sets using GeneSetCollection. 3. Run npGSEA on the colle
+//  * 1. [Visualization & Output] Load expression data and phenotype factor
+//  * 2. [Visualization & Output] Define a collection of gene sets using GeneSetCollection
+//  * 3. [Visualization & Output] Run npGSEA on the collection to obtain a
+//  * 4. [Visualization & Output] Extract statistics and p-values across all sets using
+//  * 5. [Visualization & Output] Adjust p-values for multiple testing and publish results
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +56,7 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
         library(npGSEA)
         library(ReportingTools)
         
-        # 1. Load expression data and phenotype factor
+        # --- Load expression data and phenotype factor ---
         if (!file.exists("expression_matrix.csv")) {
           stop("Error: 'expression_matrix.csv' not found in the working directory.")
         }
@@ -84,13 +88,13 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
         # Construct the ExpressionSet object named 'ALL' to match documented code
         ALL <- ExpressionSet(exprs = expr_mat, phenoData = AnnotatedDataFrame(pheno_data))
         
-        # 2. Define a collection of gene sets using GeneSetCollection
+        # --- Define a collection of gene sets using GeneSetCollection ---
         gsc <- getGmt("gene_sets.gmt")
         
-        # 3. Run npGSEA on the collection to obtain a npGSEAResultNormCollection
+        # --- Run npGSEA on the collection to obtain a ---
         resgsc_norm <- npGSEA(x = ALL, y = yFactor, set = gsc)  
         
-        # 4. Extract statistics and p-values across all sets using unlisted accessors
+        # --- Extract statistics and p-values across all sets using ---
         p_left_vals <- unlist( pLeft(resgsc_norm) )
         stat_vals   <- unlist( stat (resgsc_norm) )
         z_stat_vals <- unlist( zStat (resgsc_norm) )
@@ -111,7 +115,7 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
         # Save the raw collection object
         saveRDS(resgsc_norm, "npgsea_results.rds")
         
-        # 5. Adjust p-values for multiple testing and publish results to an HTML report
+        # --- Adjust p-values for multiple testing and publish results ---
         npgseaReport <- HTMLReport (shortName = "npGSEA",
                 title = "npGSEA Results", reportDirectory = "./reports")
         publish(gsc, npgseaReport,

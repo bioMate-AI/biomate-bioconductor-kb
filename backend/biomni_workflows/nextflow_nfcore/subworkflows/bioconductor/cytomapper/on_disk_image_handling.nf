@@ -55,16 +55,16 @@ process BIOC_CYTOMAPPER_ON_DISK_IMAGE_HANDLING {
     library(HDF5Array)
     library(cytomapper)
     
-    # 1. Initialize a temporary or permanent directory for HDF5 files
+    # --- Initialize a temporary or permanent directory for HDF5 ---
     cur_dir <- getHDF5DumpDir()
     
     # Define path to user input files
     path.to.images <- "."
     
-    # 2. Load images directly to disk using loadImages with on_disk = TRUE and h5FilesPath
+    # --- Load images directly to disk using loadImages with ---
     image.list <- loadImages(path.to.images, pattern = "large_segmentation_masks.tiff", on_disk = TRUE, h5FilesPath = cur_dir)
     
-    # 3. Scale on-disk images using scaleImages
+    # --- Scale on-disk images using scaleImages ---
     image.list <- scaleImages(image.list, value = 2^16 - 1)
     
     # Load the user's multi-channel images in-memory first to replace the demo data() call
@@ -80,16 +80,16 @@ process BIOC_CYTOMAPPER_ON_DISK_IMAGE_HANDLING {
     num_channels <- get_channel_count(pancreasImages)
     channelNames(pancreasImages) <- paste0("CH", 1:num_channels)
     
-    # 4. Convert existing in-memory CytoImageList objects to on-disk representation using CytoImageList
+    # --- Convert existing in-memory CytoImageList objects to ---
     pancreasImages_onDisk <- CytoImageList(pancreasImages, on_disk = TRUE, h5FilesPath = cur_dir)
     
-    # 5. Convert on-disk CytoImageList objects back to in-memory representation if needed
+    # --- Convert on-disk CytoImageList objects back to in-memory ---
     pancreasImages_inMemory <- CytoImageList(pancreasImages_onDisk, on_disk = FALSE)
     
-    # 6. Normalize on-disk images using normalize
+    # --- Normalize on-disk images using normalize ---
     pancreasImages_norm <- normalize(pancreasImages_onDisk)
     
-    # 7. Merge channels on-disk using mergeChannels
+    # --- Merge channels on-disk using mergeChannels ---
     channels1 <- getChannels(pancreasImages_onDisk, 1:2)
     channels2 <- getChannels(pancreasImages_onDisk, 3:4)
     dir.create(file.path(cur_dir, "test"), showWarnings = FALSE)

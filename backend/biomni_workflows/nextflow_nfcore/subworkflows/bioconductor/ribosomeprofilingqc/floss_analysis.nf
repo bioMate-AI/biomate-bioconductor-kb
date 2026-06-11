@@ -71,7 +71,7 @@ process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
     # Define the read lengths to analyze (typically 20 to 34 nucleotides for ribosome profiling)
     readsLengths <- 20:34
     
-    # 1. Calculate FLOSS scores using FLOSS
+    # --- Calculate FLOSS scores using FLOSS ---
     fl <- FLOSS(pc, 
                 ref = danrer10.annotations\$protein, 
                 CDS = CDS, 
@@ -83,7 +83,7 @@ process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
     write.csv(as.data.frame(fl), "floss_analysis_results.csv", row.names = TRUE)
     saveRDS(fl, "floss_analysis_results.rds")
     
-    # 2. Extract and plot the gene with the maximum Cook's distance against the reference
+    # --- Extract and plot the gene with the maximum Cook's ---
     fl.max <- t(fl[c(1, which.max(fl\$cooks.distance)), as.character(readsLengths)])
     
     # Save the plot to a PDF file

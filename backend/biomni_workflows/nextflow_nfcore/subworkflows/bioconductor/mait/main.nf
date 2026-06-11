@@ -93,18 +93,18 @@ process BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS {
     masses <- load_vector("masses_vector")
     rt <- load_vector("rt_vector")
     
-    # 1. Build MAIT object from external data
+    # --- Build MAIT object from external data ---
     importMAIT <- MAITbuilder(data = peaks, masses = masses, 
                   rt = rt,significantFeatures = TRUE, 
                   spectraEstimation = TRUE,rtRange=0.2,
                   corThresh=0.7)
     
-    # 2. Perform biotransformation and adduct annotation
+    # --- Perform biotransformation and adduct annotation ---
     importMAIT <- Biotransformations(MAIT.object = importMAIT, 
                   adductAnnotation = TRUE, 
                   peakPrecision = 0.005, adductTable = NULL)
     
-    # 3. Identify metabolites against the database
+    # --- Identify metabolites against the database ---
     importMAIT <- identifyMetabolites(MAIT.object = importMAIT, 
                   peakTolerance=0.005,polarity="positive")
     

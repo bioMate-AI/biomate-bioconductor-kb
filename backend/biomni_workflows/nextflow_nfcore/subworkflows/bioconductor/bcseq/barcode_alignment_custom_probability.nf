@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define a custom probability function in R or compile an Rcpp function using sourceCpp. 2. Run bcSeq_edit passing the custom functi
+//  * 1. [Input & Preparation] Define a custom probability function in R
+//  * 2. [Input & Preparation] Run bcSeq_edit passing the custom function to the
 
 nextflow.enable.dsl = 2
 
@@ -63,13 +64,13 @@ process BIOC_BCSEQ_BARCODE_ALIGNMENT_CUSTOM_PROBABILITY {
         stop(paste("Required input file missing:", libFile))
     }
     
-    # 1. Define a custom probability function in R
+    # --- Define a custom probability function in R ---
     customizeP <- function(max_pen, prob, pen_val)
     {
         prob * (1 - log(2) + log(1 + max_pen / (max_pen + pen_val) ) )
     }
     
-    # 2. Run bcSeq_edit passing the custom function to the userProb argument
+    # --- Run bcSeq_edit passing the custom function to the ---
     # All function and argument names are reproduced exactly from the documented workflow
     bcSeq_edit(sampleFile, libFile, outFile, misMatch = 2, tMat = NULL,
         numThread = 4, count_only = TRUE, userProb = customizeP,

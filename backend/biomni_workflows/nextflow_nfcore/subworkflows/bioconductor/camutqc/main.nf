@@ -71,7 +71,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
       stop(paste("Required input file not found in working directory:", pon_file))
     }
     
-    # 1. Convert VEP-annotated VCF to MAF format
+    # --- Convert VEP-annotated VCF to MAF format ---
     message("Converting VEP-annotated VCF to MAF...")
     MAFdat <- vcfToMAF(vcf_file)
     
@@ -79,7 +79,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
     write.csv(MAFdat, "MAFdat_converted.csv", row.names = FALSE)
     saveRDS(MAFdat, "MAFdat_converted.rds")
     
-    # 2. Apply combined technical and candidate selection filters, and calculate TMB
+    # --- Apply combined technical and candidate selection filters, ---
     message("Applying combined filters and calculating TMB...")
     MAFCom_tmb <- mutFilterCom(
       MAFdat, 

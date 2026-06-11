@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Perform sequential sum of squares decomposition to evaluate hierarchical factor effects. 2. Perform Type III sum of squares decomp
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Perform Sequential and Type III Sum of Squares
+//  * 3. [Visualization & Output] Perform Pairwise Comparisons
+//  * 4. [Visualization & Output] Plot Sequential Decomposition and Combined Visualizations
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +54,7 @@ process BIOC_GLOBALANCOVA_SUM_OF_SQUARES_DECOMPOSITION {
         library(GlobalAncova)
         
         # -------------------------------------------------------------------------
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # -------------------------------------------------------------------------
         # Read the normalized gene expression matrix
         # Rows: Genes, Columns: Samples
@@ -83,7 +86,7 @@ process BIOC_GLOBALANCOVA_SUM_OF_SQUARES_DECOMPOSITION {
         )
         
         # -------------------------------------------------------------------------
-        # 2. Perform Sequential and Type III Sum of Squares Decomposition
+        # --- Perform Sequential and Type III Sum of Squares ---
         # -------------------------------------------------------------------------
         formula <- as.formula(paste("~", paste(colnames(phenodata), collapse = " + ")))
         
@@ -108,7 +111,7 @@ process BIOC_GLOBALANCOVA_SUM_OF_SQUARES_DECOMPOSITION {
         write.csv(as.data.frame(decomp_t3), "decomposition_type3.csv", row.names = TRUE)
         
         # -------------------------------------------------------------------------
-        # 3. Perform Pairwise Comparisons
+        # --- Perform Pairwise Comparisons ---
         # -------------------------------------------------------------------------
         group_var <- colnames(phenodata)[1]
         pair_formula <- as.formula(paste("~", group_var))
@@ -133,7 +136,7 @@ process BIOC_GLOBALANCOVA_SUM_OF_SQUARES_DECOMPOSITION {
         }
         
         # -------------------------------------------------------------------------
-        # 4. Plot Sequential Decomposition and Combined Visualizations
+        # --- Plot Sequential Decomposition and Combined Visualizations ---
         # -------------------------------------------------------------------------
         pdf("decomposition_plots.pdf", width = 10, height = 8)
         

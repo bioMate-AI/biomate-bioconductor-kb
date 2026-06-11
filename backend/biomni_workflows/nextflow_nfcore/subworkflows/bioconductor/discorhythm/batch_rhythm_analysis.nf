@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run the complete pipeline and generate an HTML report using discoBatch
+//  * 1. [Visualization & Output] Read the user input file
+//  * 2. [Visualization & Output] Execute the complete pipeline and generate an HTML report
+//  * 3. [Visualization & Output] Save meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -49,7 +51,7 @@ process BIOC_DISCORHYTHM_BATCH_RHYTHM_ANALYSIS {
     # Load required libraries
     library(DiscoRhythm)
     
-    # Step 1: Read the user input file
+    # --- Read the user input file ---
     # The file must have unique feature IDs in the first column and sample data in subsequent columns.
     # Column names encode metadata as Prefix_Time_UniqueID_ReplicateID.
     # check.names = FALSE is critical to preserve the underscores in the column names.
@@ -61,7 +63,7 @@ process BIOC_DISCORHYTHM_BATCH_RHYTHM_ANALYSIS {
     
     indata <- read.csv(input_file, header = TRUE, check.names = FALSE)
     
-    # Step 2: Execute the complete pipeline and generate an HTML report using discoBatch
+    # --- Execute the complete pipeline and generate an HTML report ---
     # We use the exact function call and arguments from the documented workflow.
     discoODAres <- discoBatch(
       indata = indata,
@@ -83,7 +85,7 @@ process BIOC_DISCORHYTHM_BATCH_RHYTHM_ANALYSIS {
       osc_period = 24
     )
     
-    # Step 3: Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     # Save the full R object
     saveRDS(discoODAres, file = "discoBatch_results.rds")
     

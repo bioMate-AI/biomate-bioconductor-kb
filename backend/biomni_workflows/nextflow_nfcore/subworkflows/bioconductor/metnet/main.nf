@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load and format quantitative and structural metabolomics data. 2. Define biochemical transformations and compute structural adjace
+//  * 1. [Visualization & Output] Load and format quantitative and structural metabolomics
+//  * 2. [Visualization & Output] Define biochemical transformations and compute structural
+//  * 3. [Visualization & Output] Refine structural adjacency with retention time
+//  * 4. [Visualization & Output] Integrate MS2 spectral similarity using
+//  * 5. [Visualization & Output] Compute statistical associations across samples using
+//  * 6. [Visualization & Output] Threshold statistical adjacency matrices to create a
+//  * 7. [Visualization & Output] Combine structural and statistical networks using
+//  * 8. [Visualization & Output] Convert to igraph or data frame for downstream
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +60,7 @@ process BIOC_METNET_METABOLIC_NETWORK_INFERENCE {
         library(Spectra)
         library(igraph)
         
-        # 1. Load and format quantitative and structural metabolomics data
+        # --- Load and format quantitative and structural metabolomics ---
         # Read user features (must contain columns "mz", "rt", and sample intensities)
         features_df <- read.csv("user_features.csv", row.names = 1, check.names = FALSE)
         x_test <- as.matrix(features_df)
@@ -68,14 +75,14 @@ process BIOC_METNET_METABOLIC_NETWORK_INFERENCE {
             stringsAsFactors = FALSE
         )
         
-        # 2. Define biochemical transformations and compute structural adjacency using structural()
+        # --- Define biochemical transformations and compute structural ---
         struct_adj <- structural(x = x_test, transformation = transformations, 
             var = c("group", "formula", "mass"), ppm = 10)
         
         struct_adj_dir <- structural(x = x_test, transformation = transformations, 
             var = c("group", "formula", "mass"), ppm = 10, directed = TRUE)
         
-        # 3. Refine structural adjacency with retention time constraints using rtCorrection()
+        # --- Refine structural adjacency with retention time ---
         struct_adj <- rtCorrection(am = struct_adj, x = x_test, 
             transformation = transformations, var = "group")
         
@@ -86,7 +93,7 @@ process BIOC_METNET_METABOLIC_NETWORK_INFERENCE {
         mz_sum <- mz_summary(struct_adj, var = "group")
         write.csv(mz_sum, "mz_summary.csv", row.names = FALSE)
         
-        # 4. Integrate MS2 spectral similarity using addSpectralSimilarity() and threshold it
+        # --- Integrate MS2 spectral similarity using ---
         if (file.exists("user_ms2_similarity.rds")) {
             adj_spec <- readRDS("user_ms2_similarity.rds")
         } else {
@@ -103,12 +110,12 @@ process BIOC_METNET_METABOLIC_NETWORK_INFERENCE {
         spect_adj_thr <- threshold(am = spect_adj, type = "threshold", 
             args = args_thr)
         
-        # 5. Compute statistical associations across samples using statistical()
+        # --- Compute statistical associations across samples using ---
         x_int <- x_test[, 3:ncol(x_test)] |>
             as.matrix()
         stat_adj <- statistical(x_int, model = c("pearson", "spearman"))
         
-        # 6. Threshold statistical adjacency matrices to create a consensus matrix using threshold()
+        # --- Threshold statistical adjacency matrices to create a ---
         args_stat_thr <- list(filter = "abs(pearson_coef) > 0.95 | abs(spearman_coef) > 0.95")
         stat_adj_thr <- threshold(am = stat_adj, type = "threshold", 
             args = args_stat_thr)
@@ -117,7 +124,7 @@ process BIOC_METNET_METABOLIC_NETWORK_INFERENCE {
         stat_adj_mean <- threshold(am = stat_adj, type = "mean", 
             args = args_top)
         
-        # 7. Combine structural and statistical networks using combine()
+        # --- Combine structural and statistical networks using ---
         comb_adj <- combine(am_structural = struct_adj, am_statistical = stat_adj_mean)
         comb_spect_adj <- combine(am_structural = spect_adj_thr, 
                                   am_statistical = stat_adj_mean)
@@ -125,7 +132,7 @@ process BIOC_METNET_METABOLIC_NETWORK_INFERENCE {
         saveRDS(comb_adj, "combined_adjacency.rds")
         saveRDS(comb_spect_adj, "combined_spectral_adjacency.rds")
         
-        # 8. Convert to igraph or data frame for downstream visualization and analysis
+        # --- Convert to igraph or data frame for downstream ---
         adj <- assay(comb_adj, "combine_binary")
         diag(adj) <- 1
         g <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected", diag = FALSE)

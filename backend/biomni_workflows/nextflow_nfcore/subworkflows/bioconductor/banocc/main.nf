@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Compile the BAnOCC Stan model. 2. Run the MCMC sampler on the compositional data. 3. Extract posterior estimates, credible interva
+//  * 1. [Core Analysis] Compile the BAnOCC Stan model
+//  * 2. [Core Analysis] Run the MCMC sampler on the compositional data
+//  * 3. [Core Analysis] Extract posterior estimates, credible intervals, and
+//  * 4. [Core Analysis] Assess model convergence using traceplots and Rhat
 
 nextflow.enable.dsl = 2
 
@@ -74,19 +77,19 @@ process BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS {
           compositions_null <- (compositions_null / row_sums) * 0.95
         }
         
-        # 1. Compile the BAnOCC Stan model
+        # --- Compile the BAnOCC Stan model ---
         compiled_banocc_model <- rstan::stan_model(model_code = banocc::banocc_model) 
         
-        # 2. Run the MCMC sampler on the compositional data
+        # --- Run the MCMC sampler on the compositional data ---
         b_fit     <- banocc::run_banocc(C = compositions_null, compiled_banocc_model=compiled_banocc_model)
         
-        # 3. Extract posterior estimates, credible intervals, and optional statistics
+        # --- Extract posterior estimates, credible intervals, and ---
         b_output <- banocc::get_banocc_output(banoccfit=b_fit)
         b_out_nec <- banocc::get_banocc_output(banoccfit=b_fit, eval_convergence = FALSE)
         b_out_min_width <- banocc::get_banocc_output(banoccfit=b_fit, get_min_width = TRUE)
         b_out_snc <- banocc::get_banocc_output(banoccfit=b_fit, calc_snc = TRUE)
         
-        # 4. Assess model convergence using traceplots and Rhat statistics
+        # --- Assess model convergence using traceplots and Rhat ---
         pdf("traceplot.pdf", width = 10, height = 8)
         if (ncol(compositions_null) >= 2) {
           print(rstan::traceplot(b_fit\$Fit, pars=paste0("O[1,", 2:ncol(compositions_null), "]")))

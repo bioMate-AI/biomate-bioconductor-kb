@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the CEDAR algorithm using cedar() to perform joint inference of differential signals across correlated cell types. 2. Extract 
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Preprocessing & Validation
+//  * 3. [Core Analysis] Run CEDAR Algorithm (Documented Code)
+//  * 4. [Core Analysis] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +62,7 @@ process BIOC_TOAST_CORRELATED_DIFFERENTIAL_ANALYSIS_CEDAR {
     library(TOAST)
     
     # ----------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ----------------------------------------------------------------------
     # The pipeline reads Y_raw, Prop, and design from the working directory.
     # We support both RDS (recommended for preserving matrix/SE structures)
@@ -93,7 +96,7 @@ process BIOC_TOAST_CORRELATED_DIFFERENTIAL_ANALYSIS_CEDAR {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Preprocessing & Validation
+    # --- Preprocessing & Validation ---
     # ----------------------------------------------------------------------
     # Ensure the factor of interest ('disease') is present and formatted as a factor
     if (!"disease" %in% colnames(design)) {
@@ -107,7 +110,7 @@ process BIOC_TOAST_CORRELATED_DIFFERENTIAL_ANALYSIS_CEDAR {
     }
     
     # ----------------------------------------------------------------------
-    # 3. Run CEDAR Algorithm (Documented Code)
+    # --- Run CEDAR Algorithm (Documented Code) ---
     # ----------------------------------------------------------------------
     # Run the CEDAR algorithm to perform joint inference of differential signals
     # across correlated cell types using a hierarchical tree structure.
@@ -126,7 +129,7 @@ process BIOC_TOAST_CORRELATED_DIFFERENTIAL_ANALYSIS_CEDAR {
     res_cedar\$tree_res\$single\$tree_structure
     
     # ----------------------------------------------------------------------
-    # 4. Write Outputs
+    # --- Write Outputs ---
     # ----------------------------------------------------------------------
     # Save the complete results object
     saveRDS(res_cedar, "res_cedar_output.rds")

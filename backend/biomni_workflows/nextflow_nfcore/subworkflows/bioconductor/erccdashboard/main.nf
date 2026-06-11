@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the input count data and optional normalization factors. 2. Run the complete analysis pipeline using runDashboard with datTyp
+//  * 1. [Visualization & Output] Load the input count data and optional normalization
+//  * 2. [Visualization & Output] Run the complete analysis pipeline using runDashboard
+//  * 3. [Visualization & Output] Summarize the results and visualize diagnostic plots
+//  * 4. [Visualization & Output] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +55,7 @@ process BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS {
         library(gridExtra)
         library(ggplot2)
         
-        # 1. Load the input count data and optional normalization factors
+        # --- Load the input count data and optional normalization ---
         if (file.exists("MET.CTL.countDat")) {
           # Read the RNA-Seq count table
           MET.CTL.countDat <- read.csv("MET.CTL.countDat", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
@@ -71,7 +74,7 @@ process BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS {
           MET.CTL.totalReads <- NULL
         }
         
-        # 2. Run the complete analysis pipeline using runDashboard with datType="count"
+        # --- Run the complete analysis pipeline using runDashboard ---
         exDat <- runDashboard(datType="count", isNorm = FALSE,
                                exTable=MET.CTL.countDat,
                                repNormFactor=MET.CTL.totalReads,
@@ -80,7 +83,7 @@ process BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS {
                                erccdilution=1/100, spikeVol=1,
                                totalRNAmass=0.500, choseFDR=0.1)
         
-        # 3. Summarize the results and visualize diagnostic plots
+        # --- Summarize the results and visualize diagnostic plots ---
         summary(exDat)
         
         # Open PDF device to save the diagnostic plots
@@ -94,7 +97,7 @@ process BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS {
         
         dev.off()
         
-        # 4. Write named output files for the meaningful results
+        # --- Write named output files for the meaningful results ---
         saveRDS(exDat, file = "RatTox_analysis_results.rds")
         
         if (!is.null(exDat\$Transcripts)) {

@@ -69,16 +69,16 @@ process BIOC_LEA_GEA_MCMC_LFMM {
       stop(paste("Required input file missing:", input_env))
     }
     
-    # 1. Fit Latent Factor Mixed Models (LFMM) using MCMC via the lfmm() function
+    # --- Fit Latent Factor Mixed Models (LFMM) using MCMC via the ---
     message("Fitting LFMM model using MCMC...")
     project = lfmm("genotypes.lfmm", "gradients.env", K = 6, repetitions = 5, project = "new")
     
-    # 2. Combine z-scores from multiple runs and compute adjusted p-values using lfmm.pvalues()
+    # --- Combine z-scores from multiple runs and compute adjusted ---
     message("Combining z-scores and computing adjusted p-values...")
     p = lfmm.pvalues(project, K = 6)
     pvalues = p\$pvalues
     
-    # 3. Visualize significance values using a histogram and Manhattan plot
+    # --- Visualize significance values using a histogram and ---
     message("Generating diagnostic plots...")
     pdf("lfmm_diagnostic_plots.pdf", width = 8, height = 10)
     par(mfrow = c(2, 1))
@@ -86,7 +86,7 @@ process BIOC_LEA_GEA_MCMC_LFMM {
     plot(-log10(pvalues), pch = 19, col = "blue", cex = .7)
     dev.off()
     
-    # 4. Control False Discovery Rate (FDR) using the Benjamini-Hochberg procedure to identify candidate loci
+    # --- Control False Discovery Rate (FDR) using the ---
     message("Identifying candidate loci using Benjamini-Hochberg procedure...")
     alpha = 0.05
     L = length(pvalues)

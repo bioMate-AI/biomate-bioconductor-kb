@@ -57,7 +57,7 @@ process BIOC_ISOBAR_ISOBARIC_QUANTIFICATION {
     library(distr)
     library(ggplot2)
     
-    # 1. Read raw identification and peaklist files into an IBSpectra object
+    # --- Read raw identification and peaklist files into an ---
     # Reading exactly the user-specified files from the working directory
     ib <- readIBSpectra(
       "iTRAQ4plexSpectra",
@@ -76,17 +76,17 @@ process BIOC_ISOBAR_ISOBARIC_QUANTIFICATION {
     }
     ceru.proteins <- head(all_proteins, min(3, length(all_proteins)))
     
-    # 2. Correct isotope impurities
+    # --- Correct isotope impurities ---
     ibspiked_set1 <- correctIsotopeImpurities(ibspiked_set1)
     
-    # 3. Normalize reporter intensities
+    # --- Normalize reporter intensities ---
     ibspiked_set1 <- normalize(ibspiked_set1)
     
-    # 4. Subset background proteins and fit a NoiseModel
+    # --- Subset background proteins and fit a NoiseModel ---
     ib.background <- subsetIBSpectra(ibspiked_set1, protein=ceru.proteins, direction="exclude")
     noise.model <- NoiseModel(ib.background)
     
-    # 5. Estimate protein ratios and define class labels
+    # --- Estimate protein ratios and define class labels ---
     # Estimate ratio for the selected protein subset
     ratio_estimate <- 10^estimateRatio(
       ibspiked_set1,
@@ -112,7 +112,7 @@ process BIOC_ISOBAR_ISOBARIC_QUANTIFICATION {
       summarize=TRUE
     )[, c("ac", "lratio", "variance")]
     
-    # 6. Fit ratio distributions and identify significant ratios
+    # --- Fit ratio distributions and identify significant ratios ---
     protein.ratiodistr.cauchy <- fitCauchy(protein.ratios[, "lratio"])
     
     rat.list <- estimateRatio(

@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Extract adjusted segments using getadjustedsegments. 2. Link mutations to copy number segments and calculate mutant copies using l
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Extract adjusted segments using getadjustedsegments
+//  * 3. [Core Analysis] Link mutations to copy number segments and calculate
+//  * 4. [Core Analysis] Query specific genomic locations using
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +53,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     library(ACE)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # The pipeline expects 'template.csv' (segmented template data frame)
     # and 'variants.csv' (variant/mutation data frame) in the working directory.
@@ -72,7 +75,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Extract adjusted segments using getadjustedsegments
+    # --- Extract adjusted segments using getadjustedsegments ---
     # -----------------------------------------------------------------------------
     segmentdf <- getadjustedsegments(template, cellularity = 0.38)
     head(segmentdf)
@@ -81,7 +84,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     write.csv(segmentdf, "adjusted_segments.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Link mutations to copy number segments and calculate mutant copies
+    # --- Link mutations to copy number segments and calculate ---
     # -----------------------------------------------------------------------------
     # The documented function call uses:
     # chrindex = 2 (Chromosome), posindex = 3 (Position), freqindex = 4 (Frequency)
@@ -93,7 +96,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     write.csv(linked_variants, "linked_variants.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Query specific genomic locations using analyzegenomiclocations
+    # --- Query specific genomic locations using ---
     # -----------------------------------------------------------------------------
     # Query 1: Single location
     loc_query1 <- analyzegenomiclocations(segmentdf, Chromosome = 1, Position = 26365569)

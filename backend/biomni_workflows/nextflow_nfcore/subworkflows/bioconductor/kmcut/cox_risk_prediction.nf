@@ -71,15 +71,15 @@ process BIOC_KMCUT_COX_RISK_PREDICTION {
       stop(paste("Required survival data file not found:", sdat))
     }
     
-    # 1. Create SummarizedExperiment for training data
+    # --- Create SummarizedExperiment for training data ---
     message("Creating SummarizedExperiment for training data...")
     se1 <- create_se_object(efile = fdat1, sfile = sdat)
     
-    # 2. Create SummarizedExperiment for test data
+    # --- Create SummarizedExperiment for test data ---
     message("Creating SummarizedExperiment for test data...")
     se2 <- create_se_object(efile = fdat2, sfile = sdat)
     
-    # 3. Fit Cox models on training data and calculate risk scores for test data
+    # --- Fit Cox models on training data and calculate risk scores ---
     message("Fitting Cox models and predicting risk scores...")
     tryCatch({
       ucox_pred(obj1 = se1, obj2 = se2, bfname = "demo", min_uval = 40)

@@ -66,11 +66,11 @@ process BIOC_SELECTKSIGS_SELECT_OPTIMAL_SIGNATURES {
       stop(paste("Required input file missing from working directory:", inputFile))
     }
     
-    # 1. Read the mutation position file using HiLDA's reader function
+    # --- Read the mutation position file using HiLDA's reader ---
     message("Reading mutation position file...")
     G <- hildaReadMPFile(inputFile, numBases = 5, trDir = TRUE)
     
-    # 2. Run cross-validation across a range of signature counts using cv_PMSignature
+    # --- Run cross-validation across a range of signature counts ---
     message("Running cross-validation to determine optimal number of signatures...")
     set.seed(5)
     results <- cv_PMSignature(G, Kfold = 3, nRep = 3, Klimit = 7)
@@ -79,7 +79,7 @@ process BIOC_SELECTKSIGS_SELECT_OPTIMAL_SIGNATURES {
     write.csv(results, "cv_results.csv", row.names = FALSE)
     saveRDS(results, "cv_results.rds")
     
-    # 3. Format and plot the cross-validation results to identify the K value that minimizes perplexity
+    # --- Format and plot the cross-validation results to identify ---
     message("Formatting results and generating plot...")
     results\$Kvalue <- seq_len(nrow(results)) + 1
     results_df <- gather(results, Method, value, -Kvalue) %>% 

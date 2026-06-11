@@ -48,7 +48,7 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
     library(illuminaio)
     
     # ==========================================
-    # Stage 1: Load Metadata and Discover Files
+    # --- Load Metadata and Discover Files ---
     # ==========================================
     message("Stage 1: Loading metadata and discovering files...")
     
@@ -67,7 +67,7 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
     bpm_files <- list.files(pattern = "\\\\.bpm\$", ignore.case = TRUE)
     
     # ==========================================
-    # Stage 2: Parse Illumina Files (if present)
+    # --- Parse Illumina Files (if present) ---
     # ==========================================
     message("Stage 2: Parsing Illumina files...")
     
@@ -158,7 +158,7 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
     }
     
     # ==========================================
-    # Stage 3: Fallback to Pre-processed Matrix
+    # --- Fallback to Pre-processed Matrix ---
     # ==========================================
     if (!parsed_from_idat) {
       message("No matching IDAT files found or parsing failed. Falling back to counts.csv...")
@@ -195,7 +195,7 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Build SummarizedExperiment & QC
+    # --- Build SummarizedExperiment & QC ---
     # ==========================================
     message("Stage 4: Building SummarizedExperiment and performing QC...")
     
@@ -235,7 +235,7 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
     }
     
     # ==========================================
-    # Stage 5: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 5: Performing differential expression analysis...")
     
@@ -292,7 +292,7 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 6: Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     message("Stage 6: Saving output files...")
     

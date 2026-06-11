@@ -47,7 +47,7 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
     # Load required libraries
     library(flowVS)
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Loading input expression data...")
     if (!file.exists("counts.csv")) {
       stop("Input file 'counts.csv' not found.")
@@ -62,7 +62,7 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
       stop("Expression matrix contains non-numeric values.")
     }
     
-    # Stage 2: Variance Stabilization using flowVS
+    # --- Variance Stabilization using flowVS ---
     message("Running microVS variance stabilization...")
     stabilized_matrix <- tryCatch({
       # microVS identifies the optimum cofactor by minimizing Bartlett's statistics
@@ -74,11 +74,11 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
       asinh(exprs_matrix / 100)
     })
     
-    # Stage 3: Save stabilized expression matrix
+    # --- Save stabilized expression matrix ---
     message("Saving stabilized expression matrix...")
     write.csv(stabilized_matrix, "stabilized_expression.csv", row.names = TRUE)
     
-    # Stage 4: Diagnostic Visualization (Mean-SD Plot)
+    # --- Diagnostic Visualization (Mean-SD Plot) ---
     message("Generating diagnostic Mean-SD plot...")
     tryCatch({
       pdf("mean_sd_plot.pdf", width = 7, height = 7)

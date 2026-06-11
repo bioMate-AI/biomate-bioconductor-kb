@@ -49,7 +49,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     library(factDesign)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (counts.csv contains normalized expression values for microarray)
@@ -91,7 +91,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     eset <- ExpressionSet(assayData = counts, phenoData = pheno)
     
     # ==========================================
-    # STAGE 2: Gene Filtering using kRepsOverA
+    # --- Gene Filtering using kRepsOverA ---
     # ==========================================
     
     # Filter genes that have at least k replicates with expression over A in any condition group
@@ -110,7 +110,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     eset <- eset[keep, ]
     
     # ==========================================
-    # STAGE 3: Outlier Detection and Removal
+    # --- Outlier Detection and Removal ---
     # ==========================================
     
     expr_mat <- exprs(eset)
@@ -132,7 +132,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     exprs(eset) <- cleaned_expr_mat
     
     # ==========================================
-    # STAGE 4: Linear Modeling and ANOVA F-test
+    # --- Linear Modeling and ANOVA F-test ---
     # ==========================================
     
     lm.full <- function(y) lm(y ~ ES + TIME + ES:TIME, data = pData(eset))
@@ -176,7 +176,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     lm.f.Fsub <- lm.f[Fsub]
     
     # ==========================================
-    # STAGE 5: Contrast Testing & Fold Change
+    # --- Contrast Testing & Fold Change ---
     # ==========================================
     
     betaNames <- names(coef(lm.f[[1]]))
@@ -217,7 +217,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     ESTgenes <- sapply(lm.f.Fsub, FUN = ESTcontrast)
     
     # ==========================================
-    # STAGE 6: Export Results and Visualizations
+    # --- Export Results and Visualizations ---
     # ==========================================
     
     # Save results table

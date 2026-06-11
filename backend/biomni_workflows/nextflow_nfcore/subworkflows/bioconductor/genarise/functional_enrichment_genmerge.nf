@@ -56,7 +56,7 @@ process BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE {
     library(genArise)
     
     # ---------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ---------------------------------------------------------
     # Read the population genes provided by the user
     pop_data <- read.table("population.genes", header = FALSE, stringsAsFactors = FALSE, sep = "\t")
@@ -73,7 +73,7 @@ process BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE {
     study.genes <- "study.genes"
     
     # ---------------------------------------------------------
-    # 2. Construct o.spot and s.spot Objects from Input Data
+    # --- Construct o.spot and s.spot Objects from Input Data ---
     # ---------------------------------------------------------
     # o.spot needs to contain the population IDs in attr(o.spot, "spotData")\$Ids
     o.spot <- list()
@@ -86,7 +86,7 @@ process BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE {
     )
     
     # ---------------------------------------------------------
-    # 3. Execute Documented Workflow Steps Exactly
+    # --- Execute Documented Workflow Steps Exactly ---
     # ---------------------------------------------------------
     ids <- attr(o.spot, "spotData")\$Ids
     ids <- unique(ids)
@@ -104,7 +104,7 @@ process BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE {
     results <- genMerge(gene.association, description, population.genes, study.genes, output.file = "GeneMerge.txt")
     
     # ---------------------------------------------------------
-    # 4. Save Outputs
+    # --- Save Outputs ---
     # ---------------------------------------------------------
     # Save the returned object (if any) as an RDS file
     saveRDS(results, "genmerge_results.rds")

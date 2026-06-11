@@ -45,12 +45,12 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(shinyMethyl)
     library(minfi)
     library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     
-    # Stage 2: Read and validate input files
+    # --- Read and validate input files ---
     message("Reading input files...")
     matrix_df <- read.csv("matrix.csv", row.names = 1, check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -68,7 +68,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
     rownames(coldata_df) <- coldata_df\$sample
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 3: Map features to valid Illumina 450k probe IDs
+    # --- Map features to valid Illumina 450k probe IDs ---
     # shinyMethyl and minfi require valid probe annotations to build the GenomicRatioSet.
     ann <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     valid_probes <- rownames(ann)
@@ -92,7 +92,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
         beta_matrix[na_idx] <- row_means[na_idx[, 1]]
     }
     
-    # Stage 4: Create GenomicRatioSet and summarize with shinyMethyl
+    # --- Create GenomicRatioSet and summarize with shinyMethyl ---
     message("Creating GenomicRatioSet...")
     grset <- makeGenomicRatioSetFromMatrix(
         beta_matrix,
@@ -108,7 +108,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
     # Save the complete shinyMethylSet object for downstream interactive visualization
     saveRDS(summary_obj, "shinymethyl_summary.rds")
     
-    # Stage 5: Extract diagnostic summaries using authoritative accessors
+    # --- Extract diagnostic summaries using authoritative accessors ---
     message("Extracting summaries...")
     
     # Extract Beta Quantiles
@@ -151,7 +151,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
         write.csv(data.frame(Error = "Extraction failed"), "pca_coordinates.csv")
     })
     
-    # Stage 6: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     message("Generating diagnostic plots...")
     
     # Plot 1: PCA Plot

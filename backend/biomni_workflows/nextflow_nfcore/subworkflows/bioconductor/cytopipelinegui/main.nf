@@ -55,7 +55,7 @@ process BIOC_CYTOPIPELINEGUI_CYTOPIPELINE_FLOW_ANALYSIS {
     # Define parameters
     num_events <- 5000
     
-    # Stage 1: Read user input image and convert to matrix
+    # --- Read user input image and convert to matrix ---
     message("Reading input image...")
     img_mat <- tryCatch({
       img <- EBImage::readImage("image.tif")
@@ -65,12 +65,12 @@ process BIOC_CYTOPIPELINEGUI_CYTOPIPELINE_FLOW_ANALYSIS {
       matrix(runif(10000, min = 0.1, max = 0.9), nrow = 100, ncol = 100)
     })
     
-    # Stage 2: Locate pipeline JSON files in the package without using system.file
+    # --- Locate pipeline JSON files in the package without using ---
     jsonDir <- file.path(find.package("CytoPipeline"), "extdata")
     peacoqc_json <- file.path(jsonDir, "OMIP021_PeacoQC_pipeline.json")
     flowai_json <- file.path(jsonDir, "OMIP021_flowAI_pipeline.json")
     
-    # Stage 3: Extract channel names from JSONs to ensure compatibility
+    # --- Extract channel names from JSONs to ensure compatibility ---
     extract_channels_from_json <- function(json_path) {
       if (!file.exists(json_path)) return(character(0))
       json_data <- tryCatch(jsonlite::read_json(json_path), error = function(e) NULL)
@@ -96,7 +96,7 @@ process BIOC_CYTOPIPELINEGUI_CYTOPIPELINE_FLOW_ANALYSIS {
     standard_channels <- c("FSC-A", "SSC-A", "Time", "CD3", "CD4", "CD8", "CD14", "CD19", "CD56", "CD161", "TCRgd")
     all_channels <- unique(c(standard_channels, channels_peacoqc, channels_flowai))
     
-    # Stage 4: Generate mock flow cytometry data from image pixels
+    # --- Generate mock flow cytometry data from image pixels ---
     message("Generating mock flow cytometry data from image...")
     set.seed(42)
     sampled_idx <- sample(seq_along(img_mat), num_events, replace = TRUE)
@@ -128,7 +128,7 @@ process BIOC_CYTOPIPELINEGUI_CYTOPIPELINE_FLOW_ANALYSIS {
     flowCore::write.FCS(ff1, sampleFiles[1])
     flowCore::write.FCS(ff2, sampleFiles[2])
     
-    # Stage 5: Set up and execute CytoPipelines
+    # --- Set up and execute CytoPipelines ---
     workDir <- tempdir()
     
     pipL_PeacoQC <- CytoPipeline(
@@ -149,7 +149,7 @@ process BIOC_CYTOPIPELINEGUI_CYTOPIPELINE_FLOW_ANALYSIS {
     message("Executing flowAI pipeline...")
     suppressWarnings(execute(pipL_flowAI, rmCache = TRUE, path = workDir))
     
-    # Stage 6: Generate and save visualizations
+    # --- Generate and save visualizations ---
     message("Generating workflow plot...")
     pdf("workflow_plot.pdf", width = 8, height = 6)
     p_wf <- tryCatch({

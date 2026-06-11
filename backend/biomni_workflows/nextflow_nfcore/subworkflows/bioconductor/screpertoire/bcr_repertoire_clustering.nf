@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Combine BCR contigs and cluster related clones using combineBCR(). 2. Perform advanced alignment-based clustering using Needleman-
+//  * 1. [Core Analysis] Read the user input file from the working directory
+//  * 2. [Core Analysis] Combine BCR contigs and cluster related clones using
+//  * 3. [Core Analysis] Perform advanced alignment-based clustering using
+//  * 4. [Core Analysis] Filter non-productive and multi-chain contigs
+//  * 5. [Core Analysis] Write outputs to the working directory
 
 nextflow.enable.dsl = 2
 
@@ -58,15 +62,15 @@ process BIOC_SCREPERTOIRE_BCR_REPERTOIRE_CLUSTERING {
     # Load required libraries
     library(scRepertoire)
     
-    # 1. Read the user input file from the working directory
+    # --- Read the user input file from the working directory ---
     BCR.contigs <- read.csv("b_contigs.csv")
     
-    # 2. Combine BCR contigs and cluster related clones using combineBCR()
+    # --- Combine BCR contigs and cluster related clones using ---
     combined.BCR.clustered <- combineBCR(BCR.contigs, 
                                          samples = "Patient1", 
                                          threshold = 0.85)
     
-    # 3. Perform advanced alignment-based clustering using Needleman-Wunsch and substitution matrices
+    # --- Perform advanced alignment-based clustering using ---
     combined.BCR.aligned <- combineBCR(BCR.contigs, 
                                        samples = "Patient1",
                                        sequence = "aa",        
@@ -74,13 +78,13 @@ process BIOC_SCREPERTOIRE_BCR_REPERTOIRE_CLUSTERING {
                                        dist_mat = "BLOSUM80",  
                                        threshold = 0.85)
     
-    # 4. Filter non-productive and multi-chain contigs
+    # --- Filter non-productive and multi-chain contigs ---
     cleaned.BCR <- combineBCR(BCR.contigs,
                               samples = "Patient1",
                               filterNonproductive = TRUE,
                               filterMulti = TRUE)
     
-    # 5. Write outputs to the working directory
+    # --- Write outputs to the working directory ---
     saveRDS(combined.BCR.clustered, "combined_BCR_clustered.rds")
     saveRDS(combined.BCR.aligned, "combined_BCR_aligned.rds")
     saveRDS(cleaned.BCR, "cleaned_BCR.rds")

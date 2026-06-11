@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load sample annotation and count matrices. 2. Create a FraserDataSet object directly from the count matrices using FraserDataSet. 
+//  * 1. [Input & Preparation] Load sample annotation and count matrices from the
+//  * 2. [Input & Preparation] Create a FraserDataSet object directly from the count
+//  * 3. [Input & Preparation] Calculate PSI and Jaccard values
+//  * 4. [Input & Preparation] Filter junctions
+//  * 5. [Input & Preparation] Optimize the latent space dimension q
+//  * 6. [Input & Preparation] Fit the splicing model
+//  * 7. [Input & Preparation] Calculate p-values and adjusted p-values
+//  * 8. [Input & Preparation] Annotate ranges and extract results
 
 nextflow.enable.dsl = 2
 
@@ -66,7 +73,7 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS {
                 # Set parallel backend to serial for reproducibility and stability
                 register(SerialParam())
                 
-                # 1. Load sample annotation and count matrices from the working directory
+                # --- Load sample annotation and count matrices from the ---
                 sampleTable <- fread("sampleTable_countTable.tsv")
                 head(sampleTable)
                 
@@ -76,22 +83,22 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS {
                 spliceSiteCts <- fread("raw_site_counts.tsv.gz")
                 head(spliceSiteCts)
                 
-                # 2. Create a FraserDataSet object directly from the count matrices
+                # --- Create a FraserDataSet object directly from the count ---
                 fds <- FraserDataSet(colData=sampleTable, junctions=junctionCts,
                         spliceSites=spliceSiteCts, workingDir="FRASER_output")
                 fds
                 
-                # 3. Calculate PSI and Jaccard values
+                # --- Calculate PSI and Jaccard values ---
                 fds <- calculatePSIValues(fds)
                 
-                # 4. Filter junctions
+                # --- Filter junctions ---
                 fds <- filterExpressionAndVariability(fds, minDeltaPsi=0, filter=TRUE)
                 
                 # Set up PDF to capture diagnostic plots
                 pdf("FRASER_diagnostic_plots.pdf", width=7, height=7)
                 
                 set.seed(42)
-                # 5. Optimize the latent space dimension q
+                # --- Optimize the latent space dimension q ---
                 # Optimal Hard Thresholding (default method)
                 fds <- estimateBestQ(fds, type="jaccard", plot=FALSE)
                 print(plotEncDimSearch(fds, type="jaccard", plotType="sv"))
@@ -100,20 +107,20 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS {
                 optimal_q <- bestQ(fds, type="jaccard")
                 message("Estimated optimal Q: ", optimal_q)
                 
-                # 6. Fit the splicing model
+                # --- Fit the splicing model ---
                 # Using an alternative way to correct splicing ratios
                 # the default is 15 iterations
                 fds <- fit(fds, q=optimal_q, type="jaccard", implementation="PCA-BB-Decoder", 
                             iterations=15)
                 
-                # 7. Calculate p-values and adjusted p-values
+                # --- Calculate p-values and adjusted p-values ---
                 fds <- calculatePvalues(fds, type="jaccard")
                 head(pVals(fds, type="jaccard"))
                 
                 fds <- calculatePadjValues(fds, type="jaccard", method="BY")
                 head(padjVals(fds,type="jaccard"))
                 
-                # 8. Annotate ranges and extract results
+                # --- Annotate ranges and extract results ---
                 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
                 orgDb <- org.Hs.eg.db
                 fds <- annotateRangesWithTxDb(fds, txdb=txdb, orgDb=orgDb)

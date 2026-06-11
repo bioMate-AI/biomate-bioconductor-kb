@@ -43,12 +43,12 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(iSEEhub)
     library(ExperimentHub)
     library(S4Vectors)
     
-    # Stage 2: Read and parse the input file defensively
+    # --- Read and parse the input file defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop("Input file 'input.csv' not found in the working directory.")
@@ -72,7 +72,7 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
       message(sprintf("Successfully loaded list of %d features.", length(feature_ids)))
     }
     
-    # Stage 3: Query ExperimentHub for compatible datasets
+    # --- Query ExperimentHub for compatible datasets ---
     message("Connecting to ExperimentHub...")
     eh <- tryCatch({
       ExperimentHub()
@@ -93,7 +93,7 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
       write.csv(data.frame(Error = "ExperimentHub connection offline"), "available_eh_datasets.csv")
     }
     
-    # Stage 4: Generate a custom iSEE configuration script based on input features
+    # --- Generate a custom iSEE configuration script based on ---
     # We select the top features to pre-configure a ComplexHeatmapPlot
     top_features <- head(feature_ids, 10)
     top_features_str <- paste(sprintf("'%s'", top_features), collapse = ", ")
@@ -112,7 +112,7 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
     writeLines(config_lines, "custom_isee_config.R")
     message("Created custom iSEE configuration in 'custom_isee_config.R'.")
     
-    # Stage 5: Initialize and serialize the iSEEhub Shiny App
+    # --- Initialize and serialize the iSEEhub Shiny App ---
     if (!is.null(eh)) {
       message("Initializing iSEEhub application...")
       app <- iSEEhub(eh, runtime_install = FALSE)

@@ -55,20 +55,20 @@ process BIOC_CHIPCOMP_DIFFERENTIAL_BINDING_ANALYSIS {
     # Load the required library
     library(ChIPComp)
     
-    # Stage 1: Load configuration and design matrix using makeConf
+    # --- Load configuration and design matrix using makeConf ---
     confs=makeConf("conf.csv")
     conf=confs\$conf
     design=confs\$design
     
-    # Stage 2: Merge binding sites and count reads using makeCountSet
+    # --- Merge binding sites and count reads using makeCountSet ---
     countSet=makeCountSet(conf,design,filetype="bed", species="hg19",binsize=1000)
     
-    # Stage 3: Plot correlation between ChIP and control samples using plot
+    # --- Plot correlation between ChIP and control samples using ---
     pdf("chipcomp_correlation_plots.pdf", width=8, height=8)
     plot(countSet)
     dev.off()
     
-    # Stage 4: Perform hypothesis testing for differential binding using ChIPComp
+    # --- Perform hypothesis testing for differential binding using ---
     countSet=ChIPComp(countSet)
     print(countSet)
     

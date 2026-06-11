@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Read CNV calls and represent them as a GRangesList; 2. Summarize individual calls into population-level CNV regions using density 
+//  * 1. [Visualization & Output] Read CNV calls and represent them as a GRangesList
+//  * 2. [Visualization & Output] Summarize individual calls into population-level CNV
+//  * 3. [Visualization & Output] Identify recurrent CNV regions
+//  * 4. [Visualization & Output] Find overlaps between CNV regions and functional genomic
+//  * 5. [Visualization & Output] Perform an overlap permutation test
 
 nextflow.enable.dsl = 2
 
@@ -55,17 +59,17 @@ process BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP {
     library(ensembldb)
     library(BSgenome.Btaurus.UCSC.bosTau6.masked)
     
-    # 1. Read CNV calls and represent them as a GRangesList
+    # --- Read CNV calls and represent them as a GRangesList ---
     calls <- read.csv("Silva16_PONE_CNV_calls.csv", as.is=TRUE)
     sample_id_col <- colnames(calls)[4]
     grl <- GenomicRanges::makeGRangesListFromDataFrame(calls, split.field=sample_id_col, keep.extra.columns=TRUE)
     grl <- GenomicRanges::sort(grl)
     
-    # 2. Summarize individual calls into population-level CNV regions
+    # --- Summarize individual calls into population-level CNV ---
     cnvrs <- populationRanges(grl, density=0.1)
     ro.cnvrs <- populationRanges(grl, mode="RO", ro.thresh=0.51)
     
-    # 3. Identify recurrent CNV regions
+    # --- Identify recurrent CNV regions ---
     cnvrs <- populationRanges(grl, density=0.1, est.recur=TRUE)
     recurrent_cnvrs <- subset(cnvrs, pvalue < 0.05)
     
@@ -74,7 +78,7 @@ process BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP {
     plotRecurrentRegions(cnvrs, genome="bosTau6", chr="chr1")
     dev.off()
     
-    # 4. Find overlaps between CNV regions and functional genomic regions (genes)
+    # --- Find overlaps between CNV regions and functional genomic ---
     ensdb <- readRDS("EnsDb")
     bt.genes <- ensembldb::genes(ensdb)
     GenomeInfoDb::seqlevelsStyle(bt.genes) <- "UCSC"
@@ -94,7 +98,7 @@ process BIOC_CNVRANGER_CNV_POPULATION_SUMMARIZATION_AND_OVERLAP {
     cnvOncoPrint(grl, cgenes)
     dev.off()
     
-    # 5. Perform an overlap permutation test
+    # --- Perform an overlap permutation test ---
     res <- regioneR::overlapPermTest(A=sel.cnvrs, B=sel.genes, ntimes=100, genome="bosTau6", mask=NA, per.chromosome=TRUE, count.once=TRUE)
     perm_summary <- summary(res[[1]]\$permuted)
     

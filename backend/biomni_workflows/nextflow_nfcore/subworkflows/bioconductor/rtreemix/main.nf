@@ -48,7 +48,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     library(Rtreemix)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     
@@ -113,7 +113,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     rtree_data <- new("RtreemixData", Sample = as.matrix(binary_mat))
     
     # ==========================================
-    # STAGE 2: Model Fitting
+    # --- Model Fitting ---
     # ==========================================
     message("Stage 2: Fitting mutagenetic trees mixture model...")
     
@@ -144,7 +144,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     write.csv(weights_df, "mixture_weights.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: Bootstrap Stability Analysis
+    # --- Bootstrap Stability Analysis ---
     # ==========================================
     message("Stage 3: Performing bootstrap stability analysis...")
     
@@ -164,7 +164,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     write.csv(boot_df, "bootstrap_analysis.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Predictions & Evolutionary Paths
+    # --- Predictions & Evolutionary Paths ---
     # ==========================================
     message("Stage 4: Predicting waiting times and evolutionary paths...")
     
@@ -185,7 +185,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     write.csv(pred_df, "predictions.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating tree plots...")
     

@@ -73,7 +73,7 @@ process BIOC_ODSEQ_ALIGNED_SEQUENCE_OUTLIER_DETECTION {
     # Read sequences (using readAAStringSet as in the vignette's AA sequence context)
     seqs <- readAAStringSet(input_file)
     
-    # 1. Perform multiple sequence alignment using msa
+    # --- Perform multiple sequence alignment using msa ---
     alig <- msa(seqs)
     
     # Define ground values (adapted safely for user input length to prevent vector comparison errors)
@@ -84,7 +84,7 @@ process BIOC_ODSEQ_ALIGNED_SEQUENCE_OUTLIER_DETECTION {
       ground_values <- rep(FALSE, length(seqs))
     }
     
-    # 2. Run outlier detection using odseq with a specified distance metric and bootstrap parameter
+    # --- Run outlier detection using odseq with a specified ---
     outliers <- odseq(alig, distance_metric = "affine", B = 1000)
     
     # Calculate accuracy/agreement

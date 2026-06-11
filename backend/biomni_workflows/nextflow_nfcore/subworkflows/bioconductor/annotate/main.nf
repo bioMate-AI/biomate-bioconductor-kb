@@ -53,7 +53,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     library("rtracklayer")
     
     # ==========================================
-    # Stage 1: Import Input Data
+    # --- Import Input Data ---
     # ==========================================
     message("Stage 1: Importing input genomic regions...")
     
@@ -74,7 +74,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Build Chromosomal Location Object
+    # --- Build Chromosomal Location Object ---
     # ==========================================
     message("Stage 2: Building chromLocation object for hgu95av2...")
     
@@ -91,7 +91,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     message(paste("Number of Chromosomes:", num_chroms))
     
     # ==========================================
-    # Stage 3: Map BED Features to Probe Coordinates
+    # --- Map BED Features to Probe Coordinates ---
     # ==========================================
     message("Stage 3: Mapping genomic intervals to probe coordinates...")
     
@@ -164,7 +164,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     probe_ids_matched <- matched_probes\$probe_id
     
     # ==========================================
-    # Stage 4: Retrieve and Filter Annotations
+    # --- Retrieve and Filter Annotations ---
     # ==========================================
     message("Stage 4: Querying and filtering annotations...")
     
@@ -201,7 +201,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Export Results and Generate Plots
+    # --- Export Results and Generate Plots ---
     # ==========================================
     message("Stage 5: Exporting results and generating diagnostic plots...")
     

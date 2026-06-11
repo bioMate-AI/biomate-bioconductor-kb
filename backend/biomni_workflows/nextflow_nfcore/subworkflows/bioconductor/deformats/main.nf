@@ -45,12 +45,12 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(DESeq2)
     library(edgeR)
     library(DEFormats)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
     counts_mat <- as.matrix(counts_df)
@@ -68,7 +68,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     # Ensure condition is a factor
     coldata_df\$condition <- as.factor(coldata_df\$condition)
     
-    # Stage 3: Format conversions using DEFormats
+    # --- Format conversions using DEFormats ---
     message("Performing format conversions...")
     
     # 3.1: Create DGEList and convert to DESeqDataSet
@@ -86,7 +86,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     names(colData(se))[names(colData(se)) == "condition"] <- "group"
     dge_converted <- DGEList(se)
     
-    # Stage 4: Parallel Differential Expression Analysis
+    # --- Parallel Differential Expression Analysis ---
     message("Running DESeq2 analysis on converted object...")
     # Run DESeq2 on the DESeqDataSet converted from DGEList
     dds_analyzed <- DESeq(dds_converted, quiet = TRUE)
@@ -101,7 +101,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     res_edger <- topTags(et_analyzed, n = Inf)\$table
     res_edger\$gene_id <- rownames(res_edger)
     
-    # Stage 5: Compare and Save Results
+    # --- Compare and Save Results ---
     message("Comparing results and writing outputs...")
     
     # Write individual results

@@ -94,7 +94,7 @@ process BIOC_NORMR_CUSTOM_COUNTING_AND_PREDEFINED_REGIONS {
       strand = "+"
     )
     
-    # 1. Define custom single-end and paired-end counting configurations
+    # --- Define custom single-end and paired-end counting ---
     # Single End:
     # Count in 500bp bins.
     # Consider only reads with Mapping Quality >= 20.
@@ -111,13 +111,13 @@ process BIOC_NORMR_CUSTOM_COUNTING_AND_PREDEFINED_REGIONS {
     countConfigPE <- countConfigPairedEnd(binsize = 500, mapq = 30, midpoint = TRUE,
                                           tlenFilter = c(100, 300))
     
-    # 2. Define predefined genomic regions (promoters) and ensure they are of identical size
+    # --- Define predefined genomic regions (promoters) and ensure ---
     promoters <- promoters(genes, 1500, 1500)
     # regions have identical size?
     size_check <- all(width(promoters) == 3000)
     message(paste("Are all promoter regions of identical size (3000 bp)?", size_check))
     
-    # 3. Run enrichR() using the custom count configuration
+    # --- Run enrichR() using the custom count configuration ---
     # We attempt to fit using the Paired-End configuration. If the BAM files contain
     # Single-End reads, we gracefully fall back to the Single-End configuration.
     fit <- tryCatch({
@@ -139,11 +139,11 @@ process BIOC_NORMR_CUSTOM_COUNTING_AND_PREDEFINED_REGIONS {
     promotersFit <- enrichR(treatment = k4me3Bamfile, control = inputBamfile,
                             genome = promoters, verbose = FALSE)
     
-    # 4. Inspect summary statistics
+    # --- Inspect summary statistics ---
     message("Summary of fit on promoters:")
     summary(promotersFit)
     
-    # 5. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the fit objects as RDS
     saveRDS(fit, file = "enrichR_custom_config_fit.rds")
     saveRDS(promotersFit, file = "promoters_fit.rds")

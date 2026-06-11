@@ -59,7 +59,7 @@ process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
     dir.create("Output", showWarnings = FALSE, recursive = TRUE)
     dir.create("outData", showWarnings = FALSE, recursive = TRUE)
     
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # gene_expression.csv: genes as rows, samples as columns
     gene_expression <- as.matrix(read.csv("gene_expression.csv", row.names = 1, check.names = FALSE))
     
@@ -75,7 +75,7 @@ process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
       covariates\$shortLetterCode <- as.factor(covariates\$shortLetterCode)
     }
     
-    # 2. Pathway Summarization
+    # --- Pathway Summarization ---
     # Using the pathway reference from the PanomiR package namespace
     path_gene_table <- PanomiR::path_gene_table
     
@@ -86,7 +86,7 @@ process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
     # Save pathway summaries
     write.csv(summaries, "pathway_summaries.csv", row.names = TRUE)
     
-    # 3. Differential Pathway Activity Analysis
+    # --- Differential Pathway Activity Analysis ---
     output0 <- differentialPathwayAnalysis(
                             geneCounts = gene_expression,
                             pathways =  path_gene_table,
@@ -98,7 +98,7 @@ process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
     # Save differential pathway analysis results
     write.csv(de.paths, "differential_pathways.csv", row.names = TRUE)
     
-    # 4. Finding Clusters of Pathways
+    # --- Finding Clusters of Pathways ---
     # Using the pathway co-expression network from the PanomiR package namespace
     miniPCXN <- PanomiR::miniTestsPanomiR\$miniPCXN
     
@@ -124,7 +124,7 @@ process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
       write.csv(pathwayClustsLIHC\$Clustering, "pathway_clusters.csv", row.names = TRUE)
     }
     
-    # 5. Prioritizing miRNAs per Cluster of Pathways
+    # --- Prioritizing miRNAs per Cluster of Pathways ---
     # Using the enrichment reference from the PanomiR package namespace
     miniEnrich <- PanomiR::miniTestsPanomiR\$miniEnrich
     

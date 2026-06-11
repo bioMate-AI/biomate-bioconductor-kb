@@ -48,7 +48,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     library(Biobase)
     library(casper)
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     counts_file <- "counts.csv"
     coldata_file <- "coldata.csv"
     
@@ -87,7 +87,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
         exprs_vals <- counts_matrix
     }
     
-    # Stage 2: Construct ExpressionSet and Normalize
+    # --- Construct ExpressionSet and Normalize ---
     pheno_data <- new("AnnotatedDataFrame", data = coldata)
     feature_data <- new("AnnotatedDataFrame", data = data.frame(
         readCount = rowSums(counts_matrix),
@@ -106,7 +106,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     # Ensure condition is a factor for group comparison
     pData(eset_norm)\$condition <- as.factor(pData(eset_norm)\$condition)
     
-    # Stage 3: Equivalence Testing
+    # --- Equivalence Testing ---
     logfc_threshold <- log(1.5)
     
     # 3.1 Empirical Bayes Equivalence Testing (probNonEquiv)
@@ -133,7 +133,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     write.csv(prob_ne_df, "equivalence_probabilities.csv", row.names = FALSE)
     write.csv(treat_p_df, "treat_pvalues.csv", row.names = FALSE)
     
-    # Stage 4: Model Diagnostics and Visualization
+    # --- Model Diagnostics and Visualization ---
     message("Generating diagnostic plots...")
     pdf("diagnostics.pdf", width = 10, height = 8)
     par(mfrow = c(2, 2))

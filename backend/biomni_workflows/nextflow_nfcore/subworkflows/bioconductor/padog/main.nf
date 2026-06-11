@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run padog with specified parameters (permutations, annotation, organism, parallel processing) to compute pathway scores and p-valu
+//  * 1. [Core Analysis] esetm (gene expression matrix)
+//  * 2. [Core Analysis] group (vector of class labels)
+//  * 3. [Core Analysis] annotation (annotation package name)
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG {
     library(PADOG)
     
     # Read user inputs
-    # 1. esetm (gene expression matrix)
+    # --- esetm (gene expression matrix) ---
     if (file.exists("esetm.csv")) {
       esetm <- as.matrix(read.csv("esetm.csv", row.names = 1, check.names = FALSE))
     } else if (file.exists("esetm.tsv")) {
@@ -62,7 +64,7 @@ process BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG {
       stop("Error: esetm file not found (expected esetm.csv, esetm.tsv, or esetm.txt)")
     }
     
-    # 2. group (vector of class labels)
+    # --- group (vector of class labels) ---
     if (file.exists("group.txt")) {
       group <- readLines("group.txt")
     } else if (file.exists("group.csv")) {
@@ -71,7 +73,7 @@ process BIOC_PADOG_PATHWAY_ANALYSIS_WITH_PADOG {
       stop("Error: group file not found (expected group.txt or group.csv)")
     }
     
-    # 3. annotation (annotation package name)
+    # --- annotation (annotation package name) ---
     if (file.exists("annotation.txt")) {
       annotation <- trimws(readLines("annotation.txt")[1])
     } else {

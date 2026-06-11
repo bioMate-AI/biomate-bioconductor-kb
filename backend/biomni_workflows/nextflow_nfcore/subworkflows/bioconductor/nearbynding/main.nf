@@ -11,7 +11,16 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Generate a chain file mapping transcript regions end-to-end using GenomeMappingToChainFile 2. Get chromosome sizes for the concate
+//  * 1. [Visualization & Output] Load user input transcript list
+//  * 2. [Visualization & Output] Get chromosome sizes for the concatenated transcriptome
+//  * 3. [Visualization & Output] Extract transcriptome sequences
+//  * 4. [Visualization & Output] Fold RNA sequences using CapR
+//  * 5. [Visualization & Output] Convert and clean BAM files to bedGraph (or handle BED
+//  * 6. [Visualization & Output] Map protein binding data to the concatenated transcriptome
+//  * 7. [Visualization & Output] Process CapR output and map RNA structures to the
+//  * 8. [Visualization & Output] Calculate cross-correlation between RNA structure and
+//  * 9. [Visualization & Output] Visualize cross-correlation results
+//  * 10. [Visualization & Output] Calculate Wasserstein distance between different
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +59,7 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
         library(nearBynding)
         library(Rsamtools)
         
-        # 1. Load user input transcript list
+        # --- Load user input transcript list ---
         load("transcript_list.Rda")
         
         # Define input file paths
@@ -64,22 +73,22 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
                                  transcript_list = transcript_list,
                                  alignment = "hg38")
         
-        # 2. Get chromosome sizes for the concatenated transcriptome
+        # --- Get chromosome sizes for the concatenated transcriptome ---
         getChainChrSize(chain = "test.chain", 
                         out_chr = "user_transcriptome.size")
         
-        # 3. Extract transcriptome sequences
+        # --- Extract transcriptome sequences ---
         ExtractTranscriptomeSequence(transcript_list = transcript_list,
                                      ref_genome = ref_genome,
                                      genome_gtf = gtf,
                                      RNA_fragment = "three_prime_utr",
                                      exome_prefix = "user_transcriptome")
         
-        # 4. Fold RNA sequences using CapR
+        # --- Fold RNA sequences using CapR ---
         user_transcriptome.fa <- "user_transcriptome.fa"
         runCapR(in_file = user_transcriptome.fa)
         
-        # 5. Convert and clean BAM files to bedGraph (or handle BED input)
+        # --- Convert and clean BAM files to bedGraph (or handle BED ---
         if (file.exists("protein_binding.bam")) {
           sorted_bam <- sortBam("protein_binding.bam", "protein_sorted")
           CleanBAMtoBG(in_bam = sorted_bam)
@@ -92,7 +101,7 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
           stop("Error: Neither protein_binding.bam nor protein_binding.bed was found in the working directory.")
         }
         
-        # 6. Map protein binding data to the concatenated transcriptome
+        # --- Map protein binding data to the concatenated transcriptome ---
         if (is_bed) {
           liftOverToExomicBG(input = protein_input,
                              chain = "test.chain",
@@ -106,7 +115,7 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
                              output_bg = "protein_liftOver.bedGraph")
         }
         
-        # 7. Process CapR output and map RNA structures to the transcriptome
+        # --- Process CapR output and map RNA structures to the ---
         processCapRout(CapR_outfile = "user_transcriptome.out",
                        chain = "test.chain",
                        output_prefix = "user_transcriptome",
@@ -114,7 +123,7 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
                        genome_gtf = gtf,
                        RNA_fragment = "three_prime_utr")
         
-        # 8. Calculate cross-correlation between RNA structure and protein binding
+        # --- Calculate cross-correlation between RNA structure and ---
         runStereogeneOnCapR(protein_file = "protein_liftOver.bedGraph",
                             chrom_size = "user_transcriptome.size",
                             name_config = "user_transcriptome.cfg",
@@ -124,7 +133,7 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
                                       "protein_liftOver.bedGraph"),
                       name_config = "user_transcriptome.cfg")
         
-        # 9. Visualize cross-correlation results
+        # --- Visualize cross-correlation results ---
         visualizeCapRStereogene(CapR_prefix = "user_transcriptome",
                                 protein_file = "protein_liftOver",
                                 heatmap = TRUE,
@@ -147,7 +156,7 @@ process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
                             out_file = "stem_heatmap",
                             x_lim = c(-500, 500))
         
-        # 10. Calculate Wasserstein distance between different structural contexts
+        # --- Calculate Wasserstein distance between different ---
         dist_stem_hairpin <- bindingContextDistance(RNA_context = "user_transcriptome_stem_liftOver",
                                                     protein_file = "protein_liftOver",
                                                     RNA_context_2 = "user_transcriptome_hairpin_liftOver")

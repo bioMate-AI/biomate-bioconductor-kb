@@ -71,12 +71,12 @@ process BIOC_RBWA_BWA_MEM_ALIGNMENT {
     dir <- tempdir()
     index_prefix <- file.path(dir, "ref_index")
     
-    # Stage 1: Build reference genome index using bwa_build_index
+    # --- Build reference genome index using bwa_build_index ---
     message("Building reference genome index...")
     bwa_build_index(fasta,
                     index_prefix=index_prefix)
     
-    # Stage 2: Align reads directly to the index using bwa_mem to generate a .sam file
+    # --- Align reads directly to the index using bwa_mem to ---
     message("Aligning reads using BWA-MEM...")
     output_sam <- "output.sam"
     bwa_mem(index_prefix=index_prefix,

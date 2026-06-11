@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the dataset and define expression patterns using ebPatterns. 2. Fit the Gamma-Gamma (GG), Lognormal-Normal (LNN), or Lognorma
+//  * 1. [Visualization & Output] Load the dataset from the working directory
+//  * 2. [Visualization & Output] Define expression patterns
+//  * 3. [Visualization & Output] Fit Gamma-Gamma (GG) model and calculate posterior
+//  * 4. [Visualization & Output] Fit Lognormal-Normal (LNN) model and calculate posterior
+//  * 5. [Visualization & Output] Fit Lognormal-Normal with Modified Variance (LNNMV) model
+//  * 6. [Visualization & Output] Perform diagnostic checks and save plots to a PDF
+//  * 7. [Visualization & Output] Save outputs to files
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +56,7 @@ process BIOC_EBARRAYS_EMPIRICAL_BAYES_DE_ANALYSIS {
     # Load required library
     library(EBarrays)
     
-    # 1. Load the dataset from the working directory
+    # --- Load the dataset from the working directory ---
     # The pipeline expects a file named 'gould' (or 'gould.rds' / 'gould.csv') in the working directory.
     if (file.exists("gould.rds")) {
       gould <- readRDS("gould.rds")
@@ -70,24 +76,24 @@ process BIOC_EBARRAYS_EMPIRICAL_BAYES_DE_ANALYSIS {
       stop("Input file 'gould' (or gould.rds/gould.csv) not found in the working directory.")
     }
     
-    # 2. Define expression patterns
+    # --- Define expression patterns ---
     pattern <- ebPatterns(c("1,1,1,0,0,0,0,0,0,0", "1,2,2,0,0,0,0,0,0,0"))
     
-    # 3. Fit Gamma-Gamma (GG) model and calculate posterior probabilities
+    # --- Fit Gamma-Gamma (GG) model and calculate posterior ---
     gg.em.out <- emfit(gould, family = "GG", hypotheses = pattern, 
                        num.iter = 10)
     gg.post.out <- postprob(gg.em.out, gould)\$pattern
     gg.threshold <- crit.fun(gg.post.out[, 1], 0.05)
     gg.de.count <- sum(gg.post.out[, 2] > gg.threshold)
     
-    # 4. Fit Lognormal-Normal (LNN) model and calculate posterior probabilities
+    # --- Fit Lognormal-Normal (LNN) model and calculate posterior ---
     lnn.em.out <- emfit(gould, family = "LNN", hypotheses = pattern, 
                         num.iter = 10)
     lnn.post.out <- postprob(lnn.em.out, gould)\$pattern
     lnn.threshold <- crit.fun(lnn.post.out[, 1], 0.05)
     lnn.de.count <- sum(lnn.post.out[, 2] > lnn.threshold)
     
-    # 5. Fit Lognormal-Normal with Modified Variance (LNNMV) model and calculate posterior probabilities
+    # --- Fit Lognormal-Normal with Modified Variance (LNNMV) model ---
     lnnmv.em.out <- emfit(gould, family = "LNNMV", hypotheses = pattern, 
                           groupid = c(1,2,2,0,0,0,0,0,0,0), num.iter = 10)
     lnnmv.post.out <- postprob(lnnmv.em.out, gould, 
@@ -95,7 +101,7 @@ process BIOC_EBARRAYS_EMPIRICAL_BAYES_DE_ANALYSIS {
     lnnmv.threshold <- crit.fun(lnnmv.post.out[, 1], 0.05)
     lnnmv.de.count <- sum(lnnmv.post.out[, 2] > lnnmv.threshold)
     
-    # 6. Perform diagnostic checks and save plots to a PDF
+    # --- Perform diagnostic checks and save plots to a PDF ---
     pdf("diagnostic_plots.pdf", width = 8, height = 8)
     
     # Constant CV check
@@ -118,7 +124,7 @@ process BIOC_EBARRAYS_EMPIRICAL_BAYES_DE_ANALYSIS {
     
     dev.off()
     
-    # 7. Save outputs to files
+    # --- Save outputs to files ---
     # Save posterior probabilities
     write.csv(gg.post.out, "gg_posterior_probabilities.csv", row.names = TRUE)
     write.csv(lnn.post.out, "lnn_posterior_probabilities.csv", row.names = TRUE)

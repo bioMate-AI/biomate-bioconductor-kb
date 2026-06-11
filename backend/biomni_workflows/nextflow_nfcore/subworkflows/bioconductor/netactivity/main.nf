@@ -51,7 +51,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input datasets...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -72,7 +72,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     coldata <- coldata[common_samples, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Normalization (DESeq2 VST)
+    # --- Normalization (DESeq2 VST) ---
     # ==========================================
     message("Normalizing count data using Variance Stabilizing Transformation...")
     dds <- DESeqDataSetFromMatrix(
@@ -83,7 +83,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     vst_data <- varianceStabilizingTransformation(dds, blind = TRUE)
     
     # ==========================================
-    # Stage 3: Prepare SummarizedExperiment
+    # --- Prepare SummarizedExperiment ---
     # ==========================================
     message("Preparing SummarizedExperiment for NetActivity...")
     # Using the default "gtex_gokegg" model (GO Biological Processes and KEGG pathways)
@@ -91,7 +91,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     prepared_se <- prepareSummarizedExperiment(vst_data, model_name)
     
     # ==========================================
-    # Stage 4: Compute Gene Set Scores
+    # --- Compute Gene Set Scores ---
     # ==========================================
     message("Computing gene set activity scores...")
     scores_se <- computeGeneSetScores(prepared_se, model_name)
@@ -101,7 +101,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     message("Saved gene set scores to 'gene_set_scores.csv'.")
     
     # ==========================================
-    # Stage 5: Differential Gene Set Score Analysis
+    # --- Differential Gene Set Score Analysis ---
     # ==========================================
     message("Performing differential gene set activity analysis...")
     design <- model.matrix(~ condition, data = colData(scores_se))
@@ -118,7 +118,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     message("Saved differential analysis results to 'differential_gene_sets.csv'.")
     
     # ==========================================
-    # Stage 6: Visualization of Top Gene Set
+    # --- Visualization of Top Gene Set ---
     # ==========================================
     if (nrow(top_tab) > 0) {
       top_gs_id <- rownames(top_tab)[1]

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the QUBIC algorithm with the weight parameter
+//  * 1. [Core Analysis] Read the user input files from the working directory
+//  * 2. [Core Analysis] Run the QUBIC algorithm with the weight parameter
+//  * 3. [Core Analysis] Save the meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +52,7 @@ process BIOC_QUBIC_QUERY_BASED_BICLUSTERING {
     # Load required libraries
     library(QUBIC)
     
-    # 1. Read the user input files from the working directory
+    # --- Read the user input files from the working directory ---
     # expression_matrix.csv: Gene expression matrix (genes as rows, conditions as columns)
     if (!file.exists("expression_matrix.csv")) {
       stop("Error: 'expression_matrix.csv' not found in the working directory.")
@@ -63,10 +65,10 @@ process BIOC_QUBIC_QUERY_BASED_BICLUSTERING {
     }
     ecoli.weight <- as.matrix(read.csv("weight_matrix.csv", row.names = 1, check.names = FALSE))
     
-    # 2. Run the QUBIC algorithm with the weight parameter (exactly as documented)
+    # --- Run the QUBIC algorithm with the weight parameter ---
     res4 <- qubiclust(ecoli, weight = ecoli.weight, verbose = FALSE)
     
-    # 3. Save the meaningful results to output files
+    # --- Save the meaningful results to output files ---
     # Save the complete biclustering result object
     saveRDS(res4, "biclustering_result.rds")
     

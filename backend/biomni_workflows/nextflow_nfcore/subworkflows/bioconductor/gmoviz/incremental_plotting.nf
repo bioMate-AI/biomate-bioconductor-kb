@@ -58,13 +58,13 @@ process BIOC_GMOVIZ_INCREMENTAL_PLOTTING {
     library(IRanges)
     library(Rsamtools)
     
-    # 1. Determine target chromosome from BAM file dynamically (defaulting to chr4 if present)
+    # --- Determine target chromosome from BAM file dynamically ---
     bam_file_path <- "coverage.bam"
     bam_header <- Rsamtools::scanBamHeader(bam_file_path)
     targets <- names(bam_header[[1]]\$targets)
     target_chr <- if ("chr4" %in% targets) "chr4" else targets[1]
     
-    # 2. Read ideogram, coverage, labels, and features from files
+    # --- Read ideogram, coverage, labels, and features from files ---
     fly_ideogram_chr4_only <- getIdeogramData(
       bam_file = bam_file_path,
       wanted_chr = target_chr
@@ -86,7 +86,7 @@ process BIOC_GMOVIZ_INCREMENTAL_PLOTTING {
       colours = gmoviz::rich_colours
     )
     
-    # 3. Read numeric data from file and construct GRanges object
+    # --- Read numeric data from file and construct GRanges object ---
     numeric_df <- read.table("numeric_data.txt", header = TRUE, stringsAsFactors = FALSE)
     start_col <- if ("start" %in% colnames(numeric_df)) "start" else colnames(numeric_df)[1]
     value_col <- if ("value" %in% colnames(numeric_df)) "value" else {
@@ -100,7 +100,7 @@ process BIOC_GMOVIZ_INCREMENTAL_PLOTTING {
       value = numeric_df[[value_col]]
     )
     
-    # 4. Create legend objects
+    # --- Create legend objects ---
     legend <- makeLegends(
         feature_legend = TRUE, feature_data = features, 
         feature_legend_title = "Regions of interest", scatterplot_legend = TRUE,
@@ -108,7 +108,7 @@ process BIOC_GMOVIZ_INCREMENTAL_PLOTTING {
         scatterplot_legend_labels = "value"
     )
     
-    # 5. Initialize the plot and draw tracks incrementally inside gmovizPlot
+    # --- Initialize the plot and draw tracks incrementally inside ---
     gmovizPlot(file_name = "example.svg", file_type = "svg", 
                plotting_functions = {
         gmovizInitialise(
@@ -121,7 +121,7 @@ process BIOC_GMOVIZ_INCREMENTAL_PLOTTING {
     }, legends = legend, title = "Chromosome 4", background_colour = "white",
     width = 8, height = 5.33, units = "in")
     
-    # 6. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     write.csv(as.data.frame(labels_from_file), "labels.csv", row.names = FALSE)
     write.csv(as.data.frame(features), "features.csv", row.names = FALSE)
     saveRDS(chr4_coverage, "coverage.rds")

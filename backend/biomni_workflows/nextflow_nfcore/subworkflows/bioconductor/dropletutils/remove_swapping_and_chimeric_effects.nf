@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Remove barcode swapping across multiplexed samples using swappedDrops. 2. Remove chimeric reads within cells using chimericDrops
+//  * 1. [Core Analysis] Read the declared user input files from the working
+//  * 2. [Core Analysis] Remove barcode swapping across multiplexed samples using
+//  * 3. [Core Analysis] Remove chimeric reads within cells using chimericDrops
+//  * 4. [Core Analysis] Save meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +61,7 @@ process BIOC_DROPLETUTILS_REMOVE_SWAPPING_AND_CHIMERIC_EFFECTS {
         # Load required libraries
         library(DropletUtils)
         
-        # 1. Read the declared user input files from the working directory
+        # --- Read the declared user input files from the working ---
         # The user provides molecule information HDF5 files in the working directory.
         mult.mol.info <- sort(list.files(pattern = "\\\\.h5\$", full.names = TRUE))
         
@@ -66,13 +69,13 @@ process BIOC_DROPLETUTILS_REMOVE_SWAPPING_AND_CHIMERIC_EFFECTS {
           stop("Error: No HDF5 (.h5) molecule information files found in the working directory.")
         }
         
-        # 2. Remove barcode swapping across multiplexed samples using swappedDrops
+        # --- Remove barcode swapping across multiplexed samples using ---
         s.out <- swappedDrops(mult.mol.info, min.frac=0.9)
         
-        # 3. Remove chimeric reads within cells using chimericDrops
+        # --- Remove chimeric reads within cells using chimericDrops ---
         out <- lapply(mult.mol.info, chimericDrops)
         
-        # 4. Save meaningful results
+        # --- Save meaningful results ---
         # Save the full output objects as RDS for downstream analysis
         saveRDS(s.out, "swapped_drops_output.rds")
         saveRDS(out, "chimeric_drops_output.rds")

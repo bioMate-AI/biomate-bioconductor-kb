@@ -53,7 +53,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Defensive Input Loading & Parsing
+    # --- Defensive Input Loading & Parsing ---
     # ==========================================
     message("Reading input.csv...")
     input_df <- read.csv("input.csv", header = TRUE, check.names = FALSE)
@@ -110,7 +110,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     pdf("mutational_patterns_report.pdf", width = 10, height = 8)
     
     # ==========================================
-    # STAGE 2: De Novo Signature Extraction (NMF)
+    # --- De Novo Signature Extraction (NMF) ---
     # ==========================================
     message("Performing De Novo Signature Extraction...")
     # Extract 2 signatures (rank = 2)
@@ -135,7 +135,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     print(p_nmf_compare)
     
     # ==========================================
-    # STAGE 3: Signature Refitting
+    # --- Signature Refitting ---
     # ==========================================
     message("Performing Signature Refitting...")
     # Standard refit
@@ -160,7 +160,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     print(p_boots)
     
     # ==========================================
-    # STAGE 4: Cosine Similarity
+    # --- Cosine Similarity ---
     # ==========================================
     message("Calculating Cosine Similarity...")
     cos_sim_samples_signatures <- cos_sim_matrix(mut_mat, signatures)
@@ -170,7 +170,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     print(p_cosine)
     
     # ==========================================
-    # STAGE 5: Signature Potential Damage Analysis
+    # --- Signature Potential Damage Analysis ---
     # ==========================================
     message("Attempting Signature Potential Damage Analysis...")
     tryCatch({

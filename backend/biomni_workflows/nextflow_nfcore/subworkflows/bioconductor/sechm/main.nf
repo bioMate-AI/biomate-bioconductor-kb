@@ -51,7 +51,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     })
     
     # ==========================================
-    # Stage 1: Load Data and Construct SummarizedExperiment
+    # --- Load Data and Construct SummarizedExperiment ---
     # ==========================================
     
     # Read input files from the working directory
@@ -80,7 +80,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     )
     
     # ==========================================
-    # Stage 2: Calculate Log2 Fold Changes and Row Metadata
+    # --- Calculate Log2 Fold Changes and Row Metadata ---
     # ==========================================
     
     # Identify control samples for fold-change calculation
@@ -109,7 +109,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     top_genes <- names(sort(rowData(se)\$variance, decreasing = TRUE)[1:top_n])
     
     # ==========================================
-    # Stage 3: Generate Single-Dataset Heatmaps
+    # --- Generate Single-Dataset Heatmaps ---
     # ==========================================
     
     pdf("sechm_plots.pdf", width = 10, height = 8)
@@ -155,7 +155,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     dev.off()
     
     # ==========================================
-    # Stage 4: Multi-Dataset Comparison (crossHm)
+    # --- Multi-Dataset Comparison (crossHm) ---
     # ==========================================
     
     # Simulate a second dataset (e.g., a technical replicate or batch) by adding jitter
@@ -178,7 +178,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     dev.off()
     
     # ==========================================
-    # Stage 5: Export Melted Data Frame
+    # --- Export Melted Data Frame ---
     # ==========================================
     
     # Extract tidy format data for the top features

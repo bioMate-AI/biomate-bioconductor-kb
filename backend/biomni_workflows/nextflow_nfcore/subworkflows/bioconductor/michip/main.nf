@@ -58,29 +58,29 @@ process BIOC_MICHIP_STEP_BY_STEP_PROCESSING {
     # Define the directory containing the user-provided GPR files (B_676.gpr and B_677.gpr)
     datadir <- "."
     
-    # 1. Parse raw data from the current directory
+    # --- Parse raw data from the current directory ---
     defaultRawData <- parseRawData(datadir)
     
-    # 2. Filter out empty and unwanted rows
+    # --- Filter out empty and unwanted rows ---
     noEmptiesDataSet <- removeUnwantedRows(defaultRawData, c("Empty"))
     humanDataSet <- standardRemoveRows(defaultRawData)
     
-    # 3. Correct for bad flags and low-intensity background
+    # --- Correct for bad flags and low-intensity background ---
     flagCorrectedDataSet <- correctForFlags(humanDataSet)
     flagCorrectedDataSet <- correctForFlags(humanDataSet, intensityCutoff = 50)
     
-    # 4. Summarize replicate spot intensities
+    # --- Summarize replicate spot intensities ---
     summedData <- summarizeIntensitiesAsMedian(flagCorrectedDataSet, minSumlength = 0, madAdjust=FALSE)
     
-    # 5. Generate diagnostic scatter and box plots
+    # --- Generate diagnostic scatter and box plots ---
     # These functions automatically write files to the working directory with the specified prefixes
     plotIntensitiesScatter(exprs(summedData), NULL, "MiChipDemX", "SummarizedScatter")
     boxplotData(exprs(summedData), "MiChipDemX", "Summarized")
     
-    # 6. Perform per-chip median normalization
+    # --- Perform per-chip median normalization ---
     mednormedData <- normalizePerChipMedian(summedData)
     
-    # 7. Export the annotated normalized data matrix
+    # --- Export the annotated normalized data matrix ---
     outputAnnotatedDataMatrix(mednormedData, "MiChipDemo", "medNormedIntensity", "exprs")
     
     # Save R objects for downstream analysis

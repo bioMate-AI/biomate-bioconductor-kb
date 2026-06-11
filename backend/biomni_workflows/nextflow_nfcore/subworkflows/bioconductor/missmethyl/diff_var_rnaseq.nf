@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create a DGEList object. 2. Filter lowly expressed genes and normalize library sizes. 3. Fit the variability model using varFit (w
+//  * 1. [Input & Preparation] Read user inputs from the working directory
+//  * 2. [Input & Preparation] Create a DGEList object
+//  * 3. [Input & Preparation] Filter lowly expressed genes and normalize library sizes
+//  * 4. [Input & Preparation] Fit the variability model using varFit
+//  * 5. [Input & Preparation] Extract top differentially variable genes using topVar
+//  * 6. [Input & Preparation] Write outputs
 
 nextflow.enable.dsl = 2
 
@@ -133,7 +138,7 @@ process BIOC_MISSMETHYL_DIFF_VAR_RNASEQ {
       return(as.factor(val))
     }
     
-    # 1. Read user inputs from the working directory
+    # --- Read user inputs from the working directory ---
     counts <- as.matrix(read_matrix_or_df("counts"))
     annot <- read_matrix_or_df("annot")
     gender <- read_gender()
@@ -162,10 +167,10 @@ process BIOC_MISSMETHYL_DIFF_VAR_RNASEQ {
     }
     annot <- annot[, c("Symbol", "Chr"), drop = FALSE]
     
-    # 2. Create a DGEList object
+    # --- Create a DGEList object ---
     y <- DGEList(counts=counts, genes=annot[rownames(counts),])
     
-    # 3. Filter lowly expressed genes and normalize library sizes
+    # --- Filter lowly expressed genes and normalize library sizes ---
     isexpr <- rowSums(cpm(y)>1) >= 20
     # Fallback for small sample sizes to ensure the pipeline runs successfully
     if (sum(isexpr) == 0) {
@@ -182,15 +187,15 @@ process BIOC_MISSMETHYL_DIFF_VAR_RNASEQ {
     y <- y[isexpr & hasannot,,keep.lib.sizes=FALSE]
     y <- calcNormFactors(y)
     
-    # 4. Fit the variability model using varFit
+    # --- Fit the variability model using varFit ---
     design.hapmap <- model.matrix(~gender)
     fitvar.hapmap <- varFit(y, design = design.hapmap, coef=c(1,2))
     fitvar.hapmap\$genes <- y\$genes
     
-    # 5. Extract top differentially variable genes using topVar
+    # --- Extract top differentially variable genes using topVar ---
     topDV.hapmap <- topVar(fitvar.hapmap,coef=ncol(design.hapmap))
     
-    # 6. Write outputs
+    # --- Write outputs ---
     write.csv(topDV.hapmap, file = "top_DV_genes.csv", row.names = TRUE)
     saveRDS(fitvar.hapmap, file = "fitvar_hapmap.rds")
     

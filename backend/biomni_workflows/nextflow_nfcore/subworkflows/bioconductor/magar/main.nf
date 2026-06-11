@@ -56,7 +56,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
     suppressPackageStartupMessages(library(RnBeads))
     suppressPackageStartupMessages(library(MAGAR))
     
-    # 1. Configure RnBeads options
+    # --- Configure RnBeads options ---
     # Set options directly in RnBeads and serialize to XML to avoid system.file
     rnb.options(identifiers.column="geo_accession",
         import.idat.platform="probes450")
@@ -64,7 +64,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
     cat(rnb.options2xml(),file=xml.fi)
     qtlSetOption(rnbeads.options = xml.fi)
     
-    # 2. Import PLINK and RnBeads data using doImport
+    # --- Import PLINK and RnBeads data using doImport ---
     geno.dir <- "plink_data"
     plink.dir <- geno.dir # Define plink.dir to match the vignette's list structure
     rnb.set <- load.rnb.set("rnb_set_dir")
@@ -79,7 +79,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
         s.id.col="SampleID",
         out.folder=getwd())
     
-    # 3. Call methQTLs using doMethQTL
+    # --- Call methQTLs using doMethQTL ---
     # Use the imported meth.qtl object instead of the package's bundled demo data
     imp.data <- meth.qtl
     qtlSetOption(standard.deviation.gauss=100,
@@ -89,7 +89,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
     # Save the main methQTLResult object
     saveRDS(meth.qtl.res, file="meth_qtl_result.rds")
     
-    # 4. Extract results and annotations using getResult and getAnno
+    # --- Extract results and annotations using getResult and ---
     result.table <- getResult(meth.qtl.res)
     write.csv(result.table, "meth_qtl_results.csv", row.names=FALSE)
     
@@ -107,7 +107,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
     print("Head of Genotype Annotation:")
     print(head(anno.geno))
     
-    # 5. Visualize interactions using qtlPlotSNPCpGInteraction and qtlDistanceScatterplot
+    # --- Visualize interactions using qtlPlotSNPCpGInteraction and ---
     result.table <- result.table[order(result.table\$P.value,decreasing=FALSE),]
     
     pdf("meth_qtl_plots.pdf", width=10, height=8)
@@ -134,7 +134,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
     
     dev.off()
     
-    # 6. Perform base substitution enrichment using qtlBaseSubstitutionEnrichment
+    # --- Perform base substitution enrichment using ---
     tryCatch({
         res <- qtlBaseSubstitutionEnrichment(meth.qtl.res)
         write.csv(res, "base_substitution_enrichment.csv", row.names=FALSE)

@@ -13,7 +13,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load and format SCENIC regulons using create_regulon_list_scenic 2. Transpose and clean SCENIC AUC matrix 3. Load and parse CellPh
+//  * 1. [Visualization & Output] Load and format SCENIC regulons
+//  * 2. [Visualization & Output] Transpose and clean SCENIC AUC matrix
+//  * 3. [Visualization & Output] Load and parse CellPhoneDB database files into an rl_map
+//  * 4. [Visualization & Output] Extract counts, z-scores, and cluster labels from
+//  * 5. [Visualization & Output] Initialize the Domino object
+//  * 6. [Visualization & Output] Finalize the Domino network
+//  * 7. [Visualization & Output] Access results using dom_* functions and write to CSV
+//  * 8. [Visualization & Output] Visualize using heatmaps, network plots, and circos plots
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +65,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     # Set seed for reproducibility
     set.seed(42)
     
-    # 1. Load and format SCENIC regulons
+    # --- Load and format SCENIC regulons ---
     regulons <- read.csv("scenic_regulon.csv")
     regulons <- regulons[-1:-2, ]
     colnames(regulons) <- c(
@@ -67,7 +74,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     )
     regulon_list <- create_regulon_list_scenic(regulons = regulons)
     
-    # 2. Transpose and clean SCENIC AUC matrix
+    # --- Transpose and clean SCENIC AUC matrix ---
     auc <- read.table("scenic_auc.csv",
         header = TRUE, row.names = 1,
         stringsAsFactors = FALSE, sep = ","
@@ -75,7 +82,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     auc_in <- as.data.frame(t(auc))
     rownames(auc_in) <- gsub("\\\\.\\\\.\\\\.\$", "", rownames(auc_in))
     
-    # 3. Load and parse CellPhoneDB database files into an rl_map
+    # --- Load and parse CellPhoneDB database files into an rl_map ---
     complexes <- read.csv("complex_input.csv", stringsAsFactors = FALSE)
     genes <- read.csv("gene_input.csv", stringsAsFactors = FALSE)
     interactions <- read.csv("interaction_input.csv", stringsAsFactors = FALSE)
@@ -98,7 +105,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     )
     rl_map_append <- rbind(col_int_df, rl_map)
     
-    # 4. Extract counts, z-scores, and cluster labels from SingleCellExperiment
+    # --- Extract counts, z-scores, and cluster labels from ---
     pbmc <- readRDS("pbmc3k_sce.rds")
     counts = assay(pbmc, "counts")
     logcounts = assay(pbmc, "logcounts")
@@ -107,7 +114,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     clusters = factor(pbmc\$cell_type)
     names(clusters) = colnames(pbmc)
     
-    # 5. Initialize the Domino object
+    # --- Initialize the Domino object ---
     pbmc_dom <- create_domino(
         rl_map = rl_map,
         features = auc_in,
@@ -120,7 +127,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
         remove_rec_dropout = FALSE
     )
     
-    # 6. Finalize the Domino network
+    # --- Finalize the Domino network ---
     pbmc_dom <- build_domino(
         dom = pbmc_dom,
         min_tf_pval = .001,
@@ -136,7 +143,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     # Assign to 'dom' to match the second part of the documented code
     dom <- pbmc_dom
     
-    # 7. Access results using dom_* functions and write to CSV files
+    # --- Access results using dom_* functions and write to CSV ---
     write.csv(data.frame(Cluster = dom_clusters(dom)), "dom_clusters.csv", row.names = FALSE)
     
     count_matrix <- dom_counts(dom)
@@ -180,7 +187,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     
     dom_info(dom)
     
-    # 8. Visualize using heatmaps, network plots, and circos plots
+    # --- Visualize using heatmaps, network plots, and circos plots ---
     pdf("domino_visualizations.pdf", width = 10, height = 8)
     
     # Heatmaps and Networks on pbmc_dom

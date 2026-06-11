@@ -44,7 +44,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(GMRP)
     library(VariantAnnotation)
     library(GenomicRanges)
@@ -52,7 +52,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
     library(diagram)
     library(plotrix)
     
-    # Stage 2: Read and process input files
+    # --- Read and process input files ---
     vcf_file <- "input.vcf"
     vcf <- VariantAnnotation::readVcf(vcf_file)
     gr <- GenomicRanges::rowRanges(vcf)
@@ -66,7 +66,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
       write.csv(data.frame(Status = "No coldata provided"), "coldata_summary.csv", row.names = FALSE)
     }
     
-    # Stage 3: Extract and format SNP coordinates
+    # --- Extract and format SNP coordinates ---
     rsid <- names(gr)
     if (is.null(rsid) || all(rsid == "") || any(is.na(rsid))) {
       rsid <- paste0("rs", seq_along(gr))
@@ -81,7 +81,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
     # Use GMRP's chrp to split coordinates into chromosome and position
     chr_df <- GMRP::chrp(hg = hg19_coords)
     
-    # Stage 4: Prepare GWAS summary statistics for multiple traits
+    # --- Prepare GWAS summary statistics for multiple traits ---
     n_snps <- length(gr)
     set.seed(102)
     
@@ -164,7 +164,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
     )
     newcad <- cbind(hg18.d = hg19_coords, SNP.d = rsid, a1.d = tolower(ref_alleles), newcad)
     
-    # Stage 5: Create standard beta table using mktable
+    # --- Create standard beta table using mktable ---
     varname <- c("CAD", "LDL", "HDL", "TG", "TC")
     mybeta <- tryCatch({
       GMRP::mktable(cdata = newdata, ddata = newcad, rt = "beta", varname = varname, 
@@ -189,7 +189,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
     }
     write.csv(as.data.frame(mybeta), "standard_beta_table.csv", row.names = FALSE)
     
-    # Stage 6: Mendelian Randomization and Path Analysis
+    # --- Mendelian Randomization and Path Analysis ---
     beta_df <- mybeta[, 4:8]
     colnames(beta_df) <- tolower(colnames(beta_df)) # cad, ldl, hdl, tg, tc
     beta_df <- S4Vectors::DataFrame(beta_df)
@@ -202,7 +202,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
     print(path_results)
     sink()
     
-    # Stage 7: Generate Path Diagrams
+    # --- Generate Path Diagrams ---
     # Extract or calculate correlation and path coefficients dynamically
     mypath <- tryCatch({
       cor_mat <- cor(as.matrix(beta_df[, c("ldl", "hdl", "tg")]))
@@ -252,7 +252,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
                        disease = "CAD", R2D = 0.54, R2O = 0.98)
     dev.off()
     
-    # Stage 8: SNP Annotation Analysis
+    # --- SNP Annotation Analysis ---
     snp_annot_data <- data.frame(
       rsid = mybeta\$rsid,
       chr = as.numeric(mybeta\$chr),

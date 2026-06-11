@@ -50,7 +50,7 @@ process BIOC_MUSCAT_BULK_HYPOTHESIS_WEIGHING {
     library(dplyr)
     library(limma)
     
-    # 1. Load data
+    # --- Load data ---
     counts <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts)) {
       rownames(counts) <- counts\$gene_id
@@ -80,7 +80,7 @@ process BIOC_MUSCAT_BULK_HYPOTHESIS_WEIGHING {
     # Create SingleCellExperiment
     sce <- SingleCellExperiment(assays = list(counts = as.matrix(counts)), colData = coldata)
     
-    # 2. Preprocessing & Clustering
+    # --- Preprocessing & Clustering ---
     sce <- sce[rowSums(counts(sce) > 0) > 0, ]
     qc <- perCellQCMetrics(sce)
     ol <- isOutlier(metric = qc\$detected, nmads = 2, log = TRUE)
@@ -101,10 +101,10 @@ process BIOC_MUSCAT_BULK_HYPOTHESIS_WEIGHING {
     
     sce <- prepSCE(sce, kid = "cluster_id", sid = "sample_id", gid = "group_id", drop = TRUE)
     
-    # 3. Pseudobulk Aggregation
+    # --- Pseudobulk Aggregation ---
     pb_sum <- aggregateData(sce, assay = "counts", fun = "sum", by = c("cluster_id", "sample_id"))
     
-    # 4. Run DS Analysis
+    # --- Run DS Analysis ---
     res_DS <- pbDS(pb_sum, min_cells = 0, filter = "none", verbose = FALSE)
     res2 <- tryCatch({
       bind_rows(res_DS\$table[[1]], .id = "cluster_id")
@@ -112,7 +112,7 @@ process BIOC_MUSCAT_BULK_HYPOTHESIS_WEIGHING {
       data.frame(gene = character(), cluster_id = character(), logFC = numeric(), p_val = numeric(), p_adj.loc = numeric())
     })
     
-    # 5. Generate Mock Bulk Data & Run Bulk DEA
+    # --- Generate Mock Bulk Data & Run Bulk DEA ---
     sample_ids <- sce\$sample_id
     bulk_mat <- do.call(cbind, lapply(levels(sample_ids), function(sid) {
       rowSums(counts(sce)[, sample_ids == sid, drop = FALSE])
@@ -144,7 +144,7 @@ process BIOC_MUSCAT_BULK_HYPOTHESIS_WEIGHING {
       )
     }
     
-    # 6. Apply Bulk-Based Hypothesis Weighing (bbhw)
+    # --- Apply Bulk-Based Hypothesis Weighing (bbhw) ---
     if (nrow(res2) > 0) {
       nbins_val <- max(2, min(5, floor(nrow(res2) / 20)))
       res2 <- tryCatch({
@@ -157,10 +157,10 @@ process BIOC_MUSCAT_BULK_HYPOTHESIS_WEIGHING {
       res2\$padj <- numeric()
     }
     
-    # 7. Save Results
+    # --- Save Results ---
     write.csv(res2, "bbhw_results.csv", row.names = FALSE)
     
-    # 8. Power Comparison
+    # --- Power Comparison ---
     power_comp <- data.frame(
       Method = c("Standard FDR", "Bulk-weighted FDR (bbhw)"),
       Significant_Genes = c(

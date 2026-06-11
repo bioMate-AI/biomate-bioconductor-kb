@@ -57,7 +57,7 @@ process BIOC_TMIXCLUST_EXPRESSION_SET_CLUSTERING {
     library(SPEM)
     library(Biobase)
     
-    # 1. Load the Biobase ExpressionSet object from the user input file 'sos'
+    # --- Load the Biobase ExpressionSet object from the user input ---
     if (file.exists("sos")) {
       sos <- readRDS("sos")
     } else if (file.exists("sos.rds")) {
@@ -66,14 +66,14 @@ process BIOC_TMIXCLUST_EXPRESSION_SET_CLUSTERING {
       stop("Required input file 'sos' (Biobase ExpressionSet) not found in the working directory.")
     }
     
-    # 2. Convert the ExpressionSet to a time series data frame
+    # --- Convert the ExpressionSet to a time series data frame ---
     sos_data = get_time_series_df_bio(sos)
     print(head(sos_data))
     
     # Save the converted data frame to a CSV file
     write.csv(sos_data, file = "sos_data.csv", row.names = TRUE)
     
-    # 3. Perform clustering on the retrieved data frame
+    # --- Perform clustering on the retrieved data frame ---
     cluster_obj = TMixClust(sos_data, nb_clusters = 3)
     
     # Save the clustering object to an RDS file

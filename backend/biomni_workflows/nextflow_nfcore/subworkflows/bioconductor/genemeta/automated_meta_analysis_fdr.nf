@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Compute combined z-scores and meta-analysis statistics using zScores. 2. Plot combined vs original scores and IDR plot using IDRpl
+//  * 1. [Visualization & Output] Compute combined z-scores and meta-analysis statistics
+//  * 2. [Visualization & Output] Plot combined vs original scores and IDR plot
+//  * 3. [Visualization & Output] Estimate FDR using zScoreFDR
+//  * 4. [Visualization & Output] Visualize FDR thresholds and gene counts using CountPlot
 
 nextflow.enable.dsl = 2
 
@@ -73,14 +76,14 @@ process BIOC_GENEMETA_AUTOMATED_META_ANALYSIS_FDR {
     esets     <- list(Split1,Split2,Nevins)
     classes   <- list(Split1.ER,Split2.ER,data.ER)
     
-    # 1. Compute combined z-scores and meta-analysis statistics
+    # --- Compute combined z-scores and meta-analysis statistics ---
     theScores <- zScores(esets,classes,useREM=FALSE,CombineExp=1:2)
     
     # Save z-scores results
     write.csv(theScores, "theScores.csv", row.names=TRUE)
     saveRDS(theScores, "theScores.rds")
     
-    # 2. Plot combined vs original scores and IDR plot
+    # --- Plot combined vs original scores and IDR plot ---
     pdf("CombinedVsOriginal.pdf")
     plot(theScores[,"zSco_Ex_3"],theScores[,"zSco"],pch="*",xlab="original score",ylab="combined score")
     abline(0,1,col="red")
@@ -90,7 +93,7 @@ process BIOC_GENEMETA_AUTOMATED_META_ANALYSIS_FDR {
     IDRplot(theScores,Combine=1:2,colPos="blue", colNeg="red")
     dev.off()
     
-    # 3. Estimate FDR using zScoreFDR
+    # --- Estimate FDR using zScoreFDR ---
     ScoresFDR <- zScoreFDR(esets, classes, useREM=FALSE, nperm=50,CombineExp=1:2)
     
     # Save FDR results
@@ -99,7 +102,7 @@ process BIOC_GENEMETA_AUTOMATED_META_ANALYSIS_FDR {
     # Define color palette for plotting
     theNewC <- brewer.pal(3,"Set2")
     
-    # 4. Visualize FDR thresholds and gene counts using CountPlot
+    # --- Visualize FDR thresholds and gene counts using CountPlot ---
     pdf("CountPlot.pdf")
     CountPlot(ScoresFDR,Score="FDR",kindof="two.sided",cols=c("red",theNewC),main="two sided FDR", xlab="FDR threshold",ylab="Number of genes",CombineExp=3)
     dev.off()

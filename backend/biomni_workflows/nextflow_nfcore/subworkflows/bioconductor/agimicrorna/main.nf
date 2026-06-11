@@ -57,7 +57,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     library("limma")
     
     # ==========================================
-    # 1. Load target file and read Agilent FE data
+    # --- Load target file and read Agilent FE data ---
     # ==========================================
     
     # Read the user-provided targets file
@@ -80,7 +80,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     print(names(dd.micro))
     
     # ==========================================
-    # 2. Quality control plotting and array reproducibility
+    # --- Quality control plotting and array reproducibility ---
     # ==========================================
     
     # Open a PDF device to capture all QC plots
@@ -125,7 +125,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     dev.off()
     
     # ==========================================
-    # 3. Extract Total Gene Signal (TGS) and normalize
+    # --- Extract Total Gene Signal (TGS) and normalize ---
     # ==========================================
     
     ddTGS=tgsMicroRna(dd.micro,
@@ -141,7 +141,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     		verbose=TRUE)
     
     # ==========================================
-    # 4. Filter out low-quality probes and controls
+    # --- Filter out low-quality probes and controls ---
     # ==========================================
     
     ddPROC=filterMicroRna(ddNORM,
@@ -157,7 +157,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
                         writeout=FALSE)
     
     # ==========================================
-    # 5. Create an ExpressionSet object
+    # --- Create an ExpressionSet object ---
     # ==========================================
     
     esetPROC=esetMicroRna(ddPROC,
@@ -169,7 +169,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     saveRDS(esetPROC, "esetPROC.rds")
     
     # ==========================================
-    # 6. Fit linear models and define contrast matrices
+    # --- Fit linear models and define contrast matrices ---
     # ==========================================
     
     levels.treatment=levels(factor(targets.micro\$Treatment))
@@ -212,7 +212,7 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     print(names(fit2))
     
     # ==========================================
-    # 7. Select significant microRNAs and output results
+    # --- Select significant microRNAs and output results ---
     # ==========================================
     
     DE=getDecideTests(fit2,

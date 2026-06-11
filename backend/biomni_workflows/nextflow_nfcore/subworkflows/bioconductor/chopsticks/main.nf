@@ -48,7 +48,7 @@ process BIOC_CHOPSTICKS_CHOPSTICKS_ASSOCIATION_PIPELINE {
     library(chopsticks)
     
     # ==========================================
-    # STAGE 1: Robust VCF Parsing & Data Loading
+    # --- Robust VCF Parsing & Data Loading ---
     # ==========================================
     
     vcf_path <- "input.vcf"
@@ -158,7 +158,7 @@ process BIOC_CHOPSTICKS_CHOPSTICKS_ASSOCIATION_PIPELINE {
     
     
     # ==========================================
-    # STAGE 2: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     # ==========================================
     
     snpsum <- summary(snps_obj)
@@ -191,7 +191,7 @@ process BIOC_CHOPSTICKS_CHOPSTICKS_ASSOCIATION_PIPELINE {
     
     
     # ==========================================
-    # STAGE 3: Single-SNP Association Testing
+    # --- Single-SNP Association Testing ---
     # ==========================================
     
     if (length(unique(coldata\$stratum)) > 1) {
@@ -219,7 +219,7 @@ process BIOC_CHOPSTICKS_CHOPSTICKS_ASSOCIATION_PIPELINE {
     
     
     # ==========================================
-    # STAGE 4: Linkage Disequilibrium (LD) Analysis
+    # --- Linkage Disequilibrium (LD) Analysis ---
     # ==========================================
     
     # Identify the top associated SNP and select surrounding region
@@ -249,7 +249,7 @@ process BIOC_CHOPSTICKS_CHOPSTICKS_ASSOCIATION_PIPELINE {
     
     
     # ==========================================
-    # STAGE 5: Multi-Locus Block Testing
+    # --- Multi-Locus Block Testing ---
     # ==========================================
     
     # Sort SNPs by physical position

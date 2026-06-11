@@ -53,7 +53,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     allowWGCNAThreads()
     
     # ==========================================
-    # Stage 1: Load and Preprocess Expression Data
+    # --- Load and Preprocess Expression Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing expression data...")
     
@@ -87,7 +87,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Gene Module Detection (WGCNA)
+    # --- Gene Module Detection (WGCNA) ---
     # ==========================================
     message("Stage 2: Running WGCNA module detection...")
     
@@ -122,7 +122,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 3: Module Annotation & Query Prep
+    # --- Module Annotation & Query Prep ---
     # ==========================================
     message("Stage 3: Annotating modules and preparing queries...")
     
@@ -160,7 +160,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     })
     
     # ==========================================
-    # Stage 4: xCell Signatures Integration & Discretization
+    # --- xCell Signatures Integration & Discretization ---
     # ==========================================
     message("Stage 4: Integrating cell signatures and discretizing data...")
     
@@ -185,7 +185,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     )
     
     # ==========================================
-    # Stage 5: Bayesian Network Learning & Inverse Arcs
+    # --- Bayesian Network Learning & Inverse Arcs ---
     # ==========================================
     message("Stage 5: Learning Bayesian network and detecting inverse relationships...")
     
@@ -206,7 +206,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     GMIC_Final <- InverseARCs(GMIC_net, threshold = -0.3)
     
     # ==========================================
-    # Stage 6: Exporting Outputs
+    # --- Exporting Outputs ---
     # ==========================================
     message("Stage 6: Exporting final outputs...")
     

@@ -48,7 +48,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     library(PAA)
     
     # -------------------------------------------------------------------------
-    # Stage 1: Load and Prepare Data
+    # --- Load and Prepare Data ---
     # -------------------------------------------------------------------------
     message("Stage 1: Loading and preparing data...")
     
@@ -117,7 +117,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     brc_to_feature <- setNames(rownames(intensities), brc)
     
     # -------------------------------------------------------------------------
-    # Stage 2: Preprocessing (Background Correction, Batch Filtering, Normalization)
+    # --- Preprocessing (Background Correction, Batch Filtering, ---
     # -------------------------------------------------------------------------
     message("Stage 2: Preprocessing...")
     
@@ -163,7 +163,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     elist.unlog\$E <- 2^(elist\$E)
     
     # -------------------------------------------------------------------------
-    # Stage 3: Differential Analysis
+    # --- Differential Analysis ---
     # -------------------------------------------------------------------------
     message("Stage 3: Differential Analysis...")
     
@@ -200,7 +200,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 4: Feature Preselection
+    # --- Feature Preselection ---
     # -------------------------------------------------------------------------
     message("Stage 4: Feature Preselection...")
     
@@ -220,7 +220,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 5: Feature Selection
+    # --- Feature Selection ---
     # -------------------------------------------------------------------------
     message("Stage 5: Feature Selection...")
     
@@ -253,7 +253,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 6: Results Inspection & Visualization
+    # --- Results Inspection & Visualization ---
     # -------------------------------------------------------------------------
     message("Stage 6: Results Inspection...")
     

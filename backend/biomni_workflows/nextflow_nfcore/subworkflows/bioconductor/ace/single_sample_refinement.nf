@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Fit a single model using singlemodel. 2. Plot the copy number profile using singleplot. 3. Convert object to template using object
+//  * 1. [Visualization & Output] READ USER INPUT
+//  * 2. [Visualization & Output] FIT SINGLE MODELS & PLOT COPY NUMBER PROFILES
+//  * 3. [Visualization & Output] CONVERT OBJECT TO TEMPLATE
+//  * 4. [Visualization & Output] PERFORM 2D GRID SEARCH USING SQUAREMODEL
 
 nextflow.enable.dsl = 2
 
@@ -54,13 +57,13 @@ process BIOC_ACE_SINGLE_SAMPLE_REFINEMENT {
         library(ggplot2)
         
         # ==========================================
-        # 0. READ USER INPUT
+        # --- READ USER INPUT ---
         # ==========================================
         # Read the segmented QDNAseq object from the working directory
         object <- readRDS("copyNumbersSegmented.rds")
         
         # ==========================================
-        # 1. FIT SINGLE MODELS & PLOT COPY NUMBER PROFILES
+        # --- FIT SINGLE MODELS & PLOT COPY NUMBER PROFILES ---
         # ==========================================
         # Open PDF device to capture all plots
         pdf("single_sample_refinement_plots.pdf", width = 10, height = 7)
@@ -125,7 +128,7 @@ process BIOC_ACE_SINGLE_SAMPLE_REFINEMENT {
         print(singleplot(object, QDNAseqobjectsample = 1, cellularity = bestfit_ploidy3, ploidy = 3))
         
         # ==========================================
-        # 2. CONVERT OBJECT TO TEMPLATE
+        # --- CONVERT OBJECT TO TEMPLATE ---
         # ==========================================
         template <- objectsampletotemplate(object, index = 1)
         write.csv(template, "template_sample1.csv", row.names = FALSE)
@@ -150,7 +153,7 @@ process BIOC_ACE_SINGLE_SAMPLE_REFINEMENT {
         print(singleplot(template, cellularity = bestfit_template, ploidy = 2, standard = custom_standard))
         
         # ==========================================
-        # 3. PERFORM 2D GRID SEARCH USING SQUAREMODEL
+        # --- PERFORM 2D GRID SEARCH USING SQUAREMODEL ---
         # ==========================================
         sqmodel <- squaremodel(template)
         saveRDS(sqmodel, "sqmodel_default.rds")

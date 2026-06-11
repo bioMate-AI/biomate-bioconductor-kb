@@ -64,11 +64,11 @@ process BIOC_TFBSTOOLS_GENOME_WIDE_PHYLOGENETIC_FOOTPRINTING {
     BSgenome.Mmusculus.UCSC.mm10 <- readRDS("mm10_genome")
     chain <- import.chain("hg19ToMm10.over.chain")
     
-    # 1. Retrieve PFM and convert to PWM
+    # --- Retrieve PFM and convert to PWM ---
     pfm <- getMatrixByID(JASPAR2014, ID="MA0004.1")
     pwm <- toPWM(pfm)
     
-    # 2. Scan both genomes using liftover chain to find conserved sites
+    # --- Scan both genomes using liftover chain to find conserved ---
     sitePairSet <- searchPairBSgenome(pwm, BSgenome.Hsapiens.UCSC.hg19,
                                      BSgenome.Mmusculus.UCSC.mm10,
                                      chr1="chr1", chr2="chr1",

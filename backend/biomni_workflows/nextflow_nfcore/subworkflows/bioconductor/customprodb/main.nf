@@ -52,7 +52,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data & Setup Mock Genome
+    # --- Load Input Data & Setup Mock Genome ---
     # ==========================================
     message("Stage 1: Loading input data and setting up genomic annotations...")
     
@@ -131,7 +131,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Calculate RPKM & Filter Databases
+    # --- Calculate RPKM & Filter Databases ---
     # ==========================================
     message("Stage 2: Calculating RPKM and filtering expressed proteins...")
     
@@ -162,7 +162,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: Variation Annotation (SNVs & INDELs)
+    # --- Variation Annotation (SNVs & INDELs) ---
     # ==========================================
     message("Stage 3: Annotating genomic variations...")
     
@@ -215,7 +215,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Splice Junction Analysis
+    # --- Splice Junction Analysis ---
     # ==========================================
     message("Stage 4: Analyzing splice junctions...")
     
@@ -241,7 +241,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Diagnostics & Summary Reporting
+    # --- Diagnostics & Summary Reporting ---
     # ==========================================
     message("Stage 5: Generating diagnostic reports...")
     

@@ -48,7 +48,7 @@ process BIOC_GSEABASE_GSEABASE_ANALYSIS {
     library(GSEABase)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ----------------------------------------------------------------------
     
     # Read expression matrix (counts.csv)
@@ -83,7 +83,7 @@ process BIOC_GSEABASE_GSEABASE_ANALYSIS {
     expr_matrix <- as.matrix(counts_df)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Identify Gene ID Type and Select Top Variable Genes
+    # --- Identify Gene ID Type and Select Top Variable Genes ---
     # ----------------------------------------------------------------------
     
     all_gids <- rownames(expr_matrix)
@@ -111,7 +111,7 @@ process BIOC_GSEABASE_GSEABASE_ANALYSIS {
     )
     
     # ----------------------------------------------------------------------
-    # Stage 3: Construct a GeneColorSet based on Phenotypic Response
+    # --- Construct a GeneColorSet based on Phenotypic Response ---
     # ----------------------------------------------------------------------
     
     # Calculate log fold change between conditions to determine "coloring"
@@ -141,7 +141,7 @@ process BIOC_GSEABASE_GSEABASE_ANALYSIS {
     )
     
     # ----------------------------------------------------------------------
-    # Stage 4: Create and Manipulate a GeneSetCollection
+    # --- Create and Manipulate a GeneSetCollection ---
     # ----------------------------------------------------------------------
     
     # Partition the top genes into 3 arbitrary functional groups to form a collection
@@ -167,7 +167,7 @@ process BIOC_GSEABASE_GSEABASE_ANALYSIS {
     write.csv(as.matrix(inc_mat), "gsc_incidence.csv", row.names = TRUE)
     
     # ----------------------------------------------------------------------
-    # Stage 5: Generate Comprehensive Text Report
+    # --- Generate Comprehensive Text Report ---
     # ----------------------------------------------------------------------
     
     sink("gseabase_summary.txt")
@@ -197,7 +197,7 @@ process BIOC_GSEABASE_GSEABASE_ANALYSIS {
     sink()
     
     # ----------------------------------------------------------------------
-    # Stage 6: Visualizations
+    # --- Visualizations ---
     # ----------------------------------------------------------------------
     
     pdf("gsc_plots.pdf", width = 8, height = 6)

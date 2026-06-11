@@ -13,7 +13,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define experimental groups and processing masks. 2. Perform background outlier correction and non-positive value correction. 3. Ap
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Define Experimental Groups and Processing Masks
+//  * 3. [Visualization & Output] Background and Non-Positive Correction
+//  * 4. [Visualization & Output] Variance Stabilizing Transformation
+//  * 5. [Visualization & Output] Quantile Normalization
+//  * 6. [Visualization & Output] Differential Expression Testing
+//  * 7. [Visualization & Output] Summarization to Probe-Level Matrices
+//  * 8. [Visualization & Output] Downstream Processing and Exporting Outputs
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +61,7 @@ process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
     library(beadarray)
     
     # ==========================================
-    # 1. Load User Input Files
+    # --- Load User Input Files ---
     # ==========================================
     
     # Load blimatesting (list of beadLevelData objects)
@@ -107,7 +114,7 @@ process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
     adrToIllumina\$Array_Address_Id <- as.character(adrToIllumina\$Array_Address_Id)
     
     # ==========================================
-    # 2. Define Experimental Groups and Processing Masks
+    # --- Define Experimental Groups and Processing Masks ---
     # ==========================================
     
     # Extract phenoData from all objects to determine the grouping column and groups
@@ -175,7 +182,7 @@ process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
     }
     
     # ==========================================
-    # 3. Background and Non-Positive Correction
+    # --- Background and Non-Positive Correction ---
     # ==========================================
     blimatesting = bacgroundCorrect(blimatesting, normalizationMod = processingMod, 
     		channelBackgroundFilter="bgf")
@@ -183,19 +190,19 @@ process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
     		channelCorrect="GrnF",  channelBackgroundFilter="bgf", channelAndVector="bgf")
     
     # ==========================================
-    # 4. Variance Stabilizing Transformation
+    # --- Variance Stabilizing Transformation ---
     # ==========================================
     blimatesting = varianceBeadStabilise(blimatesting, normalizationMod = processingMod, 
     		quality="GrnF", channelInclude="bgf", channelOutput="vst")
     
     # ==========================================
-    # 5. Quantile Normalization
+    # --- Quantile Normalization ---
     # ==========================================
     blimatesting = quantileNormalize(blimatesting, normalizationMod = processingMod, 
     		channelNormalize="vst", channelOutput="qua", channelInclude="bgf")
     
     # ==========================================
-    # 6. Differential Expression Testing
+    # --- Differential Expression Testing ---
     # ==========================================
     probeTest <- doProbeTTests(blimatesting, groups1Mod, groups2Mod, 
     		transformation=NULL, quality="qua", channelInclude="bgf")
@@ -203,7 +210,7 @@ process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
     		transformation=NULL, quality="qua", channelInclude="bgf")
     
     # ==========================================
-    # 7. Summarization to Probe-Level Matrices
+    # --- Summarization to Probe-Level Matrices ---
     # ==========================================
     nonnormalized = createSummarizedMatrix(blimatesting, spotsToProcess=processingMod, quality="GrnF", channelInclude="bgf", 
             annotationTag="Name")
@@ -211,7 +218,7 @@ process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
             annotationTag="Name")
     
     # ==========================================
-    # 8. Downstream Processing and Exporting Outputs
+    # --- Downstream Processing and Exporting Outputs ---
     # ==========================================
     
     # Save raw test results

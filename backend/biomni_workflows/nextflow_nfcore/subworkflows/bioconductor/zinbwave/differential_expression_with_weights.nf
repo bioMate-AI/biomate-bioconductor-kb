@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the ZINB model using zinbFit. 2. Compute observational weights using zinbwave with the fitted model. 3. Extract weights and ru
+//  * 1. [Core Analysis] Load User Input
+//  * 2. [Core Analysis] Fit the ZINB model and compute weights
+//  * 3. [Core Analysis] Differential expression with edgeR
+//  * 4. [Core Analysis] Differential expression with DESeq2
 
 nextflow.enable.dsl = 2
 
@@ -56,7 +59,7 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
         # Register BiocParallel Serial Execution for stability
         BiocParallel::register(BiocParallel::SerialParam())
         
-        # 1. Load User Input
+        # --- Load User Input ---
         # The pipeline reads EXACTLY the declared input file from the working directory
         if (!file.exists("SummarizedExperiment_object.rds")) {
           stop("Error: 'SummarizedExperiment_object.rds' not found in the working directory.")
@@ -69,7 +72,7 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
           assayNames(fluidigm)[1] <- "counts"
         }
         
-        # 2. Fit the ZINB model and compute weights
+        # --- Fit the ZINB model and compute weights ---
         # Keep every documented function call and its argument names EXACTLY as shown
         zinb <- zinbFit(fluidigm, K=2, epsilon=1000)
         fluidigm_zinb <- zinbwave(fluidigm, fitted_model = zinb, K = 2, epsilon=1000, observationalWeights = TRUE)
@@ -79,7 +82,7 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
         saveRDS(weights, "zinbwave_observational_weights.rds")
         saveRDS(fluidigm_zinb, "fluidigm_zinb_output.rds")
         
-        # 3. Differential expression with edgeR
+        # --- Differential expression with edgeR ---
         dge <- DGEList(assay(fluidigm_zinb))
         dge <- calcNormFactors(dge)
         
@@ -119,7 +122,7 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
         # Save edgeR results
         write.csv(as.data.frame(edgeR_results), "edgeR_weighted_DE_results.csv", row.names = TRUE)
         
-        # 4. Differential expression with DESeq2
+        # --- Differential expression with DESeq2 ---
         counts(fluidigm_zinb) <- as.matrix(counts(fluidigm_zinb))
         dds <- DESeqDataSet(fluidigm_zinb, design = design_formula)
         dds <- DESeq(dds, sfType="poscounts", useT=TRUE, minmu=1e-6)

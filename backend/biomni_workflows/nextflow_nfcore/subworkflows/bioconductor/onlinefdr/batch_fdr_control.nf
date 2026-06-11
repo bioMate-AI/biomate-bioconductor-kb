@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the dataset with p-values grouped into sequential batches. 2. Run the BatchPRDS algorithm to control FDR for positively dep
+//  * 1. [Input & Preparation] Define the dataset with p-values grouped into sequential
+//  * 2. [Input & Preparation] Run the BatchPRDS algorithm to control FDR for positively
+//  * 3. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +52,7 @@ process BIOC_ONLINEFDR_BATCH_FDR_CONTROL {
     # Load required library
     library(onlineFDR)
     
-    # 1. Define the dataset with p-values grouped into sequential batches.
+    # --- Define the dataset with p-values grouped into sequential ---
     # Read the user input file 'sample.df' from the working directory.
     # We use a robust reader that handles RDS, CSV, or tab-delimited formats.
     if (file.exists("sample.df")) {
@@ -74,11 +76,11 @@ process BIOC_ONLINEFDR_BATCH_FDR_CONTROL {
       stop(paste("Input data is missing required column(s):", paste(missing_cols, collapse = ", ")))
     }
     
-    # 2. Run the BatchPRDS algorithm to control FDR for positively dependent p-values within batches.
+    # --- Run the BatchPRDS algorithm to control FDR for positively ---
     # We reproduce the documented function call and argument names exactly.
     batchprds_results <- BatchPRDS(sample.df)
     
-    # 3. Write named output files for the meaningful results.
+    # --- Write named output files for the meaningful results ---
     # Save the full results table as a CSV file
     write.csv(batchprds_results, "batchprds_results.csv", row.names = FALSE)
     

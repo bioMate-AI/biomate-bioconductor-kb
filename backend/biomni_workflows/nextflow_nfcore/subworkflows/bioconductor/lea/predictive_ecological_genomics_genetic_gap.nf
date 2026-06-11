@@ -69,17 +69,17 @@ process BIOC_LEA_PREDICTIVE_ECOLOGICAL_GENOMICS_GENETIC_GAP {
     X <- as.matrix(X)
     X.pred <- as.matrix(X.pred)
     
-    # 1. Compute the geometric genetic gap using the genetic.gap() function
+    # --- Compute the geometric genetic gap using the genetic.gap() ---
     g.gap.scaled <- genetic.gap(input = Y, env = X, pred.env = X.pred, scale = TRUE, K = 2)
     
     # Save the genetic gap object
     saveRDS(g.gap.scaled, "g_gap_scaled.rds")
     
-    # 2. Extract relative contributions of environmental predictors to local adaptation
+    # --- Extract relative contributions of environmental ---
     contributions <- g.gap.scaled\$vectors[,1:2]^2
     write.csv(contributions, "environmental_contributions.csv", row.names = FALSE)
     
-    # 3. Plot covariance eigenvalues and correlate the genetic gap with squared ecological distance
+    # --- Plot covariance eigenvalues and correlate the genetic gap ---
     pdf("genetic_gap_plots.pdf", width = 12, height = 6)
     par(mfrow = c(1, 2))
     

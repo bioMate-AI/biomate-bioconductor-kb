@@ -57,23 +57,23 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_GENE_SET_ENRICHMENT_ANALYSIS {
     library(clusterProfiler)
     library(org.Hs.eg.db)
     
-    # 1. Load differential expression data and convert background gene identifiers to Entrez IDs
+    # --- Load differential expression data and convert background ---
     lung.expr <- read.csv("data-lung-cancer.csv", stringsAsFactors = FALSE)
     bkgd.genes <- lung.expr[,1]
     bkgd.genes.entrez <- bitr(bkgd.genes, fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
     
-    # 2. Calculate a ranking metric (e.g., based on log2 fold change and p-value) for each gene
+    # --- Calculate a ranking metric (e.g., based on log2 fold ---
     lung.expr\$fcsign <- sign(lung.expr\$log2FC)
     lung.expr\$logfdr <- -log10(lung.expr\$P.Value)
     lung.expr\$sig <- lung.expr\$logfdr/lung.expr\$fcsign
     
-    # 3. Merge the ranking metric with the converted Entrez IDs and sort the list in descending order
+    # --- Merge the ranking metric with the converted Entrez IDs ---
     sig.lung.expr.entrez<-merge(lung.expr, bkgd.genes.entrez, by.x = "GeneID", by.y = "ENSEMBL")
     gsea.sig.lung.expr <- sig.lung.expr.entrez[,8]
     names(gsea.sig.lung.expr) <- as.character(sig.lung.expr.entrez[,9])
     gsea.sig.lung.expr <- sort(gsea.sig.lung.expr,decreasing = TRUE)
     
-    # 4. Run GSEA against WikiPathways using clusterProfiler::gseWP
+    # --- Run GSEA against WikiPathways using clusterProfiler::gseWP ---
     gwp.sig.lung.expr <- clusterProfiler::gseWP(
       gsea.sig.lung.expr,
       pAdjustMethod = "fdr",
@@ -81,7 +81,7 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_GENE_SET_ENRICHMENT_ANALYSIS {
       organism = "Homo sapiens"
     )
     
-    # 5. Extract and filter pathways enriched for up-regulated or down-regulated genes
+    # --- Extract and filter pathways enriched for up-regulated or ---
     gwp.sig.lung.expr.df = as.data.frame(gwp.sig.lung.expr)
     up_pathways <- gwp.sig.lung.expr.df[which(gwp.sig.lung.expr.df\$NES > 1),] #pathways enriched for upregulated lung cancer genes
     down_pathways <- gwp.sig.lung.expr.df[which(gwp.sig.lung.expr.df\$NES < -1),] #pathways enriched for downregulated lung cancer genes

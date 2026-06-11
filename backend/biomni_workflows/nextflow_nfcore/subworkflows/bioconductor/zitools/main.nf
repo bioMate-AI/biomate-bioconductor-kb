@@ -13,7 +13,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Fit the zero-inflated mixture model and generate deinflated counts and weights using `ziMain`. 2. Calculate basic statistics and v
+//  * 1. [Visualization & Output] Read User Input
+//  * 2. [Visualization & Output] Fit Zero-Inflated Mixture Model
+//  * 3. [Visualization & Output] Visualizations & Resampling
+//  * 4. [Visualization & Output] Differential Abundance Analysis with DESeq2
+//  * 5. [Visualization & Output] Missing Value Heatmap
+//  * 6. [Visualization & Output] Principal Component Analysis (PCA)
+//  * 7. [Visualization & Output] Downstream Phyloseq Analysis
 
 nextflow.enable.dsl = 2
 
@@ -57,7 +63,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     library(matrixStats)
     
     # ----------------------------------------------------------------------
-    # 1. Read User Input
+    # --- Read User Input ---
     # ----------------------------------------------------------------------
     if (file.exists("phyloseq")) {
         phyloseq <- readRDS("phyloseq")
@@ -75,7 +81,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Fit Zero-Inflated Mixture Model
+    # --- Fit Zero-Inflated Mixture Model ---
     # ----------------------------------------------------------------------
     Zi <- ziMain(phyloseq)
     print(Zi)
@@ -95,7 +101,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     sink()
     
     # ----------------------------------------------------------------------
-    # 3. Visualizations & Resampling
+    # --- Visualizations & Resampling ---
     # ----------------------------------------------------------------------
     pdf("diagnostic_plots.pdf", width = 10, height = 8)
     
@@ -118,7 +124,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     } 
     
     # ----------------------------------------------------------------------
-    # 4. Differential Abundance Analysis with DESeq2
+    # --- Differential Abundance Analysis with DESeq2 ---
     # ----------------------------------------------------------------------
     DDS <- zi2deseq2(Zi, ~time)
     
@@ -177,7 +183,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 5. Missing Value Heatmap
+    # --- Missing Value Heatmap ---
     # ----------------------------------------------------------------------
     Zi2 <- Zi
     mat <- deinflatedcounts(Zi2)
@@ -187,7 +193,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     MissingValueHeatmap(Zi2, xlab = "Sample")
     
     # ----------------------------------------------------------------------
-    # 6. Principal Component Analysis (PCA)
+    # --- Principal Component Analysis (PCA) ---
     # ----------------------------------------------------------------------
     PCA <- princomp(covmat = cor(t(Zi)), cor = FALSE)
     centered_data <- (inputcounts(t(Zi))-colMeans2(t(Zi)))/sqrt(colVars(t(Zi)))
@@ -207,7 +213,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
         ylab(paste0("PC2 ", pc2_var, "%")))
     
     # ----------------------------------------------------------------------
-    # 7. Downstream Phyloseq Analysis
+    # --- Downstream Phyloseq Analysis ---
     # ----------------------------------------------------------------------
     new_phyloseq <- zi2phyloseq(Zi)
     saveRDS(new_phyloseq, "new_phyloseq.rds")

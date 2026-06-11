@@ -49,7 +49,7 @@ process BIOC_FLOWCUT_FLOWCUT_ARTIFACT_REMOVAL {
     library(flowCore)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     input_file <- "input.csv"
@@ -107,7 +107,7 @@ process BIOC_FLOWCUT_FLOWCUT_ARTIFACT_REMOVAL {
     ff <- flowCore::flowFrame(data_matrix)
     
     # ==========================================
-    # Stage 2: Run flowCut Quality Control
+    # --- Run flowCut Quality Control ---
     # ==========================================
     
     # Dynamically adjust segment size if the dataset is small to ensure at least some segments
@@ -139,7 +139,7 @@ process BIOC_FLOWCUT_FLOWCUT_ARTIFACT_REMOVAL {
     dev.off()
     
     # ==========================================
-    # Stage 3: Export Cleaned Data and Reports
+    # --- Export Cleaned Data and Reports ---
     # ==========================================
     
     if (!is.null(res_flowCut)) {

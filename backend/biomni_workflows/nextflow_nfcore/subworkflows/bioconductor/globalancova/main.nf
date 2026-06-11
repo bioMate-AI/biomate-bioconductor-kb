@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run GlobalAncova on all genes or a specific pathway using clinical group labels. 2. Run GlobalAncova adjusting for clinical covari
+//  * 1. [Visualization & Output] Run GlobalAncova on all genes or a specific pathway using
+//  * 2. [Visualization & Output] Run GlobalAncova adjusting for clinical covariates
 
 nextflow.enable.dsl = 2
 
@@ -88,11 +89,11 @@ process BIOC_GLOBALANCOVA_GLOBAL_ANCOVA_STANDARD {
     
     # --- DOCUMENTED CODE STAGES ---
     
-    # Stage 1: Run GlobalAncova on all genes or a specific pathway using clinical group labels
+    # --- Run GlobalAncova on all genes or a specific pathway using ---
     ga.all <- GlobalAncova(xx=exprs(golubX), group=primary_group, covars=NULL, perm=100)
     ga.cc <- GlobalAncova(xx=exprs(golubX), group=primary_group, test.genes=cellcycle, method="both", perm=1000)
     
-    # Stage 2: Run GlobalAncova adjusting for clinical covariates
+    # --- Run GlobalAncova adjusting for clinical covariates ---
     ga.cc.BMPB <- GlobalAncova(xx=exprs(golubX), group=primary_group, covars=covariate_data, test.genes=cellcycle, method="both", perm=1000)
     
     # Stage 3 & 4: Generate gene and subjects plots

@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Build a transcript-to-gene or transcript-to-TSS mapping using ensembldb. 2. Import allelic counts using importAllelicCounts. 3. Fi
+//  * 1. [Input & Preparation] Read user input coldata.csv
+//  * 2. [Input & Preparation] Build transcript-to-TSS mapping using ensembldb
+//  * 3. [Input & Preparation] Import allelic counts
+//  * 4. [Input & Preparation] Filter out features with low expression or no allelic
+//  * 5. [Input & Preparation] Run paired differential testing using Swish (skipping
+//  * 6. [Input & Preparation] Generate Diagnostic and Results Plots
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +63,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
         # Set random seed for reproducibility
         set.seed(1)
         
-        # 1. Read user input coldata.csv
+        # --- Read user input coldata.csv ---
         if (!file.exists("coldata.csv")) {
           stop("Error: 'coldata.csv' not found in the working directory.")
         }
@@ -81,12 +86,12 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
           warning(paste("The following quantification files were not found:", paste(missing_files, collapse = ", ")))
         }
         
-        # 2. Build transcript-to-TSS mapping using ensembldb
+        # --- Build transcript-to-TSS mapping using ensembldb ---
         edb <- EnsDb.Hsapiens.v86
         tx2gene <- makeTx2Tss(edb, maxgap=50) %>%
           select(tx_id, gene_id, group_id, tss)
         
-        # 3. Import allelic counts
+        # --- Import allelic counts ---
         # We assume the alleles are labeled "alt" and "ref" as per the documented code.
         # If the user's coldata uses different names, they should match these arguments.
         y <- importAllelicCounts(
@@ -94,7 +99,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
           format="wide", tx2gene=tx2gene
         )
         
-        # 4. Filter out features with low expression or no allelic information
+        # --- Filter out features with low expression or no allelic ---
         # Standard Swish filtering:
         y <- labelKeep(y)
         y <- y[mcols(y)\$keep,]
@@ -119,7 +124,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
         mcols(y)\$someInfo <- rowSums(abs(rep1a1 - rep1a2) < 1) < n
         y <- y[mcols(y)\$someInfo, ]
         
-        # 5. Run paired differential testing using Swish (skipping scaleInfReps)
+        # --- Run paired differential testing using Swish (skipping ---
         
         # Test A: Global Allelic Imbalance (always run)
         message("Running Global Allelic Imbalance test...")
@@ -150,7 +155,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
           message("Skipping Dynamic Allelic Imbalance: 'time' column not found in coldata.csv")
         }
         
-        # 6. Generate Diagnostic and Results Plots
+        # --- Generate Diagnostic and Results Plots ---
         pdf("allelic_imbalance_plots.pdf", width=10, height=8)
         
         # Plot 1: P-value distribution for Global AI

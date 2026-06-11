@@ -56,23 +56,23 @@ process BIOC_TFBSTOOLS_PAIRWISE_ALIGNMENT_SCANNING {
     library(JASPAR2014)
     library(Biostrings)
     
-    # 1. Convert PFM to PWM
+    # --- Convert PFM to PWM ---
     # Query the JASPAR2014 database to retrieve the PFMatrix for MA0003.2 (TFAP2A)
     pfm <- getMatrixByID(JASPAR2014, ID="MA0003.2")
     pwm <- toPWM(pfm)
     
-    # 2. Read input alignment sequences from user-provided FASTA files
+    # --- Read input alignment sequences from user-provided FASTA ---
     seq1_set <- readDNAStringSet("alignment_seq1.fasta")
     seq2_set <- readDNAStringSet("alignment_seq2.fasta")
     aln1 <- seq1_set[[1]]
     aln2 <- seq2_set[[1]]
     
-    # 3. Scan pairwise alignment
+    # --- Scan pairwise alignment ---
     sitePairSet <- searchAln(pwm, aln1, aln2, seqname1="seq1", seqname2="seq2",
                              min.score="50%", cutoff=0.5,
                              strand="*", type="any")
     
-    # 4. Export conserved sites to GFF and save results
+    # --- Export conserved sites to GFF and save results ---
     gff3_df <- writeGFF3(sitePairSet)
     gff2_df <- writeGFF2(sitePairSet)
     

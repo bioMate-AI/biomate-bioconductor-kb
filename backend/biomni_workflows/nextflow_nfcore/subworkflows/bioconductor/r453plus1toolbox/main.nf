@@ -71,7 +71,7 @@ process BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS {
       }
     }
     
-    # 1. Import the AVA project into an AVASet object using the user-provided files
+    # --- Import the AVA project into an AVASet object using the ---
     avaSet = AVASet(
       dirname=projectDir,
       file_sample="sample.csv",
@@ -81,14 +81,14 @@ process BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS {
       file_variantHits="variantHits.csv"
     )
     
-    # 2. Filter variants by frequency threshold
+    # --- Filter variants by frequency threshold ---
     avaSetFiltered1 = setVariantFilter(avaSet, filter=0.05)
     
-    # 3. Align reference sequences to a reference genome
+    # --- Align reference sequences to a reference genome ---
     seqNames = names(Hsapiens)[1:24]
     avaSet = alignShortReads(avaSet, bsGenome=Hsapiens, seqNames=seqNames, ensemblNotation=TRUE)
     
-    # 4. Annotate variants, generate HTML report, and export to VCF
+    # --- Annotate variants, generate HTML report, and export to VCF ---
     # Wrapping in tryCatch to handle potential biomaRt/Ensembl connectivity issues robustly
     tryCatch({
       avaAnnot = annotateVariants(avaSet)
@@ -96,18 +96,18 @@ process BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS {
       # Save the annotation object
       saveRDS(avaAnnot, file = "avaAnnot.rds")
       
-      # 5. Generate an HTML report of variants and quality metrics
+      # --- Generate an HTML report of variants and quality metrics ---
       blocks = as.character(sapply(annotatedVariants(avaAnnot), function(x) x\$genes\$external_gene_id))
       htmlReport(avaSet, annot=avaAnnot, blocks=blocks, dir="htmlReportExampleAVA", title="htmlReport Example", minMut=3)
       
-      # 6. Export annotated variants to a VCF file
+      # --- Export annotated variants to a VCF file ---
       ava2vcf(avaSet, filename="variants.vcf", annot=avaAnnot)
       
     }, error = function(e) {
       message("Warning: Annotation, HTML report, or VCF export failed (likely due to biomaRt/Ensembl network issues): ", e\$message)
     })
     
-    # 7. Plot amplicon coverage and save to a PDF file
+    # --- Plot amplicon coverage and save to a PDF file ---
     pdf("amplicon_coverage.pdf", width = 10, height = 7)
     plotAmpliconCoverage(avaSet, bothDirections=TRUE, type="amplicon")
     dev.off()

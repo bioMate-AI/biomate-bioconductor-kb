@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run t-SNE and plot using esetTsne. 2. (Optional) Run t-SNE with a custom data pre-transformation function to speed up computation
+//  * 1. [Visualization & Output] Load User Input
+//  * 2. [Visualization & Output] Robustly prepare metadata columns to match documented
+//  * 3. [Visualization & Output] Run t-SNE and plot using esetTsne (Stage 1)
+//  * 4. [Visualization & Output] Run t-SNE with custom data pre-transformation (Stage 2)
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +56,7 @@ process BIOC_ESETVIS_TSNE_VISUALIZATION {
     library(Biobase)
     library(ggplot2)
     
-    # 1. Load User Input
+    # --- Load User Input ---
     if (!file.exists("expression_data.RData")) {
       stop("Input file 'expression_data.RData' not found in the working directory.")
     }
@@ -76,7 +79,7 @@ process BIOC_ESETVIS_TSNE_VISUALIZATION {
     
     ALL <- get(eset_obj_name)
     
-    # 2. Robustly prepare metadata columns to match documented code requirements
+    # --- Robustly prepare metadata columns to match documented ---
     get_pData <- function(obj) {
       if (inherits(obj, "SummarizedExperiment")) {
         as.data.frame(SummarizedExperiment::colData(obj))
@@ -159,12 +162,12 @@ process BIOC_ESETVIS_TSNE_VISUALIZATION {
     # Open PDF device to save plots
     pdf("tsne_visualization_plots.pdf", width = 8, height = 7)
     
-    # 3. Run t-SNE and plot using esetTsne (Stage 1)
+    # --- Run t-SNE and plot using esetTsne (Stage 1) ---
     args_p1 <- c(tsne_base_args, aes_args)
     p1 <- do.call(esetTsne, args_p1)
     print(p1)
     
-    # 4. Run t-SNE with custom data pre-transformation (Stage 2)
+    # --- Run t-SNE with custom data pre-transformation (Stage 2) ---
     args_p2 <- c(tsne_base_args, aes_args, list(fctTransformDataForInputTsne = function(mat) as.dist((1 - cor(mat))/2)))
     p2 <- do.call(esetTsne, args_p2)
     print(p2)

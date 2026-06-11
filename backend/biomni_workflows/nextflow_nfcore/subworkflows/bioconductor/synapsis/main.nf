@@ -79,7 +79,7 @@ process BIOC_SYNAPSIS_MEIOTIC_FOCI_QUANTIFICATION {
     file.copy(input_foci, file.path(path, "sample++-MLH3.tif"), overwrite = TRUE)
     file.copy(input_sc, file.path(path, "sample++-SYCP3.tif"), overwrite = TRUE)
     
-    # 1. Crop individual cells from raw images using auto_crop_fast
+    # --- Crop individual cells from raw images using auto_crop_fast ---
     auto_crop_fast(
       path, 
       annotation = "on", 
@@ -89,7 +89,7 @@ process BIOC_SYNAPSIS_MEIOTIC_FOCI_QUANTIFICATION {
       crowded_cells = TRUE
     )
     
-    # 2. Identify pachytene-stage cells using get_pachytene
+    # --- Identify pachytene-stage cells using get_pachytene ---
     SYCP3_stats <- get_pachytene(
       path, 
       ecc_thresh = 0.8, 
@@ -98,7 +98,7 @@ process BIOC_SYNAPSIS_MEIOTIC_FOCI_QUANTIFICATION {
       file_ext = "tif"
     )
     
-    # 3. Count coincident foci on the synaptonemal complex using count_foci
+    # --- Count coincident foci on the synaptonemal complex using ---
     foci_counts <- count_foci(
       path, 
       offset_factor = 8, 

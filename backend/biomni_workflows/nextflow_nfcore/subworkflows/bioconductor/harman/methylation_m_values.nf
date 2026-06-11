@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Shift extreme beta values of 0 or 1 using shiftBetas to avoid infinite M-values. 2. Run harman on M-values with status as experime
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Shift extreme beta values to avoid infinite M-values
+//  * 3. [Core Analysis] Run harman on M-values
+//  * 4. [Core Analysis] Reconstruct corrected M-values and convert back to beta
+//  * 5. [Core Analysis] Compare pre- and post-correction beta values using
+//  * 6. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +67,7 @@ process BIOC_HARMAN_METHYLATION_M_VALUES {
         library(Biobase)
         
         # -----------------------------------------------------------------------------
-        # Stage 0: Read User Input Files
+        # --- Read User Input Files ---
         # -----------------------------------------------------------------------------
         mSetSw_path <- if (file.exists("mSetSw")) "mSetSw" else "mSetSw.rds"
         betas_sml_path <- if (file.exists("betas_sml")) "betas_sml" else "betas_sml.rds"
@@ -78,13 +83,13 @@ process BIOC_HARMAN_METHYLATION_M_VALUES {
         betas <- minfi::getBeta(mSetSw)
         
         # -----------------------------------------------------------------------------
-        # Stage 1: Shift extreme beta values to avoid infinite M-values
+        # --- Shift extreme beta values to avoid infinite M-values ---
         # -----------------------------------------------------------------------------
         newBetas <- shiftBetas(betas, shiftBy=1e-4)
         newM <- minfi::logit2(newBetas)
         
         # -----------------------------------------------------------------------------
-        # Stage 2: Run harman on M-values
+        # --- Run harman on M-values ---
         # -----------------------------------------------------------------------------
         methHarman <- harman(newM, expt=pData(mSetSw)\$status, batch=pData(mSetSw)\$Slide, limit=0.65)
         
@@ -99,7 +104,7 @@ process BIOC_HARMAN_METHYLATION_M_VALUES {
         dev.off()
         
         # -----------------------------------------------------------------------------
-        # Stage 3: Reconstruct corrected M-values and convert back to beta values
+        # --- Reconstruct corrected M-values and convert back to beta ---
         # -----------------------------------------------------------------------------
         ms_hm <- reconstructData(methHarman)
         betas_hm <- minfi::ilogit2(ms_hm)
@@ -123,12 +128,12 @@ process BIOC_HARMAN_METHYLATION_M_VALUES {
         mykClust = kClusterMethylation(betas_sml, row_ks=myK, cores=2)
         
         # -----------------------------------------------------------------------------
-        # Stage 6: Compare pre- and post-correction beta values using clusterStats
+        # --- Compare pre- and post-correction beta values using ---
         # -----------------------------------------------------------------------------
         res <- clusterStats(pre_betas=betas_sml, post_betas=betas_hm_sml, kClusters = mykClust)
         
         # -----------------------------------------------------------------------------
-        # Stage 7: Save Outputs
+        # --- Save Outputs ---
         # -----------------------------------------------------------------------------
         write.csv(res, "cluster_stats.csv", row.names=TRUE)
         saveRDS(res, "cluster_stats.rds")

@@ -48,7 +48,7 @@ process BIOC_DRAWPROTEINS_DRAW_PROTEIN_SCHEMATICS {
     library(drawProteins)
     library(ggplot2)
     
-    # Stage 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     message("Stage 1: Loading and parsing input data...")
     intensity <- read.csv("intensity.csv", stringsAsFactors = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -85,7 +85,7 @@ process BIOC_DRAWPROTEINS_DRAW_PROTEIN_SCHEMATICS {
       selected_ids <- c("Q04206", "Q01201", "Q04864")
     }
     
-    # Stage 2: Retrieve Features from UniProt API
+    # --- Retrieve Features from UniProt API ---
     message("Stage 2: Fetching features from UniProt API...")
     ids_query <- paste(selected_ids, collapse = " ")
     
@@ -96,7 +96,7 @@ process BIOC_DRAWPROTEINS_DRAW_PROTEIN_SCHEMATICS {
       NULL
     })
     
-    # Stage 3: Convert to Dataframe and Extract Transcripts
+    # --- Convert to Dataframe and Extract Transcripts ---
     message("Stage 3: Processing features into a structured dataframe...")
     if (!is.null(features_json)) {
       features_df <- drawProteins::feature_to_dataframe(features_json)
@@ -127,7 +127,7 @@ process BIOC_DRAWPROTEINS_DRAW_PROTEIN_SCHEMATICS {
     write.csv(features_df, "protein_features.csv", row.names = FALSE)
     message("Saved protein features to 'protein_features.csv'.")
     
-    # Stage 4: Plotting the Protein Schematics
+    # --- Plotting the Protein Schematics ---
     message("Stage 4: Generating protein schematic visualization...")
     
     # Initialize canvas based on the longest protein chain

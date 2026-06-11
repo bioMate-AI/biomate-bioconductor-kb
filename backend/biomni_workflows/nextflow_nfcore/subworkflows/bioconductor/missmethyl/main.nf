@@ -13,7 +13,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read IDAT files into an RGChannelSet. 2. Preprocess raw data and apply SWAN normalization. 3. Filter out poor quality probes based
+//  * 1. [Input & Preparation] Read targets and IDAT files from the current working
+//  * 2. [Input & Preparation] Preprocess raw data and apply SWAN normalization
+//  * 3. [Input & Preparation] Filter out poor quality probes based on detection p-values
+//  * 4. [Input & Preparation] Extract M-values and Beta values
+//  * 5. [Input & Preparation] Set up design matrix and fit linear model using limma
+//  * 6. [Input & Preparation] Perform gene set testing (GO/KEGG) using gometh and
+//  * 7. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +69,7 @@ process BIOC_MISSMETHYL_STANDARD_DIFF_METH_AND_GSA {
         library(minfi)
         library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
         
-        # 1. Read targets and IDAT files from the current working directory
+        # --- Read targets and IDAT files from the current working ---
         targets <- read.metharray.sheet(".")
         rgSet <- read.metharray.exp(targets = targets)
         
@@ -86,22 +92,22 @@ process BIOC_MISSMETHYL_STANDARD_DIFF_METH_AND_GSA {
           }
         }
         
-        # 2. Preprocess raw data and apply SWAN normalization
+        # --- Preprocess raw data and apply SWAN normalization ---
         mSet <- preprocessRaw(rgSet)
         mSetSw <- SWAN(mSet, verbose=TRUE)
         
-        # 3. Filter out poor quality probes based on detection p-values
+        # --- Filter out poor quality probes based on detection p-values ---
         detP <- detectionP(rgSet)
         keep <- rowSums(detP < 0.01) == ncol(rgSet)
         mSetSw <- mSetSw[keep,]
         
-        # 4. Extract M-values and Beta values
+        # --- Extract M-values and Beta values ---
         meth <- getMeth(mSetSw)
         unmeth <- getUnmeth(mSetSw)
         Mval <- log2((meth + 100)/(unmeth + 100))
         beta <- getBeta(mSetSw)
         
-        # 5. Set up design matrix and fit linear model using limma
+        # --- Set up design matrix and fit linear model using limma ---
         # Ensure levels match the expected "normal" and "cancer" if present, otherwise use unique values
         if (all(c("normal", "cancer") %in% targets\$status)) {
           group <- factor(targets\$status, levels=c("normal","cancer"))
@@ -156,7 +162,7 @@ process BIOC_MISSMETHYL_STANDARD_DIFF_METH_AND_GSA {
         sigCpGs <- rownames(topCpGs)
         check <- getMappedEntrezIDs(sig.cpg = sigCpGs)
         
-        # 6. Perform gene set testing (GO/KEGG) using gometh and gsameth
+        # --- Perform gene set testing (GO/KEGG) using gometh and ---
         # Save the bias plot to a PDF file
         pdf("probe_bias_plot.pdf")
         gst <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection="GO", plot.bias=TRUE)
@@ -180,7 +186,7 @@ process BIOC_MISSMETHYL_STANDARD_DIFF_METH_AND_GSA {
           gsa <- NULL
         }
         
-        # 7. Write named output files for the meaningful results
+        # --- Write named output files for the meaningful results ---
         write.csv(top, "limma_differential_methylation_results.csv", row.names=TRUE)
         write.csv(topCpGs, "top_significant_cpgs.csv", row.names=TRUE)
         saveRDS(check, "mapped_entrez_ids.rds")

@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Retrieve probe-to-gene annotations from the array annotation package. 2. Format and clean the probe-to-gene mapping table. 3. Upda
+//  * 1. [Visualization & Output] Retrieve probe-to-gene annotations from the array
+//  * 2. [Visualization & Output] Format and clean the probe-to-gene mapping table
+//  * 3. [Visualization & Output] Update deprecated gene symbols using HGNChelper
+//  * 4. [Visualization & Output] Import probe-level differential methylation data and
+//  * 5. [Visualization & Output] Calculate pathway enrichment using mitch_calc
+//  * 6. [Visualization & Output] Generate high-resolution PDF plots using mitch_plots
+//  * 7. [Visualization & Output] Generate an interactive HTML report using mitch_report
+//  * 8. [Visualization & Output] Visualize gene set similarity and driver genes using
 
 nextflow.enable.dsl = 2
 
@@ -53,11 +60,11 @@ process BIOC_MITCH_METHYLATION_ARRAY_ENRICHMENT {
     library("HGNChelper")
     library("IlluminaHumanMethylation450kanno.ilmn12.hg19")
     
-    # 1. Retrieve probe-to-gene annotations from the array annotation package
+    # --- Retrieve probe-to-gene annotations from the array ---
     anno <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     myann <- data.frame(anno[, c("UCSC_RefGene_Name", "UCSC_RefGene_Group", "Islands_Name", "Relation_to_Island")])
     
-    # 2. Format and clean the probe-to-gene mapping table
+    # --- Format and clean the probe-to-gene mapping table ---
     gp <- myann[, "UCSC_RefGene_Name", drop = FALSE]
     gp2 <- strsplit(gp\$UCSC_RefGene_Name, ";")
     names(gp2) <- rownames(gp)
@@ -66,12 +73,12 @@ process BIOC_MITCH_METHYLATION_ARRAY_ENRICHMENT {
     colnames(gt1) <- c("gene", "probe")
     gt1\$probe <- as.character(gt1\$probe)
     
-    # 3. Update deprecated gene symbols using HGNChelper
+    # --- Update deprecated gene symbols using HGNChelper ---
     new.hgnc.table <- HGNChelper::getCurrentHumanMap()
     fix <- checkGeneSymbols(gt1\$gene, map = new.hgnc.table)
     gt1\$gene <- fix\$Suggested.Symbol
     
-    # 4. Import probe-level differential methylation data and aggregate to gene-level scores
+    # --- Import probe-level differential methylation data and ---
     # Reads the local user input file "dma3a.tsv"
     x <- read.table("dma3a.tsv", header = TRUE, row.names = 1)
     y <- mitch_import(x, DEtype = "limma", geneTable = gt1)
@@ -93,19 +100,19 @@ process BIOC_MITCH_METHYLATION_ARRAY_ENRICHMENT {
       )
     })
     
-    # 5. Calculate pathway enrichment using mitch_calc
+    # --- Calculate pathway enrichment using mitch_calc ---
     res <- mitch_calc(y, genesets, priority = "effect", cores = 2, minsetsize = 5)
     
     # Save enrichment results table
     write.csv(res\$enrichment_result, file = "enrichment_results.csv", row.names = FALSE)
     
-    # 6. Generate high-resolution PDF plots using mitch_plots
+    # --- Generate high-resolution PDF plots using mitch_plots ---
     mitch_plots(res, outfile = "methcharts.pdf")
     
-    # 7. Generate an interactive HTML report using mitch_report
+    # --- Generate an interactive HTML report using mitch_report ---
     mitch_report(res, "methreport.html")
     
-    # 8. Visualize gene set similarity and driver genes using networkplot and network_genes
+    # --- Visualize gene set similarity and driver genes using ---
     pdf("network_plots.pdf", width = 14, height = 6)
     tryCatch({
       networkplot(res, FDR = 0.1, n_sets = 10)

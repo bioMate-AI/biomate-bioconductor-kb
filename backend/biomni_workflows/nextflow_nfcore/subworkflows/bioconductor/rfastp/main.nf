@@ -67,11 +67,11 @@ process BIOC_RFASTP_SINGLE_END_QC_TRIMMING {
     # Define output prefix
     outputPrefix <- "Fox3_Std_small_processed"
     
-    # 1. Run rfastp on the single-end FASTQ file
+    # --- Run rfastp on the single-end FASTQ file ---
     se_json_report <- rfastp(read1 = se_read1, 
         outputFastq = paste0(outputPrefix, "_se"), thread = 4)
     
-    # 2. Generate base quality and GC content plots
+    # --- Generate base quality and GC content plots ---
     p1 <- curvePlot(se_json_report)
     p2 <- curvePlot(se_json_report, curve="content_curves")
     
@@ -81,7 +81,7 @@ process BIOC_RFASTP_SINGLE_END_QC_TRIMMING {
     print(p2)
     dev.off()
     
-    # 3. Extract summary statistics
+    # --- Extract summary statistics ---
     dfsummary <- qcSummary(se_json_report)
     dfTrim <- trimSummary(se_json_report)
     

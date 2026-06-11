@@ -53,7 +53,7 @@ process BIOC_PLYRANGES_PLYRANGES_GENOMIC_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Defensive Input Reading & Parsing
+    # --- Defensive Input Reading & Parsing ---
     # ==========================================
     
     message("Reading input.csv...")
@@ -137,7 +137,7 @@ process BIOC_PLYRANGES_PLYRANGES_GENOMIC_ANALYSIS {
     message("Successfully constructed GRanges object with ", length(features_gr), " ranges.")
     
     # ==========================================
-    # STAGE 2: Reference Annotation Generation
+    # --- Reference Annotation Generation ---
     # ==========================================
     
     # Create a mock reference annotation set (e.g., genes/exons) to perform overlap analysis
@@ -157,7 +157,7 @@ process BIOC_PLYRANGES_PLYRANGES_GENOMIC_ANALYSIS {
     ref_gr <- as_granges(ref_data)
     
     # ==========================================
-    # STAGE 3: Overlap Join Analysis
+    # --- Overlap Join Analysis ---
     # ==========================================
     
     message("Performing overlap join with reference annotations...")
@@ -168,7 +168,7 @@ process BIOC_PLYRANGES_PLYRANGES_GENOMIC_ANALYSIS {
     message("Saved overlapping features to overlapping_features.csv")
     
     # ==========================================
-    # STAGE 4: Flanking Region Generation
+    # --- Flanking Region Generation ---
     # ==========================================
     
     message("Generating flanking regions...")
@@ -186,7 +186,7 @@ process BIOC_PLYRANGES_PLYRANGES_GENOMIC_ANALYSIS {
     message("Saved flanking regions to flanking_regions.csv")
     
     # ==========================================
-    # STAGE 5: Grouping and Summarization
+    # --- Grouping and Summarization ---
     # ==========================================
     
     message("Summarizing features by chromosome...")
@@ -202,7 +202,7 @@ process BIOC_PLYRANGES_PLYRANGES_GENOMIC_ANALYSIS {
     message("Saved summary statistics to feature_summary.csv")
     
     # ==========================================
-    # STAGE 6: Visualization
+    # --- Visualization ---
     # ==========================================
     
     message("Generating diagnostic plots...")

@@ -48,7 +48,7 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     library(affycomp)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ----------------------------------------------------------------------
     message("Reading input expression matrix and metadata...")
     expr_matrix <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -74,7 +74,7 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     rownames(expr_matrix) <- make.unique(row_names)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Format Data for Dilution and Spike-in Benchmarks
+    # --- Format Data for Dilution and Spike-in Benchmarks ---
     # ----------------------------------------------------------------------
     message("Formatting expression matrices for dilution and spike-in benchmarks...")
     
@@ -114,13 +114,13 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     unlink(c(dil_file, spike_file))
     
     # ----------------------------------------------------------------------
-    # Stage 3: Run Benchmark Assessments
+    # --- Run Benchmark Assessments ---
     # ----------------------------------------------------------------------
     message("Running benchmark assessments...")
     assessment <- assessAll(d, s, method.name = "UserMethod")
     
     # ----------------------------------------------------------------------
-    # Stage 4: Export Assessment Table
+    # --- Export Assessment Table ---
     # ----------------------------------------------------------------------
     message("Exporting assessment summary table...")
     tryCatch({
@@ -137,7 +137,7 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     })
     
     # ----------------------------------------------------------------------
-    # Stage 5: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ----------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

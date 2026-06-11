@@ -51,7 +51,7 @@ process BIOC_INTEREST_INTEREST_INTRON_RETENTION_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Load Input Data & Build Reference
+    # --- Load Input Data & Build Reference ---
     # ==========================================
     message("Stage 1: Loading input data...")
     
@@ -93,7 +93,7 @@ process BIOC_INTEREST_INTEREST_INTRON_RETENTION_ANALYSIS {
     )
     
     # ===================================================
-    # STAGE 2: Create IntEREst Objects via Temp TSV Files
+    # --- Create IntEREst Objects via Temp TSV Files ---
     # ===================================================
     message("Stage 2: Creating IntEREst objects...")
     
@@ -163,7 +163,7 @@ process BIOC_INTEREST_INTEREST_INTRON_RETENTION_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 3: Differential Retention Analysis
+    # --- Differential Retention Analysis ---
     # ==========================================
     message("Stage 3: Running differential retention tests...")
     
@@ -226,7 +226,7 @@ process BIOC_INTEREST_INTEREST_INTRON_RETENTION_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 4: Visualization & Plotting
+    # --- Visualization & Plotting ---
     # ==========================================
     message("Stage 4: Generating diagnostic plots...")
     

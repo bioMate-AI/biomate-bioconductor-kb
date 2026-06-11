@@ -49,7 +49,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     library(Biobase)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Prep Objects
+    # --- Read Input Data & Prep Objects ---
     # ==========================================
     
     # Read user input files
@@ -99,7 +99,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
                 featureData = feature_data)
     
     # ==========================================
-    # STAGE 2: GDS Conversion & Quality Control
+    # --- GDS Conversion & Quality Control ---
     # ==========================================
     
     # Convert ExpressionSet to GDS file
@@ -127,7 +127,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Backing Up Raw Data & Normalization
+    # --- Backing Up Raw Data & Normalization ---
     # ==========================================
     
     # Backup raw betas before normalization
@@ -141,7 +141,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     dasen(gfile, node = "normbeta")
     
     # ==========================================
-    # STAGE 4: Downstream Analysis & Export
+    # --- Downstream Analysis & Export ---
     # ==========================================
     
     # Retrieve raw and normalized betas from GDS

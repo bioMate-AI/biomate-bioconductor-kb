@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import Hi-C data from Tabular, Cooler, Juicer, or HiC-Pro formats using HiCDOCDataSetFromTabular, HiCDOCDataSetFromCool, HiCDOCDat
+//  * 1. [Visualization & Output] Import Hi-C Data from Various Formats
+//  * 2. [Visualization & Output] Filtering Data
+//  * 3. [Visualization & Output] Normalizing Biases
+//  * 4. [Visualization & Output] Predicting Compartments and Differences
+//  * 5. [Visualization & Output] Extracting Results
+//  * 6. [Visualization & Output] Visualizing Results
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +67,7 @@ process BIOC_HICDOC_HIC_COMPARTMENT_ANALYSIS_PIPELINE {
         library(InteractionSet)
         
         # ==========================================
-        # 1. Import Hi-C Data from Various Formats
+        # --- Import Hi-C Data from Various Formats ---
         # ==========================================
         
         # Tabular import (Primary dataset for the pipeline)
@@ -122,7 +127,7 @@ process BIOC_HICDOC_HIC_COMPARTMENT_ANALYSIS_PIPELINE {
         
         
         # ==========================================
-        # 2. Filtering Data
+        # --- Filtering Data ---
         # ==========================================
         message("Filtering small chromosomes...")
         hic.experiment <- filterSmallChromosomes(hic.experiment, threshold = 100)
@@ -135,7 +140,7 @@ process BIOC_HICDOC_HIC_COMPARTMENT_ANALYSIS_PIPELINE {
         
         
         # ==========================================
-        # 3. Normalizing Biases
+        # --- Normalizing Biases ---
         # ==========================================
         message("Normalizing technical biases...")
         suppressWarnings(hic.experiment <- normalizeTechnicalBiases(hic.experiment))
@@ -148,7 +153,7 @@ process BIOC_HICDOC_HIC_COMPARTMENT_ANALYSIS_PIPELINE {
         
         
         # ==========================================
-        # 4. Predicting Compartments and Differences
+        # --- Predicting Compartments and Differences ---
         # ==========================================
         message("Predicting compartments and detecting differences...")
         hic.experiment <- detectCompartments(hic.experiment)
@@ -158,7 +163,7 @@ process BIOC_HICDOC_HIC_COMPARTMENT_ANALYSIS_PIPELINE {
         
         
         # ==========================================
-        # 5. Extracting Results
+        # --- Extracting Results ---
         # ==========================================
         message("Extracting and saving tabular results...")
         
@@ -185,7 +190,7 @@ process BIOC_HICDOC_HIC_COMPARTMENT_ANALYSIS_PIPELINE {
         
         
         # ==========================================
-        # 6. Visualizing Results
+        # --- Visualizing Results ---
         # ==========================================
         message("Generating visualization plots...")
         

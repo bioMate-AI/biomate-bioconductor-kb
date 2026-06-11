@@ -48,7 +48,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     library(singleCellTK)
     
     # ==========================================
-    # Stage 1: Data Loading & SCE Construction
+    # --- Data Loading & SCE Construction ---
     # ==========================================
     message("Stage 1: Loading input data and constructing SingleCellExperiment...")
     
@@ -88,7 +88,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     SummarizedExperiment::assay(sce, "logcounts") <- log2(SummarizedExperiment::assay(sce, "counts") + 1)
     
     # ==========================================
-    # Stage 2: Quality Control & Outlier Detection
+    # --- Quality Control & Outlier Detection ---
     # ==========================================
     message("Stage 2: Running quality control and outlier detection...")
     
@@ -100,7 +100,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Highly Variable Gene Selection
+    # --- Highly Variable Gene Selection ---
     # ==========================================
     message("Stage 3: Identifying highly variable genes...")
     
@@ -113,7 +113,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 4: Dimensionality Reduction
+    # --- Dimensionality Reduction ---
     # ==========================================
     message("Stage 4: Performing t-SNE dimensionality reduction...")
     
@@ -125,7 +125,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Differential Expression & Marker Detection
+    # --- Differential Expression & Marker Detection ---
     # ==========================================
     message("Stage 5: Identifying marker genes...")
     
@@ -166,7 +166,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 6: Exporting Results
+    # --- Exporting Results ---
     # ==========================================
     message("Stage 6: Exporting analysis results...")
     

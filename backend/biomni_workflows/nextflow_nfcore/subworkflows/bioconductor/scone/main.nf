@@ -13,7 +13,15 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter poor-quality samples using metric_sample_filter. 2. Filter low-expression genes. 3. Create a SconeExperiment object contain
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Filter Poor-Quality Samples & Genes
+//  * 3. [Visualization & Output] Create SconeExperiment Object
+//  * 4. [Visualization & Output] Define Scaling and Imputation Modules
+//  * 5. [Visualization & Output] Define and Select SCONE Workflows
+//  * 6. [Visualization & Output] Run and Score Workflows
+//  * 7. [Visualization & Output] Extract Scores and Ranks
+//  * 8. [Visualization & Output] Extract Optimal Normalized Expression Matrix
+//  * 9. [Visualization & Output] Visualize Workflow Performance
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +61,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
         library(BiocParallel)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         # Read raw counts matrix (genes as rows, cells as columns)
@@ -96,7 +104,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
         metadata(fluidigm)\$which_qc <- qc_cols
         
         # ==========================================
-        # 2. Filter Poor-Quality Samples & Genes
+        # --- Filter Poor-Quality Samples & Genes ---
         # ==========================================
         
         # Initial Gene Filtering: Select "common" transcripts based on proportional criteria
@@ -134,7 +142,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
         expr = assay(goodDat)[is_quality, ]
         
         # ==========================================
-        # 3. Create SconeExperiment Object
+        # --- Create SconeExperiment Object ---
         # ==========================================
         
         if (!is.null(bio_col)) {
@@ -156,7 +164,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
         )
         
         # ==========================================
-        # 4. Define Scaling and Imputation Modules
+        # --- Define Scaling and Imputation Modules ---
         # ==========================================
         
         # Simple FNR model estimation with SCONE::estimate_ziber
@@ -184,7 +192,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
                      deseq = DESEQ_FN)
         
         # ==========================================
-        # 5. Define and Select SCONE Workflows
+        # --- Define and Select SCONE Workflows ---
         # ==========================================
         
         my_scone <- scone(my_scone,
@@ -203,7 +211,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
                                   rownames(get_params(my_scone))[!is_screened ])
         
         # ==========================================
-        # 6. Run and Score Workflows
+        # --- Run and Score Workflows ---
         # ==========================================
         
         BiocParallel::register(
@@ -221,7 +229,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
                           zero = "postadjust")
         
         # ==========================================
-        # 7. Extract Scores and Ranks
+        # --- Extract Scores and Ranks ---
         # ==========================================
         
         scores <- get_scores(my_scone)
@@ -231,7 +239,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
         write.csv(as.data.frame(score_ranks), "scone_score_ranks.csv", row.names = TRUE)
         
         # ==========================================
-        # 8. Extract Optimal Normalized Expression Matrix
+        # --- Extract Optimal Normalized Expression Matrix ---
         # ==========================================
         
         out_norm = get_normalized(my_scone,
@@ -243,7 +251,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
         saveRDS(my_scone, "my_scone.rds")
         
         # ==========================================
-        # 9. Visualize Workflow Performance
+        # --- Visualize Workflow Performance ---
         # ==========================================
         
         pc_obj = prcomp(apply(t(get_scores(my_scone)), 1, rank),

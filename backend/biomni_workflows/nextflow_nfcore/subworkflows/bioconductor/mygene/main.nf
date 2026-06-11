@@ -51,7 +51,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
     library(BiocGenerics)
     library(S4Vectors)
     
-    # Stage 1: Import Input Data
+    # --- Import Input Data ---
     message("Stage 1: Importing input genomic regions...")
     if (!file.exists("regions.bed")) {
       stop("Input file 'regions.bed' is missing.")
@@ -76,7 +76,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
       message("Optional metadata 'coldata.csv' loaded.")
     }
     
-    # Stage 2: ID Mapping & Annotation Retrieval via MyGene.info
+    # --- ID Mapping & Annotation Retrieval via MyGene.info ---
     message("Stage 2: Querying MyGene.info API...")
     annotations_df <- data.frame()
     mapping_summary <- list(matched = 0, missing = 0, duplicates = 0)
@@ -109,7 +109,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 3: Merge Annotations with Original Genomic Regions
+    # --- Merge Annotations with Original Genomic Regions ---
     message("Stage 3: Merging annotations with genomic regions...")
     if (nrow(annotations_df) > 0) {
       # Convert GRanges to data frame for merging
@@ -125,7 +125,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
       message("No annotations retrieved. Saved original regions to 'annotated_regions.csv'.")
     }
     
-    # Stage 4: Dynamic Transcript Model Construction
+    # --- Dynamic Transcript Model Construction ---
     message("Stage 4: Building TxDb transcript models from mapped genes...")
     tx_df <- data.frame(
       seqnames = character(), 
@@ -158,7 +158,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
     write.csv(tx_df, "retrieved_transcripts.csv", row.names = FALSE)
     message("Saved transcript models to 'retrieved_transcripts.csv'.")
     
-    # Stage 5: Diagnostic Visualization
+    # --- Diagnostic Visualization ---
     message("Stage 5: Generating diagnostic plots...")
     pdf("query_summary.pdf", width = 8, height = 6)
     

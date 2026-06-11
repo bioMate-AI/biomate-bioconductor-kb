@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Reformat the expression data into a multi-dimensional tensor using `PrepareSummarizedExperimentTensor`. 2. Apply Higher-Order Sing
+//  * 1. [Core Analysis] Reformat the expression data into a multi-dimensional
+//  * 2. [Core Analysis] Apply Higher-Order Singular Value Decomposition (HOSVD)
+//  * 3. [Core Analysis] Select the singular value vectors representing the
+//  * 4. [Core Analysis] Perform feature selection based on the selected vectors
+//  * 5. [Core Analysis] Extract and view the top-ranked features
 
 nextflow.enable.dsl = 2
 
@@ -112,7 +116,7 @@ process BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION {
             # Open PDF device to capture plots
             pdf("TDbasedUFE_plots.pdf", width = 10, height = 7)
             
-            # 1. Reformat the expression data into a multi-dimensional tensor
+            # --- Reformat the expression data into a multi-dimensional ---
             Z <- PrepareSummarizedExperimentTensor(
               matrix(samples\$sample, nrow = num_replicates, ncol = num_conditions), 
               rownames(txi\$abundance),
@@ -122,19 +126,19 @@ process BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION {
             # Save Z object
             saveRDS(Z, "tensor_Z.rds")
             
-            # 2. Apply Higher-Order Singular Value Decomposition (HOSVD)
+            # --- Apply Higher-Order Singular Value Decomposition (HOSVD) ---
             HOSVD <- computeHosvd(Z)
             
             # Save HOSVD object
             saveRDS(HOSVD, "hosvd_results.rds")
             
-            # 3. Select the singular value vectors representing the experimental conditions
+            # --- Select the singular value vectors representing the ---
             # Mode 2 (replicates): constant vector (1)
             # Mode 3 (conditions): distinction vector (2)
             sv_conditions <- if (num_conditions > 1) 2 else 1
             input_all <- selectSingularValueVectorSmall(HOSVD, input_all = c(1, sv_conditions))
             
-            # 4. Perform feature selection based on the selected vectors
+            # --- Perform feature selection based on the selected vectors ---
             index <- selectFeature(HOSVD, input_all)
             
             # Save index object
@@ -143,7 +147,7 @@ process BIOC_TDBASEDUFE_SINGLE_OMICS_GENE_EXPRESSION {
             # Close PDF device
             dev.off()
             
-            # 5. Extract and view the top-ranked features
+            # --- Extract and view the top-ranked features ---
             feature_table <- tableFeatures(Z, index)
             
             # Save the feature table to CSV

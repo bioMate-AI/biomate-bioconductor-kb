@@ -70,7 +70,7 @@ process BIOC_GENOMICDATACOMMONS_GDC_SOMATIC_MUTATION_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 1: Read Input and Check Connectivity
+    # --- Read Input and Check Connectivity ---
     # ==========================================
     message("Stage 1: Reading input and checking GDC API status...")
     
@@ -120,7 +120,7 @@ process BIOC_GENOMICDATACOMMONS_GDC_SOMATIC_MUTATION_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Query Gene Metadata
+    # --- Query Gene Metadata ---
     # ==========================================
     message("Stage 2: Querying gene metadata from GDC...")
     
@@ -160,7 +160,7 @@ process BIOC_GENOMICDATACOMMONS_GDC_SOMATIC_MUTATION_ANALYSIS {
     write.csv(gene_df, "gene_metadata.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: Query Simple Somatic Mutations (SSMs)
+    # --- Query Simple Somatic Mutations (SSMs) ---
     # ==========================================
     message("Stage 3: Querying simple somatic mutations (SSMs)...")
     
@@ -188,7 +188,7 @@ process BIOC_GENOMICDATACOMMONS_GDC_SOMATIC_MUTATION_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 4: Query Mutation Occurrences & Projects
+    # --- Query Mutation Occurrences & Projects ---
     # ==========================================
     message("Stage 4: Querying mutation occurrences and project distributions...")
     
@@ -228,7 +228,7 @@ process BIOC_GENOMICDATACOMMONS_GDC_SOMATIC_MUTATION_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 5: Retrieve Clinical Profiles of Cases
+    # --- Retrieve Clinical Profiles of Cases ---
     # ==========================================
     message("Stage 5: Retrieving clinical profiles for mutated cases...")
     

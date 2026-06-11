@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Precompute the regularised Laplacian kernel using regularisedLaplacianKernel. 2. Run diffusion across a grid of methods using diff
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Precompute the Regularised Laplacian Kernel
+//  * 3. [Core Analysis] Run Diffusion Across a Grid of Methods
+//  * 4. [Core Analysis] Evaluate Performance of Multiple Methods
+//  * 5. [Core Analysis] Statistically Compare Performance Metrics
+//  * 6. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -55,7 +60,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     library(ggsci)
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # Read the igraph network object
     yeast <- readRDS("network.graph")
@@ -75,12 +80,12 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     list_methods <- c("raw", "ml", "gm", "ber_s", "ber_p", "mc", "z")
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Precompute the Regularised Laplacian Kernel
+    # --- Precompute the Regularised Laplacian Kernel ---
     # -----------------------------------------------------------------------------
     K_rl <- diffuStats::regularisedLaplacianKernel(yeast)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Run Diffusion Across a Grid of Methods
+    # --- Run Diffusion Across a Grid of Methods ---
     # -----------------------------------------------------------------------------
     df_diff <- diffuse_grid(
         K = K_rl,
@@ -90,7 +95,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     )
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Evaluate Performance of Multiple Methods
+    # --- Evaluate Performance of Multiple Methods ---
     # -----------------------------------------------------------------------------
     df_methods <- perf(
         K = K_rl,
@@ -106,7 +111,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     df_perf <- reshape2::acast(df_methods, Column~method, value.var = "auc")
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Statistically Compare Performance Metrics
+    # --- Statistically Compare Performance Metrics ---
     # -----------------------------------------------------------------------------
     df_test <- perf_wilcox(
         df_perf, 
@@ -115,7 +120,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
         scientific = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------------------
     # Save tabular results
     write.csv(df_diff, "diffusion_grid_scores.csv", row.names = FALSE)

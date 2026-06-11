@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Sort the data by chromosome and genomic position. 2. Calculate enrichment measurements (limma t-statistics) using lmtstat. 3. Run 
+//  * 1. [Core Analysis] Read the user input file
+//  * 2. [Core Analysis] Sort the data by chromosome and genomic position
+//  * 3. [Core Analysis] Calculate enrichment measurements (limma t-statistics)
+//  * 4. [Core Analysis] Run the first-order Ising model using iChip1
+//  * 5. [Core Analysis] Call enriched regions using enrichreg with posterior
+//  * 6. [Core Analysis] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -50,11 +55,11 @@ process BIOC_ICHIP_ICHIP1_FIRST_ORDER_ISING {
     # Load required library
     library(iChip)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     # The file must be tab-delimited and contain chromosome, genomic position, and normalized intensity columns.
     chip_data <- read.table("chip_data.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     
-    # 2. Sort the data by chromosome and genomic position
+    # --- Sort the data by chromosome and genomic position ---
     oct4 <- chip_data[order(chip_data[, 1], chip_data[, 2]), ]
     
     # Identify IP and Control columns dynamically or fallback to standard columns
@@ -71,21 +76,21 @@ process BIOC_ICHIP_ICHIP1_FIRST_ORDER_ISING {
       control_data <- oct4[, 3:4]
     }
     
-    # 3. Calculate enrichment measurements (limma t-statistics) using lmtstat
+    # --- Calculate enrichment measurements (limma t-statistics) ---
     oct4lmt <- lmtstat(ip_data, control_data)
     
-    # 4. Run the first-order Ising model using iChip1
+    # --- Run the first-order Ising model using iChip1 ---
     oct4res1 <- iChip1(enrich=oct4lmt, burnin=2000, sampling=10000, sdcut=2, beta0=3,
                        minbeta=0, maxbeta=10, normsd=0.1, verbose=FALSE)
     
-    # 5. Call enriched regions using enrichreg with posterior probability or FDR cutoffs
+    # --- Call enriched regions using enrichreg with posterior ---
     reg_pp <- enrichreg(pos=oct4[, 1:2], enrich=oct4lmt, pp=oct4res1\$pp, cutoff=0.9,
                         method="ppcut", maxgap=500)
     
     reg_fdr <- enrichreg(pos=oct4[, 1:2], enrich=oct4lmt, pp=oct4res1\$pp, cutoff=0.01,
                          method="fdrcut", maxgap=500)
     
-    # 6. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the called enriched regions as CSV tables
     write.csv(reg_pp, file = "enriched_regions_ppcut.csv", row.names = FALSE)
     write.csv(reg_fdr, file = "enriched_regions_fdrcut.csv", row.names = FALSE)

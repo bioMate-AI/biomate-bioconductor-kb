@@ -54,7 +54,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     library(patchwork)
     
     # ==========================================
-    # STAGE 1: Input Import & Data Preparation
+    # --- Input Import & Data Preparation ---
     # ==========================================
     message("Stage 1: Importing genomic intervals and preparing data...")
     
@@ -109,7 +109,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     pdata <- syntenet::process_input(seq_list, annotation_list)
     
     # ==========================================
-    # STAGE 2: Simulating Intraspecies BLAST/DIAMOND Results
+    # --- Simulating Intraspecies BLAST/DIAMOND Results ---
     # ==========================================
     message("Stage 2: Generating sequence similarity search results...")
     
@@ -143,7 +143,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     blast_list[[paste0(species_name, "_", species_name)]] <- blast_df
     
     # ==========================================
-    # STAGE 3: Classifying Duplicated Gene Pairs and Genes
+    # --- Classifying Duplicated Gene Pairs and Genes ---
     # ==========================================
     message("Stage 3: Classifying duplicated gene pairs...")
     
@@ -162,7 +162,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     write.csv(c_genes[[species_name]], "gene_classifications.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Calculating Substitution Rates (Ka/Ks)
+    # --- Calculating Substitution Rates (Ka/Ks) ---
     # ==========================================
     message("Stage 4: Calculating substitution rates...")
     
@@ -193,7 +193,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     write.csv(kaks[[species_name]], "kaks_rates.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Identifying Ks Peaks and Age Grouping
+    # --- Identifying Ks Peaks and Age Grouping ---
     # ==========================================
     message("Stage 5: Identifying Ks peaks and classifying by age groups...")
     
@@ -248,7 +248,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Data Visualization
+    # --- Data Visualization ---
     # ==========================================
     message("Stage 6: Generating publication-ready visualizations...")
     

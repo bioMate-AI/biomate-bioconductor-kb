@@ -50,7 +50,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     library(patchwork)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -88,7 +88,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     }
     
     # ==========================================
-    # STAGE 2: Compute Mean Expression & Build LR Database
+    # --- Compute Mean Expression & Build LR Database ---
     # ==========================================
     
     message("Computing mean expression per cell type...")
@@ -136,7 +136,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     lr_db <- unique(lr_db)
     
     # ==========================================
-    # STAGE 3: Calculate Interaction Scores
+    # --- Calculate Interaction Scores ---
     # ==========================================
     
     message("Calculating cell-cell interaction scores...")
@@ -189,7 +189,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     write.csv(exp_df, "mean_expression.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Generate Visualizations
+    # --- Generate Visualizations ---
     # ==========================================
     
     message("Generating CCPlotR visualizations...")

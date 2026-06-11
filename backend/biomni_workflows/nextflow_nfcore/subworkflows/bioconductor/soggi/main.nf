@@ -52,7 +52,7 @@ process BIOC_SOGGI_SOGGI_PROFILE_ANALYSIS {
     library(BiocGenerics)
     
     # ==========================================
-    # STAGE 1: Import and Preprocess Input Files
+    # --- Import and Preprocess Input Files ---
     # ==========================================
     message("Stage 1: Importing regions and metadata...")
     
@@ -100,7 +100,7 @@ process BIOC_SOGGI_SOGGI_PROFILE_ANALYSIS {
     gr_list <- split(gr, gr\$group)
     
     # ==========================================
-    # STAGE 2: Generate Mock Signal BigWig File
+    # --- Generate Mock Signal BigWig File ---
     # ==========================================
     message("Stage 2: Generating mock signal BigWig file...")
     
@@ -123,7 +123,7 @@ process BIOC_SOGGI_SOGGI_PROFILE_ANALYSIS {
     rtracklayer::export.bw(all_signal, "signal.bw")
     
     # ==========================================
-    # STAGE 3: Run soGGi Profiling
+    # --- Run soGGi Profiling ---
     # ==========================================
     message("Stage 3: Running soGGi profiling...")
     
@@ -150,7 +150,7 @@ process BIOC_SOGGI_SOGGI_PROFILE_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Normalization and Visualization
+    # --- Normalization and Visualization ---
     # ==========================================
     message("Stage 4: Normalizing and plotting profiles...")
     
@@ -172,7 +172,7 @@ process BIOC_SOGGI_SOGGI_PROFILE_ANALYSIS {
     ggsave("profile_percent.pdf", plot = p_percent, width = 8, height = 6)
     
     # ==========================================
-    # STAGE 5: Export Profile Data
+    # --- Export Profile Data ---
     # ==========================================
     message("Stage 5: Exporting profile data to CSV...")
     

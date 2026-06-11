@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the count data and reference annotations. 2. Generate a diagnostic plot to visualize zero inflation compared to the expected 
+//  * 1. [Visualization & Output] Load the count data and reference annotations
+//  * 2. [Visualization & Output] Generate a diagnostic plot
+//  * 3. [Visualization & Output] Run the main HIPPO algorithm
+//  * 4. [Visualization & Output] Perform dimension reduction and visualize
+//  * 5. [Visualization & Output] Visualize selected features and zero-inflation reduction
+//  * 6. [Visualization & Output] Conduct differential expression analysis
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +55,7 @@ process BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS {
     # Load required libraries
     library(HIPPO)
     
-    # 1. Load the count data and reference annotations
+    # --- Load the count data and reference annotations ---
     if (!file.exists("counts_matrix.rds")) {
       stop("Error: 'counts_matrix.rds' is required but was not found in the working directory.")
     }
@@ -69,19 +74,19 @@ process BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS {
       )
     }
     
-    # 2. Generate a diagnostic plot
+    # --- Generate a diagnostic plot ---
     pdf("hippo_diagnostic_plot.pdf", width = 6, height = 4)
     print(hippo_diagnostic_plot(toydata, 
                           show_outliers = TRUE, 
                           zvalue_thresh = 2))
     dev.off()
     
-    # 3. Run the main HIPPO algorithm
+    # --- Run the main HIPPO algorithm ---
     set.seed(20200321)
     toydata = hippo(toydata, K = 10, 
                     z_threshold = 2, outlier_proportion = 0.00001)
     
-    # 4. Perform dimension reduction and visualize
+    # --- Perform dimension reduction and visualize ---
     toydata = hippo_dimension_reduction(toydata, method="umap")
     pdf("hippo_umap_plot.pdf", width = 6, height = 4)
     print(hippo_umap_plot(toydata))
@@ -92,7 +97,7 @@ process BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS {
     print(hippo_tsne_plot(toydata))
     dev.off()
     
-    # 5. Visualize selected features and zero-inflation reduction
+    # --- Visualize selected features and zero-inflation reduction ---
     pdf("zero_proportion_plot.pdf", width = 6, height = 3)
     print(zero_proportion_plot(toydata, 
                          switch_to_hgnc = TRUE, 
@@ -106,7 +111,7 @@ process BIOC_HIPPO_HIPPO_SCRNASEQ_ANALYSIS {
                           top.n = 20))
     dev.off()
     
-    # 6. Conduct differential expression analysis
+    # --- Conduct differential expression analysis ---
     toydata = hippo_diffexp(toydata, 
                       top.n = 5, 
                       switch_to_hgnc = TRUE, 

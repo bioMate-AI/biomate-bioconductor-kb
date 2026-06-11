@@ -49,7 +49,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Read Input Data & Align Samples
+    # --- Read Input Data & Align Samples ---
     # ==========================================
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -60,7 +60,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     conditions <- unique(coldata\$condition)
     
     # ==========================================
-    # Stage 2: Generate Mock Cuffdiff Files
+    # --- Generate Mock Cuffdiff Files ---
     # ==========================================
     # Calculate condition-level mean FPKMs (using counts as proxy for FPKM)
     cond_fpkms <- do.call(cbind, lapply(conditions, function(cond) {
@@ -168,7 +168,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     }
     
     # ==========================================
-    # Stage 3: Initialize cummeRbund & Load Data
+    # --- Initialize cummeRbund & Load Data ---
     # ==========================================
     cuff <- readCufflinks(
       dir = ".",
@@ -192,7 +192,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     write.csv(data.frame(significant_gene_id = sig_genes), "significant_genes.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     pdf("cummerbund_plots.pdf", width = 8, height = 8)
     

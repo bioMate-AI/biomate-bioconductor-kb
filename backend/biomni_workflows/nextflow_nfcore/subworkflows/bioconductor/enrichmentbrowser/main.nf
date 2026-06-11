@@ -66,7 +66,7 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
         stop("Required input files (exprs.tab, colData.tab, rowData.tab, hsa_kegg_gs.gmt) are missing in the working directory.")
     }
     
-    # 1. Read expression data into a SummarizedExperiment
+    # --- Read expression data into a SummarizedExperiment ---
     se <- readSE(exprs.file, cdat.file, rdat.file)
     
     # Ensure the 'mol.biol' column exists in colData to support the exact documented code line:
@@ -79,7 +79,7 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     # Assign to all.eset to match the documented workflow variable names
     all.eset <- se
     
-    # 2. Map probes to genes
+    # --- Map probes to genes ---
     # Since the user's input might already be gene-level or lack platform annotation,
     # we wrap probe2gene in a tryCatch to ensure robustness.
     allSE <- tryCatch({
@@ -89,7 +89,7 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
         all.eset
     })
     
-    # 3. Normalize expression values
+    # --- Normalize expression values ---
     allSE <- normalize(allSE, norm.method = "quantile")
     
     # Save normalization diagnostic plots
@@ -99,10 +99,10 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     boxplot(assay(allSE, "norm"), main = "Normalized Expression")
     dev.off()
     
-    # 4. Define sample groups
+    # --- Define sample groups ---
     allSE\$GROUP <- ifelse(allSE\$mol.biol =="BCR/ABL", 1, 0) 
     
-    # 5. Perform differential expression analysis
+    # --- Perform differential expression analysis ---
     allSE <- deAna(allSE, padj.method = "BH")
     
     # Save differential expression diagnostic plots
@@ -112,10 +112,10 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     volcano(rowData(allSE)\$FC, rowData(allSE)\$ADJ.PVAL)
     dev.off()
     
-    # 6. Load gene sets
+    # --- Load gene sets ---
     hsa.gs <- getGenesets(gmt.file) 
     
-    # 7. Run set-based enrichment analysis (SBEA)
+    # --- Run set-based enrichment analysis (SBEA) ---
     sbea.res <- sbea(method = "ora", se = allSE, gs = hsa.gs, perm = 0, alpha = 0.1) 
     sbea_ranking <- gsRanking(sbea.res)
     
@@ -123,10 +123,10 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     write.csv(as.data.frame(sbea_ranking), "sbea_results.csv", row.names = FALSE)
     saveRDS(sbea.res, "sbea_res.rds")
     
-    # 8. Compile gene regulatory network
+    # --- Compile gene regulatory network ---
     hsa.grn <- compileGRN(org="hsa", db="kegg")
     
-    # 9. Run network-based enrichment analysis (NBEA)
+    # --- Run network-based enrichment analysis (NBEA) ---
     nbea.res <- nbea(method="ggea", se=allSE, gs=hsa.gs, grn=hsa.grn) 
     nbea_ranking <- gsRanking(nbea.res)
     
@@ -148,7 +148,7 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
         dev.off()
     }
     
-    # 10. Combine enrichment results
+    # --- Combine enrichment results ---
     res.list <- list(sbea.res, nbea.res) 
     comb.res <- combResults(res.list)
     comb_ranking <- gsRanking(comb.res)
@@ -157,7 +157,7 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     write.csv(as.data.frame(comb_ranking), "combined_results.csv", row.names = FALSE)
     saveRDS(comb.res, "comb_res.rds")
     
-    # 11. Visualize and browse results
+    # --- Visualize and browse results ---
     # Set output directory for HTML report
     configEBrowser(key = "OUTDIR.DEFAULT", value = "enrichmentbrowser_report")
     

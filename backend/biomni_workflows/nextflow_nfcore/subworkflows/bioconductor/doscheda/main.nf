@@ -51,7 +51,7 @@ process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
     pearson_threshold <- 0.4
     normalization_method <- "loess" # Options: 'loess', 'median', 'none'
     
-    # Stage 1: Read and validate input files
+    # --- Read and validate input files ---
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
     }
@@ -75,7 +75,7 @@ process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
     
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
-    # Stage 2: Replicate and Channel Ordering
+    # --- Replicate and Channel Ordering ---
     # Doscheda expects channels to be ordered by replicate, then by concentration/condition.
     # We dynamically assign replicate indices based on the occurrence of each condition.
     coldata <- coldata[order(coldata\$condition), ]
@@ -88,14 +88,14 @@ process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
     
     message(paste("Detected", chansVal, "channels and", repsVal, "replicates."))
     
-    # Stage 3: Prepare Data Frame for Doscheda
+    # --- Prepare Data Frame for Doscheda ---
     # Doscheda requires specific columns for peptide intensity datasets:
     # 'Master.Protein.Accessions', 'Sequence', and 'Qvality.PEP'
     intensity\$Master.Protein.Accessions <- intensity\$feature_id
     intensity\$Sequence <- intensity\$feature_id
     intensity\$Qvality.PEP <- 1e-5 # Assign a high-quality default PEP score to prevent filtering
     
-    # Stage 4: Initialize ChemoProtSet and Set Parameters
+    # --- Initialize ChemoProtSet and Set Parameters ---
     ex <- new('ChemoProtSet')
     ex <- setParameters(
       x = ex,
@@ -121,7 +121,7 @@ process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
       qualityChannel = "Qvality.PEP"
     )
     
-    # Stage 5: Run Doscheda Pipeline Steps
+    # --- Run Doscheda Pipeline Steps ---
     message("Running peptide removal process...")
     ex <- removePeptides(ex, removePeps = FALSE)
     
@@ -138,7 +138,7 @@ process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
       warning("Model fitting skipped: Doscheda linear model requires at least 3 channels/concentrations.")
     }
     
-    # Stage 6: Export Results
+    # --- Export Results ---
     if (model_fitted) {
       results <- getFinal(ex)
     } else {
@@ -148,7 +148,7 @@ process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
     write.csv(results, "doscheda_results.csv", row.names = FALSE)
     message("Results successfully written to 'doscheda_results.csv'.")
     
-    # Stage 7: Generate Diagnostic and Results Plots
+    # --- Generate Diagnostic and Results Plots ---
     message("Generating diagnostic plots...")
     pdf("doscheda_plots.pdf", width = 10, height = 8)
     

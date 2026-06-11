@@ -44,11 +44,11 @@ process BIOC_INTERACTIVECOMPLEXHEATMAP_INTERACTIVE_HEATMAP_GENERATOR {
           }
         }
     
-    # Stage 1: Load libraries safely
+    # --- Load libraries safely ---
     library(ComplexHeatmap)
     library(InteractiveComplexHeatmap)
     
-    # Stage 2: Read and preprocess input data defensively
+    # --- Read and preprocess input data defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -94,7 +94,7 @@ process BIOC_INTERACTIVECOMPLEXHEATMAP_INTERACTIVE_HEATMAP_GENERATOR {
     # Save preprocessed matrix for the Shiny app
     saveRDS(mat_scaled, "mat_scaled.rds")
     
-    # Stage 3: Create the ComplexHeatmap object
+    # --- Create the ComplexHeatmap object ---
     ht <- Heatmap(
       mat_scaled,
       name = "Z-Score",
@@ -107,12 +107,12 @@ process BIOC_INTERACTIVECOMPLEXHEATMAP_INTERACTIVE_HEATMAP_GENERATOR {
       column_names_gp = gpar(fontsize = 10)
     )
     
-    # Stage 4: Generate and save static PDF
+    # --- Generate and save static PDF ---
     pdf("static_heatmap.pdf", width = 8, height = 10)
     draw(ht)
     dev.off()
     
-    # Stage 5: Generate and save Interactive HTML Widget
+    # --- Generate and save Interactive HTML Widget ---
     tryCatch({
       widget <- InteractiveComplexHeatmapWidget(ht)
       htmlwidgets::saveWidget(widget, "interactive_heatmap.html", selfcontained = TRUE)
@@ -124,7 +124,7 @@ process BIOC_INTERACTIVECOMPLEXHEATMAP_INTERACTIVE_HEATMAP_GENERATOR {
       )
     })
     
-    # Stage 6: Generate standalone Shiny app script (app.R) for local deployment
+    # --- Generate standalone Shiny app script (app.R) for local ---
     shiny_app_code <- c(
       "#!/usr/bin/env Rscript",
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)

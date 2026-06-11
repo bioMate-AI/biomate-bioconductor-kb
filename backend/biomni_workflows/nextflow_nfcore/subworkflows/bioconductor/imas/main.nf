@@ -44,12 +44,12 @@ process BIOC_IMAS_IMAS_MULTI_OMICS_SPLICING {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(IMAS)
     library(survival)
     library(ggplot2)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     # Read counts and coldata
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", check.names = FALSE)
@@ -89,7 +89,7 @@ process BIOC_IMAS_IMAS_MULTI_OMICS_SPLICING {
     omics <- log2(omics + 1)
     colnames(omics) <- common_samples
     
-    # Stage 3: Group Splicing Association Analysis
+    # --- Group Splicing Association Analysis ---
     message("Running groupSplicing...")
     group_res <- tryCatch({
       # Identify splicing events associated with sample groups (conditions)
@@ -100,7 +100,7 @@ process BIOC_IMAS_IMAS_MULTI_OMICS_SPLICING {
       data.frame(Event = rownames(psi), P_Value = NA, Estimate = NA, Error = e\$message)
     })
     
-    # Stage 4: Omics Splicing Association Analysis (rSplicing)
+    # --- Omics Splicing Association Analysis (rSplicing) ---
     message("Running rSplicing...")
     r_res <- tryCatch({
       # Identify splicing events associated with continuous omics features
@@ -111,7 +111,7 @@ process BIOC_IMAS_IMAS_MULTI_OMICS_SPLICING {
       data.frame(Event = rownames(psi), Omics_Feature = rep(rownames(omics)[1], nrow(psi)), P_Value = NA, Error = e\$message)
     })
     
-    # Stage 5: Clinical Splicing Association Analysis
+    # --- Clinical Splicing Association Analysis ---
     message("Running clinicalSplicing...")
     # Create dummy survival data based on sample metadata
     set.seed(42)
@@ -131,12 +131,12 @@ process BIOC_IMAS_IMAS_MULTI_OMICS_SPLICING {
       data.frame(Event = rownames(psi), Hazard_Ratio = NA, P_Value = NA, Error = e\$message)
     })
     
-    # Stage 6: Save results to CSV files
+    # --- Save results to CSV files ---
     write.csv(as.data.frame(group_res), "group_splicing_results.csv", row.names = TRUE)
     write.csv(as.data.frame(r_res), "r_splicing_results.csv", row.names = TRUE)
     write.csv(as.data.frame(clinical_res), "clinical_splicing_results.csv", row.names = TRUE)
     
-    # Stage 7: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     pdf("splicing_analysis_plots.pdf", width = 10, height = 8)
     
     # Try calling IMAS native plotSplicing if available and compatible

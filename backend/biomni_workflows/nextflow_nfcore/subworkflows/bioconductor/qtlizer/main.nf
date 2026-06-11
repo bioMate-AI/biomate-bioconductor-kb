@@ -50,7 +50,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -83,7 +83,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
     # ==========================================
-    # Stage 2: Identify Key Genes for QTL Query
+    # --- Identify Key Genes for QTL Query ---
     # ==========================================
     
     message("Normalizing expression data...")
@@ -133,7 +133,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     top_genes <- head(stats_df\$gene, 15)
     
     # ==========================================
-    # Stage 3: Query Qtlizer Database
+    # --- Query Qtlizer Database ---
     # ==========================================
     
     qtl_df <- data.frame()
@@ -162,7 +162,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Post-processing and Export
+    # --- Post-processing and Export ---
     # ==========================================
     
     # Ensure output data frame is valid and write to CSV
@@ -196,7 +196,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 5: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     
     pdf("qtl_summary_plots.pdf", width = 8, height = 6)

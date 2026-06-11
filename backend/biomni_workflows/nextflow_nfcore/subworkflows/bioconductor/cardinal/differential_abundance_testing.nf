@@ -86,7 +86,7 @@ process BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING {
       }
     }
     
-    # 1. Perform sample-based means testing using meansTest()
+    # --- Perform sample-based means testing using meansTest() ---
     mtest <- meansTest(mse3, ~ condition, samples=run(mse3))
     
     # Save sample-based means test plot to PDF
@@ -99,7 +99,7 @@ process BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING {
       if (dev.cur() > 1) dev.off()
     })
     
-    # 2. Rank and filter differentially abundant features using topFeatures()
+    # --- Rank and filter differentially abundant features using ---
     mtest_top <- topFeatures(mtest)
     mtest_top_sig <- subset(mtest_top, fdr < 0.05)
     
@@ -108,11 +108,11 @@ process BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING {
     write.csv(as.data.frame(mtest_top_sig), "sample_means_test_sig_features.csv", row.names=FALSE)
     saveRDS(mtest, "sample_means_test_object.rds")
     
-    # 3. Perform segment-based means testing by first segmenting samples independently with spatialDGMM()
+    # --- Perform segment-based means testing by first segmenting ---
     dgmm2 <- spatialDGMM(mse3, r=2, k=2, groups=run(mse3))
     saveRDS(dgmm2, "spatial_dgmm_object.rds")
     
-    # 4. Fit linear models on the segmented data using meansTest()
+    # --- Fit linear models on the segmented data using meansTest() ---
     stest <- meansTest(dgmm2, ~ condition)
     
     # Save segment-based means test plot to PDF
@@ -125,7 +125,7 @@ process BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING {
       if (dev.cur() > 1) dev.off()
     })
     
-    # 5. Rank and filter segment-based test results using topFeatures()
+    # --- Rank and filter segment-based test results using ---
     stest_top <- topFeatures(stest)
     stest_top_sig <- subset(stest_top, fdr < 0.05)
     

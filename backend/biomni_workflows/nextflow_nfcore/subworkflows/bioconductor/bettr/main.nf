@@ -51,7 +51,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     library(tibble)
     
     # ==========================================
-    # Stage 1: Input Processing & Feature Extraction
+    # --- Input Processing & Feature Extraction ---
     # ==========================================
     
     message("Step 1: Importing genomic intervals from regions.bed...")
@@ -113,7 +113,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     )
     
     # ==========================================
-    # Stage 2: Normalization & Transformation Setup
+    # --- Normalization & Transformation Setup ---
     # ==========================================
     
     message("Step 4: Setting up metric transformations...")
@@ -129,7 +129,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     )
     
     # ==========================================
-    # Stage 3: Assemble SummarizedExperiment
+    # --- Assemble SummarizedExperiment ---
     # ==========================================
     
     message("Step 5: Assembling SummarizedExperiment...")
@@ -142,7 +142,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     )
     
     # ==========================================
-    # Stage 4: Programmatic Preparation & Scoring
+    # --- Programmatic Preparation & Scoring ---
     # ==========================================
     
     message("Step 6: Preparing data and calculating aggregated scores...")
@@ -159,7 +159,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     message("Saved aggregated scores to 'benchmark_scores.csv'.")
     
     # ==========================================
-    # Stage 5: Visualization & Serialization
+    # --- Visualization & Serialization ---
     # ==========================================
     
     message("Step 7: Generating diagnostic plots...")

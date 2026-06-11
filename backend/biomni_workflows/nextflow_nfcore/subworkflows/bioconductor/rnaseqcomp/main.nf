@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare condition and replicate factors, and logical vectors for evaluation and calibration features. 2. Calibrate quantification 
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Prepare Factors and Logical Vectors
+//  * 3. [Visualization & Output] Calibrate Quantification Signals
+//  * 4. [Visualization & Output] Evaluate and Plot Specificity & Sensitivity
+//  * 5. [Visualization & Output] Export Numerical Metrics to CSV
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +55,7 @@ process BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES {
     library(rnaseqcomp)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     simdata <- list()
@@ -82,7 +86,7 @@ process BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES {
     }
     
     # ==========================================
-    # 2. Prepare Factors and Logical Vectors
+    # --- Prepare Factors and Logical Vectors ---
     # ==========================================
     
     condInfo <- factor(simdata\$samp\$condition)
@@ -92,7 +96,7 @@ process BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES {
     unitReference <- 1
     
     # ==========================================
-    # 3. Calibrate Quantification Signals
+    # --- Calibrate Quantification Signals ---
     # ==========================================
     
     dat <- signalCalibrate(simdata\$quant, condInfo, repInfo, evaluationFeature,
@@ -103,7 +107,7 @@ process BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES {
     saveRDS(dat, "calibrated_data.rds")
     
     # ==========================================
-    # 4. Evaluate and Plot Specificity & Sensitivity
+    # --- Evaluate and Plot Specificity & Sensitivity ---
     # ==========================================
     
     # Open PDF device to save all benchmark plots
@@ -130,7 +134,7 @@ process BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES {
     dev.off()
     
     # ==========================================
-    # 5. Export Numerical Metrics to CSV
+    # --- Export Numerical Metrics to CSV ---
     # ==========================================
     
     if (!is.null(sd_metrics)) {

@@ -50,7 +50,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     library(rtracklayer)
     
     # ==========================================
-    # Stage 1: Load Input Data & Generate Mock tRNAscan File
+    # --- Load Input Data & Generate Mock tRNAscan File ---
     # ==========================================
     
     # Read user-provided expression data
@@ -81,7 +81,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     writeLines(tRNAscan_content, con = t_file)
     
     # ==========================================
-    # Stage 2: Import and Validate tRNAscan Output
+    # --- Import and Validate tRNAscan Output ---
     # ==========================================
     
     message("Importing tRNAscan-SE output...")
@@ -97,7 +97,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     names(gr) <- trna_ids
     
     # ==========================================
-    # Stage 3: Integrate with Expression Counts
+    # --- Integrate with Expression Counts ---
     # ==========================================
     
     message("Integrating tRNA annotations with expression counts...")
@@ -128,7 +128,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     write.csv(agg_by_type, "tRNA_expression_summary.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Export GFF3 Annotations
+    # --- Export GFF3 Annotations ---
     # ==========================================
     
     message("Exporting GFF3 annotations...")
@@ -136,7 +136,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     export.gff3(gff_compliant, con = "tRNA_annotations.gff3")
     
     # ==========================================
-    # Stage 5: Extract tRNA Precursor Sequences
+    # --- Extract tRNA Precursor Sequences ---
     # ==========================================
     
     message("Extracting tRNA precursor sequences...")

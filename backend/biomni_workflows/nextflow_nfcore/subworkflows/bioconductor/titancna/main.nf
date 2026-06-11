@@ -50,7 +50,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Load and Validate Input Files
+    # --- Load and Validate Input Files ---
     # ==========================================
     message("Stage 1: Loading input files...")
     
@@ -79,7 +79,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Generate Locus-Specific Data
+    # --- Generate Locus-Specific Data ---
     # ==========================================
     message("Stage 2: Generating locus-specific allele counts and log ratios within target regions...")
     
@@ -127,7 +127,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     inputData <- do.call(rbind, df_list)
     
     # ==========================================
-    # STAGE 3: Filter Data using TitanCNA
+    # --- Filter Data using TitanCNA ---
     # ==========================================
     message("Stage 3: Filtering data using TitanCNA filters...")
     
@@ -140,7 +140,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Parameter Initialization and EM
+    # --- Parameter Initialization and EM ---
     # ==========================================
     message("Stage 4: Initializing parameters and running EM pipeline...")
     
@@ -172,7 +172,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 5: Viterbi Segmentation and Formatting
+    # --- Viterbi Segmentation and Formatting ---
     # ==========================================
     message("Stage 5: Running Viterbi segmentation and formatting results...")
     
@@ -220,7 +220,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     message("Saved model parameters to titan_parameters.txt")
     
     # ==========================================
-    # STAGE 6: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 6: Generating diagnostic plots...")
     

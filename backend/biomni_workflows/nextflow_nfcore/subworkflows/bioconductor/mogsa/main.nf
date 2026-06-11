@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load and verify matching dimensions and names of multi-omics data and supplementary gene set data. 2. Run MOGSA in one step using 
+//  * 1. [Visualization & Output] Load and verify matching dimensions and names of
+//  * 2. [Visualization & Output] Run MOGSA in one step using the mogsa function
+//  * 3. [Visualization & Output] Extract and visualize the gene set score (GSS) matrix
+//  * 4. [Visualization & Output] Identify the most significant gene sets based on p-values
+//  * 5. [Visualization & Output] Decompose gene set scores across datasets and identify
+//  * 6. [Visualization & Output] Project gene sets and samples in latent space using plotGS
+//  * 7. [Visualization & Output] Alternatively, perform the analysis in two steps by
+//  * 8. [Visualization & Output] Prepare custom gene set data from graphite or MSigDB GMT
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +58,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
     library(mogsa)
     library(gplots)
     
-    # 1. Load and verify matching dimensions and names of multi-omics data and supplementary gene set data
+    # --- Load and verify matching dimensions and names of ---
     # Reading user input files from the working directory
     load("NCI60_4arrays.RData")
     load("NCI60_4array_supdata.RData")
@@ -77,7 +84,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
                          "cyan", "brown", "pink", "gray", "orange")
     colcode <- as.character(colcode)
     
-    # 2. Run MOGSA in one step using the mogsa function
+    # --- Run MOGSA in one step using the mogsa function ---
     mgsa1 <- mogsa(x = NCI60_4arrays, sup=NCI60_4array_supdata, nf=3,
                    proc.row = "center_ssq1", w.data = "inertia", statis = TRUE)
     
@@ -90,7 +97,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
     barplot(as.matrix(eigs), legend.text = rownames(eigs))
     dev.off()
     
-    # 3. Extract and visualize the gene set score (GSS) matrix using heatmaps
+    # --- Extract and visualize the gene set score (GSS) matrix ---
     scores <- getmgsa(mgsa1, "score")
     write.csv(scores, "scores.csv")
     
@@ -99,7 +106,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
               margins = c(6, 10), ColSideColors=colcode)
     dev.off()
     
-    # 4. Identify the most significant gene sets based on p-values
+    # --- Identify the most significant gene sets based on p-values ---
     p.mat <- getmgsa(mgsa1, "p.val") # get p value matrix
     write.csv(p.mat, "p_values.csv")
     
@@ -113,7 +120,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
               margins = c(6, 10), ColSideColors=colcode)
     dev.off()
     
-    # 5. Decompose gene set scores across datasets and identify key gene influencers
+    # --- Decompose gene set scores across datasets and identify ---
     gs1 <- top.gs.name[1] # select the most significant gene set
     gs1
     
@@ -141,7 +148,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
     write.csv(gis2, "gis2.csv", row.names = FALSE)
     gis2
     
-    # 6. Project gene sets and samples in latent space using plotGS
+    # --- Project gene sets and samples in latent space using plotGS ---
     fs <- getmgsa(mgsa1, "fac.scr") # extract the factor scores for cell lines (cell line space)
     pdf("factor_scores_and_plotGS.pdf", width = 12, height = 6)
     layout(matrix(1:2, 1, 2))
@@ -151,7 +158,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
     plotGS(mgsa1, label.cex = 0.8, center.only = TRUE, topN = 0, label = c(gs1, gs2))
     dev.off()
     
-    # 7. Alternatively, perform the analysis in two steps by running multivariate analysis with moa first
+    # --- Alternatively, perform the analysis in two steps by ---
     ana <- moa(NCI60_4arrays, proc.row = "center_ssq1", w.data = "inertia", statis = TRUE)
     saveRDS(ana, "moa_analysis.rds")
     slot(ana, "partial.eig")[, 1:6] # extract the eigenvalue
@@ -168,7 +175,7 @@ process BIOC_MOGSA_MULTIPLE_OMICS_GENE_SET_ANALYSIS {
     saveRDS(mgsa2, "mgsa2.rds")
     identical(mgsa1, mgsa2) # check if the two methods give the same results
     
-    # 8. Prepare custom gene set data from graphite or MSigDB GMT files
+    # --- Prepare custom gene set data from graphite or MSigDB GMT ---
     tryCatch({
       library(graphite)
       keggdb <- prepGraphite(db = pathways("hsapiens", "kegg")[1:50], id = "symbol")

@@ -55,21 +55,21 @@ process BIOC_KISSDE_CUSTOM_COUNT_TABLE_ANALYSIS {
     # Load the required library
     library(kissDE)
     
-    # 1. Load custom count table from the working directory
+    # --- Load custom count table from the working directory ---
     tableCounts <- read.table("table_counts_alt_splicing.txt", head = TRUE)
     
-    # 2. Define condition vector
+    # --- Define condition vector ---
     myConditions <- c(rep("condition_1", 2), rep("condition_2", 2))
     
-    # 3. Perform quality control and save the generated plots to a PDF file
+    # --- Perform quality control and save the generated plots to a ---
     pdf("quality_control_plots.pdf")
     qualityControl(tableCounts, myConditions)
     dev.off()
     
-    # 4. Run differential analysis using diffExpressedVariants
+    # --- Run differential analysis using diffExpressedVariants ---
     myResults <- diffExpressedVariants(countsData = tableCounts, conditions = myConditions)
     
-    # 5. Export results using writeOutputKissDE
+    # --- Export results using writeOutputKissDE ---
     writeOutputKissDE(myResults, output = "kissDE_output.tab")
     
     # Export the PSI/f table for downstream analysis

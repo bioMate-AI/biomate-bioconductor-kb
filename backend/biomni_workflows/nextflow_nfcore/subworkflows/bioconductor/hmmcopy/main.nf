@@ -72,15 +72,15 @@ process BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION {
       stop("Error: Input file 'map.wig' not found in the working directory.")
     }
     
-    # 1. Load and correct read counts using wigsToRangedData and correctReadcount
+    # --- Load and correct read counts using wigsToRangedData and ---
     message("Loading and correcting read counts...")
     tumour_copy <- correctReadcount(wigsToRangedData(tfile, gfile, mfile))
     
-    # 2. Segment the corrected copy number profile using HMMsegment
+    # --- Segment the corrected copy number profile using HMMsegment ---
     message("Segmenting copy number profile...")
     tumour_segments <- HMMsegment(tumour_copy)
     
-    # 3. Visualize the segments and states using plotSegments and stateCols
+    # --- Visualize the segments and states using plotSegments and ---
     message("Generating visualization plot...")
     pdf("tumour_segments_plot.pdf", width = 10, height = 6)
     plotSegments(tumour_copy, tumour_segments, pch = ".", ylab = "Tumour Copy Number", xlab = "Chromosome Position")
@@ -88,7 +88,7 @@ process BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION {
     legend("topleft", c("HOMD", "HETD", "NEUT", "GAIN", "AMPL", "HLAMP"), fill = cols, horiz = TRUE, bty = "n", cex = 0.5)
     dev.off()
     
-    # 4. Write named output files for the results
+    # --- Write named output files for the results ---
     message("Saving output files...")
     
     # Save corrected copy number profile

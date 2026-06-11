@@ -12,7 +12,15 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load raw GPR files and sample mapping metadata using makePeptideSet. 2. (Optional) Visualize spatial slide artifacts and residuals
+//  * 1. [Visualization & Output] Load raw GPR files and sample mapping metadata
+//  * 2. [Visualization & Output] Visualize spatial slide artifacts and residuals
+//  * 3. [Visualization & Output] Create a custom peptide coordinate database
+//  * 4. [Visualization & Output] Summarize replicate spots and annotate peptide positions
+//  * 5. [Visualization & Output] Normalize array intensities to correct for non-specific
+//  * 6. [Visualization & Output] Smooth intensities across overlapping peptides
+//  * 7. [Visualization & Output] Make positivity calls comparing Pre and Post conditions
+//  * 8. [Visualization & Output] Generate a tabular summary of results
+//  * 9. [Visualization & Output] Visualize binding peaks and clade-specific responses
 
 nextflow.enable.dsl = 2
 
@@ -67,7 +75,7 @@ process BIOC_PEPSTAT_PEPTIDE_MICROARRAY_PIPELINE {
       stop("Error: pep_info.csv not found in the working directory.")
     }
     
-    # 1. Load raw GPR files and sample mapping metadata
+    # --- Load raw GPR files and sample mapping metadata ---
     message("Step 1: Loading peptide microarray data...")
     pSet <- makePeptideSet(files = NULL, path = dirToParse,
                            mapping.file = mapFile, log=TRUE)
@@ -81,7 +89,7 @@ process BIOC_PEPSTAT_PEPTIDE_MICROARRAY_PIPELINE {
     saveRDS(pSet, "pSet_raw.rds")
     saveRDS(pSetNoCtrl, "pSet_no_control.rds")
     
-    # 2. Visualize spatial slide artifacts and residuals
+    # --- Visualize spatial slide artifacts and residuals ---
     message("Step 2: Generating array diagnostic plots...")
     pdf("array_diagnostics.pdf", width = 8, height = 6)
     tryCatch({
@@ -97,26 +105,26 @@ process BIOC_PEPSTAT_PEPTIDE_MICROARRAY_PIPELINE {
     })
     dev.off()
     
-    # 3. Create a custom peptide coordinate database
+    # --- Create a custom peptide coordinate database ---
     message("Step 3: Creating custom peptide database...")
     peps <- read.csv(pepInfoFile)
     pep_custom <- create_db(peps)
     
-    # 4. Summarize replicate spots and annotate peptide positions
+    # --- Summarize replicate spots and annotate peptide positions ---
     message("Step 4: Summarizing peptides...")
     psSet <- summarizePeptides(pSet, summary = "mean", position = pep_custom)
     
-    # 5. Normalize array intensities to correct for non-specific binding
+    # --- Normalize array intensities to correct for non-specific ---
     message("Step 5: Normalizing array intensities...")
     pnSet <- normalizeArray(psSet)
     saveRDS(pnSet, "normalized_peptide_set.rds")
     
-    # 6. Smooth intensities across overlapping peptides
+    # --- Smooth intensities across overlapping peptides ---
     message("Step 6: Smoothing intensities using sliding mean...")
     psmSet <- slidingMean(pnSet, width = 9)
     psmSetAg <- slidingMean(pnSet, width = 9, split.by.clade = FALSE)
     
-    # 7. Make positivity calls comparing Pre and Post conditions
+    # --- Make positivity calls comparing Pre and Post conditions ---
     message("Step 7: Making positivity calls...")
     calls <- makeCalls(psmSet, freq = TRUE, group = "treatment",
                          cutoff = .1, method = "FDR", verbose = TRUE)
@@ -127,7 +135,7 @@ process BIOC_PEPSTAT_PEPTIDE_MICROARRAY_PIPELINE {
     saveRDS(calls, "calls_clade.rds")
     saveRDS(callsAg, "calls_aggregate.rds")
     
-    # 8. Generate a tabular summary of results
+    # --- Generate a tabular summary of results ---
     message("Step 8: Generating tabular summaries...")
     summary <- restab(psmSet, calls)
     summaryAg <- restab(psmSetAg, callsAg)
@@ -136,7 +144,7 @@ process BIOC_PEPSTAT_PEPTIDE_MICROARRAY_PIPELINE {
     write.csv(summary, "summary_clade.csv", row.names = TRUE)
     write.csv(summaryAg, "summary_aggregate.csv", row.names = TRUE)
     
-    # 9. Visualize binding peaks and clade-specific responses
+    # --- Visualize binding peaks and clade-specific responses ---
     message("Step 9: Generating visualization plots...")
     pdf("analysis_plots.pdf", width = 10, height = 8)
     

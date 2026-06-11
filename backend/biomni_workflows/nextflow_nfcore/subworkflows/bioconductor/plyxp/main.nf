@@ -48,7 +48,7 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     library(plyxp)
     library(dplyr)
     
-    # Stage 1: Read input files
+    # --- Read input files ---
     # counts.csv: gene_id as the first column, followed by sample columns
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
@@ -62,14 +62,14 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     counts_mat <- as.matrix(counts_df[, common_samples, drop = FALSE])
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 2: Initialize SummarizedExperiment and wrap with plyxp
+    # --- Initialize SummarizedExperiment and wrap with plyxp ---
     se_obj <- SummarizedExperiment(
       assays = list(counts = counts_mat),
       colData = coldata_df
     )
     xp <- new_plyxp(se_obj)
     
-    # Stage 3: Normalization and Feature Engineering
+    # --- Normalization and Feature Engineering ---
     # Calculate size factors based on library sizes and add to colData
     lib_sizes <- colSums(assay(se(xp), "counts"))
     xp\$size_factor <- lib_sizes / mean(lib_sizes)
@@ -87,7 +87,7 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
         rows(expr_class = ifelse(mean_scaled > median(mean_scaled), "High", "Low"))
       )
     
-    # Stage 4: Filtering and Grouped Summarization
+    # --- Filtering and Grouped Summarization ---
     # Filter out low-abundance genes using the row context
     xp_filtered <- xp |>
       filter(rows(mean_scaled > 0.5))
@@ -104,7 +104,7 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     final_se <- se(xp_filtered)
     summary_se <- se(summary_xp)
     
-    # Stage 5: Save Outputs
+    # --- Save Outputs ---
     # 1. Save the filtered SummarizedExperiment object
     saveRDS(final_se, "filtered_se.rds")
     

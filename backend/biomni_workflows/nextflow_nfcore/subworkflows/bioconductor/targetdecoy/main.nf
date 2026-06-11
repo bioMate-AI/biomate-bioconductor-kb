@@ -57,7 +57,7 @@ process BIOC_TARGETDECOY_TARGET_DECOY_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input files...")
@@ -79,7 +79,7 @@ process BIOC_TARGETDECOY_TARGET_DECOY_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Prepare Target-Decoy Score Table
+    # --- Prepare Target-Decoy Score Table ---
     # ==========================================
     message("Preparing target-decoy score table...")
     
@@ -125,7 +125,7 @@ process BIOC_TARGETDECOY_TARGET_DECOY_ANALYSIS {
     write.csv(decoy_tbl, "decoy_score_table.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 3: Single-Run Diagnostic Plots
+    # --- Single-Run Diagnostic Plots ---
     # ==========================================
     message("Generating single-run diagnostic plots...")
     
@@ -155,7 +155,7 @@ process BIOC_TARGETDECOY_TARGET_DECOY_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 4: Multi-Score Comparison (Samples)
+    # --- Multi-Score Comparison (Samples) ---
     # ==========================================
     message("Comparing target-decoy assumptions across samples...")
     
@@ -179,7 +179,7 @@ process BIOC_TARGETDECOY_TARGET_DECOY_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 5: Multi-Run Comparison (Conditions)
+    # --- Multi-Run Comparison (Conditions) ---
     # ==========================================
     message("Comparing target-decoy assumptions across conditions...")
     

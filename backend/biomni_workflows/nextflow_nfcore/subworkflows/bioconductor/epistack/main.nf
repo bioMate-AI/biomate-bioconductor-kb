@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load peak files using rtracklayer::import. 2. Merge peaks across replicates using GenomicRanges::union and calculate mean scores. 
+//  * 1. [Visualization & Output] Load peak files using rtracklayer::import
+//  * 2. [Visualization & Output] Merge peaks across replicates using GenomicRanges::union
+//  * 3. [Visualization & Output] Load aligned reads using rtracklayer::import
+//  * 4. [Visualization & Output] Generate coverage matrices around peak centers using
+//  * 5. [Visualization & Output] Construct a SummarizedExperiment object containing the
+//  * 6. [Visualization & Output] Assign peak types as bins and plot the stacked profiles
 
 nextflow.enable.dsl = 2
 
@@ -74,10 +79,10 @@ process BIOC_EPISTACK_CHIPSEQ_PEAKS_QUALITY {
     library(EnrichedHeatmap)
     library(epistack)
     
-    # 1. Load peak files using rtracklayer::import
+    # --- Load peak files using rtracklayer::import ---
     peaks <- lapply(path_peaks, import)
     
-    # 2. Merge peaks across replicates using GenomicRanges::union and calculate mean scores
+    # --- Merge peaks across replicates using GenomicRanges::union ---
     merged_peaks <- GenomicRanges::union(peaks[[1]], peaks[[2]])
     
     scores_rep1 <- double(length(merged_peaks))
@@ -97,10 +102,10 @@ process BIOC_EPISTACK_CHIPSEQ_PEAKS_QUALITY {
     merged_peaks <- merged_peaks[order(merged_peaks\$mean_scores, decreasing = TRUE), ]
     rm(scores_rep1, scores_rep2, peak_type)
     
-    # 3. Load aligned reads using rtracklayer::import
+    # --- Load aligned reads using rtracklayer::import ---
     reads <- lapply(path_reads, import)
     
-    # 4. Generate coverage matrices around peak centers using EnrichedHeatmap::normalizeToMatrix
+    # --- Generate coverage matrices around peak centers using ---
     coverage_matrices <- lapply(
         reads,
         function(x) {
@@ -115,13 +120,13 @@ process BIOC_EPISTACK_CHIPSEQ_PEAKS_QUALITY {
     
     xlabs <- c("-5kb", "peak center", "+5kb")
     
-    # 5. Construct a SummarizedExperiment object containing the merged peaks and coverage matrices
+    # --- Construct a SummarizedExperiment object containing the ---
     merged_peaks <- SummarizedExperiment(
         rowRanges = merged_peaks,
         assays = coverage_matrices
     )
     
-    # 6. Assign peak types as bins and plot the stacked profiles using plotEpistack
+    # --- Assign peak types as bins and plot the stacked profiles ---
     rowRanges(merged_peaks)\$bin <- rowRanges(merged_peaks)\$peak_type
     
     # Save the visualization plot as a PDF

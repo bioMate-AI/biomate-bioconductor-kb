@@ -49,7 +49,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     # ==========================================
     # Read the input gene expression/count matrix
     if (!file.exists("counts.csv")) {
@@ -77,7 +77,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     strands <- sample(c("+", "-"), n_genes, replace = TRUE)
     
     # ==========================================
-    # STAGE 2: Define CRISPR Nucleases & Editors
+    # --- Define CRISPR Nucleases & Editors ---
     # ==========================================
     # 1. Define SpCas9 Nuclease (3' PAM)
     SpCas9 <- CrisprNuclease(
@@ -133,7 +133,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: CRISPR Genomic Arithmetic
+    # --- CRISPR Genomic Arithmetic ---
     # ==========================================
     # Calculate genomic ranges for SpCas9
     sp_pam <- getPamRanges(seqnames = chroms, pam_site = pam_sites, strand = strands, nuclease = SpCas9)
@@ -148,7 +148,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     as_cuts <- getCutSiteRanges(seqnames = chroms, pam_site = pam_sites, strand = strands, nuclease = AsCas12a)
     
     # ==========================================
-    # STAGE 4: Target Sequence Parsing
+    # --- Target Sequence Parsing ---
     # ==========================================
     # Generate mock 23-bp target sequences (20bp spacer + 3bp PAM) for SpCas9
     bases <- c("A", "C", "G", "T")
@@ -162,7 +162,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     extracted_spacers <- extractProtospacerFromTarget(mock_targets, SpCas9)
     
     # ==========================================
-    # STAGE 5: Compile and Export Results
+    # --- Compile and Export Results ---
     # ==========================================
     # Combine all coordinates and sequences into a comprehensive dataframe
     results_df <- data.frame(

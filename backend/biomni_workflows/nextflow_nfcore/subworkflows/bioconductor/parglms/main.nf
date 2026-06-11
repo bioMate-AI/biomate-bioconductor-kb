@@ -49,7 +49,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     library(parglms)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -90,7 +90,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     formula_obj <- as.formula(formula_str)
     
     # ==========================================
-    # Stage 2: Set up BatchJobs Registry
+    # --- Set up BatchJobs Registry ---
     # ==========================================
     
     # Disable progress bar to keep logs clean
@@ -120,7 +120,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     waitForJobs(myr)
     
     # ==========================================
-    # Stage 3: Fit Parallelized GLM
+    # --- Fit Parallelized GLM ---
     # ==========================================
     
     # Initialize beta values (Intercept + predictors)
@@ -138,7 +138,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 4: Extract Results and Export
+    # --- Extract Results and Export ---
     # ==========================================
     
     coefs <- pp\$coefficients
@@ -160,7 +160,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     write.csv(results_df, "parglms_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     pdf("parglms_coefficient_plot.pdf", width = 8, height = 6)

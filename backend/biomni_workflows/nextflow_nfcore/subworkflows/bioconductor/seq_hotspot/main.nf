@@ -45,7 +45,7 @@ process BIOC_SEQ_HOTSPOT_SEQ_HOTSPOT_ANALYSIS {
         }
     
     # ==========================================
-    # Stage 1: Environment Setup & Package Loading
+    # --- Environment Setup & Package Loading ---
     # ==========================================
     message("Stage 1: Loading required libraries...")
     
@@ -67,7 +67,7 @@ process BIOC_SEQ_HOTSPOT_SEQ_HOTSPOT_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # Stage 2: Defensive Input Reading & Parsing
+    # --- Defensive Input Reading & Parsing ---
     # ==========================================
     message("Stage 2: Reading and parsing input.csv...")
     
@@ -169,7 +169,7 @@ process BIOC_SEQ_HOTSPOT_SEQ_HOTSPOT_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 3: Hotspot Detection Analysis
+    # --- Hotspot Detection Analysis ---
     # ==========================================
     message("Stage 3: Running hotspot detection...")
     
@@ -289,7 +289,7 @@ process BIOC_SEQ_HOTSPOT_SEQ_HOTSPOT_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 4: Exporting Results & Visualization
+    # --- Exporting Results & Visualization ---
     # ==========================================
     message("Stage 4: Writing outputs...")
     

@@ -69,7 +69,7 @@ process BIOC_VARIANTTOOLS_SOMATIC_VARIANT_CALLING {
       stop(paste("Required input file missing:", control_bam))
     }
     
-    # 1. Define tally parameters using TallyVariantsParam
+    # --- Define tally parameters using TallyVariantsParam ---
     # We use the TP53Genome from gmapR as the reference genome.
     # In a production pipeline, this should be replaced with the GmapGenome 
     # corresponding to the reference used for aligning case.bam and control.bam.
@@ -80,7 +80,7 @@ process BIOC_VARIANTTOOLS_SOMATIC_VARIANT_CALLING {
                                       indels = TRUE,
                                       read_length = 75L)
     
-    # 2. Call sample-specific variants using callSampleSpecificVariants
+    # --- Call sample-specific variants using ---
     # Modify tally parameters as documented
     tally.param@bamTallyParam@indels <- FALSE
     

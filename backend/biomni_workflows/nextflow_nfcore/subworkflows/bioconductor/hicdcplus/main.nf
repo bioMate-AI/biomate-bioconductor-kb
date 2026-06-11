@@ -50,7 +50,7 @@ process BIOC_HICDCPLUS_HICDCPLUS_INTERACTION_AND_DIFF_ANALYSIS {
     library(data.table)
     
     # ==========================================
-    # Stage 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     # ==========================================
     message("Loading input files...")
     matrix_df <- read.csv("matrix.csv", stringsAsFactors = FALSE)
@@ -85,7 +85,7 @@ process BIOC_HICDCPLUS_HICDCPLUS_INTERACTION_AND_DIFF_ANALYSIS {
     matrix_df <- matrix_df[keep_idx, ]
     
     # ==========================================
-    # Stage 2: Initialize gi_list and Add Features
+    # --- Initialize gi_list and Add Features ---
     # ==========================================
     message("Initializing gi_list and generating genomic features...")
     
@@ -112,7 +112,7 @@ process BIOC_HICDCPLUS_HICDCPLUS_INTERACTION_AND_DIFF_ANALYSIS {
     gi_list <- expand_1D_features(gi_list)
     
     # ==========================================
-    # Stage 3: Run HiCDCPlus Significance Calling
+    # --- Run HiCDCPlus Significance Calling ---
     # ==========================================
     message("Running HiCDCPlus significance calling for each sample...")
     
@@ -196,7 +196,7 @@ process BIOC_HICDCPLUS_HICDCPLUS_INTERACTION_AND_DIFF_ANALYSIS {
     data.table::fwrite(union_sig_df, filter_file_path, sep = '\t', row.names = FALSE, quote = FALSE)
     
     # ==========================================
-    # Stage 4: Differential Interaction Analysis
+    # --- Differential Interaction Analysis ---
     # ==========================================
     message("Running differential interaction analysis with hicdcdiff...")
     
@@ -234,7 +234,7 @@ process BIOC_HICDCPLUS_HICDCPLUS_INTERACTION_AND_DIFF_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 5: TAD Calling using TopDom
+    # --- TAD Calling using TopDom ---
     # ==========================================
     message("Calling Topologically Associating Domains (TADs) using TopDom...")
     
@@ -253,7 +253,7 @@ process BIOC_HICDCPLUS_HICDCPLUS_INTERACTION_AND_DIFF_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 6: Save Summary Metrics
+    # --- Save Summary Metrics ---
     # ==========================================
     summary_df <- data.frame(
       Chromosome = target_chr,

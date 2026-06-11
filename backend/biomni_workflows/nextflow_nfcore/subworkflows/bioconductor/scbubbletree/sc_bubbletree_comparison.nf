@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Generate the first bubbletree (Louvain) using get_bubbletree_graph. 2. Generate the second bubbletree (k-means) using get_bubbletr
+//  * 1. [Core Analysis] Generate the first bubbletree (Louvain) using
+//  * 2. [Core Analysis] Generate the second bubbletree (k-means) using
+//  * 3. [Core Analysis] Compare the two bubbletrees using compare_bubbletrees
 
 nextflow.enable.dsl = 2
 
@@ -88,7 +90,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_COMPARISON {
     
     optimal_r <- b_r\$gap_stats_summary\$r[which.max(b_r\$gap_stats_summary\$gap_mean)]
     
-    # Stage 1: Generate the first bubbletree (Louvain) using get_bubbletree_graph
+    # --- Generate the first bubbletree (Louvain) using ---
     message("Generating Louvain bubbletree...")
     l <- get_bubbletree_graph(x = A,
                               r = optimal_r,
@@ -108,7 +110,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_COMPARISON {
       optimal_k <- 2
     }
     
-    # Stage 2: Generate the second bubbletree (k-means) using get_bubbletree_kmeans
+    # --- Generate the second bubbletree (k-means) using ---
     message("Generating k-means bubbletree...")
     k <- get_bubbletree_kmeans(x = A,
                                k = optimal_k,
@@ -119,7 +121,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_COMPARISON {
                                show_simple_count = FALSE,
                                kmeans_algorithm = "MacQueen")
     
-    # Stage 3: Compare the two bubbletrees using compare_bubbletrees
+    # --- Compare the two bubbletrees using compare_bubbletrees ---
     message("Comparing bubbletrees...")
     cp <- compare_bubbletrees(btd_1 = l, 
                               btd_2 = k,

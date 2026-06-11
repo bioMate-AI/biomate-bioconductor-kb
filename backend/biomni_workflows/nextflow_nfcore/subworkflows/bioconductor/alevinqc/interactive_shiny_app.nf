@@ -67,13 +67,13 @@ process BIOC_ALEVINQC_INTERACTIVE_SHINY_APP {
     # Check that all required alevin files are available
     checkAlevinInputFiles(baseDir = baseDir)
     
-    # 1. Create the Shiny app object using alevinQCShiny()
+    # --- Create the Shiny app object using alevinQCShiny() ---
     app <- alevinQCShiny(baseDir = baseDir, sampleId = "testSample")
     
     # Save the Shiny app object to disk as a meaningful pipeline output
     saveRDS(app, "alevin_shiny_app.rds")
     
-    # 2. Run the app using shiny::runApp() and capture the output if interactive
+    # --- Run the app using shiny::runApp() and capture the output ---
     if (interactive()) {
         out <- shiny::runApp(app)
         if (exists("out") && !is.null(out)) {

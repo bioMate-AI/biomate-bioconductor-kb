@@ -49,7 +49,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read Input Files
+    # --- Read Input Files ---
     # ==========================================
     message("Reading input files...")
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
@@ -60,7 +60,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
     # ==========================================
-    # STAGE 2: Parse Features into GRanges
+    # --- Parse Features into GRanges ---
     # ==========================================
     message("Parsing genomic features...")
     features <- as.character(mat\$feature_id)
@@ -87,7 +87,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     )
     
     # ==========================================
-    # STAGE 3: Create Peak Lists for Each Sample
+    # --- Create Peak Lists for Each Sample ---
     # ==========================================
     message("Creating peak lists for each sample...")
     sample_cols <- setdiff(colnames(mat), "feature_id")
@@ -110,7 +110,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     }
     
     # ==========================================
-    # STAGE 4: Identify Reference and Comparison Peaklists
+    # --- Identify Reference and Comparison Peaklists ---
     # ==========================================
     message("Identifying reference and comparison samples...")
     # Look for control/reference samples in coldata
@@ -132,7 +132,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     }
     
     # ==========================================
-    # STAGE 5: Compute Peak Statistics and Overlaps
+    # --- Compute Peak Statistics and Overlaps ---
     # ==========================================
     message("Computing peak statistics...")
     
@@ -171,7 +171,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     }
     
     # ==========================================
-    # STAGE 6: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ==========================================
     message("Generating diagnostic plots...")
     tryCatch({
@@ -186,7 +186,7 @@ process BIOC_EPICOMPARE_EPICOMPARE_EPIGENOMIC_COMPARISON {
     })
     
     # ==========================================
-    # STAGE 7: Run Monolithic EpiCompare Report
+    # --- Run Monolithic EpiCompare Report ---
     # ==========================================
     message("Running EpiCompare report generation...")
     # Create a dummy blacklist to avoid external download issues

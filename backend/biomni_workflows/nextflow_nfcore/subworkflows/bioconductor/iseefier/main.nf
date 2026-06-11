@@ -51,7 +51,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
     library(ggplot2)
     library(igraph)
     
-    # Stage 1: Read input defensively
+    # --- Read input defensively ---
     message("Reading input.csv...")
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -83,7 +83,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
       mat <- as.matrix(data)
     }
     
-    # Stage 2: Build SingleCellExperiment and Preprocess
+    # --- Build SingleCellExperiment and Preprocess ---
     message("Building SingleCellExperiment...")
     sce <- SingleCellExperiment(assays = list(counts = mat))
     
@@ -110,7 +110,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
       message("UMAP failed (possibly too few samples), skipping UMAP.")
     })
     
-    # Stage 3: Create Initial Configurations
+    # --- Create Initial Configurations ---
     message("Creating initial configurations...")
     gene_list <- head(rownames(sce), 5)
     cluster_col <- "label"
@@ -165,7 +165,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
       NULL
     })
     
-    # Stage 4: Merge configurations
+    # --- Merge configurations ---
     message("Merging configurations...")
     if (!is.null(initial2)) {
       merged_config <- glue_initials(initial1, initial2)
@@ -175,7 +175,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
       merged_config <- initial1
     }
     
-    # Stage 5: Visualizations and Diagnostics
+    # --- Visualizations and Diagnostics ---
     message("Generating diagnostic plots...")
     pdf("initial_tiles_plot.pdf", width = 10, height = 8)
     p1 <- view_initial_tiles(initial = initial1)
@@ -201,7 +201,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
     }
     dev.off()
     
-    # Stage 6: Save Outputs
+    # --- Save Outputs ---
     message("Saving configurations...")
     saveRDS(initial1, "initial_config_gene_expr.rds")
     saveRDS(merged_config, "initial_config_merged.rds")

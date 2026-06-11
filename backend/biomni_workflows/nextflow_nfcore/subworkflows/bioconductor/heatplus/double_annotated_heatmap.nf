@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare sample and feature annotation data frames. 2. Convert annotation data using convAnnData if manual control over reference l
+//  * 1. [Visualization & Output] Prepare sample and feature annotation data frames by
+//  * 2. [Visualization & Output] Generate double-annotated heatmap using annHeatmap2 and
+//  * 3. [Visualization & Output] Generate double-annotated heatmap with custom label rows
+//  * 4. [Visualization & Output] Generate double-annotated heatmap excluding reference
+//  * 5. [Visualization & Output] Convert annotation data using convAnnData for manual
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +55,7 @@ process BIOC_HEATPLUS_DOUBLE_ANNOTATED_HEATMAP {
         library(Biobase)
         library(Heatplus)
         
-        # 1. Prepare sample and feature annotation data frames by reading user inputs
+        # --- Prepare sample and feature annotation data frames by ---
         exprs_mat = as.matrix(read.csv("exprs_matrix.csv", row.names=1))
         sample_meta = read.csv("sample_metadata.csv", row.names=1)
         feature_meta = read.csv("feature_metadata.csv", row.names=1)
@@ -73,22 +77,22 @@ process BIOC_HEATPLUS_DOUBLE_ANNOTATED_HEATMAP {
         # Open PDF device to save the heatmaps
         pdf("double_annotated_heatmaps.pdf", width=12, height=12)
         
-        # 2. Generate double-annotated heatmap using annHeatmap2 and plot
+        # --- Generate double-annotated heatmap using annHeatmap2 and ---
         ann4 = annHeatmap2(exprs(exdat2), ann=list(Col=list(data=pData(exdat2)), Row=list(data=annFeatures)))
         plot(ann4)
         saveRDS(ann4, "ann4.rds")
         
-        # 3. Generate double-annotated heatmap with custom label rows
+        # --- Generate double-annotated heatmap with custom label rows ---
         ann4a = annHeatmap2(exprs(exdat2), ann=list(Col=list(data=pData(exdat2)), Row=list(data=annFeatures)), labels=list(Row=list(nrow=7), Col=list(nrow=2)))
         plot(ann4a)
         saveRDS(ann4a, "ann4a.rds")
         
-        # 4. Generate double-annotated heatmap excluding reference levels and specifying custom widths/heights
+        # --- Generate double-annotated heatmap excluding reference ---
         ann4b = annHeatmap2(exprs(exdat2), ann=list( inclRef=FALSE, Col=list(data=pData(exdat2)), Row=list(data=annFeatures)   ), labels=list(Row=list(nrow=7), Col=list(nrow=2)))
         plot(ann4b, widths=c(2,5,1), heights=c(2,5,1))
         saveRDS(ann4b, "ann4b.rds")
         
-        # 5. Convert annotation data using convAnnData for manual control (wrapped in tryCatch for robustness)
+        # --- Convert annotation data using convAnnData for manual ---
         tryCatch({
             ann1 = convAnnData(pData(exdat2), inclRef=FALSE)
             ann2 = convAnnData(annFeatures, inclRef=FALSE)

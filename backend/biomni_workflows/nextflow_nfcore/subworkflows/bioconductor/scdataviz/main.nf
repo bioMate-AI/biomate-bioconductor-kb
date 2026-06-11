@@ -12,7 +12,16 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Preprocess and transform FCS files using processFCS. 2. Perform PCA using PCAtools::pca and add PC loadings to reducedDim. 3. Perf
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Preprocess and Transform FCS Files
+//  * 3. [Visualization & Output] Perform PCA
+//  * 4. [Visualization & Output] Perform UMAP
+//  * 5. [Visualization & Output] Create Contour Plots
+//  * 6. [Visualization & Output] Show Marker Expression Across Layout
+//  * 7. [Visualization & Output] Shade Cells by Metadata
+//  * 8. [Visualization & Output] Find Clusters via k-Nearest Neighbours
+//  * 9. [Visualization & Output] Plot Marker Expression Per Cluster
+//  * 10. [Visualization & Output] Determine Enriched Markers & Signatures
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +71,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         library(cowplot)
         
         # ==========================================
-        # 1. Read User Inputs
+        # --- Read User Inputs ---
         # ==========================================
         
         # Read metadata
@@ -112,7 +121,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         metadata\$group <- factor(metadata\$group)
         
         # ==========================================
-        # 2. Preprocess and Transform FCS Files
+        # --- Preprocess and Transform FCS Files ---
         # ==========================================
         
         inclusions <- c('Yb171Di','Nd144Di','Nd145Di',
@@ -152,7 +161,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
           newColnames = markernames)
         
         # ==========================================
-        # 3. Perform PCA
+        # --- Perform PCA ---
         # ==========================================
         
         p <- pca(assay(sce, 'scaled'), metadata = metadata(sce))
@@ -174,7 +183,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         reducedDim(sce, 'PCA') <- p\$rotated
         
         # ==========================================
-        # 4. Perform UMAP
+        # --- Perform UMAP ---
         # ==========================================
         
         sce <- performUMAP(sce)
@@ -185,7 +194,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         sce <- performUMAP(sce, reducedDim = 'PCA', dims = c(1:5))
         
         # ==========================================
-        # 5. Create Contour Plots
+        # --- Create Contour Plots ---
         # ==========================================
         
         ggout1 <- contourPlot(sce,
@@ -215,7 +224,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 6. Show Marker Expression Across Layout
+        # --- Show Marker Expression Across Layout ---
         # ==========================================
         
         if (length(rownames(sce)) < 6) {
@@ -257,7 +266,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 7. Shade Cells by Metadata
+        # --- Shade Cells by Metadata ---
         # ==========================================
         
         ggout1 <- metadataPlot(sce,
@@ -309,7 +318,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 8. Find Clusters via k-Nearest Neighbours
+        # --- Find Clusters via k-Nearest Neighbours ---
         # ==========================================
         
         sce <- clusKNN(sce,
@@ -358,7 +367,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 9. Plot Marker Expression Per Cluster
+        # --- Plot Marker Expression Per Cluster ---
         # ==========================================
         
         clusters <- unique(metadata(sce)[['Cluster_PCA']])
@@ -384,7 +393,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 10. Determine Enriched Markers & Signatures
+        # --- Determine Enriched Markers & Signatures ---
         # ==========================================
         
         enrich_group <- markerEnrichment(sce,

@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the gating strategy as a tibble using tibble::tribble, specifying filterId, dims, subset, and optionally bins. 2. Apply the
+//  * 1. [Input & Preparation] Read the declared USER INPUT file (GatingSet directory)
+//  * 2. [Input & Preparation] Define the gating strategy as a tibble using
+//  * 3. [Input & Preparation] Save the updated GatingSet
+//  * 4. [Input & Preparation] Retrieve and export summary statistics
+//  * 5. [Input & Preparation] Generate and save diagnostic plots if gates exist
 
 nextflow.enable.dsl = 2
 
@@ -64,7 +68,7 @@ process BIOC_FLOWGATE_BATCH_GATING_STRATEGY_PIPELINE {
     library(ggplot2)
     library(tibble)
     
-    # 1. Read the declared USER INPUT file (GatingSet directory)
+    # --- Read the declared USER INPUT file (GatingSet directory) ---
     input_gs_path <- file.path("gs")
     if (!dir.exists(input_gs_path)) {
       stop("Expected GatingSet directory 'gs' does not exist in the working directory.")
@@ -73,7 +77,7 @@ process BIOC_FLOWGATE_BATCH_GATING_STRATEGY_PIPELINE {
     # Load the GatingSet
     gs <- load_gs(input_gs_path)
     
-    # 2. Define the gating strategy as a tibble using tibble::tribble
+    # --- Define the gating strategy as a tibble using ---
     strategy <- tibble::tribble(
       ~filterId,    ~dims,                  ~subset,      ~bins,
       "Leukocytes", list("FSC-H", "SSC-H"), "root",       256,
@@ -89,18 +93,18 @@ process BIOC_FLOWGATE_BATCH_GATING_STRATEGY_PIPELINE {
       warning("Interactive gating strategy bypassed or failed: ", e\$message)
     })
     
-    # 3. Save the updated GatingSet
+    # --- Save the updated GatingSet ---
     output_gs_path <- "gated_gs"
     if (dir.exists(output_gs_path)) {
       unlink(output_gs_path, recursive = TRUE)
     }
     save_gs(gs, output_gs_path)
     
-    # 4. Retrieve and export summary statistics
+    # --- Retrieve and export summary statistics ---
     stats <- gs_pop_get_stats(gs, type = "percent")
     write.csv(stats, "gating_stats.csv", row.names = FALSE)
     
-    # 5. Generate and save diagnostic plots if gates exist
+    # --- Generate and save diagnostic plots if gates exist ---
     pop_paths <- gs_get_pop_paths(gs)
     if ("/Leukocytes" %in% pop_paths) {
       p <- ggcyto(gs, aes("FSC-H", "SSC-H")) +

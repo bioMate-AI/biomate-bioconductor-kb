@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Run `predict_zygosity()` with all variant, copy number, alignment, and annotation inputs. 2. Generate an overview of the full pred
+//  * 1. [Input & Preparation] Run predict_zygosity with all variant, copy number,
+//  * 2. [Input & Preparation] Generate an overview of the full prediction results using
+//  * 3. [Input & Preparation] Inspect detailed variant, phasing, and read-level phasing
 
 nextflow.enable.dsl = 2
 
@@ -90,7 +92,7 @@ process BIOC_ZYGOSITYPREDICTOR_GENE_ZYGOSITY_PREDICTION {
     # Define the gene variable for the gene_ov call
     OR2J1 <- "OR2J1"
     
-    # 1. Run predict_zygosity with all variant, copy number, alignment, and annotation inputs
+    # --- Run predict_zygosity with all variant, copy number, ---
     fp <- predict_zygosity(
       purity = PURITY, 
       ploidy = PLOIDY,
@@ -118,12 +120,12 @@ process BIOC_ZYGOSITYPREDICTOR_GENE_ZYGOSITY_PREDICTION {
       write.csv(fp\$main_phasing_info, "main_phasing_info.csv", row.names = FALSE)
     }
     
-    # 2. Generate an overview of the full prediction results using ZP_ov()
+    # --- Generate an overview of the full prediction results using ---
     sink("zygosity_overview.txt")
     ZP_ov(fp)
     sink()
     
-    # 3. Inspect detailed variant, phasing, and read-level phasing information for a specific gene using gene_ov()
+    # --- Inspect detailed variant, phasing, and read-level phasing ---
     sink("gene_overview_OR2J1.txt")
     tryCatch({
       gene_ov(fp, OR2J1)

@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the path to the gene sets file. 2. Run Hybrid-Enrich analysis using hybridenrich(). 3. Extract and print the results
+//  * 1. [Input & Preparation] Define the path to the gene sets file and read peaks
+//  * 2. [Input & Preparation] Run Hybrid-Enrich analysis using hybridenrich()
+//  * 3. [Input & Preparation] Extract and print the results
+//  * 4. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +61,7 @@ process BIOC_CHIPENRICH_HYBRID_ENRICHMENT {
     # Load required library
     library(chipenrich)
     
-    # 1. Define the path to the gene sets file and read peaks
+    # --- Define the path to the gene sets file and read peaks ---
     gs_path <- "vignette_genesets.txt"
     if (!file.exists(gs_path)) {
       stop("Required input file 'vignette_genesets.txt' not found in the working directory.")
@@ -90,14 +93,14 @@ process BIOC_CHIPENRICH_HYBRID_ENRICHMENT {
       stop("Required input 'peaks_E2F4' (file or data.frame) not found in the working directory.")
     }
     
-    # 2. Run Hybrid-Enrich analysis using hybridenrich()
+    # --- Run Hybrid-Enrich analysis using hybridenrich() ---
     results = hybridenrich(peaks = peaks_E2F4, genome = 'hg19', genesets = gs_path, locusdef = "nearest_tss", qc_plots = F, out_name = NULL, n_cores = 1)
     
-    # 3. Extract and print the results
+    # --- Extract and print the results ---
     results.hybrid = results\$results
     print(results.hybrid[1:5,1:5])
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     write.csv(results.hybrid, file = "hybrid_enrichment_results.csv", row.names = FALSE)
     saveRDS(results, file = "hybrid_enrichment_results.rds")
 

@@ -56,7 +56,7 @@ process BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA {
     library(SeqGSEA)
     library(doParallel)
     
-    # 1. Register parallel backend
+    # --- Register parallel backend ---
     cl <- makeCluster(2)
     registerDoParallel(cl)
     
@@ -81,29 +81,29 @@ process BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA {
     control.files <- get_files("control.files")
     geneset.file <- "geneset.file"
     
-    # 2. Load exon count data
+    # --- Load exon count data ---
     RCS <- loadExonCountData(case.files, control.files)
     
-    # 3. Filter low-expression exons and genes
+    # --- Filter low-expression exons and genes ---
     RCS <- exonTestability(RCS, cutoff=5)
     geneTestable <- geneTestability(RCS)
     RCS <- subsetByGenes(RCS, unique(geneID(RCS))[ geneTestable ])
     geneIDs <- unique(geneID(RCS))
     
-    # 4. Calculate DS NB statistics on real and permuted datasets
+    # --- Calculate DS NB statistics on real and permuted datasets ---
     RCS <- estiExonNBstat(RCS)
     RCS <- estiGeneNBstat(RCS)
     permuteMat <- genpermuteMat(RCS, times=perm.times)
     RCS <- DSpermute4GSEA(RCS, permuteMat)
     
-    # 5. Calculate DE NB statistics on real and permuted datasets
+    # --- Calculate DE NB statistics on real and permuted datasets ---
     geneCounts <- getGeneCount(RCS)
     label <- label(RCS)
     dds <- runDESeq(geneCounts, label)
     DEGres <- DENBStat4GSEA(dds)
     DEpermNBstat <- DENBStatPermut4GSEA(dds, permuteMat)
     
-    # 6. Normalize DE and DS scores
+    # --- Normalize DE and DS scores ---
     DEscore.normFac <- normFactor(DEpermNBstat)
     DEscore <- scoreNormalization(DEGres\$NBstat, DEscore.normFac)
     DEscore.perm <- scoreNormalization(DEpermNBstat, DEscore.normFac)
@@ -112,14 +112,14 @@ process BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA {
     DSscore <- scoreNormalization(RCS@featureData_gene\$NBstat, DSscore.normFac)
     DSscore.perm <- scoreNormalization(RCS@permute_NBstat_gene, DSscore.normFac)
     
-    # 7. Integrate DE and DS scores
+    # --- Integrate DE and DS scores ---
     gene.score <- geneScore(DEscore, DSscore, DEweight=0.5)
     gene.score.perm <- genePermuteScore(DEscore.perm, DSscore.perm, DEweight=0.5)
     
-    # 8. Load gene sets
+    # --- Load gene sets ---
     gene.set <- loadGenesets(geneset.file, geneIDs, geneID.type="ensembl", genesetsize.min = 5, genesetsize.max = 1000)
     
-    # 9. Run GSEA and format results
+    # --- Run GSEA and format results ---
     gene.set <- GSEnrichAnalyze(gene.set, gene.score, gene.score.perm, weighted.type=1)
     GSEAres <- GSEAresultTable(gene.set, TRUE)
     

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the path to the gene sets file. 2. Run proximity to regulatory regions test using proxReg(). 3. Extract and print the resul
+//  * 1. [Input & Preparation] Define the path to the gene sets file and verify its
+//  * 2. [Input & Preparation] Locate the peaks_E2F4 input file
+//  * 3. [Input & Preparation] Run proximity to regulatory regions test using proxReg()
+//  * 4. [Input & Preparation] Extract and print the results
+//  * 5. [Input & Preparation] Write named output files for the meaningful results
+//  * 6. [Input & Preparation] Generate and save QC plot
 
 nextflow.enable.dsl = 2
 
@@ -59,31 +64,31 @@ process BIOC_CHIPENRICH_PROXIMITY_TO_REGULATORY_REGIONS {
     # Load required library
     library(chipenrich)
     
-    # 1. Define the path to the gene sets file and verify its existence
+    # --- Define the path to the gene sets file and verify its ---
     gs_path = "vignette_genesets.txt"
     if (!file.exists(gs_path)) {
       stop("Required input file 'vignette_genesets.txt' not found in the working directory.")
     }
     
-    # 2. Locate the peaks_E2F4 input file
+    # --- Locate the peaks_E2F4 input file ---
     peaks_files = list.files(pattern = "^peaks_E2F4")
     if (length(peaks_files) == 0) {
       stop("Required input file 'peaks_E2F4' (with or without extension) not found in the working directory.")
     }
     peaks_file = peaks_files[1]
     
-    # 3. Run proximity to regulatory regions test using proxReg()
+    # --- Run proximity to regulatory regions test using proxReg() ---
     results.prox = proxReg(peaks_file, reglocation = 'tss',	genome = 'hg19', genesets=gs_path, out_name=NULL)
     
-    # 4. Extract and print the results
+    # --- Extract and print the results ---
     results.prox = results.prox\$results
     print(results.prox[1:5,1:7])
     
-    # 5. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     write.csv(results.prox, "proximity_results.csv", row.names = FALSE)
     saveRDS(results.prox, "proximity_results.rds")
     
-    # 6. Generate and save QC plot
+    # --- Generate and save QC plot ---
     tryCatch({
       pdf("peak_dist_to_tss.pdf", width = 6, height = 6)
       plot_dist_to_tss(peaks = peaks_file, genome = 'hg19')

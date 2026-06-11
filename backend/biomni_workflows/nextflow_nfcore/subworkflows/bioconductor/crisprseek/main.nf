@@ -52,13 +52,13 @@ process BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS {
       }
     }
     
-    # 1. Load required annotation and genome packages
+    # --- Load required annotation and genome packages ---
     library(CRISPRseek)
     library(BSgenome.Hsapiens.UCSC.hg38)
     library(TxDb.Hsapiens.UCSC.hg38.knownGene)
     library(org.Hs.eg.db)
     
-    # 2. Define input and output paths
+    # --- Define input and output paths ---
     inputFilePath <- "inputseq.fa"
     outputDir <- getwd()
     
@@ -67,7 +67,7 @@ process BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS {
       stop(paste("Error: Required input file '", inputFilePath, "' not found in the working directory.", sep = ""))
     }
     
-    # 3. Run offTargetAnalysis with input sequence, BSgenome, TxDb, and OrgDb
+    # --- Run offTargetAnalysis with input sequence, BSgenome, ---
     res <- offTargetAnalysis(inputFilePath = inputFilePath,
                              BSgenomeName = Hsapiens,
                              chromToSearch= "chrX", 
@@ -86,7 +86,7 @@ process BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS {
     cat("\n--- Off-target Results Preview ---\n")
     print(head(res\$offtarget[, c("name", "OffTargetSequence", "alignment", "score", "gRNAefficacy")]))
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     write.csv(res\$summary, file = file.path(outputDir, "summary_results.csv"), row.names = FALSE)
     write.csv(res\$offtarget, file = file.path(outputDir, "offtarget_results.csv"), row.names = FALSE)
     saveRDS(res, file = file.path(outputDir, "offtarget_analysis_res.rds"))

@@ -56,22 +56,22 @@ process BIOC_EXIMIR_LIMMA_INTEGRATED_NORMALIZATION {
     library(limma)
     library(ExiMiR)
     
-    # 1. Read targets and raw images using limma's readTargets and read.maimages
+    # --- Read targets and raw images using limma's readTargets and ---
     # Reads Targets.txt from the working directory
     targets <- readTargets(path='.')
     
     # Reads the raw data files specified in the targets file from the working directory
     RGList <- read.maimages(targets[,c('Cy3','Cy5')], source='imagene', path='.')
     
-    # 2. Read GAL annotation and layout using readGAL and getLayout
+    # --- Read GAL annotation and layout using readGAL and getLayout ---
     # Reads the GAL file from the working directory
     RGList\$genes <- readGAL(path='.')
     RGList\$printer <- getLayout(RGList\$genes)
     
-    # 3. Convert the RGList to an AffyBatch object using createAB
+    # --- Convert the RGList to an AffyBatch object using createAB ---
     obatch <- createAB(RGList)
     
-    # 4. Define custom spike-in probes and run NormiR normalization
+    # --- Define custom spike-in probes and run NormiR normalization ---
     spikein.all <- grep('^spike', featureNames(obatch), value=TRUE)
     spikein.subset <- setdiff(spikein.all, 'spike_control_f')
     

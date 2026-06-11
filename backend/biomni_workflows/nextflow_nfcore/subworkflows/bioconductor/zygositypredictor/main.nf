@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Extract variant allele frequency and chromosome. 2. Extract total copy number at the variant position. 3. Calculate affected copie
+//  * 1. [Core Analysis] Extract germline variant allele frequency and chromosome
+//  * 2. [Core Analysis] Extract total copy number at the germline variant position
+//  * 3. [Core Analysis] Calculate affected copies for germline variants
+//  * 4. [Core Analysis] Extract somatic variant allele frequency, chromosome, and
+//  * 5. [Core Analysis] Calculate affected copies for a set of variants
 
 nextflow.enable.dsl = 2
 
@@ -70,24 +74,24 @@ process BIOC_ZYGOSITYPREDICTOR_VARIANT_COPY_CALCULATION {
     PURITY <- 0.98
     SEX <- "female"
     
-    # 1. Extract germline variant allele frequency and chromosome
+    # --- Extract germline variant allele frequency and chromosome ---
     AF = elementMetadata(GR_GERM_SMALL_VARS[1])[["af"]]
     CHR = seqnames(GR_GERM_SMALL_VARS[1]) %>%
       as.character()
     
-    # 2. Extract total copy number at the germline variant position
+    # --- Extract total copy number at the germline variant position ---
     TCN = elementMetadata(
       subsetByOverlaps(GR_SCNA, GR_GERM_SMALL_VARS[1])
       )[["tcn"]]
     
-    # 3. Calculate affected copies for germline variants
+    # --- Calculate affected copies for germline variants ---
     germ_copies <- aff_germ_copies(af=AF,
                     tcn=TCN,
                     purity=PURITY,
                     chr=CHR,
                     sex=SEX)
     
-    # 4. Extract somatic variant allele frequency, chromosome, and total copy number
+    # --- Extract somatic variant allele frequency, chromosome, and ---
     AF = elementMetadata(GR_SOM_SMALL_VARS[1])[["af"]]
     CHR = seqnames(GR_SOM_SMALL_VARS[1]) %>%
       as.character()
@@ -102,7 +106,7 @@ process BIOC_ZYGOSITYPREDICTOR_VARIANT_COPY_CALCULATION {
                    purity=PURITY,
                    sex=SEX)
     
-    # 5. Calculate affected copies for a set of variants
+    # --- Calculate affected copies for a set of variants ---
     pred_per_var <- predict_per_variant(purity=PURITY, 
                         sex=SEX,
                         somCna=GR_SCNA,

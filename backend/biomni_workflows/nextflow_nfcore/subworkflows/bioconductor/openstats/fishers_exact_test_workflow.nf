@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Preprocess categorical data and create an OpenStatsList object using OpenStatsList. 2. Run Fisher's Exact Test analysis using Open
+//  * 1. [Input & Preparation] Preprocess categorical data and create an OpenStatsList
+//  * 2. [Input & Preparation] Run Fisher's Exact Test analysis
+//  * 3. [Input & Preparation] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -49,7 +51,7 @@ process BIOC_OPENSTATS_FISHERS_EXACT_TEST_WORKFLOW {
     
     library(OpenStats)
     
-    # 1. Preprocess categorical data and create an OpenStatsList object
+    # --- Preprocess categorical data and create an OpenStatsList ---
     input_file <- "test_categorical.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -69,14 +71,14 @@ process BIOC_OPENSTATS_FISHERS_EXACT_TEST_WORKFLOW {
       debug = FALSE
     )
     
-    # 2. Run Fisher's Exact Test analysis
+    # --- Run Fisher's Exact Test analysis ---
     FE_result <- OpenStatsAnalysis(
       OpenStatsList = test_Cat,
       method = "FE",
       FE_formula = Thoracic.Processes ~ Genotype + Sex
     )
     
-    # 3. Save outputs
+    # --- Save outputs ---
     saveRDS(FE_result, file = "FE_result.rds")
     
     # Generate and save report in JSON format

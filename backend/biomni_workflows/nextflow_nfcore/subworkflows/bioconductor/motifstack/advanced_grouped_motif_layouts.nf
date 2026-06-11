@@ -59,7 +59,7 @@ process BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS {
     library(htmlwidgets)
     
     # -----------------------------------------------------------------------------
-    # 1. Read and Preprocess User Input
+    # --- Read and Preprocess User Input ---
     # -----------------------------------------------------------------------------
     # Read the input RDS file containing multiple PFM objects or matrices
     pfm_list_raw <- readRDS("pfm_list.rds")
@@ -95,7 +95,7 @@ process BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS {
     pfms <- pfms_mats
     
     # -----------------------------------------------------------------------------
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # -----------------------------------------------------------------------------
     
     # Create a list of pfm S4 objects and trim them
@@ -172,7 +172,7 @@ process BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS {
     htmlwidgets::saveWidget(widget, "browse_motifs.html", selfcontained = TRUE)
     
     # -----------------------------------------------------------------------------
-    # 3. Save Meaningful RDS Outputs
+    # --- Save Meaningful RDS Outputs ---
     # -----------------------------------------------------------------------------
     saveRDS(motifSig, "motif_signature.rds")
     saveRDS(pfmsAligned, "pfms_aligned.rds")

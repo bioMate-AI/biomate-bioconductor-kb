@@ -54,7 +54,7 @@ process BIOC_MITOCLONE2_CLONAL_CLUSTERING_AND_TREE_BUILDING {
     
     library(mitoClone2)
     
-    # 1. Load count matrices from the working directory and create mutation calls
+    # --- Load count matrices from the working directory and create ---
     load("M_P1.RData")
     load("N_P1.RData")
     
@@ -65,20 +65,20 @@ process BIOC_MITOCLONE2_CLONAL_CLUSTERING_AND_TREE_BUILDING {
     tmpd <- tempdir()
     dir.create(paste0(tmpd, '/p1'), showWarnings = FALSE, recursive = TRUE)
     
-    # 2. Build a phylogenetic tree, cluster metaclones, and plot
+    # --- Build a phylogenetic tree, cluster metaclones, and plot ---
     tryCatch({
       # Build phylogenetic tree using SCITE
       P1 <- varCluster(P1, tempfolder = paste0(tmpd, '/p1'), method = 'SCITE')
       
-      # 3. Cluster mutations into metaclones and assign cells
+      # --- Cluster mutations into metaclones and assign cells ---
       P1 <- clusterMetaclones(P1, min.lik = 1)
       
-      # 4. Plot the clones
+      # --- Plot the clones ---
       pdf("clones_plot.pdf", width = 8, height = 6)
       plotClones(P1)
       dev.off()
       
-      # 5. Manually overwrite metaclone assignments
+      # --- Manually overwrite metaclone assignments ---
       m2c <- mitoClone2:::getMut2Clone(P1)
       write.csv(as.data.frame(m2c), "mut2clone_assignments_original.csv", row.names = TRUE)
       

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the package and expression data. 2. Define chronological age data frame. 3. Predict age using predict_age. 4. Visualize resul
+//  * 1. [Visualization & Output] Load the package and expression data
+//  * 2. [Visualization & Output] Define chronological age data frame
+//  * 3. [Visualization & Output] Predict age using predict_age
+//  * 4. [Visualization & Output] Visualize results using makeplot
 
 nextflow.enable.dsl = 2
 
@@ -47,7 +50,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
           }
         }
         
-        # 1. Load the package and expression data
+        # --- Load the package and expression data ---
         library(RNAAgeCalc)
         
         # Helper function to robustly read the fpkm input file
@@ -68,7 +71,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
         
         fpkm <- read_fpkm()
         
-        # 2. Define chronological age data frame
+        # --- Define chronological age data frame ---
         # Helper function to robustly read the chronage input file
         read_chronage <- function() {
           files <- c("chronage", "chronage.csv", "chronage.tsv", "chronage.txt")
@@ -87,7 +90,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
         
         chronage <- read_chronage()
         
-        # 3. Predict age using predict_age
+        # --- Predict age using predict_age ---
         res <- predict_age(exprdata = fpkm, exprtype = "FPKM", 
                           chronage = chronage)
         
@@ -95,7 +98,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
         write.csv(res, "rna_age_results.csv", row.names = TRUE)
         saveRDS(res, "rna_age_results.rds")
         
-        # 4. Visualize results using makeplot
+        # --- Visualize results using makeplot ---
         pdf("rna_age_plot.pdf", width = 7, height = 7)
         print(makeplot(res))
         dev.off()

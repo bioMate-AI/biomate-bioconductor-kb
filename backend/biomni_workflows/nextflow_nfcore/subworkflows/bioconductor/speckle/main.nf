@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run propeller with default logit transformation. 2. Run propeller with arcsin square root transformation. 3. Run propeller by expl
+//  * 1. [Visualization & Output] Load User Input
+//  * 2. [Visualization & Output] Run propeller with default logit transformation
+//  * 3. [Visualization & Output] Run propeller with arcsin square root transformation
+//  * 4. [Visualization & Output] Run propeller by explicitly passing metadata vectors
+//  * 5. [Visualization & Output] Visualise cell type proportions across samples
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +65,7 @@ process BIOC_SPECKLE_PROPELLER_DIRECT_OBJECT_ANALYSIS {
     library(ggplot2)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Load User Input
+    # --- Load User Input ---
     # -----------------------------------------------------------------------------
     # Read the SingleCellExperiment or Seurat object from the working directory
     if (file.exists("sce_all")) {
@@ -73,28 +77,28 @@ process BIOC_SPECKLE_PROPELLER_DIRECT_OBJECT_ANALYSIS {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Run propeller with default logit transformation
+    # --- Run propeller with default logit transformation ---
     # -----------------------------------------------------------------------------
     message("Running propeller with default logit transformation...")
     results_logit <- propeller(sce_all)
     write.csv(results_logit, "propeller_logit_results.csv", row.names = TRUE)
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Run propeller with arcsin square root transformation
+    # --- Run propeller with arcsin square root transformation ---
     # -----------------------------------------------------------------------------
     message("Running propeller with arcsin square root transformation...")
     results_asin <- propeller(sce_all, transform="asin")
     write.csv(results_asin, "propeller_asin_results.csv", row.names = TRUE)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Run propeller by explicitly passing metadata vectors
+    # --- Run propeller by explicitly passing metadata vectors ---
     # -----------------------------------------------------------------------------
     message("Running propeller with explicitly passed metadata vectors...")
     results_explicit <- propeller(clusters=sce_all\$cluster, sample=sce_all\$sample, group=sce_all\$group)
     write.csv(results_explicit, "propeller_explicit_results.csv", row.names = TRUE)
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Visualise cell type proportions across samples
+    # --- Visualise cell type proportions across samples ---
     # -----------------------------------------------------------------------------
     message("Generating cell type proportion plots...")
     plot_props <- plotCellTypeProps(sce_all)

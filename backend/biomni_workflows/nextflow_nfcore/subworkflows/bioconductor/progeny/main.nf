@@ -51,7 +51,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     library(dplyr)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Loading input datasets...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -73,7 +73,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     expr_matrix <- as.matrix(log_cpm)
     
     # ==========================================
-    # STAGE 2: Retrieve PROGENy Model & Compute Activities
+    # --- Retrieve PROGENy Model & Compute Activities ---
     # ==========================================
     message("Retrieving PROGENy model...")
     model_top <- getModel(organism = "Human", top = 100)
@@ -89,7 +89,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     write.csv(pathway_activities, "pathway_activities.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 3: Permutation Testing
+    # --- Permutation Testing ---
     # ==========================================
     message("Running permutation testing for pathway significance...")
     perm_results <- tryCatch({
@@ -112,7 +112,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Differential Expression & Scatter Plots
+    # --- Differential Expression & Scatter Plots ---
     # ==========================================
     message("Calculating differential expression for diagnostic plots...")
     conditions <- unique(coldata\$condition)
@@ -153,7 +153,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Visualization of Pathway Activities
+    # --- Visualization of Pathway Activities ---
     # ==========================================
     message("Generating pathway activity heatmap...")
     activity_df <- as.data.frame(pathway_activities)

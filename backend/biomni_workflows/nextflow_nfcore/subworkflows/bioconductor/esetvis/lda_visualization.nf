@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Subset features to reduce computation time. 2. Run LDA and generate plot using esetLda. 3. (Optional) Modify plot parameters post-
+//  * 1. [Visualization & Output] Subset features to reduce computation time
+//  * 2. [Visualization & Output] Run LDA and generate plot using esetLda
+//  * 3. [Visualization & Output] Modify plot parameters post-hoc using esetPlotWrapper
 
 nextflow.enable.dsl = 2
 
@@ -140,10 +142,10 @@ process BIOC_ESETVIS_LDA_VISUALIZATION {
     
     # --- Documented Code Workflow ---
     
-    # 1. Subset features to reduce computation time
+    # --- Subset features to reduce computation time ---
     retainedFeatures <- sample(featureNames(ALL), size = floor(nrow(ALL)/5))
     
-    # 2. Run LDA and generate plot using esetLda
+    # --- Run LDA and generate plot using esetLda ---
     outputEsetLda <- esetLda(eset = ALL[retainedFeatures, ], ldaVar = "BT",
     	title = paste("Acute lymphoblastic leukemia dataset \n",
     		"Linear discriminant analysis on BT variable \n",
@@ -159,7 +161,7 @@ process BIOC_ESETVIS_LDA_VISUALIZATION {
     # Print the plot
     print(outputEsetLda\$plot)
     
-    # 3. Modify plot parameters post-hoc using esetPlotWrapper
+    # --- Modify plot parameters post-hoc using esetPlotWrapper ---
     wrapperPlot <- esetPlotWrapper(
     	dataPlotSamples = outputEsetLda\$analysis\$dataPlotSamples,
     	dataPlotGenes = outputEsetLda\$analysis\$dataPlotGenes,

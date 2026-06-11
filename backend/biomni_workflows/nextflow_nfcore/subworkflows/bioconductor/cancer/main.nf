@@ -44,11 +44,11 @@ process BIOC_CANCER_CANCER_GENOMICS_MODELING {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(canceR)
     library(Biobase)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     # counts.csv contains normalized expression values (probe/gene-by-sample)
     expression_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     expression_matrix <- as.matrix(expression_df)
@@ -64,7 +64,7 @@ process BIOC_CANCER_CANCER_GENOMICS_MODELING {
     expression_matrix <- expression_matrix[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, , drop = FALSE]
     
-    # Stage 3: Define robust argument mapping for canceR functions
+    # --- Define robust argument mapping for canceR functions ---
     # Since canceR functions can have varying argument names, we dynamically map them.
     arg_list <- list(
       ExpressionMatrix = expression_matrix,
@@ -110,7 +110,7 @@ process BIOC_CANCER_CANCER_GENOMICS_MODELING {
       do.call(fun, matched_args)
     }
     
-    # Stage 4: Build ExpressionSet using geteSet
+    # --- Build ExpressionSet using geteSet ---
     eset <- tryCatch({
       safe_call(geteSet, arg_list)
     }, error = function(e) {
@@ -125,7 +125,7 @@ process BIOC_CANCER_CANCER_GENOMICS_MODELING {
     arg_list\$eSet <- eset
     arg_list\$eset <- eset
     
-    # Stage 5: Phenotype Association Testing (getPhenoTest)
+    # --- Phenotype Association Testing (getPhenoTest) ---
     pheno_res <- tryCatch({
       safe_call(getPhenoTest, arg_list)
     }, error = function(e) {
@@ -148,7 +148,7 @@ process BIOC_CANCER_CANCER_GENOMICS_MODELING {
       ), "pheno_test_results.csv", row.names = FALSE)
     }
     
-    # Stage 6: Genes Classification (getGenesClassifier)
+    # --- Genes Classification (getGenesClassifier) ---
     classifier_res <- tryCatch({
       safe_call(getGenesClassifier, arg_list)
     }, error = function(e) {
@@ -171,7 +171,7 @@ process BIOC_CANCER_CANCER_GENOMICS_MODELING {
       ), "gene_classifier_results.csv", row.names = FALSE)
     }
     
-    # Stage 7: Survival Analysis Plotting (getSurvival)
+    # --- Survival Analysis Plotting (getSurvival) ---
     create_fallback_pdf <- function(filename, message_text) {
       pdf(filename)
       plot.new()

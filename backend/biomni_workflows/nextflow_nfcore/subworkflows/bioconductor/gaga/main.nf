@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define experimental groups and the hypothesis patterns matrix. 2. Fit the GaGa model using fitGG. 3. Estimate hyper-parameters and
+//  * 1. [Input & Preparation] Read User Input Files and Preprocess
+//  * 2. [Input & Preparation] Execute Documented Workflow
+//  * 3. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +54,7 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     library(Biobase)
     
     # -----------------------------------------------------------------
-    # 1. Read User Input Files and Preprocess
+    # --- Read User Input Files and Preprocess ---
     # -----------------------------------------------------------------
     
     # Read expression matrix
@@ -95,7 +97,7 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     xsim <- ExpressionSet(assayData = x, phenoData = AnnotatedDataFrame(pheno_data))
     
     # -----------------------------------------------------------------
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # -----------------------------------------------------------------
     
     # Define experimental groups and the hypothesis patterns matrix
@@ -132,7 +134,7 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     fc <- mpos[,1]-mpos[,2]
     
     # -----------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------
     
     # Save the fitted model object

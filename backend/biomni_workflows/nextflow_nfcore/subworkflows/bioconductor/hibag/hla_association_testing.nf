@@ -55,17 +55,17 @@ process BIOC_HIBAG_HLA_ASSOCIATION_TESTING {
     # Load required library
     library(HIBAG)
     
-    # 1. Load phenotype and covariate data
+    # --- Load phenotype and covariate data ---
     fn <- "case_control.txt"
     dat <- read.table (fn, header= TRUE , stringsAsFactors= FALSE )
     head (dat)
     
-    # 2. Format HLA alleles into a HIBAG allele object
+    # --- Format HLA alleles into a HIBAG allele object ---
     hla <- hlaAllele (dat \$ sample.id, H1= dat \$ A, H2= dat \$ A .1 , locus= "A" , assembly= "hg19" , prob= dat \$ prob)
     summary (hla)
     saveRDS(hla, "hla_allele_object.rds")
     
-    # 3. Run association tests using dominant, additive, or recessive models
+    # --- Run association tests using dominant, additive, or ---
     res_default <- hlaAssocTest (hla, disease ~ h, data= dat)
     write.csv(res_default, "hla_assoc_disease_default.csv", row.names=TRUE)
     
@@ -85,13 +85,13 @@ process BIOC_HIBAG_HLA_ASSOCIATION_TESTING {
     res_trait <- hlaAssocTest (hla, trait ~ h, data= dat)
     write.csv(res_trait, "hla_assoc_trait_default.csv", row.names=TRUE)
     
-    # 4. Convert HLA alleles to amino acid sequences
+    # --- Convert HLA alleles to amino acid sequences ---
     aa <- hlaConvSequence (hla, code= "P.code.merge" )
     head ( c (aa \$ value \$ allele1, aa \$ value \$ allele2))
     summary (aa)
     saveRDS(aa, "aa_sequence_object.rds")
     
-    # 5. Run amino acid-level association tests
+    # --- Run amino acid-level association tests ---
     res_aa_dominant <- hlaAssocTest (aa, disease ~ h, data= dat, model= "dominant" )
     write.csv(res_aa_dominant, "aa_assoc_disease_dominant.csv", row.names=TRUE)
     

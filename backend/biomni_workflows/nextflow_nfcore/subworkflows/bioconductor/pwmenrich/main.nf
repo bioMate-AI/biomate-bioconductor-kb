@@ -50,7 +50,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     
@@ -112,7 +112,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     print(sequences)
     
     # ==========================================
-    # STAGE 2: Define Custom Motifs (PFMs to PWMs)
+    # --- Define Custom Motifs (PFMs to PWMs) ---
     # ==========================================
     message("Stage 2: Defining custom Position Frequency Matrices (PFMs)...")
     
@@ -151,7 +151,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     custom_pwms <- toPWM(custom_pfms, prior = bg_frequencies)
     
     # ==========================================
-    # STAGE 3: Build Background Model
+    # --- Build Background Model ---
     # ==========================================
     message("Stage 3: Building background model from input sequences...")
     
@@ -167,7 +167,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     print(bg_model)
     
     # ==========================================
-    # STAGE 4: Perform Motif Enrichment Analysis
+    # --- Perform Motif Enrichment Analysis ---
     # ==========================================
     message("Stage 4: Running motif enrichment analysis...")
     
@@ -222,7 +222,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     message("Individual sequence reports saved to 'motif_enrichment_sequence_reports.csv'.")
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     

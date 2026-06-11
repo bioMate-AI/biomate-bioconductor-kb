@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define the biological variables to randomize across batches. 2. Create a well mask to reserve specific wells for control samples. 
+//  * 1. [Visualization & Output] Load the input sample list
+//  * 2. [Visualization & Output] Define the biological variables to randomize across
+//  * 3. [Visualization & Output] Create a well mask to reserve specific wells for control
+//  * 4. [Visualization & Output] Run multivariate randomization using omixerRand to find
+//  * 5. [Visualization & Output] Recreate the exact randomized layout using the saved
+//  * 6. [Visualization & Output] Generate lab-friendly PDF sample sheets using omixerSheet
 
 nextflow.enable.dsl = 2
 
@@ -55,20 +60,20 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
     library(dplyr)
     library(ggplot2)
     
-    # 1. Load the input sample list
+    # --- Load the input sample list ---
     # The file 'sampleList.Rdata' must exist in the working directory and contain the 'sampleList' object.
     if (!file.exists("sampleList.Rdata")) {
       stop("Error: 'sampleList.Rdata' not found in the working directory.")
     }
     load("sampleList.Rdata")
     
-    # 2. Define the biological variables to randomize across batches
+    # --- Define the biological variables to randomize across ---
     randVars <- c("tissue", "sex", "age", "bmi", "date")
     
-    # 3. Create a well mask to reserve specific wells for control samples
+    # --- Create a well mask to reserve specific wells for control ---
     mask <- rep(c(rep(0, 88), rep(1, 8)), 7)
     
-    # 4. Run multivariate randomization using omixerRand to find the optimal layout
+    # --- Run multivariate randomization using omixerRand to find ---
     omixerLayout <- omixerRand(sampleList, sampleId="sampleId", 
         block="block", iterNum=100, wells=96, div="col", plateNum=7, 
         randVars=randVars, mask=mask)
@@ -77,7 +82,7 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
     write.csv(omixerLayout, "omixer_layout_rand.csv", row.names = FALSE)
     saveRDS(omixerLayout, "omixer_layout_rand.rds")
     
-    # 5. Recreate the exact randomized layout using the saved random seed with omixerSpecific
+    # --- Recreate the exact randomized layout using the saved ---
     if (file.exists("randomSeed.Rdata")) {
       load("randomSeed.Rdata")
       .GlobalEnv\$.Random.seed <- randomSeed
@@ -93,7 +98,7 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
       warning("randomSeed.Rdata was not found; skipping omixerSpecific step.")
     }
     
-    # 6. Generate lab-friendly PDF sample sheets using omixerSheet
+    # --- Generate lab-friendly PDF sample sheets using omixerSheet ---
     # This function automatically writes a PDF file (typically 'sampleSheet.pdf') to the working directory.
     omixerSheet(omixerLayout, group="tissue")
 

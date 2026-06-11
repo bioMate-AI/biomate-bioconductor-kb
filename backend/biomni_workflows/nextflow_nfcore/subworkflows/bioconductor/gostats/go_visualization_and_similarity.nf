@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate mean expression per phenotype group for each gene. 2. Map GO terms to probes and classify them based on the phenotype wi
+//  * 1. [Visualization & Output] READ USER INPUTS
+//  * 2. [Visualization & Output] PREPARATION & GRAPH SETUP
+//  * 3. [Visualization & Output] FAITHFUL REPRODUCTION OF DOCUMENTED CODE
+//  * 4. [Visualization & Output] WRITE OUTPUT FILES
 
 nextflow.enable.dsl = 2
 
@@ -57,7 +60,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         library(graph)
         
         # ==========================================
-        # 1. READ USER INPUTS
+        # --- READ USER INPUTS ---
         # ==========================================
         
         # Read selected genes (Entrez Gene IDs)
@@ -122,7 +125,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         MB <- as.factor(MB)
         
         # ==========================================
-        # 2. PREPARATION & GRAPH SETUP
+        # --- PREPARATION & GRAPH SETUP ---
         # ==========================================
         
         # Construct the induced GO graph for Cellular Component (CC) ontology
@@ -164,7 +167,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         gN <- gN[!is.na(gN)]
         
         # ==========================================
-        # 3. FAITHFUL REPRODUCTION OF DOCUMENTED CODE
+        # --- FAITHFUL REPRODUCTION OF DOCUMENTED CODE ---
         # ==========================================
         
         mns <- apply(exprs(eS), 1, function(x) sapply(split(x, MB), mean))
@@ -245,7 +248,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         gCC.leaves <- leaves(gCC, "in")
         
         # ==========================================
-        # 4. WRITE OUTPUT FILES
+        # --- WRITE OUTPUT FILES ---
         # ==========================================
         
         # Save the phenotype count matrix per GO term

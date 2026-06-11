@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run runACE to process files, perform segmentation (if BAM), and calculate fits across specified ploidies and bin sizes. 2. Inspect
+//  * 1. [Visualization & Output] Run runACE to process files, perform segmentation, and
+//  * 2. [Visualization & Output] Inspect output directories, likelyfits, and fitpicker
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +61,7 @@ process BIOC_ACE_RUN_ACE_PIPELINE {
     bam_files <- list.files(userpath, pattern = "\\\\.bam\$", ignore.case = TRUE)
     rds_files <- list.files(userpath, pattern = "\\\\.rds\$", ignore.case = TRUE)
     
-    # Stage 1: Run runACE to process files, perform segmentation, and calculate fits
+    # --- Run runACE to process files, perform segmentation, and ---
     if (length(bam_files) > 0) {
       message("Found BAM files in the working directory. Running runACE for BAM workflow...")
       runACE(userpath, filetype='bam', binsizes = c(100, 1000),
@@ -72,7 +73,7 @@ process BIOC_ACE_RUN_ACE_PIPELINE {
       stop("Error: No BAM or RDS files found in the working directory. Please provide aligned BAM files or segmented QDNAseq RDS files.")
     }
     
-    # Stage 2: Inspect output directories, likelyfits, and fitpicker tables
+    # --- Inspect output directories, likelyfits, and fitpicker ---
     message("Searching for generated fitpicker tables and diagnostic plots...")
     
     fitpicker_files <- list.files(userpath, pattern = "fitpicker", recursive = TRUE, full.names = TRUE)

@@ -58,27 +58,27 @@ process BIOC_SPATIALHEATMAP_BULK_SINGLE_CELL_COVISUALIZATION {
     library(SummarizedExperiment)
     library(ggplot2)
     
-    # 1. Read the declared user input files from the working directory
+    # --- Read the declared user input files from the working ---
     sce <- readRDS("single_cell_data.rds")
     blk.mus <- readRDS("bulk_data.rds")
     svg.mus.brain <- read_svg("anatomical_map.svg")
     
-    # 2. Jointly normalize bulk and single-cell data
+    # --- Jointly normalize bulk and single-cell data ---
     mus.lis.nor <- norm_cell(sce=sce, bulk=blk.mus, com=FALSE)
     blk.mus.nor <- mus.lis.nor\$bulk
     cell.mus.nor <- mus.lis.nor\$cell
     colData(cell.mus.nor) <- colData(sce)
     
-    # 3. Perform dimension reduction on single-cell data
+    # --- Perform dimension reduction on single-cell data ---
     cell.dim <- reduce_dim(cell.mus.nor)
     
-    # 4. Aggregate bulk replicates
+    # --- Aggregate bulk replicates ---
     blk.mus.aggr <- aggr_rep(blk.mus.nor, sam.factor='sample', aggr='mean')
     
     # Define the list container expected by the documented cocluster call
     blk.sc.mus.fil <- list(bulk = blk.mus.aggr, cell = cell.dim)
     
-    # 5. Perform automated co-clustering to assign cells to tissues
+    # --- Perform automated co-clustering to assign cells to tissues ---
     coclus.mus <- cocluster(bulk=blk.sc.mus.fil\$bulk, cell=blk.sc.mus.fil\$cell, min.dim=14, dimred='PCA', graph.meth='knn', cluster='fg')
     coclus.mus <- filter_asg(coclus.mus, min.sim=0.1)
     
@@ -89,11 +89,11 @@ process BIOC_SPATIALHEATMAP_BULK_SINGLE_CELL_COVISUALIZATION {
     # Save intermediate co-clustering results
     saveRDS(coclus.mus, "cocluster_results.rds")
     
-    # 6. Define cell-to-tissue mappings and store in an SPHM container
+    # --- Define cell-to-tissue mappings and store in an SPHM ---
     dat.auto.idp <- SPHM(svg=svg.mus.brain, bulk=coclus.blk, cell=coclus.sc)
     saveRDS(dat.auto.idp, "sphm_container.rds")
     
-    # 7. Generate the co-visualization plot
+    # --- Generate the co-visualization plot ---
     cov.plot <- covis(data=dat.auto.idp, ID=c('Atp2b1'), dimred='TSNE', tar.cell=c('hippocampus', 'hypothalamus', 'cerebellum', 'cerebral.cortex'), col.idp=TRUE, dim.lgd.text.size=10, dim.lgd.nrow=2, bar.width=0.08, legend.nrow=3, h=0.6, legend.key.size=0.01, legend.text.size=10, legend.r=0.27)
     
     # Save the generated plot to a PDF file

@@ -51,7 +51,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load Inputs and Generate FASTQ
+    # --- Load Inputs and Generate FASTQ ---
     # ==========================================
     
     message("Stage 1: Loading input files and generating synthetic FASTQ...")
@@ -115,7 +115,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     message("Generated synthetic FASTQ file: ", fastq_file)
     
     # ==========================================
-    # Stage 2: Run qckitfastq QC Metrics
+    # --- Run qckitfastq QC Metrics ---
     # ==========================================
     
     message("Stage 2: Running qckitfastq metrics...")
@@ -177,7 +177,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Save Metrics and Summaries
+    # --- Save Metrics and Summaries ---
     # ==========================================
     
     message("Stage 3: Saving metrics to CSV...")
@@ -209,7 +209,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     write.csv(overrep_res, "overrepresented_sequences.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ==========================================
     
     message("Stage 4: Generating diagnostic plots...")

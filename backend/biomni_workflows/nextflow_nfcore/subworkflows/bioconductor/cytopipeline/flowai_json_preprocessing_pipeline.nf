@@ -72,17 +72,17 @@ process BIOC_CYTOPIPELINE_FLOWAI_JSON_PREPROCESSING_PIPELINE {
       dir.create(workDir, recursive = TRUE)
     }
     
-    # 1. Initialize CytoPipeline from JSON
+    # --- Initialize CytoPipeline from JSON ---
     pipL_flowAI <- CytoPipeline(
       jsonFile,
       experimentName = "OMIP021_flowAI",
       sampleFiles = sampleFiles
     )
     
-    # 2. Execute pipeline
+    # --- Execute pipeline ---
     execute(pipL_flowAI, path = workDir)
     
-    # 3. Visualize processing queues
+    # --- Visualize processing queues ---
     # Plot workflow graph - flowAI - scale transformList
     pdf("workflow_scale_transform.pdf")
     tryCatch({
@@ -110,7 +110,7 @@ process BIOC_CYTOPIPELINE_FLOWAI_JSON_PREPROCESSING_PIPELINE {
     })
     dev.off()
     
-    # 4. Retrieve and save meaningful results
+    # --- Retrieve and save meaningful results ---
     # Save the pipeline object
     saveRDS(pipL_flowAI, file = "pipL_flowAI.rds")
     

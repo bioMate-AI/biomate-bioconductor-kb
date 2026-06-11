@@ -44,12 +44,12 @@ process BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(a4Core)
     library(Biobase)
     library(glmnet)
     
-    # Stage 2: Read and preprocess input files
+    # --- Read and preprocess input files ---
     # counts.csv: gene-by-sample normalized expression matrix (column 'gene_id' is row names)
     # coldata.csv: sample metadata with columns 'sample' and 'condition'
     counts_df <- read.csv("counts.csv", check.names = FALSE)
@@ -70,11 +70,11 @@ process BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE {
     counts_mat <- counts_mat[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, drop = FALSE]
     
-    # Stage 3: Create ExpressionSet container
+    # --- Create ExpressionSet container ---
     pheno_data <- new("AnnotatedDataFrame", data = coldata)
     eSet <- ExpressionSet(assayData = counts_mat, phenoData = pheno_data)
     
-    # Stage 4: Model Fitting using glmnet (Lasso/Elastic Net)
+    # --- Model Fitting using glmnet (Lasso/Elastic Net) ---
     # Prepare predictors (x) and response (y)
     x <- t(exprs(eSet))
     y <- factor(pData(eSet)\$condition)
@@ -82,7 +82,7 @@ process BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE {
     # Fit a logistic regression model with lasso penalty
     fit <- glmnet::glmnet(x, y, family = "binomial")
     
-    # Stage 5: Feature Selection using a4Core::topTable
+    # --- Feature Selection using a4Core::topTable ---
     # topTable extracts the most important features from the classification model
     top_feats <- tryCatch({
       a4Core::topTable(fit, n = 20)
@@ -102,7 +102,7 @@ process BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE {
     # Save top features
     write.csv(top_feats, "top_features.csv", row.names = FALSE)
     
-    # Stage 6: Model Evaluation using a4Core::confusionMatrix
+    # --- Model Evaluation using a4Core::confusionMatrix ---
     # Predict classes using a representative lambda
     lambda_val <- fit\$lambda[median(seq_along(fit\$lambda))]
     preds <- predict(fit, newx = x, s = lambda_val, type = "class")
@@ -118,7 +118,7 @@ process BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE {
     # Save confusion matrix
     write.csv(as.matrix(conf_mat), "confusion_matrix.csv", row.names = TRUE)
     
-    # Stage 7: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     pdf("diagnostic_plots.pdf", width = 8, height = 6)
     plot(fit, xvar = "lambda", label = TRUE)
     title("Lasso Coefficient Paths", line = 2.5)

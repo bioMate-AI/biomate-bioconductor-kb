@@ -65,22 +65,22 @@ process BIOC_CFDNAPRO_PEAK_VALLEY_HIGHLIGHTING {
       stop(paste("Error: The input directory '", exam_path, "' does not exist in the working directory. Please ensure it is present and contains the cohort sub-folders with Picard txt or BAM files.", sep = ""))
     }
     
-    # 1. Calculate peak distances
+    # --- Calculate peak distances ---
     peaks <- callPeakDistance(path = exam_path) 
     
-    # 2. Calculate valley distances
+    # --- Calculate valley distances ---
     valleys <- callValleyDistance(path = exam_path) 
     
-    # 3. Generate the base fragmentation pattern plot
+    # --- Generate the base fragmentation pattern plot ---
     exam_plot_all <- callSize(path=exam_path) %>% plotSingleGroup(vline = NULL)
     
-    # 4. Overlay peak and valley locations as vertical lines
+    # --- Overlay peak and valley locations as vertical lines ---
     exam_plot_prop <- exam_plot_all\$prop + 
       coord_cartesian(xlim = c(90,135),ylim = c(0,0.0065)) +
       geom_vline(xintercept=peaks\$insert_size, colour="red",linetype="dashed") +
       geom_vline(xintercept = valleys\$insert_size,colour="blue")
     
-    # 5. Overlay peak and valley locations as dots
+    # --- Overlay peak and valley locations as dots ---
     exam_plot_prop_dot<- exam_plot_all\$prop + 
       coord_cartesian(xlim = c(90,135),ylim = c(0,0.0065)) +
       geom_point(data= peaks, 

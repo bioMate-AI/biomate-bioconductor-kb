@@ -47,7 +47,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_STEADY_STATE {
     library(INSPEcT)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ---------------------------------------------------------
     message("Loading input data...")
     counts <- read.csv("counts.csv", check.names = FALSE)
@@ -87,7 +87,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_STEADY_STATE {
     expDes <- as.character(coldata\$condition)
     
     # ---------------------------------------------------------
-    # Stage 2: Quantify Expressions and Initialize Steady-State Object
+    # --- Quantify Expressions and Initialize Steady-State Object ---
     # ---------------------------------------------------------
     message("Quantifying expressions from transcript counts...")
     matExp_DESeq2 <- quantifyExpressionsFromTrCounts(
@@ -106,7 +106,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_STEADY_STATE {
     )
     
     # ---------------------------------------------------------
-    # Stage 3: Compare Steady States and Identify PT Regulation
+    # --- Compare Steady States and Identify PT Regulation ---
     # ---------------------------------------------------------
     message("Comparing steady states to identify post-transcriptional regulation...")
     matureInspObj <- compareSteadyNoNascent(

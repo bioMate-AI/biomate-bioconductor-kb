@@ -44,7 +44,7 @@ process BIOC_EASYLIFT_EASYLIFT_GENOMIC_LIFTOVER {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(easylift)
     library(GenomicRanges)
     library(rtracklayer)
@@ -52,7 +52,7 @@ process BIOC_EASYLIFT_EASYLIFT_GENOMIC_LIFTOVER {
     library(S4Vectors)
     library(BiocGenerics)
     
-    # Stage 2: Import input files from the working directory
+    # --- Import input files from the working directory ---
     message("Reading input genomic regions...")
     if (!file.exists("regions.bed")) {
         stop("Required input file 'regions.bed' not found in the working directory.")
@@ -76,7 +76,7 @@ process BIOC_EASYLIFT_EASYLIFT_GENOMIC_LIFTOVER {
         }
     }
     
-    # Stage 3: Acquire Chain File and Perform Liftover
+    # --- Acquire Chain File and Perform Liftover ---
     chain_url <- "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz"
     chain_path <- "hg19ToHg38.over.chain.gz"
     gr_lifted <- NULL
@@ -115,11 +115,11 @@ process BIOC_EASYLIFT_EASYLIFT_GENOMIC_LIFTOVER {
         genome(gr_lifted) <- "hg38"
     }
     
-    # Stage 4: Export Lifted Regions
+    # --- Export Lifted Regions ---
     message("Exporting lifted genomic intervals...")
     rtracklayer::export(gr_lifted, "lifted_regions.bed", format = "bed")
     
-    # Stage 5: Generate Summary Report
+    # --- Generate Summary Report ---
     message("Generating liftover summary report...")
     report <- data.frame(
         Metric = c("Total_Input_Regions", "Total_Lifted_Regions", "Success_Rate_Percent"),
@@ -132,7 +132,7 @@ process BIOC_EASYLIFT_EASYLIFT_GENOMIC_LIFTOVER {
     )
     write.csv(report, "liftover_report.csv", row.names = FALSE)
     
-    # Stage 6: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     message("Generating diagnostic plots...")
     pdf("liftover_comparison.pdf", width = 12, height = 6)
     par(mfrow = c(1, 2), mar = c(6, 4, 4, 2))

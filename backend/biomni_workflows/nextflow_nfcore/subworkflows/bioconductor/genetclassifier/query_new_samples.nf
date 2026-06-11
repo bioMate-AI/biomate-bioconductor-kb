@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the pre-trained classifier and the query expression dataset. 2. Run queryGeNetClassifier() to predict classes and calculate a
+//  * 1. [Visualization & Output] Load Inputs
+//  * 2. [Visualization & Output] Run queryGeNetClassifier()
+//  * 3. [Visualization & Output] Perform External Validation (if labels exist)
+//  * 4. [Visualization & Output] Adjust Assignment Stringency Thresholds
+//  * 5. [Visualization & Output] Summarize Query Results
+//  * 6. [Visualization & Output] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +57,7 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     library(Biobase)
     
     # ==========================================
-    # 1. Load Inputs
+    # --- Load Inputs ---
     # ==========================================
     
     if (!file.exists("trained_classifier.RData")) {
@@ -101,7 +106,7 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     has_labels <- !is.null(label_col)
     
     # ==========================================
-    # 2. Run queryGeNetClassifier()
+    # --- Run queryGeNetClassifier() ---
     # ==========================================
     
     queryResult <- queryGeNetClassifier(leukemiasClassifier, queryEset)
@@ -109,7 +114,7 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     queryResult\$probabilities
     
     # ==========================================
-    # 3. Perform External Validation (if labels exist)
+    # --- Perform External Validation (if labels exist) ---
     # ==========================================
     
     if (has_labels) {
@@ -120,20 +125,20 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     }
     
     # ==========================================
-    # 4. Adjust Assignment Stringency Thresholds
+    # --- Adjust Assignment Stringency Thresholds ---
     # ==========================================
     
     queryResult_AssignAll <- queryGeNetClassifier(leukemiasClassifier, queryEset, minProbAssignCoeff=0, minDiffAssignCoeff=0)
     queryResult_AssignLess <- queryGeNetClassifier(leukemiasClassifier, queryEset, minProbAssignCoeff=1.5, minDiffAssignCoeff=1)
     
     # ==========================================
-    # 5. Summarize Query Results
+    # --- Summarize Query Results ---
     # ==========================================
     
     qSummary <- querySummary(queryResult, numDecimals=3)
     
     # ==========================================
-    # 6. Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     
     # Save RDS objects

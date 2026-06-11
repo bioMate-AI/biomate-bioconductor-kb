@@ -52,7 +52,7 @@ process BIOC_ISOCORRECTOR_STABLE_ISOTOPE_CORRECTION {
       }
     }
     
-    # 1. Load the IsoCorrectoR package
+    # --- Load the IsoCorrectoR package ---
     library(IsoCorrectoR)
     
     # Helper function to locate user input files in the working directory
@@ -94,7 +94,7 @@ process BIOC_ISOCORRECTOR_STABLE_ISOTOPE_CORRECTION {
       stop(paste("Required MoleculeFile not found. Expected:", molecule_path))
     }
     
-    # 2. Call the IsoCorrection function with paths to the files and desired parameters
+    # --- Call the IsoCorrection function with paths to the files ---
     # ReturnResultsObject is set to TRUE to retrieve the results in the R session.
     results <- IsoCorrection(
       MeasurementFile = measurement_path,
@@ -115,7 +115,7 @@ process BIOC_ISOCORRECTOR_STABLE_ISOTOPE_CORRECTION {
       Testmode = FALSE
     )
     
-    # 3. Retrieve the returned list containing success status, results dataframes, log, and error messages
+    # --- Retrieve the returned list containing success status, ---
     if (!is.null(results)) {
       cat("Correction finished with status:", results\$success, "\n")
       

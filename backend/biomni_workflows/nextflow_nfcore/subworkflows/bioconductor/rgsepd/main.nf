@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the GSEPD object with counts, metadata, and output folder using GSEPD_INIT. 2. Define the comparison conditions using G
+//  * 1. [Visualization & Output] Read User Input Files from Working Directory
+//  * 2. [Visualization & Output] Standardize and Clean Metadata to Prevent Common Pitfalls
+//  * 3. [Visualization & Output] Execute rgsepd Pipeline
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +55,7 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
         library(rgsepd)
         
         # ----------------------------------------------------------------------
-        # 1. Read User Input Files from Working Directory
+        # --- Read User Input Files from Working Directory ---
         # ----------------------------------------------------------------------
         
         # Locate finalCounts file
@@ -98,7 +100,7 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
         }
         
         # ----------------------------------------------------------------------
-        # 2. Standardize and Clean Metadata to Prevent Common Pitfalls
+        # --- Standardize and Clean Metadata to Prevent Common Pitfalls ---
         # ----------------------------------------------------------------------
         
         cols <- colnames(sampleMeta_df)
@@ -130,7 +132,7 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
         clean_meta\$Condition <- gsub(" ", "_", clean_meta\$Condition)
         
         # ----------------------------------------------------------------------
-        # 3. Execute rgsepd Pipeline
+        # --- Execute rgsepd Pipeline ---
         # ----------------------------------------------------------------------
         
         # Map gene symbols of interest to RefSeq IDs

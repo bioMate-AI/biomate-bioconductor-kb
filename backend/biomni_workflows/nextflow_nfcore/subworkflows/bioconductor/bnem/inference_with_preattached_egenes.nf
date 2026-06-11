@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map E-genes to their corresponding S-genes based on prior knowledge. 2. Initialize the network state. 3. Run B-NEM optimization wi
+//  * 1. [Visualization & Output] Map E-genes to their corresponding S-genes based on prior
+//  * 2. [Visualization & Output] Initialize the network state
+//  * 3. [Visualization & Output] Run B-NEM optimization with the egenes parameter
+//  * 4. [Visualization & Output] Calculate network residuals to evaluate E-gene fit
 
 nextflow.enable.dsl = 2
 
@@ -62,16 +65,16 @@ process BIOC_BNEM_INFERENCE_WITH_PREATTACHED_EGENES {
     expression <- NULL
     parallel <- NULL
     
-    # 1. Map E-genes to their corresponding S-genes based on prior knowledge
+    # --- Map E-genes to their corresponding S-genes based on prior ---
     egenes <- list()
     for (i in PKN\$namesSpecies) {
         egenes[[i]] <- rownames(fc)[grep(i, rownames(fc))]
     }
     
-    # 2. Initialize the network state
+    # --- Initialize the network state ---
     initBstring <- reduceGraph(rep(0, length(model\$reacID)), model, CNOlist)
     
-    # 3. Run B-NEM optimization with the egenes parameter
+    # --- Run B-NEM optimization with the egenes parameter ---
     greedy2b <- bnem(search = "greedy",
                      CNOlist=CNOlist,
                      fc=fc,
@@ -87,7 +90,7 @@ process BIOC_BNEM_INFERENCE_WITH_PREATTACHED_EGENES {
                      )
     resString3 <- greedy2b\$bString
     
-    # 4. Calculate network residuals to evaluate E-gene fit
+    # --- Calculate network residuals to evaluate E-gene fit ---
     residuals <- findResiduals(resString3, CNOlist, model, fc, verbose = FALSE)
     
     # Save results to RDS files

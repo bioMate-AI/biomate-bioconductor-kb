@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load expression data and phenotype information. 2. Define a numeric vector of weights corresponding to the genes in the expression
+//  * 1. [Input & Preparation] Load expression data and phenotype information
+//  * 2. [Input & Preparation] Define a numeric vector of weights corresponding to the
+//  * 3. [Input & Preparation] Run the GSRI analysis with the weight parameter specified
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +54,7 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     library(GSRI)
     library(GSEABase)
     
-    # 1. Load expression data and phenotype information
+    # --- Load expression data and phenotype information ---
     load("expression_data.RData")
     
     # Find the ExpressionSet or matrix in the loaded workspace
@@ -103,7 +105,7 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     rownames(phenotypes) <- sampleNames(eset)
     pData(eset) <- phenotypes
     
-    # 2. Define a numeric vector of weights corresponding to the genes in the expression dataset
+    # --- Define a numeric vector of weights corresponding to the ---
     gene_weights <- read.csv("gene_weights.csv", stringsAsFactors=FALSE)
     
     # Find gene and evidence/weight columns in the user-provided CSV
@@ -124,7 +126,7 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     goWeight <- rep(0.5, length.out=length(expInd))
     goWeight[expInd] <- 1
     
-    # 3. Run the GSRI analysis with the weight parameter specified
+    # --- Run the GSRI analysis with the weight parameter specified ---
     gCol5go <- gsri(eset, phenotypes\$type, weight=goWeight)
     
     # Construct a GeneSetCollection (gmt) from the actual genes in eset to avoid system.file

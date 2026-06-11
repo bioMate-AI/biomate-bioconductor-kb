@@ -69,11 +69,11 @@ process BIOC_SCRUFF_TENX_BAM_QC {
         stop(paste("Required input barcodes TSV file not found:", filteredBc))
     }
     
-    # Stage 1: Run tenxBamqc to collect QC metrics
+    # --- Run tenxBamqc to collect QC metrics ---
     message("Running tenxBamqc on input BAM file...")
     sce <- tenxBamqc(bam = bamfile10x, experiment = "Neurons_Sample_01", filter = filteredBc)
     
-    # Stage 2: Plot QC metrics using qcplots
+    # --- Plot QC metrics using qcplots ---
     message("Generating QC plots...")
     g <- qcplots(sce)
     

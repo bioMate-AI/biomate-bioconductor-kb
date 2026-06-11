@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Combine and compare datasets using compareSCEs. 2. Calculate differences relative to a reference dataset using diffSCEs
+//  * 1. [Core Analysis] Read user input files from the working directory
+//  * 2. [Core Analysis] Combine and compare datasets using compareSCEs
+//  * 3. [Core Analysis] Calculate differences relative to a reference dataset
+//  * 4. [Core Analysis] Write meaningful output files
 
 nextflow.enable.dsl = 2
 
@@ -59,18 +62,18 @@ process BIOC_SPLATTER_COMPARE_AND_DIFF_SIMULATIONS {
     library(splatter)
     library(cowplot)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # The pipeline expects 'sim1.rds' and 'sim2.rds' containing SingleCellExperiment objects
     sim1 <- readRDS("sim1.rds")
     sim2 <- readRDS("sim2.rds")
     
-    # 2. Combine and compare datasets using compareSCEs
+    # --- Combine and compare datasets using compareSCEs ---
     comparison <- compareSCEs(list(Splat = sim1, Simple = sim2))
     
-    # 3. Calculate differences relative to a reference dataset using diffSCEs
+    # --- Calculate differences relative to a reference dataset ---
     difference <- diffSCEs(list(Splat = sim1, Simple = sim2), ref = "Simple")
     
-    # 4. Write meaningful output files
+    # --- Write meaningful output files ---
     # Save the raw comparison and difference list objects
     saveRDS(comparison, "comparison.rds")
     saveRDS(difference, "difference.rds")

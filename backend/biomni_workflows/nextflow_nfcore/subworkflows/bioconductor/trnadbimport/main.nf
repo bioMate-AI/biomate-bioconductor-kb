@@ -43,7 +43,7 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries and read input files
+    # --- Load required libraries and read input files ---
     library(tRNAdbImport)
     library(GenomicRanges)
     library(Biostrings)
@@ -57,7 +57,7 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Parse tRNA types/amino acids from the count matrix row names
+    # --- Parse tRNA types/amino acids from the count matrix row ---
     # We look for standard 3-letter amino acid codes to query the database
     aa_codes <- c("Ala", "Arg", "Asn", "Asp", "Cys", "Gln", "Glu", "Gly", "His", "Ile", 
                   "Leu", "Lys", "Met", "Phe", "Pro", "Ser", "Thr", "Trp", "Tyr", "Val")
@@ -77,7 +77,7 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
     
     message("Querying tRNAdb for amino acids: ", paste(found_aas, collapse = ", "))
     
-    # Stage 3: Query tRNAdb with robust fallback mechanism
+    # --- Query tRNAdb with robust fallback mechanism ---
     # Since the tRNAdb server can experience downtime, we use a tryCatch block.
     # If the server is unreachable, we construct a valid tRNAdb GRanges object manually.
     gr <- tryCatch({
@@ -115,20 +115,20 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
       return(fallback_gr)
     })
     
-    # Stage 4: Validate the GRanges object structure
+    # --- Validate the GRanges object structure ---
     is_valid <- istRNAdbGRanges(gr)
     message("Is the imported GRanges object valid according to tRNAdb schema? ", is_valid)
     
-    # Stage 5: Convert tRNAdb annotations to GFF format and export
+    # --- Convert tRNAdb annotations to GFF format and export ---
     gff_features <- tRNAdb2GFF(gr)
     rtracklayer::export.gff3(gff_features, con = "trna_annotations.gff3")
     message("Exported tRNA annotations to 'trna_annotations.gff3'")
     
-    # Stage 6: Export tRNA sequences to FASTA
+    # --- Export tRNA sequences to FASTA ---
     Biostrings::writeXStringSet(gr\$tRNA_seq, filepath = "trna_sequences.fa")
     message("Exported tRNA sequences to 'trna_sequences.fa'")
     
-    # Stage 7: Integrate tRNA annotations with the count matrix
+    # --- Integrate tRNA annotations with the count matrix ---
     # Map each gene ID in the count matrix to its corresponding tRNA type
     annotation_mapping <- data.frame(
       gene_id = rownames(counts),

@@ -50,7 +50,7 @@ process BIOC_EPIREGULON_EXTRA_EPIREGULON_EXTRA_DOWNSTREAM_ANALYSIS {
     library(epiregulon.extra)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Required input file 'input.csv' is missing.")
@@ -96,7 +96,7 @@ process BIOC_EPIREGULON_EXTRA_EPIREGULON_EXTRA_DOWNSTREAM_ANALYSIS {
     reducedDim(sce, "UMAP") <- umap_mat
     
     # ==========================================
-    # STAGE 2: Construct Mock Regulons
+    # --- Construct Mock Regulons ---
     # ==========================================
     # We construct a mock regulon DataFrame based on the genes present in the dataset
     genes <- rownames(sce)
@@ -111,7 +111,7 @@ process BIOC_EPIREGULON_EXTRA_EPIREGULON_EXTRA_DOWNSTREAM_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 3: Calculate Regulon Activity
+    # --- Calculate Regulon Activity ---
     # ==========================================
     message("Calculating regulon activity...")
     activity_sce <- tryCatch({
@@ -145,7 +145,7 @@ process BIOC_EPIREGULON_EXTRA_EPIREGULON_EXTRA_DOWNSTREAM_ANALYSIS {
     write.csv(as.data.frame(act_mat), "regulon_activity.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Downstream Visualizations
+    # --- Downstream Visualizations ---
     # ==========================================
     
     # 1. Dimension Reduction Plot

@@ -49,7 +49,7 @@ process BIOC_TRAJECTORYUTILS_TRAJECTORY_UTILS_MST_ANALYSIS {
     library(S4Vectors)
     library(BiocGenerics)
     
-    # 1. Read Input Data
+    # --- Read Input Data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -65,7 +65,7 @@ process BIOC_TRAJECTORYUTILS_TRAJECTORY_UTILS_MST_ANALYSIS {
     counts <- counts[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # 2. Normalization and Dimensionality Reduction (PCA)
+    # --- Normalization and Dimensionality Reduction (PCA) ---
     # Simple CPM-like normalization and log-transformation
     lib_sizes <- colSums(counts)
     lib_sizes[lib_sizes == 0] <- 1 # Avoid division by zero
@@ -83,14 +83,14 @@ process BIOC_TRAJECTORYUTILS_TRAJECTORY_UTILS_MST_ANALYSIS {
     pca_res <- prcomp(t(norm_counts), scale. = TRUE)
     pcs <- pca_res\$x[, 1:min(5, ncol(pca_res\$x)), drop = FALSE]
     
-    # 3. Clustering
+    # --- Clustering ---
     # Define clusters using k-means on PCA space
     n_clusters <- min(4, nrow(pcs))
     set.seed(42)
     clusters <- as.character(kmeans(pcs, centers = n_clusters)\$cluster)
     names(clusters) <- rownames(pcs)
     
-    # 4. Construct Minimum Spanning Tree (MST)
+    # --- Construct Minimum Spanning Tree (MST) ---
     # Compute cluster centroids robustly using rowmean or fallback
     compute_centroids <- function(pcs, clusters) {
         tryCatch({
@@ -112,7 +112,7 @@ process BIOC_TRAJECTORYUTILS_TRAJECTORY_UTILS_MST_ANALYSIS {
     plot(mst, main = "Cluster-level Minimum Spanning Tree (MST)")
     dev.off()
     
-    # 5. Define Paths and Roots
+    # --- Define Paths and Roots ---
     # Guess root node maximizing steps to terminal nodes
     root_node <- guessMSTRoots(mst, method = "maxstep")
     
@@ -120,7 +120,7 @@ process BIOC_TRAJECTORYUTILS_TRAJECTORY_UTILS_MST_ANALYSIS {
     paths <- defineMSTPaths(mst, roots = root_node)
     branches <- splitByBranches(mst)
     
-    # 6. Compute Pseudotime and Build PseudotimeOrdering
+    # --- Compute Pseudotime and Build PseudotimeOrdering ---
     n_cells <- nrow(pcs)
     n_paths <- length(paths)
     orderings <- matrix(NA_real_, nrow = n_cells, ncol = n_paths)
@@ -163,7 +163,7 @@ process BIOC_TRAJECTORYUTILS_TRAJECTORY_UTILS_MST_ANALYSIS {
     # Compute average pseudotime across paths
     avg_pseudo <- averagePseudotime(pto)
     
-    # 7. Save Results
+    # --- Save Results ---
     # Save path definitions
     path_df <- data.frame(
         Path = colnames(orderings),

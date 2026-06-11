@@ -58,7 +58,7 @@ process BIOC_GMOVIZ_MULTIPLE_INSERTION_DIAGRAM {
     library(GenomicRanges)
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Define genome ideogram and insertion data from user input files
+    # --- Define genome ideogram and insertion data from user input ---
     # -----------------------------------------------------------------------------
     
     # Read genome ideogram data
@@ -101,7 +101,7 @@ process BIOC_GMOVIZ_MULTIPLE_INSERTION_DIAGRAM {
     saveRDS(insertion_data, "processed_insertion_data.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Define optional coverage and label data
+    # --- Define optional coverage and label data ---
     # -----------------------------------------------------------------------------
     
     # Read optional coverage data from BAM
@@ -133,7 +133,7 @@ process BIOC_GMOVIZ_MULTIPLE_INSERTION_DIAGRAM {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Generate the multiple insertion diagrams
+    # --- Generate the multiple insertion diagrams ---
     # -----------------------------------------------------------------------------
     
     # Plot 1: Basic multiple insertion diagram

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Center the gene expression matrix. 2. Identify the indices of negative control genes. 3. Run naive RUV-2 without shrinkage (rank r
+//  * 1. [Visualization & Output] Read user input files
+//  * 2. [Visualization & Output] Center the gene expression matrix
+//  * 3. [Visualization & Output] Run naive RUV-2 without shrinkage
+//  * 4. [Visualization & Output] Visualize the corrected data using SVD/PCA plotting
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +53,7 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
     # Load required libraries
     library(RUVnormalize)
     
-    # 1. Read user input files
+    # --- Read user input files ---
     Y <- as.matrix(read.csv("expression_matrix.csv", row.names=1, check.names=FALSE))
     
     # Read negative controls
@@ -61,14 +64,14 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
       cIdx <- which(colnames(Y) %in% controls)
     }
     
-    # 2. Center the gene expression matrix
+    # --- Center the gene expression matrix ---
     Y <- scale(Y, scale=FALSE)
     
     # Define dimensions
     m <- nrow(Y)
     n <- ncol(Y)
     
-    # 3. Run naive RUV-2 without shrinkage
+    # --- Run naive RUV-2 without shrinkage ---
     k <- min(20, m)
     nu <- 0
     nsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=k)
@@ -78,7 +81,7 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
     nu.coeff <- 1e-3
     nY <- naiveRandRUV(Y, cIdx, nu.coeff=nu.coeff, k=k)
     
-    # 4. Visualize the corrected data using SVD/PCA plotting
+    # --- Visualize the corrected data using SVD/PCA plotting ---
     nKeep <- min(1260, n)
     sdY <- apply(nY, 2, sd)
     ssd <- sort(sdY, decreasing=TRUE, index.return=TRUE)\$ix
