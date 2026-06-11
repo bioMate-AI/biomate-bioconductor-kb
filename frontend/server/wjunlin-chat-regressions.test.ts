@@ -122,6 +122,34 @@ describe("#6 SECOND-TURN OVERRIDE marker no longer present in system prompt", ()
   });
 });
 
+describe("session_datasets injected into system prompt (canonical path)", () => {
+  // The right architecture for "the bot must know which datasets are
+  // attached" is to inject Galaxy-history-derived sessionDatasets as a
+  // structured block in the system prompt every turn — independent of
+  // chat-history slicing. Preserving [Galaxy dataset: ...] blocks in
+  // chat history was a symptom-level fix; this is the canonical one.
+  const fs = require("fs") as typeof import("fs");
+  const path = require("path") as typeof import("path");
+  const SRC = fs.readFileSync(path.join(__dirname, "galaxy-assistant.ts"), "utf-8");
+
+  it("a sessionDatasetsBlock is constructed from context.sessionDatasets", () => {
+    expect(/const\s+sessionDatasetsBlock\s*=\s*\(\s*\(\s*\)\s*=>/.test(SRC)).toBe(true);
+    expect(SRC.includes("context as any)?.sessionDatasets")).toBe(true);
+  });
+
+  it("the system prompt embeds sessionDatasetsBlock alongside inlineDataBlock", () => {
+    // Both invocations (research-intent + workflow-intent branches) must include it.
+    const matches = SRC.match(/\$\{inlineDataBlock\}\$\{sessionDatasetsBlock\}\$\{domainProfileContext\}/g);
+    expect(matches?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("the block emits dataset id + name + type and tells the LLM not to re-ask for uploads", () => {
+    expect(/<session_datasets>/.test(SRC)).toBe(true);
+    expect(/Galaxy history is the source of truth/.test(SRC)).toBe(true);
+    expect(/Do NOT ask the user to re-upload/.test(SRC)).toBe(true);
+  });
+});
+
 describe("#7 microarray → limma routing rule present in system prompt", () => {
   const fs = require("fs") as typeof import("fs");
   const path = require("path") as typeof import("path");

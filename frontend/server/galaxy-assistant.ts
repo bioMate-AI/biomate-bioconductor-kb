@@ -5572,6 +5572,32 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       return `\n<pre_satisfied_parameters>\nThe following parameters are already present in the user's message and must NOT be requested again:\n${lines.join('\n')}${genomeSuffix}\n</pre_satisfied_parameters>\n`;
     })();
 
+    // ── Session datasets block ─────────────────────────────────────────────
+    // Galaxy history is the authoritative store for uploaded datasets;
+    // sessionDatasets is the structured projection we already load on every
+    // chat turn (req.session.uploadedDatasets ∪ chat_sessions.datasets
+    // rehydration). Previously the chat LLM only "saw" attached datasets via
+    // the verbose `[Galaxy dataset: <name> (id: <uuid>)]` blocks inlined into
+    // the user message — those fell out of the recency window after a few
+    // turns and the bot kept asking for files. See
+    // docs/20260610_REAL_USER_FULL_CHAT_LOGS.md (wjunlin@HKU) and
+    // docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q3).
+    //
+    // The canonical fix is to inject the dataset list as a short, structured
+    // bulletin in the system prompt — ~80 bytes per dataset, present every
+    // turn, independent of chat-history slicing.
+    const sessionDatasetsBlock = (() => {
+      const sd = (context as any)?.sessionDatasets as Array<{ id?: string; name?: string; type?: string; file_path?: string | null }> | undefined;
+      if (!sd?.length) return '';
+      const rows = sd
+        .filter(d => d && d.id)
+        .slice(0, 32) // hard cap — pathological case where a user attaches hundreds
+        .map(d => `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}`)
+        .join('\n');
+      if (!rows) return '';
+      return `\n<session_datasets>\nDatasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${rows}\n\nWhen the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id with read_file (preview), run_code's input_datasets (analysis), or as a workflow parameter. Do NOT ask the user to re-upload datasets that already appear here.\n</session_datasets>\n`;
+    })();
+
     const runnableWorkflow = !!(
       generatedWorkflow?.success &&
       !generatedWorkflow?.error &&
@@ -5619,7 +5645,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
       || !isWorkflowTurn;
     const systemPrompt = isResearchIntent
-      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with the information already on the table BEFORE asking the user a clarifying question.
@@ -5679,7 +5705,7 @@ RESPONSE STRUCTURE (use this for every substantive answer):
 
 Do NOT strip explanation for "give me a number" questions — keep the number first, then a one-line rationale. The previous "print only value" pattern was overfitted to benchmark scoring and is removed.
 For trivial arithmetic, answer directly without invoking run_code.`
-      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
+      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with what's on the table BEFORE asking the user a clarifying question. Use literature defaults (typical human dose/route, standard population, well-characterized PK values for known drugs) and STATE assumptions explicitly.
