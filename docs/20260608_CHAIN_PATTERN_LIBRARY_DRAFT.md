@@ -16,7 +16,7 @@
 
 ## 1. `sequential_omics_pipeline`
 
-**When**: Single modality, raw data → final result, no fork-in-the-road decisions. Most common shape. Triggered by "do X analysis on Y data" with a clear endpoint, single-modality work. Covers bulk RNA-seq alone, WGBS / methylation, miRNA-seq, proteomics alone, metabolomics alone — anything that is one modality from raw input to interpreted result. Distinguished from `multi_omics_integration` by the **absence** of integration / joint / combined / cross-modality language in the query, and from `branching_on_qc` by the absence of conditional / if-then language.
+**When**: Single modality, raw data → final result, no fork-in-the-road decisions. Most common shape. Triggered by "do X analysis on Y data" with a clear endpoint, single-modality work. Covers bulk RNA-seq alone, WGBS / methylation, miRNA-seq, proteomics alone, metabolomics alone, single-particle cryoEM pipelines (SPA, helical, focused refinement, 3D variability, conformational heterogeneity, cryoDRGN, CryoSPARC, RELION), pharmacology / PBPK simulation pipelines (PBPK, dose-response, PKPD, virtual patient cohort, Phase II dose justification, antibody developability), spatial transcriptomics processing (MERFISH, seqFISH, Visium), single-cell preprocessing (CITE-seq, MARS-seq, marsseq, 10x), metagenomics shotgun + 16S analysis (CONCOCT binning, MMseqs taxonomy, microbiome abundance) — anything that is one modality / data type from raw input to interpreted result. Distinguished from `multi_omics_integration` by the **absence** of integration / joint / combined / cross-modality language in the query, and from `branching_on_qc` by the absence of conditional / if-then language.
 
 **Shape**:
 ```
