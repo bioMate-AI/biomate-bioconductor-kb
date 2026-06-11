@@ -202,6 +202,24 @@ export function AfterRunReport({
             {findings?.figures && findings.figures.length > 0 && (
               <FindingsFiguresPanel figures={findings.figures} />
             )}
+            {/* Contract note — hoisted out of FindingsFiguresPanel (audit A1)
+                so it renders whether the figures panel is visible or not.
+                Wording covers numbers AND figures (the FindingsCard headline
+                metrics and bullets fall under this same contract). */}
+            <div
+              data-testid="findings-manifest-note"
+              style={{
+                fontSize: 10.5,
+                color: "oklch(0.48 0.012 260)",
+                fontStyle: "italic",
+                marginTop: 12,
+                paddingTop: 10,
+                borderTop: "1px solid oklch(0.94 0.008 260)",
+              }}
+            >
+              Findings are generated directly from the run manifest. Numbers
+              and figures in this section come from the workflow outputs.
+            </div>
           </>
         )}
         {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
@@ -1116,10 +1134,8 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
         if (fig.kind === "qc") return <FigQc key={i} fig={fig} />;
         return null;
       })}
-      <div style={{ fontSize: 10.5, color: "oklch(0.48 0.012 260)", fontStyle: "italic", marginTop: 6 }}>
-        Figures are generated directly from the run manifest. Numbers and
-        figures in this section come from the workflow outputs.
-      </div>
+      {/* Contract note moved to the Findings-tab body in AfterRunReport so it
+          renders whether figures are present or not (audit A1, 2026-06-11). */}
     </div>
   );
 }

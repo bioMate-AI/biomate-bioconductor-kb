@@ -128,11 +128,17 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
     expect(hl).toHaveTextContent(/apoptotic process/);
   });
 
-  it("renders the 'figures from manifest, not LLM' contract footer", async () => {
+  it("renders the manifest contract note at the Findings-tab footer (post-A1 hoist)", async () => {
+    // 2026-06-11 audit A1: the note was hoisted out of FindingsFiguresPanel
+    // so it always renders on the Findings tab, even when figures are absent.
     render(<AfterRunReport {...baseProps} />);
-    const panel = await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
-    expect(panel).toHaveTextContent(/Figures are generated (directly )?from the run manifest/i);
-    expect(panel).toHaveTextContent(/come from the workflow outputs/i);
+    // Wait for the figures panel to mount so we know findings finished loading
+    await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
+    const note = screen.getByTestId("findings-manifest-note");
+    expect(note).toHaveTextContent(/Findings are generated directly from the run manifest/i);
+    expect(note).toHaveTextContent(/Numbers and figures in this section come from the workflow outputs/i);
+    // The note must NOT contain the old defensive wording.
+    expect(note).not.toHaveTextContent(/not from the LLM/i);
   });
 
   it("hides the figures panel entirely when findings.figures is undefined (hide-when-empty)", async () => {
