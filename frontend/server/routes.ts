@@ -12,6 +12,7 @@ import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES } from "../shared/schema";
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
+import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -5185,15 +5186,14 @@ ${paramLines || '(none recorded)'}`;
       }
 
       // -----------------------------------------------------------------
-      // History + dataset rehydration from chat_sessions (regression fix —
-      // see docs/20260610_REAL_USER_FULL_CHAT_LOGS.md, wjunlin@HKU). The
-      // chat-stream endpoint previously trusted the client to send
-      // context.previousMessages + sessionDatasets every turn. When the
-      // client sent an empty context (page refresh, session-restore mid
-      // SSE, cross-device chat), the LLM ran with zero memory and asked
-      // for files the user had already attached two turns earlier. We
-      // now backfill from the persisted chat_sessions row when the
-      // client doesn't supply them.
+      // History + dataset rehydration from chat_sessions, then a hard
+      // token-budget cap. See:
+      //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
+      //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q3)
+      // Backfill when the client sent an empty/short payload (page
+      // refresh, cross-device). Then run selectChatHistoryUnderBudget so
+      // the assembled payload stays ≤16 KB regardless of where it came
+      // from — defense in depth.
       // -----------------------------------------------------------------
       const _resolvedSessionId = (context?.sessionId || context?.memorySessionId) || undefined;
       let _historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> | undefined =
@@ -5212,7 +5212,6 @@ ${paramLines || '(none recorded)'}`;
           if (_r) {
             if (!_historyMessages && Array.isArray(_r.messages)) {
               _historyMessages = _r.messages
-                .slice(-40)  // last 40 messages — keeps token budget bounded
                 .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
                 .map((m: any) => ({ role: m.role, content: m.content }));
               if (_historyMessages && _historyMessages.length === 0) _historyMessages = undefined;
@@ -5230,6 +5229,17 @@ ${paramLines || '(none recorded)'}`;
           }
         } catch (e: any) {
           console.warn('[chat-stream] history rehydration failed:', e?.message ?? e);
+        }
+      }
+
+      // Apply token-budget cap to whatever we ended up with. This runs
+      // for both the rehydrated path and the client-sent path so a stale
+      // or oversized client payload can't blow up the prompt either.
+      if (_historyMessages && _historyMessages.length > 0) {
+        const _before = _historyMessages.length;
+        _historyMessages = selectChatHistoryUnderBudget(_historyMessages as any) as any;
+        if ((_historyMessages?.length ?? 0) !== _before) {
+          console.log('[chat-stream] history selector trimmed:', _before, '→', _historyMessages?.length);
         }
       }
 

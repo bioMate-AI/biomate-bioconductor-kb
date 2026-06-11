@@ -665,20 +665,24 @@ export function ChatInterface({
   const chatMutation = useMutation({
     mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
       const session = chatHistoryService.getSession(sessionId)
-      // Build the history payload. Two-stage selection — see
-      // docs/20260610_REAL_USER_FULL_CHAT_LOGS.md (wjunlin@HKU): the
-      // previous `.slice(-4)` dropped early `[Galaxy dataset: ...]`
-      // attachment messages after 2 chat turns, so the LLM kept asking for
-      // files the user had already attached. Fix:
-      //   (a) keep a wider recency window (last 20 turns)
-      //   (b) ALWAYS retain any earlier message that carries a dataset
-      //       attachment block — those are the load-bearing context lines.
+      // Build the history payload. See:
+      //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
+      //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md
+      // Previously `.slice(-4)` — dropped early `[Galaxy dataset: ...]`
+      // attachment lines after 2 turns, so the LLM kept asking for files
+      // the user had already attached. Now: include the last 8 turns plus
+      // any earlier message carrying a dataset/attachment block. The
+      // server then runs selectChatHistoryUnderBudget over this payload
+      // (≤16 KB cap, dataset blocks verbatim, long assistant replies
+      // head/tail-clipped) — that's the authoritative budget. Keep the
+      // client payload modest so we don't pay for redundant network
+      // transfer of content the server will discard anyway.
       const _DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:/i
       const _allMsgs = (session?.messages || [])
         .filter((m) => (m.role === "user" || m.role === "assistant") && !!m.content?.trim())
-      const _recent = _allMsgs.slice(-20)
+      const _recent = _allMsgs.slice(-8)
       const _earlierAttachments = _allMsgs
-        .slice(0, Math.max(0, _allMsgs.length - 20))
+        .slice(0, Math.max(0, _allMsgs.length - 8))
         .filter((m) => _DATASET_BLOCK_RE.test(m.content || ""))
       const previousMessages = [..._earlierAttachments, ..._recent]
         .map((m) => ({ role: m.role, content: m.content }))
