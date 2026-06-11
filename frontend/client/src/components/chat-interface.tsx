@@ -2016,6 +2016,11 @@ export function ChatInterface({
         isCompressing={isCompressing}
         onCompress={handleCompress}
         onCancel={handleCancelCompression}
+        onStartNewChat={() => {
+          setShowCompressionDialog(false)
+          const newSession = chatHistoryService.createNewSession()
+          if (newSession && onChatUpdated) onChatUpdated(newSession)
+        }}
       />
     </div>
   )

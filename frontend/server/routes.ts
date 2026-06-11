@@ -5243,11 +5243,30 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Project framework — Q4 from the chat-context audit. The memory
+      // backend's project-scoped paths (procedures, episodes, knowledge)
+      // have been gated on context.projectId since they were written,
+      // but the chat-stream endpoint never set it. Auto-resolve a
+      // default project per user here so memory-integration's project
+      // branches come online without requiring a UI selector.
+      // See docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q4).
+      let _resolvedProjectId: string | undefined = context?.projectId;
+      if (!_resolvedProjectId && req.user) {
+        try {
+          const { memoryService } = await import('./memory-repository');
+          const _pid = await memoryService.ensureDefaultProject(String((req.user as any).id));
+          if (_pid) _resolvedProjectId = _pid;
+        } catch (e: any) {
+          console.warn('[chat-stream] ensureDefaultProject failed:', e?.message ?? e);
+        }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
         // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
         sessionId: _resolvedSessionId,
+        projectId: _resolvedProjectId,
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
