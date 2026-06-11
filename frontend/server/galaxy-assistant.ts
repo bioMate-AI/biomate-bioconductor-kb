@@ -6516,9 +6516,25 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (isResearchAnswer) {
       return assistantMessage;
     }
-    const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
-      userMessage || ''
-    );
+    const _msg = userMessage || '';
+    // Word-boundary'd drug-dev terms. The previous unanchored regex matched
+    // filenames like `clinical_gse22055.csv` (clinical=metadata) and bare
+    // substrings like "pk" inside other tokens, leaking pharma-specific
+    // boilerplate ("docking, ADMET, or PK/NCA") into RNA-seq / genomics chats.
+    // See docs/20260610_REAL_USER_FULL_CHAT_LOGS.md — wjunlin@hku session.
+    const _drugDevTerms = /\b(drug|admet|herg|dili|toxicity|docking|ligand|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|ic50|ec50)\b/i;
+    const _pkWord = /(?:^|[^a-z])pk(?:[^a-z]|$)/i;
+    // "clinical" alone is too broad (matches "clinical metadata", "clinical sample").
+    // Only treat as drug-dev when it co-occurs with trial/dose/phase language.
+    const _clinicalCtx = /\bclinical\s+(?:trial|study|phase|protocol|dose|dosing|escalation|pharmacology)\b/i;
+    const isDrugDevelopmentQuery = _drugDevTerms.test(_msg) || _pkWord.test(_msg) || _clinicalCtx.test(_msg);
+
+    // Hard escape hatch: never apply pharma boilerplate when the user is
+    // clearly in a genomics / transcriptomics / cheminformatics-free context.
+    const _genomicsContext = /\b(rna[- ]?seq|scrna|single[- ]?cell|deg|deseq2|edger|limma|geo|gse\d+|srr\d+|ensembl|fastq|bam|vcf|variant|gwas|cryo[- ]?em|microarray|differential\s+expression|count\s+matrix|volcano|gtf|gff|genome\s+assembly|chip[- ]?seq|atac[- ]?seq|methyl[- ]?seq)\b/i;
+    if (_genomicsContext.test(_msg)) {
+      return assistantMessage;
+    }
     if (!isDrugDevelopmentQuery) {
       return assistantMessage;
     }
