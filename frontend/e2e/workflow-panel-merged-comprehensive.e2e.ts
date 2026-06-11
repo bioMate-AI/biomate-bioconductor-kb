@@ -115,11 +115,19 @@ test("WPM: workflow panel — every updated UI element wired to backend", async 
   await test.step("phase header expand changes its open state", async () => {
     const phase = page.locator('[data-testid^="phase-group-"]').first();
     await phase.locator('.phase-head, [role="button"]').first().click().catch(() => {});
-    await page.waitForTimeout(300);
-    const expanded = await phase.evaluate(
-      (el) => el.classList.contains("open") || (el as any).getAttribute("aria-expanded") === "true"
-    );
-    expect(expanded).toBeTruthy();
+    // nextflow-workflow-viewer.tsx:501-503 — outer phase-group gets `.open`
+    // class; inner .phase-head gets aria-expanded. Check both surfaces so a
+    // minor markup refactor doesn't break this assertion. Poll up to 1.5s
+    // for the state to propagate (React batched setState).
+    await expect.poll(async () => {
+      return await phase.evaluate((el) => {
+        if (el.classList.contains("open")) return true;
+        if ((el as any).getAttribute("aria-expanded") === "true") return true;
+        const head = el.querySelector('.phase-head');
+        if (head && head.getAttribute("aria-expanded") === "true") return true;
+        return false;
+      });
+    }, { timeout: 1500 }).toBeTruthy();
   });
 
   await test.step("panel-action: cancel button reachable", async () => {

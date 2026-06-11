@@ -1031,6 +1031,37 @@ export class MemoryService {
   ): Promise<Session> {
     return this.sessions.endSession(sessionId, summary, keyDecisions);
   }
+
+  /**
+   * Ensure the user has at least one active project; create a default
+   * "Default Workspace" project if not. Returns the project ID. This is
+   * the minimum plumbing needed to re-enable the project framework — see
+   * docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q4). The chat-stream
+   * endpoint calls this once per request so memory-integration's
+   * project-scoped paths (procedures, episodes, project knowledge) come
+   * back online without requiring a UI project selector.
+   *
+   * Idempotent: subsequent calls return the existing project's id.
+   * Defensive: any DB failure returns null so the caller can degrade
+   * gracefully to project-less context (the previous behaviour).
+   */
+  async ensureDefaultProject(userId: string): Promise<string | null> {
+    if (!userId) return null;
+    try {
+      const existing = await this.projects.getUserProjects(userId, 'active');
+      if (existing.length > 0) return existing[0].id;
+      const created = await this.projects.createProject({
+        userId,
+        name: 'Default Workspace',
+        description: 'Auto-created default project; scopes memory + procedures per user.',
+        status: 'active',
+      } as InsertProject);
+      return created?.id ?? null;
+    } catch (e: any) {
+      console.warn('[MemoryService] ensureDefaultProject failed:', e?.message ?? e);
+      return null;
+    }
+  }
 }
 
 // Singleton instance
