@@ -131,7 +131,8 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
   it("renders the 'figures from manifest, not LLM' contract footer", async () => {
     render(<AfterRunReport {...baseProps} />);
     const panel = await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
-    expect(panel).toHaveTextContent(/Figures are generated from the run manifest/i);
+    expect(panel).toHaveTextContent(/Figures are generated (directly )?from the run manifest/i);
+    expect(panel).toHaveTextContent(/come from the workflow outputs/i);
   });
 
   it("hides the figures panel entirely when findings.figures is undefined (hide-when-empty)", async () => {

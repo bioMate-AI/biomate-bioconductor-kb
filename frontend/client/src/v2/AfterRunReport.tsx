@@ -1117,7 +1117,8 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
         return null;
       })}
       <div style={{ fontSize: 10.5, color: "oklch(0.48 0.012 260)", fontStyle: "italic", marginTop: 6 }}>
-        Figures are generated from the run manifest, not the LLM.
+        Figures are generated directly from the run manifest. Numbers and
+        figures in this section come from the workflow outputs.
       </div>
     </div>
   );
