@@ -183,6 +183,15 @@ export class AuthService {
     // Sync to billing service — fire-and-forget; don't block registration
     this.syncUserToBilling(newUser, resolvedCode?.quotaOverrideUsd ?? null);
 
+    // Send email-verification link — fire-and-forget; don't block registration.
+    // Existing unverified users are left as-is (no backfill) per the
+    // 2026-06-10 audit (17 of 17 real signups had email_verified=false
+    // because this call was missing). The verifyEmail() handler at line ~615
+    // already exists; it just needed a trigger.
+    this.sendVerificationEmail(newUser.id).catch((err: any) => {
+      console.warn(`[auth] failed to send verification email to ${newUser.email}: ${err?.message ?? err}`);
+    });
+
     // Provision Galaxy user account synchronously so the JWT we just issued
     // can be used for /api/ai_assistant/* on the very first chat turn. If
     // Galaxy is slow/unreachable, falls back to fire-and-forget retries and
