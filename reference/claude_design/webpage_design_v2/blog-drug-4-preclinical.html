@@ -5,22 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Computational Preclinical Development — BioMate AI Blog</title>
   <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
   <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
+  /* Blog article theme — scoped so shared nav/footer is unaffected */
+  .bm-blog {
     --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
     --accent:#4a7a8a; --accent-light:#3a6878;
     --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
     --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
   }
   html { scroll-behavior:smooth; }
-  body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
-  a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
-  a:hover { color:var(--accent); }
-  img { max-width:100%; display:block; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
   .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
   .site-header img { height:56px; width:auto; display:inline-block; }
-  nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
   .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
   .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
   .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
@@ -75,11 +77,11 @@
 
   /* CTA */
   .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
-  .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
-  .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
 
   /* Footer */
-  footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
   .footer-inner { max-width:1200px; margin:0 auto; }
   .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
   .footer-brand img { height:36px; margin-bottom:1rem; }
@@ -140,22 +142,8 @@
 
 </head>
 <body>
-<div class="site-header">
-  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
-</div>
-<nav>
-  <ul class="nav-links">
-    <li><a href="index.html#how-it-works">How It Works</a></li>
-    <li><a href="index.html#applications">Applications</a></li>
-    <li><a href="index.html#approach">Our Approach</a></li>
-    <li><a href="pricing.html">Pricing</a></li>
-    <li><a href="about.html">About</a></li>
-    <li><a href="blog.html">Blog</a></li>
-    <li><a href="index.html#contact">Contact</a></li>
-    <li><a href="login.html" class="nav-login">Log In</a></li>
-    <li><a href="https://dev-public.biomate.ai/register" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
+<div id="bm-nav"></div>
+<div class="bm-blog">
 
 <div class="article-hero">
   <img src="images/blog-drug-4-preclinical-hero.png" alt="BioMate for Drug Discovery, Part 4: Preclinical Modeling and IND Preparation" />
@@ -224,6 +212,23 @@
       <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
       <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
     </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong \u2014 email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
   </aside>
 </div>
 
@@ -238,31 +243,9 @@
   </div>
 </section>
 
-<footer>
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <img src="images/logo.png" alt="BioMate AI" />
-        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
-      </div>
-      <div class="footer-col"><h4>Product</h4><ul>
-        <li><a href="features.html">Features</a></li>
-        <li><a href="pricing.html">Pricing</a></li>
-        <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
-      </ul></div>
-      <div class="footer-col"><h4>Science</h4><ul>
-        <li><a href="index.html#approach">Our Approach</a></li>
-        <li><a href="blog.html">Blog</a></li>
-        <li><a href="index.html#applications">Applications</a></li>
-      </ul></div>
-      <div class="footer-col"><h4>Company</h4><ul>
-        <li><a href="about.html">About</a></li>
-        <li><a href="index.html#contact">Contact</a></li>
-        <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
-      </ul></div>
-    </div>
-    <p class="footer-copy">&#169; 2026 BioMate AI &middot; All rights reserved</p>
-  </div>
-</footer>
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
 </body>
 </html>
