@@ -4,7 +4,7 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 13 of 16 candidate workflows verified end-to-end. 3 are
+**Result:** 14 of 16 candidate workflows verified end-to-end. 2 are
 code-ready, each blocked by an issue independent of the QC code path.
 
 ## Verified workflows
@@ -28,6 +28,7 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 11 | biomarker_patient_enrichment | BIOMARKER_PATIENT_ENRICHMENT | `biomarker_prevalence` + `enrichment_factor` | prev ∈ [0.10, 0.50] + EF ≥ 1.5 | SILVER FDA Enrichment 2019 + BRONZE Phase III convention; `biomarker_pos_hr` omitted (binary-outcome RR ≠ time-to-event HR) | 10467ddc 06-10 17:43:03 |
 | 12 | ivive_hepatic_clearance | IVIVE_HEPATIC_CLEARANCE | `ivive_fold_error` | ≤ 2 | GOLD Obach 1999 Drug Metab Dispos 27:1350; fold_error only emitted when `clh_observed_ml_min_kg` param supplied | 2bd4e370 06-10 19:33:12 |
 | 13 | predict_admet_properties | PREDICT_ADMET_PROPERTIES | `herg_ic50_uM` + `ames_positive` + `dili_risk` | hERG ≥10μM / Ames neg / DILI != high | GOLD Redfern 2003 + Sanguinetti 2006 (hERG) / SILVER Kazius 2005 (Ames) / SILVER Mulliner 2016 (DILI); gate TRIGGERED on terfenadine (canonical hERG positive control, IC50 0.24μM) AND on its high DILI risk — exactly as expected | 7482bb1e 06-10 19:44:27 |
+| 14 | cyp_ddi_panel | DDI_RISK_ASSESSMENT | `overall_recommendation` | NOT_EXPECTED / INVESTIGATE / CLINICAL_STUDY_RECOMMENDED | GOLD FDA 2020 In Vitro DDI Guidance (R1 ≥ 1.02 INVESTIGATE; R1 ≥ 1.1 CLINICAL); requires `null`→`None` Groovy interpolation fix (`420639060`) | aae555da 06-11 19:32:10 |
 
 ## Code-ready but blocked
 
@@ -35,7 +36,6 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 |---|---|---|---|
 | 9 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
 | 10 | boltz_structure_prediction | `mean_plddt ≥ 70`, `max_pae ≤ 8 Å`, `confident_fraction ≥ 0.70` (GOLD Jumper 2021 / Tunyasuvunakool 2021) | GPU Batch run, ~$ per minute. Verification deferred pending dedicated GPU-budget session. Code path validated: SUMMARISE_RESULTS renamed BOLTZ_SUMMARISE_RESULTS so process name contains the "BOLTZ" `_PROCESS_KEYWORDS` substring. |
-| 12 | cyp_ddi_panel | `overall_recommendation` (GOLD FDA 2020 DDI Guidance) | Code + S3 emit + `_S3_REPORT_PATHS` entry deployed (`cb2b0412d`). First verification run `78bd1688` (2026-06-10 20:30:40 UTC, ketoconazole + 400 mg PO) completed but the QC monitor's polling thread never spawned for that gunicorn worker — same anomaly affected the parallel IVIVE/ADMET re-runs in this batch. Not a Batch A code defect (IVIVE + ADMET have prior 19:33 / 19:44 verifications on identical code paths). Re-verification requires a clean gunicorn worker. |
 | 11 | nlmixr2_population_pk | `eta_shrinkage_pct_max < 20%` (GOLD Savic & Karlsson 2007) + `condition_number` | Fixture now staged: `s3://biomate-nextflow-work/fixtures/popPK/synthetic_pk_theo.csv` (12 subjects × 11 timepoints, Theophylline-style 1-cmt oral). Workflow + qc_metrics.json emit + `_S3_REPORT_PATHS` entry + E2E test (`frontend/e2e/nlmixr2-qc-coverage.e2e.t`) all committed. Verification blocked: both SAEM (run `8dfe97d7`, 2026-06-10 18:54 UTC) and FOCEI (run `1e66c9f1`, 2026-06-10 19:10 UTC) reach NLMIXR2_POPULATION_PK and fail at `nlmixr2::nlmixr2()` with R-side tryCatch swallowing the message. Container `biomate/r-pharma:x86` has nlmixr2/rxode2 installed but the fit fails for this sparse fixture; root cause requires reading `.command.log` from the AWS Batch task work dir (not accessible from this session). Not a BioMate code-path bug. |
 
 ## Recipe
