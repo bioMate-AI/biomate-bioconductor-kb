@@ -1,0 +1,32 @@
+{
+  "name": "phase2_dose_justification_chain",
+  "display_name": "Phase II → Phase III Dose Justification Brief (FDA-format)",
+  "domain": "pharmacology",
+  "description": "Generates an FDA-format Phase II → Phase III dose justification document from exposure-response modeling and virtual patient simulations. Standard regulatory deliverable for IND/NDA. Sequence: characterize exposure-response from Phase II data → simulate virtual Phase III population → produce regulatory-formatted brief with rationale.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "exposure_response_modeling", "role": "phase2_er_modeling", "params_template": {}},
+    {"order": 2, "workflow_name": "virtual_patient_cohort", "role": "phase3_population_simulation", "params_template": {"n_subjects": 5000}},
+    {"order": 3, "workflow_name": "phase2_dose_justification", "role": "regulatory_brief_generation", "params_template": {"format": "FDA"}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "er_model", "to_step": 2, "to_input": "er_model"},
+    {"from_step": 2, "from_output": "simulated_outcomes", "to_step": 3, "to_input": "phase3_predictions"}
+  ],
+  "required_inputs": [
+    {"name": "phase2_pk_data", "type": "csv"},
+    {"name": "phase2_efficacy_data", "type": "csv"},
+    {"name": "phase2_safety_data", "type": "csv"}
+  ],
+  "expected_outputs": [
+    {"name": "dose_justification_brief", "type": "pdf"},
+    {"name": "er_model_summary", "type": "json"}
+  ],
+  "example_queries": [
+    "FDA Phase II to Phase III dose justification brief",
+    "Phase II dose selection for Phase III trial",
+    "exposure-response modeling for dose justification",
+    "regulatory dose justification with virtual patient simulation"
+  ],
+  "tags": ["pharmacology", "regulatory", "dose_justification", "Phase_II", "Phase_III", "FDA"]
+}
