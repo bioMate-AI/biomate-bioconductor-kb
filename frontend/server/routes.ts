@@ -5255,16 +5255,33 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Project framework — Q4 from the chat-context audit.
-      // ensureDefaultProject() is implemented in MemoryService but
-      // NOT called here because the LTM schema (projects / episodes /
-      // procedures / knowledge / conversation_messages) is not yet
-      // migrated on dev (see audit 2026-06-11). Calling it on every
-      // request produced "relation \"projects\" does not exist" log spam
-      // with zero functional benefit because the table doesn't exist.
-      // Re-enable this block in a follow-up PR that ships the LTM
-      // migration (0012_ltm_schema.sql) — the helper is already there.
-      const _resolvedProjectId: string | undefined = context?.projectId;
+      // Project framework — Q4 from the chat-context audit. The LTM
+      // schema (frontend/migrations/0012_ltm_schema.sql, applied
+      // 2026-06-12) creates ltm_users / projects / episodes /
+      // procedures / project_knowledge etc., so the find-or-create
+      // path now actually persists. ensureDefaultProject is fully
+      // idempotent and falls back to null on any DB failure — chat
+      // works exactly as before if the call breaks. The returned
+      // projectId is threaded into enrichedContext so
+      // memory-integration's project-scoped paths (procedures,
+      // episodes, project_knowledge) come online without requiring a
+      // UI project selector.
+      let _resolvedProjectId: string | undefined = context?.projectId;
+      if (!_resolvedProjectId && req.user) {
+        try {
+          const { memoryService } = await import('./memory-repository');
+          const _u = req.user as any;
+          const _pid = await memoryService.ensureDefaultProject(
+            String(_u.id),
+            _u.email,
+            _u.fullName ?? _u.name
+          );
+          if (_pid) _resolvedProjectId = _pid;
+        } catch (e: any) {
+          // Defensive — never break chat on a memory-system error.
+          console.warn('[chat-stream] ensureDefaultProject failed:', e?.message ?? e);
+        }
+      }
 
       const enrichedContext = {
         ...(context || {}),

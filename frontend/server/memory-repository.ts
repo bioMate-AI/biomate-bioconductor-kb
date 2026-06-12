@@ -1045,9 +1045,16 @@ export class MemoryService {
    * Defensive: any DB failure returns null so the caller can degrade
    * gracefully to project-less context (the previous behaviour).
    */
-  async ensureDefaultProject(userId: string): Promise<string | null> {
+  async ensureDefaultProject(userId: string, email?: string, name?: string): Promise<string | null> {
     if (!userId) return null;
     try {
+      // Step 1: ltm_users row must exist before projects.user_id FK can resolve.
+      // UserMemoryRepository.ensureLtmUser is idempotent (ON CONFLICT DO NOTHING)
+      // and reuses BioMate's auth users.id as the ltm_users.id — keeping the
+      // two user tables aligned by uuid so cross-table joins stay simple.
+      await this.users.ensureLtmUser(userId, email, name);
+
+      // Step 2: find-or-create the default project for this user.
       const existing = await this.projects.getUserProjects(userId, 'active');
       if (existing.length > 0) return existing[0].id;
       const created = await this.projects.createProject({
@@ -1058,6 +1065,9 @@ export class MemoryService {
       } as InsertProject);
       return created?.id ?? null;
     } catch (e: any) {
+      // Defensive — schema mismatches / DB outages must not break chat.
+      // If this fails we just don't get project-scoped memory; the chat
+      // works exactly as before the Q4 wiring landed.
       console.warn('[MemoryService] ensureDefaultProject failed:', e?.message ?? e);
       return null;
     }
