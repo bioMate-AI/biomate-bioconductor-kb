@@ -1548,6 +1548,7 @@ class NextflowQCGateHandler:
         "PREDICT_ADMET_PROPERTIES":  ("*", "qc_metrics.json"),  # hERG ≥10μM (GOLD, Redfern 2003) / Ames neg (SILVER, Kazius 2005) / DILI
         "DDI_RISK_ASSESSMENT":       ("*", "qc_metrics.json"),  # FDA 2020 DDI R1/R2 INVESTIGATE/CLINICAL_STUDY (GOLD)
         "NCA_PKNCA_ANALYSIS":        ("*", "qc_metrics.json"),  # auc_extrap_pct_max ≤ 20% (GOLD, FDA 2003 BA/BE)
+        "PBPK_SIMULATION":           ("*", "qc_metrics.json"),  # tmax_fraction ≤ 0.8 (SILVER, FDA 2018 PBPK)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
