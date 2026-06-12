@@ -129,6 +129,11 @@ _DICTS: Dict[str, List[str]] = {
         "3d refinement", "3d classification", "3d variability",
         "conformational heterogeneity", "helical reconstruction",
         "focused refinement", "cryosparc", "relion", "cryodrgn",
+        # cryoEM target language (specific enough to not collide with other domains)
+        "gpcr", "g protein-coupled receptor", "membrane protein",
+        "membrane complex", "nanodisc", "detergent micelle",
+        "filamentous", "spike protein", "ribosome subunit",
+        "spliceosome", "tubulin", "actin filament",
         # pharmacology / drug development
         "pbpk", "pbpk simulation", "ddi", "cyp450", "cyp inhibition",
         "ic50", "ec50", "hepatic clearance", "dose-response",
