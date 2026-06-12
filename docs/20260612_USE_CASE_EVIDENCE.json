@@ -1,0 +1,808 @@
+{
+  "use_cases": [
+    {
+      "id": "UC1",
+      "research_scenario": "Bulk RNA-seq differential expression with downstream pathway enrichment \u2014 canonical transcriptomics analysis",
+      "query": "bulk RNA-seq differential expression analysis on human samples with GO and KEGG enrichment",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 1.0,
+      "patterns_used": [
+        "multi_method_consensus",
+        "sequential_omics_pipeline",
+        "multi_omics_integration"
+      ],
+      "exemplars_used": [
+        "bulk_rnaseq_de_analysis",
+        "bulk_rnaseq_consensus_de_bioc",
+        "ensemble_gene_set_enrichment_egsea"
+      ],
+      "rationale": "Curated chain `bulk_rnaseq_de_analysis` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "nf-core/rnaseq",
+          "role": "alignment_qc_quantification"
+        },
+        {
+          "order": 2,
+          "workflow_name": "nf-core/differentialabundance",
+          "role": "differential_expression"
+        },
+        {
+          "order": 3,
+          "workflow_name": "clusterprofiler_gene_set_enrichment_analysis",
+          "role": "pathway_enrichment"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [
+          "human",
+          "Homo sapiens"
+        ],
+        "modalities": [
+          "rna-seq"
+        ],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "differential expression",
+          "enrichment",
+          "GO enrichment",
+          "KEGG enrichment"
+        ],
+        "assemblies": [],
+        "intent": "Perform differential expression and GO/KEGG pathway enrichment analyses on bulk RNA-seq data from human samples."
+      },
+      "wall_clock_s": 18.3
+    },
+    {
+      "id": "UC2",
+      "research_scenario": "Cross-cohort biomarker validation \u2014 TCGA discovery, UK Biobank validation",
+      "query": "validate biomarkers from a TCGA discovery cohort on UK Biobank using GRCh38",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 1.0,
+      "patterns_used": [
+        "discovery_then_validation",
+        "cross_cohort_replication",
+        "time_series_longitudinal"
+      ],
+      "exemplars_used": [
+        "meta_analysis_with_bacon",
+        "target_tractability_assessment",
+        "cnv_consensus_pipeline"
+      ],
+      "rationale": "Curated chain `meta_analysis_with_bacon` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "nf-core/rnaseq",
+          "role": "per_cohort_quantification"
+        },
+        {
+          "order": 2,
+          "workflow_name": "deseq2_multi_factor_analysis",
+          "role": "per_cohort_de"
+        },
+        {
+          "order": 3,
+          "workflow_name": "bacon_multiple_sets_and_meta_analysis",
+          "role": "cross_cohort_meta_analysis"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [
+          "tcga",
+          "uk biobank"
+        ],
+        "analyses": [
+          "validate",
+          "validate biomarkers",
+          "biomarkers",
+          "discovery cohort",
+          "biomarker validation"
+        ],
+        "assemblies": [
+          "grch38"
+        ],
+        "intent": "Validate biomarkers from a TCGA discovery cohort using the UK Biobank cohort and the GRCh38 assembly."
+      },
+      "wall_clock_s": 7.6
+    },
+    {
+      "id": "UC3",
+      "research_scenario": "Multi-omics integration \u2014 RNA-seq + ATAC-seq from single tissue",
+      "query": "multi-omics RNA-seq plus ATAC-seq integration on mouse brain mm10",
+      "source": "llm",
+      "mode": "upfront",
+      "confidence": 0.91,
+      "patterns_used": [
+        "multi_omics_integration",
+        "sequential_omics_pipeline",
+        "branching_on_qc"
+      ],
+      "exemplars_used": [
+        "rnaseq_epigenomic_integration_fluent",
+        "scrna_adt_multimodal_via_scrapper",
+        "single_cell_multimodal_analysis"
+      ],
+      "rationale": "Following the 'multi_omics_integration' pattern, this chain processes the RNA-seq and ATAC-seq modalities in parallel using standard nf-core pipelines mapped to the mm10 assembly. It then integrates the results using plyranges to link chromatin accessibility peaks to gene expression, and applies nullranges to construct covariate-matched backgrounds for rigorous downstream statistical interpretation.",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "nf-core/rnaseq",
+          "role": "RNA-seq processing"
+        },
+        {
+          "order": 2,
+          "workflow_name": "nf-core/atacseq",
+          "role": "ATAC-seq processing"
+        },
+        {
+          "order": 3,
+          "workflow_name": "plyranges",
+          "role": "Multi-omics integration"
+        },
+        {
+          "order": 4,
+          "workflow_name": "nullranges",
+          "role": "Statistical background generation"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 3,
+          "via": "rna_expression_ranges"
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": "atac_peak_ranges"
+        },
+        {
+          "from_step": 3,
+          "to_step": 4,
+          "via": "integrated_peak_gene_ranges"
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [
+          "mouse"
+        ],
+        "modalities": [
+          "rna-seq",
+          "atac-seq"
+        ],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "multi-omics integration"
+        ],
+        "assemblies": [
+          "mm10"
+        ],
+        "intent": "Perform multi-omics integration of RNA-seq and ATAC-seq data from mouse brain using the mm10 assembly."
+      },
+      "wall_clock_s": 17.5
+    },
+    {
+      "id": "UC4",
+      "research_scenario": "Multi-method consensus DE \u2014 robust DE for publication-grade studies",
+      "query": "robust differential expression with DESeq2, edgeR, and limma on tumor vs normal RNA-seq",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 1.0,
+      "patterns_used": [
+        "multi_method_consensus",
+        "branching_on_qc",
+        "sequential_omics_pipeline"
+      ],
+      "exemplars_used": [
+        "multiomic_differential_expression_exphunter",
+        "consensus_de_with_piano",
+        "bulk_rnaseq_consensus_de_bioc"
+      ],
+      "rationale": "Curated chain `multiomic_differential_expression_exphunter` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "nf-core/rnaseq",
+          "role": "alignment_qc_quantification"
+        },
+        {
+          "order": 2,
+          "workflow_name": "BIOC_ExpHunterSuite",
+          "role": "consensus_de_calling"
+        },
+        {
+          "order": 3,
+          "workflow_name": "BIOC_ExpHunterSuite",
+          "role": "functional_analysis"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [
+          "rna-seq"
+        ],
+        "tools": [
+          "deseq2",
+          "edger",
+          "limma"
+        ],
+        "data_types": [],
+        "contrasts": [
+          "tumor vs normal"
+        ],
+        "cohorts": [],
+        "analyses": [
+          "differential expression"
+        ],
+        "assemblies": [],
+        "intent": "Perform robust differential expression analysis on tumor versus normal RNA-seq data using DESeq2, edgeR, and limma."
+      },
+      "wall_clock_s": 6.5
+    },
+    {
+      "id": "UC5",
+      "research_scenario": "Drug-target validation \u2014 assess tractability before committing screen budget",
+      "query": "target tractability scoring for small molecule and biologic drug discovery",
+      "source": "llm",
+      "mode": "stepwise",
+      "confidence": 0.63,
+      "patterns_used": [
+        "time_series_longitudinal",
+        "filter_cascade",
+        "discovery_then_validation"
+      ],
+      "exemplars_used": [
+        "target_tractability_assessment",
+        "drug_discovery_screening",
+        "mageck_to_gears_moa"
+      ],
+      "rationale": "This workflow follows the 'discovery_then_validation' pattern by first assessing the theoretical tractability of a target for small molecules and biologics. It then validates the structural foundation by retrieving the target's 3D structure via AlphaFold DB Search to confirm druggable pockets or surface epitopes for downstream drug design.",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "target_tractability_scorer",
+          "role": "Target Tractability Assessment"
+        },
+        {
+          "order": 2,
+          "workflow_name": "AlphaFold DB Search",
+          "role": "Structural Confirmation"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": "target_protein_id"
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "target tractability",
+          "target tractability scoring",
+          "drug discovery"
+        ],
+        "assemblies": [],
+        "intent": "Perform target tractability scoring to evaluate targets for small molecule and biologic drug discovery."
+      },
+      "wall_clock_s": 13.5
+    },
+    {
+      "id": "UC6",
+      "research_scenario": "Cryo-EM membrane protein structure \u2014 GPCR in nanodisc",
+      "query": "single particle analysis of GPCR membrane protein in nanodisc",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 1.0,
+      "patterns_used": [
+        "sequential_omics_pipeline",
+        "multi_omics_integration",
+        "hierarchical_re_evaluation"
+      ],
+      "exemplars_used": [
+        "gpcr_spa_cryo_em_pipeline",
+        "scrna_adt_multimodal_via_scrapper",
+        "mrna_codon_optimization_chain"
+      ],
+      "rationale": "Curated chain `gpcr_spa_cryo_em_pipeline` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "CryoSPARC Standard Single-Particle Analysis",
+          "role": "standard_spa_pipeline"
+        },
+        {
+          "order": 2,
+          "workflow_name": "GPCR Complex SPA",
+          "role": "gpcr_specific_refinement"
+        },
+        {
+          "order": 3,
+          "workflow_name": "3D Variability Pipeline",
+          "role": "conformational_states"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [
+          "Cryo-EM"
+        ],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "single particle analysis",
+          "gpcr",
+          "membrane protein",
+          "nanodisc"
+        ],
+        "assemblies": [],
+        "intent": "Perform single particle analysis of a GPCR membrane protein embedded in a nanodisc."
+      },
+      "wall_clock_s": 6.4
+    },
+    {
+      "id": "UC7",
+      "research_scenario": "PBPK simulation for special population (renal impairment) \u2014 regulatory deliverable",
+      "query": "PBPK simulation for renal impairment patients",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 0.93,
+      "patterns_used": [
+        "sequential_omics_pipeline"
+      ],
+      "exemplars_used": [
+        "pbpk_renal_impairment_chain",
+        "admet_to_virtual_patient_dose_opt",
+        "cyp450_ddi_chain"
+      ],
+      "rationale": "Curated chain `pbpk_renal_impairment_chain` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "allometric_scaling",
+          "role": "preclinical_to_human_pk"
+        },
+        {
+          "order": 2,
+          "workflow_name": "pbpk_disease_state",
+          "role": "organ_impairment_submodel"
+        },
+        {
+          "order": 3,
+          "workflow_name": "virtual_patient_cohort",
+          "role": "monte_carlo_variability"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [
+          "human"
+        ],
+        "modalities": [],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "pbpk",
+          "pbpk simulation",
+          "renal impairment"
+        ],
+        "assemblies": [],
+        "intent": "Perform a physiologically based pharmacokinetic (PBPK) simulation for patients with renal impairment."
+      },
+      "wall_clock_s": 6.7
+    },
+    {
+      "id": "UC8",
+      "research_scenario": "Shotgun metagenomics MAG recovery",
+      "query": "shotgun metagenomics with CONCOCT binning and taxonomy",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 0.97,
+      "patterns_used": [
+        "sequential_omics_pipeline"
+      ],
+      "exemplars_used": [
+        "shotgun_metagenomics_to_mag"
+      ],
+      "rationale": "Curated chain `shotgun_metagenomics_to_mag` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "Fasta Binning Concoct",
+          "role": "contig_binning"
+        },
+        {
+          "order": 2,
+          "workflow_name": "Mmseqs Contig Taxonomy",
+          "role": "taxonomy_assignment"
+        },
+        {
+          "order": 3,
+          "workflow_name": "PathoStat",
+          "role": "statistical_microbiome_analysis"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [
+          "Shotgun Metagenomics"
+        ],
+        "tools": [
+          "CONCOCT"
+        ],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "metagenomics",
+          "shotgun metagenomics",
+          "concoct",
+          "binning",
+          "taxonomy",
+          "Metagenomic binning",
+          "Taxonomic profiling"
+        ],
+        "assemblies": [],
+        "intent": "Perform shotgun metagenomics analysis including contig binning using CONCOCT and taxonomic profiling."
+      },
+      "wall_clock_s": 6.3
+    },
+    {
+      "id": "UC9",
+      "research_scenario": "Drug-drug interaction prediction (CYP450)",
+      "query": "predict CYP450 inhibition and hepatic clearance for new chemical entity",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 0.93,
+      "patterns_used": [
+        "filter_cascade"
+      ],
+      "exemplars_used": [
+        "cyp450_ddi_chain",
+        "pbpk_to_tumor_tgi",
+        "mageck_to_gears_moa"
+      ],
+      "rationale": "Curated chain `cyp450_ddi_chain` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "CYP450 DDI Panel + Hepatic Clearance",
+          "role": "in_vitro_ddi_prediction"
+        },
+        {
+          "order": 2,
+          "workflow_name": "allometric_scaling",
+          "role": "in_vitro_to_in_vivo"
+        },
+        {
+          "order": 3,
+          "workflow_name": "pbpk_simulation",
+          "role": "clinical_ddi_simulation"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "cyp450",
+          "hepatic clearance",
+          "CYP450 inhibition prediction",
+          "hepatic clearance prediction"
+        ],
+        "assemblies": [],
+        "intent": "Predict CYP450 inhibition and hepatic clearance for a new chemical entity."
+      },
+      "wall_clock_s": 8.6
+    },
+    {
+      "id": "UC10",
+      "research_scenario": "Ribosome profiling FLOSS analysis \u2014 beyond curated catalog",
+      "query": "predict ribosome profiling efficiency from RNA-seq with FLOSS statistics",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 0.96,
+      "patterns_used": [
+        "sequential_omics_pipeline",
+        "branching_on_qc",
+        "multi_omics_integration"
+      ],
+      "exemplars_used": [
+        "consensus_de_with_piano",
+        "pbpk_to_tumor_tgi",
+        "cutandtag_chromatin_analysis"
+      ],
+      "rationale": "Curated chain `consensus_de_with_piano` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "nf-core/rnaseq",
+          "role": "primary_processing"
+        },
+        {
+          "order": 2,
+          "workflow_name": "BIOC_ExpHunterSuite",
+          "role": "per_method_de"
+        },
+        {
+          "order": 3,
+          "workflow_name": "piano_consensus_gsa_scoring",
+          "role": "consensus_gsa"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        },
+        {
+          "from_step": 2,
+          "to_step": 3,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [
+          "rna-seq",
+          "Ribo-seq"
+        ],
+        "tools": [
+          "FLOSS"
+        ],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "Translation efficiency"
+        ],
+        "assemblies": [],
+        "intent": "Predict ribosome profiling efficiency using RNA-seq data and FLOSS statistics."
+      },
+      "wall_clock_s": 7.4
+    },
+    {
+      "id": "UC11",
+      "research_scenario": "Single-cell CITE-seq with paired protein + RNA",
+      "query": "CITE-seq preprocessing with paired protein and RNA modalities",
+      "source": "llm",
+      "mode": "upfront",
+      "confidence": 0.79,
+      "patterns_used": [
+        "multi_omics_integration",
+        "sequential_omics_pipeline",
+        "branching_on_qc"
+      ],
+      "exemplars_used": [
+        "scrna_adt_multimodal_via_scrapper",
+        "rare_disease_multimodal_workup",
+        "mrna_codon_optimization_chain"
+      ],
+      "rationale": "This chain follows the multi_omics_integration pattern for CITE-seq data. It begins by processing raw sequencing reads into paired RNA and ADT count matrices using a dedicated CITE-seq preprocessing pipeline. These matrices are then integrated using scvir to build a MuData object and train a TOTALVI model, yielding a shared latent space rather than analyzing the modalities in isolation.",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "cite_seq_preprocessing",
+          "role": "Raw data processing"
+        },
+        {
+          "order": 2,
+          "workflow_name": "scvir",
+          "role": "Multimodal integration"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": "paired_rna_adt_matrices"
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [
+          "cite-seq",
+          "scRNA-seq",
+          "proteomics"
+        ],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [
+          "cite-seq",
+          "preprocessing"
+        ],
+        "assemblies": [],
+        "intent": "Preprocess CITE-seq data containing paired protein and RNA modalities."
+      },
+      "wall_clock_s": 22.9
+    },
+    {
+      "id": "UC12",
+      "research_scenario": "Time-course RNA-seq DE",
+      "query": "test compound effect over time at 0, 6, 24, and 72 hours in HepG2 cells",
+      "source": "curated_passthrough",
+      "mode": "upfront",
+      "confidence": 0.8,
+      "patterns_used": [
+        "time_series_longitudinal",
+        "discovery_then_validation",
+        "hierarchical_re_evaluation"
+      ],
+      "exemplars_used": [
+        "time_series_de_with_edge",
+        "lcms_metabolomics_consensus",
+        "mageck_to_gears_moa"
+      ],
+      "rationale": "Curated chain `time_series_de_with_edge` matched the query (score 1.00).",
+      "steps": [
+        {
+          "order": 1,
+          "workflow_name": "nf-core/rnaseq",
+          "role": "per_timepoint_quantification"
+        },
+        {
+          "order": 2,
+          "workflow_name": "edge_timecourse_de_analysis",
+          "role": "time_aware_de"
+        }
+      ],
+      "edges": [
+        {
+          "from_step": 1,
+          "to_step": 2,
+          "via": ""
+        }
+      ],
+      "verifier_ok": true,
+      "verifier_errors": 0,
+      "entities_extracted": {
+        "organisms": [],
+        "modalities": [],
+        "tools": [],
+        "data_types": [],
+        "contrasts": [],
+        "cohorts": [],
+        "analyses": [],
+        "assemblies": [],
+        "intent": "test compound effect over time at 0, 6, 24, and 72 hours in HepG2 cells"
+      },
+      "wall_clock_s": 8.9
+    }
+  ]
+}
