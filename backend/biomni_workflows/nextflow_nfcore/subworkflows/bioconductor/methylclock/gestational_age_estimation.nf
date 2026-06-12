@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Check missing CpGs for gestational age clocks using checkClocksGA. 2. Identify specific missing CpGs using commonClockCpgs. 3. Est
+//  * 1. [Visualization & Output] Check missing CpGs for gestational age clocks using
+//  * 2. [Visualization & Output] Identify specific missing CpGs using commonClockCpgs
+//  * 3. [Visualization & Output] Estimate gestational DNAm age using DNAmGA
+//  * 4. [Visualization & Output] Estimate gestational DNAm age for progress data
+//  * 5. [Visualization & Output] Plot correlation between estimated gestational age and
+//  * 6. [Visualization & Output] Estimate gestational DNAm age and gestational age
+//  * 7. [Visualization & Output] Check clocks for progress data
 
 nextflow.enable.dsl = 2
 
@@ -100,23 +106,23 @@ process BIOC_METHYLCLOCK_GESTATIONAL_AGE_ESTIMATION {
     # 2. Execute Workflow Stages
     # ----------------------------------------------------------------------
     
-    # Stage 1: Check missing CpGs for gestational age clocks using checkClocksGA
+    # --- Check missing CpGs for gestational age clocks using ---
     cpgs.missing.GA <- checkClocksGA(TestDataset)
     saveRDS(cpgs.missing.GA, "cpgs_missing_GA.rds")
     
-    # Stage 2: Identify specific missing CpGs using commonClockCpgs
+    # --- Identify specific missing CpGs using commonClockCpgs ---
     missing_bohlin <- commonClockCpgs(cpgs.missing.GA, "Bohlin")
     writeLines(as.character(missing_bohlin), "missing_Bohlin_cpgs.txt")
     
-    # Stage 3: Estimate gestational DNAm age using DNAmGA
+    # --- Estimate gestational DNAm age using DNAmGA ---
     ga.test <- DNAmGA(TestDataset)
     write.csv(ga.test, "ga_test_estimates.csv", row.names = FALSE)
     
-    # Stage 4: Estimate gestational DNAm age for progress data
+    # --- Estimate gestational DNAm age for progress data ---
     ga.progress <- DNAmGA(progress_data)
     write.csv(ga.progress, "ga_progress_estimates.csv", row.names = FALSE)
     
-    # Stage 5: Plot correlation between estimated gestational age and clinical gestational age using plotDNAmAge
+    # --- Plot correlation between estimated gestational age and ---
     pdf("plot_GA_Knight_method.pdf")
     p <- plotDNAmAge(ga.progress\$Knight, progress_vars\$EGA, tit="GA Knight's method", clock="GA")
     if (inherits(p, "ggplot") || inherits(p, "gg")) {
@@ -124,11 +130,11 @@ process BIOC_METHYLCLOCK_GESTATIONAL_AGE_ESTIMATION {
     }
     dev.off()
     
-    # Stage 6: Estimate gestational DNAm age and gestational age acceleration by providing clinical gestational age to DNAmGA
+    # --- Estimate gestational DNAm age and gestational age ---
     accga.progress <- DNAmGA(progress_data, age = progress_vars\$EGA, cell.count=FALSE)
     write.csv(accga.progress, "accga_progress_estimates.csv", row.names = FALSE)
     
-    # Stage 7: Check clocks for progress data
+    # --- Check clocks for progress data ---
     progress_clocks_check <- checkClocksGA(progress_data)
     saveRDS(progress_clocks_check, "progress_clocks_check.rds")
 

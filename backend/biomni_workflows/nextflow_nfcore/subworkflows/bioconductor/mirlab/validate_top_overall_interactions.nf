@@ -93,15 +93,15 @@ process BIOC_MIRLAB_VALIDATE_TOP_OVERALL_INTERACTIONS {
       effect <- (n_mir + 1):n_col
     }
     
-    # 1. Predict miRNA-mRNA relationships using Pearson correlation
+    # --- Predict miRNA-mRNA relationships using Pearson correlation ---
     message("Calculating Pearson correlation coefficients...")
     EMTresults = Pearson(dataset, cause, effect)
     
-    # 2. Extract the top overall predicted interactions
+    # --- Extract the top overall predicted interactions ---
     message("Extracting top 10 predicted interactions...")
     top10 = Extopk(EMTresults, 10)
     
-    # 3. Validate the top interactions against the ground truth
+    # --- Validate the top interactions against the ground truth ---
     message("Validating top predictions against ground truth...")
     top10Confirmed = Validation(top10, groundtruth)
     

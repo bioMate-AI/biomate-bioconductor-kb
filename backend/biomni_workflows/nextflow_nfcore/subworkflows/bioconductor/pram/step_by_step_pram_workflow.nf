@@ -57,17 +57,17 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_WORKFLOW {
     library(GenomicRanges)
     library(data.table)
     
-    # 1. Define intergenic genomic ranges using defIgRanges()
+    # --- Define intergenic genomic ranges using defIgRanges() ---
     ig_ranges <- pram::defIgRanges('defIgRanges_in.gtf', genome = 'hg38')
     
-    # 2. Extract intergenic RNA-seq alignments using prepIgBam()
+    # --- Extract intergenic RNA-seq alignments using prepIgBam() ---
     finbam = 'CMPRep2.sortedByCoord.raw.bam'
     iggrs = GenomicRanges::GRanges('chr10:77236000-77247000:+')
     foutbam = 'CMPRep2_intergenic.bam'
     
     pram::prepIgBam(finbam, iggrs, foutbam)
     
-    # 3. Build transcript models using buildModel()
+    # --- Build transcript models using buildModel() ---
     # We use the extracted intergenic BAM file as input
     fbams = foutbam
     foutgtf = 'predicted_models.gtf'
@@ -81,13 +81,13 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_WORKFLOW {
       message("Skipping buildModel step or failed: ", e\$message)
     })
     
-    # 4. Select transcript models based on genomic features using selModel()
+    # --- Select transcript models based on genomic features using ---
     fin_gtf = 'selModel_in.gtf'
     fout_gtf = 'selected_models.gtf'
     
     pram::selModel(fin_gtf, fout_gtf)
     
-    # 5. Evaluate predicted models against true targets using evalModel()
+    # --- Evaluate predicted models against true targets using ---
     fmdl = 'plcf.tsv'
     ftgt = 'tgt.tsv'
     

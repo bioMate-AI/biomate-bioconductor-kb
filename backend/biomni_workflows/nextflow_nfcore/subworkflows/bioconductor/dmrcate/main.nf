@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter out SNP-proximal and cross-hybridising probes using rmSNPandCH. 2. Annotate CpGs and model differential methylation using c
+//  * 1. [Visualization & Output] Filter out SNP-proximal and cross-hybridising probes
+//  * 2. [Visualization & Output] Annotate CpGs and model differential methylation
+//  * 3. [Visualization & Output] Call DMRs
+//  * 4. [Visualization & Output] Extract genomic coordinates of the identified DMRs
+//  * 5. [Visualization & Output] Plot specific DMRs
 
 nextflow.enable.dsl = 2
 
@@ -84,19 +88,19 @@ process BIOC_DMRCATE_ARRAY_DMR_ANALYSIS {
     # 2. EXECUTE WORKFLOW
     # ==========================================
     
-    # Stage 1: Filter out SNP-proximal and cross-hybridising probes
+    # --- Filter out SNP-proximal and cross-hybridising probes ---
     ALLMs.noSNPs <- rmSNPandCH(ALLMs, rmcrosshyb = FALSE)
     
-    # Stage 2: Annotate CpGs and model differential methylation
+    # --- Annotate CpGs and model differential methylation ---
     myannotation <- cpg.annotate("array", object=ALLMs.noSNPs, what = "M", 
                                  arraytype = "EPICv2", epicv2Filter = "mean", 
                                  epicv2Remap = TRUE,  analysis.type="differential", 
                                  design=design, coef=2, fdr=0.001)
     
-    # Stage 3: Call DMRs
+    # --- Call DMRs ---
     dmrcoutput <- dmrcate(myannotation, lambda=1000, C=2)
     
-    # Stage 4: Extract genomic coordinates of the identified DMRs
+    # --- Extract genomic coordinates of the identified DMRs ---
     results.ranges <- extractRanges(dmrcoutput, genome = "hg38")
     
     # ==========================================
@@ -120,7 +124,7 @@ process BIOC_DMRCATE_ARRAY_DMR_ANALYSIS {
       names(cols) <- colnames(ALLMs.noSNPs)
     }
     
-    # Stage 5: Plot specific DMRs
+    # --- Plot specific DMRs ---
     pdf("dmr_plot.pdf", width = 10, height = 8)
     tryCatch({
       DMR.plot(ranges=results.ranges, dmr=3, CpGs=myannotation, 

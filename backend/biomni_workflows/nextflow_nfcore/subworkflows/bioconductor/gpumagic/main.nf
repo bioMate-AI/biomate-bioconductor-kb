@@ -35,6 +35,15 @@ process BIOC_GPUMAGIC_GPU_ACCELERATED_TRANSFORM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gpuMagic")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_GPUMAGIC_GPU_ACCELERATED_TRANSFORM {
     library(gpuMagic)
     
     # ==========================================
-    # Stage 1: Robust Input Parsing & Preparation
+    # --- Robust Input Parsing & Preparation ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -99,7 +108,7 @@ process BIOC_GPUMAGIC_GPU_ACCELERATED_TRANSFORM {
     vector_data <- as.vector(scaled_matrix)
     
     # ==========================================
-    # Stage 2: Define GPU-compatible Function
+    # --- Define GPU-compatible Function ---
     # ==========================================
     # We define a sigmoid-like non-linear transformation.
     # OpenCL C supports standard math functions like exp, log, sqrt, etc.
@@ -109,7 +118,7 @@ process BIOC_GPUMAGIC_GPU_ACCELERATED_TRANSFORM {
     }
     
     # ==========================================
-    # Stage 3: Execute GPU Compilation & Computation
+    # --- Execute GPU Compilation & Computation ---
     # ==========================================
     compiled_successfully <- FALSE
     transformed_vector <- NULL
@@ -146,7 +155,7 @@ process BIOC_GPUMAGIC_GPU_ACCELERATED_TRANSFORM {
                                  dimnames = dimnames(scaled_matrix))
     
     # ==========================================
-    # Stage 4: Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     # Save the transformed matrix
     output_df <- data.frame(feature_id = rownames(transformed_matrix), transformed_matrix, check.names = FALSE)
@@ -154,7 +163,7 @@ process BIOC_GPUMAGIC_GPU_ACCELERATED_TRANSFORM {
     message("Saved transformed matrix to 'transformed_features.csv'")
     
     # ==========================================
-    # Stage 5: Diagnostics & Visualization
+    # --- Diagnostics & Visualization ---
     # ==========================================
     pdf("transformation_summary.pdf", width = 10, height = 5)
     par(mfrow = c(1, 2))

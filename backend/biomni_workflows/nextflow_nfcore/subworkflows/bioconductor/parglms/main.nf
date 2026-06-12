@@ -35,6 +35,15 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BatchJobs", "parglms")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     library(parglms)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -90,7 +99,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     formula_obj <- as.formula(formula_str)
     
     # ==========================================
-    # Stage 2: Set up BatchJobs Registry
+    # --- Set up BatchJobs Registry ---
     # ==========================================
     
     # Disable progress bar to keep logs clean
@@ -120,7 +129,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     waitForJobs(myr)
     
     # ==========================================
-    # Stage 3: Fit Parallelized GLM
+    # --- Fit Parallelized GLM ---
     # ==========================================
     
     # Initialize beta values (Intercept + predictors)
@@ -138,7 +147,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 4: Extract Results and Export
+    # --- Extract Results and Export ---
     # ==========================================
     
     coefs <- pp\$coefficients
@@ -160,7 +169,7 @@ process BIOC_PARGLMS_PARALLEL_GLM_ANALYSIS {
     write.csv(results_df, "parglms_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     pdf("parglms_coefficient_plot.pdf", width = 8, height = 6)

@@ -65,7 +65,7 @@ process BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE {
       stop(paste("Required input file '", input_bam, "' not found in the working directory.", sep = ""))
     }
     
-    # 1. Subsample reads at specified depths using ExoDataSubsampling
+    # --- Subsample reads at specified depths using ---
     message("Running ExoDataSubsampling on ", input_bam, "...")
     sample.depth = seq(1e5,2e5,5e4)
     exoList = ExoDataSubsampling(file = input_bam, sample.depth = sample.depth, verbose=FALSE)
@@ -74,7 +74,7 @@ process BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE {
     saveRDS(exoList, "exoList_subsampled.rds")
     message("Saved subsampled ExoData list to 'exoList_subsampled.rds'")
     
-    # 2. Plot parameter distributions across subsampled depths using paramDistBoxplot
+    # --- Plot parameter distributions across subsampled depths ---
     message("Generating parameter distribution plots...")
     p1 = paramDistBoxplot(exoList,which.param = "beta1")
     p2 = paramDistBoxplot(exoList,which.param = "beta2")

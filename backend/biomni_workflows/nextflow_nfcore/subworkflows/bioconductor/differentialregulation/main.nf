@@ -64,13 +64,13 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     path_to_cell_id = rep("quants_mat_rows.txt", 6)
     path_to_gene_id = rep("quants_mat_cols.txt", 6)
     
-    # 1. Load USA counts
+    # --- Load USA counts ---
     sce = load_USA(path_to_counts,
                    path_to_cell_id,
                    path_to_gene_id,
                    sample_ids)
     
-    # 2. Assign cell types to the SingleCellExperiment object
+    # --- Assign cell types to the SingleCellExperiment object ---
     path_to_DF = "DF_cell_types.txt"
     DF_cell_types = read.csv(path_to_DF, sep = "\t", header = TRUE)
     matches = match(colnames(sce), DF_cell_types\$cell_id)
@@ -83,7 +83,7 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     }
     sce\$cell_type = DF_cell_types\$cell_type[matches]
     
-    # 3. Load equivalence classes
+    # --- Load equivalence classes ---
     path_to_EC_counts = rep("geqc_counts.mtx", 6)
     path_to_EC = rep("gene_eqclass.txt.gz", 6)
     
@@ -93,11 +93,11 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
                       path_to_gene_id,
                       sample_ids)
     
-    # 4. Define experimental design
+    # --- Define experimental design ---
     design = data.frame(sample = sample_ids,
                         group = c( rep("3 mon", 3), rep("6 mon", 3) ))
     
-    # 5. Compute pseudo-bulk counts
+    # --- Compute pseudo-bulk counts ---
     PB_counts = compute_PB_counts(sce = sce,
                                   EC_list = EC_list,
                                   design =  design,
@@ -107,7 +107,7 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     
     rm(EC_list)
     
-    # 6. Run differential testing
+    # --- Run differential testing ---
     set.seed(1609612)
     results = DifferentialRegulation(PB_counts,
                                      n_cores = 2,
@@ -119,7 +119,7 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     write.csv(results\$US_results, "US_results.csv", row.names = FALSE)
     write.csv(results\$USA_results, "USA_results.csv", row.names = FALSE)
     
-    # 7. Visualize results
+    # --- Visualize results ---
     pdf("pi_plot_US.pdf")
     plot_pi(results,
             type = "US",

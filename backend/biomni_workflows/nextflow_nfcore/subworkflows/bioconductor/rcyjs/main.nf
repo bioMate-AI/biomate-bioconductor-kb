@@ -58,7 +58,7 @@ process BIOC_RCYJS_RCYJS_NETWORK_ANALYSIS {
     library(graph)
     
     # ==========================================
-    # Stage 1: Input Processing & Network Construction
+    # --- Input Processing & Network Construction ---
     # ==========================================
     
     # Read input defensively
@@ -125,7 +125,7 @@ process BIOC_RCYJS_RCYJS_NETWORK_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Create graphNEL Object
+    # --- Create graphNEL Object ---
     # ==========================================
     
     g <- graphNEL(nodes = nodes, edgemode = "undirected")
@@ -150,7 +150,7 @@ process BIOC_RCYJS_RCYJS_NETWORK_ANALYSIS {
     nodeData(g, nodes, attr = "label") <- nodes
     
     # ==========================================
-    # Stage 3: RCyjs Visualization & Styling
+    # --- RCyjs Visualization & Styling ---
     # ==========================================
     
     rcy_success <- FALSE
@@ -219,7 +219,7 @@ process BIOC_RCYJS_RCYJS_NETWORK_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 4: Export Network Data & Metadata
+    # --- Export Network Data & Metadata ---
     # ==========================================
     
     # Export JSON representation of the network

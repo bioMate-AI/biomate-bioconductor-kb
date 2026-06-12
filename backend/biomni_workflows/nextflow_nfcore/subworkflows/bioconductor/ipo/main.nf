@@ -55,7 +55,7 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     # Load required libraries
     library(IPO)
     
-    # 1. Locate user input files in the working directory
+    # --- Locate user input files in the working directory ---
     # Supporting common mass spectrometry formats: CDF, mzML, mzXML, raw
     datafiles <- list.files(
       path = ".",
@@ -69,7 +69,7 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
       stop("Error: At least 2 raw mass spectrometry files (CDF, mzML, mzXML, or raw) are required in the working directory for IPO optimization.")
     }
     
-    # 2. Define starting parameters for peak picking
+    # --- Define starting parameters for peak picking ---
     peakpickingParameters <- getDefaultXcmsSetStartingParams('matchedFilter')
     # setting levels for step to 0.2 and 0.3 (hence 0.25 is the center point)
     peakpickingParameters\$step <- c(0.2, 0.3)
@@ -80,7 +80,7 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     # Open PDF device to capture response surface plots
     pdf("ipo_optimization_plots.pdf", width = 8, height = 8)
     
-    # 3. Optimize peak picking parameters
+    # --- Optimize peak picking parameters ---
     time.xcmsSet <- system.time({ # measuring time
     resultPeakpicking <- 
       optimizeXcmsSet(files = datafiles[1:2], 
@@ -94,12 +94,12 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     best_peakpicking_result <- resultPeakpicking\$best_settings\$result
     optimizedXcmsSetObject <- resultPeakpicking\$best_settings\$xset
     
-    # 4. Define starting parameters for retention time correction and grouping
+    # --- Define starting parameters for retention time correction ---
     retcorGroupParameters <- getDefaultRetGroupStartingParams()
     retcorGroupParameters\$profStep <- 1
     retcorGroupParameters\$gapExtend <- 2.7
     
-    # 5. Optimize retention time correction and grouping parameters simultaneously
+    # --- Optimize retention time correction and grouping ---
     time.RetGroup <- system.time({ # measuring time
     resultRetcorGroup <-
       optimizeRetGroup(xset = optimizedXcmsSetObject, 
@@ -112,7 +112,7 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     # Close PDF device
     dev.off()
     
-    # 6. Save meaningful results to files
+    # --- Save meaningful results to files ---
     # Save RDS objects for downstream analysis
     saveRDS(resultPeakpicking, "result_peakpicking.rds")
     saveRDS(resultRetcorGroup, "result_retcor_group.rds")
@@ -125,7 +125,7 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     best_retgroup_parameters <- resultRetcorGroup\$best_settings
     saveRDS(best_retgroup_parameters, "best_retgroup_parameters.rds")
     
-    # 7. Generate and save the optimized R processing script
+    # --- Generate and save the optimized R processing script ---
     sink("optimized_xcms_processing_script.R")
     writeRScript(resultPeakpicking\$best_settings\$parameters, 
                  resultRetcorGroup\$best_settings)

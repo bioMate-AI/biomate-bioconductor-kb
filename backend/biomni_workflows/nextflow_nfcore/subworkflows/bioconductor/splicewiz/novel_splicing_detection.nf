@@ -55,7 +55,7 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
     # Load the required SpliceWiz library
     library(SpliceWiz)
     
-    # 1. Build the SpliceWiz reference using buildRef()
+    # --- Build the SpliceWiz reference using buildRef() ---
     ref_path <- file.path(tempdir(), "Reference")
     buildRef(
       reference_path = ref_path,
@@ -64,7 +64,7 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
       ontologySpecies = "Homo sapiens"
     )
     
-    # 2. Process BAM files using processBAM()
+    # --- Process BAM files using processBAM() ---
     # Find BAMs in the current working directory
     bams <- findBAMS(".", level = 0)
     
@@ -85,7 +85,7 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
       output_path = pb_path
     )
     
-    # 3. Collate data with novel splicing detection enabled using collateData()
+    # --- Collate data with novel splicing detection enabled using ---
     expr <- findSpliceWizOutput(pb_path)
     nxtse_path <- file.path(tempdir(), "NxtSE_output_novel")
     collateData(
@@ -100,7 +100,7 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
       novelSplicing_useTJ = TRUE
     )
     
-    # 4. Import the collated experiment as an NxtSE object using makeSE()
+    # --- Import the collated experiment as an NxtSE object using ---
     se <- makeSE(nxtse_path)
     
     # Assign condition metadata to colData(se) so that ASE_edgeR can run.
@@ -114,7 +114,7 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
     # Save the raw NxtSE object
     saveRDS(se, "nxtse_object.rds")
     
-    # 5. Filter and perform differential alternative splicing analysis
+    # --- Filter and perform differential alternative splicing ---
     se.filtered <- se[applyFilters(se), ]
     saveRDS(se.filtered, "nxtse_filtered_object.rds")
     

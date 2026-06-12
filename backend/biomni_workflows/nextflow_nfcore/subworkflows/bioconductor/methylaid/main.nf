@@ -35,6 +35,15 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MethylAid", "minfi", "ggplot2", "IlluminaHumanMethylationEPICmanifest", "IlluminaHumanMethylation450kmanifest")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,12 +53,12 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(MethylAid)
     library(minfi)
     library(ggplot2)
     
-    # Stage 2: Read user input files
+    # --- Read user input files ---
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'matrix.csv' and/or 'coldata.csv' are missing.")
     }
@@ -65,7 +74,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     matrix_df <- matrix_df[, samples, drop = FALSE]
     coldata_df <- coldata_df[samples, drop = FALSE]
     
-    # Stage 3: Auto-detect array type and load appropriate manifest
+    # --- Auto-detect array type and load appropriate manifest ---
     if (nrow(matrix_df) > 600000) {
       message("Detecting EPIC array platform...")
       if (!requireNamespace("IlluminaHumanMethylationEPICmanifest", quietly = TRUE)) {
@@ -84,12 +93,12 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
       panel_type <- "450k"
     }
     
-    # Stage 4: Extract control probe information
+    # --- Extract control probe information ---
     ctrls <- getControlAddress(manifest)
     ctrl_addresses <- as.character(ctrls)
     ctrl_types <- names(ctrls)
     
-    # Stage 5: Construct pseudo-intensities from Beta values
+    # --- Construct pseudo-intensities from Beta values ---
     # Beta = M / (M + U). We assume a baseline total intensity of 10,000.
     M <- matrix_df * 10000
     U <- (1 - matrix_df) * 10000
@@ -120,7 +129,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     rownames(Gcontrols) <- ctrl_addresses
     colnames(Gcontrols) <- samples
     
-    # Stage 6: Dynamically construct the S4 summarizedData object
+    # --- Dynamically construct the S4 summarizedData object ---
     slots_available <- slotNames("summarizedData")
     args_list <- list(Class = "summarizedData")
     
@@ -151,7 +160,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     
     sum_data <- do.call(new, args_list)
     
-    # Stage 7: Demonstrate the 'combine' and 'show' workflow
+    # --- Demonstrate the 'combine' and 'show' workflow ---
     # Split the dataset into two batches to demonstrate combining
     n_samples <- length(samples)
     if (n_samples >= 2) {
@@ -189,7 +198,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     message("Displaying combined summarizedData object:")
     show(combined_data)
     
-    # Stage 8: Generate diagnostic outputs
+    # --- Generate diagnostic outputs ---
     # 1. Save the combined object for interactive visualization
     save(combined_data, file = "methylaid_combined.RData")
     
@@ -225,7 +234,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     
     ggsave("methylaid_mu_plot.pdf", plot = mu_plot, width = 7, height = 6)
     
-    # Stage 9: Interactive visualization (skipped in non-interactive environments)
+    # --- Interactive visualization (skipped in non-interactive ---
     if (interactive()) {
       message("Launching interactive Shiny application...")
       visualize(combined_data)

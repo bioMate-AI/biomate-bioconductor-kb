@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define prefilter functions using fast string matching (grepl). 2. Define filter functions evaluating parsed VCF objects (e.g., che
+//  * 1. [Visualization & Output] Define prefilter functions using fast string matching
+//  * 2. [Visualization & Output] Define filter functions evaluating parsed VCF objects
+//  * 3. [Visualization & Output] Combine prefilters and filters using FilterRules
+//  * 4. [Visualization & Output] Set up a TabixFile with a specified yieldSize for
+//  * 5. [Visualization & Output] Execute filtering and write the output to a destination
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +62,7 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         # Load required library
         library(VariantAnnotation)
         
-        # 1. Define prefilter functions using fast string matching (grepl)
+        # --- Define prefilter functions using fast string matching ---
         isGermlinePrefilter <- function(x) {
           grepl("Germline", x, fixed=TRUE)
         }
@@ -67,7 +71,7 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
           !(grepl("dbsnp", x, fixed=TRUE))
         }
         
-        # 2. Define filter functions evaluating parsed VCF objects (checking allelic depth)
+        # --- Define filter functions evaluating parsed VCF objects ---
         allelicDepth <- function(x) {
           ad <- geno(x)\$AD
           tumorPct <- ad[,1,2,drop=FALSE] / rowSums(ad[,1,,drop=FALSE])
@@ -76,7 +80,7 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
           as.vector(!is.na(test) & test)
         }
         
-        # 3. Combine prefilters and filters using FilterRules
+        # --- Combine prefilters and filters using FilterRules ---
         prefilters <- FilterRules(list(germline=isGermlinePrefilter, dbsnp=notInDbsnpPrefilter))
         filters <- FilterRules(list(isSNV=isSNV, AD=allelicDepth))
         
@@ -87,10 +91,10 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         # Define output destination file
         destination.file <- "filtered_chr7-sub.vcf"
         
-        # 4. Set up a TabixFile with a specified yieldSize for chunk-wise processing
+        # --- Set up a TabixFile with a specified yieldSize for ---
         tabix.file <- TabixFile(file.gz, yieldSize=10000)
         
-        # 5. Execute filtering and write the output to a destination file using filterVcf
+        # --- Execute filtering and write the output to a destination ---
         filterVcf(tabix.file, "hg19", destination.file, prefilters=prefilters, filters=filters, verbose=TRUE)
         
         # Read the filtered VCF back to verify and save as a meaningful RDS output

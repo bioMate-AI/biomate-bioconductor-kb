@@ -56,7 +56,7 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     library(IsoBayes)
     
     # -----------------------------------------------------------------------------
-    # 1. Check and resolve input file paths from the working directory
+    # --- Check and resolve input file paths from the working ---
     # -----------------------------------------------------------------------------
     
     tpm_path <- if (file.exists("jurkat_isoform_kallisto.tsv")) {
@@ -107,13 +107,13 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     print(SE)
     
     # -----------------------------------------------------------------------------
-    # 2. Preprocess the SummarizedExperiment and integrate transcript TPMs
+    # --- Preprocess the SummarizedExperiment and integrate ---
     # -----------------------------------------------------------------------------
     message("Preprocessing input data...")
     data_loaded = input_data(SE, path_to_tpm = tpm_path)
     
     # -----------------------------------------------------------------------------
-    # 3. Run the Bayesian inference model
+    # --- Run the Bayesian inference model ---
     # -----------------------------------------------------------------------------
     message("Running Bayesian inference...")
     set.seed(169612)
@@ -144,7 +144,7 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     saveRDS(results_normalized, "results_normalized.rds")
     
     # -----------------------------------------------------------------------------
-    # 4. Visualize relative abundances and assess MCMC convergence
+    # --- Visualize relative abundances and assess MCMC convergence ---
     # -----------------------------------------------------------------------------
     message("Generating plots...")
     

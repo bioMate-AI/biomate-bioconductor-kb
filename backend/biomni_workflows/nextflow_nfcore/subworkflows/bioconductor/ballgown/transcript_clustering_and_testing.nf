@@ -56,7 +56,7 @@ process BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING {
     library(ballgown)
     
     # ----------------------------------------------------------------
-    # 1. Data Preparation & Setup
+    # --- Data Preparation & Setup ---
     # ----------------------------------------------------------------
     # Read the user-provided input files from the working directory
     t_data <- read.table("t_data.ctab", header=TRUE, sep="\t", stringsAsFactors=FALSE)
@@ -109,7 +109,7 @@ process BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING {
     }
     
     # ----------------------------------------------------------------
-    # 2. Load Ballgown Object
+    # --- Load Ballgown Object ---
     # ----------------------------------------------------------------
     # Load the data using the ballgown constructor
     bg = ballgown(dataDir=".", samplePattern='sample', meas='all')
@@ -118,7 +118,7 @@ process BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING {
     pData(bg) = data.frame(id=sampleNames(bg), group=rep(c(1,0), each=10))
     
     # ----------------------------------------------------------------
-    # 3. Transcript Clustering & Visualization
+    # --- Transcript Clustering & Visualization ---
     # ----------------------------------------------------------------
     # Cluster transcripts
     clust_res = clusterTranscripts(gene='XLOC_000454', gown=bg, k=2, method='kmeans')
@@ -130,7 +130,7 @@ process BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING {
     dev.off()
     
     # ----------------------------------------------------------------
-    # 4. Collapse Transcripts & Differential Expression Testing
+    # --- Collapse Transcripts & Differential Expression Testing ---
     # ----------------------------------------------------------------
     # Collapse transcript expression
     agg = collapseTranscripts(gene='XLOC_000454', gown=bg, k=2, method='kmeans')

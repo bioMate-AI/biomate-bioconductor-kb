@@ -57,27 +57,27 @@ process BIOC_FLAGME_XCMS_PEAK_PICKING_ALIGNMENT_WORKFLOW {
     library(xcms)
     library(CAMERA)
     
-    # 1. Identify the user input files in the working directory
+    # --- Identify the user input files in the working directory ---
     cdfFiles <- list.files(pattern = "\\\\.(cdf|CDF)\$", full.names = TRUE)
     
     if (length(cdfFiles) < 3) {
       stop("Error: This workflow requires at least 3 raw GC-MS NetCDF (.cdf or .CDF) files in the working directory.")
     }
     
-    # 2. Initialize a peaksDataset object using peaksDataset
+    # --- Initialize a peaksDataset object using peaksDataset ---
     message("Initializing peaksDataset...")
     pd.2 <- peaksDataset(cdfFiles[1:3], mz = seq(50, 550), rtrange = c(7.5, 8.5))
     
-    # 3. Perform peak picking and grouping using addXCMSPeaks with xcms::MatchedFilterParam
+    # --- Perform peak picking and grouping using addXCMSPeaks with ---
     message("Performing peak picking and grouping with XCMS/CAMERA...")
     mfp <- xcms::MatchedFilterParam(fwhm = 10, snthresh = 5)
     pd.2 <- addXCMSPeaks(cdfFiles[1:3], pd.2, settings = mfp)
     
-    # 4. Perform alignment using correlationAlignment
+    # --- Perform alignment using correlationAlignment ---
     message("Aligning peaks using correlationAlignment...")
     mp <- correlationAlignment(object=pd.2, thr=0.85, D=20, penality=0.2, normalize=TRUE, minFilter=1)
     
-    # 5. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     message("Saving results...")
     
     # Save the peaksDataset and alignment objects as RDS

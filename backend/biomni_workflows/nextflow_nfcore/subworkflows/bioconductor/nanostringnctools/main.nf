@@ -66,7 +66,7 @@ process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     library(htmlwidgets)
     
     #-------------------------------------------------------------------------------
-    # 1. Locate and Validate User Input Files in the Working Directory
+    # --- Locate and Validate User Input Files in the Working ---
     #-------------------------------------------------------------------------------
     
     # Search for RCC files in the current working directory
@@ -94,13 +94,13 @@ process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     message(paste("Using sample annotation:", sample_annotation))
     
     #-------------------------------------------------------------------------------
-    # 2. Load Raw Data and Initialize NanoStringRCCSet
+    # --- Load Raw Data and Initialize NanoStringRCCSet ---
     #-------------------------------------------------------------------------------
     
     demoData <- readNanoStringRccSet(rcc_files, rlfFile = rlf_file, phenoDataFile = sample_annotation)
     
     #-------------------------------------------------------------------------------
-    # 3. Assign Design and Adjust Dimension Labels
+    # --- Assign Design and Adjust Dimension Labels ---
     #-------------------------------------------------------------------------------
     
     design(demoData) <- ~ `Treatment`
@@ -108,7 +108,7 @@ process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     dimLabels(demoData)[2] <- "Sample ID"
     
     #-------------------------------------------------------------------------------
-    # 4. Quality Control Flagging and Visualization
+    # --- Quality Control Flagging and Visualization ---
     #-------------------------------------------------------------------------------
     
     demoData <- setQCFlags(demoData,
@@ -133,19 +133,19 @@ process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     dev.off()
     
     #-------------------------------------------------------------------------------
-    # 5. Subset Data (Extract Negative Controls)
+    # --- Subset Data (Extract Negative Controls) ---
     #-------------------------------------------------------------------------------
     
     neg_set <- negativeControlSubset(demoData)
     
     #-------------------------------------------------------------------------------
-    # 6. Normalization
+    # --- Normalization ---
     #-------------------------------------------------------------------------------
     
     demoData <- normalize(demoData, type="nSolver", fromELT = "exprs", toELT = "exprs_norm")
     
     #-------------------------------------------------------------------------------
-    # 7. Visualization of Normalized Expression (Heatmap)
+    # --- Visualization of Normalized Expression (Heatmap) ---
     #-------------------------------------------------------------------------------
     
     pdf("heatmap_normalized_genes.pdf", width = 10, height = 8)
@@ -155,7 +155,7 @@ process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     dev.off()
     
     #-------------------------------------------------------------------------------
-    # 8. Transform and Export Results
+    # --- Transform and Export Results ---
     #-------------------------------------------------------------------------------
     
     # Munge negative controls

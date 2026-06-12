@@ -35,6 +35,15 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "BubbleTree")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     library(BubbleTree)
     
     # ---------------------------------------------------------
-    # Stage 1: Read and Preprocess Input Data Defensively
+    # --- Read and Preprocess Input Data Defensively ---
     # ---------------------------------------------------------
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -87,7 +96,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Parse Genomic Coordinates & Build GRanges
+    # --- Parse Genomic Coordinates & Build GRanges ---
     # ---------------------------------------------------------
     parse_coords <- function(ids) {
       n <- length(ids)
@@ -112,7 +121,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     coords <- parse_coords(rownames(df))
     
     # ---------------------------------------------------------
-    # Stage 3: Define Centromere Reference (Avoid data() demo)
+    # --- Define Centromere Reference (Avoid data() demo) ---
     # ---------------------------------------------------------
     # Standard hg19 centromere coordinates to avoid loading demo datasets
     chrs <- paste0("chr", c(1:22, "X", "Y"))
@@ -125,7 +134,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     centromere <- GRanges(seqnames=chrs, ranges=IRanges(start=starts, end=ends))
     
     # ---------------------------------------------------------
-    # Stage 4: Run BubbleTree Analysis & Generate Plots
+    # --- Run BubbleTree Analysis & Generate Plots ---
     # ---------------------------------------------------------
     results_summary <- data.frame(
       Sample = character(),
@@ -216,7 +225,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 5: Save Results
+    # --- Save Results ---
     # ---------------------------------------------------------
     write.csv(results_summary, "purity_ploidy_results.csv", row.names=FALSE)
     message("BubbleTree analysis pipeline completed successfully.")

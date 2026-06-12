@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Format design covariates (convert categorical variables to factors) and ensure proportion matrix columns are named. 2. Generate th
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Robust Covariate & Cell Type Alignment
+//  * 3. [Core Analysis] Execute Documented TOAST Workflow
 
 nextflow.enable.dsl = 2
 
@@ -55,7 +57,7 @@ process BIOC_TOAST_CELL_TYPE_SPECIFIC_DIFFERENTIAL_ANALYSIS {
         library(TOAST)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         read_input_file <- function(base_name) {
@@ -101,7 +103,7 @@ process BIOC_TOAST_CELL_TYPE_SPECIFIC_DIFFERENTIAL_ANALYSIS {
         estProp_RF_improved <- as.matrix(Prop_input)
         
         # ==========================================
-        # 2. Robust Covariate & Cell Type Alignment
+        # --- Robust Covariate & Cell Type Alignment ---
         # ==========================================
         
         # Convert character and binary numeric columns in Pheno to factors
@@ -128,7 +130,7 @@ process BIOC_TOAST_CELL_TYPE_SPECIFIC_DIFFERENTIAL_ANALYSIS {
         Ref <- estProp_RF_improved
         
         # ==========================================
-        # 3. Execute Documented TOAST Workflow
+        # --- Execute Documented TOAST Workflow ---
         # ==========================================
         
         design <- Pheno

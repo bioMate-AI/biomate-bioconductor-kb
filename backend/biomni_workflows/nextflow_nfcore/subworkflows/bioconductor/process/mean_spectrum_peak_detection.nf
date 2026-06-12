@@ -85,14 +85,14 @@ process BIOC_PROCESS_MEAN_SPECTRUM_PEAK_DETECTION {
     # Open PDF device to capture diagnostic plots from bslnoff and isPeak
     pdf("mean_spectrum_diagnostic_plots.pdf", width = 8, height = 6)
     
-    # Step 1: Compute the grand average spectrum using aveSpec
+    # --- Compute the grand average spectrum using aveSpec ---
     grandAve <- aveSpec(fs)
     mzs <- grandAve[, 1]
     
-    # Step 2: Subtract baseline from the average spectrum using bslnoff
+    # --- Subtract baseline from the average spectrum using bslnoff ---
     grandOff <- bslnoff(grandAve[mzs > 0, ], method = "loess", plot = TRUE, bw = 0.1)
     
-    # Step 3: Detect peaks on the average spectrum using isPeak
+    # --- Detect peaks on the average spectrum using isPeak ---
     grandPkg <- isPeak(grandOff[grandOff[, 1] > 1500, ], zerothrsh = 1, plot = TRUE, ratio = 0.1)
     grandpvec <- round(grandPkg[grandPkg\$peak, "mz"])
     
@@ -102,7 +102,7 @@ process BIOC_PROCESS_MEAN_SPECTRUM_PEAK_DETECTION {
     # Close the plotting device
     dev.off()
     
-    # Step 4: Quantify the detected peaks in individual spectra using getPeaks2
+    # --- Quantify the detected peaks in individual spectra using ---
     grandBmk <- getPeaks2(rtM, grandpvec)
     
     # ==========================================

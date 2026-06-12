@@ -57,30 +57,30 @@ process BIOC_MSA_PHYLOGENETIC_TREE_RECONSTRUCTION {
     library(seqinr)
     library(ape)
     
-    # 1. Read and align sequences
+    # --- Read and align sequences ---
     # Read the user-provided FASTA file from the working directory
     hemoSeq <- readAAStringSet("HemoglobinAA.fasta")
     
     # Perform multiple sequence alignment
     hemoAln <- msa(hemoSeq)
     
-    # 2. Convert the alignment to seqinr format using msaConvert
+    # --- Convert the alignment to seqinr format using msaConvert ---
     hemoAln2 <- msaConvert(hemoAln, type="seqinr::alignment")
     
-    # 3. Compute a distance matrix using dist.alignment from seqinr
+    # --- Compute a distance matrix using dist.alignment from seqinr ---
     d <- dist.alignment(hemoAln2, "identity")
     
     # Save the distance matrix as a CSV file
     write.csv(as.matrix(d), "hemoglobin_distance_matrix.csv", row.names = TRUE)
     
-    # 4. Reconstruct a neighbor-joining tree using nj from ape
+    # --- Reconstruct a neighbor-joining tree using nj from ape ---
     hemoTree <- nj(d)
     
     # Save the phylogenetic tree object in RDS format and Newick format
     saveRDS(hemoTree, "hemoglobin_tree.rds")
     write.tree(hemoTree, file = "hemoglobin_tree.nwk")
     
-    # 5. Plot the phylogenetic tree and save as a PDF
+    # --- Plot the phylogenetic tree and save as a PDF ---
     pdf("hemoglobin_phylogenetic_tree.pdf", width = 10, height = 8)
     plot(hemoTree, main="Phylogenetic Tree of Hemoglobin Alpha Sequences")
     dev.off()

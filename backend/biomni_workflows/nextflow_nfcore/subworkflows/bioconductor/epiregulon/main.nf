@@ -13,7 +13,15 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Retrieve bulk TF ChIP-seq binding sites or motif info using getTFMotifInfo. 2. Optimize the number of metacells using optimizeMeta
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Retrieve bulk TF ChIP-seq binding sites or motif info
+//  * 3. [Core Analysis] Optimize the number of metacells
+//  * 4. [Core Analysis] Calculate Peak-to-Gene (P2G) links
+//  * 5. [Core Analysis] Add TF binding information to peaks
+//  * 6. [Core Analysis] Generate regulons
+//  * 7. [Core Analysis] Network pruning
+//  * 8. [Core Analysis] Estimate regulatory weights
+//  * 9. [Core Analysis] Calculate TF activity scores
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +71,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     library(BiocParallel)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # The pipeline reads exactly these files from the working directory:
     # - PeakMatrix (SingleCellExperiment containing chromatin accessibility peak matrix)
@@ -86,13 +94,13 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Retrieve bulk TF ChIP-seq binding sites or motif info
+    # --- Retrieve bulk TF ChIP-seq binding sites or motif info ---
     # -----------------------------------------------------------------------------
     message("Retrieving TF motif/ChIP-seq info...")
     grl <- getTFMotifInfo(genome = "hg38")
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Optimize the number of metacells
+    # --- Optimize the number of metacells ---
     # -----------------------------------------------------------------------------
     message("Optimizing metacell number...")
     cellNum <- optimizeMetacellNumber(peakMatrix = PeakMatrix,
@@ -108,7 +116,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Calculate Peak-to-Gene (P2G) links
+    # --- Calculate Peak-to-Gene (P2G) links ---
     # -----------------------------------------------------------------------------
     message("Calculating Peak-to-Gene links...")
     set.seed(1010)
@@ -125,7 +133,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     write.csv(as.data.frame(p2g), "p2g_links.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Add TF binding information to peaks
+    # --- Add TF binding information to peaks ---
     # -----------------------------------------------------------------------------
     message("Adding TF motif information to peaks...")
     overlap <- addTFMotifInfo(grl = grl, 
@@ -137,7 +145,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     write.csv(as.data.frame(overlap), "tf_peak_overlap.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Generate regulons
+    # --- Generate regulons ---
     # -----------------------------------------------------------------------------
     message("Generating regulons...")
     regulon <- getRegulon(p2g = p2g, 
@@ -147,7 +155,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     saveRDS(regulon, "initial_regulon.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Network pruning
+    # --- Network pruning ---
     # -----------------------------------------------------------------------------
     message("Pruning regulon network...")
     # Ensure Clusters column exists in GeneExpressionMatrix
@@ -170,7 +178,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     saveRDS(pruned.regulon, "pruned_regulon.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 7: Estimate regulatory weights
+    # --- Estimate regulatory weights ---
     # -----------------------------------------------------------------------------
     message("Estimating regulatory weights...")
     regulon.w <- addWeights(regulon = pruned.regulon,
@@ -219,7 +227,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 10: Calculate TF activity scores
+    # --- Calculate TF activity scores ---
     # -----------------------------------------------------------------------------
     message("Calculating TF activity scores...")
     score.combine <- calculateActivity(expMatrix = GeneExpressionMatrix,

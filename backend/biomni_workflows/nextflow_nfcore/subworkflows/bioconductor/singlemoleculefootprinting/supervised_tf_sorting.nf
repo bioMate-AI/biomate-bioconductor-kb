@@ -35,6 +35,15 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_SUPERVISED_TF_SORTING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleMoleculeFootprinting", "GenomicRanges", "rtracklayer", "dplyr", "readr", "ggplot2", "genome_name")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_SUPERVISED_TF_SORTING {
     library(readr)
     library(ggplot2)
     
-    # Stage 1: Load Inputs
+    # --- Load Inputs ---
     message("Stage 1: Loading inputs...")
     regions <- rtracklayer::import("regions.bed")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -69,7 +78,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_SUPERVISED_TF_SORTING {
     sample_file_path <- "sample_file.txt"
     write.table(coldata[, c("FileName", "SampleName")], file = sample_file_path, sep = "\t", row.names = FALSE, quote = FALSE)
     
-    # Stage 2: Call Context Methylation
+    # --- Call Context Methylation ---
     message("Stage 2: Calling Context Methylation...")
     # Use the first region as the TF binding site of interest
     roi <- regions[1]
@@ -96,7 +105,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_SUPERVISED_TF_SORTING {
       bulk_meth_df <- as.data.frame(meth_data[[1]])
       write.csv(bulk_meth_df, "bulk_methylation.csv", row.names = FALSE)
       
-      # Stage 3: Supervised Sorting by Single TF
+      # --- Supervised Sorting by Single TF ---
       message("Stage 3: Sorting reads by single TF...")
       # Prepare TFBS
       TFBS <- roi
@@ -115,7 +124,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_SUPERVISED_TF_SORTING {
       })
       
       if (!is.null(sorted_reads)) {
-        # Stage 4: State Quantification
+        # --- State Quantification ---
         message("Stage 4: Quantifying states...")
         states <- SingleTFStates()
         quant_df <- tryCatch({
@@ -138,7 +147,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_SUPERVISED_TF_SORTING {
         summary_df <- dplyr::bind_rows(summary_list, .id = "Sample")
         write.csv(summary_df, "sorted_reads_summary.csv", row.names = FALSE)
         
-        # Stage 5: Visualization
+        # --- Visualization ---
         message("Stage 5: Generating Plots...")
         p_sm <- tryCatch({
           PlotSM(

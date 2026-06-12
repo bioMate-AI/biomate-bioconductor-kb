@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load contigs using loadContigs() or manual list creation. 2. Combine contigs into TCR clones using combineTCR(). 3. Add metadata v
+//  * 1. [Visualization & Output] Load contigs from the declared user input file
+//  * 2. [Visualization & Output] Combine contigs into TCR clones
+//  * 3. [Visualization & Output] Add metadata variables
+//  * 4. [Visualization & Output] Quantify and visualize clones
+//  * 5. [Visualization & Output] Analyze clonal dynamics
+//  * 6. [Visualization & Output] Summarize repertoires (Gene usage)
+//  * 7. [Visualization & Output] Comparing Clonal Diversity and Overlap
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +66,7 @@ process BIOC_SCREPERTOIRE_TCR_REPERTOIRE_ANALYSIS {
         library(scRepertoire)
         library(ggplot2)
         
-        # 1. Load contigs from the declared user input file
+        # --- Load contigs from the declared user input file ---
         raw_contigs <- read.csv("filtered_contig_annotations.csv", stringsAsFactors = FALSE)
         
         # Treat the input file as a single sample rather than splitting by barcode suffix
@@ -71,14 +77,14 @@ process BIOC_SCREPERTOIRE_TCR_REPERTOIRE_ANALYSIS {
         
         sample_names <- paste0("Sample", seq_along(contig_list))
         
-        # 2. Combine contigs into TCR clones
+        # --- Combine contigs into TCR clones ---
         combined.TCR <- combineTCR(contig_list, 
                                    samples = sample_names,
                                    removeNA = FALSE, 
                                    removeMulti = FALSE, 
                                    filterMulti = FALSE)
         
-        # 3. Add metadata variables
+        # --- Add metadata variables ---
         # Assign "B" and "L" types based on the number of actual samples recovered
         types <- rep(c("B", "L"), length.out = length(combined.TCR))
         combined.TCR <- addVariable(combined.TCR, 
@@ -88,7 +94,7 @@ process BIOC_SCREPERTOIRE_TCR_REPERTOIRE_ANALYSIS {
         # Save the processed combined TCR object
         saveRDS(combined.TCR, file = "combined_TCR.rds")
         
-        # 4. Quantify and visualize clones
+        # --- Quantify and visualize clones ---
         p_quant <- clonalQuant(combined.TCR, 
                                cloneCall="strict", 
                                chain = "both", 
@@ -126,14 +132,14 @@ process BIOC_SCREPERTOIRE_TCR_REPERTOIRE_ANALYSIS {
           ggsave("clonal_scatter.pdf", plot = p_scatter, width = 8, height = 6)
         }
         
-        # 5. Analyze clonal dynamics
+        # --- Analyze clonal dynamics ---
         p_home <- clonalHomeostasis(combined.TCR, cloneCall = "gene")
         ggsave("clonal_homeostasis.pdf", plot = p_home, width = 8, height = 6)
         
         p_prop <- clonalProportion(combined.TCR, cloneCall = "gene")
         ggsave("clonal_proportion.pdf", plot = p_prop, width = 8, height = 6)
         
-        # 6. Summarize repertoires (Gene usage)
+        # --- Summarize repertoires (Gene usage) ---
         p_genes <- percentGenes(combined.TCR, chain = "TRB", gene = "Vgene", summary.fun = "percent")
         ggsave("percent_genes.pdf", plot = p_genes, width = 8, height = 6)
         
@@ -152,7 +158,7 @@ process BIOC_SCREPERTOIRE_TCR_REPERTOIRE_ANALYSIS {
         p_kmer <- percentKmer(combined.TCR, cloneCall = "aa", chain = "TRB", motif.length = 3, top.motifs = 25)
         ggsave("percent_kmer.pdf", plot = p_kmer, width = 8, height = 6)
         
-        # 7. Comparing Clonal Diversity and Overlap
+        # --- Comparing Clonal Diversity and Overlap ---
         p_div <- clonalDiversity(combined.TCR, cloneCall = "gene")
         ggsave("clonal_diversity.pdf", plot = p_div, width = 8, height = 6)
         

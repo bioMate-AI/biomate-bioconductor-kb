@@ -67,21 +67,21 @@ process BIOC_MAGAR_COMPARE_METH_QTL_RESULTS {
       stop(paste("Required input file missing:", input_file_2))
     }
     
-    # 1. Load the methQTLResult objects
+    # --- Load the methQTLResult objects ---
     message("Loading first methQTLResult object...")
     meth.qtl.res <- loadMethQTLResult(input_file_1)
     
     message("Loading second methQTLResult object...")
     meth.qtl.res.2 <- loadMethQTLResult(input_file_2)
     
-    # 2. Combine results into a named list
+    # --- Combine results into a named list ---
     meth.qtl.list <- list(First=meth.qtl.res, Second=meth.qtl.res.2)
     
-    # 3. Generate Venn diagram using qtlVennPlot
+    # --- Generate Venn diagram using qtlVennPlot ---
     message("Generating Venn diagram...")
     qtlVennPlot(meth.qtl.list, out.folder=getwd())
     
-    # 4. Generate UpSet plot using qtlUpsetPlot and save to PDF
+    # --- Generate UpSet plot using qtlUpsetPlot and save to PDF ---
     message("Generating UpSet plot...")
     pdf("qtl_upset_plot.pdf", width=10, height=8)
     tryCatch({
@@ -91,7 +91,7 @@ process BIOC_MAGAR_COMPARE_METH_QTL_RESULTS {
     })
     dev.off()
     
-    # 5. Identify specific QTLs using getSpecificQTL
+    # --- Identify specific QTLs using getSpecificQTL ---
     message("Identifying dataset-specific QTLs...")
     spec.first <- getSpecificQTL(meth.qtl.list\$First, meth.qtl.list[-1])
     

@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Construct a TCC class object using the multi-group count matrix and group vector. 2. Calculate robust normalization factors using 
+//  * 1. [Input & Preparation] Construct a TCC class object
+//  * 2. [Input & Preparation] Calculate robust normalization factors using DEGES/edgeR
+//  * 3. [Input & Preparation] Perform multi-group differential expression analysis
+//  * 4. [Input & Preparation] Retrieve the results table
 
 nextflow.enable.dsl = 2
 
@@ -102,17 +105,17 @@ process BIOC_TCC_MULTI_GROUP_REPLICATES {
     # 2. TCC Workflow Execution
     # ==========================================
     
-    # Step 1: Construct a TCC class object
+    # --- Construct a TCC class object ---
     tcc <- new("TCC", hypoData_mg, group)
     
-    # Step 2: Calculate robust normalization factors using DEGES/edgeR
+    # --- Calculate robust normalization factors using DEGES/edgeR ---
     tcc <- calcNormFactors(tcc, norm.method = "tmm", test.method = "edger",
                            iteration = 1)
     
-    # Step 3: Perform multi-group differential expression analysis using edgeR
+    # --- Perform multi-group differential expression analysis ---
     tcc <- estimateDE(tcc, test.method = "edger", FDR = 0.1)
     
-    # Step 4: Retrieve the results table
+    # --- Retrieve the results table ---
     result <- getResult(tcc, sort = TRUE)
     
     # Print summary results to console

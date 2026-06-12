@@ -56,7 +56,7 @@ process BIOC_IGVR_IGVR_GENOMIC_VISUALIZATION {
     library(GenomicRanges)
     library(rtracklayer)
     
-    # Stage 1: Read and validate input files
+    # --- Read and validate input files ---
     if (!file.exists("regions.bed")) {
         stop("Required input file 'regions.bed' is missing.")
     }
@@ -74,13 +74,13 @@ process BIOC_IGVR_IGVR_GENOMIC_VISUALIZATION {
         coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     }
     
-    # Stage 2: Initialize igvR and set genome
+    # --- Initialize igvR and set genome ---
     message("Initializing igvR...")
     igv <- igvR()
     setBrowserWindowTitle(igv, "Genomic Regions Visualization Pipeline")
     setGenome(igv, "hg38")
     
-    # Stage 3: Define and set the genomic region of interest
+    # --- Define and set the genomic region of interest ---
     # Focus on the first chromosome present in the input data
     first_chrom <- as.character(seqnames(gr)[1])
     chrom_gr <- gr[seqnames(gr) == first_chrom]
@@ -96,7 +96,7 @@ process BIOC_IGVR_IGVR_GENOMIC_VISUALIZATION {
     message(sprintf("Setting genomic region to: %s", region_str))
     showGenomicRegion(igv, region_str)
     
-    # Stage 4: Create and display Annotation Track
+    # --- Create and display Annotation Track ---
     message("Creating Annotation Track...")
     ann_track <- GRangesAnnotationTrack(
         trackName = "Input Regions (Annotation)",
@@ -106,7 +106,7 @@ process BIOC_IGVR_IGVR_GENOMIC_VISUALIZATION {
     )
     displayTrack(igv, ann_track)
     
-    # Stage 5: Create and display Quantitative Track
+    # --- Create and display Quantitative Track ---
     message("Creating Quantitative Track...")
     gr_quant <- gr
     
@@ -129,7 +129,7 @@ process BIOC_IGVR_IGVR_GENOMIC_VISUALIZATION {
     )
     displayTrack(igv, quant_track)
     
-    # Stage 6: Export results and metadata
+    # --- Export results and metadata ---
     message("Saving visualization and metadata...")
     
     # Write the processed regions to CSV

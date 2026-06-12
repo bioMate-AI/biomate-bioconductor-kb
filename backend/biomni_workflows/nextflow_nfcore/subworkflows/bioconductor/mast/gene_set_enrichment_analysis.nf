@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Bootstrap the variance-covariance matrix of the fit using bootVcov1. 2. Load gene sets from a GMT file using getGmt and map to ind
+//  * 1. [Visualization & Output] Load User Inputs
+//  * 2. [Visualization & Output] Documented Code Execution
+//  * 3. [Visualization & Output] Save Outputs and Generate Plots
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MAST", "GSEABase", "limma", "data.table", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +66,7 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
         library(ggplot2)
         
         # -----------------------------------------------------------------------------
-        # 1. Load User Inputs
+        # --- Load User Inputs ---
         # -----------------------------------------------------------------------------
         if (!file.exists("fitted_zlm_model.rds")) {
             stop("Error: 'fitted_zlm_model.rds' not found in the working directory.")
@@ -90,7 +101,7 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
         min_gene_in_module <- 5
         
         # -----------------------------------------------------------------------------
-        # 2. Documented Code Execution
+        # --- Documented Code Execution ---
         # -----------------------------------------------------------------------------
         boots <- bootVcov1(zlmCond, R = 4)
         gene_set <- getGmt(module_file)
@@ -101,7 +112,7 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
         z_stat_comb <- summary(gsea, testType='normal')
         
         # -----------------------------------------------------------------------------
-        # 3. Save Outputs and Generate Plots
+        # --- Save Outputs and Generate Plots ---
         # -----------------------------------------------------------------------------
         # Save the GSEA summary table
         fwrite(z_stat_comb, "gsea_results.csv")

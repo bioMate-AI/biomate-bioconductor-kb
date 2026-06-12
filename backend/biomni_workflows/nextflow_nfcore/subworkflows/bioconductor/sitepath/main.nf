@@ -60,21 +60,21 @@ process BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS {
     tree_file <- "tree_file"
     alignment_file <- "alignment_file"
     
-    # 1. Import phylogenetic tree using read.tree
+    # --- Import phylogenetic tree using read.tree ---
     tree <- read.tree(tree_file)
     
     # Set multiprocessing options
     options(list("cl.cores" = 1))
     
-    # 2. Import and align sequence data with the tree using addMSA
+    # --- Import and align sequence data with the tree using addMSA ---
     paths <- addMSA(tree, msaPath = alignment_file, msaFormat = "fasta")
     
-    # 3. Pre-assess lineage thresholds using sneakPeek
+    # --- Pre-assess lineage thresholds using sneakPeek ---
     pdf("preassessment_plot.pdf")
     preassessment <- sneakPeek(paths, makePlot = TRUE)
     dev.off()
     
-    # 4. Resolve phylogenetic pathways using lineagePath
+    # --- Resolve phylogenetic pathways using lineagePath ---
     paths <- lineagePath(preassessment, 18)
     saveRDS(paths, "lineage_paths.rds")
     
@@ -82,18 +82,18 @@ process BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS {
     plot(paths)
     dev.off()
     
-    # 5. Perform entropy minimization using sitesMinEntropy
+    # --- Perform entropy minimization using sitesMinEntropy ---
     minEntropy <- sitesMinEntropy(paths)
     saveRDS(minEntropy, "min_entropy.rds")
     
-    # 6. Detect fixation sites using fixationSites
+    # --- Detect fixation sites using fixationSites ---
     fixations <- fixationSites(minEntropy)
     saveRDS(fixations, "fixation_sites.rds")
     
     allSites <- allSitesName(fixations)
     write.csv(data.frame(Fixation_Site = allSites), "fixation_sites.csv", row.names = FALSE)
     
-    # 8. Extract and visualize specific sites using extractSite, extractTips, plotSingleSite, and plot
+    # --- Extract and visualize specific sites using extractSite, ---
     # Wrap site-specific extractions in tryCatch to handle cases where user data lacks these specific sites
     tryCatch({
       sp <- extractSite(fixations, 139)
@@ -125,7 +125,7 @@ process BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS {
     plot(fixations)
     dev.off()
     
-    # 7. Detect parallel mutation sites using parallelSites
+    # --- Detect parallel mutation sites using parallelSites ---
     paraSites <- parallelSites(minEntropy, minSNP = 1, mutMode = "exact")
     saveRDS(paraSites, "parallel_sites.rds")
     

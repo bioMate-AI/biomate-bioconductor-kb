@@ -67,7 +67,7 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
     library(txdbmaker)
     
     # -----------------------------------------------------------------------------
-    # 1. Locate User Input Files in the Working Directory
+    # --- Locate User Input Files in the Working Directory ---
     # -----------------------------------------------------------------------------
     gtf_files <- list.files(pattern = "\\\\.(gtf|gff)\$", ignore.case = TRUE)
     if (length(gtf_files) == 0) {
@@ -81,7 +81,7 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Prepare Targets and Genome Features
+    # --- Prepare Targets and Genome Features ---
     # -----------------------------------------------------------------------------
     targets <- data.frame( 
       row.names = paste0('Sample', seq_along(BAMFiles)),
@@ -93,7 +93,7 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
     features <- binGenome(genomeTxDb, logTo = NULL)
     
     # -----------------------------------------------------------------------------
-    # 3. Count Reads from BAM Files
+    # --- Count Reads from BAM Files ---
     # -----------------------------------------------------------------------------
     ASpliSE <- BamtoAspliCounts(
                         features = features,
@@ -104,19 +104,19 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
                         )
     
     # -----------------------------------------------------------------------------
-    # 4. Extract Bin and Junction Counts
+    # --- Extract Bin and Junction Counts ---
     # -----------------------------------------------------------------------------
     SEbins <- convertASpli(ASpliSE, type = "bin")
     SEjunctions <- convertASpli(ASpliSE, type = "junction")
     
     # -----------------------------------------------------------------------------
-    # 5. Define Design Formula
+    # --- Define Design Formula ---
     # -----------------------------------------------------------------------------
     metadata(SEbins)\$design <- ~1
     metadata(SEjunctions)\$design <- ~1
     
     # -----------------------------------------------------------------------------
-    # 6. Calculate Splicing Offsets (Before Filtering)
+    # --- Calculate Splicing Offsets (Before Filtering) ---
     # -----------------------------------------------------------------------------
     SEbins <- calculateOffsets(SEbins, 
                                 method = "AS", 
@@ -128,7 +128,7 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
                                 mergeGeneASpli = TRUE)
     
     # -----------------------------------------------------------------------------
-    # 7. Filter Low-Count Features
+    # --- Filter Low-Count Features ---
     # -----------------------------------------------------------------------------
     filterbins <- filterByExpr(SEbins)
     SEbins <- SEbins[filterbins,]
@@ -137,13 +137,13 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
     SEjunctions <- SEjunctions[filterjunctions,]
     
     # -----------------------------------------------------------------------------
-    # 8. Estimate Latent Confounders
+    # --- Estimate Latent Confounders ---
     # -----------------------------------------------------------------------------
     SEbins <- saseRfindEncodingDim(SEbins, method = "GD")
     SEjunctions <- saseRfindEncodingDim(SEjunctions, method = "GD")
     
     # -----------------------------------------------------------------------------
-    # 9. Fit Regression Model and Calculate P-values
+    # --- Fit Regression Model and Calculate P-values ---
     # -----------------------------------------------------------------------------
     SEbins <- saseRfit(SEbins,
                         analysis = "AS",
@@ -156,7 +156,7 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
                         fit = "fast")
     
     # -----------------------------------------------------------------------------
-    # 10. Save Meaningful Outputs
+    # --- Save Meaningful Outputs ---
     # -----------------------------------------------------------------------------
     # Save full SummarizedExperiment objects
     saveRDS(SEbins, "SEbins_results.rds")

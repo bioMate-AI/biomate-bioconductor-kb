@@ -35,6 +35,15 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("awst", "EDASeq", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input datasets...")
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -73,7 +82,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message(sprintf("Initial dataset dimensions: %d genes, %d samples", nrow(se), ncol(se)))
     
     # ==========================================
-    # Stage 2: Pre-filtering Lowly Expressed Genes
+    # --- Pre-filtering Lowly Expressed Genes ---
     # ==========================================
     message("Pre-filtering lowly expressed genes...")
     # Filter out genes with low average counts across all samples (default threshold: 10)
@@ -89,7 +98,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message(sprintf("Genes remaining after pre-filtering: %d", nrow(se)))
     
     # ==========================================
-    # Stage 3: Normalization & AWST Transformation
+    # --- Normalization & AWST Transformation ---
     # ==========================================
     message("Performing full-quantile normalization...")
     # Full-quantile normalization is recommended prior to AWST to stabilize parameters
@@ -106,7 +115,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message("Saved AWST-transformed counts to 'awst_transformed_counts.csv'")
     
     # ==========================================
-    # Stage 4: Entropy-based Gene Filtering
+    # --- Entropy-based Gene Filtering ---
     # ==========================================
     message("Filtering uninformative genes using entropy...")
     # Remove genes that contribute little to sample distances
@@ -123,7 +132,7 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
     message(sprintf("Saved filtered AWST counts (%d genes) to 'filtered_awst_counts.csv'", nrow(filtered_se)))
     
     # ==========================================
-    # Stage 5: Diagnostics and Visualization
+    # --- Diagnostics and Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     

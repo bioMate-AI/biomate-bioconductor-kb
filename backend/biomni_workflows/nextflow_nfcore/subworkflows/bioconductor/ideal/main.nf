@@ -35,6 +35,15 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ideal", "DESeq2", "ggplot2", "org.Hs.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
     library(DESeq2)
     library(ggplot2)
     
-    # Stage 1: Load input data
+    # --- Load input data ---
     message("Loading input data...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
@@ -68,7 +77,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
     # Ensure condition is a factor
     coldata\$condition <- as.factor(coldata\$condition)
     
-    # Stage 2: Run DESeq2 Differential Expression Analysis
+    # --- Run DESeq2 Differential Expression Analysis ---
     message("Running DESeq2...")
     dds <- DESeqDataSetFromMatrix(countData = counts,
                                   colData = coldata,
@@ -76,7 +85,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
     dds <- DESeq(dds)
     res <- results(dds, alpha = 0.05)
     
-    # Stage 3: Build Annotation Object
+    # --- Build Annotation Object ---
     message("Building annotation...")
     gene_ids <- rownames(dds)
     gene_names <- gene_ids
@@ -99,7 +108,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
       stringsAsFactors = FALSE
     )
     
-    # Stage 4: Generate Diagnostic and Downstream Plots using ideal
+    # --- Generate Diagnostic and Downstream Plots using ideal ---
     message("Generating plots...")
     
     # 4.1 MA Plot
@@ -143,7 +152,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
       dev.off()
     })
     
-    # Stage 5: Functional Enrichment Analysis using goseqTable
+    # --- Functional Enrichment Analysis using goseqTable ---
     message("Running functional enrichment...")
     go_results <- data.frame(category = character(), over_represented_pvalue = numeric(), term = character())
     tryCatch({
@@ -168,7 +177,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
     })
     write.csv(go_results, "goseq_enrichment.csv", row.names = FALSE)
     
-    # Stage 6: Prepare for iSEE
+    # --- Prepare for iSEE ---
     message("Preparing iSEE object...")
     tryCatch({
       ise_obj <- wrapup_for_iSEE(dds, res)
@@ -178,7 +187,7 @@ process BIOC_IDEAL_IDEAL_DIFFERENTIAL_EXPRESSION_PIPELINE {
       saveRDS(NULL, "isee_input.rds")
     })
     
-    # Stage 7: Save DE Results Table
+    # --- Save DE Results Table ---
     message("Saving results...")
     write.csv(res_df, "de_results.csv", row.names = TRUE)
     

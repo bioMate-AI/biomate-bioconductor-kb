@@ -69,24 +69,24 @@ process BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ {
       stop(paste("Missing required input files in the working directory:", paste(missing_files, collapse = ", ")))
     }
     
-    # Step 1: Remove PCR bias and obtain unique cleavage events
+    # --- Remove PCR bias and obtain unique cleavage events ---
     message("Step 1: Removing PCR bias and obtaining unique cleavage events...")
     uniqueCleavageEvents <- getUniqueCleavageEvents(bamfile, umifile, n.cores.max = 1)
     saveRDS(uniqueCleavageEvents, "uniqueCleavageEvents.rds")
     
-    # Step 2: Summarize cleavage events into peaks
+    # --- Summarize cleavage events into peaks ---
     message("Step 2: Summarizing cleavage events into peaks...")
     peaks <- getPeaks(uniqueCleavageEvents\$cleavage.gr, min.reads = 80)
     peaks.gr <- peaks\$peaks
     saveRDS(peaks, "peaks.rds")
     
-    # Step 3: Merge peaks from plus and minus strands
+    # --- Merge peaks from plus and minus strands ---
     message("Step 3: Merging plus and minus peaks...")
     mergedPeaks <- mergePlusMinusPeaks(peaks.gr = peaks.gr,  
         output.bedfile = "mergedPeaks.bed")
     saveRDS(mergedPeaks, "mergedPeaks.rds")
     
-    # Step 4: Perform off-target analysis of extended regions around identified cleavage sites
+    # --- Perform off-target analysis of extended regions around ---
     message("Step 4: Performing off-target analysis of peak regions...")
     outputDir <- getwd() 
     

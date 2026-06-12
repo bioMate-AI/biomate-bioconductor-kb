@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run non-partial correlation analysis using non_partial_cor
+//  * 1. [Core Analysis] READ USER INPUT FILES
+//  * 2. [Core Analysis] RUN NON-PARTIAL CORRELATION ANALYSIS
+//  * 3. [Core Analysis] WRITE OUTPUTS
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_INDEED_NON_PARTIAL_CORRELATION_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("INDEED")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +61,7 @@ process BIOC_INDEED_NON_PARTIAL_CORRELATION_ANALYSIS {
     library(INDEED)
     
     # ==========================================
-    # 1. READ USER INPUT FILES
+    # --- READ USER INPUT FILES ---
     # ==========================================
     
     # Read expression data matrix (features as rows, subjects as columns)
@@ -102,14 +113,14 @@ process BIOC_INDEED_NON_PARTIAL_CORRELATION_ANALYSIS {
     }
     
     # ==========================================
-    # 2. RUN NON-PARTIAL CORRELATION ANALYSIS
+    # --- RUN NON-PARTIAL CORRELATION ANALYSIS ---
     # ==========================================
     
     # Execute the documented function call exactly as specified
     results <- non_partial_cor(data = Met_GU, class_label = Met_Group_GU, id = Met_name_GU, method = "spearman")
     
     # ==========================================
-    # 3. WRITE OUTPUTS
+    # --- WRITE OUTPUTS ---
     # ==========================================
     
     # Save the complete results object as an RDS file

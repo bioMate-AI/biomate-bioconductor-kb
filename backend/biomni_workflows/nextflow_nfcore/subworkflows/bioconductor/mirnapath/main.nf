@@ -71,7 +71,7 @@ process BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT {
         stop(paste("Required input file missing:", pathway_file))
     }
     
-    # 1. Load miRNA expression data
+    # --- Load miRNA expression data ---
     mirnaobj <- loadmirnapath( mirnafile=mirna_file,
         pvaluecol="P-value", groupcol="GROUP", 
         mirnacol="miRNA Name", assayidcol="ASSAYID" );
@@ -79,17 +79,17 @@ process BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT {
     # Set the p-value column name in the object's columns slot
     mirnaobj@columns["pvaluecol"] <- "P-value";
     
-    # 2. Filter miRNA data for hits
+    # --- Filter miRNA data for hits ---
     mirnaobj <- filtermirnapath( mirnaobj, pvalue=0.05,
         expression=NA, foldchange=NA );
     
-    # 3. Load miRNA-gene associations
+    # --- Load miRNA-gene associations ---
     mirnaobj <- loadmirnatogene( mirnafile=gene_file,
         mirnaobj=mirnaobj, mirnacol="miRNA Name",
         genecol="Entrez Gene ID", 
         columns=c(assayidcol="ASSAYID") );
     
-    # 4. Load gene-pathway associations
+    # --- Load gene-pathway associations ---
     mirnaobj <- loadmirnapathways( mirnaobj=mirnaobj, 
         pathwayfile=pathway_file, 
         pathwaycol="Pathway Name", genecol="Entrez Gene ID");
@@ -108,11 +108,11 @@ process BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT {
             mirnaobj@columns["groupcol"] ]);
     }
     
-    # 5. Run pathway enrichment analysis
+    # --- Run pathway enrichment analysis ---
     mirnaobj <- runEnrichment( mirnaobj=mirnaobj, Composite=TRUE,
        groups=Groups[grep("^AD.+(UP|DOWN)",Groups)], permutations=0 );
     
-    # 6. Export and format enrichment results
+    # --- Export and format enrichment results ---
     finaltable <- mirnaTable( mirnaobj, groups=NULL, format="Tall", 
        Significance=0.1, pvalueTypes=c("pvalues","permpvalues"),
        maxStringLength=42 );
@@ -129,7 +129,7 @@ process BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT {
     # Save the wide format table before modifying rownames
     write.csv(widetable, "enrichment_results_wide.csv", row.names=FALSE)
     
-    # 7. Visualize results using a heatmap
+    # --- Visualize results using a heatmap ---
     pathwaycol <- mirnaobj@columns["pathwaycol"];
     pathwayidcol <- mirnaobj@columns["pathwayidcol"];
     rownames(widetable) <- apply(widetable[,c(pathwaycol,

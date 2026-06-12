@@ -35,6 +35,15 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("customProDB", "GenomicRanges", "GenomicFeatures", "Biostrings", "S4Vectors", "BSgenome.Hsapiens.UCSC.hg19")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data & Setup Mock Genome
+    # --- Load Input Data & Setup Mock Genome ---
     # ==========================================
     message("Stage 1: Loading input data and setting up genomic annotations...")
     
@@ -131,7 +140,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Calculate RPKM & Filter Databases
+    # --- Calculate RPKM & Filter Databases ---
     # ==========================================
     message("Stage 2: Calculating RPKM and filtering expressed proteins...")
     
@@ -162,7 +171,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: Variation Annotation (SNVs & INDELs)
+    # --- Variation Annotation (SNVs & INDELs) ---
     # ==========================================
     message("Stage 3: Annotating genomic variations...")
     
@@ -215,7 +224,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Splice Junction Analysis
+    # --- Splice Junction Analysis ---
     # ==========================================
     message("Stage 4: Analyzing splice junctions...")
     
@@ -241,7 +250,7 @@ process BIOC_CUSTOMPRODB_CUSTOMPRODB_PROTEOGENOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Diagnostics & Summary Reporting
+    # --- Diagnostics & Summary Reporting ---
     # ==========================================
     message("Stage 5: Generating diagnostic reports...")
     

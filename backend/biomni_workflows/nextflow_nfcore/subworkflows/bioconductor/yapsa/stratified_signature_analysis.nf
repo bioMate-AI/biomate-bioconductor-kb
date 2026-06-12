@@ -67,7 +67,7 @@ process BIOC_YAPSA_STRATIFIED_SIGNATURE_ANALYSIS {
       library(BSgenome.Hsapiens.UCSC.hg19)
     }
     
-    # 1. Define exclusive strata categories based on intermutational distance
+    # --- Define exclusive strata categories based on ---
     lymphoma_Nature2013_df\$density_cat <- cut(
       lymphoma_Nature2013_df\$dist, 
       c(0, 1001, 100001, Inf), 
@@ -75,7 +75,7 @@ process BIOC_YAPSA_STRATIFIED_SIGNATURE_ANALYSIS {
       labels = c("high", "intermediate", "background")
     )
     
-    # 2. Run the Stratification of the Mutational Catalogue (SMC) analysis
+    # --- Run the Stratification of the Mutational Catalogue (SMC) ---
     strata_order_ind <- c(1, 3, 2)
     mut_density_list <- run_SMC(
       lymphoma_Nature2013_df, 
@@ -88,7 +88,7 @@ process BIOC_YAPSA_STRATIFIED_SIGNATURE_ANALYSIS {
       in_strata_order_ind = strata_order_ind
     )
     
-    # 3. Perform statistical significance testing
+    # --- Perform statistical significance testing ---
     stat_mut_density_list <- stat_test_SMC(mut_density_list, in_flag = "norm")
     
     # Save outputs to the working directory

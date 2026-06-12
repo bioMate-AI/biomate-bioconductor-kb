@@ -56,28 +56,28 @@ process BIOC_DECIPHER_MICROARRAY_DESIGN_AND_ANALYSIS {
     library(DECIPHER)
     library(Biostrings)
     
-    # 1. Read DNA sequences
+    # --- Read DNA sequences ---
     fas <- "fas"
     if (!file.exists(fas)) {
       stop("Required input file 'fas' not found in the working directory.")
     }
     dna <- readDNAStringSet(fas)
     
-    # 2. Calculate distance matrix using DistanceMatrix
+    # --- Calculate distance matrix using DistanceMatrix ---
     dMatrix <- DistanceMatrix(dna, verbose=FALSE)
     
-    # 3. Cluster sequences using Treeline
+    # --- Cluster sequences using Treeline ---
     clusters <- Treeline(myDistMatrix=dMatrix, type="clusters", cutoff=0.03, method="complete", verbose=FALSE)
     
-    # 4. Generate consensus sequences for clusters using ConsensusSequence
+    # --- Generate consensus sequences for clusters using ---
     conSeqs <- tapply(dna, clusters\$cluster, ConsensusSequence)
     conSeqs <- unlist(DNAStringSetList(conSeqs))
     
-    # 5. Design microarray probes using DesignArray
+    # --- Design microarray probes using DesignArray ---
     probes <- DesignArray(conSeqs, maxPermutations=2, numProbes=20,
     	start=120, end=1450, verbose=FALSE)
     
-    # 6. Convert probes to a design matrix using Array2Matrix
+    # --- Convert probes to a design matrix using Array2Matrix ---
     A <- Array2Matrix(probes, verbose=FALSE)
     
     # Simulate the microarray hybridization intensities (b) as documented in the vignette
@@ -94,7 +94,7 @@ process BIOC_DECIPHER_MICROARRAY_DESIGN_AND_ANALYSIS {
     bad_hybs <- sample(length(b), max(1, floor(0.05*length(b))))
     b[bad_hybs] <- abs(rnorm(length(bad_hybs), sd=max(b)/3))
     
-    # 7. Solve for OTU abundance using NNLS
+    # --- Solve for OTU abundance using NNLS ---
     x_out <- NNLS(A, b, verbose=FALSE)
     
     # Write meaningful output files

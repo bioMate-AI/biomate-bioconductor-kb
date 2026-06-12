@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Perform external clustering (e.g., PAM). 2. Generate a dummy bubbletree using get_bubbletree_dummy. 3. Annotate the dummy bubbletr
+//  * 1. [Core Analysis] Perform external clustering (PAM/k-medoids)
+//  * 2. [Core Analysis] Generate a dummy bubbletree using get_bubbletree_dummy
+//  * 3. [Core Analysis] Annotate the dummy bubbletree with categorical features
 
 nextflow.enable.dsl = 2
 
@@ -83,10 +85,10 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_EXTERNAL_CLUSTERING {
     # Ensure A is a numeric matrix
     A <- as.matrix(A)
     
-    # 1. Perform external clustering (PAM/k-medoids)
+    # --- Perform external clustering (PAM/k-medoids) ---
     pam_k5 <- cluster::pam(x = A, k = 5, metric = "euclidean")
     
-    # 2. Generate a dummy bubbletree using get_bubbletree_dummy
+    # --- Generate a dummy bubbletree using get_bubbletree_dummy ---
     dummy_k5_pam <- get_bubbletree_dummy(x = A,
                                          cs = pam_k5\$clustering,
                                          B = 200,
@@ -94,7 +96,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_EXTERNAL_CLUSTERING {
                                          cores = 2,
                                          round_digits = 1)
     
-    # 3. Annotate the dummy bubbletree with categorical features using get_cat_tiles
+    # --- Annotate the dummy bubbletree with categorical features ---
     # and generate the combined plot
     p <- dummy_k5_pam\$tree |
       get_cat_tiles(btd = dummy_k5_pam, 

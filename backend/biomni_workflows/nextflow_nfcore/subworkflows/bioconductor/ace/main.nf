@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run runACE to process files, perform segmentation (if BAM), and calculate fits across specified ploidies and bin sizes. 2. Inspect
+//  * 1. [Visualization & Output] Run runACE to process files, perform segmentation, and
+//  * 2. [Visualization & Output] Inspect output directories, likelyfits, and fitpicker
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +39,15 @@ process BIOC_ACE_RUN_ACE_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ACE", "Biobase", "QDNAseq", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -60,7 +70,7 @@ process BIOC_ACE_RUN_ACE_PIPELINE {
     bam_files <- list.files(userpath, pattern = "\\\\.bam\$", ignore.case = TRUE)
     rds_files <- list.files(userpath, pattern = "\\\\.rds\$", ignore.case = TRUE)
     
-    # Stage 1: Run runACE to process files, perform segmentation, and calculate fits
+    # --- Run runACE to process files, perform segmentation, and ---
     if (length(bam_files) > 0) {
       message("Found BAM files in the working directory. Running runACE for BAM workflow...")
       runACE(userpath, filetype='bam', binsizes = c(100, 1000),
@@ -72,7 +82,7 @@ process BIOC_ACE_RUN_ACE_PIPELINE {
       stop("Error: No BAM or RDS files found in the working directory. Please provide aligned BAM files or segmented QDNAseq RDS files.")
     }
     
-    # Stage 2: Inspect output directories, likelyfits, and fitpicker tables
+    # --- Inspect output directories, likelyfits, and fitpicker ---
     message("Searching for generated fitpicker tables and diagnostic plots...")
     
     fitpicker_files <- list.files(userpath, pattern = "fitpicker", recursive = TRUE, full.names = TRUE)

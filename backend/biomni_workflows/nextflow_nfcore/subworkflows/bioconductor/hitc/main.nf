@@ -35,6 +35,15 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("HiTC", "Matrix", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Data Loading & Preprocessing
+    # --- Data Loading & Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -112,7 +121,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     htc_list <- HTClist(list(chr1chr1 = htc_obj))
     
     # ==========================================
-    # STAGE 2: Quality Control
+    # --- Quality Control ---
     # ==========================================
     message("Stage 2: Performing Quality Control...")
     
@@ -127,7 +136,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Binning & Region Extraction
+    # --- Binning & Region Extraction ---
     # ==========================================
     message("Stage 3: Binning and region extraction...")
     
@@ -153,7 +162,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Normalization
+    # --- Normalization ---
     # ==========================================
     message("Stage 4: Normalizing interaction counts...")
     
@@ -171,7 +180,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Downstream Analysis (DI & PCA)
+    # --- Downstream Analysis (DI & PCA) ---
     # ==========================================
     message("Stage 5: Computing Directionality Index and PCA...")
     
@@ -192,7 +201,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Visualization & Export
+    # --- Visualization & Export ---
     # ==========================================
     message("Stage 6: Generating heatmaps and exporting results...")
     

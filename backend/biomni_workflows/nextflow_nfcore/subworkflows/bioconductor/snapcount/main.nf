@@ -35,6 +35,15 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("snapcount", "GenomicRanges", "S4Vectors", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     library(BiocGenerics)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading input files...")
     
@@ -73,7 +82,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Query Snaptron for Gene & Junctions
+    # --- Query Snaptron for Gene & Junctions ---
     # ==========================================
     message("Stage 2: Querying Snaptron for gene: ", gene_of_interest)
     
@@ -95,7 +104,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     jx_rse <- query_jx(sb)
     
     # ==========================================
-    # STAGE 3: Compare Local and Public Expression
+    # --- Compare Local and Public Expression ---
     # ==========================================
     message("Stage 3: Analyzing public GTEx tissue expression...")
     
@@ -115,7 +124,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(gtex_tissue_summary, "gtex_tissue_expression.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Tissue Specificity of Top Junction
+    # --- Tissue Specificity of Top Junction ---
     # ==========================================
     message("Stage 4: Calculating tissue specificity for the top junction...")
     
@@ -146,7 +155,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(ts_results, "tissue_specificity_top_junction.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Junction Union & Intersection (GTEx vs TCGA)
+    # --- Junction Union & Intersection (GTEx vs TCGA) ---
     # ==========================================
     message("Stage 5: Performing GTEx vs TCGA junction comparison...")
     
@@ -177,7 +186,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(comparison_summary, "junction_comparison_gtex_tcga.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: High-Level Splicing (PSI)
+    # --- High-Level Splicing (PSI) ---
     # ==========================================
     message("Stage 6: Calculating Percent Spliced In (PSI) for reference cassette exon...")
     
@@ -203,7 +212,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(psi_df, "psi_splicing_events.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Visualisation & Reporting
+    # --- Visualisation & Reporting ---
     # ==========================================
     message("Stage 7: Generating PDF report...")
     

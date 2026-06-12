@@ -63,15 +63,15 @@ process BIOC_CLUMSID_DI_MS2_HIGHRES {
       stop(paste("Required input file missing:", DIfile))
     }
     
-    # 1. Extract MS2 spectra
+    # --- Extract MS2 spectra ---
     message("Extracting MS2 spectra...")
     ms2list <- extractMS2spectra(DIfile)
     
-    # 2. Merge redundant spectra with a tight retention time tolerance
+    # --- Merge redundant spectra with a tight retention time ---
     message("Merging MS2 spectra...")
     featlist <- mergeMS2spectra(ms2list, rt_tolerance = 1)
     
-    # 3. Generate a spectral similarity distance matrix
+    # --- Generate a spectral similarity distance matrix ---
     message("Generating distance matrix...")
     distmat <- distanceMatrix(featlist)
     
@@ -83,7 +83,7 @@ process BIOC_CLUMSID_DI_MS2_HIGHRES {
     # Export distance matrix as a CSV table
     write.csv(as.matrix(distmat), "distance_matrix.csv", row.names = TRUE)
     
-    # 4. Visualize similarities with a circularized dendrogram
+    # --- Visualize similarities with a circularized dendrogram ---
     message("Generating circularized dendrogram plot...")
     pdf("HCplot_dendrogram.pdf", width = 10, height = 10)
     HCplot(distmat, cex = 0.5)

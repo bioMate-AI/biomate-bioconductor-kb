@@ -55,7 +55,7 @@ process BIOC_RBEC_CONTAMINATION_DETECTION {
     # Load required library
     library(Rbec)
     
-    # 1. Compile paths of Rbec log files into a single text file
+    # --- Compile paths of Rbec log files into a single text file ---
     # Read user-provided log files from the working directory
     if (dir.exists("log_files")) {
       log_path <- list.files("log_files", recursive = TRUE, full.names = TRUE)
@@ -73,7 +73,7 @@ process BIOC_RBEC_CONTAMINATION_DETECTION {
     # Track files in tempdir before running to identify new outputs
     temp_dir_before <- list.files(tempdir(), recursive = TRUE, full.names = TRUE)
     
-    # 2. Run Contam_detect to identify contaminated samples and generate a distribution plot
+    # --- Run Contam_detect to identify contaminated samples and ---
     Contam_detect(log_file, tempdir())
     
     # Identify and copy generated outputs to the working directory

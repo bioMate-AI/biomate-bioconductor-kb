@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the sequential dataset with p-values and dates. 2. Set a seed to ensure reproducible batch randomization. 3. Run the LOND a
+//  * 1. [Input & Preparation] Read the sequential dataset from the working directory
+//  * 2. [Input & Preparation] Set seed and run LOND algorithm for independent or
+//  * 3. [Input & Preparation] Set seed and run LORD algorithm with different version
+//  * 4. [Input & Preparation] Write outputs to files
+//  * 5. [Input & Preparation] Generate visualization of adjusted significance thresholds
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_ONLINEFDR_ONLINE_FDR_SYNCHRONOUS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("onlineFDR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +63,7 @@ process BIOC_ONLINEFDR_ONLINE_FDR_SYNCHRONOUS {
     # Load required library
     library(onlineFDR)
     
-    # 1. Read the sequential dataset from the working directory
+    # --- Read the sequential dataset from the working directory ---
     if (file.exists("sample.df")) {
       sample.df <- tryCatch({
         read.csv("sample.df", stringsAsFactors = FALSE)
@@ -70,14 +83,14 @@ process BIOC_ONLINEFDR_ONLINE_FDR_SYNCHRONOUS {
       sample.df\$date <- as.Date(sample.df\$date)
     }
     
-    # 2. Set seed and run LOND algorithm for independent or dependent p-values
+    # --- Set seed and run LOND algorithm for independent or ---
     set.seed(1); results.indep <- LOND(sample.df)    # for independent p-values
     set.seed(1); results.dep <- LOND(sample.df, dep=TRUE)   # for dependent p-values
     
     # Compare adjusted significance thresholds for LOND
     lond_comparison <- cbind(independent = results.indep\$alphai, dependent = results.dep\$alphai)
     
-    # 3. Set seed and run LORD algorithm with different version configurations
+    # --- Set seed and run LORD algorithm with different version ---
     set.seed(1); results.LORD.plus <- LORD(sample.df)
     set.seed(1); results.LORD3 <- LORD(sample.df, version=3)
     set.seed(1); results.LORD.discard <- LORD(sample.df, version='discard')
@@ -89,7 +102,7 @@ process BIOC_ONLINEFDR_ONLINE_FDR_SYNCHRONOUS {
                              LORD.discard  = results.LORD.discard\$alphai,
                              LORD.dep = results.LORD.dep\$alphai)
     
-    # 4. Write outputs to files
+    # --- Write outputs to files ---
     write.csv(results.indep, "results_lond_indep.csv", row.names = FALSE)
     write.csv(results.dep, "results_lond_dep.csv", row.names = FALSE)
     write.csv(results.LORD.plus, "results_lord_plus.csv", row.names = FALSE)
@@ -108,7 +121,7 @@ process BIOC_ONLINEFDR_ONLINE_FDR_SYNCHRONOUS {
     saveRDS(results.LORD.discard, "results_lord_discard.rds")
     saveRDS(results.LORD.dep, "results_lord_dep.rds")
     
-    # 5. Generate visualization of adjusted significance thresholds
+    # --- Generate visualization of adjusted significance thresholds ---
     pdf("threshold_comparison_plot.pdf", width = 8, height = 6)
     x <- seq_len(nrow(sample.df))
     plot(x, log(results.indep\$alphai), ylim = c(-15, -1), type = 'l', col = "green",

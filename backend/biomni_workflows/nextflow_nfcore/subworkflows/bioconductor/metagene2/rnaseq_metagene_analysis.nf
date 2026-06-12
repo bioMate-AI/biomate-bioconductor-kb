@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize metagene2 object with region_mode="stitch"; 2. Produce metagene plot
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Initialize metagene2 Object (Stitch Mode)
+//  * 3. [Visualization & Output] Produce Metagene Plot and Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("metagene2", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +63,7 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read the GRangesList of exons grouped by gene/transcript
@@ -78,7 +89,7 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     }
     
     # ==========================================
-    # 2. Initialize metagene2 Object (Stitch Mode)
+    # --- Initialize metagene2 Object (Stitch Mode) ---
     # ==========================================
     
     # Initialize the metagene2 object using the exact documented arguments
@@ -92,7 +103,7 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     saveRDS(processed_regions, "processed_regions.rds")
     
     # ==========================================
-    # 3. Produce Metagene Plot and Save Outputs
+    # --- Produce Metagene Plot and Save Outputs ---
     # ==========================================
     
     # Generate and save the metagene plot to a PDF file

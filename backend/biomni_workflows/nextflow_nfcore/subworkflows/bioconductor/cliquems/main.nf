@@ -61,23 +61,23 @@ process BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION {
     library(cliqueMS)
     library(xcms)
     
-    # 1. Read and process raw LC/MS data using xcms to find chromatographic peaks
+    # --- Read and process raw LC/MS data using xcms to find ---
     mzfile <- "standards.mzXML"
     mzraw <- MSnbase::readMSData(files = mzfile, mode = "onDisk")
     cpw <- CentWaveParam(ppm = 15, peakwidth = c(5, 20), snthresh = 10)
     mzData <- findChromPeaks(object = mzraw, param = cpw)
     
-    # 2. Create an anClique S4 object from the processed peak data
+    # --- Create an anClique S4 object from the processed peak data ---
     ex.anClique <- createanClique(mzData)
     
-    # 3. Group coeluting features into cliques using getCliques
+    # --- Group coeluting features into cliques using getCliques ---
     set.seed(2)
     ex.cliqueGroups <- getCliques(mzData, filter = TRUE)
     
-    # 4. Annotate isotopes within each clique group using getIsotopes
+    # --- Annotate isotopes within each clique group using ---
     ex.Isotopes <- getIsotopes(ex.cliqueGroups, ppm = 10)
     
-    # 5. Annotate adducts and fragments using getAnnotation with an adduct information list
+    # --- Annotate adducts and fragments using getAnnotation with ---
     # Retrieve the package's adduct datasets directly without using the forbidden data() function
     positive.adinfo <- cliqueMS::positive.adinfo
     negative.adinfo <- cliqueMS::negative.adinfo
@@ -86,7 +86,7 @@ process BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION {
         adinfo = positive.adinfo, polarity = "positive",
         normalizeScore = TRUE)
     
-    # 6. Extract the annotated peak list and clique groups
+    # --- Extract the annotated peak list and clique groups ---
     features.clique6 <- getlistofCliques(ex.Adducts)[[6]]
     
     # Extract subset of interest for demonstration/verification

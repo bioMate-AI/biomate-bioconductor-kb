@@ -52,11 +52,11 @@ process BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION {
           }
         }
     
-    # Stage 1: Load required libraries safely
+    # --- Load required libraries safely ---
     library(biodb)
     library(biodbNcbi)
     
-    # Stage 2: Read and clean input identifiers defensively
+    # --- Read and clean input identifiers defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop("Input file 'input.csv' not found in the working directory.")
@@ -93,14 +93,14 @@ process BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION {
       ids <- ids[1:max_queries]
     }
     
-    # Stage 3: Initialize biodb and NCBI Gene connector
+    # --- Initialize biodb and NCBI Gene connector ---
     message("Initializing biodb framework and NCBI Gene connector...")
     bd <- biodb::newBiodb()
     
     # Create the NCBI Gene connector (registered by loading biodbNcbi)
     conn <- bd\$getFactory()\$createConn('ncbi.gene')
     
-    # Stage 4: Query NCBI Gene database
+    # --- Query NCBI Gene database ---
     message("Querying NCBI Gene database for annotations...")
     entries <- list()
     for (id in ids) {
@@ -115,7 +115,7 @@ process BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION {
       })
     }
     
-    # Stage 5: Extract annotations and compile results
+    # --- Extract annotations and compile results ---
     message("Compiling annotation results...")
     if (length(entries) > 0) {
       # Attempt to convert entries to a data frame using biodb's built-in converter
@@ -149,7 +149,7 @@ process BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION {
       )
     }
     
-    # Stage 6: Write output to CSV
+    # --- Write output to CSV ---
     write.csv(df, "ncbi_annotations.csv", row.names = FALSE)
     message("Analysis complete. Annotations written to 'ncbi_annotations.csv'.")
 

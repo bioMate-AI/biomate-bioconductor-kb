@@ -55,14 +55,14 @@ process BIOC_METAPHOR_PATHWAY_NETWORK_MODELING {
     # Load the required package
     library(MetaPhOR)
     
-    # Stage 1: Identify a pathway of interest
+    # --- Identify a pathway of interest ---
     # Retrieve the complete list of available WikiPathways and save it to a CSV file
     message("Retrieving available metabolic pathways...")
     pw_list <- pathwayList()
     write.csv(pw_list, "available_pathways.csv", row.names = FALSE)
     message("Saved available pathways list to 'available_pathways.csv'")
     
-    # Stage 2: Render and save the pathway model using cytoPath()
+    # --- Render and save the pathway model using cytoPath() ---
     # This function requires a running local Cytoscape instance and the RCy3 package.
     # We wrap it in a tryCatch block to ensure the pipeline completes gracefully 
     # if Cytoscape is not currently running or reachable.

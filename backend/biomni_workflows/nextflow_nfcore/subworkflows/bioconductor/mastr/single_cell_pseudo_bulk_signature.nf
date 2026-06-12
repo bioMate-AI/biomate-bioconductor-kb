@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Aggregate single-cell counts into pseudo-bulk samples using pseudo_samples(). 2. Convert the pseudo-bulk matrix into a DGEList obj
+//  * 1. [Core Analysis] Aggregate single-cell counts into pseudo-bulk samples
+//  * 2. [Core Analysis] Convert the pseudo-bulk matrix into a DGEList object
+//  * 3. [Core Analysis] Run filter_subset_sig() to identify the target group's
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_MASTR_SINGLE_CELL_PSEUDO_BULK_SIGNATURE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mastR", "edgeR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -65,16 +76,16 @@ process BIOC_MASTR_SINGLE_CELL_PSEUDO_BULK_SIGNATURE {
     counts <- as.matrix(counts)
     meta <- as.data.frame(meta)
     
-    # 1. Aggregate single-cell counts into pseudo-bulk samples using pseudo_samples()
+    # --- Aggregate single-cell counts into pseudo-bulk samples ---
     pb <- pseudo_samples(counts, by = meta)
     
-    # 2. Convert the pseudo-bulk matrix into a DGEList object
+    # --- Convert the pseudo-bulk matrix into a DGEList object ---
     pb <- edgeR::DGEList(counts = pb, group = gsub("\\\\..*", "", colnames(pb)))
     
     # Dynamically select the first available group as the target group
     target_group <- as.character(unique(pb\$samples\$group)[1])
     
-    # 3. Run filter_subset_sig() to identify the target group's signature
+    # --- Run filter_subset_sig() to identify the target group's ---
     sig <- filter_subset_sig(pb, group_col = "group", target_group = target_group)
     
     # Write named output files for the meaningful results

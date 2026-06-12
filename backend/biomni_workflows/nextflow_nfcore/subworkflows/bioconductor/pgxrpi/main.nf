@@ -64,7 +64,7 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
       stop(paste("Required input file", file_name, "not found in the working directory."))
     }
     
-    # 1. Extract segment data using pgxSegprocess
+    # --- Extract segment data using pgxSegprocess ---
     message("Extracting segment data...")
     seg <- pgxSegprocess(file=file_name, return_seg = TRUE)
     
@@ -75,7 +75,7 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
       saveRDS(seg, "extracted_segments.rds")
     }
     
-    # 2. Extract metadata using pgxSegprocess
+    # --- Extract metadata using pgxSegprocess ---
     message("Extracting metadata...")
     meta <- pgxSegprocess(file=file_name, return_metadata = TRUE)
     
@@ -86,7 +86,7 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
       saveRDS(meta, "extracted_metadata.rds")
     }
     
-    # 3. Visualize survival data using Kaplan-Meier plots
+    # --- Visualize survival data using Kaplan-Meier plots ---
     message("Generating Kaplan-Meier survival plots...")
     pdf("survival_plots.pdf", width = 8, height = 6)
     
@@ -110,7 +110,7 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
     
     dev.off()
     
-    # 4. Calculate CNV frequency based on metadata grouping
+    # --- Calculate CNV frequency based on metadata grouping ---
     message("Calculating CNV frequencies...")
     frequency <- pgxSegprocess(file=file_name, return_frequency = TRUE)
     saveRDS(frequency, "cnv_frequency_default.rds")
@@ -118,7 +118,7 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
     frequency_2 <- pgxSegprocess(file=file_name, return_frequency = TRUE, group_id ='icdo_morphology_id')
     saveRDS(frequency_2, "cnv_frequency_by_morphology.rds")
     
-    # 5. Extract all data types simultaneously
+    # --- Extract all data types simultaneously ---
     message("Extracting all data types simultaneously...")
     info <- pgxSegprocess(file=file_name, show_KM_plot = TRUE, return_seg = TRUE, return_metadata = TRUE, return_frequency = TRUE)
     saveRDS(info, "all_extracted_info.rds")

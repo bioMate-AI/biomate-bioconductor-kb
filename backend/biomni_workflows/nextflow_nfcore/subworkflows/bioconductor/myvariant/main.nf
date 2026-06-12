@@ -35,6 +35,15 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("myvariant", "VariantAnnotation", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
     library(VariantAnnotation)
     library(S4Vectors)
     
-    # Stage 1: Read input VCF
+    # --- Read input VCF ---
     message("Reading input VCF file...")
     vcf_file <- "input.vcf"
     if (!file.exists(vcf_file)) {
@@ -60,7 +69,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
     vcf <- readVcf(vcf_file, genome="hg19")
     message(sprintf("Successfully loaded VCF with %d variants.", nrow(vcf)))
     
-    # Stage 2: Format HGVS IDs
+    # --- Format HGVS IDs ---
     message("Formatting HGVS IDs...")
     hgvs_snps <- tryCatch({
       formatHgvs(vcf, variant_type="snp")
@@ -95,7 +104,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       return(df_std)
     }
     
-    # Stage 3: Retrieve Annotations via HGVS (getVariants)
+    # --- Retrieve Annotations via HGVS (getVariants) ---
     ann_df <- data.frame()
     if (length(all_hgvs) > 0) {
       message("Querying MyVariant.info using HGVS IDs...")
@@ -113,7 +122,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 4: Query via rsIDs (queryVariants)
+    # --- Query via rsIDs (queryVariants) ---
     rs_df <- data.frame()
     rsids <- c()
     if (!is.null(names(rowRanges(vcf)))) {
@@ -141,7 +150,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 5: Write Outputs
+    # --- Write Outputs ---
     message("Writing output CSV files...")
     if (nrow(ann_df) > 0) {
       write.csv(ann_df, "hgvs_annotations.csv", row.names=FALSE)
@@ -155,7 +164,7 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
       write.csv(data.frame(Warning="No rsID annotations retrieved"), "rsid_annotations.csv", row.names=FALSE)
     }
     
-    # Stage 6: Generate Visualizations
+    # --- Generate Visualizations ---
     message("Generating summary PDF...")
     pdf("variant_summary.pdf", width=10, height=6)
     par(mfrow=c(1, 2))

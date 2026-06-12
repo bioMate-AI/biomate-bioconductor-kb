@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter and identify differentially expressed genes using expDiff. 2. Normalize expression data using normExp. 3. Split normalized 
+//  * 1. [Visualization & Output] Filter and identify differentially expressed genes using
+//  * 2. [Visualization & Output] Normalize expression data using normExp
+//  * 3. [Visualization & Output] Split normalized data by condition
+//  * 4. [Visualization & Output] Run PCIT analysis on each condition using PCIT
+//  * 5. [Visualization & Output] Visualize PCIT network properties using histPlot and
+//  * 6. [Visualization & Output] Run RIF analysis to identify key regulators using RIF
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_CETF_STEP_BY_STEP_PCIT_RIF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CeTF")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -128,7 +142,7 @@ process BIOC_CETF_STEP_BY_STEP_PCIT_RIF {
     # 2. Step-by-Step PCIT and RIF Workflow
     # ==========================================
     
-    # Stage 1: Filter and identify differentially expressed genes using expDiff
+    # --- Filter and identify differentially expressed genes using ---
     # Using a standard lfc threshold of 1.0 to ensure sufficient DE genes are selected
     DEGenes <- expDiff(exp = counts,
                        anno = anno,
@@ -149,18 +163,18 @@ process BIOC_CETF_STEP_BY_STEP_PCIT_RIF {
                 (1e+06 * x)/sum(x)
             })
     
-    # Stage 2: Normalize expression data using normExp
+    # --- Normalize expression data using normExp ---
     PCIT_input <- normExp(tpm)
     
-    # Stage 3: Split normalized data by condition
+    # --- Split normalized data by condition ---
     PCIT_input_untrt <- PCIT_input[, grep("_untrt", colnames(PCIT_input)), drop = FALSE]
     PCIT_input_trt <- PCIT_input[, grep("_trt", colnames(PCIT_input)), drop = FALSE]
     
-    # Stage 4: Run PCIT analysis on each condition using PCIT
+    # --- Run PCIT analysis on each condition using PCIT ---
     PCIT_out_untrt <- PCIT(PCIT_input_untrt, tolType = "mean")
     PCIT_out_trt <- PCIT(PCIT_input_trt, tolType = "mean")
     
-    # Stage 5: Visualize PCIT network properties using histPlot and densityPlot
+    # --- Visualize PCIT network properties using histPlot and ---
     pdf("pcit_plots.pdf", width = 12, height = 6)
     p1 <- histPlot(PCIT_out_trt\$adj_sig)
     p2 <- densityPlot(mat1 = PCIT_out_trt\$adj_raw, 
@@ -170,7 +184,7 @@ process BIOC_CETF_STEP_BY_STEP_PCIT_RIF {
     print(p2)
     dev.off()
     
-    # Stage 6: Run RIF analysis to identify key regulators using RIF
+    # --- Run RIF analysis to identify key regulators using RIF ---
     Clean_Dat <- normExp(tpm)
     
     # Verifying which TFs are in the subsetted normalized data

@@ -56,17 +56,17 @@ process BIOC_NORMQPCR_COMPUTE_NRQS {
     library(ReadqPCR)
     library(NormqPCR)
     
-    # 1. Read raw qPCR data
+    # --- Read raw qPCR data ---
     qPCR.example <- "qPCR.example.txt"
     if (!file.exists(qPCR.example)) {
       stop(paste("Required input file missing:", qPCR.example))
     }
     Cq.data <- read.qPCR(qPCR.example)
     
-    # 2. Combine technical replicates and compute standard deviations
+    # --- Combine technical replicates and compute standard ---
     Cq.data1 <- combineTechRepsWithSD(Cq.data)
     
-    # 3. Load and assign amplification efficiencies and their standard errors
+    # --- Load and assign amplification efficiencies and their ---
     Effs <- "Efficiencies.txt"
     if (!file.exists(Effs)) {
       stop(paste("Required input file missing:", Effs))
@@ -76,7 +76,7 @@ process BIOC_NORMQPCR_COMPUTE_NRQS {
     effs(Cq.data1) <- as.matrix(Cq.effs[,"efficiency",drop = FALSE])
     se.effs(Cq.data1) <- as.matrix(Cq.effs[,"SD.efficiency",drop = FALSE])
     
-    # 4. Compute NRQs using specified housekeeping genes
+    # --- Compute NRQs using specified housekeeping genes ---
     res <- ComputeNRQs(Cq.data1, hkgs = c("gene_az", "gene_gx"))
     
     # Extract results

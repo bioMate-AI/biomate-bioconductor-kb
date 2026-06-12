@@ -34,6 +34,15 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BrowserViz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +56,7 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     library(BrowserViz)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Read and Parse Input Data Defensively
+    # --- Read and Parse Input Data Defensively ---
     # ----------------------------------------------------------------------
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -101,7 +110,7 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     write.csv(summary_df, "summary_stats.csv", row.names = FALSE)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Create a Custom HTML/JS Client for BrowserViz
+    # --- Create a Custom HTML/JS Client for BrowserViz ---
     # ----------------------------------------------------------------------
     # We dynamically generate a lightweight HTML/JS client that implements
     # the BrowserViz WebSocket protocol to handle standard commands.
@@ -184,7 +193,7 @@ process BIOC_BROWSERVIZ_BROWSERVIZ_INTERACTIVE_ANALYSIS {
     writeLines(html_content, html_file)
     
     # ----------------------------------------------------------------------
-    # Stage 3: Initialize BrowserViz and Run Interactive Session
+    # --- Initialize BrowserViz and Run Interactive Session ---
     # ----------------------------------------------------------------------
     session_log <- c(
       "BrowserViz Session Log",

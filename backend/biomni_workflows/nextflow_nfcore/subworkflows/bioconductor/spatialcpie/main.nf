@@ -13,7 +13,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the count matrix, tissue image, and spot coordinates. 2. Preprocess the data by filtering out spots outside the tissue and re
+//  * 1. [Visualization & Output] Load the count matrix, tissue image, and spot coordinates
+//  * 2. [Visualization & Output] Preprocess the data by filtering out spots outside the
+//  * 3. [Visualization & Output] Run the cluster evaluation and visualization using runCPie
+//  * 4. [Visualization & Output] Visualize the cluster transition graph and spatial array
+//  * 5. [Visualization & Output] Select specific clusters for sub-clustering and re-run
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +43,15 @@ process BIOC_SPATIALCPIE_SPATIAL_CLUSTERING_AND_SUBCLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SpatialCPie", "dplyr", "jpeg", "ggplot2", "rlang")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -125,7 +138,7 @@ process BIOC_SPATIALCPIE_SPATIAL_CLUSTERING_AND_SUBCLUSTERING {
         }
     )
     
-    # 1. Load the count matrix, tissue image, and spot coordinates from the working directory
+    # --- Load the count matrix, tissue image, and spot coordinates ---
     counts <- read.table(
         "counts.tsv",
         sep = "\t",
@@ -140,7 +153,7 @@ process BIOC_SPATIALCPIE_SPATIAL_CLUSTERING_AND_SUBCLUSTERING {
         "spot_data.tsv"
     )
     
-    # 2. Preprocess the data by filtering out spots outside the tissue and removing low-abundance genes and spots
+    # --- Preprocess the data by filtering out spots outside the ---
     counts <- counts[, which(colnames(counts) %in% rownames(spots))]
     
     repeat {
@@ -151,7 +164,7 @@ process BIOC_SPATIALCPIE_SPATIAL_CLUSTERING_AND_SUBCLUSTERING {
         }
     }
     
-    # 3. Run the cluster evaluation and visualization using runCPie
+    # --- Run the cluster evaluation and visualization using runCPie ---
     result <- runCPie(
         counts,
         image = tissue,
@@ -162,7 +175,7 @@ process BIOC_SPATIALCPIE_SPATIAL_CLUSTERING_AND_SUBCLUSTERING {
     saveRDS(result, "spatial_cpie_result.rds")
     write.csv(result\$clusters, "primary_clusters.csv", row.names = FALSE)
     
-    # 4. Visualize the cluster transition graph and spatial array plots
+    # --- Visualize the cluster transition graph and spatial array ---
     pdf("primary_cluster_graph.pdf", width = 8, height = 6)
     print(result\$clusterGraph)
     dev.off()
@@ -171,7 +184,7 @@ process BIOC_SPATIALCPIE_SPATIAL_CLUSTERING_AND_SUBCLUSTERING {
     print(result\$arrayPlot\$`4`)
     dev.off()
     
-    # 5. Select specific clusters for sub-clustering and re-run runCPie on the subsetted data
+    # --- Select specific clusters for sub-clustering and re-run ---
     subcluster_df <- result\$clusters %>%
         filter(resolution == 4, cluster %in% c(1, 4))
     subcluster <- subcluster_df\$unit

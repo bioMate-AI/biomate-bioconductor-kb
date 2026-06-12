@@ -34,6 +34,15 @@ process BIOC_XMAPBRIDGE_XMAPBRIDGE_GENOME_BROWSER_EXPORT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("xmapbridge", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,7 +52,7 @@ process BIOC_XMAPBRIDGE_XMAPBRIDGE_GENOME_BROWSER_EXPORT {
           }
         }
     
-    # Stage 1: Load libraries and set up local cache environment
+    # --- Load libraries and set up local cache environment ---
     library(xmapbridge)
     library(rtracklayer)
     library(GenomicRanges)
@@ -58,7 +67,7 @@ process BIOC_XMAPBRIDGE_XMAPBRIDGE_GENOME_BROWSER_EXPORT {
     
     message("Using XMAP_BRIDGE_CACHE directory: ", cache_dir)
     
-    # Stage 2: Import and preprocess input genomic data
+    # --- Import and preprocess input genomic data ---
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
     }
@@ -95,7 +104,7 @@ process BIOC_XMAPBRIDGE_XMAPBRIDGE_GENOME_BROWSER_EXPORT {
       sample_data <- data.frame(Score = score(regions))
     }
     
-    # Stage 3: Generate X:Map Project, Graphs, and Plots
+    # --- Generate X:Map Project, Graphs, and Plots ---
     message("Initializing new X:Map project...")
     project_name <- "Genomic Regions Analysis Project"
     pid <- xmap.project.new(project_name)
@@ -180,7 +189,7 @@ process BIOC_XMAPBRIDGE_XMAPBRIDGE_GENOME_BROWSER_EXPORT {
       warning("Could not explicitly save project, files may have been auto-written: ", e\$message)
     })
     
-    # Stage 4: Export summaries and file lists
+    # --- Export summaries and file lists ---
     message("Generating output summaries...")
     
     # Retrieve lists of generated objects

@@ -35,6 +35,15 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biomformat")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     library(biomformat)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read abundance matrix (taxon/OTU-by-sample)
@@ -90,7 +99,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Construct and Serialize BIOM Object
+    # --- Construct and Serialize BIOM Object ---
     # ==========================================
     
     # Build the BIOM object
@@ -114,7 +123,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: SummarizedExperiment Interoperability
+    # --- SummarizedExperiment Interoperability ---
     # ==========================================
     
     # Convert BIOM object to SummarizedExperiment
@@ -127,7 +136,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     write.csv(as.data.frame(colData(se)), "sample_metadata_enriched.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Tidy Data Transformation & Diversity Analysis
+    # --- Tidy Data Transformation & Diversity Analysis ---
     # ==========================================
     
     # Convert BIOM object to tidy long-format data frame
@@ -152,7 +161,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     write.csv(diversity_df, "shannon_diversity.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     # Generate diagnostic plots

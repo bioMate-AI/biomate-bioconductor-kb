@@ -34,6 +34,15 @@ process BIOC_A4PREPROC_A4PREPROC_EXPRESSION_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("a4Preproc", "Biobase", "annotation_db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,7 +52,7 @@ process BIOC_A4PREPROC_A4PREPROC_EXPRESSION_ANNOTATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(a4Preproc)
     library(Biobase)
     
@@ -57,7 +66,7 @@ process BIOC_A4PREPROC_A4PREPROC_EXPRESSION_ANNOTATION {
     }
     library(annotation_db, character.only = TRUE)
     
-    # Stage 2: Read and preprocess input files
+    # --- Read and preprocess input files ---
     # Read normalized expression matrix (probe-by-sample)
     counts_df <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts_df)) {
@@ -85,7 +94,7 @@ process BIOC_A4PREPROC_A4PREPROC_EXPRESSION_ANNOTATION {
     exprs_matrix <- exprs_matrix[, common_samples, drop = FALSE]
     coldata_df <- coldata_df[common_samples, drop = FALSE]
     
-    # Stage 3: Construct the ExpressionSet object
+    # --- Construct the ExpressionSet object ---
     phenoData <- AnnotatedDataFrame(data = coldata_df)
     feature_df <- data.frame(probe_id = rownames(exprs_matrix), row.names = rownames(exprs_matrix))
     featureData <- AnnotatedDataFrame(data = feature_df)
@@ -97,7 +106,7 @@ process BIOC_A4PREPROC_A4PREPROC_EXPRESSION_ANNOTATION {
     )
     annotation(eset) <- annotation_pkg
     
-    # Stage 4: Run a4Preproc annotation pipeline
+    # --- Run a4Preproc annotation pipeline ---
     message("Adding gene annotation metadata using a4Preproc...")
     annotated_eset <- tryCatch({
       addGeneInfo(eset = eset)
@@ -111,7 +120,7 @@ process BIOC_A4PREPROC_A4PREPROC_EXPRESSION_ANNOTATION {
       eset
     })
     
-    # Stage 5: Export results
+    # --- Export results ---
     # Extract annotated feature data
     annotated_features <- fData(annotated_eset)
     write.csv(annotated_features, "annotated_features.csv", row.names = TRUE)

@@ -56,7 +56,7 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     library(cosmiq)
     library(xcms)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     my.input.files <- list.files(
       path = ".",
       pattern = "\\\\.(CDF|cdf|mzXML|mzxml|mzML|mzml|mzData|mzdata)\$",
@@ -86,7 +86,7 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     # Open PDF device to save plots
     pdf("cosmiq_plots.pdf", width = 10, height = 8)
     
-    # 2. Combine mass spectra across all scans and runs
+    # --- Combine mass spectra across all scans and runs ---
     x <- combine_spectra(xs=xs, mzbin=0.25, 
     	linear=TRUE, continuum=FALSE)
     
@@ -94,7 +94,7 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     	main='combined spectra',
     	xlab='m/Z', ylab='ion intensity')
     
-    # 3. Detect relevant mass peaks on the master spectrum
+    # --- Detect relevant mass peaks on the master spectrum ---
     xy <- peakdetection(x=x\$mz, y=x\$intensity, 
         scales=1:10, 
         SNR.Th=1.0, 
@@ -113,7 +113,7 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
         x\$intensity[id.peakcenter], 
         col='red', type='h')
     
-    # 4. Perform retention time alignment using xcms::retcor after creating a dummy peak matrix
+    # --- Perform retention time alignment using xcms::retcor after ---
     xs@peaks <- matrix(c(rep(1, length(my.input.files) * 6), 
     	1:length(my.input.files)), ncol=7)
     
@@ -123,7 +123,7 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     xs <- xcms::retcor(xs, method="obiwarp", profStep=1, 
     	distFunc="cor", center=1)
     
-    # 5. Generate the extracted ion chromatogram (EIC) matrix
+    # --- Generate the extracted ion chromatogram (EIC) matrix ---
     eicmat <- eicmatrix(xs=xs, xy=xy, center=1)
     
     # Process a reduced mz range for better performance and robustness
@@ -159,7 +159,7 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     axis(2, seq(0,1, length=4), 
         round(seq(mz.range[1], mz.range[2], length=4), 2))
     
-    # 6. Detect chromatographic peaks in the retention time domain
+    # --- Detect chromatographic peaks in the retention time domain ---
     rxy <- retention_time(xs=xs, 
         RTscales=c(1:10, seq(12,32, by=2)), 
         xy=xy.filter, 
@@ -175,10 +175,10 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     # Close PDF device
     dev.off()
     
-    # 7. Quantify features and create the final data matrix
+    # --- Quantify features and create the final data matrix ---
     xs <- create_datamatrix(xs=xs, rxy=rxy)
     
-    # 8. Extract the final peak table
+    # --- Extract the final peak table ---
     peaktable <- xcms::peakTable(xs)
     
     # Dynamically determine sample columns for sorting

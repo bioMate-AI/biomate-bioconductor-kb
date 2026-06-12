@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define the detail region to zoom into. 2. Initialize the zoomed plot using plotKaryotype with the zoom parameter. 3. Add backgroun
+//  * 1. [Visualization & Output] Define the detail region to zoom into
+//  * 2. [Visualization & Output] Initialize the zoomed plot using plotKaryotype with the
+//  * 3. [Visualization & Output] Add background and base numbers
+//  * 4. [Visualization & Output] Plot data points and arrows, specifying clipping=FALSE
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +64,7 @@ process BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING {
     library(regioneR)
     library(GenomicRanges)
     
-    # 1. Define the detail region to zoom into
+    # --- Define the detail region to zoom into ---
     # Read the GRanges object from the declared user input file 'detail.region'
     detail.region <- readRDS("detail.region")
     
@@ -74,14 +77,14 @@ process BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING {
     # Set up PDF output file to save the plot
     pdf("zoomed_region_plot.pdf", width = 10, height = 6)
     
-    # 2. Initialize the zoomed plot using plotKaryotype with the zoom parameter
+    # --- Initialize the zoomed plot using plotKaryotype with the ---
     kp <- plotKaryotype(plot.type = 4, zoom = detail.region)
     
-    # 3. Add background and base numbers
+    # --- Add background and base numbers ---
     kpDataBackground(kp, data.panel = 1)
     kpAddBaseNumbers(kp)
     
-    # 4. Plot data points and arrows, specifying clipping=FALSE for elements that should extend beyond the panel boundaries
+    # --- Plot data points and arrows, specifying clipping=FALSE ---
     # Dynamically place them relative to the detail.region so they remain visible regardless of the input range
     kpPoints(kp, chr = chrom, x = r_end, y = 0.5, pch = 16, cex = 8, col = "#FAC67A")
     kpArrows(kp, chr = chrom, x0 = r_start - (r_width * 1.88), x1 = r_end - (r_width * 0.22), y0 = 0.2, y1 = 1.1, clipping = FALSE)

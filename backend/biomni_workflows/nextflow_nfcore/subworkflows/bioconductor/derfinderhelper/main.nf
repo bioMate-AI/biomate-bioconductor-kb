@@ -36,6 +36,15 @@ process BIOC_DERFINDERHELPER_DERFINDER_HELPER_FSTATS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("S4Vectors", "derfinderHelper")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,13 +54,13 @@ process BIOC_DERFINDERHELPER_DERFINDER_HELPER_FSTATS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     suppressPackageStartupMessages({
         library(S4Vectors)
         library(derfinderHelper)
     })
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -77,7 +86,7 @@ process BIOC_DERFINDERHELPER_DERFINDER_HELPER_FSTATS {
         counts_filtered <- counts
     }
     
-    # Stage 3: Prepare data structure for derfinderHelper
+    # --- Prepare data structure for derfinderHelper ---
     # derfinderHelper expects a DataFrame of Rle objects for memory efficiency
     rle_list <- lapply(seq_len(ncol(counts_filtered)), function(i) {
         Rle(as.numeric(counts_filtered[[i]]))
@@ -85,7 +94,7 @@ process BIOC_DERFINDERHELPER_DERFINDER_HELPER_FSTATS {
     names(rle_list) <- colnames(counts_filtered)
     toyData <- DataFrame(rle_list)
     
-    # Stage 4: Build nested model matrices
+    # --- Build nested model matrices ---
     # We adjust for sample depth (library size) as a covariate
     sampleDepth <- colSums(counts_filtered)
     condition <- factor(coldata\$condition)
@@ -95,7 +104,7 @@ process BIOC_DERFINDERHELPER_DERFINDER_HELPER_FSTATS {
     # Null model (nested, excludes condition of interest)
     mod0 <- model.matrix(~ sampleDepth)
     
-    # Stage 5: Calculate F-statistics using derfinderHelper
+    # --- Calculate F-statistics using derfinderHelper ---
     # Using 'Matrix' method as recommended for optimal speed and memory usage
     fstats_rle <- fstats.apply(
         data = toyData, 
@@ -108,14 +117,14 @@ process BIOC_DERFINDERHELPER_DERFINDER_HELPER_FSTATS {
     # Convert Run-Length Encoded (Rle) F-statistics back to numeric vector
     f_values <- as.numeric(fstats_rle)
     
-    # Stage 6: Compute statistical significance (p-values)
+    # --- Compute statistical significance (p-values) ---
     df1 <- ncol(mod) - ncol(mod0)
     df2 <- nrow(mod) - ncol(mod)
     
     p_values <- pf(f_values, df1, df2, lower.tail = FALSE)
     adj_p_values <- p.adjust(p_values, method = "BH")
     
-    # Stage 7: Export results and diagnostic plots
+    # --- Export results and diagnostic plots ---
     results <- data.frame(
         gene_id = rownames(counts_filtered),
         f_statistic = f_values,

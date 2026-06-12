@@ -13,7 +13,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Estimate sample-wise alpha diversity (e.g., Shannon index) and append the results directly to the sample metadata (colData). 2. Ca
+//  * 1. [Core Analysis] Read the input TreeSummarizedExperiment object
+//  * 2. [Core Analysis] Estimate sample-wise alpha diversity (Shannon index)
+//  * 3. [Core Analysis] Agglomerate taxonomic ranks
+//  * 4. [Core Analysis] Perform Multidimensional Scaling (MDS/PCoA) ordination on
+//  * 5. [Core Analysis] Save meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -62,19 +66,19 @@ process BIOC_MIA_COMMUNITY_DIVERSITY_AND_ORDINATION {
     library(scater)
     library(ggplot2)
     
-    # 1. Read the input TreeSummarizedExperiment object
+    # --- Read the input TreeSummarizedExperiment object ---
     # The pipeline reads EXACTLY the declared user input file from the working directory.
     tse <- readRDS("GlobalPatterns.RDS")
     
-    # 2. Estimate sample-wise alpha diversity (Shannon index)
+    # --- Estimate sample-wise alpha diversity (Shannon index) ---
     # This appends the results directly to the sample metadata (colData).
     tse <- addAlpha(tse, index = "shannon")
     
-    # 3. Agglomerate taxonomic ranks
+    # --- Agglomerate taxonomic ranks ---
     # This creates alternative experiments for each taxonomic rank, including "Genus".
     tse <- agglomerateByRanks(tse)
     
-    # 4. Perform Multidimensional Scaling (MDS/PCoA) ordination on the Genus rank
+    # --- Perform Multidimensional Scaling (MDS/PCoA) ordination on ---
     # This calculates inter-sample beta diversity dissimilarity (Bray-Curtis) and stores the reduced dimensions.
     altExp(tse, "Genus") <- runMDS(
         altExp(tse, "Genus"), 
@@ -86,7 +90,7 @@ process BIOC_MIA_COMMUNITY_DIVERSITY_AND_ORDINATION {
         keep_dist = TRUE
     )
     
-    # 5. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     
     # Save the updated TreeSummarizedExperiment object
     saveRDS(tse, "tse_diversity_ordination.RDS")

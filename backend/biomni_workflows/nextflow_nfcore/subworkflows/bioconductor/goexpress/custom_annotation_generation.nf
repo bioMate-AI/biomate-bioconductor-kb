@@ -11,7 +11,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Connect to the Ensembl BioMart database using biomaRt. 2. Download gene annotations (IDs, symbols, descriptions). 3. Download GO t
+//  * 1. [Visualization & Output] Read user input: ensembl_host_metadata
+//  * 2. [Visualization & Output] Connect to the Ensembl BioMart database
+//  * 3. [Visualization & Output] Download gene annotations (IDs, symbols, descriptions)
+//  * 4. [Visualization & Output] Download GO term annotations (IDs, names, namespaces)
+//  * 5. [Visualization & Output] Download the mapping between gene IDs and GO IDs
+//  * 6. [Visualization & Output] Clean and format the downloaded data frames
+//  * 7. [Visualization & Output] Save the custom annotations to local R data files (.rda)
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +43,15 @@ process BIOC_GOEXPRESS_CUSTOM_ANNOTATION_GENERATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biomaRt", "GOexpress")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +65,7 @@ process BIOC_GOEXPRESS_CUSTOM_ANNOTATION_GENERATION {
     library(biomaRt)
     library(GOexpress)
     
-    # 1. Read user input: ensembl_host_metadata
+    # --- Read user input: ensembl_host_metadata ---
     host_url <- NULL
     dataset_name <- NULL
     
@@ -90,7 +105,7 @@ process BIOC_GOEXPRESS_CUSTOM_ANNOTATION_GENERATION {
       dataset_name <- "btaurus_gene_ensembl"
     }
     
-    # 2. Connect to the Ensembl BioMart database
+    # --- Connect to the Ensembl BioMart database ---
     listMarts(host = host_url)
     ensembl75 <- useMart(
       host = host_url,
@@ -98,31 +113,31 @@ process BIOC_GOEXPRESS_CUSTOM_ANNOTATION_GENERATION {
       dataset = dataset_name
     )
     
-    # 3. Download gene annotations (IDs, symbols, descriptions)
+    # --- Download gene annotations (IDs, symbols, descriptions) ---
     allgenes.Ensembl <- getBM(
       attributes = c("ensembl_gene_id", "external_gene_id", "description"),
       mart = ensembl75
     )
     colnames(allgenes.Ensembl)[1] <- "gene_id"
     
-    # 4. Download GO term annotations (IDs, names, namespaces)
+    # --- Download GO term annotations (IDs, names, namespaces) ---
     allGO.Ensembl <- getBM(
       attributes = c("go_id", "name_1006", "namespace_1003"),
       mart = ensembl75
     )
     
-    # 5. Download the mapping between gene IDs and GO IDs
+    # --- Download the mapping between gene IDs and GO IDs ---
     GOgenes.Ensembl <- getBM(
       attributes = c("ensembl_gene_id", "go_id"),
       mart = ensembl75
     )
     colnames(GOgenes.Ensembl)[1] <- "gene_id"
     
-    # 6. Clean and format the downloaded data frames
+    # --- Clean and format the downloaded data frames ---
     GOgenes.Ensembl <- GOgenes.Ensembl[GOgenes.Ensembl\$go_id != "", ]
     GOgenes.Ensembl <- GOgenes.Ensembl[GOgenes.Ensembl\$gene_id != "", ]
     
-    # 7. Save the custom annotations to local R data files (.rda)
+    # --- Save the custom annotations to local R data files (.rda) ---
     save(GOgenes.Ensembl, file = "GOgenes.Ensembl75.rda")
     save(allGO.Ensembl, file = "allGO.Ensembl75.rda")
     save(allgenes.Ensembl, file = "allgenes.Ensembl75.rda")

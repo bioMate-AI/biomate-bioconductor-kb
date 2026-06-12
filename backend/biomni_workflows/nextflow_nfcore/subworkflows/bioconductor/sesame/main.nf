@@ -36,6 +36,15 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("sesame")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -56,7 +65,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     })
     
     # ==========================================
-    # STAGE 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input data...")
     
@@ -90,7 +99,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     class(beta_matrix) <- "numeric"
     
     # ==========================================
-    # STAGE 2: Preprocessing & Quality Control
+    # --- Preprocessing & Quality Control ---
     # ==========================================
     message("Preprocessing and imputing missing values...")
     
@@ -120,7 +129,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     }
     
     # ==========================================
-    # STAGE 3: Differential Methylation Locus (DML)
+    # --- Differential Methylation Locus (DML) ---
     # ==========================================
     message("Running DML modeling...")
     
@@ -157,7 +166,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     message("DML results saved to dml_results.csv")
     
     # ==========================================
-    # STAGE 4: Differentially Methylated Regions (DMR)
+    # --- Differentially Methylated Regions (DMR) ---
     # ==========================================
     message("Running DMR analysis...")
     
@@ -191,7 +200,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     write.csv(dmr_result, "dmr_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     

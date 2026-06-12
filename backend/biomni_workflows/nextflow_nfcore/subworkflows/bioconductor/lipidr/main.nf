@@ -64,17 +64,17 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
       stop("Error: 'clin.csv' not found in the working directory.")
     }
     
-    # 1. Import Skyline CSV files
+    # --- Import Skyline CSV files ---
     filelist = "data.csv"
     d = read_skyline(filelist)
     print(d)
     
-    # 2. Add sample annotations
+    # --- Add sample annotations ---
     clinical_file = "clin.csv"
     d = add_sample_annotation(d, clinical_file)
     print(colData(d))
     
-    # 3. Subset data
+    # --- Subset data ---
     d_subset = d[1:10, 1:10]
     print(rowData(d_subset))
     print(colData(d))
@@ -93,7 +93,7 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     d = d[lipid_classes, groups]
     d_qc = d[, d\$group == "QC"]
     
-    # 4. Raw data quality checks (saving plots to PDF)
+    # --- Raw data quality checks (saving plots to PDF) ---
     pdf("qc_plots.pdf", width = 10, height = 8)
     
     p1 = plot_samples(d, type = "tic", log = TRUE)
@@ -108,10 +108,10 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     p4 = plot_lipidclass(d, "boxplot")
     print(p4)
     
-    # 5. Summarize transitions
+    # --- Summarize transitions ---
     d_summarized = summarize_transitions(d, method = "average")
     
-    # 6. Normalize data
+    # --- Normalize data ---
     d_normalized = normalize_pqn(d_summarized, measure = "Area", exclude = "blank", log = TRUE)
     p5 = plot_samples(d_normalized, "boxplot")
     print(p5)
@@ -121,7 +121,7 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     # Save normalized data object
     saveRDS(d_normalized, "d_normalized.rds")
     
-    # 7. Multivariate analysis
+    # --- Multivariate analysis ---
     pdf("mva_plots.pdf", width = 8, height = 6)
     
     mvaresults = mva(d_normalized, measure="Area", method="PCA")
@@ -139,7 +139,7 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     write.csv(top_lipids_df, "top_lipids_oplsda.csv", row.names = FALSE)
     saveRDS(mvaresults, "mva_results_oplsda.rds")
     
-    # 8. Differential expression analysis
+    # --- Differential expression analysis ---
     de_results = de_analysis(
       data=d_normalized, 
       HighFat_water - NormalDiet_water,
@@ -157,7 +157,7 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     print(p8)
     dev.off()
     
-    # 9. Lipid set enrichment analysis (LSEA)
+    # --- Lipid set enrichment analysis (LSEA) ---
     enrich_results = lsea(de_results, rank.by = "logFC")
     print(significant_lipidsets(enrich_results))
     saveRDS(enrich_results, "enrich_results.rds")

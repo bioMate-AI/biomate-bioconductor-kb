@@ -35,6 +35,15 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DuplexDiscovereR", "GenomicRanges", "InteractionSet", "Gviz", "S4Vectors", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     library(BiocGenerics)
     
     # ==========================================
-    # STAGE 1: Input Loading & Mock Data Generation
+    # --- Input Loading & Mock Data Generation ---
     # ==========================================
     message("Stage 1: Loading inputs and preparing genomic annotations...")
     
@@ -133,7 +142,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: All-in-One Duplex Discovery Workflow
+    # --- All-in-One Duplex Discovery Workflow ---
     # ==========================================
     message("Stage 2: Running runDuplexDiscoverer...")
     
@@ -165,7 +174,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: Step-by-Step Customized Analysis
+    # --- Step-by-Step Customized Analysis ---
     # ==========================================
     message("Stage 3: Running step-by-step customized analysis...")
     
@@ -189,7 +198,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     collapsed_dgs <- collapse_duplex_groups(clustered_gi)
     
     # ==========================================
-    # STAGE 4: Advanced Clustering & Optimization
+    # --- Advanced Clustering & Optimization ---
     # ==========================================
     message("Stage 4: Performing advanced clustering with custom weights...")
     
@@ -215,7 +224,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Multi-sample Comparison (Replicates)
+    # --- Multi-sample Comparison (Replicates) ---
     # ==========================================
     message("Stage 5: Comparing multiple pseudo-replicates...")
     
@@ -242,7 +251,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     write.csv(res_comp\$dt_upset, "replicate_comparison.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Visualization & Export
+    # --- Visualization & Export ---
     # ==========================================
     message("Stage 6: Exporting results and generating visualizations...")
     

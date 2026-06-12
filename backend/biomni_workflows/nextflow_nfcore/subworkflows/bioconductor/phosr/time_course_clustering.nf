@@ -59,7 +59,7 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
     library(annotate)
     library(ClueR)
     
-    # 1. Read user input
+    # --- Read user input ---
     if (!file.exists("time_course_quantification.csv")) {
       stop("Required input file 'time_course_quantification.csv' not found in the working directory.")
     }
@@ -67,11 +67,11 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
     df <- read.csv("time_course_quantification.csv", row.names = 1, check.names = FALSE)
     ppe <- PhosphoExperiment(assays = list(Quantification = as.matrix(df)))
     
-    # 2. Extract grouping information
+    # --- Extract grouping information ---
     grps <- sapply(strsplit(colnames(ppe), "_"), 
                 function(x)x[3])
     
-    # 3. Filter and average replicates using matANOVA and meanAbundance
+    # --- Filter and average replicates using matANOVA and ---
     sites.p <- matANOVA(SummarizedExperiment::assay(ppe, "Quantification"), 
                         grps)
     ppm <- meanAbundance(SummarizedExperiment::assay(ppe, "Quantification"), grps)
@@ -81,7 +81,7 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
     # Write filtered and averaged replicates
     write.csv(ppm_filtered, "ppm_filtered.csv", row.names = TRUE)
     
-    # 4. Collapse to gene level using phosCollapse
+    # --- Collapse to gene level using phosCollapse ---
     ppm_gene <- phosCollapse(ppm_filtered, 
                 gsub(";.+", "", rownames(ppm_filtered)), 
                     stat = apply(abs(ppm_filtered), 1, max), by = "max")
@@ -89,7 +89,7 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
     # Write gene-level collapsed matrix
     write.csv(ppm_gene, "ppm_gene.csv", row.names = TRUE)
     
-    # 5. Prepare the Reactome annotation (mouse pathways, upper-cased for general compatibility)
+    # --- Prepare the Reactome annotation (mouse pathways, ---
     pathways = as.list(reactomePATHID2EXTID)
     pathways = pathways[which(grepl("R-MMU", names(pathways), ignore.case = TRUE))]
     pathways = lapply(pathways, function(path) {
@@ -97,7 +97,7 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
         toupper(unique(gene_name))
     })
     
-    # 6. Run clustering evaluation using runClue
+    # --- Run clustering evaluation using runClue ---
     RNGkind("L'Ecuyer-CMRG")
     set.seed(123)
     c1 <- runClue(ppm_gene, annotation=pathways, 
@@ -106,7 +106,7 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
     
     saveRDS(c1, "clue_results.rds")
     
-    # 7. Identify optimal clusters and find enriched pathways/kinases using clustOptimal
+    # --- Identify optimal clusters and find enriched ---
     pdf("optimal_clusters.pdf", width = 10, height = 8)
     best <- clustOptimal(c1, rep=5, mfrow=c(2, 3), visualize = TRUE)
     dev.off()

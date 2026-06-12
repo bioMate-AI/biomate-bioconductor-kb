@@ -35,6 +35,15 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tomoda", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +64,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     N_PERMUTATIONS <- 1000
     
     # ==========================================
-    # Stage 1: Data Loading and Preprocessing
+    # --- Data Loading and Preprocessing ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -79,7 +88,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     colData(zh) <- cbind(colData(zh), coldata)
     
     # ==========================================
-    # Stage 2: Correlation & Dimensionality Reduction
+    # --- Correlation & Dimensionality Reduction ---
     # ==========================================
     
     message("Performing section correlation analysis...")
@@ -115,7 +124,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Clustering Analysis
+    # --- Clustering Analysis ---
     # ==========================================
     
     message("Performing hierarchical clustering...")
@@ -138,7 +147,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     write.csv(as.data.frame(colData(zh)), "section_metadata_with_results.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Peak Gene Analysis
+    # --- Peak Gene Analysis ---
     # ==========================================
     
     message("Identifying spatially upregulated (peak) genes...")

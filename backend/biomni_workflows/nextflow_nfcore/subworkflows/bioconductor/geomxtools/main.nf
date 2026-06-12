@@ -60,7 +60,7 @@ process BIOC_GEOMXTOOLS_RNA_PREPROCESSING_AND_COERCION {
     library(SpatialExperiment)
     
     # ==========================================
-    # 1. Locate User Input Files in Working Dir
+    # --- Locate User Input Files in Working Dir ---
     # ==========================================
     
     # Locate DCC files
@@ -93,7 +93,7 @@ process BIOC_GEOMXTOOLS_RNA_PREPROCESSING_AND_COERCION {
     }
     
     # ==========================================
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # ==========================================
     
     # Read raw data using readNanoStringGeoMxSet
@@ -147,7 +147,7 @@ process BIOC_GEOMXTOOLS_RNA_PREPROCESSING_AND_COERCION {
     demoSPE <- as.SpatialExperiment(norm_target_demoData, normData = "q_norm")
     
     # ==========================================
-    # 3. Save Outputs and Results
+    # --- Save Outputs and Results ---
     # ==========================================
     
     # Save RDS objects of the processed data

@@ -36,6 +36,15 @@ process BIOC_METAPOD_METAPOD_DIFFERENTIAL_META_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("metapod")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_METAPOD_METAPOD_DIFFERENTIAL_META_ANALYSIS {
     library(metapod)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     counts_file <- "counts.csv"
@@ -90,7 +99,7 @@ process BIOC_METAPOD_METAPOD_DIFFERENTIAL_META_ANALYSIS {
     log_cpm <- log_cpm[keep, , drop = FALSE]
     
     # ==========================================
-    # STAGE 2: Parallel Differential Testing
+    # --- Parallel Differential Testing ---
     # ==========================================
     
     conditions <- coldata\$condition
@@ -140,7 +149,7 @@ process BIOC_METAPOD_METAPOD_DIFFERENTIAL_META_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 3: Combine Parallel P-values
+    # --- Combine Parallel P-values ---
     # ==========================================
     
     # Combine using Simes' method (robust to dependencies between tests)
@@ -176,7 +185,7 @@ process BIOC_METAPOD_METAPOD_DIFFERENTIAL_META_ANALYSIS {
     write.csv(parallel_results, "parallel_meta_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Grouped P-value Combination
+    # --- Grouped P-value Combination ---
     # ==========================================
     
     # Group genes into 50 mock pathways/functional groups for demonstration
@@ -205,7 +214,7 @@ process BIOC_METAPOD_METAPOD_DIFFERENTIAL_META_ANALYSIS {
     write.csv(grouped_results, "grouped_meta_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Diagnostics and Visualization
+    # --- Diagnostics and Visualization ---
     # ==========================================
     
     pdf("meta_analysis_diagnostics.pdf", width = 10, height = 8)

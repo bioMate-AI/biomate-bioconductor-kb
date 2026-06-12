@@ -57,7 +57,7 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     library(GenomicFeatures)
     library(ggplot2)
     
-    # 1. Locate the BED file in the working directory
+    # --- Locate the BED file in the working directory ---
     # The user specified files[[4]] is the BED file.
     # We search for any BED file in the current directory to populate files[[4]].
     bed_files <- list.files(pattern = "\\\\.(bed|BED)(\\\\.gz)?\$")
@@ -66,19 +66,19 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     }
     files <- list(NULL, NULL, NULL, bed_files[1])
     
-    # 2. Load the TxDb object
+    # --- Load the TxDb object ---
     # The user specified 'txdb' is a TxDb object. We read it from 'txdb.rds' in the working directory.
     if (!file.exists("txdb.rds")) {
       stop("Error: txdb.rds not found in the working directory.")
     }
     txdb <- readRDS("txdb.rds")
     
-    # 3. Read peak file
+    # --- Read peak file ---
     message("Reading peak file...")
     peak <- readPeakFile(files[[4]])
     saveRDS(peak, "peak_object.rds")
     
-    # 4. Plot peak coverage over chromosomes
+    # --- Plot peak coverage over chromosomes ---
     message("Generating coverage plots...")
     pdf("covplot_all.pdf", width = 10, height = 8)
     print(covplot(peak, weightCol="V5"))
@@ -93,13 +93,13 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
       warning("Could not generate subset covplot: ", e\$message)
     })
     
-    # 5. Retrieve tag matrix around genomic regions
+    # --- Retrieve tag matrix around genomic regions ---
     message("Calculating tag matrix...")
     promoter <- getPromoters(TxDb=txdb, upstream=3000, downstream=3000)
     tagMatrix <- getTagMatrix(peak, windows=promoter)
     saveRDS(tagMatrix, "tagMatrix.rds")
     
-    # 6. Generate heatmaps of peak binding
+    # --- Generate heatmaps of peak binding ---
     message("Generating heatmaps...")
     pdf("tagHeatmap.pdf", width = 6, height = 9)
     tagHeatmap(tagMatrix)
@@ -109,7 +109,7 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     peakHeatmap(peak = files[[4]], TxDb = txdb, upstream = rel(0.2), downstream = rel(0.2), by = "gene", type = "body", nbin = 800)
     dev.off()
     
-    # 7. Plot average profiles of peak binding
+    # --- Plot average profiles of peak binding ---
     message("Generating average profiles...")
     pdf("plotAvgProf.pdf", width = 7, height = 4)
     print(plotAvgProf(tagMatrix, xlim=c(-3000, 3000), xlab="Genomic Region (5'->3')", ylab = "Read Count Frequency"))

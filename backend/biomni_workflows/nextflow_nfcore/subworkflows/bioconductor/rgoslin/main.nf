@@ -35,6 +35,15 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rgoslin")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,13 +53,13 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
           }
         }
     
-    # Stage 1: Load libraries and inspect available grammars
+    # --- Load libraries and inspect available grammars ---
     library(rgoslin)
     
     message("Available grammars in rgoslin:")
     print(listAvailableGrammars())
     
-    # Stage 2: Read and defensively preprocess input data
+    # --- Read and defensively preprocess input data ---
     if (!file.exists("input.csv")) {
       stop("Staged input file 'input.csv' not found.")
     }
@@ -89,7 +98,7 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
     clean_names <- gsub("So1P", "SPBP", clean_names)      # Align sphingosine-1-phosphate with SPBP
     clean_names <- trimws(clean_names)
     
-    # Stage 3: Validate and Parse Lipid Names
+    # --- Validate and Parse Lipid Names ---
     message("Validating lipid names...")
     is_valid <- sapply(clean_names, isValidLipidName)
     
@@ -118,7 +127,7 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
       message("Warning: No lipid names passed initial validation.")
     }
     
-    # Stage 4: Merge Parsed Metadata with Original Data
+    # --- Merge Parsed Metadata with Original Data ---
     mapping_df <- data.frame(
       Original_Input_Name = raw_lipid_names,
       Cleaned_Name = clean_names,
@@ -140,7 +149,7 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
     write.csv(output_data, "normalized_lipids.csv", row.names = FALSE)
     message("Saved normalized lipid metadata to 'normalized_lipids.csv'")
     
-    # Stage 5: Downstream Abundance Aggregation (if numeric sample columns exist)
+    # --- Downstream Abundance Aggregation (if numeric sample ---
     num_cols <- sapply(data, is.numeric)
     sample_cols <- names(num_cols)[num_cols]
     
@@ -159,7 +168,7 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
                 "lipid_class_abundance.csv", row.names = FALSE)
     }
     
-    # Stage 6: Structural Summary Statistics
+    # --- Structural Summary Statistics ---
     if (all(c("Total.C", "Total.DB", "Lipid.Maps.Main.Class") %in% colnames(output_data))) {
       valid_parsed <- output_data[!is.na(output_data\$Normalized.Name), ]
       if (nrow(valid_parsed) > 0) {
@@ -186,7 +195,7 @@ process BIOC_RGOSLIN_LIPID_NOMENCLATURE_NORMALIZATION {
                 "lipid_structural_summary.csv", row.names = FALSE)
     }
     
-    # Stage 7: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     pdf("lipid_analysis_plots.pdf", width = 10, height = 5)
     par(mfrow = c(1, 2), mar = c(6, 4, 4, 2) + 0.1)
     

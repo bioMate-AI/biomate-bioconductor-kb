@@ -35,6 +35,15 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EBcoexpress")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
           }
         }
     
-    # Stage 1: Load libraries and input data
+    # --- Load libraries and input data ---
     library(EBcoexpress)
     
     # Read expression matrix and sample metadata
@@ -75,7 +84,7 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
       conditions <- ifelse(conditions == unique(conditions)[1], 1, 2)
     }
     
-    # Stage 2: Preprocessing and Filtering
+    # --- Preprocessing and Filtering ---
     # Differential co-expression is highly sensitive to low-variance genes.
     # Since pairwise analysis scales quadratically, we filter to the top N most variable genes.
     gene_vars <- apply(counts_df, 1, var)
@@ -89,11 +98,11 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
     message(paste("Running EBcoexpress on", num_genes_to_keep, "genes, yielding", 
                   (num_genes_to_keep * (num_genes_to_keep - 1)) / 2, "pairs."))
     
-    # Stage 3: Co-expression Similarity Matrix Generation
+    # --- Co-expression Similarity Matrix Generation ---
     # Compute the correlation/similarity matrix D using Biweight Midcorrelation (BWMC)
     D <- makeMyD(expr_matrix, conditions, useBWMC = TRUE)
     
-    # Stage 4: Hyperparameter Initialization and EM Run
+    # --- Hyperparameter Initialization and EM Run ---
     set.seed(42)
     initHP <- initializeHP(D, conditions)
     
@@ -103,7 +112,7 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
     # Run the recommended One-Step EM algorithm
     oout <- ebCoexpressOneStep(D, conditions, tinyPat, initHP)
     
-    # Stage 5: Posterior Probabilities & FDR Control
+    # --- Posterior Probabilities & FDR Control ---
     prob_EC <- oout\$POSTPROBS[, 1]
     prob_DC <- 1 - prob_EC
     
@@ -127,7 +136,7 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
     results_df <- results_df[order(results_df\$Prob_DC, decreasing = TRUE), ]
     write.csv(results_df, "dc_pairs.csv", row.names = FALSE)
     
-    # Stage 6: Gene Ranking (Hubness)
+    # --- Gene Ranking (Hubness) ---
     # Rank genes by their overall differential co-expression hubness
     hubs <- rankMyGenes(oout)
     hubs_df <- data.frame(
@@ -138,7 +147,7 @@ process BIOC_EBCOEXPRESS_EBCOEXPRESS_DIFFERENTIAL_COEXPRESSION {
     hubs_df <- hubs_df[order(hubs_df\$Hub_Score, decreasing = TRUE), ]
     write.csv(hubs_df, "hub_genes.csv", row.names = FALSE)
     
-    # Stage 7: Diagnostics and Visualizations
+    # --- Diagnostics and Visualizations ---
     # 1. Prior Diagnostics Plot
     pdf("ebcoexpress_diagnostics.pdf", width = 10, height = 10)
     par(mfrow = c(2, 2))

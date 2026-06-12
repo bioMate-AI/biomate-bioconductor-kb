@@ -56,7 +56,7 @@ process BIOC_TWODDPCR_KNN_CLASSIFICATION {
     library(twoddpcr)
     library(ggplot2)
     
-    # 1. Load raw amplitude data from the user-specified directory
+    # --- Load raw amplitude data from the user-specified directory ---
     # The directory "data/amplitudes" contains the raw CSV files exported from QuantaSoft.
     plate <- ddpcrPlate(wells="data/amplitudes")
     
@@ -72,21 +72,21 @@ process BIOC_TWODDPCR_KNN_CLASSIFICATION {
       })
     }
     
-    # 2. Subset specific wells to create a clean training plate
+    # --- Subset specific wells to create a clean training plate ---
     trainWells <- plate[c("E03", "A04")]
     trainPlate <- ddpcrPlate(wells=trainWells)
     
-    # 3. Classify the training plate using k-means and remove noise with Mahalanobis rain
+    # --- Classify the training plate using k-means and remove ---
     trainPlate <- kmeansClassify(trainPlate)
     trainPlate <- mahalanobisRain(trainPlate, cMethod="kmeans", maxDistances=3)
     
-    # 4. Extract the clean training set using removeDropletClasses
+    # --- Extract the clean training set using removeDropletClasses ---
     trainSet <- removeDropletClasses(trainPlate, cMethod="kmeansMahRain")
     trainSet <- do.call(rbind, trainSet)
     trainAmplitudes <- trainSet[, c("Ch1.Amplitude", "Ch2.Amplitude")]
     trainCl <- trainSet\$kmeansMahRain
     
-    # 5. Classify the full plate using knnClassify with the training set
+    # --- Classify the full plate using knnClassify with the ---
     plate <- knnClassify(plate, trainData=trainAmplitudes, cl=trainCl, k=3)
     
     # Create output directory

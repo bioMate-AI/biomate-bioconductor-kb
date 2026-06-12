@@ -61,7 +61,7 @@ process BIOC_XCMS_LC_MS_PREPROCESSING {
     library(MsExperiment)
     library(SummarizedExperiment)
     
-    # 1. Load data using readMsExperiment
+    # --- Load data using readMsExperiment ---
     # Read NetCDF/mzML/mzXML files from the working directory
     cdfs <- list.files(pattern = "\\\\.(cdf|CDF|mzML|mzXML)\$", ignore.case = TRUE, full.names = TRUE)
     if (length(cdfs) == 0) {
@@ -87,7 +87,7 @@ process BIOC_XCMS_LC_MS_PREPROCESSING {
     
     faahko <- readMsExperiment(spectraFiles = cdfs, sampleData = pd)
     
-    # 2. Filter retention time using filterRt
+    # --- Filter retention time using filterRt ---
     # Dynamically adjust the RT filter range if the default 2550-4250 is out of bounds
     rts <- rtime(spectra(faahko))
     rt_range <- range(rts, na.rm = TRUE)
@@ -100,26 +100,26 @@ process BIOC_XCMS_LC_MS_PREPROCESSING {
     }
     faahko <- filterRt(faahko, rt = target_rt)
     
-    # 3. Detect chromatographic peaks using findChromPeaks with CentWaveParam
+    # --- Detect chromatographic peaks using findChromPeaks with ---
     cwp <- CentWaveParam(peakwidth = c(20, 80), noise = 5000, prefilter = c(6, 5000))
     faahko <- findChromPeaks(faahko, param = cwp)
     
-    # 4. Refine/merge neighboring peaks using refineChromPeaks with MergeNeighboringPeaksParam
+    # --- Refine/merge neighboring peaks using refineChromPeaks ---
     mpp <- MergeNeighboringPeaksParam(expandRt = 4)
     faahko_pp <- refineChromPeaks(faahko, mpp)
     faahko <- faahko_pp
     
-    # 5. Align retention times using adjustRtime with ObiwarpParam
+    # --- Align retention times using adjustRtime with ObiwarpParam ---
     faahko <- adjustRtime(faahko, param = ObiwarpParam(binSize = 0.6))
     
-    # 6. Group peaks into features (correspondence) using groupChromPeaks with PeakDensityParam
+    # --- Group peaks into features (correspondence) using ---
     pdp <- PeakDensityParam(sampleGroups = sampleData(faahko)\$sample_group, minFraction = 0.4, bw = 30)
     faahko <- groupChromPeaks(faahko, param = pdp)
     
-    # 7. Fill missing peaks (gap filling) using fillChromPeaks with ChromPeakAreaParam
+    # --- Fill missing peaks (gap filling) using fillChromPeaks ---
     faahko <- fillChromPeaks(faahko, param = ChromPeakAreaParam())
     
-    # 8. Export results to a SummarizedExperiment using quantify
+    # --- Export results to a SummarizedExperiment using quantify ---
     res <- quantify(faahko, value = "into", method = "sum")
     
     # Save the SummarizedExperiment and associated tables
@@ -128,7 +128,7 @@ process BIOC_XCMS_LC_MS_PREPROCESSING {
     write.csv(as.data.frame(colData(res)), "sample_metadata.csv", row.names = TRUE)
     write.csv(as.data.frame(rowData(res)), "feature_metadata.csv", row.names = TRUE)
     
-    # 9. Filter features based on quality metrics (RSD, D-ratio, percent missing) using filterFeatures
+    # --- Filter features based on quality metrics (RSD, D-ratio, ---
     tryCatch({
       f <- sampleData(faahko)\$sample_type
       f[f != "QC"] <- NA

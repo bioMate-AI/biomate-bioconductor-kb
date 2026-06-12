@@ -52,10 +52,10 @@ process BIOC_TEQC_AUTOMATED_HTML_REPORTS {
       }
     }
     
-    # 1. Load the TEQC library
+    # --- Load the TEQC library ---
     library(TEQC)
     
-    # 2. Define paths to target and read files (expected in the working directory)
+    # --- Define paths to target and read files (expected in the ---
     readsfile <- "ExampleSet_Reads.bed"
     targetsfile <- "ExampleSet_Targets.bed"
     
@@ -75,7 +75,7 @@ process BIOC_TEQC_AUTOMATED_HTML_REPORTS {
     saveRDS(targets_obj, "targets.rds")
     write.csv(as.data.frame(targets_obj), "targets_summary.csv", row.names = FALSE)
     
-    # 3. Run TEQCreport to generate a single-sample HTML report
+    # --- Run TEQCreport to generate a single-sample HTML report ---
     TEQCreport(
       sampleName = "Test Sample",
       targetsName = "Human Exome",
@@ -94,7 +94,7 @@ process BIOC_TEQC_AUTOMATED_HTML_REPORTS {
       stop("Error: 'report' directory was not created by TEQCreport.")
     }
     
-    # 4. Run multiTEQCreport to combine multiple single-sample reports into a summary report
+    # --- Run multiTEQCreport to combine multiple single-sample ---
     multiTEQCreport(
       singleReportDirs = c("report", "report2"),
       samplenames = c("Sample A", "Sample B"),

@@ -63,14 +63,14 @@ process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
       stop(paste("Required input file '", file.path, "' not found in the working directory.", sep = ""))
     }
     
-    # 1. Initialize the Ribo object
+    # --- Initialize the Ribo object ---
     original.ribo <- Ribo(file.path, rename = rename_default)
     print(original.ribo)
     
     # Open PDF device to save all plots
     pdf("ribo_qc_plots.pdf", width = 8, height = 6)
     
-    # 2. Plot and retrieve read length distribution
+    # --- Plot and retrieve read length distribution ---
     plot_length_distribution(x           = original.ribo,
                              region      = "CDS",
                              range.lower = 28,
@@ -89,7 +89,7 @@ process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
                                   range.upper = 32)
     write.csv(as.data.frame(rc), "length_distribution.csv", row.names = FALSE)
     
-    # 3. Perform metagene analysis around start/stop sites
+    # --- Perform metagene analysis around start/stop sites ---
     metagene_radius <- get_info(original.ribo)\$attributes\$metagene_radius
     message(paste("Metagene radius:", metagene_radius))
     
@@ -123,7 +123,7 @@ process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
     
     plot_metagene(tidy.meta.start, normalize = TRUE)
     
-    # 4. Quantify and plot region counts
+    # --- Quantify and plot region counts ---
     plot_region_counts(x           = original.ribo,
                        range.lower = 28,
                        range.upper = 32)
@@ -145,7 +145,7 @@ process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
     # Close PDF device
     dev.off()
     
-    # 5. Retrieve region coordinates and lengths using alias
+    # --- Retrieve region coordinates and lengths using alias ---
     alias.ribo <- Ribo(file.path, rename = rename_default)
     
     region_coord <- get_internal_region_coordinates(ribo.object = alias.ribo, alias = TRUE)

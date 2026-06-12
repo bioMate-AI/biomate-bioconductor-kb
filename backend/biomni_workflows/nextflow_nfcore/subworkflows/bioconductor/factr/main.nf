@@ -56,7 +56,7 @@ process BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION {
     library(factR)
     library(rtracklayer)
     
-    # 1. Import custom GTF using importGTF
+    # --- Import custom GTF using importGTF ---
     custom_gtf_path <- "custom_assembled_transcriptome.gtf"
     if (!file.exists(custom_gtf_path)) {
       stop("Required input file 'custom_assembled_transcriptome.gtf' not found in the working directory.")
@@ -105,19 +105,19 @@ process BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION {
       })
     })
     
-    # 2. Match gene metadata to reference using matchGeneInfo
+    # --- Match gene metadata to reference using matchGeneInfo ---
     custom_matched_2.gtf <- matchGeneInfo(custom.gtf, ref.gtf, primary_gene_id = "gene_id", secondary_gene_id = "ref_gene_id")
     
-    # 3. Subset novel transcripts using subsetNewTranscripts
+    # --- Subset novel transcripts using subsetNewTranscripts ---
     custom_new.gtf <- subsetNewTranscripts(custom_matched_2.gtf, ref.gtf, refine.by = "intron")
     
-    # 4. Build CDS information using buildCDS and a genome sequence
+    # --- Build CDS information using buildCDS and a genome sequence ---
     custom_new_CDS.gtf <- buildCDS(custom_new.gtf, ref.gtf, Mmusculus)
     
-    # 5. Predict NMD susceptibility using predictNMD
+    # --- Predict NMD susceptibility using predictNMD ---
     NMDprediction.out <- predictNMD(custom_new_CDS.gtf)
     
-    # 6. Predict protein domains using predictDomains
+    # --- Predict protein domains using predictDomains ---
     # Wrapped in tryCatch as it requires an active internet connection to query the PFAM database
     domains.out <- tryCatch({
       predictDomains(custom_new_CDS.gtf, Mmusculus, progress_bar = FALSE)
@@ -126,7 +126,7 @@ process BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION {
       NULL
     })
     
-    # 7. Export annotated GTF and prediction tables using rtracklayer::export and write.table
+    # --- Export annotated GTF and prediction tables using ---
     rtracklayer::export(custom_new_CDS.gtf, "Custom_new.gtf", format = "GTF")
     
     write.table(NMDprediction.out, "Custom_new_NMD.txt", sep = "\t", row.names = FALSE, quote = FALSE)

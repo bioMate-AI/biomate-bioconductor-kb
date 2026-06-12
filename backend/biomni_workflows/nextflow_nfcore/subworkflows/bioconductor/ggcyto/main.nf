@@ -35,6 +35,15 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EBImage", "flowCore", "ggcyto", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
     library(ggcyto)
     library(ggplot2)
     
-    # Stage 1: Read image and convert to flow cytometry data structures
+    # --- Read image and convert to flow cytometry data structures ---
     message("Reading image.tif...")
     img <- tryCatch({
       EBImage::readImage("image.tif")
@@ -113,7 +122,7 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
       scale_fill_gradientn(colours = rainbow(7)) +
       theme_bw()
     
-    # Stage 4: Gating and Statistics
+    # --- Gating and Statistics ---
     message("Applying rectangle gate and calculating statistics...")
     # Define a rectangle gate to capture high-intensity pixels
     rect_gate <- flowCore::rectangleGate(
@@ -127,13 +136,13 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
       geom_gate(rect_gate) + 
       geom_stats(size = 4, color = "white", fill = "black")
     
-    # Stage 5: In-line Transformations
+    # --- In-line Transformations ---
     message("Applying logicle transformations...")
     p_transformed <- p_gated + 
       scale_x_logicle() + 
       scale_y_logicle()
     
-    # Stage 6: Exporting Plots and Statistics
+    # --- Exporting Plots and Statistics ---
     message("Converting to pure ggplot objects and saving...")
     gg_1d <- as.ggplot(p_1d)
     gg_transformed <- as.ggplot(p_transformed)

@@ -70,18 +70,18 @@ process BIOC_HMMCOPY_MATCHED_TUMOUR_NORMAL_CORRECTION {
       }
     }
     
-    # 1. Load and correct normal read counts
+    # --- Load and correct normal read counts ---
     normal_reads <- wigsToRangedData(rfile, gfile, mfile)
     normal_copy <- correctReadcount(normal_reads)
     
-    # 2. Load and correct tumour read counts
+    # --- Load and correct tumour read counts ---
     tumour_copy <- correctReadcount(wigsToRangedData(tfile, gfile, mfile))
     
-    # 3. Subtract normal copy number from tumour copy number in log space to obtain somatic copy number
+    # --- Subtract normal copy number from tumour copy number in ---
     somatic_copy <- tumour_copy
     somatic_copy\$copy <- tumour_copy\$copy - normal_copy\$copy
     
-    # 4. Retrieve and adjust HMM parameters to prevent convergence
+    # --- Retrieve and adjust HMM parameters to prevent convergence ---
     default_param <- HMMsegment(tumour_copy, getparam = TRUE)
     longseg_param <- default_param
     longseg_param\$e <- 0.999999999999999
@@ -90,10 +90,10 @@ process BIOC_HMMCOPY_MATCHED_TUMOUR_NORMAL_CORRECTION {
     newmu_param\$mu <- c(-0.5, -0.4, -0.15, 0.1, 0.4, 0.7)
     newmu_param\$m <- newmu_param\$mu
     
-    # 5. Segment the somatic copy number profile using HMMsegment
+    # --- Segment the somatic copy number profile using HMMsegment ---
     somatic_segments <- HMMsegment(somatic_copy, newmu_param, verbose = FALSE)
     
-    # 6. Visualize the somatic segments using plotSegments and save to PDF
+    # --- Visualize the somatic segments using plotSegments and ---
     pdf("somatic_segments_plot.pdf", width = 10, height = 6)
     plotSegments(somatic_copy, somatic_segments, pch = ".", ylab = "Tumour Copy Number", xlab = "Chromosome Position")
     dev.off()

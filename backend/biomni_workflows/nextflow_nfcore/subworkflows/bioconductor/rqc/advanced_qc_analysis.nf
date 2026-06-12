@@ -52,10 +52,10 @@ process BIOC_RQC_ADVANCED_QC_ANALYSIS {
       }
     }
     
-    # 1. Load the package
+    # --- Load the package ---
     library(Rqc)
     
-    # 2. Define the vector of input file paths from the working directory
+    # --- Define the vector of input file paths from the working ---
     # The pipeline reads FASTQ files (.fastq, .fastq.gz, .fq, .fq.gz) from the current working directory
     files <- list.files(getwd(), pattern = "\\\\.(fastq|fq)(\\\\.gz)?\$", full.names = TRUE)
     
@@ -63,7 +63,7 @@ process BIOC_RQC_ADVANCED_QC_ANALYSIS {
       stop("Error: No FASTQ files found in the working directory. Please place your FASTQ files in the working directory.")
     }
     
-    # 3. Process files using rqcQA to generate an RqcResultSet object
+    # --- Process files using rqcQA to generate an RqcResultSet ---
     qa <- rqcQA(files, workers = 1)
     
     # Save the processed QA object as an RDS file
@@ -76,7 +76,7 @@ process BIOC_RQC_ADVANCED_QC_ANALYSIS {
     # Print table to console/log using knitr::kable as documented
     knitr::kable(perFileInformation(qa))
     
-    # 4. Generate individual diagnostic plots and save them to a PDF
+    # --- Generate individual diagnostic plots and save them to a ---
     pdf("rqc_diagnostic_plots.pdf", width = 11, height = 8.5)
     
     # Per Read Mean Quality Distribution
@@ -119,7 +119,7 @@ process BIOC_RQC_ADVANCED_QC_ANALYSIS {
     
     dev.off()
     
-    # 5. Extract processed data for custom plotting using rqcCycleAverageQualityCalc
+    # --- Extract processed data for custom plotting using ---
     df <- rqcCycleAverageQualityCalc(qa)
     write.csv(df, "rqc_cycle_average_quality_calc.csv", row.names = FALSE)
     
@@ -135,7 +135,7 @@ process BIOC_RQC_ADVANCED_QC_ANALYSIS {
     print(rqcCycleQualityPlot(sublist))
     dev.off()
     
-    # 6. Generate the HTML report using rqcReport
+    # --- Generate the HTML report using rqcReport ---
     reportFile <- rqcReport(qa)
     
     # Copy the default report to the working directory

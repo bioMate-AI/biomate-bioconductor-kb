@@ -59,7 +59,7 @@ process BIOC_CRISPRSEEK_BULGE_OFFTARGET_ANALYSIS {
     inputFilePath <- "inputseq.fa"
     outputDir <- getwd()
     
-    # Stage 1: Run offTargetAnalysis with findOffTargetsWithBulge = TRUE
+    # --- Run offTargetAnalysis with findOffTargetsWithBulge = TRUE ---
     message("Stage 1: Running offTargetAnalysis with bulge search...")
     res1 <- tryCatch({
       offTargetAnalysis(inputFilePath = inputFilePath,
@@ -83,7 +83,7 @@ process BIOC_CRISPRSEEK_BULGE_OFFTARGET_ANALYSIS {
       }
     }
     
-    # Stage 2: Find gRNAs first using findgRNAs and then call getOfftargetWithBulge
+    # --- Find gRNAs first using findgRNAs and then call ---
     message("Stage 2: Running findgRNAs and getOfftargetWithBulge...")
     gRNA_PAM <- tryCatch({
       findgRNAs(inputFilePath = inputFilePath,

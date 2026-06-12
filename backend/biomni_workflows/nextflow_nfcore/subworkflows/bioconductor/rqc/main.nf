@@ -57,17 +57,17 @@ process BIOC_RQC_SIMPLE_QC_REPORT {
     folder <- "."
     pattern <- ".fastq.gz"
     
-    # 1. Load the package
+    # --- Load the package ---
     library(Rqc)
     library(ggplot2)
     
-    # 2. Run the rqc function to process files and generate the HTML report
+    # --- Run the rqc function to process files and generate the ---
     # This matches the documented call: rqc(path = folder, pattern = ".fastq.gz")
     # We use the variable 'pattern' to allow user customization while keeping the exact argument names.
     html_report_path <- rqc(path = folder, pattern = pattern)
     message("HTML Report generated at: ", html_report_path)
     
-    # 3. Advanced Workflow: Process files to extract and save specific tables and plots
+    # --- Advanced Workflow: Process files to extract and save ---
     files <- list.files(folder, pattern = pattern, full.names = TRUE)
     
     if (length(files) > 0) {

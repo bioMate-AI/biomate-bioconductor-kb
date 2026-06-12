@@ -35,6 +35,15 @@ process BIOC_ARRAYEXPRESS_ARRAYEXPRESS_LOCAL_MAGETAB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ArrayExpress", "Biobase", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_ARRAYEXPRESS_ARRAYEXPRESS_LOCAL_MAGETAB {
     library(Biobase)
     library(limma)
     
-    # Stage 1: Read input files from the working directory
+    # --- Read input files from the working directory ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and 'coldata.csv' are missing.")
     }
@@ -61,7 +70,7 @@ process BIOC_ARRAYEXPRESS_ARRAYEXPRESS_LOCAL_MAGETAB {
     sample_names <- coldata\$sample
     counts <- counts[, sample_names, drop = FALSE]
     
-    # Stage 2: Generate local MAGE-TAB files to simulate an ArrayExpress dataset structure
+    # --- Generate local MAGE-TAB files to simulate an ArrayExpress ---
     message("Generating local MAGE-TAB files...")
     
     # 1. Create the Processed Data File (processed.txt)
@@ -100,7 +109,7 @@ process BIOC_ARRAYEXPRESS_ARRAYEXPRESS_LOCAL_MAGETAB {
     )
     write.table(adf_data, "adf.txt", sep = "\t", row.names = FALSE, quote = FALSE)
     
-    # Stage 3: Build Bioconductor ExpressionSet using ArrayExpress functions
+    # --- Build Bioconductor ExpressionSet using ArrayExpress ---
     message("Building ExpressionSet using ArrayExpress...")
     mageFiles <- list(
       procfile = "processed.txt",
@@ -132,7 +141,7 @@ process BIOC_ARRAYEXPRESS_ARRAYEXPRESS_LOCAL_MAGETAB {
       ExpressionSet(assayData = exprs_mat, phenoData = pheno_df)
     })
     
-    # Stage 4: Differential Expression Analysis using limma
+    # --- Differential Expression Analysis using limma ---
     message("Performing differential expression analysis...")
     
     # Extract experimental factor
@@ -169,7 +178,7 @@ process BIOC_ARRAYEXPRESS_ARRAYEXPRESS_LOCAL_MAGETAB {
     write.csv(res, "differential_expression_results.csv", row.names = TRUE)
     message("Results written to 'differential_expression_results.csv'")
     
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     message("Generating diagnostic plots...")
     pdf("analysis_plots.pdf", width = 8, height = 6)
     

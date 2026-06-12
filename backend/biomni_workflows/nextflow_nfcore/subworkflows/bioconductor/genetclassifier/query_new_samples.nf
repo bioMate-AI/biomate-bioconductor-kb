@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the pre-trained classifier and the query expression dataset. 2. Run queryGeNetClassifier() to predict classes and calculate a
+//  * 1. [Visualization & Output] Load Inputs
+//  * 2. [Visualization & Output] Run queryGeNetClassifier()
+//  * 3. [Visualization & Output] Perform External Validation (if labels exist)
+//  * 4. [Visualization & Output] Adjust Assignment Stringency Thresholds
+//  * 5. [Visualization & Output] Summarize Query Results
+//  * 6. [Visualization & Output] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("geNetClassifier", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +66,7 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     library(Biobase)
     
     # ==========================================
-    # 1. Load Inputs
+    # --- Load Inputs ---
     # ==========================================
     
     if (!file.exists("trained_classifier.RData")) {
@@ -101,7 +115,7 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     has_labels <- !is.null(label_col)
     
     # ==========================================
-    # 2. Run queryGeNetClassifier()
+    # --- Run queryGeNetClassifier() ---
     # ==========================================
     
     queryResult <- queryGeNetClassifier(leukemiasClassifier, queryEset)
@@ -109,7 +123,7 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     queryResult\$probabilities
     
     # ==========================================
-    # 3. Perform External Validation (if labels exist)
+    # --- Perform External Validation (if labels exist) ---
     # ==========================================
     
     if (has_labels) {
@@ -120,20 +134,20 @@ process BIOC_GENETCLASSIFIER_QUERY_NEW_SAMPLES {
     }
     
     # ==========================================
-    # 4. Adjust Assignment Stringency Thresholds
+    # --- Adjust Assignment Stringency Thresholds ---
     # ==========================================
     
     queryResult_AssignAll <- queryGeNetClassifier(leukemiasClassifier, queryEset, minProbAssignCoeff=0, minDiffAssignCoeff=0)
     queryResult_AssignLess <- queryGeNetClassifier(leukemiasClassifier, queryEset, minProbAssignCoeff=1.5, minDiffAssignCoeff=1)
     
     # ==========================================
-    # 5. Summarize Query Results
+    # --- Summarize Query Results ---
     # ==========================================
     
     qSummary <- querySummary(queryResult, numDecimals=3)
     
     # ==========================================
-    # 6. Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     
     # Save RDS objects

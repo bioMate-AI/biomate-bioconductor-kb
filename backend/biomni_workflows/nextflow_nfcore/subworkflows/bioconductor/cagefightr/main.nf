@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import and quantify CTSSs from BigWig files using quantifyCTSSs. 2. Normalize counts to TPM using calcTPM and calculate pooled sig
+//  * 1. [Visualization & Output] Load User Inputs and Setup Design
+//  * 2. [Visualization & Output] Quantify and Normalize CTSSs
+//  * 3. [Visualization & Output] Clustering (TSSs and Enhancers)
+//  * 4. [Visualization & Output] Quantify and Annotate Clusters
+//  * 5. [Visualization & Output] Shape and Spatial Analysis
+//  * 6. [Visualization & Output] Gene-Level Analysis
+//  * 7. [Visualization & Output] Visualization with Gviz
+//  * 8. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +45,15 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CAGEfightR", "GenomicFeatures", "InteractionSet", "Gviz", "rtracklayer", "TxDb.Mmusculus.UCSC.mm9.knownGene", "org.Mm.eg.db", "org.Hs.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +71,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         library(rtracklayer)
         
         # ==========================================
-        # 1. Load User Inputs and Setup Design
+        # --- Load User Inputs and Setup Design ---
         # ==========================================
         
         # Read design matrix
@@ -122,7 +138,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         })
         
         # ==========================================
-        # 2. Quantify and Normalize CTSSs
+        # --- Quantify and Normalize CTSSs ---
         # ==========================================
         
         # Quantify CTSSs
@@ -148,7 +164,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         supportedCTSSs <- calcPooled(supportedCTSSs)
         
         # ==========================================
-        # 3. Clustering (TSSs and Enhancers)
+        # --- Clustering (TSSs and Enhancers) ---
         # ==========================================
         
         # Unidirectional clustering (TSSs)
@@ -165,7 +181,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         enhancers <- subset(enhancers, bidirectionality > 0)
         
         # ==========================================
-        # 4. Quantify and Annotate Clusters
+        # --- Quantify and Annotate Clusters ---
         # ==========================================
         
         # Convert GRanges clusters to RangedSummarizedExperiment by quantifying
@@ -214,7 +230,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
                                        txType %in% c("intron", "intergenic"))
         
         # ==========================================
-        # 5. Shape and Spatial Analysis
+        # --- Shape and Spatial Analysis ---
         # ==========================================
         
         # Calculate shape statistics
@@ -264,7 +280,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         }
         
         # ==========================================
-        # 6. Gene-Level Analysis
+        # --- Gene-Level Analysis ---
         # ==========================================
         
         # Re-normalize and filter TSSs for gene-level analysis
@@ -347,7 +363,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         }
         
         # ==========================================
-        # 7. Visualization with Gviz
+        # --- Visualization with Gviz ---
         # ==========================================
         
         # Prepare tracks
@@ -466,7 +482,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         dev.off()
         
         # ==========================================
-        # 8. Save Outputs
+        # --- Save Outputs ---
         # ==========================================
         
         # Save GRanges objects

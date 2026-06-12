@@ -73,11 +73,11 @@ process BIOC_FISHALYSER_AUTOMATED_FISH_QUANTIFICATION {
       dir.create(writedir, recursive = TRUE)
     }
     
-    # 1. Define background correction method list
+    # --- Define background correction method list ---
     # list(0, '') specifies no background correction
     bgCorrMethod <- list(0, '')
     
-    # 2. Define channel signals and colors lists
+    # --- Define channel signals and colors lists ---
     channelColours <- list(R = c(255, 0, 0), G = c(0, 255, 0))
     channelSignals <- list(red_Og, green_Gn)
     
@@ -85,7 +85,7 @@ process BIOC_FISHALYSER_AUTOMATED_FISH_QUANTIFICATION {
     sizecell <- c(1000, 20000)
     sizeprobe <- c(5, 20)
     
-    # 3. Run end-to-end pipeline using processFISH
+    # --- Run end-to-end pipeline using processFISH ---
     processFISH(
       combinedImage,
       writedir,

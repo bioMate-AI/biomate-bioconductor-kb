@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Build a transcript-to-gene or transcript-to-TSS mapping using ensembldb. 2. Import allelic counts using importAllelicCounts. 3. Fi
+//  * 1. [Input & Preparation] Read user input coldata.csv
+//  * 2. [Input & Preparation] Build transcript-to-TSS mapping using ensembldb
+//  * 3. [Input & Preparation] Import allelic counts
+//  * 4. [Input & Preparation] Filter out features with low expression or no allelic
+//  * 5. [Input & Preparation] Run paired differential testing using Swish (skipping
+//  * 6. [Input & Preparation] Generate Diagnostic and Results Plots
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +44,15 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ensembldb", "plyranges", "EnsDb.Hsapiens.v86", "fishpond", "dplyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -58,7 +72,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
         # Set random seed for reproducibility
         set.seed(1)
         
-        # 1. Read user input coldata.csv
+        # --- Read user input coldata.csv ---
         if (!file.exists("coldata.csv")) {
           stop("Error: 'coldata.csv' not found in the working directory.")
         }
@@ -81,12 +95,12 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
           warning(paste("The following quantification files were not found:", paste(missing_files, collapse = ", ")))
         }
         
-        # 2. Build transcript-to-TSS mapping using ensembldb
+        # --- Build transcript-to-TSS mapping using ensembldb ---
         edb <- EnsDb.Hsapiens.v86
         tx2gene <- makeTx2Tss(edb, maxgap=50) %>%
           select(tx_id, gene_id, group_id, tss)
         
-        # 3. Import allelic counts
+        # --- Import allelic counts ---
         # We assume the alleles are labeled "alt" and "ref" as per the documented code.
         # If the user's coldata uses different names, they should match these arguments.
         y <- importAllelicCounts(
@@ -94,7 +108,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
           format="wide", tx2gene=tx2gene
         )
         
-        # 4. Filter out features with low expression or no allelic information
+        # --- Filter out features with low expression or no allelic ---
         # Standard Swish filtering:
         y <- labelKeep(y)
         y <- y[mcols(y)\$keep,]
@@ -119,7 +133,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
         mcols(y)\$someInfo <- rowSums(abs(rep1a1 - rep1a2) < 1) < n
         y <- y[mcols(y)\$someInfo, ]
         
-        # 5. Run paired differential testing using Swish (skipping scaleInfReps)
+        # --- Run paired differential testing using Swish (skipping ---
         
         # Test A: Global Allelic Imbalance (always run)
         message("Running Global Allelic Imbalance test...")
@@ -150,7 +164,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
           message("Skipping Dynamic Allelic Imbalance: 'time' column not found in coldata.csv")
         }
         
-        # 6. Generate Diagnostic and Results Plots
+        # --- Generate Diagnostic and Results Plots ---
         pdf("allelic_imbalance_plots.pdf", width=10, height=8)
         
         # Plot 1: P-value distribution for Global AI

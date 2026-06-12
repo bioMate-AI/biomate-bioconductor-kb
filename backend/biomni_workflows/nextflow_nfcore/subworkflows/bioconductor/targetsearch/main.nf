@@ -35,6 +35,15 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("TargetSearch", "ncdf4")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     library(ncdf4)
     
     # ==========================================
-    # STAGE 1: Read Inputs & Generate Raw GC-MS NetCDF Files
+    # --- Read Inputs & Generate Raw GC-MS NetCDF Files ---
     # ==========================================
     message("Stage 1: Reading inputs and generating dummy NetCDF files...")
     
@@ -140,7 +149,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     }
     
     # ==========================================
-    # STAGE 2: Create TargetSearch Metadata Files
+    # --- Create TargetSearch Metadata Files ---
     # ==========================================
     message("Stage 2: Creating TargetSearch metadata files...")
     
@@ -175,7 +184,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     writeLines(lib_lines, "library.txt")
     
     # ==========================================
-    # STAGE 3: TargetSearch Preprocessing & RI Correction
+    # --- TargetSearch Preprocessing & RI Correction ---
     # ==========================================
     message("Stage 3: Running TargetSearch RI correction...")
     
@@ -193,7 +202,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     outliers <- FAMEoutliers(samples, RImatrix, threshold = 3)
     
     # ==========================================
-    # STAGE 4: Library Search & Metabolite Profiling
+    # --- Library Search & Metabolite Profiling ---
     # ==========================================
     message("Stage 4: Performing library search and profiling...")
     
@@ -216,7 +225,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     finalProfile <- ProfileCleanUp(MetabProfile, timeSplit = 500, r_thres = 0.90)
     
     # ==========================================
-    # STAGE 5: Export Results & Generate Diagnostic Plots
+    # --- Export Results & Generate Diagnostic Plots ---
     # ==========================================
     message("Stage 5: Exporting results and generating plots...")
     

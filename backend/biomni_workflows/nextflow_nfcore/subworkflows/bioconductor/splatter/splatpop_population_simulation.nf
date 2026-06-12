@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Initialize population parameters using newSplatPopParams. 2. Simulate population gene means using splatPopSimulateMeans. 3. Simula
+//  * 1. [Core Analysis] Initialize population parameters using newSplatPopParams
+//  * 2. [Core Analysis] Simulate population gene means using splatPopSimulateMeans
+//  * 3. [Core Analysis] Simulate single-cell counts for the population using
 
 nextflow.enable.dsl = 2
 
@@ -127,13 +129,13 @@ process BIOC_SPLATTER_SPLATPOP_POPULATION_SIMULATION {
             # 2. Run Workflow Stages
             # ==========================================
             
-            # Stage 1: Initialize population parameters using newSplatPopParams
+            # --- Initialize population parameters using newSplatPopParams ---
             params <- newSplatPopParams()
             
-            # Stage 2: Simulate population gene means using splatPopSimulateMeans
+            # --- Simulate population gene means using splatPopSimulateMeans ---
             sim_means <- splatPopSimulateMeans(vcf = vcf, gff = gff, params = params)
             
-            # Stage 3: Simulate single-cell counts for the population using splatPopSimulateSC
+            # --- Simulate single-cell counts for the population using ---
             sim_sc <- splatPopSimulateSC(sim_means, params)
             
             # Run the exact documented wrapper function call

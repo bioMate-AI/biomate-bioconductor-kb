@@ -64,11 +64,11 @@ process BIOC_SCAN_UPC_MICROARRAY_SCAN_UPC {
       stop(paste("Error: Required input file '", input_cel, "' not found in the working directory.", sep = ""))
     }
     
-    # Stage 1: Normalize raw CEL files individually using the SCAN function
+    # --- Normalize raw CEL files individually using the SCAN ---
     message("Running SCAN normalization on ", input_cel, "...")
     normalized = SCAN("sample.CEL")
     
-    # Stage 2: Calculate universal expression probabilities using the UPC function
+    # --- Calculate universal expression probabilities using the ---
     message("Running UPC estimation on ", input_cel, "...")
     upc_values = UPC("sample.CEL")
     

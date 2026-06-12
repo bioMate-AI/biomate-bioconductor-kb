@@ -35,6 +35,15 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rtreemix")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     library(Rtreemix)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     
@@ -113,7 +122,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     rtree_data <- new("RtreemixData", Sample = as.matrix(binary_mat))
     
     # ==========================================
-    # STAGE 2: Model Fitting
+    # --- Model Fitting ---
     # ==========================================
     message("Stage 2: Fitting mutagenetic trees mixture model...")
     
@@ -144,7 +153,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     write.csv(weights_df, "mixture_weights.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: Bootstrap Stability Analysis
+    # --- Bootstrap Stability Analysis ---
     # ==========================================
     message("Stage 3: Performing bootstrap stability analysis...")
     
@@ -164,7 +173,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     write.csv(boot_df, "bootstrap_analysis.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Predictions & Evolutionary Paths
+    # --- Predictions & Evolutionary Paths ---
     # ==========================================
     message("Stage 4: Predicting waiting times and evolutionary paths...")
     
@@ -185,7 +194,7 @@ process BIOC_RTREEMIX_RTREEMIX_MUTAGENETIC_TREES {
     write.csv(pred_df, "predictions.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating tree plots...")
     

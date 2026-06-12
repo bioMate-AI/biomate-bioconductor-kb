@@ -73,7 +73,7 @@ process BIOC_SARC_CNV_VALIDATION_AND_FILTERING {
     }
     
     # ==========================================
-    # Stage 1: Import the coverage and CNV files
+    # --- Import the coverage and CNV files ---
     # ==========================================
     
     # Read the normalized read coverage file
@@ -133,7 +133,7 @@ process BIOC_SARC_CNV_VALIDATION_AND_FILTERING {
     }
     
     # ==================================================================
-    # Stage 2: Perform validation and filtering of CNVs based on coverage
+    # --- Perform validation and filtering of CNVs based on coverage ---
     # ==================================================================
     
     # Find overlaps between CNV regions and coverage positions
@@ -176,7 +176,7 @@ process BIOC_SARC_CNV_VALIDATION_AND_FILTERING {
     filtered_cnv_data <- cnv_data[cnv_data\$validation_status == "Validated", ]
     
     # ==========================================
-    # Stage 3: Write Output Files
+    # --- Write Output Files ---
     # ==========================================
     
     # Save the complete validation table

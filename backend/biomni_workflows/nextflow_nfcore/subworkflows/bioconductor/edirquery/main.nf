@@ -36,6 +36,15 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EDIRquery")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +64,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     output_pdf <- "edir_summary_plots.pdf"
     
     # ==========================================
-    # Stage 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -89,7 +98,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     message("Found ", length(genes), " unique gene(s) to query.")
     
     # ==========================================
-    # Stage 2: Query EDIR Database (Tabular & GInteractions)
+    # --- Query EDIR Database (Tabular & GInteractions) ---
     # ==========================================
     results_list <- list()
     interactions_list <- list()
@@ -127,7 +136,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     }
     
     # ==========================================
-    # Stage 3: Process and Save Outputs
+    # --- Process and Save Outputs ---
     # ==========================================
     
     # Save tabular results
@@ -151,7 +160,7 @@ process BIOC_EDIRQUERY_EDIR_GENE_REPEAT_QUERY {
     }
     
     # ==========================================
-    # Stage 4: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf(output_pdf, width = 8, height = 6)

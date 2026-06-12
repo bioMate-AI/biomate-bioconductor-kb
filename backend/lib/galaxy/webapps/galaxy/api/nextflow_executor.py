@@ -972,6 +972,99 @@ def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
     return preferred[0] if preferred else named_entries[0]
 
 
+# Declared-input contract for regenerated Bioconductor subworkflows.
+# Each main.nf carries a `// Input: <name>, <name>` comment naming the base filenames the
+# R body reads (e.g. read_input_file("cts")), a single process that consumes
+# `path(input_files, stageAs:'?/*')`, and a named `*_WORKFLOW` that `take:`s the channel.
+# There is NO anonymous `workflow { }`, so `-entry <name>` cannot bind the take channel —
+# the workflow is unrunnable without an entry wrapper. This mirrors the proven real-execution
+# harness (realrun_test_bioc_workflows.py wrap.nf): stage each declared input under its base
+# name and bind the process channel.
+_BIOC_INPUT_DECL_RE = re.compile(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$')
+
+
+def _stage_declared_input(src: str, dest: Path) -> None:
+    """Stage a user-supplied input file to `dest` (named as the workflow's declared base name).
+    Handles s3:// (aws s3 cp), http(s):// (download) and local paths (copy)."""
+    src = str(src).strip()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if src.startswith("s3://"):
+        subprocess.run(["aws", "s3", "cp", src, str(dest), "--no-progress"],
+                       check=True, capture_output=True, text=True, timeout=600)
+    elif src.startswith(("http://", "https://")):
+        import urllib.request
+        urllib.request.urlretrieve(src, str(dest))
+    else:
+        shutil.copy(str(Path(src).expanduser()), str(dest))
+
+
+def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
+                              run_id: str = "") -> Optional[Path]:
+    """If `nf_path` is a regenerated Bioconductor subworkflow (named-only workflow with a
+    `take:` channel + a `// Input:` declaration + a `path(...stageAs)` process), generate an
+    anonymous entry wrapper that stages the user's declared inputs by base name and binds them
+    to the process channel. Returns the wrapper .nf path, or None if not applicable (caller
+    keeps the normal `-entry` path). Mutates `params`: declared-input keys are popped (they
+    become staged files, not CLI `--flags`)."""
+    if "/bioconductor/" not in nf_path.as_posix():
+        return None
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return None
+    # An anonymous workflow already provides a runnable entry — leave it alone.
+    if re.search(r"(?m)^\s*workflow\s*\{", text):
+        return None
+    decl = _BIOC_INPUT_DECL_RE.search(text)
+    proc_m = re.search(r"(?m)^\s*process\s+([A-Z][A-Z0-9_]+)\s*\{", text)
+    if not decl or not proc_m:
+        return None
+    names = [re.split(r"\s*\(", n)[0].strip()
+             for n in re.split(r"[,\s]+", decl.group(1)) if n.strip()]
+    if not names:
+        return None
+    proc = proc_m.group(1)
+    # Process input arity: a single `path(x, stageAs:'?/*')` slot collects MANY files as one
+    # list; N separate path() slots take one file each.
+    inblk = re.search(r"input:(.*?)(?:output:|script:|exec:|when:)", text, re.DOTALL)
+    n_path = len(re.findall(r"\bpath\s*\(", inblk.group(1))) if inblk else 1
+
+    # Every declared input must be supplied; otherwise fall back to the normal path so the
+    # missing-input error surfaces clearly rather than producing a half-bound channel.
+    staged: list[Path] = []
+    for name in names:
+        src = params.get(name)
+        if not src:
+            return None
+        dest = run_dir / name
+        try:
+            _stage_declared_input(src, dest)
+        except Exception as exc:
+            log.warning("[Nextflow run %s] bioc input staging failed for %r: %s",
+                        run_id, name, exc)
+            return None
+        staged.append(dest.resolve())
+
+    for name in names:                       # consumed as staged files, not --flags
+        params.pop(name, None)
+
+    files_lit = [f"file('{p.as_posix()}')" for p in staged]
+    if n_path <= 1 and len(staged) > 1:
+        slot = "[ " + ", ".join(files_lit) + " ]"
+    else:
+        slot = ", ".join(files_lit)
+    chan = "[ [id:'sample'], " + slot + " ]"
+    wrapper = run_dir / "biomate_entry.nf"
+    wrapper.write_text(
+        "nextflow.enable.dsl = 2\n"
+        f"include {{ {proc} }} from '{nf_path.resolve().as_posix()}'\n"
+        f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
+    )
+    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s inputs=%s (n_path=%d)",
+             run_id, proc, names, n_path)
+    return wrapper
+
+
 def _extract_documented_images() -> list[str]:
     """
     Extract workflow container images from local BioMate docs.
@@ -3662,6 +3755,16 @@ def execute_nextflow(
     # Entry selection: honor explicit request first; otherwise auto-detect for
     # scripts with named-only workflows (e.g. runnable subworkflows).
     selected_entry = (request.entry or "").strip() or _detect_nextflow_entry(nf_path)
+
+    # Bioconductor subworkflows declare their inputs via `// Input:` and expose only a
+    # `take:`-bound named workflow — `-entry` cannot bind that channel, so the workflow is
+    # unrunnable as-is. Build an anonymous entry wrapper that stages the user's declared
+    # inputs by base name and binds the process channel (mirrors the validated run harness).
+    _bioc_wrapper = _build_bioc_entry_wrapper(nf_path, params, log_dir, run_id)
+    if _bioc_wrapper is not None:
+        cmd = [nf_bin, "run", str(_bioc_wrapper)]
+        selected_entry = None     # wrapper provides an anonymous workflow { } entry
+
     if selected_entry:
         cmd += ["-entry", selected_entry]
 
@@ -4256,7 +4359,11 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     # DB has step_metadata for this path it wins; the parser stays the fallback for everything
     # else (nf-core / drug_discovery / non-indexed paths -> _steps_from_db_metadata returns {}).
     db_steps = _steps_from_db_metadata(nextflow_path)
-    if db_steps:
+    # DB metadata wins (it carries curated per-step visualizations + QC) — EXCEPT when it has
+    # collapsed to a single coarse step while the .nf now parses into several (the B-1 section
+    # markers). A degenerate one-step DB row is stale/uncurated, so the finer parser result is
+    # the better UI; richer DB metadata (>=2 steps, or matching the parser) still wins.
+    if db_steps and not (len(db_steps) <= 1 < len(steps)):
         steps = db_steps
     return {"steps": steps, "count": len(steps)}
 

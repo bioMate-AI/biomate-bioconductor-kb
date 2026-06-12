@@ -79,7 +79,7 @@ process BIOC_NORMALYZERDE_DIFFERENTIAL_EXPRESSION {
         dir.create(jobDir, recursive = TRUE)
     }
     
-    # 1. Run differential expression analysis using normalyzerDE
+    # --- Run differential expression analysis using normalyzerDE ---
     message("Running normalyzerDE...")
     normalyzerDE("vignette_run", 
                  comparisons=c("4-5"),
@@ -88,17 +88,17 @@ process BIOC_NORMALYZERDE_DIFFERENTIAL_EXPRESSION {
                  outputDir=outDir, 
                  condCol="group")
     
-    # 2. Stepwise processing: Setup contrast object and statistics object
+    # --- Stepwise processing: Setup contrast object and statistics ---
     message("Setting up contrast and statistics objects...")
     experimentObj <- setupRawContrastObject(bestNormMatPath, designFp, "sample")
     nst <- NormalyzerStatistics(experimentObj, logTrans=FALSE)
     
-    # 3. Calculate statistical contrasts
+    # --- Calculate statistical contrasts ---
     message("Calculating contrasts...")
     comparisons <- c("4-5")
     nst <- calculateContrasts(nst, comparisons, condCol="group", leastRepCount=2)
     
-    # 4. Generate annotated matrix and write outputs
+    # --- Generate annotated matrix and write outputs ---
     message("Generating annotated matrix and reports...")
     annotDf <- generateAnnotatedMatrix(nst)
     

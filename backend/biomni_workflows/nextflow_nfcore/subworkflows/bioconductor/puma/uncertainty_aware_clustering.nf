@@ -85,13 +85,13 @@ process BIOC_PUMA_UNCERTAINTY_AWARE_CLUSTERING {
       }
     }
     
-    # 1. Load the declared user input files
+    # --- Load the declared user input files ---
     message("Loading input files...")
     eset_estrogen_mmgmos <- read_input("eset_estrogen_mmgmos")
     Clustii.exampleE     <- read_input("Clustii.exampleE")
     Clustii.exampleStd   <- read_input("Clustii.exampleStd")
     
-    # 2. Run pumaClust for standard clustering incorporating uncertainty
+    # --- Run pumaClust for standard clustering incorporating ---
     message("Running pumaClust...")
     pumaClust_estrogen <- pumaClust(eset_estrogen_mmgmos, clusters=7)
     
@@ -105,7 +105,7 @@ process BIOC_PUMA_UNCERTAINTY_AWARE_CLUSTERING {
     write.csv(pumaClust_estrogen\$cluster, file="pumaClust_clusters.csv")
     saveRDS(pumaClust_estrogen, file="pumaClust_results.rds")
     
-    # 3. Run pumaClustii for robust Student's t mixture model clustering with replicates
+    # --- Run pumaClustii for robust Student's t mixture model ---
     message("Running pumaClustii...")
     r <- vector(mode="integer", 0)
     for (i in c(1:20)) {

@@ -77,7 +77,7 @@ process BIOC_CARDINAL_SUPERVISED_PIXEL_CLASSIFICATION {
     # Robustly prepare metadata to ensure the documented workflow runs successfully
     message("Preparing metadata...")
     
-    # 1. Ensure 'class' column exists and has levels "A" and "B" (at least 2 classes)
+    # --- Ensure 'class' column exists and has levels "A" and "B" ---
     if (is.null(mse2\$class)) {
       message("'class' column not found. Generating dummy classes 'A' and 'B'...")
       set.seed(42)
@@ -93,14 +93,14 @@ process BIOC_CARDINAL_SUPERVISED_PIXEL_CLASSIFICATION {
       }
     }
     
-    # 2. Ensure 'run' has at least 2 levels for cross-validation folds
+    # --- Ensure 'run' has at least 2 levels for cross-validation ---
     if (length(unique(run(mse2))) < 2) {
       message("Fewer than 2 runs found. Creating dummy folds in run(mse2) for cross-validation...")
       set.seed(42)
       run(mse2) <- factor(sample(paste0("run", 1:3), ncol(mse2), replace = TRUE))
     }
     
-    # 3. Ensure 'circleA' and 'circleB' logical columns exist for subsetting in image()
+    # --- Ensure 'circleA' and 'circleB' logical columns exist for ---
     if (is.null(mse2\$circleA)) {
       mse2\$circleA <- rep(TRUE, ncol(mse2))
     }

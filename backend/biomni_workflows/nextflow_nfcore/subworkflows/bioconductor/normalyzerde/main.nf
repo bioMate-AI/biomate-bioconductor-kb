@@ -67,22 +67,22 @@ process BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION {
         stop(paste("Required input file missing:", designFp))
     }
     
-    # Step 1: Loading data and verifying input
+    # --- Loading data and verifying input ---
     jobName <- "vignette_run"
     experimentObj <- setupRawDataObject(dataFp, designFp, "default", TRUE, "sample", "group")
     normObj <- getVerifiedNormalyzerObject(jobName, experimentObj)
     
-    # Step 2: Generate normalizations
+    # --- Generate normalizations ---
     normResults <- normMethods(normObj)
     
-    # Step 3: Generate performance measures
+    # --- Generate performance measures ---
     normResultsWithEval <- analyzeNormalizations(normResults)
     
-    # Step 4: Output matrices to file
+    # --- Output matrices to file ---
     jobDir <- setupJobDir("vignette_run", tempdir())
     writeNormalizedDatasets(normResultsWithEval, jobDir)
     
-    # Step 5: Generate evaluation plots
+    # --- Generate evaluation plots ---
     generatePlots(normResultsWithEval, jobDir)
     
     # Save meaningful results to the current working directory

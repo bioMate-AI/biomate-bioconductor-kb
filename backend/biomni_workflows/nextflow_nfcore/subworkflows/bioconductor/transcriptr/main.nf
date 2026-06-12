@@ -59,7 +59,7 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     library(Rsamtools)
     
     # ==========================================
-    # 1. INPUT LOADING & PREPARATION
+    # --- INPUT LOADING & PREPARATION ---
     # ==========================================
     
     # Locate the strand-specific RNA-seq BAM file
@@ -100,7 +100,7 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     }
     
     # ==========================================
-    # 2. TRANSCRIPTION DATASET CONSTRUCTION
+    # --- TRANSCRIPTION DATASET CONSTRUCTION ---
     # ==========================================
     
     # Initialize the TranscriptionDataSet object
@@ -114,14 +114,14 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     )
     
     # ==========================================
-    # 3. BACKGROUND NOISE ESTIMATION
+    # --- BACKGROUND NOISE ESTIMATION ---
     # ==========================================
     
     # Estimate expression background noise level
     estimateBackground(tds, fdr.cutoff = 0.01)
     
     # ==========================================
-    # 4. GAP DISTANCE TUNING
+    # --- GAP DISTANCE TUNING ---
     # ==========================================
     
     # Define the range of gap distances to test
@@ -156,7 +156,7 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     })
     
     # ==========================================
-    # 5. TRANSCRIPT CALLING & ANNOTATION
+    # --- TRANSCRIPT CALLING & ANNOTATION ---
     # ==========================================
     
     # Call transcripts using the estimated parameters
@@ -169,7 +169,7 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     trx <- getTranscripts(tds, min.length = 250, min.fpkm = 0.5)
     
     # ==========================================
-    # 6. EXPORT RESULTS
+    # --- EXPORT RESULTS ---
     # ==========================================
     
     # Export transcripts to BED format

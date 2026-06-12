@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read one or more SDS files using read.taqman to create a qPCRBatch object
+//  * 1. [Input & Preparation] Read a single SDS file using read.taqman to create a
+//  * 2. [Input & Preparation] Read multiple SDS files using read.taqman (if the
 
 nextflow.enable.dsl = 2
 
@@ -67,7 +68,7 @@ process BIOC_READQPCR_TAQMAN_SDS_LOADING {
       stop(paste("Error: Required input file missing in the working directory:", taqman.example))
     }
     
-    # Stage 1: Read a single SDS file using read.taqman to create a qPCRBatch object
+    # --- Read a single SDS file using read.taqman to create a ---
     message("Reading single SDS file...")
     qPCRBatch.taq <- read.taqman(taqman.example)
     
@@ -83,7 +84,7 @@ process BIOC_READQPCR_TAQMAN_SDS_LOADING {
       write.csv(well_order_single, "well_order_single.csv", row.names = TRUE)
     }
     
-    # Stage 2: Read multiple SDS files using read.taqman (if the optional second file is present)
+    # --- Read multiple SDS files using read.taqman (if the ---
     if (file.exists(taqman.example.second.file)) {
       message("Reading multiple SDS files...")
       qPCRBatch.taq.two.files <- read.taqman(taqman.example, 

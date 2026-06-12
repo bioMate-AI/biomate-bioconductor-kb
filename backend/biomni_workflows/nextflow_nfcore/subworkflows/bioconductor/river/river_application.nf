@@ -63,11 +63,11 @@ process BIOC_RIVER_RIVER_APPLICATION {
       stop(paste("Error: Input file", filename, "not found in the working directory. Please ensure 'simulation_RIVER.gz' is present."))
     }
     
-    # 1. Import experimental data using getData
+    # --- Import experimental data using getData ---
     message("Importing experimental data...")
     dataInput <- getData(filename)
     
-    # 2. Train and predict posterior probabilities using appRIVER
+    # --- Train and predict posterior probabilities using appRIVER ---
     message("Training RIVER model and predicting posterior probabilities...")
     postprobs <- appRIVER(
       dataInput, 
@@ -77,7 +77,7 @@ process BIOC_RIVER_RIVER_APPLICATION {
       verbose=TRUE
     )
     
-    # 3. Extract posterior probabilities for downstream analysis
+    # --- Extract posterior probabilities for downstream analysis ---
     message("Extracting posterior probabilities...")
     example_probs <- data.frame(
       Subject=postprobs\$indiv_name, 
@@ -109,7 +109,7 @@ process BIOC_RIVER_RIVER_APPLICATION {
     write.table(postprobs\$fitRIVER\$theta, "river_fit_theta.txt", col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t")
     message("Saved model parameters to 'river_fit_beta.txt' and 'river_fit_theta.txt'")
     
-    # 4. Plot the posterior probabilities using plotPosteriors
+    # --- Plot the posterior probabilities using plotPosteriors ---
     message("Generating posterior probabilities plot...")
     pdf("river_posteriors_plot.pdf", width=8, height=6)
     plotPosteriors(postprobs, outliers=as.numeric(unlist(dataInput\$Outlier))-1)

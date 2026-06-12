@@ -35,6 +35,15 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("drugTargetInteractions")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,10 +53,10 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(drugTargetInteractions)
     
-    # Stage 2: Read user input files
+    # --- Read user input files ---
     message("Reading input files...")
     intensity <- read.csv("intensity.csv", row.names = NULL, check.names = FALSE)
     coldata <- read.csv("coldata.csv", row.names = NULL, check.names = FALSE)
@@ -56,7 +65,7 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
     feature_ids <- unique(as.character(intensity\$feature_id))
     message(paste("Found", length(feature_ids), "unique features in intensity data."))
     
-    # Stage 3: Set up the drugTargetInteractions environment
+    # --- Set up the drugTargetInteractions environment ---
     # Locate the package's sample ChEMBL database dynamically without using system.file
     pkg_path <- find.package("drugTargetInteractions")
     chembldb <- file.path(pkg_path, "extdata", "chembl_sample.db")
@@ -75,7 +84,7 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
       warning("UniChem download or mapping failed (possibly offline): ", e\$message)
     })
     
-    # Stage 4: Map input features to UniProt IDs
+    # --- Map input features to UniProt IDs ---
     # Determine ID type based on pattern matching
     is_ensembl <- any(grepl("^ENSG", feature_ids))
     is_uniprot <- any(grepl("^[OPQ][0-9][A-Z0-9]{3}[0-9]|^[A-N,R-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", feature_ids))
@@ -125,7 +134,7 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
     control_uniprots <- c("P43166", "P00915")
     query_uniprots <- unique(c(uniprot_ids, control_uniprots))
     
-    # Stage 5: Query Drug-Target Annotations and Bioactivity
+    # --- Query Drug-Target Annotations and Bioactivity ---
     message("Querying ChEMBL database for drug-target annotations...")
     queryBy_prot <- list(molType = "protein", idType = "UniProt_ID", ids = query_uniprots)
     
@@ -144,7 +153,7 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
       data.frame(UniProt_ID = character(), CHEMBL_CMP_ID = character(), ACTIVITY_VALUE = numeric(), stringsAsFactors = FALSE)
     })
     
-    # Stage 6: Integrate with Proteomics Intensity Data
+    # --- Integrate with Proteomics Intensity Data ---
     message("Integrating drug-target results with expression/intensity data...")
     
     # Calculate mean intensity per condition
@@ -167,7 +176,7 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
     bioact_with_features <- merge(qresult_bioact, mapping_df, by.x = "UniProt_ID", by.y = "UniProt_ID", all.x = TRUE)
     final_bioact <- merge(bioact_with_features, mean_intensities, by = "feature_id", all.x = TRUE)
     
-    # Stage 7: Generate Drug-Target Frequency Summary
+    # --- Generate Drug-Target Frequency Summary ---
     message("Generating drug-target frequency summary...")
     if (nrow(qresult_annot) > 0) {
       target_col <- if ("GeneName" %in% colnames(qresult_annot)) "GeneName" else "QueryIDs"
@@ -185,7 +194,7 @@ process BIOC_DRUGTARGETINTERACTIONS_DRUG_TARGET_ANALYSIS {
       statsDF <- data.frame(Target = character(), Drugs = character(), N_Drugs = integer(), stringsAsFactors = FALSE)
     }
     
-    # Stage 8: Write Outputs
+    # --- Write Outputs ---
     message("Writing output files...")
     write.csv(final_annot, "drug_target_annotations.csv", row.names = FALSE)
     write.csv(final_bioact, "drug_target_bioactivity.csv", row.names = FALSE)

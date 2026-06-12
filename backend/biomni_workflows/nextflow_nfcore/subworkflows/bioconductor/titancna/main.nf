@@ -35,6 +35,15 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("TitanCNA", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Load and Validate Input Files
+    # --- Load and Validate Input Files ---
     # ==========================================
     message("Stage 1: Loading input files...")
     
@@ -79,7 +88,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Generate Locus-Specific Data
+    # --- Generate Locus-Specific Data ---
     # ==========================================
     message("Stage 2: Generating locus-specific allele counts and log ratios within target regions...")
     
@@ -127,7 +136,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     inputData <- do.call(rbind, df_list)
     
     # ==========================================
-    # STAGE 3: Filter Data using TitanCNA
+    # --- Filter Data using TitanCNA ---
     # ==========================================
     message("Stage 3: Filtering data using TitanCNA filters...")
     
@@ -140,7 +149,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Parameter Initialization and EM
+    # --- Parameter Initialization and EM ---
     # ==========================================
     message("Stage 4: Initializing parameters and running EM pipeline...")
     
@@ -172,7 +181,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 5: Viterbi Segmentation and Formatting
+    # --- Viterbi Segmentation and Formatting ---
     # ==========================================
     message("Stage 5: Running Viterbi segmentation and formatting results...")
     
@@ -220,7 +229,7 @@ process BIOC_TITANCNA_TITAN_CNA_SUBCLONAL_ANALYSIS {
     message("Saved model parameters to titan_parameters.txt")
     
     # ==========================================
-    # STAGE 6: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 6: Generating diagnostic plots...")
     

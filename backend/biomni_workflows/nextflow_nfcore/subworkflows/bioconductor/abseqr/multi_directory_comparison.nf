@@ -64,16 +64,16 @@ process BIOC_ABSEQR_MULTI_DIRECTORY_COMPARISON {
         stop("Error: Input directory 'SRR_EXP' not found in the working directory.")
     }
     
-    # 1. Load S4 objects from the first abseqPy directory (Control)
+    # --- Load S4 objects from the first abseqPy directory (Control) ---
     SRRControl <- abseqReport("SRR_CTRL")
     
-    # 2. Load S4 objects from the second abseqPy directory (Experimental)
+    # --- Load S4 objects from the second abseqPy directory ---
     SRRExp <- abseqReport("SRR_EXP")
     
-    # 3. Combine all loaded samples using Reduce and the + operator
+    # --- Combine all loaded samples using Reduce and the + operator ---
     all.samples <- Reduce("+", c(SRRControl, SRRExp))
     
-    # 4. Generate a comparative report for the combined collection of samples
+    # --- Generate a comparative report for the combined collection ---
     report(all.samples, outputDir = "SRRControl_vs_SRRExp")
     
     # Save meaningful results as RDS objects for downstream analysis

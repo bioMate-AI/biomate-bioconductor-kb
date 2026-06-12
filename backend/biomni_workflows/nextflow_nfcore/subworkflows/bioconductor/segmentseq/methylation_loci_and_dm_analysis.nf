@@ -76,7 +76,7 @@ process BIOC_SEGMENTSEQ_METHYLATION_LOCI_AND_DM_ANALYSIS {
       }
     }
     
-    # 1. Read methylation files using readMeths
+    # --- Read methylation files using readMeths ---
     message("Reading methylation calls...")
     mD <- readMeths(
       files = files, 
@@ -86,7 +86,7 @@ process BIOC_SEGMENTSEQ_METHYLATION_LOCI_AND_DM_ANALYSIS {
       nonconversion = c(0.004777, 0.005903, 0.016514, 0.006134)
     )
     
-    # 2. Plot methylation distribution using plotMethDistribution
+    # --- Plot methylation distribution using plotMethDistribution ---
     message("Plotting methylation distributions...")
     pdf("methylation_distributions.pdf", width = 8, height = 10)
     par(mfrow = c(2, 1))
@@ -99,50 +99,50 @@ process BIOC_SEGMENTSEQ_METHYLATION_LOCI_AND_DM_ANALYSIS {
     )
     dev.off()
     
-    # 3. Process alignment data to find candidate loci using processAD
+    # --- Process alignment data to find candidate loci using ---
     message("Processing alignment data to find candidate loci...")
     sD <- processAD(mD, cl = cl)
     
-    # 4. Perform heuristic segmentation using heuristicSeg
+    # --- Perform heuristic segmentation using heuristicSeg ---
     message("Performing heuristic segmentation...")
     thresh <- 0.2
     hS <- heuristicSeg(sD = sD, aD = mD, prop = thresh, cl = cl, gap = 100, getLikes = FALSE)
     
-    # 5. Merge split loci using mergeMethSegs
+    # --- Merge split loci using mergeMethSegs ---
     message("Merging split loci...")
     hS <- mergeMethSegs(hS, mD, gap = 5000, cl = cl)
     
-    # 6. Estimate posterior likelihoods on loci using lociLikelihoods
+    # --- Estimate posterior likelihoods on loci using ---
     message("Estimating posterior likelihoods on loci...")
     hSL <- lociLikelihoods(hS, mD, cl = cl)
     
-    # 7. Plot methylation loci using plotMeth
+    # --- Plot methylation loci using plotMeth ---
     message("Plotting methylation loci...")
     pdf("methylation_loci_plot.pdf", width = 10, height = 8)
     plotMeth(mD, hSL, chr = "Chr1", limits = c(1, 50000), cap = 10)
     dev.off()
     
-    # 8. Define experimental groups using groups
+    # --- Define experimental groups using groups ---
     message("Defining experimental groups...")
     groups(hSL) <- list(NDE = c(1, 1, 1, 1), DE = c("A", "A", "B", "B"))
     
-    # 9. Pre-calculate observables using methObservables
+    # --- Pre-calculate observables using methObservables ---
     message("Pre-calculating observables...")
     hSL <- methObservables(hSL)
     
-    # 10. Set density function to bbNCDist using densityFunction
+    # --- Set density function to bbNCDist using densityFunction ---
     message("Setting density function...")
     densityFunction(hSL) <- bbNCDist
     
-    # 11. Estimate priors using getPriors
+    # --- Estimate priors using getPriors ---
     message("Estimating priors...")
     hSL <- getPriors(hSL, cl = cl)
     
-    # 12. Estimate posterior likelihoods using getLikelihoods
+    # --- Estimate posterior likelihoods using getLikelihoods ---
     message("Estimating posterior likelihoods...")
     hSL <- getLikelihoods(hSL, cl = cl)
     
-    # 13. Retrieve top differentially methylated regions using topCounts
+    # --- Retrieve top differentially methylated regions using ---
     message("Retrieving top differentially methylated regions...")
     de_loci <- topCounts(hSL, "DE")
     

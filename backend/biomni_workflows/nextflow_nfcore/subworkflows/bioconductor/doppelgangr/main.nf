@@ -35,6 +35,15 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("doppelgangR", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
     # Define parameters
     bonf_prob <- 0.5
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     expr_mat <- as.matrix(read.csv("counts.csv", row.names = 1, check.names = FALSE))
     coldata <- read.csv("coldata.csv", check.names = FALSE)
@@ -73,7 +82,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
         expr_mat <- log2(expr_mat + 1)
     }
     
-    # Stage 2: Create artificial overlapping datasets to simulate multi-study comparison
+    # --- Create artificial overlapping datasets to simulate ---
     # This guarantees we have known doppelgängers to find and validate the pipeline.
     message("Creating artificial study datasets with overlapping samples...")
     # Study A: All samples
@@ -95,7 +104,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
     esetB <- ExpressionSet(assayData = expr_B, phenoData = AnnotatedDataFrame(coldata_B))
     testesets <- list(StudyA = esetA, StudyB = esetB)
     
-    # Stage 3: Run doppelgangR
+    # --- Run doppelgangR ---
     message("Running doppelgangR...")
     results <- tryCatch({
         # Try running with both expression and phenotype matching
@@ -114,7 +123,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
         )
     })
     
-    # Stage 4: Save outputs and diagnostics
+    # --- Save outputs and diagnostics ---
     message("Saving results...")
     
     # 1. Save text summary

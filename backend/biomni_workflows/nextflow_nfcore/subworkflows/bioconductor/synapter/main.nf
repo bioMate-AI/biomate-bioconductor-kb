@@ -35,6 +35,15 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("synapter", "MSnbase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
     library(synapter)
     library(MSnbase)
     
-    # Stage 1: Read input files
+    # --- Read input files ---
     message("Stage 1: Reading input files...")
     intensity_df <- read.csv("intensity.csv", stringsAsFactors = FALSE)
     coldata_df <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -58,7 +67,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
       stop("Input intensity.csv must contain a 'feature_id' column.")
     }
     
-    # Stage 2: Generate mock PLGS-compatible files from input data
+    # --- Generate mock PLGS-compatible files from input data ---
     # synapter requires PLGS peptide files and a FASTA database to perform matching.
     message("Stage 2: Generating PLGS-compatible inputs for synapter...")
     
@@ -143,7 +152,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
     )
     write.csv(quant3d_df, "quant3d.csv", row.names = FALSE)
     
-    # Stage 3: Run synapter matching pipeline
+    # --- Run synapter matching pipeline ---
     message("Stage 3: Running synapter matching pipeline...")
     
     # Initialize output files to guarantee existence
@@ -173,7 +182,7 @@ process BIOC_SYNAPTER_SYNAPTER_LABEL_FREE_REANALYSIS {
       findEMRTs(obj)
       rescueEMRTs(obj)
       
-      # Stage 4: Export matched results and generate diagnostic plots
+      # --- Export matched results and generate diagnostic plots ---
       message("Stage 4: Exporting results and generating diagnostic plots...")
       
       # Export matched peptides

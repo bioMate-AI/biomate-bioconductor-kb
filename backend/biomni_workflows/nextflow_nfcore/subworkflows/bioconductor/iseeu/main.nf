@@ -34,6 +34,15 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("iSEEu", "iSEE", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,12 +52,12 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(iSEEu)
     library(iSEE)
     library(limma)
     
-    # Stage 2: Read and preprocess input data defensively
+    # --- Read and preprocess input data defensively ---
     message("Reading input data...")
     raw_data <- read.csv("input.csv", check.names = FALSE, stringsAsFactors = FALSE)
     
@@ -97,7 +106,7 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
         mat <- cbind(mat, dummy_mat)
     }
     
-    # Stage 3: Perform Differential Expression Analysis (limma)
+    # --- Perform Differential Expression Analysis (limma) ---
     message("Performing differential expression analysis...")
     group <- factor(rep(c("GroupA", "GroupB"), length.out = ncol(mat)))
     design <- model.matrix(~group)
@@ -105,7 +114,7 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
     fit <- eBayes(fit)
     tt <- topTable(fit, coef = 2, number = Inf, sort.by = "none")
     
-    # Stage 4: Construct SingleCellExperiment and compute PCA
+    # --- Construct SingleCellExperiment and compute PCA ---
     message("Constructing SingleCellExperiment object...")
     sce <- SingleCellExperiment(assays = list(logcounts = mat))
     colData(sce)\$Group <- group
@@ -125,7 +134,7 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
     pca <- prcomp(t(mat))
     reducedDim(sce, "PCA") <- pca\$x[, 1:min(4, ncol(pca\$x)), drop = FALSE]
     
-    # Stage 5: Configure iSEEu and iSEE Panels
+    # --- Configure iSEEu and iSEE Panels ---
     message("Configuring iSEEu panels...")
     
     # 1. MAPlot: Displays log-fold change vs average abundance
@@ -182,7 +191,7 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
     message("Creating iSEE application object...")
     app <- iSEE(sce, initial = initial_panels)
     
-    # Stage 6: Save outputs
+    # --- Save outputs ---
     message("Saving outputs...")
     saveRDS(app, "iseeu_app.rds")
     saveRDS(sce, "processed_sce.rds")

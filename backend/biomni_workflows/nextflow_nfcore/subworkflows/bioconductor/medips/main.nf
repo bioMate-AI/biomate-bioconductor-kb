@@ -70,7 +70,7 @@ process BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS {
     ws = 100
     chr.select = "chr22"
     
-    # 1. Create MEDIPS sets for IP and Input samples using MEDIPS.createSet
+    # --- Create MEDIPS sets for IP and Input samples using ---
     hESCs_MeDIP = MEDIPS.createSet(file=bam.file.hESCs.Rep1.MeDIP, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select)
     hESCs_MeDIP = c(hESCs_MeDIP, MEDIPS.createSet(file=bam.file.hESCs.Rep2.MeDIP, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select))
     hESCs_Input = MEDIPS.createSet(file=bam.file.hESCs.Input, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select)
@@ -81,20 +81,20 @@ process BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS {
     DE_MeDIP = hESCs_MeDIP[2]
     hESCs_MeDIP = hESCs_MeDIP[1]
     
-    # 2. Generate a coupling vector for CpG density normalization using MEDIPS.couplingVector
+    # --- Generate a coupling vector for CpG density normalization ---
     CS = MEDIPS.couplingVector(pattern="CG", refObj=hESCs_MeDIP[[1]])
     
-    # 3. Calculate genome-wide coverage, methylation profiles, and differential coverage using MEDIPS.meth
+    # --- Calculate genome-wide coverage, methylation profiles, and ---
     mr.edgeR = MEDIPS.meth(MSet1=DE_MeDIP, MSet2=hESCs_MeDIP, CSet=CS, ISet1=DE_Input, ISet2=hESCs_Input, p.adj="bonferroni", diff.method="edgeR", MeDIP=T, CNV=F, minRowSum=10)
     
     # Save the full differential coverage results
     saveRDS(mr.edgeR, "mr_edgeR_results.rds")
     
-    # 4. Select significant windows using MEDIPS.selectSig
+    # --- Select significant windows using MEDIPS.selectSig ---
     mr.edgeR.s = MEDIPS.selectSig(results=mr.edgeR, p.value=0.1, adj=T, ratio=NULL, bg.counts=NULL, CNV=F)
     write.csv(mr.edgeR.s, "significant_windows.csv", row.names=FALSE)
     
-    # 5. Filter and merge adjacent significant windows into regions of interest using MEDIPS.mergeFrames
+    # --- Filter and merge adjacent significant windows into ---
     mr.edgeR.s.gain = mr.edgeR.s[which(mr.edgeR.s[,grep("logFC", colnames(mr.edgeR.s))]>0),]
     
     # Ensure mergeFrames is called robustly even if no significant gain windows are found
@@ -105,7 +105,7 @@ process BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS {
     }
     write.csv(mr.edgeR.s.gain.m, "merged_gain_regions.csv", row.names=FALSE)
     
-    # 6. Extract and summarize data at regions of interest using MEDIPS.selectROIs
+    # --- Extract and summarize data at regions of interest using ---
     columns=names(mr.edgeR)[grep("counts",names(mr.edgeR))]
     
     if (!is.null(mr.edgeR.s.gain.m) && nrow(mr.edgeR.s.gain.m) > 0) {

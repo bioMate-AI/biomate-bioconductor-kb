@@ -59,7 +59,7 @@ process BIOC_PHOSR_BATCH_CORRECTION {
     library(ggpubr)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     message("Reading input files...")
     if (!file.exists("imputed_quantification_matrix.csv")) {
@@ -82,7 +82,7 @@ process BIOC_PHOSR_BATCH_CORRECTION {
     batches_df <- batches_df[match(common_samples, batches_df\$sample), ]
     
     # ==========================================
-    # 2. Construct PhosphoExperiment Object
+    # --- Construct PhosphoExperiment Object ---
     # ==========================================
     message("Constructing PhosphoExperiment object...")
     
@@ -119,7 +119,7 @@ process BIOC_PHOSR_BATCH_CORRECTION {
                      ";", sep = "")
     
     # ==========================================
-    # 3. Generate Custom SPSs using getSPS
+    # --- Generate Custom SPSs using getSPS ---
     # ==========================================
     message("Generating custom Stably Phosphorylated Sites (SPSs)...")
     
@@ -153,7 +153,7 @@ process BIOC_PHOSR_BATCH_CORRECTION {
     }
     
     # ==========================================
-    # 4. Define Design Matrix and Run RUVphospho
+    # --- Define Design Matrix and Run RUVphospho ---
     # ==========================================
     message("Running batch correction using RUVphospho...")
     
@@ -173,7 +173,7 @@ process BIOC_PHOSR_BATCH_CORRECTION {
     ppe = RUVphospho(ppe, M = design, k = 3, ctl = ctl)
     
     # ==========================================
-    # 5. Generate Diagnostic Plots and Save Outputs
+    # --- Generate Diagnostic Plots and Save Outputs ---
     # ==========================================
     message("Generating diagnostic plots and saving results...")
     

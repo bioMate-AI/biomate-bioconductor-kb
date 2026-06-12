@@ -35,6 +35,15 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_TIME_COURSE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("INSPEcT")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_TIME_COURSE {
     library(INSPEcT)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ---------------------------------------------------------
     message("Loading input data...")
     counts <- read.csv("counts.csv", check.names = FALSE)
@@ -93,7 +102,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_TIME_COURSE {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Quantify Expressions and Initialize INSPEcT
+    # --- Quantify Expressions and Initialize INSPEcT ---
     # ---------------------------------------------------------
     message("Quantifying expressions from transcript counts...")
     matExp_DESeq2 <- quantifyExpressionsFromTrCounts(
@@ -126,7 +135,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_TIME_COURSE {
     write.csv(first_guess_df, "rates_first_guess.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 3: Rate Modeling and Statistical Testing
+    # --- Rate Modeling and Statistical Testing ---
     # ---------------------------------------------------------
     message("Modeling rates (subsetting to top 20 genes for performance)...")
     # Subset to a small number of genes to ensure fast and robust execution
@@ -146,7 +155,7 @@ process BIOC_INSPECT_INSPECT_TOTAL_RNA_TIME_COURSE {
     write.csv(classes_df, "gene_classes.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 4: Visualization
+    # --- Visualization ---
     # ---------------------------------------------------------
     message("Generating gene profile plot...")
     pdf("gene_profile_plot.pdf", width = 10, height = 6)

@@ -105,19 +105,19 @@ process BIOC_BALLGOWN_CUSTOM_MODEL_DIFFERENTIAL_EXPRESSION {
       write.table(i_curr, file.path(sample_dir, "i_data.ctab"), sep="\t", row.names=FALSE, quote=FALSE)
     }
     
-    # 1. Load Tablemaker output and define phenotype data
+    # --- Load Tablemaker output and define phenotype data ---
     bg = ballgown(dataDir=data_directory, samplePattern='sample', meas='all')
     pData(bg) = data.frame(id=sampleNames(bg), group=rep(c(1,0), each=10))
     pData(bg) = data.frame(pData(bg), time=rep(1:10, 2))
     
-    # 2. Create custom design matrices using model.matrix()
+    # --- Create custom design matrices using model.matrix() ---
     set.seed(43)
     sex = sample(c('M','F'), size=nrow(pData(bg)), replace=TRUE)
     age = sample(21:52, size=nrow(pData(bg)), replace=TRUE)
     mod = model.matrix(~ sex + age + pData(bg)\$group + pData(bg)\$time)
     mod0 = model.matrix(~ pData(bg)\$group + pData(bg)\$time)
     
-    # 3. Run differential expression testing comparing nested models using stattest()
+    # --- Run differential expression testing comparing nested ---
     adjusted_results = stattest(bg, feature='transcript', meas='FPKM', mod0=mod0, mod=mod)
     
     # Write meaningful output files

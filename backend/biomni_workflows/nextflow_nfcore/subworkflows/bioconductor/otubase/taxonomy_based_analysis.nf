@@ -56,29 +56,29 @@ process BIOC_OTUBASE_TAXONOMY_BASED_ANALYSIS {
     library("OTUbase")
     library("vegan")
     
-    # 1. Define directory path (using current working directory where user files are located)
+    # --- Define directory path (using current working directory ---
     dirPath <- "."
     
-    # 2. Read taxonomy data and metadata using readTAXset
+    # --- Read taxonomy data and metadata using readTAXset ---
     soginTAX <- readTAXset(dirPath=dirPath, fastafile='sogin.fasta', sampleADF='sample_metadata.txt', taxfile='sogin.unique.fix.tax', namefile='sogin.names', samplefile='sogin.groups')
     print(soginTAX)
     
-    # 3. Access taxonomic classifications
+    # --- Access taxonomic classifications ---
     tax_data <- tax(soginTAX)
     print(head(tax_data))
     write.csv(tax_data, "taxonomic_classifications.csv", row.names=TRUE)
     
-    # 4. Generate taxonomic abundance table at a specific rank
+    # --- Generate taxonomic abundance table at a specific rank ---
     abundTAX <- abundance(soginTAX, weighted=F, taxCol='genus', collab='Site')
     print(head(abundTAX))
     write.csv(abundTAX, "taxonomic_abundance_genus.csv", row.names=TRUE)
     
-    # 5. Estimate richness
+    # --- Estimate richness ---
     estrichTAX <- apply(abundTAX, 2, estimateR)
     print(estrichTAX)
     write.csv(estrichTAX, "richness_estimates_genus.csv", row.names=TRUE)
     
-    # 6. Cluster samples and save the dendrogram plot
+    # --- Cluster samples and save the dendrogram plot ---
     pdf("sample_clustering_genus.pdf")
     clusterSamples(soginTAX, taxCol='genus', distmethod='jaccard', clustermethod='complete', collab='Site')
     dev.off()

@@ -35,6 +35,15 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("crisprBase", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     # ==========================================
     # Read the input gene expression/count matrix
     if (!file.exists("counts.csv")) {
@@ -77,7 +86,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     strands <- sample(c("+", "-"), n_genes, replace = TRUE)
     
     # ==========================================
-    # STAGE 2: Define CRISPR Nucleases & Editors
+    # --- Define CRISPR Nucleases & Editors ---
     # ==========================================
     # 1. Define SpCas9 Nuclease (3' PAM)
     SpCas9 <- CrisprNuclease(
@@ -133,7 +142,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: CRISPR Genomic Arithmetic
+    # --- CRISPR Genomic Arithmetic ---
     # ==========================================
     # Calculate genomic ranges for SpCas9
     sp_pam <- getPamRanges(seqnames = chroms, pam_site = pam_sites, strand = strands, nuclease = SpCas9)
@@ -148,7 +157,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     as_cuts <- getCutSiteRanges(seqnames = chroms, pam_site = pam_sites, strand = strands, nuclease = AsCas12a)
     
     # ==========================================
-    # STAGE 4: Target Sequence Parsing
+    # --- Target Sequence Parsing ---
     # ==========================================
     # Generate mock 23-bp target sequences (20bp spacer + 3bp PAM) for SpCas9
     bases <- c("A", "C", "G", "T")
@@ -162,7 +171,7 @@ process BIOC_CRISPRBASE_CRISPR_GRNA_DESIGN_PIPELINE {
     extracted_spacers <- extractProtospacerFromTarget(mock_targets, SpCas9)
     
     # ==========================================
-    # STAGE 5: Compile and Export Results
+    # --- Compile and Export Results ---
     # ==========================================
     # Combine all coordinates and sequences into a comprehensive dataframe
     results_df <- data.frame(
