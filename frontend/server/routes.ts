@@ -5034,6 +5034,11 @@ ${paramLines || '(none recorded)'}`;
     let accumulatedContent = "";
     let workflowMetadata: any = null;
     let persisted = false;
+    // Hoisted so the persistAssistantMessage closure can read it. The
+    // actual resolution happens further down (Q4 ensureDefaultProject
+    // path); until that point this stays undefined and the persistence
+    // path falls back to ctx.projectId or null.
+    let _resolvedProjectId: string | undefined;
 
     const persistAssistantMessage = async (opts: { partial: boolean }): Promise<void> => {
       if (persisted) return;
@@ -5056,17 +5061,27 @@ ${paramLines || '(none recorded)'}`;
       try {
         // UPSERT: ensure session row exists, then merge the assistant message by
         // message_id (replace existing entry with same id, else append).
+        // project_id is set on insert AND backfilled on update if the row
+        // pre-dates Q4 (had a NULL project_id). The COALESCE preserves any
+        // existing non-null value so reassignment via a future UI selector
+        // doesn't get clobbered by the auto-resolved default project.
+        // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+        // Prefer the server-resolved projectId (Q4 ensureDefaultProject)
+        // over a client-sent value, so a buggy client can't dissociate a
+        // session from the project we just resolved for it.
+        const projectIdForUpsert = _resolvedProjectId || ctx.projectId || null;
         await pool.query(
-          `INSERT INTO chat_sessions (session_id, user_id, title, messages)
-             VALUES ($1, $2, 'New Chat', $3::jsonb)
+          `INSERT INTO chat_sessions (session_id, user_id, title, messages, project_id)
+             VALUES ($1, $2, 'New Chat', $3::jsonb, $5)
              ON CONFLICT (session_id) DO UPDATE SET
                messages = (
                  SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
                  FROM jsonb_array_elements(chat_sessions.messages) elem
                  WHERE elem->>'message_id' IS DISTINCT FROM $4
                ),
+               project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
                last_activity = NOW()`,
-          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId]
+          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId, projectIdForUpsert]
         );
         persisted = true;
         console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${opts.partial}, len=${accumulatedContent.length})`);
@@ -5266,7 +5281,9 @@ ${paramLines || '(none recorded)'}`;
       // memory-integration's project-scoped paths (procedures,
       // episodes, project_knowledge) come online without requiring a
       // UI project selector.
-      let _resolvedProjectId: string | undefined = context?.projectId;
+      // _resolvedProjectId is hoisted at the top of this handler (line ~5039)
+      // so persistAssistantMessage can read the resolved value. Just set it.
+      _resolvedProjectId = context?.projectId;
       if (!_resolvedProjectId && req.user) {
         try {
           const { memoryService } = await import('./memory-repository');
