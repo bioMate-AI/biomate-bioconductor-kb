@@ -183,14 +183,12 @@ export class AuthService {
     // Sync to billing service — fire-and-forget; don't block registration
     this.syncUserToBilling(newUser, resolvedCode?.quotaOverrideUsd ?? null);
 
-    // Send email-verification link — fire-and-forget; don't block registration.
-    // Existing unverified users are left as-is (no backfill) per the
-    // 2026-06-10 audit (17 of 17 real signups had email_verified=false
-    // because this call was missing). The verifyEmail() handler at line ~615
-    // already exists; it just needed a trigger.
-    this.sendVerificationEmail(newUser.id).catch((err: any) => {
-      console.warn(`[auth] failed to send verification email to ${newUser.email}: ${err?.message ?? err}`);
-    });
+    // Note: previously this issued a fire-and-forget sendVerificationEmail
+    // here. That moved to the /api/auth/register route handler so the route
+    // can capture the verification token and return it in the response (dev
+    // / no-SMTP environments surface a "click this link to verify"
+    // affordance — without the token, that link rendered as ?token=null and
+    // 404'd into the React error path).
 
     // Provision Galaxy user account synchronously so the JWT we just issued
     // can be used for /api/ai_assistant/* on the very first chat turn. If
@@ -402,15 +400,34 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Check if trial has expired
+    // Trial-expiry policy (2026-06-12): when the 2-week trial has ended
+    // and the user hasn't upgraded, they DROP DOWN TO THE FREE PLAN — they
+    // do NOT get blocked from login. Previously this threw TRIAL_EXPIRED
+    // and the client redirected to /pricing?from=trial-expired, but the
+    // /pricing route is commented out, so the user landed on a 404. Quota
+    // enforcement at the workflow / chat layer is responsible for honoring
+    // the free-tier limits; auth is no longer the gate.
     const now = new Date();
     const trialExpired = user.trialEndsAt && user.trialEndsAt < now && !user.trialUsed;
     const subscriptionActive =
       user.subscriptionStatus === 'active' &&
       (!user.currentPeriodEnd || user.currentPeriodEnd > now);
 
-    if (trialExpired && !subscriptionActive) {
-      throw new Error('TRIAL_EXPIRED');
+    if (trialExpired && !subscriptionActive && user.subscriptionTier === 'trial') {
+      // Demote to free tier so downstream code stops checking trial state
+      // and just enforces free-plan quotas. Idempotent — re-login won't
+      // re-write if the tier already moved.
+      try {
+        await db
+          .update(users)
+          .set({ subscriptionTier: 'free', subscriptionStatus: 'inactive', updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+        user.subscriptionTier = 'free';
+        user.subscriptionStatus = 'inactive';
+        console.log(`[auth] User ${user.email} trial expired → demoted to free plan`);
+      } catch (e: any) {
+        console.warn(`[auth] trial→free demotion failed for ${user.email}:`, e?.message ?? e);
+      }
     }
 
     // Re-attempt Galaxy provisioning if it failed during registration
@@ -588,15 +605,30 @@ export class AuthService {
   }
 
   /**
-   * Send verification email
+   * Send verification email.
+   *
+   * Overloaded return:
+   *   - default: Promise<boolean>  (true if email actually sent)
+   *   - with { returnToken: true }: Promise<string|null>  (token string;
+   *     null only if user already verified)
+   *
+   * Why the overload: in dev / no-SMTP environments, the registration UI
+   * surfaces a "use this link to verify" affordance — and that needs the
+   * raw token. The token is always generated and persisted (line ~611);
+   * the only thing that varies is whether the email transport succeeds.
+   * Returning the token lets the caller surface it to the user when SMTP
+   * isn't configured.
    */
-  async sendVerificationEmail(userId: string): Promise<boolean> {
+  async sendVerificationEmail(userId: string): Promise<boolean>;
+  async sendVerificationEmail(userId: string, opts: { returnToken: true }): Promise<string | null>;
+  async sendVerificationEmail(userId: string, opts?: { returnToken?: boolean }): Promise<boolean | string | null> {
     const user = await this.getUserById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
     if (user.emailVerified) {
+      if (opts?.returnToken) return null;
       throw new Error('Email already verified');
     }
 
@@ -614,7 +646,13 @@ export class AuthService {
       })
       .where(eq(users.id, userId));
 
-    // Send email
+    // Send email — fire-and-forget when caller asked for the token (it's
+    // expected that SMTP may not be wired and the caller will surface the
+    // link). Awaited on the boolean path for backward compatibility.
+    if (opts?.returnToken) {
+      emailService.sendVerificationEmail(user.email, token, user.fullName).catch(() => {});
+      return token;
+    }
     return await emailService.sendVerificationEmail(user.email, token, user.fullName);
   }
 
