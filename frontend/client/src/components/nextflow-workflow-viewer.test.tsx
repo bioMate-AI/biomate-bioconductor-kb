@@ -287,3 +287,82 @@ describe("NextflowWorkflowViewer — horizontal tabs MVP", () => {
     expect(onExecute.mock.calls[0][0]).toEqual(expect.objectContaining({ threads: 4 }));
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Run-button hard gate on requiredUnfilled (audit fix, 2026-06-11)
+// Idle/pending_review runs must NOT submit when any global required param is
+// still empty. Re-runs of completed/failed runs ignore the gate (they re-use
+// prior params, not the current empty inline strip).
+// ─────────────────────────────────────────────────────────────────────────────
+describe("NextflowWorkflowViewer — run-button hard gate", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      addEventListener = vi.fn();
+      removeEventListener = vi.fn();
+      close = vi.fn();
+      constructor(url: string) { this.url = url; }
+    };
+    vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => "",
+    } as Response));
+  });
+
+  const baseGated = {
+    workflowId: "wf-gate-1",
+    workflowDefinition: {
+      id: "wf-gate-1",
+      name: "Gate Test Workflow",
+      steps: { s1: { name: "Step 1", tool_id: "t1" } },
+      // One required global param + one optional with a default.
+      required_params: [
+        { id: "reads_fwd", name: "reads_fwd", required: true, type: "file" },
+      ],
+      optional_params: [
+        { id: "threads", name: "threads", type: "number", default: 4 },
+      ],
+      // Required param NOT yet populated → inline_parameters omits it on purpose.
+      inline_parameters: { threads: 4 },
+    },
+    invocationId: "inv-gate-1",
+    runId: "run-gate-1",
+    onExecute: vi.fn(),
+  };
+
+  it("disables the Run button on idle when a required global param is empty", async () => {
+    render(<NextflowWorkflowViewer {...(baseGated as any)} status="idle" />);
+    const btn = await screen.findByTestId("button-run-workflow-panel");
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("data-required-unfilled", "1");
+    expect(btn).toHaveAttribute("title", expect.stringMatching(/Fill in 1 required parameter/i));
+  });
+
+  it("ENables the Run button once the required param is filled", async () => {
+    const filled = {
+      ...baseGated,
+      workflowDefinition: {
+        ...baseGated.workflowDefinition,
+        inline_parameters: { threads: 4, reads_fwd: "/data/sample.fastq" },
+      },
+    };
+    render(<NextflowWorkflowViewer {...(filled as any)} status="idle" />);
+    const btn = await screen.findByTestId("button-run-workflow-panel");
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveAttribute("data-required-unfilled", "0");
+  });
+
+  it("does not gate re-runs on completed (uses the prior run's params)", async () => {
+    // Even with the required field empty in the inline strip, a completed run
+    // should still allow Run-again (it re-submits the params from the previous run).
+    render(<NextflowWorkflowViewer {...(baseGated as any)} status="completed" />);
+    // On completed, the primary CTA is in the action bar (Run again), not the
+    // sticky footer button. Verify the action-bar Run-again is enabled.
+    await waitFor(() => expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument());
+    expect(screen.getByTestId("panel-run-again-cta")).not.toBeDisabled();
+  });
+});
