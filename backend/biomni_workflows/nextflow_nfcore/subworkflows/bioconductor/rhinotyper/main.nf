@@ -68,17 +68,17 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT {
       stop(paste("Required input file missing:", curated_aln_file))
     }
     
-    # 1. Export prototype sequences to the current working directory
+    # --- Export prototype sequences to the current working ---
     getPrototypeSeqs(".")
     
-    # 2. Import the externally aligned and curated FASTA file
+    # --- Import the externally aligned and curated FASTA file ---
     aln_curated <- Biostrings::readDNAStringSet(curated_aln_file)
     
-    # 3. Assign genotypes
+    # --- Assign genotypes ---
     res <- assignTypes(aln_curated, model = "IUPAC", deleteGapsGlobally = FALSE, threshold = 0.105)
     write.csv(res, "genotype_assignments.csv", row.names = FALSE)
     
-    # 4. Plot genotype frequencies
+    # --- Plot genotype frequencies ---
     pdf("genotype_frequency_plot.pdf", width = 8, height = 6)
     plotFrequency(res)
     dev.off()
@@ -86,7 +86,7 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT {
     # Load the unaligned user sequences into the variable name used in the documentation
     rhinovirusVP4 <- Biostrings::readDNAStringSet(user_seqs_file)
     
-    # 5. Compute pairwise distances
+    # --- Compute pairwise distances ---
     d <- pairwiseDistances(
       fastaData = rhinovirusVP4,
       model = "IUPAC",
@@ -95,11 +95,11 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT {
     saveRDS(d, "pairwise_distances.rds")
     write.csv(as.matrix(d), "pairwise_distances.csv")
     
-    # 6. Compute overall mean distance
+    # --- Compute overall mean distance ---
     mean_dist <- overallMeanDistance(rhinovirusVP4, model = "IUPAC")
     writeLines(as.character(mean_dist), "overall_mean_distance.txt")
     
-    # 7. Plot distance heatmap and tree
+    # --- Plot distance heatmap and tree ---
     pdf("distance_heatmap.pdf", width = 10, height = 8)
     plotDistances(d)  
     dev.off()
@@ -113,7 +113,7 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT {
              main = "A simple tree", xlab = "", ylab = "Genetic distance")
     dev.off()
     
-    # 8. Visualize SNPs
+    # --- Visualize SNPs ---
     pdf("snpeek_plot.pdf", width = 12, height = 8)
     SNPeek(rhinovirusVP4)
     dev.off()

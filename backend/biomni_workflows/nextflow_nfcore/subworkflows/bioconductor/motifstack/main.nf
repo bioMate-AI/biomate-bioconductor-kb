@@ -56,7 +56,7 @@ process BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO {
     library(motifStack)
     library(grid)
     
-    # 1. Import matrix from the user-provided file
+    # --- Import matrix from the user-provided file ---
     # The user input file "motif_matrix.txt" is expected to be in the working directory.
     pcm <- read.table("motif_matrix.txt")
     
@@ -69,7 +69,7 @@ process BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO {
     # Save the processed PCM matrix to a CSV file
     write.csv(pcm, "processed_pcm.csv", row.names = TRUE)
     
-    # 2. Convert/create S4 object
+    # --- Convert/create S4 object ---
     motif <- new("pcm", mat=as.matrix(pcm), name="bin_SOLEXA")
     
     # Open PDF device to save all generated plots
@@ -85,7 +85,7 @@ process BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO {
     motif@color <- colorset(colorScheme='basepairing')
     plot(motif, font="serif")
     
-    # 3. Define markers
+    # --- Define markers ---
     markerRect <- new("marker", type="rect", start=6, stop=7, gp=gpar(lty=2, fill=NA, col="orange"))
     markerLine <- new("marker", type="line", start=2, stop=7, gp=gpar(lwd=2, col="red"))
     markerText <- new("marker", type="text", start=c(1, 5), label=c("*", "core"), gp=gpar(cex=2, col="red"))
@@ -99,7 +99,7 @@ process BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO {
     # Change the x-axis labels
     plot(motif, xaxis=paste0("pos", seq.int(7)+10))
     
-    # 4. Plot an RNA sequence logo
+    # --- Plot an RNA sequence logo ---
     rna <- pcm
     rownames(rna)[4] <- "U"
     motif_rna <- new("pcm", mat=as.matrix(rna), name="RNA_motif")

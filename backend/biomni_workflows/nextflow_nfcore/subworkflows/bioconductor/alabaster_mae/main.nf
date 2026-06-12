@@ -35,6 +35,15 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MultiAssayExperiment", "S4Vectors", "alabaster.base", "alabaster.mae")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
     library(alabaster.base)
     library(alabaster.mae)
     
-    # Stage 1: Read and parse the input file defensively
+    # --- Read and parse the input file defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
         stop(paste("Required input file missing:", input_file))
@@ -83,7 +92,7 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
     class(mat) <- "numeric"
     mat[is.na(mat)] <- 0  # Handle missing values defensively
     
-    # Stage 2: Construct a MultiAssayExperiment
+    # --- Construct a MultiAssayExperiment ---
     # To demonstrate a true multi-omic representation, we split the input matrix into two simulated assays
     n_features <- nrow(mat)
     if (n_features >= 2) {
@@ -114,7 +123,7 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
         colData = col_data
     )
     
-    # Stage 3: Serialize the MultiAssayExperiment using alabaster
+    # --- Serialize the MultiAssayExperiment using alabaster ---
     save_dir <- "mae_serialized"
     if (dir.exists(save_dir)) {
         unlink(save_dir, recursive = TRUE)
@@ -123,11 +132,11 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
     message("Saving MultiAssayExperiment to disk...")
     alabaster.base::saveObject(mae, save_dir)
     
-    # Stage 4: Load the MultiAssayExperiment back
+    # --- Load the MultiAssayExperiment back ---
     message("Loading MultiAssayExperiment back from disk...")
     mae_loaded <- alabaster.base::readObject(save_dir)
     
-    # Stage 5: Validation and Diagnostics
+    # --- Validation and Diagnostics ---
     # Write verification summary
     sink("mae_summary.txt")
     cat("========================================================\n")

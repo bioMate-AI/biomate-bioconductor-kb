@@ -36,6 +36,15 @@ process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("alabaster.base", "alabaster.matrix", "Matrix", "DelayedArray")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,7 @@ process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
           }
         }
     
-    # Stage 1: Load required libraries and read input defensively
+    # --- Load required libraries and read input defensively ---
     library(alabaster.base)
     library(alabaster.matrix)
     library(Matrix)
@@ -77,13 +86,13 @@ process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
     
     message(sprintf("Successfully loaded matrix with %d features and %d samples.", nrow(mat), ncol(mat)))
     
-    # Stage 2: Convert to different matrix representations
+    # --- Convert to different matrix representations ---
     # alabaster.matrix supports standard R matrices, sparse matrices, and DelayedMatrices
     dense_mat <- mat
     sparse_mat <- as(mat, "CsparseMatrix") # dgCMatrix representation
     delayed_mat <- DelayedArray(mat)
     
-    # Stage 3: Serialize matrices to disk using alabaster.base / alabaster.matrix
+    # --- Serialize matrices to disk using alabaster.base / ---
     # We create temporary directories to store the serialized artifacts
     stage_dir_dense <- tempfile("stage_dense")
     stage_dir_sparse <- tempfile("stage_sparse")
@@ -94,7 +103,7 @@ process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
     message("Saving sparse matrix to: ", stage_dir_sparse)
     alabaster.base::saveObject(sparse_mat, stage_dir_sparse)
     
-    # Stage 4: Deserialize matrices back to verify round-trip fidelity
+    # --- Deserialize matrices back to verify round-trip fidelity ---
     message("Reading objects back from disk...")
     roundtrip_dense <- alabaster.base::readObject(stage_dir_dense)
     roundtrip_sparse <- alabaster.base::readObject(stage_dir_sparse)
@@ -104,7 +113,7 @@ process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
     stopifnot(all.equal(as.matrix(roundtrip_sparse), mat, check.attributes = FALSE))
     message("Fidelity check passed: Round-tripped matrices are identical to the original input.")
     
-    # Stage 5: Downstream Analysis (PCA) on the restored matrix
+    # --- Downstream Analysis (PCA) on the restored matrix ---
     # We perform PCA on the restored dense matrix representation
     pca_coords <- tryCatch({
       # Filter out zero-variance features to avoid PCA errors
@@ -139,7 +148,7 @@ process BIOC_ALABASTER_MATRIX_ALABASTER_MATRIX_ROUNDTRIP_PCA {
     pca_coords\$sample_id <- rownames(pca_coords)
     pca_coords <- pca_coords[, c("sample_id", "PC1", "PC2")]
     
-    # Stage 6: Write outputs to the working directory
+    # --- Write outputs to the working directory ---
     write.csv(pca_coords, "pca_results.csv", row.names = FALSE)
     message("Saved PCA results to pca_results.csv")
     

@@ -63,7 +63,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     
     BiocParallel::register(BiocParallel::SerialParam())
     
-    # 1. Call peaks for each sample using findPeaks or load pre-computed GRangesList
+    # --- Call peaks for each sample using findPeaks or load ---
     if (file.exists("peaksGRL_all_files.rds")) {
         message("Loading pre-computed peaksGRL_all_files.rds...")
         peaksGRL <- readRDS("peaksGRL_all_files.rds")
@@ -89,13 +89,13 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
         saveRDS(peaksGRL, "peaksGRL_all_files.rds")
     }
     
-    # 2. Align overlapping peaks across replicates to produce consensus regions
+    # --- Align overlapping peaks across replicates to produce ---
     regionsGR <- DEScan2::finalRegions(peakSamplesGRangesList=peaksGRL, zThreshold=10,
                     minCarriers=3, saveFlag=FALSE, outputFolder=NULL, verbose=FALSE)
     
     saveRDS(regionsGR, "regionsGR.rds")
     
-    # 3. Count reads in the final consensus regions
+    # --- Count reads in the final consensus regions ---
     bam.path <- "."
     finalRegions <- DEScan2::countFinalRegions(regionsGRanges=regionsGR, 
                         readsFilePath=bam.path, fileType="bam", minCarriers=1,
@@ -105,7 +105,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     counts <- SummarizedExperiment::assay(finalRegions)
     regions <- SummarizedExperiment::rowRanges(finalRegions)
     
-    # 4. Filter and format the count matrix
+    # --- Filter and format the count matrix ---
     counts <- counts[regions\$`k-carriers` >= 4, ]
     counts <- counts[rowSums(counts) > 0, ]
     
@@ -130,7 +130,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     
     write.csv(counts, "counts_matrix.csv", row.names=TRUE)
     
-    # 5. Perform between-sample normalization using EDASeq and RUVSeq
+    # --- Perform between-sample normalization using EDASeq and ---
     colors <- brewer.pal(3, "Set2")
     set <- EDASeq::betweenLaneNormalization(counts, which = "upper")
     
@@ -156,7 +156,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     
     dev.off()
     
-    # 6. Test for differential enrichment using edgeR negative binomial quasi-likelihood GLM
+    # --- Test for differential enrichment using edgeR negative ---
     design <- model.matrix(~0 + trt + s\$W)
     colnames(design) <- c(levels(trt), paste0("W", 1:k))
     

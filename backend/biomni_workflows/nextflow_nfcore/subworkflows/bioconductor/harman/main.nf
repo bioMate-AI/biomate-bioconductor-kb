@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run harman to find and correct batch effects. 2. Inspect results using plot, arrowPlot, and summary. 3. Reconstruct the corrected 
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Run Harman to find and correct batch effects
+//  * 3. [Visualization & Output] Inspect results and save outputs
+//  * 4. [Visualization & Output] Reconstruct the corrected data matrix
+//  * 5. [Visualization & Output] Reconstruct original data and verify reconstruction
 
 nextflow.enable.dsl = 2
 
@@ -80,7 +84,7 @@ process BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY {
       stop(paste("Failed to parse file:", file_path))
     }
     
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     olf.data <- read_input("olf.data")
     olf.info <- read_input("olf.info")
     
@@ -89,10 +93,10 @@ process BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY {
     olf.info\$Treatment <- as.factor(olf.info\$Treatment)
     olf.info\$Batch <- as.factor(olf.info\$Batch)
     
-    # 2. Run Harman to find and correct batch effects
+    # --- Run Harman to find and correct batch effects ---
     olf.harman <- harman(olf.data, expt=olf.info\$Treatment, batch=olf.info\$Batch, limit=0.95)
     
-    # 3. Inspect results and save outputs
+    # --- Inspect results and save outputs ---
     # Save diagnostic plots to PDF
     pdf("harman_diagnostics.pdf", width = 7, height = 7)
     plot(olf.harman)
@@ -107,14 +111,14 @@ process BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY {
     # Save the harmanresults object
     saveRDS(olf.harman, "olf_harman_results.rds")
     
-    # 4. Reconstruct the corrected data matrix
+    # --- Reconstruct the corrected data matrix ---
     olf.data.corrected <- reconstructData(olf.harman)
     
     # Save corrected data matrix
     write.csv(olf.data.corrected, "olf_data_corrected.csv", row.names = TRUE)
     saveRDS(olf.data.corrected, "olf_data_corrected.rds")
     
-    # 5. Reconstruct original data and verify reconstruction integrity
+    # --- Reconstruct original data and verify reconstruction ---
     olf.data.remade <- reconstructData(olf.harman, this='original')
     verification <- all.equal(as.matrix(olf.data), olf.data.remade)
     

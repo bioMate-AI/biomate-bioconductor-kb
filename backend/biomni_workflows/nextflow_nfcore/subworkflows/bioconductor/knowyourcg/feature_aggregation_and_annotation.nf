@@ -58,7 +58,7 @@ process BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION {
     library(SummarizedExperiment)
     
     # -------------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # -------------------------------------------------------------------------
     
     # Read betas matrix
@@ -94,7 +94,7 @@ process BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION {
     query <- as.character(query)
     
     # -------------------------------------------------------------------------
-    # 2. Feature Aggregation (dbStats)
+    # --- Feature Aggregation (dbStats) ---
     # -------------------------------------------------------------------------
     # Calculate summary statistics (e.g., mean) across database sets
     stats <- dbStats(betas, 'MM285.chromHMM')
@@ -104,7 +104,7 @@ process BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION {
     saveRDS(stats, "db_stats.rds")
     
     # -------------------------------------------------------------------------
-    # 3. Feature Annotation (annoProbes)
+    # --- Feature Annotation (annoProbes) ---
     # -------------------------------------------------------------------------
     # Annotate the arbitrary probe set
     anno <- annoProbes(query, "designGroup", silent = TRUE)
@@ -115,7 +115,7 @@ process BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION {
     saveRDS(anno, "probe_annotations.rds")
     
     # -------------------------------------------------------------------------
-    # 4. Visualization (Optional Heatmap of dbStats)
+    # --- Visualization (Optional Heatmap of dbStats) ---
     # -------------------------------------------------------------------------
     pdf("db_stats_heatmap.pdf", width = 10, height = 8)
     tryCatch({

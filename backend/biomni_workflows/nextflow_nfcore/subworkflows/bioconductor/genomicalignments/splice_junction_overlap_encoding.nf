@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load paired-end alignments from a BAM file using readGAlignmentPairs. 2. Filter for proper alignment pairs using isProperPair. 3. 
+//  * 1. [Input & Preparation] Load paired-end alignments from a BAM file using
+//  * 2. [Input & Preparation] Filter for proper alignment pairs using isProperPair
+//  * 3. [Input & Preparation] Extract exons grouped by transcript from the transcript
+//  * 4. [Input & Preparation] Find overlaps between alignments and transcripts using
+//  * 5. [Input & Preparation] Generate overlap encodings using encodeOverlaps
+//  * 6. [Input & Preparation] Identify and extract splice-compatible overlaps
 
 nextflow.enable.dsl = 2
 
@@ -63,26 +68,26 @@ process BIOC_GENOMICALIGNMENTS_SPLICE_JUNCTION_OVERLAP_ENCODING {
     # Define input files (expected in the working directory)
     bam_file <- "untreated3_chr4.bam"
     
-    # 1. Load paired-end alignments from a BAM file using readGAlignmentPairs
+    # --- Load paired-end alignments from a BAM file using ---
     flag0 <- scanBamFlag(isDuplicate=FALSE, isNotPassingQualityControls=FALSE)
     param0 <- ScanBamParam(flag=flag0)
     U3.galp <- readGAlignmentPairs(bam_file, use.names=TRUE, param=param0)
     
-    # 2. Filter for proper alignment pairs using isProperPair
+    # --- Filter for proper alignment pairs using isProperPair ---
     U3.GALP <- U3.galp[isProperPair(U3.galp)]
     
-    # 3. Extract exons grouped by transcript from the transcript database
+    # --- Extract exons grouped by transcript from the transcript ---
     txdb <- TxDb.Dmelanogaster.UCSC.dm3.ensGene
     exbytx <- exonsBy(txdb, by="tx", use.names=TRUE)
     
-    # 4. Find overlaps between alignments and transcripts using findOverlaps
+    # --- Find overlaps between alignments and transcripts using ---
     U3.OV00 <- findOverlaps(U3.GALP, exbytx, ignore.strand=TRUE)
     
-    # 5. Generate overlap encodings using encodeOverlaps
+    # --- Generate overlap encodings using encodeOverlaps ---
     U3.grl <- grglist(U3.GALP)
     U3.ovenc <- encodeOverlaps(U3.grl, exbytx, hits=U3.OV00, flip.query.if.wrong.strand=TRUE)
     
-    # 6. Identify and extract splice-compatible overlaps
+    # --- Identify and extract splice-compatible overlaps ---
     U3.unique_encodings <- levels(U3.ovenc)
     U3.ovenc_table <- table(encoding(U3.ovenc))
     compatible_encodings <- sort(U3.ovenc_table[isCompatibleWithSplicing(U3.unique_encodings)])

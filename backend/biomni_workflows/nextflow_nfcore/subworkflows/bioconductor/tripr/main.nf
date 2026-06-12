@@ -57,7 +57,7 @@ process BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE {
     library(fs)
     library(tools)
     
-    # 1. Define input and output paths using fs and tools packages
+    # --- Define input and output paths using fs and tools packages ---
     # tripr expects each sample to have its own folder inside a root directory.
     # We create a temporary root directory and a sample subdirectory to structure the user's files.
     root_dir <- fs::path(getwd(), "tripr_input")
@@ -91,7 +91,7 @@ process BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE {
       fs::dir_create(output_path, recurse = TRUE)
     }
     
-    # 2. Set pipeline parameters including cell type, throughput, preselection/selection filters, and clonotype definition
+    # --- Set pipeline parameters including cell type, throughput, ---
     cell <- "Bcell"
     preselection <- "1,2,3,4C:W"
     selection <- "5"
@@ -106,7 +106,7 @@ process BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE {
     pipeline <- "1"
     select_clonotype <- "V Gene + CDR3 Amino Acids"
     
-    # 3. Execute the complete analysis pipeline using run_TRIP()
+    # --- Execute the complete analysis pipeline using run_TRIP() ---
     run_TRIP(
       datapath = datapath,
       output_path = output_path,
@@ -120,7 +120,7 @@ process BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE {
       select_clonotype = select_clonotype
     )
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Locate the generated outputs in the output_path and copy them to a structured directory in the working directory
     output_dest_dir <- fs::path(getwd(), "pipeline_results")
     if (fs::dir_exists(output_dest_dir)) {

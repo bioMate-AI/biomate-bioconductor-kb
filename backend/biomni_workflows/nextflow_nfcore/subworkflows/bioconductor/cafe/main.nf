@@ -52,7 +52,7 @@ process BIOC_CAFE_AFFY_CEL_ANALYSIS {
       }
     }
     
-    # 1. Load the CAFE library and set the working directory containing the CEL files.
+    # --- Load the CAFE library and set the working directory ---
     library(CAFE)
     library(ggplot2)
     
@@ -68,7 +68,7 @@ process BIOC_CAFE_AFFY_CEL_ANALYSIS {
     
     message("Found ", length(cel_files), " CEL files. Processing...")
     
-    # 2. Process raw CEL files to normalize, log2-transform, and filter probes.
+    # --- Process raw CEL files to normalize, log2-transform, and ---
     datalist <- ProcessCels()
     
     # Save the processed data list as an RDS object for reproducibility
@@ -93,7 +93,7 @@ process BIOC_CAFE_AFFY_CEL_ANALYSIS {
       plot_sam <- seq_len(n_samples)
     }
     
-    # 3. Perform chromosome-level statistical testing for gains or losses.
+    # --- Perform chromosome-level statistical testing for gains or ---
     message("Performing chromosome-level statistical testing...")
     
     tryCatch({
@@ -117,7 +117,7 @@ process BIOC_CAFE_AFFY_CEL_ANALYSIS {
       message("Warning: chromosomeStats for ALL chromosomes failed: ", e\$message)
     })
     
-    # 4. Perform cytoband-level statistical testing to identify specific aberrant bands.
+    # --- Perform cytoband-level statistical testing to identify ---
     message("Performing cytoband-level statistical testing...")
     tryCatch({
       stat_band17_fisher <- bandStats(datalist, chromNum=17, samples=sam, test="fisher", bonferroni=TRUE, enrichment="greater")
@@ -126,7 +126,7 @@ process BIOC_CAFE_AFFY_CEL_ANALYSIS {
       message("Warning: bandStats for Chr17 failed: ", e\$message)
     })
     
-    # 5. Generate raw, sliding average, discontinuous (Potts filter), and genome-wide facet plots.
+    # --- Generate raw, sliding average, discontinuous (Potts ---
     message("Generating visualization plots...")
     pdf("cafe_visualization_plots.pdf", width = 11, height = 8.5)
     

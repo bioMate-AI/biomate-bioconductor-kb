@@ -35,6 +35,15 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GmicR", "WGCNA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     allowWGCNAThreads()
     
     # ==========================================
-    # Stage 1: Load and Preprocess Expression Data
+    # --- Load and Preprocess Expression Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing expression data...")
     
@@ -87,7 +96,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Gene Module Detection (WGCNA)
+    # --- Gene Module Detection (WGCNA) ---
     # ==========================================
     message("Stage 2: Running WGCNA module detection...")
     
@@ -122,7 +131,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 3: Module Annotation & Query Prep
+    # --- Module Annotation & Query Prep ---
     # ==========================================
     message("Stage 3: Annotating modules and preparing queries...")
     
@@ -160,7 +169,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     })
     
     # ==========================================
-    # Stage 4: xCell Signatures Integration & Discretization
+    # --- xCell Signatures Integration & Discretization ---
     # ==========================================
     message("Stage 4: Integrating cell signatures and discretizing data...")
     
@@ -185,7 +194,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     )
     
     # ==========================================
-    # Stage 5: Bayesian Network Learning & Inverse Arcs
+    # --- Bayesian Network Learning & Inverse Arcs ---
     # ==========================================
     message("Stage 5: Learning Bayesian network and detecting inverse relationships...")
     
@@ -206,7 +215,7 @@ process BIOC_GMICR_GMICR_BN_PIPELINE {
     GMIC_Final <- InverseARCs(GMIC_net, threshold = -0.3)
     
     # ==========================================
-    # Stage 6: Exporting Outputs
+    # --- Exporting Outputs ---
     # ==========================================
     message("Stage 6: Exporting final outputs...")
     

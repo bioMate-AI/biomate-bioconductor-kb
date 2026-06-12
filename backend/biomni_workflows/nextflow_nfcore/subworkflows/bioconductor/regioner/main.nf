@@ -58,21 +58,21 @@ process BIOC_REGIONER_OVERLAP_PERMUTATION_TEST {
     # Set seed for reproducibility
     set.seed(12345)
     
-    # 1. Load region sets using toGRanges from local files
+    # --- Load region sets using toGRanges from local files ---
     cpgHMM <- toGRanges("cpgHMM.txt")
     promoters <- toGRanges("UCSC.promoters.hg19.bed")
     
-    # 2. Filter out non-canonical chromosomes using filterChromosomes
+    # --- Filter out non-canonical chromosomes using ---
     cpgHMM <- filterChromosomes(cpgHMM, organism="hg", chr.type="canonical")
     promoters <- filterChromosomes(promoters, organism="hg", chr.type="canonical")
     
-    # 3. Subset regions to speed up analysis
+    # --- Subset regions to speed up analysis ---
     cpgHMM_2K <- sample(cpgHMM, 2000)
     
-    # 4. Run the permutation test using overlapPermTest
+    # --- Run the permutation test using overlapPermTest ---
     pt <- overlapPermTest(cpgHMM_2K, promoters, ntimes=1000, genome="hg19", count.once=TRUE)
     
-    # 5. Plot the permutation test results and save to PDF
+    # --- Plot the permutation test results and save to PDF ---
     pdf("overlap_permutation_test_plot.pdf", width = 8, height = 6)
     plot(pt)
     dev.off()

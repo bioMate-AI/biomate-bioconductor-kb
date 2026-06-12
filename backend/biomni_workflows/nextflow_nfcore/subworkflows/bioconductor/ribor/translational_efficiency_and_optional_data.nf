@@ -63,17 +63,17 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA {
       stop(paste("Required input file '", file.path, "' not found in the working directory.", sep=""))
     }
     
-    # 1. Initialize the Ribo class object
+    # --- Initialize the Ribo class object ---
     original.ribo <- Ribo(file.path, rename = rename_default)
     
-    # 2. Check for optional data fields (coverage, RNA-Seq, metadata) using get_info()
+    # --- Check for optional data fields (coverage, RNA-Seq, ---
     experiment.info <- get_info(ribo.object = original.ribo)[['experiment.info']]
     write.csv(experiment.info, "experiment_info.csv", row.names = FALSE)
     
     has.metadata <- experiment.info[experiment.info\$metadata == TRUE, "experiment"]
     experiment <- has.metadata[1]
     
-    # 3. Retrieve metadata using get_metadata()
+    # --- Retrieve metadata using get_metadata() ---
     # Print to console as documented
     get_metadata(ribo.object = original.ribo,
                  name        = experiment,
@@ -87,7 +87,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA {
     )
     writeLines(metadata_content, "experiment_metadata.txt")
     
-    # 4. Extract nucleotide-level coverage for specific transcripts using get_coverage()
+    # --- Extract nucleotide-level coverage for specific ---
     has.coverage <- experiment.info[experiment.info\$coverage == TRUE, "experiment"]
     cov <- get_coverage(ribo.object = original.ribo,
                         name        = "MYC-206",
@@ -102,7 +102,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA {
     saveRDS(cov, "MYC-206_coverage.rds")
     write.csv(as.data.frame(cov), "MYC-206_coverage.csv", row.names = FALSE)
     
-    # 5. Extract RNA-Seq region counts using get_rnaseq()
+    # --- Extract RNA-Seq region counts using get_rnaseq() ---
     has.rnaseq <- experiment.info[experiment.info\$rna.seq == TRUE, "experiment"]
     rnaseq <- get_rnaseq(ribo.object = original.ribo,
                          tidy        = FALSE,
@@ -113,7 +113,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA {
     saveRDS(rnaseq, "rnaseq_all_regions.rds")
     write.csv(as.data.frame(rnaseq), "rnaseq_all_regions.csv", row.names = FALSE)
     
-    # 6. Calculate translational efficiency by dividing ribosome profiling CDS counts by RNA-Seq CDS counts
+    # --- Calculate translational efficiency by dividing ribosome ---
     rnaseq_CDS <- get_rnaseq(ribo.object = original.ribo,
                              tidy        = TRUE,
                              alias       = TRUE,

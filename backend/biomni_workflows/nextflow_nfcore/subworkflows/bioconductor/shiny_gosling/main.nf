@@ -34,6 +34,15 @@ process BIOC_SHINY_GOSLING_GOSLING_GENOMIC_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("shiny.gosling", "htmlwidgets")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,11 +52,11 @@ process BIOC_SHINY_GOSLING_GOSLING_GENOMIC_VISUALIZATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(shiny.gosling)
     library(htmlwidgets)
     
-    # Stage 2: Read and parse input data defensively
+    # --- Read and parse input data defensively ---
     if (!file.exists("input.csv")) {
       stop("Error: input.csv not found in the working directory.")
     }
@@ -112,7 +121,7 @@ process BIOC_SHINY_GOSLING_GOSLING_GENOMIC_VISUALIZATION {
     write.csv(long_df, "processed_data.csv", row.names = FALSE)
     message("Processed data written to processed_data.csv")
     
-    # Stage 3: Generate summary statistics
+    # --- Generate summary statistics ---
     message("Generating visualization summary...")
     summary_df <- aggregate(value ~ sample + chrom, data = long_df, FUN = function(x) {
       c(mean = mean(x, na.rm = TRUE), 
@@ -125,7 +134,7 @@ process BIOC_SHINY_GOSLING_GOSLING_GENOMIC_VISUALIZATION {
     write.csv(summary_df, "visualization_summary.csv", row.names = FALSE)
     message("Summary statistics written to visualization_summary.csv")
     
-    # Stage 4: Build Gosling Visualization Spec
+    # --- Build Gosling Visualization Spec ---
     message("Building Gosling visualization specification...")
     
     # Define the data source track
@@ -167,7 +176,7 @@ process BIOC_SHINY_GOSLING_GOSLING_GENOMIC_VISUALIZATION {
     # Compile the spec into a Gosling htmlwidget
     widget <- gosling(gos_view)
     
-    # Stage 5: Save the interactive widget
+    # --- Save the interactive widget ---
     message("Saving interactive Gosling plot...")
     tryCatch({
       htmlwidgets::saveWidget(widget, "gosling_plot.html", selfcontained = TRUE)

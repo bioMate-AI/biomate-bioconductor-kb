@@ -57,7 +57,7 @@ process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
     library(SpatialExperiment)
     library(ggplot2)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     meMerscope_file <- if (file.exists("meMerscope.rds")) "meMerscope.rds" else "meMerscope"
     me_file <- if (file.exists("me.rds")) "me.rds" else "me"
     
@@ -71,16 +71,16 @@ process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
     meMerscope <- readRDS(meMerscope_file)
     me <- readRDS(me_file)
     
-    # 2. Define the spatial coordinates for subsetting
+    # --- Define the spatial coordinates for subsetting ---
     new_extent = extent(meMerscope, "detected") - c(0, 100, 0, 0)
     
-    # 3. Subset the MoleculeExperiment object using subset_by_extent
+    # --- Subset the MoleculeExperiment object using ---
     me_sub = subset_by_extent(meMerscope, new_extent)
     
-    # 4. Aggregate the molecule-level transcripts into cell-level counts using countMolecules
+    # --- Aggregate the molecule-level transcripts into cell-level ---
     spe <- countMolecules(me, boundariesAssay = "nucleus")
     
-    # 5. Save meaningful results
+    # --- Save meaningful results ---
     # Save the subsetted MoleculeExperiment object
     saveRDS(me_sub, "me_subset.rds")
     

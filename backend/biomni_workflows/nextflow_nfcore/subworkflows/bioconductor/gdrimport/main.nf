@@ -65,15 +65,15 @@ process BIOC_GDRIMPORT_MAE_TO_PHARMACOSET {
       stop(paste("Required input file not found:", input_file))
     }
     
-    # Stage 1: Load the MAE object using qs2::qs_read
+    # --- Load the MAE object using qs2::qs_read ---
     message("Loading MultiAssayExperiment object...")
     mae <- qs2::qs_read(input_file)
     
-    # Stage 2: Convert the MAE object into a PharmacoSet object
+    # --- Convert the MAE object into a PharmacoSet object ---
     message("Converting MAE to PharmacoSet...")
     pset <- convert_MAE_to_PSet(mae, pset_name = "Kyung2022")
     
-    # Stage 3: Extract the TreatmentResponseExperiment
+    # --- Extract the TreatmentResponseExperiment ---
     message("Extracting TreatmentResponseExperiment...")
     tre <- treatmentResponse(pset)
     

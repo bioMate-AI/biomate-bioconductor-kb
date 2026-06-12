@@ -57,7 +57,7 @@ process BIOC_BEADDATAPACKR_BEADDATAPACKR_COMPRESSION_PIPELINE {
     library(BeadDataPackR)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Read User Input and Prepare Mock Illumina BeadArray Files
+    # --- Read User Input and Prepare Mock Illumina BeadArray Files ---
     # ----------------------------------------------------------------------
     message("Stage 1: Reading user input and preparing mock BeadArray files...")
     
@@ -142,7 +142,7 @@ process BIOC_BEADDATAPACKR_BEADDATAPACKR_COMPRESSION_PIPELINE {
     message(sprintf("Successfully prepared mock files with %d decoded probes and %d total beads.", N, M))
     
     # ----------------------------------------------------------------------
-    # Stage 2: Compress Bead Data
+    # --- Compress Bead Data ---
     # ----------------------------------------------------------------------
     message("Stage 2: Compressing raw BeadArray files...")
     
@@ -164,7 +164,7 @@ process BIOC_BEADDATAPACKR_BEADDATAPACKR_COMPRESSION_PIPELINE {
     message(sprintf("Compression complete. Ratio: %.2fx", compression_ratio))
     
     # ----------------------------------------------------------------------
-    # Stage 3: Decompress Bead Data
+    # --- Decompress Bead Data ---
     # ----------------------------------------------------------------------
     message("Stage 3: Decompressing .bab file...")
     
@@ -188,7 +188,7 @@ process BIOC_BEADDATAPACKR_BEADDATAPACKR_COMPRESSION_PIPELINE {
     }
     
     # ----------------------------------------------------------------------
-    # Stage 4: Direct Data Extraction and Analysis
+    # --- Direct Data Extraction and Analysis ---
     # ----------------------------------------------------------------------
     message("Stage 4: Extracting data directly from compressed .bab file...")
     
@@ -209,7 +209,7 @@ process BIOC_BEADDATAPACKR_BEADDATAPACKR_COMPRESSION_PIPELINE {
     write.csv(extracted_locs, "extracted_locs.csv", row.names = FALSE)
     
     # ----------------------------------------------------------------------
-    # Stage 5: Visualization and Summary Reporting
+    # --- Visualization and Summary Reporting ---
     # ----------------------------------------------------------------------
     message("Stage 5: Generating diagnostic plots and summary report...")
     

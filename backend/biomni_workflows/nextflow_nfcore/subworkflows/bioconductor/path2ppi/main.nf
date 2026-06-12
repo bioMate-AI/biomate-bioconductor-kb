@@ -35,6 +35,15 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Path2PPI")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
           }
         }
     
-    # Stage 1: Load libraries and read input files
+    # --- Load libraries and read input files ---
     library(Path2PPI)
     
     intensity <- read.csv("intensity.csv", stringsAsFactors = FALSE)
@@ -62,7 +71,7 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
       target_prots <- unique(c(target_prots, paste0("PROT_", 1:5)))
     }
     
-    # Stage 2: Generate mock reference data based on target proteins
+    # --- Generate mock reference data based on target proteins ---
     # Human Reference
     human_prots <- paste0("HP_", seq_along(target_prots))
     names(human_prots) <- paste0("H_trivial_", seq_along(target_prots))
@@ -150,7 +159,7 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
       stringsAsFactors = FALSE
     )
     
-    # Stage 3: Initialize Path2PPI and add reference species
+    # --- Initialize Path2PPI and add reference species ---
     ppi <- Path2PPI("Target Pathway Prediction", "Target Species", "9999")
     ppi <- addReference(ppi, "Homo sapiens", "9606", human_prots, human_irefindex, pa2human_homologs)
     ppi <- addReference(ppi, "Saccharomyces cerevisiae", "559292", yeast_prots, yeast_irefindex, pa2yeast_homologs)
@@ -158,10 +167,10 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
     # Print reference summary to console
     showReferences(ppi)
     
-    # Stage 4: Predict PPI network in target species
+    # --- Predict PPI network in target species ---
     ppi <- predictPPI(ppi, h.range = c(1e-60, 1e-20))
     
-    # Stage 5: Extract predicted networks
+    # --- Extract predicted networks ---
     predicted_ppi <- getPPI(ppi)
     hybrid_net <- getHybridNetwork(ppi)
     
@@ -169,7 +178,7 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
     write.csv(predicted_ppi, "predicted_ppi.csv", row.names = FALSE)
     write.csv(hybrid_net, "hybrid_network.csv", row.names = FALSE)
     
-    # Stage 6: Query detailed interaction information
+    # --- Query detailed interaction information ---
     if (nrow(predicted_ppi) > 0) {
       inter <- c(predicted_ppi\$source.id[1], predicted_ppi\$target.id[1])
       detailed_info <- showInteraction(ppi, interaction = inter, mode = "detailed", verbose = FALSE)
@@ -178,7 +187,7 @@ process BIOC_PATH2PPI_PATH2PPI_PREDICTION_PIPELINE {
       write.csv(data.frame(Message = "No interactions predicted"), "detailed_interaction_info.csv", row.names = FALSE)
     }
     
-    # Stage 7: Plotting and visualization
+    # --- Plotting and visualization ---
     pdf("predicted_ppi_network.pdf")
     tryCatch({
       plot(ppi)

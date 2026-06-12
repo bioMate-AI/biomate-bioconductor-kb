@@ -36,6 +36,15 @@ process BIOC_RNASEQPOWER_RNASEQ_POWER_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RNASeqPower")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_RNASEQPOWER_RNASEQ_POWER_ANALYSIS {
     library(RNASeqPower)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input datasets...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
@@ -85,7 +94,7 @@ process BIOC_RNASEQPOWER_RNASEQ_POWER_ANALYSIS {
     message(sprintf("Found comparison: %s (n=%d) vs %s (n=%d)", g1, n1, g2, n2))
     
     # ==========================================
-    # Stage 2: Estimate Parameters (Depth & CV)
+    # --- Estimate Parameters (Depth & CV) ---
     # ==========================================
     message("Estimating gene-wise mean depth and coefficient of variation (CV)...")
     
@@ -127,7 +136,7 @@ process BIOC_RNASEQPOWER_RNASEQ_POWER_ANALYSIS {
                     median_depth, g1, median_cv1, g2, median_cv2))
     
     # ==========================================
-    # Stage 3: Global Power & Sample Size Analysis
+    # --- Global Power & Sample Size Analysis ---
     # ==========================================
     message("Performing global power and sample size calculations...")
     
@@ -168,7 +177,7 @@ process BIOC_RNASEQPOWER_RNASEQ_POWER_ANALYSIS {
     write.csv(global_power_df, "global_achieved_power.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Gene-Specific Power Analysis
+    # --- Gene-Specific Power Analysis ---
     # ==========================================
     message("Performing gene-specific power and sample size calculations...")
     
@@ -205,7 +214,7 @@ process BIOC_RNASEQPOWER_RNASEQ_POWER_ANALYSIS {
     write.csv(gene_results, "gene_power_analysis.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     

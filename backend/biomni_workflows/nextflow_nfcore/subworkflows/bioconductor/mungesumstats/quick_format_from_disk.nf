@@ -61,10 +61,10 @@ process BIOC_MUNGESUMSTATS_QUICK_FORMAT_FROM_DISK {
     # Define output path in the working directory
     formatted_path <- "eduAttainOkbay_standardised.tsv.gz"
     
-    # 1. Read in the data and standardise header names
+    # --- Read in the data and standardise header names ---
     dat <- MungeSumstats::read_sumstats(path = eduAttainOkbayPth, standardise_headers = TRUE)
     
-    # 2. Write to disk as a compressed, tab-delimited, tabix-indexed file
+    # --- Write to disk as a compressed, tab-delimited, ---
     formatted_path <- MungeSumstats::write_sumstats(
       sumstats_dt = dat, 
       save_path = formatted_path, 

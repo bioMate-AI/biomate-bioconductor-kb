@@ -35,6 +35,15 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biscuiteer", "bsseq", "GenomicRanges", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     # ==========================================
     message("Loading input datasets...")
     matrix_df <- read.csv("matrix.csv", stringsAsFactors = FALSE)
@@ -79,7 +88,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     genome(gr) <- "hg19"
     
     # ==========================================
-    # STAGE 2: Construct BSseq Object
+    # --- Construct BSseq Object ---
     # ==========================================
     message("Constructing BSseq object...")
     beta_mat <- as.matrix(matrix_df[, -1, drop = FALSE])
@@ -109,7 +118,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     bs_obj <- BSseq(gr = gr, M = M, Cov = Cov, pData = coldata_aligned)
     
     # ==========================================
-    # STAGE 3: Extremality Filtering & Scoring
+    # --- Extremality Filtering & Scoring ---
     # ==========================================
     message("Calculating locus-level extremality...")
     ext_scores <- extremality(bs_obj)
@@ -117,7 +126,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     write.csv(ext_df, "extremality_scores.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Define Tiled Regions
+    # --- Define Tiled Regions ---
     # ==========================================
     # Create genomic tiles across the chromosomes present in the dataset
     max_coords <- tapply(end(gr), seqnames(gr), max)
@@ -127,7 +136,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     genome(tiles) <- "hg19"
     
     # ==========================================
-    # STAGE 5: A/B Compartment Prep (getLogitFracMeth)
+    # --- A/B Compartment Prep (getLogitFracMeth) ---
     # ==========================================
     message("Calculating moderated logit fractional methylation...")
     frac_meth_gr <- getLogitFracMeth(bs_obj, minSamp = 1, r = tiles)
@@ -135,7 +144,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     write.csv(frac_meth_df, "logit_frac_meth.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Region Summarization
+    # --- Region Summarization ---
     # ==========================================
     message("Summarizing BSseq over tiled regions...")
     summarized_se <- summarizeBsSeqOver(bs_obj, regions = tiles)
@@ -152,7 +161,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     write.csv(sum_df, "summarized_regions.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Epigenetic Age Estimation
+    # --- Epigenetic Age Estimation ---
     # ==========================================
     message("Estimating epigenetic age using WGBSage...")
     age_estimates <- tryCatch({
@@ -180,7 +189,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     write.csv(age_df, "age_predictions.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 8: Visualizations & Diagnostics
+    # --- Visualizations & Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("methylation_plots.pdf", width = 10, height = 8)

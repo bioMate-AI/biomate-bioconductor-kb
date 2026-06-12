@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data and sample metadata. 2. Generate annotated heatmap object using annHeatmap. 3. Specify dendrogram cutting hei
+//  * 1. [Visualization & Output] Load expression data and sample metadata from user input
+//  * 2. [Visualization & Output] Generate annotated heatmap object using annHeatmap (ann1)
+//  * 3. [Visualization & Output] Specify dendrogram cutting height and cluster labels
+//  * 4. [Visualization & Output] Save meaningful outputs (RDS objects and CSV tables)
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_HEATPLUS_ANNOTATED_HEATMAP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "Heatplus")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +63,7 @@ process BIOC_HEATPLUS_ANNOTATED_HEATMAP {
         library(Biobase)
         library(Heatplus)
         
-        # 1. Load expression data and sample metadata from user input files
+        # --- Load expression data and sample metadata from user input ---
         exprs_matrix <- as.matrix(read.csv("exprs_matrix.csv", row.names = 1, check.names = FALSE))
         sample_metadata <- read.csv("sample_metadata.csv", row.names = 1, check.names = FALSE)
         
@@ -74,7 +86,7 @@ process BIOC_HEATPLUS_ANNOTATED_HEATMAP {
         top_features <- names(sort(feature_vars, decreasing = TRUE))[1:min(50, length(feature_vars))]
         exdat2 <- exdat[top_features, ]
         
-        # 2. Generate annotated heatmap object using annHeatmap (ann1)
+        # --- Generate annotated heatmap object using annHeatmap (ann1) ---
         ann1 <- annHeatmap(exprs(exdat), ann=pData(exdat))
         
         # Save ann1 plot to PDF
@@ -82,7 +94,7 @@ process BIOC_HEATPLUS_ANNOTATED_HEATMAP {
         plot(ann1)
         dev.off()
         
-        # 3. Specify dendrogram cutting height and cluster labels using the cluster argument (ann2 & ann3)
+        # --- Specify dendrogram cutting height and cluster labels ---
         # Calculate column dendrogram to determine dynamic cut heights
         hc_col <- hclust(dist(t(exprs(exdat2))))
         max_height <- max(hc_col\$height)
@@ -107,7 +119,7 @@ process BIOC_HEATPLUS_ANNOTATED_HEATMAP {
         plot(ann3)
         dev.off()
         
-        # 4. Save meaningful outputs (RDS objects and CSV tables)
+        # --- Save meaningful outputs (RDS objects and CSV tables) ---
         saveRDS(ann1, "ann1.rds")
         saveRDS(ann2, "ann2.rds")
         saveRDS(ann3, "ann3.rds")

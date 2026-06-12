@@ -35,6 +35,15 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GeneExpressionSignature", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     library(Biobase)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -76,7 +85,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Data Ranking (getRLs)
+    # --- Data Ranking (getRLs) ---
     # ==========================================
     message("Stage 2: Generating ranked lists of genes...")
     
@@ -121,7 +130,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     eset <- ExpressionSet(assayData = as.matrix(ranked_list), phenoData = pheno_data)
     
     # ==========================================
-    # Stage 3: Rank Merging
+    # --- Rank Merging ---
     # ==========================================
     message("Stage 3: Merging ranked lists by biological state...")
     
@@ -129,7 +138,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     MergingSet <- RankMerging(eset, "Spearman", weighted = TRUE)
     
     # ==========================================
-    # Stage 4: Similarity Measuring (GSEA & PGSEA)
+    # --- Similarity Measuring (GSEA & PGSEA) ---
     # ==========================================
     message("Stage 4: Measuring signature similarity...")
     
@@ -155,7 +164,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     )
     
     # ==========================================
-    # Stage 5: Export Results and Visualization
+    # --- Export Results and Visualization ---
     # ==========================================
     message("Stage 5: Exporting results and generating plots...")
     

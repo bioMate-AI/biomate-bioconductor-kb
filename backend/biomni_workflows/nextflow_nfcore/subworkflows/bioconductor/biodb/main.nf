@@ -35,6 +35,15 @@ process BIOC_BIODB_BIODB_CHEMICAL_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biodb")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_BIODB_BIODB_CHEMICAL_ANNOTATION {
     ms_mode <- "neg"
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Read and Parse User Input
+    # --- Read and Parse User Input ---
     # -----------------------------------------------------------------------------
     if (!file.exists("input.csv")) {
       stop("Required input file 'input.csv' not found.")
@@ -74,7 +83,7 @@ process BIOC_BIODB_BIODB_CHEMICAL_ANNOTATION {
     is_numeric <- !any(is.na(numeric_features)) && length(numeric_features) > 0
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Programmatically Build a Dynamic Reference Database
+    # --- Programmatically Build a Dynamic Reference Database ---
     # -----------------------------------------------------------------------------
     # To ensure robust execution and guaranteed matches, we dynamically construct
     # a reference database matching the format of the user's input features.
@@ -110,13 +119,13 @@ process BIOC_BIODB_BIODB_CHEMICAL_ANNOTATION {
     write.table(ref_db, file = ref_db_file, sep = "\t", row.names = FALSE, quote = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Initialize biodb and Create Connector
+    # --- Initialize biodb and Create Connector ---
     # -----------------------------------------------------------------------------
     mybiodb <- biodb::newInst()
     compdb <- mybiodb\$getFactory()\$createConn('comp.csv.file', url = ref_db_file)
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Perform Annotation
+    # --- Perform Annotation ---
     # -----------------------------------------------------------------------------
     final_df <- input_data
     
@@ -173,7 +182,7 @@ process BIOC_BIODB_BIODB_CHEMICAL_ANNOTATION {
     write.csv(final_df, "annotated_features.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Generate Diagnostic PDF Report
+    # --- Generate Diagnostic PDF Report ---
     # -----------------------------------------------------------------------------
     pdf("annotation_report.pdf", width = 8, height = 6)
     
@@ -211,7 +220,7 @@ process BIOC_BIODB_BIODB_CHEMICAL_ANNOTATION {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Cleanup and Termination
+    # --- Cleanup and Termination ---
     # -----------------------------------------------------------------------------
     mybiodb\$terminate()
     unlink(ref_db_file)

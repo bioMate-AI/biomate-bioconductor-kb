@@ -66,17 +66,17 @@ process BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING {
       stop(paste("Required input file not found in the working directory:", input_file))
     }
     
-    # 1. Read and preprocess the Seahorse plate data using revive_xfplate()
+    # --- Read and preprocess the Seahorse plate data using ---
     # Adapted from the documented code to read directly from the local file
     revive_output_donor_A <- 
       input_file %>% 
       seahtrue::revive_xfplate()
     
-    # 2. Inspect the structure of the nested tibble
+    # --- Inspect the structure of the nested tibble ---
     revive_output_donor_A %>%  
       dplyr::glimpse()
     
-    # 3. Extract rate data, raw data, assay information, and injection information using purrr::pluck()
+    # --- Extract rate data, raw data, assay information, and ---
     # Extract Rate Data
     rate_data <- revive_output_donor_A %>%  
       purrr::pluck("rate_data", 1)
@@ -147,7 +147,7 @@ process BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING {
     print("Injection Info:")
     print(injection_info)
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     message("Saving processed outputs to disk...")
     
     # Save the complete nested tibble as an RDS object

@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Search and filter source and target nodes using find_nodes(). 2. Find initial shortest paths between the node sets using find_path
+//  * 1. [Visualization & Output] Search and filter source and target nodes using
+//  * 2. [Visualization & Output] Find initial shortest paths between the node sets using
+//  * 3. [Visualization & Output] Inspect specific paths using text_path() and plot_path()
+//  * 4. [Visualization & Output] Extract edge features using get_edge_features()
+//  * 5. [Visualization & Output] Generate custom edge weights using make_edge_weights()
+//  * 6. [Visualization & Output] Optionally extract and block middle nodes of initial
+//  * 7. [Visualization & Output] Re-run find_paths() with the custom weights
+//  * 8. [Visualization & Output] Summarize the semantic types and predicates along the
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +45,15 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rsemmed", "dplyr", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -66,7 +82,7 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
         g_small <- read_input("g_small")
         e_feat <- read_input("e_feat")
         
-        # 1. Search and filter source and target nodes using find_nodes()
+        # --- Search and filter source and target nodes using ---
         nodes_sickle <- find_nodes(g_small, pattern = "sickle")
         
         # Robust subsetting in case the input graph has fewer nodes matching the pattern
@@ -88,13 +104,13 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
             find_nodes(pattern = "serology", match = FALSE) %>%
             find_nodes(pattern = "vaccine", match = FALSE)
         
-        # 2. Find initial shortest paths between the node sets using find_paths()
+        # --- Find initial shortest paths between the node sets using ---
         paths <- find_paths(graph = g_small, from = nodes_sickle, to = nodes_malaria)
         
         # Open PDF device to save path visualizations
         pdf("concept_paths_visualization.pdf", width = 11, height = 8.5)
         
-        # 3. Inspect specific paths using text_path() and plot_path()
+        # --- Inspect specific paths using text_path() and plot_path() ---
         tryCatch({
             this_path <- paths[[1]][[100]]
             tp <- text_path(g_small, this_path)
@@ -108,7 +124,7 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
             }
         })
         
-        # 4. Extract edge features using get_edge_features()
+        # --- Extract edge features using get_edge_features() ---
         e_feat <- get_edge_features(g_small)
         
         node_from <- if (length(nodes_sickle) > 0) nodes_sickle[1] else nodes_sickle
@@ -121,7 +137,7 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
         )
         paths_subset <- if (length(paths_subset) > 0) paths_subset[[1]] else list()
         
-        # 5. Generate custom edge weights using make_edge_weights()
+        # --- Generate custom edge weights using make_edge_weights() ---
         w <- make_edge_weights(g_small, e_feat, node_semtypes_out = c("humn", "popg"))
         
         paths_subset_reweight <- find_paths(
@@ -131,14 +147,14 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
             weights = w
         )
         
-        # 6. Optionally extract and block middle nodes of initial paths using get_middle_nodes()
+        # --- Optionally extract and block middle nodes of initial ---
         out_names <- if (length(paths_subset) > 0) get_middle_nodes(g_small, paths_subset) else character(0)
         
         w <- make_edge_weights(g_small, e_feat,
             node_names_out = out_names, node_semtypes_out = c("humn", "popg")
         )
         
-        # 7. Re-run find_paths() with the custom weights
+        # --- Re-run find_paths() with the custom weights ---
         paths_subset_reweight <- find_paths(
             graph = g_small,
             from = node_from,
@@ -176,7 +192,7 @@ process BIOC_RSEMMED_CONCEPT_PATH_EXPLORATION_AND_REWEIGHTING {
         
         dev.off()
         
-        # 8. Summarize the semantic types and predicates along the discovered paths
+        # --- Summarize the semantic types and predicates along the ---
         semtype_summary <- summarize_semtypes(g_small, paths_subset_reweight)
         semtype_summary_all <- summarize_semtypes(g_small, paths)
         edge_summary <- summarize_predicates(g_small, paths)

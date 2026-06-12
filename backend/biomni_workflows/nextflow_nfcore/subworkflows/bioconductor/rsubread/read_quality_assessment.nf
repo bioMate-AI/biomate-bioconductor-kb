@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Extract and display quality scores using qualityScores
+//  * 1. [Core Analysis] Save the full quality scores matrix as a CSV file
+//  * 2. [Core Analysis] Save the matrix as an RDS object for downstream R analysis
+//  * 3. [Core Analysis] Generate a PDF plot showing the distribution of quality
 
 nextflow.enable.dsl = 2
 
@@ -75,13 +77,13 @@ process BIOC_RSUBREAD_READ_QUALITY_ASSESSMENT {
     print(x[1:10,1:10])
     
     # Write named output files for the results
-    # 1. Save the full quality scores matrix as a CSV file
+    # --- Save the full quality scores matrix as a CSV file ---
     write.csv(x, file="quality_scores.csv", row.names=FALSE)
     
-    # 2. Save the matrix as an RDS object for downstream R analysis
+    # --- Save the matrix as an RDS object for downstream R analysis ---
     saveRDS(x, file="quality_scores.rds")
     
-    # 3. Generate a PDF plot showing the distribution of quality scores per base position
+    # --- Generate a PDF plot showing the distribution of quality ---
     pdf("quality_scores_distribution.pdf", width=10, height=6)
     boxplot(x, 
             main="Distribution of Base Quality Scores",

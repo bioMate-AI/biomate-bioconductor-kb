@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the gene expression dataset and define training samples. 2. Run geNetClassifier() to rank genes, train the SVM classifier, es
+//  * 1. [Visualization & Output] Load the gene expression dataset and define training
+//  * 2. [Visualization & Output] Run geNetClassifier() to rank genes, train the SVM
+//  * 3. [Visualization & Output] Inspect the ranked genes and significant gene counts
+//  * 4. [Visualization & Output] Evaluate classifier performance and generalization error
+//  * 5. [Visualization & Output] Export the constructed gene networks to text files
+//  * 6. [Visualization & Output] Save meaningful results to disk
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +42,15 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("geNetClassifier", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +65,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     library(Biobase)
     
     # ==========================================
-    # 1. Load the gene expression dataset and define training samples
+    # --- Load the gene expression dataset and define training ---
     # ==========================================
     
     if (!file.exists("expression_data.RData")) {
@@ -126,7 +140,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     }
     
     # ==========================================
-    # 2. Run geNetClassifier() to rank genes, train the SVM classifier, 
+    # --- Run geNetClassifier() to rank genes, train the SVM ---
     #    estimate generalization error, and build co-expression networks
     # ==========================================
     
@@ -139,7 +153,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     )
     
     # ==========================================
-    # 3. Inspect the ranked genes and significant gene counts
+    # --- Inspect the ranked genes and significant gene counts ---
     # ==========================================
     
     names(leukemiasClassifier)
@@ -166,7 +180,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     numSignificantGenes(leukemiasClassifier@genesRanking)
     
     # ==========================================
-    # 4. Evaluate classifier performance and generalization error
+    # --- Evaluate classifier performance and generalization error ---
     # ==========================================
     
     leukemiasClassifier@classifier
@@ -176,14 +190,14 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     leukemiasClassifier@generalizationError@probMatrix
     
     # ==========================================
-    # 5. Export the constructed gene networks to text files
+    # --- Export the constructed gene networks to text files ---
     # ==========================================
     
     leukemiasClassifier@genesNetwork
     network2txt(leukemiasClassifier@genesNetwork, filePrefix="leukemiasNetwork")
     
     # ==========================================
-    # 6. Save meaningful results to disk
+    # --- Save meaningful results to disk ---
     # ==========================================
     
     message("Saving pipeline results to disk...")

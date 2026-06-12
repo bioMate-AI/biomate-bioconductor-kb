@@ -67,13 +67,13 @@ process BIOC_ASEB_PROTEIN_SPECIFIC_PREDICTION {
       }
     }
     
-    # 1. Load sequences using readSequence
+    # --- Load sequences using readSequence ---
     message("Reading input FASTA sequences...")
     backgroundSites <- readSequence(background_file)
     prodefinedSites <- readSequence(predefined_file)
     testProteins    <- readSequence(proteins_file)
     
-    # 2. Run protein-specific prediction using asebProteins
+    # --- Run protein-specific prediction using asebProteins ---
     message("Running protein-specific prediction (asebProteins)...")
     resultList <- asebProteins(backgroundSites, prodefinedSites, testProteins, permutationTimes=100)
     
@@ -87,7 +87,7 @@ process BIOC_ASEB_PROTEIN_SPECIFIC_PREDICTION {
     # Save the complete result list object as an RDS file for downstream analysis
     saveRDS(resultList, file="aseb_protein_results.rds")
     
-    # 3. Draw P-values and enrichment scores for all sites on the protein using drawStat
+    # --- Draw P-values and enrichment scores for all sites on the ---
     message("Generating visualization plot...")
     pdf("aseb_stat_plot.pdf", width=8, height=6)
     drawStat(curveInfoDataFrame=resultList\$curveInfo)

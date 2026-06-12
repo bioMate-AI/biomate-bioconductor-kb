@@ -35,6 +35,15 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EmpiricalBrownsMethod")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,10 +53,10 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
           }
         }
     
-    # Stage 1: Load libraries
+    # --- Load libraries ---
     library(EmpiricalBrownsMethod)
     
-    # Stage 2: Read and preprocess input files
+    # --- Read and preprocess input files ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' or 'coldata.csv' are missing.")
     }
@@ -72,7 +81,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # Stage 3: Compute individual gene p-values comparing conditions
+    # --- Compute individual gene p-values comparing conditions ---
     conditions <- as.factor(coldata\$condition)
     p_values <- apply(counts_matrix, 1, function(row) {
       if (length(unique(conditions)) == 2) {
@@ -90,7 +99,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     counts_matrix <- counts_matrix[valid_genes, , drop = FALSE]
     p_values <- p_values[valid_genes]
     
-    # Stage 4: Define pathways (mock pathways based on gene list)
+    # --- Define pathways (mock pathways based on gene list) ---
     gene_ids <- rownames(counts_matrix)
     set.seed(42)
     # Create 5 mock pathways to group dependent genes
@@ -98,7 +107,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     gene_pathways <- sample(pathway_names, length(gene_ids), replace = TRUE)
     pathway_list <- split(gene_ids, gene_pathways)
     
-    # Stage 5: Combine P-values using Empirical Brown's and Kost's Methods
+    # --- Combine P-values using Empirical Brown's and Kost's ---
     results <- data.frame(
       Pathway = character(),
       Num_Genes = integer(),
@@ -151,7 +160,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
       ))
     }
     
-    # Stage 6: Save outputs and generate plots
+    # --- Save outputs and generate plots ---
     write.csv(results, "pathway_results.csv", row.names = FALSE)
     
     pdf("pathway_significance.pdf", width = 8, height = 6)

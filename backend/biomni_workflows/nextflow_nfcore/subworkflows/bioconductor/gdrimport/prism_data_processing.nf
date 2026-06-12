@@ -75,7 +75,7 @@ process BIOC_GDRIMPORT_PRISM_DATA_PROCESSING {
       stop(paste("Required input file missing:", treatment_metadata_path))
     }
     
-    # Stage 1: Process LEVEL5 PRISM data
+    # --- Process LEVEL5 PRISM data ---
     # Using convert_LEVEL5_prism_to_gDR_input with the single LEVEL5 PRISM data file
     message("Processing LEVEL5 PRISM data...")
     level5_gdr_input <- convert_LEVEL5_prism_to_gDR_input(prism_level5_path)
@@ -85,7 +85,7 @@ process BIOC_GDRIMPORT_PRISM_DATA_PROCESSING {
     saveRDS(level5_gdr_input, "gdr_input_level5.rds")
     message("LEVEL5 PRISM data successfully converted and saved.")
     
-    # Stage 2: Process LEVEL6 PRISM data
+    # --- Process LEVEL6 PRISM data ---
     # Using convert_LEVEL6_prism_to_gDR_input with collapsed log fold change viability data,
     # cell line metadata, and treatment metadata files
     message("Processing LEVEL6 PRISM data...")

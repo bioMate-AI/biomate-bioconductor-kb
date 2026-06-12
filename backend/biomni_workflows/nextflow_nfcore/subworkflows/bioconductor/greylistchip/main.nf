@@ -67,23 +67,23 @@ process BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE {
       stop(paste("Required input file missing:", bam_file))
     }
     
-    # 1. Initialize GreyList object with the custom karyotype file
+    # --- Initialize GreyList object with the custom karyotype file ---
     message("Initializing GreyList object...")
     gl <- new("GreyList", karyoFile=karyotype_file)
     
-    # 2. Count reads in genome tiles from the BAM file
+    # --- Count reads in genome tiles from the BAM file ---
     message("Counting reads from BAM file...")
     gl <- countReads(gl, bam_file)
     
-    # 3. Calculate read-count threshold using negative binomial fitting
+    # --- Calculate read-count threshold using negative binomial ---
     message("Calculating threshold...")
     gl <- calcThreshold(gl, reps=10, sampleSize=1000, p=0.99, cores=1)
     
-    # 4. Generate grey list regions
+    # --- Generate grey list regions ---
     message("Generating grey list...")
     gl <- makeGreyList(gl, maxGap=16384)
     
-    # 5. Export grey list to BED file
+    # --- Export grey list to BED file ---
     message("Exporting grey list to BED file...")
     export(gl, con="myGreyList.bed")
     

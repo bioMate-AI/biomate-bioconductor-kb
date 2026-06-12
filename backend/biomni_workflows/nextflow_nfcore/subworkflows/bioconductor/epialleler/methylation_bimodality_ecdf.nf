@@ -68,7 +68,7 @@ process BIOC_EPIALLELER_METHYLATION_BIMODALITY_ECDF {
     }
     
     # ------------------------------------------------------------------------------
-    # Stage 1: Compute eCDFs for within- and out-of-context per-read beta values
+    # --- Compute eCDFs for within- and out-of-context per-read ---
     # ------------------------------------------------------------------------------
     message("Computing eCDFs using generateBedEcdf...")
     amplicon.ecdfs <- generateBedEcdf(
@@ -82,7 +82,7 @@ process BIOC_EPIALLELER_METHYLATION_BIMODALITY_ECDF {
     message("Saved eCDF list object to 'amplicon_ecdfs.rds'")
     
     # ------------------------------------------------------------------------------
-    # Stage 2: Plot the eCDFs for context and out-of-context
+    # --- Plot the eCDFs for context and out-of-context ---
     # ------------------------------------------------------------------------------
     message("Generating eCDF plots...")
     pdf("amplicon_ecdfs_plot.pdf", width = 3 * length(amplicon.ecdfs), height = 4)
@@ -120,7 +120,7 @@ process BIOC_EPIALLELER_METHYLATION_BIMODALITY_ECDF {
     message("Saved eCDF plots to 'amplicon_ecdfs_plot.pdf'")
     
     # ------------------------------------------------------------------------------
-    # Stage 3: Export summary statistics of the eCDFs
+    # --- Export summary statistics of the eCDFs ---
     # ------------------------------------------------------------------------------
     message("Exporting summary statistics...")
     summary_list <- lapply(seq_along(amplicon.ecdfs), function(i) {

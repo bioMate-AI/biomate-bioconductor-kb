@@ -35,6 +35,15 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("chromstaR", "GenomicRanges", "rtracklayer", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,13 +53,13 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(chromstaR)
     library(GenomicRanges)
     library(rtracklayer)
     library(ggplot2)
     
-    # Stage 2: Import and preprocess input genomic intervals
+    # --- Import and preprocess input genomic intervals ---
     message("Reading input genomic intervals...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' not found.")
@@ -76,7 +85,7 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
     write.table(chrom_sizes_df, file = chrom_sizes_file, sep = "\t", 
                 row.names = FALSE, col.names = FALSE, quote = FALSE)
     
-    # Stage 3: Simulate multi-mark data for combinatorial analysis
+    # --- Simulate multi-mark data for combinatorial analysis ---
     # Since chromstaR is designed for combinatorial/differential analysis of multiple marks,
     # we split the input GRanges into two simulated marks (e.g., active and repressive)
     # with some overlapping regions to demonstrate the full multivariate HMM capabilities.
@@ -95,7 +104,7 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
     rtracklayer::export.bed(gr_active, file_active)
     rtracklayer::export.bed(gr_repressive, file_repressive)
     
-    # Stage 4: Create the experiment table
+    # --- Create the experiment table ---
     message("Creating experiment table...")
     exp_table <- data.frame(
       file = c(file_active, file_repressive),
@@ -111,7 +120,7 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
     write.table(exp_table, file = exp_table_file, sep = "\t", 
                 row.names = FALSE, quote = FALSE)
     
-    # Stage 5: Run the complete Chromstar pipeline
+    # --- Run the complete Chromstar pipeline ---
     message("Running Chromstar combinatorial pipeline...")
     output_dir <- "chromstaR_output"
     
@@ -125,7 +134,7 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
       prefit.multivariate = FALSE
     )
     
-    # Stage 6: Load results and perform downstream analysis
+    # --- Load results and perform downstream analysis ---
     message("Loading multivariate HMM results...")
     mv_dir <- file.path(output_dir, "multivariate")
     mv_files <- list.files(path = mv_dir, pattern = "\\\\.RData\$", full.names = TRUE)
@@ -140,7 +149,7 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
     model_name <- ls(model_env)[1]
     model <- model_env[[model_name]]
     
-    # Stage 7: Export genomic bins and segmented states
+    # --- Export genomic bins and segmented states ---
     message("Exporting chromatin states...")
     # Extract binned states
     if (!is.null(model\$bins)) {
@@ -158,7 +167,7 @@ process BIOC_CHROMSTAR_CHROMSTAR_COMBINATORIAL_ANALYSIS {
       write.csv(data.frame(Warning = "No segments found in model"), "segmented_states.csv", row.names = FALSE)
     }
     
-    # Stage 8: Generate diagnostic and visualization plots
+    # --- Generate diagnostic and visualization plots ---
     message("Generating diagnostic plots...")
     
     # Plot 1: State frequencies barplot

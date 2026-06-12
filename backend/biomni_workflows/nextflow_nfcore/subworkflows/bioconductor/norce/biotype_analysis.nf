@@ -66,11 +66,11 @@ process BIOC_NORCE_BIOTYPE_ANALYSIS {
       stop(paste("Required input file '", fileImport, "' is missing from the working directory.", sep = ""))
     }
     
-    # 1. Filter GTF file for specific biotypes using filterBiotype
+    # --- Filter GTF file for specific biotypes using filterBiotype ---
     biotypes <- c('unprocessed_pseudogene', 'transcribed_unprocessed_pseudogene')
     extrResult <- filterBiotype(fileImport, biotypes)
     
-    # 2. Extract gene-biotype relationships using extractBiotype
+    # --- Extract gene-biotype relationships using extractBiotype ---
     gtf <- extractBiotype(gtfFile = fileImport)
     
     # Save results to RDS objects

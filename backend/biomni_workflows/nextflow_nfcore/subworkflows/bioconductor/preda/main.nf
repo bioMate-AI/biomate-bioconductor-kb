@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Compute differential expression statistics from an ExpressionSet using statisticsForPREDAfromEset. 2. Retrieve genomic annotations
+//  * 1. [Visualization & Output] USER INPUT & DATA LOADING
+//  * 2. [Visualization & Output] PREDA WORKFLOW (DOCUMENTED CODE)
+//  * 3. [Visualization & Output] OUTPUT GENERATION & EXPORT
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +63,7 @@ process BIOC_PREDA_DIFF_EXPRESSED_REGIONS {
     library(affy)
     
     # ==========================================
-    # 1. USER INPUT & DATA LOADING
+    # --- USER INPUT & DATA LOADING ---
     # ==========================================
     
     # Read the sample metadata file
@@ -109,7 +111,7 @@ process BIOC_PREDA_DIFF_EXPRESSED_REGIONS {
     }
     
     # ==========================================
-    # 2. PREDA WORKFLOW (DOCUMENTED CODE)
+    # --- PREDA WORKFLOW (DOCUMENTED CODE) ---
     # ==========================================
     
     GEstatisticsForPREDA<-statisticsForPREDAfromEset(ExpressionSetRCC, statisticType="tstatistic", referenceGroupLabel="normal", classVector=sampleinfo[,"Class"])
@@ -122,7 +124,7 @@ process BIOC_PREDA_DIFF_EXPRESSED_REGIONS {
     dataframe_UPregions<-GenomicRegions2dataframe(genomic_regions_UP[[1]])
     
     # ==========================================
-    # 3. OUTPUT GENERATION & EXPORT
+    # --- OUTPUT GENERATION & EXPORT ---
     # ==========================================
     
     # Save the identified genomic regions as CSV tables

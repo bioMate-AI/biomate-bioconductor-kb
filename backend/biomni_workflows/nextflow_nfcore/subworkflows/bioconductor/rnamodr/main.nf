@@ -75,21 +75,21 @@ process BIOC_RNAMODR_SINGLE_SAMPLE_MODIFICATION_DETECTION {
       }
     }
     
-    # 1. Load annotation and sequence files
+    # --- Load annotation and sequence files ---
     annotation <- GFF3File(annotation_file)
     sequences <- sequence_file
     
-    # 2. Define named BAM file vector with "Treated" or "Control" conditions
+    # --- Define named BAM file vector with "Treated" or "Control" ---
     files <- bam_files
     
-    # 3. Create a SequenceData object (End5SequenceData) to load and parse BAM files
+    # --- Create a SequenceData object (End5SequenceData) to load ---
     seqdata <- End5SequenceData(files, annotation = annotation, 
                                 sequences = sequences)
     
-    # 4. Create a Modifier object (ModInosine) to automatically aggregate data and search for modifications
+    # --- Create a Modifier object (ModInosine) to automatically ---
     mi <- ModInosine(files, annotation = annotation, sequences = sequences)
     
-    # 5. Retrieve and adjust settings (e.g., minScore) of the Modifier object
+    # --- Retrieve and adjust settings (e.g., minScore) of the ---
     settings(mi)
     settings(mi, "minScore")
     settings(mi) <- list(minScore = 0.5)

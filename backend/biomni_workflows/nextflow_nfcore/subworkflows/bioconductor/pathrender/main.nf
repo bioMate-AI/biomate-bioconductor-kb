@@ -35,6 +35,15 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("graph", "pathRender", "Rgraphviz", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
     library(Rgraphviz)
     library(RColorBrewer)
     
-    # 1. Read and preprocess the input data defensively
+    # --- Read and preprocess the input data defensively ---
     if (!file.exists("input.csv")) {
       stop("Error: input.csv not found in the working directory.")
     }
@@ -73,7 +82,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
       stop("Error: input.csv must contain at least 2 features/genes to build a pathway graph.")
     }
     
-    # 2. Select top highly variable genes to keep the pathway readable
+    # --- Select top highly variable genes to keep the pathway ---
     top_n <- min(25, nrow(data))
     gene_vars <- apply(data, 1, var, na.rm = TRUE)
     gene_vars[is.na(gene_vars)] <- 0
@@ -81,7 +90,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
     
     sub_data <- data[top_genes, , drop = FALSE]
     
-    # 3. Build a correlation-based network (acting as our pathway structure)
+    # --- Build a correlation-based network (acting as our pathway ---
     cor_mat <- cor(t(sub_data), use = "pairwise.complete.obs")
     cor_threshold <- 0.4
     
@@ -96,7 +105,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
     # Construct the base graphNEL object
     base_graph <- new("graphNEL", nodes = top_genes, edgeL = adj_list, edgemode = "undirected")
     
-    # 4. Wrap the graph in a pwayGraph object
+    # --- Wrap the graph in a pwayGraph object ---
     pway <- tryCatch({
       pwayGraph(base_graph, title = "Expression Correlation Pathway")
     }, error = function(e) {
@@ -108,7 +117,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
       })
     })
     
-    # 5. Map mean expression levels to a color palette
+    # --- Map mean expression levels to a color palette ---
     mean_expr <- rowMeans(sub_data, na.rm = TRUE)
     min_val <- min(mean_expr, na.rm = TRUE)
     max_val <- max(mean_expr, na.rm = TRUE)
@@ -126,7 +135,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
     node_colors <- palette[color_indices]
     names(node_colors) <- top_genes
     
-    # 6. Construct the coloredGraph object
+    # --- Construct the coloredGraph object ---
     cg <- tryCatch({
       coloredGraph(graph = pway, nodeColors = node_colors)
     }, error = function(e) {
@@ -138,7 +147,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
       })
     })
     
-    # 7. Render and save the pathway graph to PDF
+    # --- Render and save the pathway graph to PDF ---
     pdf("pathway_render.pdf", width = 10, height = 10)
     plot_success <- tryCatch({
       plot(cg)
@@ -160,7 +169,7 @@ process BIOC_PATHRENDER_PATHWAY_RENDERING_PIPELINE {
     }
     dev.off()
     
-    # 8. Export node attributes and expression summaries to CSV
+    # --- Export node attributes and expression summaries to CSV ---
     output_df <- data.frame(
       gene_symbol = top_genes,
       mean_expression = mean_expr,

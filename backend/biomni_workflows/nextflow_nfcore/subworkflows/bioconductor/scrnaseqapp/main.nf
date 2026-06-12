@@ -35,6 +35,15 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scRNAseqApp", "Seurat")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     library(scRNAseqApp)
     library(Seurat)
     
-    # Stage 1: Read and preprocess input files
+    # --- Read and preprocess input files ---
     message("Reading input files...")
     counts_data <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts_data)) {
@@ -78,7 +87,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     counts_matrix <- apply(counts_matrix, 2, as.integer)
     rownames(counts_matrix) <- rownames(counts_data)
     
-    # Stage 2: Create and process Seurat object
+    # --- Create and process Seurat object ---
     message("Creating Seurat object...")
     seurat_obj <- CreateSeuratObject(counts = counts_matrix, meta.data = coldata)
     
@@ -97,7 +106,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     if (perplexity < 1) perplexity <- 1
     seurat_obj <- RunTSNE(seurat_obj, dims = 1:min(10, npcs), perplexity = perplexity, check_duplicates = FALSE, verbose = FALSE)
     
-    # Stage 3: Initialize scRNAseqApp database
+    # --- Initialize scRNAseqApp database ---
     message("Initializing scRNAseqApp database...")
     publish_folder <- "scRNAseq_shiny_app"
     if (!dir.exists(publish_folder)) {
@@ -105,7 +114,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     }
     scInit(app_path = publish_folder)
     
-    # Stage 4: Create App Configuration and Dataset
+    # --- Create App Configuration and Dataset ---
     message("Creating app configuration...")
     appconf <- createAppConfig(
       title = "scRNAseq_User_Dataset",
@@ -123,7 +132,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
       datafolder = file.path(publish_folder, "data")
     )
     
-    # Stage 5: Verify and write outputs
+    # --- Verify and write outputs ---
     message("Verifying output files...")
     created_files <- list.files(file.path(publish_folder, "data", "user_dataset"), recursive = TRUE)
     

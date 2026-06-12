@@ -70,7 +70,7 @@ process BIOC_MOSAICS_TWO_SAMPLE_GENOMIC_FEATURES {
                  paste(missing_files, collapse = ", ")))
     }
     
-    # 1. Read bin-level data with genomic features
+    # --- Read bin-level data with genomic features ---
     # (Replaces the system.file/mosaicsExample setup with local user files)
     exampleBinData <- readBins( 
       type=c("chip","input","M","GC","N"),
@@ -92,7 +92,7 @@ process BIOC_MOSAICS_TWO_SAMPLE_GENOMIC_FEATURES {
     })
     dev.off()
     
-    # 2. Fit MOSAiCS model with TS (Two-Sample with genomic features) analysis type
+    # --- Fit MOSAiCS model with TS (Two-Sample with genomic ---
     exampleFit <- mosaicsFit( exampleBinData, analysisType="TS", bgEst="automatic" )
     
     # Save the fitted model object
@@ -107,7 +107,7 @@ process BIOC_MOSAICS_TWO_SAMPLE_GENOMIC_FEATURES {
     })
     dev.off()
     
-    # 3. Call peaks using the fitted model
+    # --- Call peaks using the fitted model ---
     OneSamplePeak <- mosaicsPeak( 
       exampleFit, 
       signalModel="2S", 

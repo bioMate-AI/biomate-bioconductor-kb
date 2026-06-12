@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter out probes without Entrez Gene IDs or GO annotations. 2. Apply non-specific filtering based on Inter-Quartile Range (IQR) a
+//  * 1. [Visualization & Output] Load User Input
+//  * 2. [Visualization & Output] Run Documented Workflow Steps
+//  * 3. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_GOSTATS_GO_ASSOCIATION_SUPPORTED_ORGANISM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "annotate", "genefilter", "GOstats", "annot_db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +64,7 @@ process BIOC_GOSTATS_GO_ASSOCIATION_SUPPORTED_ORGANISM {
     library(genefilter)
     library(GOstats)
     
-    # 1. Load User Input
+    # --- Load User Input ---
     input_file <- "expression_data.RData"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -122,7 +133,7 @@ process BIOC_GOSTATS_GO_ASSOCIATION_SUPPORTED_ORGANISM {
     ttestCutoff <- 0.05
     hgCutoff <- 0.001
     
-    # 2. Run Documented Workflow Steps
+    # --- Run Documented Workflow Steps ---
     entrezIds <- mget(featureNames(bcrAblOrNeg), envir=entrez_env)
     haveEntrezId <- names(entrezIds)[sapply(entrezIds, function(x) !is.na(x))]
     bcrAblOrNeg <- bcrAblOrNeg[haveEntrezId, ]
@@ -190,7 +201,7 @@ process BIOC_GOSTATS_GO_ASSOCIATION_SUPPORTED_ORGANISM {
     # Generate HTML Report
     htmlReport(hgCondOver, file="ALL_hgco.html")
     
-    # 3. Save Outputs
+    # --- Save Outputs ---
     write.csv(df, "hgOver_summary.csv", row.names=FALSE)
     write.csv(summary(hgCondOver), "hgCondOver_summary.csv", row.names=FALSE)
     saveRDS(hgOver, "hgOver.rds")

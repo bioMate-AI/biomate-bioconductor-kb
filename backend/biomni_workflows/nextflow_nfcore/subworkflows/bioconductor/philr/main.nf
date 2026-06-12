@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter low-abundance taxa and prune the phylogenetic tree using ape::keep.tip. 2. Add a pseudocount to the count matrix to handle 
+//  * 1. [Visualization & Output] READ USER INPUT FILES
+//  * 2. [Visualization & Output] RUN VIGNETTE WORKFLOW
+//  * 3. [Visualization & Output] WRITE OUTPUT TABLES AND OBJECTS
 
 nextflow.enable.dsl = 2
 
@@ -70,7 +72,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             })
             
             # ==========================================
-            # 1. READ USER INPUT FILES
+            # --- READ USER INPUT FILES ---
             # ==========================================
             
             if (!file.exists("otu_table.tsv") || !file.exists("phylo_tree.tre") || 
@@ -119,7 +121,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             GlobalPatterns <- tse_init
             
             # ==========================================
-            # 2. RUN VIGNETTE WORKFLOW
+            # --- RUN VIGNETTE WORKFLOW ---
             # ==========================================
             
             ## Select prevalent taxa 
@@ -334,7 +336,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             ggsave("balances_scatter_plot.pdf", plot = p_scatter, width = 8, height = 6)
             
             # ==========================================
-            # 3. WRITE OUTPUT TABLES AND OBJECTS
+            # --- WRITE OUTPUT TABLES AND OBJECTS ---
             # ==========================================
             write.csv(as.matrix(gp.philr), "philr_balances.csv", row.names = TRUE)
             saveRDS(tse, "tse_philr.rds")

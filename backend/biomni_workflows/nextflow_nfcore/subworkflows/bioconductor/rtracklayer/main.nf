@@ -59,7 +59,7 @@ process BIOC_RTRACKLAYER_RTRACKLAYER_GENOMIC_TRACKS {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Import and Validate Input Data
+    # --- Import and Validate Input Data ---
     # ==========================================
     
     if (!file.exists("regions.bed")) {
@@ -94,7 +94,7 @@ process BIOC_RTRACKLAYER_RTRACKLAYER_GENOMIC_TRACKS {
     }
     
     # ==========================================
-    # STAGE 2: Track Manipulation & Filtering
+    # --- Track Manipulation & Filtering ---
     # ==========================================
     
     message("Filtering and processing genomic intervals...")
@@ -112,7 +112,7 @@ process BIOC_RTRACKLAYER_RTRACKLAYER_GENOMIC_TRACKS {
     neg_gr <- gr[strand(gr) == "-"]
     
     # ==========================================
-    # STAGE 3: Exporting to Multiple Formats
+    # --- Exporting to Multiple Formats ---
     # ==========================================
     
     message("Exporting processed tracks to GFF3 and bedGraph...")
@@ -134,7 +134,7 @@ process BIOC_RTRACKLAYER_RTRACKLAYER_GENOMIC_TRACKS {
     })
     
     # ==========================================
-    # STAGE 4: Summary and Visualization
+    # --- Summary and Visualization ---
     # ==========================================
     
     message("Generating summary statistics and diagnostic plots...")

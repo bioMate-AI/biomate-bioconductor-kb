@@ -35,6 +35,15 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cn.mops", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     library(cn.mops)
     library(GenomicRanges)
     
-    # Stage 1: Read and Preprocess Input
+    # --- Read and Preprocess Input ---
     message("Reading input data...")
     df <- read.csv("input.csv", header=TRUE, check.names=FALSE, stringsAsFactors=FALSE)
     
@@ -79,7 +88,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     count_matrix[is.na(count_matrix)] <- 0
     count_matrix[count_matrix < 0] <- 0
     
-    # Stage 2: Parse Genomic Coordinates or Generate Dummy Coordinates
+    # --- Parse Genomic Coordinates or Generate Dummy Coordinates ---
     message("Parsing genomic coordinates...")
     features <- rownames(count_matrix)
     parsed <- FALSE
@@ -117,7 +126,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     # Append read counts as metadata columns to the GRanges object
     mcols(gr) <- as.data.frame(count_matrix)
     
-    # Stage 3: Run cn.mops Pipeline
+    # --- Run cn.mops Pipeline ---
     message("Running cn.mops copy number estimation...")
     # cn.mops works best with multiple samples (ideally 3 or more)
     res <- cn.mops(
@@ -131,7 +140,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     message("Calculating integer copy numbers...")
     res <- calcIntegerCopyNumbers(res)
     
-    # Stage 4: Extract and Export Results
+    # --- Extract and Export Results ---
     message("Extracting results...")
     
     # 1. Individual CNV calls
@@ -149,7 +158,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     icn_df <- data.frame(feature_id = rownames(count_matrix), icn_matrix, check.names=FALSE)
     write.csv(icn_df, "integer_copy_numbers.csv", row.names=FALSE)
     
-    # Stage 5: Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     pdf("cn_mops_plot.pdf", width=10, height=8)
     num_samples <- ncol(count_matrix)

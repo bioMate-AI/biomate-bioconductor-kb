@@ -67,14 +67,14 @@ process BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION {
       stop(paste("Required input file missing:", known_file))
     }
     
-    # 1. Read predicted structure (helix format) and known structure (Vienna/dot-bracket format)
+    # --- Read predicted structure (helix format) and known ---
     message("Reading predicted structure in helix format...")
     transat <- readHelix(predicted_file)
     
     message("Reading known structure in dot bracket format...")
     known <- readVienna(known_file)
     
-    # 2. Expand helices to basepairs of length 1 for maximum flexibility
+    # --- Expand helices to basepairs of length 1 for maximum ---
     message("Expanding helices to basepairs of length 1...")
     transat <- expandHelix(transat)
     known <- expandHelix(known)
@@ -86,22 +86,22 @@ process BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION {
     # Open a PDF device to save all comparative plots
     pdf("comparative_plots.pdf", width = 10, height = 8)
     
-    # 3. Plot single structure (Known Structure)
+    # --- Plot single structure (Known Structure) ---
     message("Plotting single known structure...")
     plotHelix(known, line = TRUE, arrow = TRUE)
     mtext("Known Structure", side = 3, line = -2, adj = 0)
     
-    # 4. Plot double structure (Unfiltered Predicted vs Known)
+    # --- Plot double structure (Unfiltered Predicted vs Known) ---
     message("Plotting double structure (unfiltered)...")
     plotDoubleHelix(transat, known, line = TRUE, arrow = TRUE)
     mtext("TRANSAT\nPredicted\nStructure", side = 3, line = -5, adj = 0)
     mtext("Known Structure", side = 1, line = -2, adj = 0)
     
-    # 5. Filter predicted structure by value (e.g., p-value <= 1e-3)
+    # --- Filter predicted structure by value (e.g., p-value <= ---
     message("Filtering out helices above p-value 1e-3...")
     transat <- transat[which(transat\$value <= 1e-3), ]
     
-    # 6. Color predicted structure by value and plot double helix with legend
+    # --- Color predicted structure by value and plot double helix ---
     message("Assigning colour to basepairs according to p-value...")
     transat\$col <- col <- colourByValue(transat, log = TRUE)
     
@@ -110,7 +110,7 @@ process BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION {
     legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
         inset = 0.05, bty = "n", border = NA, cex = 0.75, title = "TRANSAT P-values")
     
-    # 7. Plot overlapping structures
+    # --- Plot overlapping structures ---
     message("Plotting overlapping structures...")
     plotOverlapHelix(transat, known, line = TRUE, arrow = TRUE, scale = FALSE)
     

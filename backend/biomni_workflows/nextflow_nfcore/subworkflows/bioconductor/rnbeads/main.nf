@@ -81,7 +81,7 @@ process BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS {
     sa_data <- read.csv(sample.annotation, stringsAsFactors = FALSE)
     write.csv(sa_data, "input_sample_annotation_copy.csv", row.names = FALSE)
     
-    # 1. Set global analysis options (e.g., sex chromosome removal, sample identifier column)
+    # --- Set global analysis options (e.g., sex chromosome ---
     message("Setting RnBeads global options...")
     rnb.options(filtering.sex.chromosomes.removal=TRUE,
         identifiers.column="Sample_ID")
@@ -95,7 +95,7 @@ process BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS {
     )
     write.csv(opts_df, "rnbeads_options_flat.csv", row.names = FALSE)
     
-    # 2. Run the complete analysis pipeline using the automated runner function
+    # --- Run the complete analysis pipeline using the automated ---
     message("Starting RnBeads automated analysis pipeline...")
     pipeline_success <- tryCatch({
       rnb.run.analysis(dir.reports=report.dir, sample.sheet=sample.annotation,

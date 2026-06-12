@@ -36,6 +36,15 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Qtlizer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -83,7 +92,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
     # ==========================================
-    # Stage 2: Identify Key Genes for QTL Query
+    # --- Identify Key Genes for QTL Query ---
     # ==========================================
     
     message("Normalizing expression data...")
@@ -133,7 +142,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     top_genes <- head(stats_df\$gene, 15)
     
     # ==========================================
-    # Stage 3: Query Qtlizer Database
+    # --- Query Qtlizer Database ---
     # ==========================================
     
     qtl_df <- data.frame()
@@ -162,7 +171,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Post-processing and Export
+    # --- Post-processing and Export ---
     # ==========================================
     
     # Ensure output data frame is valid and write to CSV
@@ -196,7 +205,7 @@ process BIOC_QTLIZER_QTL_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 5: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     
     pdf("qtl_summary_plots.pdf", width = 8, height = 6)

@@ -34,6 +34,15 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CoreGx", "data.table")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     library(data.table)
     
     # ==========================================
-    # Stage 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     message("Stage 1: Reading and parsing input.csv...")
     if (!file.exists("input.csv")) {
@@ -91,7 +100,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     long_dt[, sample_tissue := "Unknown"]
     
     # ==========================================
-    # Stage 2: Configure TREDataMapper
+    # --- Configure TREDataMapper ---
     # ==========================================
     message("Stage 2: Configuring TREDataMapper...")
     dm <- TREDataMapper(rawdata = long_dt)
@@ -117,13 +126,13 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: Construct TreatmentResponseExperiment
+    # --- Construct TreatmentResponseExperiment ---
     # ==========================================
     message("Stage 3: Constructing TreatmentResponseExperiment...")
     tre <- metaConstruct(dm)
     
     # ==========================================
-    # Stage 4: Query and Subset the TRE
+    # --- Query and Subset the TRE ---
     # ==========================================
     message("Stage 4: Querying and subsetting the TRE...")
     # Get unique treatments to perform a safe query
@@ -137,7 +146,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     ]
     
     # ==========================================
-    # Stage 5: Extract and Summarize Assays
+    # --- Extract and Summarize Assays ---
     # ==========================================
     message("Stage 5: Extracting and summarizing assays...")
     sens_assay <- assay(tre, "sensitivity")
@@ -159,7 +168,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     )
     
     # ==========================================
-    # Stage 6: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     message("Stage 6: Writing outputs...")
     fwrite(summary_dt, "tre_summary.csv")

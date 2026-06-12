@@ -64,7 +64,7 @@ process BIOC_DEEPSNV_SHEARWATER_BAYES_FACTOR {
       stop("Error: No BAM files found in the working directory. Please provide BAM files to run the pipeline.")
     }
     
-    # 1. Define genomic regions of interest
+    # --- Define genomic regions of interest ---
     # Dynamically extract the first chromosome and a 21 bp region from the BAM header
     # to ensure compatibility with any user-provided BAM files.
     bam_header <- scanBamHeader(files[1])
@@ -79,13 +79,13 @@ process BIOC_DEEPSNV_SHEARWATER_BAYES_FACTOR {
       regions <- GRanges("B.FR.83.HXB2_LAI_IIIB_BRU_K034", IRanges(start = 3120, end = 3140))
     }
     
-    # 2. Load count data from BAM files
+    # --- Load count data from BAM files ---
     counts <- loadAllData(files, regions, q=10)
     
-    # 3. Compute Bayes factors
+    # --- Compute Bayes factors ---
     bf <- bbb(counts, model = "OR", rho=1e-4)
     
-    # 4. Convert Bayes factors to VCF format
+    # --- Convert Bayes factors to VCF format ---
     vcf <- bf2Vcf(bf, counts, regions, cutoff = 0.5, samples = files, prior = 0.5, mvcf = TRUE)
     
     # Write outputs

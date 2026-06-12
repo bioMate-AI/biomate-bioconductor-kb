@@ -36,6 +36,15 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gtrellis", "GenomicRanges", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,13 +54,13 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(gtrellis)
     library(GenomicRanges)
     library(rtracklayer)
     library(grid)
     
-    # Stage 2: Import and preprocess input data
+    # --- Import and preprocess input data ---
     message("Reading input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
@@ -100,7 +109,7 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     }
     gr\$pt_color <- pt_cols
     
-    # Stage 3: Define custom genomic categories (chromosomes)
+    # --- Define custom genomic categories (chromosomes) ---
     chroms <- as.character(unique(seqnames(gr)))
     chrom_lengths <- sapply(chroms, function(chr) {
       max(end(gr[seqnames(gr) == chr]))
@@ -109,7 +118,7 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     # Create GRanges representing the genome layout
     category_gr <- GRanges(seqnames = chroms, ranges = IRanges(start = 1, end = chrom_lengths))
     
-    # Stage 4: Compute and write summary statistics
+    # --- Compute and write summary statistics ---
     message("Computing genomic summary statistics...")
     summary_df <- data.frame(
       chromosome = chroms,
@@ -121,7 +130,7 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     write.csv(summary_df, "genomic_summary.csv", row.names = FALSE)
     message("Saved summary statistics to 'genomic_summary.csv'.")
     
-    # Stage 5: Initialize and plot Trellis layout
+    # --- Initialize and plot Trellis layout ---
     message("Generating Trellis visualization...")
     pdf("gtrellis_genome_plot.pdf", width = 12, height = 8)
     

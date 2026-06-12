@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Pre-filter the binary feature set based on occurrence frequency using `prefilter_data`. 2. Run the heuristic candidate search usin
+//  * 1. [Visualization & Output] Read in binary features
+//  * 2. [Visualization & Output] Read in input score
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +39,15 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CaDrA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +60,7 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
     # Load R packages
     library(CaDrA)
     
-    # 1. Read in binary features
+    # --- Read in binary features ---
     if (!file.exists("binary_features.csv")) {
       stop("Error: binary_features.csv not found in the working directory.")
     }
@@ -58,7 +68,7 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
     FS_mat <- as.matrix(bin_feat_df)
     eset_mut_scna <- SummarizedExperiment::SummarizedExperiment(assays = list(FS_mat))
     
-    # 2. Read in input score
+    # --- Read in input score ---
     if (!file.exists("functional_scores.csv")) {
       stop("Error: functional_scores.csv not found in the working directory.")
     }

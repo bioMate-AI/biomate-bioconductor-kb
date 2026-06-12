@@ -55,7 +55,7 @@ process BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON {
     # Load the required library
     library(DiffLogo)
     
-    # 1. Load PWMs from the user-provided files in the working directory
+    # --- Load PWMs from the user-provided files in the working ---
     pwm1_file <- "pwm1.pwm"
     pwm2_file <- "pwm2.pwm"
     
@@ -79,19 +79,19 @@ process BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON {
       pwm_short <- pwm1
     }
     
-    # 2. Generate and export the basic DiffLogo directly from PWMs
+    # --- Generate and export the basic DiffLogo directly from PWMs ---
     pdf("diffLogo_from_pwm.pdf", width = 10, height = 6)
     diffLogoFromPwm(pwm1 = pwm1, pwm2 = pwm2)
     dev.off()
     
-    # 3. Create a DiffLogo object and plot it
+    # --- Create a DiffLogo object and plot it ---
     diffLogoObj = createDiffLogoObject(pwm1 = pwm1, pwm2 = pwm2)
     
     pdf("diffLogo_from_object.pdf", width = 10, height = 6)
     diffLogo(diffLogoObj)
     dev.off()
     
-    # 4. Enrich the DiffLogo object with p-values and plot
+    # --- Enrich the DiffLogo object with p-values and plot ---
     diffLogoObj = enrichDiffLogoObjectWithPvalues(diffLogoObj, n1, n2)
     
     pdf("diffLogo_enriched.pdf", width = 10, height = 6)
@@ -101,7 +101,7 @@ process BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON {
     # Save the enriched DiffLogo object as an RDS file
     saveRDS(diffLogoObj, file = "diffLogoObj.rds")
     
-    # 5. Plot DiffLogo for PWMs with alignment (handles different lengths)
+    # --- Plot DiffLogo for PWMs with alignment (handles different ---
     pdf("diffLogo_aligned.pdf", width = 10, height = 6)
     diffLogoFromPwm(pwm1 = pwm_long, pwm2 = pwm_short, align_pwms=TRUE)
     dev.off()

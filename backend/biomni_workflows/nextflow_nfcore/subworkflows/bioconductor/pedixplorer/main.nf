@@ -57,7 +57,7 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     library(stringr)
     
     # ----------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ----------------------------------------------------------------------
     # The pipeline reads ped_df and rel_df from the working directory.
     # We support both CSV and RDS formats.
@@ -79,7 +79,7 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Construct the Pedigree Object
+    # --- Construct the Pedigree Object ---
     # ----------------------------------------------------------------------
     # Documented code: pedi <- Pedigree(sampleped[, -16])
     # We adapt this to use the user's ped_df. If ped_df has 16 or more columns,
@@ -110,7 +110,7 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     }
     
     # ----------------------------------------------------------------------
-    # 3. Compute Kinship Matrix
+    # --- Compute Kinship Matrix ---
     # ----------------------------------------------------------------------
     # Documented code: kinship(pedi)[35:48, 35:48]
     k_full <- kinship(pedi)
@@ -131,7 +131,7 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     saveRDS(k_full, "kinship_matrix_full.rds")
     
     # ----------------------------------------------------------------------
-    # 4. Update Family IDs and Subset Families
+    # --- Update Family IDs and Subset Families ---
     # ----------------------------------------------------------------------
     # Documented code:
     # pedi <- Pedigree(sampleped)
@@ -170,14 +170,14 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     ped_a <- pedi[famid(ped(pedi)) == "A"]
     
     # ----------------------------------------------------------------------
-    # 5. Shrink Pedigrees
+    # --- Shrink Pedigrees ---
     # ----------------------------------------------------------------------
     # Documented code: lst1_s <- shrink(ped_a, max_bits = 10)
     lst1_s <- shrink(ped_a, max_bits = 10)
     saveRDS(lst1_s, "shrunk_pedigree.rds")
     
     # ----------------------------------------------------------------------
-    # 6. Kinship of Subset and Informative Filtering
+    # --- Kinship of Subset and Informative Filtering ---
     # ----------------------------------------------------------------------
     # Documented code:
     # adopted(ped(ped_a)) <- FALSE
@@ -217,7 +217,7 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     })
     
     # ----------------------------------------------------------------------
-    # 7. Write Outputs
+    # --- Write Outputs ---
     # ----------------------------------------------------------------------
     # Save informative pedigree data frame
     ped_a_df <- as.data.frame(ped(ped_a))

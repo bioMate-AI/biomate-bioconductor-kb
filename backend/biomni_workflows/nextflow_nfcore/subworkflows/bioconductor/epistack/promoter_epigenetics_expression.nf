@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Extract TSS coordinates using GenomicRanges::promoters. 2. Merge expression data with TSS coordinates and sort them using addMetri
+//  * 1. [Visualization & Output] Read the declared user input files from the working
+//  * 2. [Visualization & Output] Extract TSS coordinates using GenomicRanges::promoters
+//  * 3. [Visualization & Output] Merge expression data with TSS coordinates and sort them
+//  * 4. [Visualization & Output] Partition the genes into expression bins
+//  * 5. [Visualization & Output] Extract DNA methylation and ChIP-seq signals around TSS
+//  * 6. [Visualization & Output] Assemble the data into a SummarizedExperiment object
+//  * 7. [Visualization & Output] Plot the multi-track stacked profiles and save to PDF
+//  * 8. [Visualization & Output] Save meaningful output files
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +68,7 @@ process BIOC_EPISTACK_PROMOTER_EPIGENETICS_EXPRESSION {
     library(epistack)
     library(EnrichedHeatmap)
     
-    # 1. Read the declared user input files from the working directory
+    # --- Read the declared user input files from the working ---
     if (!file.exists("genes.rds") || !file.exists("rpkm.rds") || !file.exists("meth.rds") || !file.exists("H3K4me3.rds")) {
         stop("Required input files (genes.rds, rpkm.rds, meth.rds, H3K4me3.rds) are missing from the working directory.")
     }
@@ -71,11 +78,11 @@ process BIOC_EPISTACK_PROMOTER_EPIGENETICS_EXPRESSION {
     meth <- readRDS("meth.rds")
     H3K4me3 <- readRDS("H3K4me3.rds")
     
-    # 2. Extract TSS coordinates using GenomicRanges::promoters
+    # --- Extract TSS coordinates using GenomicRanges::promoters ---
     tss <- promoters(genes, upstream = 0, downstream = 1)
     tss\$gene_id <- names(tss)
     
-    # 3. Merge expression data with TSS coordinates and sort them
+    # --- Merge expression data with TSS coordinates and sort them ---
     expr <- data.frame(
         gene_id = names(rpkm),
         expr = rpkm
@@ -87,10 +94,10 @@ process BIOC_EPISTACK_PROMOTER_EPIGENETICS_EXPRESSION {
         order_key = "gene_id", order_value = "expr"
     )
     
-    # 4. Partition the genes into expression bins
+    # --- Partition the genes into expression bins ---
     epidata <- addBins(epidata, nbins = 5)
     
-    # 5. Extract DNA methylation and ChIP-seq signals around TSS
+    # --- Extract DNA methylation and ChIP-seq signals around TSS ---
     methstack <- normalizeToMatrix(
         meth, epidata, value_column = "meth",
         extend = 5000, w = 250, mean_mode = "absolute"
@@ -101,13 +108,13 @@ process BIOC_EPISTACK_PROMOTER_EPIGENETICS_EXPRESSION {
         extend = 5000, w = 250, mean_mode = "coverage"
     )
     
-    # 6. Assemble the data into a SummarizedExperiment object
+    # --- Assemble the data into a SummarizedExperiment object ---
     epidata <- SummarizedExperiment(
         rowRanges = epidata,
         assays = list(DNAme = methstack, H3K4me3 = h3k4me3stack)
     )
     
-    # 7. Plot the multi-track stacked profiles and save to PDF
+    # --- Plot the multi-track stacked profiles and save to PDF ---
     pdf("epistack_promoter_plot.pdf", width = 8, height = 10)
     plotEpistack(
         epidata,
@@ -122,7 +129,7 @@ process BIOC_EPISTACK_PROMOTER_EPIGENETICS_EXPRESSION {
     )
     dev.off()
     
-    # 8. Save meaningful output files
+    # --- Save meaningful output files ---
     saveRDS(epidata, "epidata_summarized_experiment.rds")
     
     # Export metadata as a CSV table

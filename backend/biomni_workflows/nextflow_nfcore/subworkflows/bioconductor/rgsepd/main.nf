@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the GSEPD object with counts, metadata, and output folder using GSEPD_INIT. 2. Define the comparison conditions using G
+//  * 1. [Visualization & Output] Read User Input Files from Working Directory
+//  * 2. [Visualization & Output] Standardize and Clean Metadata to Prevent Common Pitfalls
+//  * 3. [Visualization & Output] Execute rgsepd Pipeline
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rgsepd")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +64,7 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
         library(rgsepd)
         
         # ----------------------------------------------------------------------
-        # 1. Read User Input Files from Working Directory
+        # --- Read User Input Files from Working Directory ---
         # ----------------------------------------------------------------------
         
         # Locate finalCounts file
@@ -98,7 +109,7 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
         }
         
         # ----------------------------------------------------------------------
-        # 2. Standardize and Clean Metadata to Prevent Common Pitfalls
+        # --- Standardize and Clean Metadata to Prevent Common Pitfalls ---
         # ----------------------------------------------------------------------
         
         cols <- colnames(sampleMeta_df)
@@ -130,7 +141,7 @@ process BIOC_RGSEPD_GSEPD_ANALYSIS_PIPELINE {
         clean_meta\$Condition <- gsub(" ", "_", clean_meta\$Condition)
         
         # ----------------------------------------------------------------------
-        # 3. Execute rgsepd Pipeline
+        # --- Execute rgsepd Pipeline ---
         # ----------------------------------------------------------------------
         
         # Map gene symbols of interest to RefSeq IDs

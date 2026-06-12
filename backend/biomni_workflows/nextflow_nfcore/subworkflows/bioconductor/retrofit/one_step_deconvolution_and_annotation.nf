@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Initialize parameters (iterations, number of components L, and number of cell types K). 2. Run joint deconvolution and annotation 
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Initialize Parameters and Run Joint Deconvolution &
+//  * 3. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +61,7 @@ process BIOC_RETROFIT_ONE_STEP_DECONVOLUTION_AND_ANNOTATION {
         library(retrofit)
         
         # -----------------------------------------------------------------------------
-        # Stage 1: Read User Input Files
+        # --- Read User Input Files ---
         # -----------------------------------------------------------------------------
         # The pipeline expects 'x' (Spatial transcriptomics gene expression matrix, G x S)
         # and 'sc_ref_w' (Single-cell reference matrix, G x K) in the working directory.
@@ -89,7 +91,7 @@ process BIOC_RETROFIT_ONE_STEP_DECONVOLUTION_AND_ANNOTATION {
         }
         
         # -----------------------------------------------------------------------------
-        # Stage 2: Initialize Parameters and Run Joint Deconvolution & Annotation
+        # --- Initialize Parameters and Run Joint Deconvolution & ---
         # -----------------------------------------------------------------------------
         iterations = 4000
         L = 20
@@ -102,7 +104,7 @@ process BIOC_RETROFIT_ONE_STEP_DECONVOLUTION_AND_ANNOTATION {
                                      K=K)
         
         # -----------------------------------------------------------------------------
-        # Stage 3: Save Outputs
+        # --- Save Outputs ---
         # -----------------------------------------------------------------------------
         # Save the complete result object as an RDS file
         saveRDS(result, "retrofit_result.rds")

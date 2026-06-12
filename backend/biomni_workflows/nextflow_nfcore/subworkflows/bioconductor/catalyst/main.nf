@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Ingest raw data and convert to SingleCellExperiment using prepData. 2. Perform bead-based normalization using normCytof. 3. Assign
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Normalization
+//  * 3. [Visualization & Output] Debarcoding
+//  * 4. [Visualization & Output] Compensation
+//  * 5. [Visualization & Output] Exporting FCS
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CATALYST", "flowCore", "ggplot2", "cowplot")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +67,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             library(cowplot)
             
             # ==========================================
-            # 1. Load User Input Files
+            # --- Load User Input Files ---
             # ==========================================
             
             # Read FCS files
@@ -69,7 +82,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             sample_key    <- as.matrix(sample_key_df)
             
             # ==========================================
-            # 2. Normalization
+            # --- Normalization ---
             # ==========================================
             
             sce <- prepData(raw_data)
@@ -86,7 +99,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             }
             
             # ==========================================
-            # 3. Debarcoding
+            # --- Debarcoding ---
             # ==========================================
             
             sce <- prepData(sample_ff)
@@ -109,7 +122,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             dev.off()
             
             # ==========================================
-            # 4. Compensation
+            # --- Compensation ---
             # ==========================================
             
             sce_ss <- prepData(ss_exp)
@@ -137,7 +150,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             saveRDS(sce, "compensated_sce.rds")
             
             # ==========================================
-            # 5. Exporting FCS
+            # --- Exporting FCS ---
             # ==========================================
             
             # Export the debarcoded data

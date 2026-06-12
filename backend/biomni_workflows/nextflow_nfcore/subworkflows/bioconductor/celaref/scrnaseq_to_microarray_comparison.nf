@@ -59,7 +59,7 @@ process BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON {
     library(illuminaHumanv2.db)
     library(ggplot2)
     
-    # 1. Load and filter query 10X scRNA-seq dataset
+    # --- Load and filter query 10X scRNA-seq dataset ---
     dataset_se.10X_pbmc4k_k7 <- load_dataset_10Xdata(
        dataset_path   = '10X_pbmc4k',
        dataset_genome = "GRCh38",
@@ -68,10 +68,10 @@ process BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON {
     
     dataset_se.10X_pbmc4k_k7 <- trim_small_groups_and_low_expression_genes(dataset_se.10X_pbmc4k_k7)
     
-    # 2. Run within-experiment differential expression for the query
+    # --- Run within-experiment differential expression for the ---
     de_table.10X_pbmc4k_k7   <- contrast_each_group_to_the_rest(dataset_se.10X_pbmc4k_k7, dataset_name="10X_pbmc4k_k7", num_cores=7)
     
-    # 3. Prepare microarray reference dataset and run within-experiment differential expression
+    # --- Prepare microarray reference dataset and run ---
     norm_expression_file <- "watkins_expression.txt"
     samples_file <- "watkins_samples.txt"
     
@@ -114,7 +114,7 @@ process BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON {
                      sample_name           = "sampleId",
                      group_name            = 'celltype')
     
-    # 4. Compare query to microarray reference and generate plots
+    # --- Compare query to microarray reference and generate plots ---
     pdf("ranking_violin_plots.pdf", width=12, height=8)
     
     p1 <- make_ranking_violin_plot(de_table.test=de_table.10X_pbmc4k_k7, de_table.ref=de_table.Watkins2009PBMCs)
@@ -125,7 +125,7 @@ process BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON {
     
     dev.off()
     
-    # 5. Generate similarity labels
+    # --- Generate similarity labels ---
     label_table.pbmc4k_k7_vs_Watkins2009PBMCs <- make_ref_similarity_names(de_table.10X_pbmc4k_k7, de_table.Watkins2009PBMCs)
     
     # Save outputs

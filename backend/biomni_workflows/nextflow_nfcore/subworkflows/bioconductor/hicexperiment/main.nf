@@ -35,6 +35,15 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("HiCExperiment", "GenomicRanges", "S4Vectors", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
           }
         }
     
-        # Stage 1: Load required libraries
+        # --- Load required libraries ---
         library(HiCExperiment)
         library(GenomicRanges)
         library(S4Vectors)
@@ -140,7 +149,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
         # Convert to GInteractions object
         gi <- df2gi(gi_df)
     
-        # Stage 2: Build HiCExperiment objects and normalize counts
+        # --- Build HiCExperiment objects and normalize counts ---
         message("Stage 2: Building HiCExperiment objects and normalizing counts...")
     
         hic_list <- list()
@@ -178,7 +187,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
           hic_list[[s_name]] <- hic
         }
     
-        # Stage 3: Multi-sample Aggregation and Differential Analysis
+        # --- Multi-sample Aggregation and Differential Analysis ---
         message("Stage 3: Performing differential interaction analysis...")
     
         # Extract normalized scores into a matrix
@@ -237,7 +246,7 @@ process BIOC_HICEXPERIMENT_HIC_EXPERIMENT_DIFFERENTIAL_ANALYSIS {
         write.csv(results_df, "differential_interactions.csv", row.names = FALSE)
         message("Saved differential interactions to differential_interactions.csv")
     
-        # Stage 4: Visualization and Diagnostics
+        # --- Visualization and Diagnostics ---
         message("Stage 4: Generating diagnostic plots...")
     
         pdf("hic_analysis_plots.pdf", width = 10, height = 5)

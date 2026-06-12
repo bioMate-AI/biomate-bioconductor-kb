@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import Hi-C matrix as a HiCExperiment object. 2. Plot square or horizontal matrices, optionally overlaying loops and borders. 3. A
+//  * 1. [Visualization & Output] Import Hi-C matrix as a HiCExperiment object
+//  * 2. [Visualization & Output] Plot square or horizontal matrices, optionally overlaying
+//  * 3. [Visualization & Output] Aggregate matrices over features (e.g., loops)
+//  * 4. [Visualization & Output] Compute autocorrelated contact maps
+//  * 5. [Visualization & Output] Detrend contact maps (scores over expected)
+//  * 6. [Visualization & Output] Merge (sum) two contact maps
+//  * 7. [Visualization & Output] Divide (compute ratio) between two contact maps
+//  * 8. [Visualization & Output] Despeckle (smooth) contact maps
 
 nextflow.enable.dsl = 2
 
@@ -73,7 +80,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     borders_file_path <- "S288C-borders.bed"
     
     # ==========================================
-    # 1. Import Hi-C matrix as a HiCExperiment object
+    # --- Import Hi-C matrix as a HiCExperiment object ---
     # ==========================================
     hic <- import(cool_file_path, format = 'cool')
     
@@ -83,7 +90,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     sink()
     
     # ==========================================
-    # 2. Plot square or horizontal matrices, optionally overlaying loops and borders
+    # --- Plot square or horizontal matrices, optionally overlaying ---
     # ==========================================
     # Square matrix plot
     p1 <- plotMatrix(hic, use.scores = 'balanced', limits = c(-4, -1))
@@ -136,7 +143,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     ggsave("plot4_matrix_loops_borders.pdf", plot = p4, width = 7, height = 6)
     
     # ==========================================
-    # 3. Aggregate matrices over features (e.g., loops)
+    # --- Aggregate matrices over features (e.g., loops) ---
     # ==========================================
     aggr_centros <- tryCatch({
         HiContacts::aggregate(
@@ -157,7 +164,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     }
     
     # ==========================================
-    # 4. Compute autocorrelated contact maps
+    # --- Compute autocorrelated contact maps ---
     # ==========================================
     hic_auto <- tryCatch({
         import(mcool_file_path, format = 'mcool', focus = 'chr2', resolution = 160000)
@@ -180,7 +187,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     ggsave("plot6_autocorrelated_matrix.pdf", plot = p_auto, width = 7, height = 6)
     
     # ==========================================
-    # 5. Detrend contact maps (scores over expected)
+    # --- Detrend contact maps (scores over expected) ---
     # ==========================================
     hic_detrend <- tryCatch({
         import(mcool_file_path, format = 'mcool', focus = 'chr18:20000000-35000000', resolution = 40000)
@@ -204,7 +211,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     ggsave("plot7_detrended_comparison.pdf", plot = p_detrend, width = 12, height = 5)
     
     # ==========================================
-    # 6. Merge (sum) two contact maps
+    # --- Merge (sum) two contact maps ---
     # ==========================================
     # Using the same mcool file to simulate two conditions/samples as requested
     mcool_file_1 <- mcool_file_path
@@ -230,7 +237,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     saveRDS(merged_hic, "merged_hic.rds")
     
     # ==========================================
-    # 7. Divide (compute ratio) between two contact maps
+    # --- Divide (compute ratio) between two contact maps ---
     # ==========================================
     hic_1_div <- tryCatch({
         import(mcool_file_1, format = 'mcool', focus = 'II', resolution = 2000)
@@ -263,7 +270,7 @@ process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     ggsave("plot8_divided_comparison.pdf", plot = p_div, width = 15, height = 5)
     
     # ==========================================
-    # 8. Despeckle (smooth) contact maps
+    # --- Despeckle (smooth) contact maps ---
     # ==========================================
     hic_1_despeckled <- despeckle(hic_1_div)
     hic_1_despeckled5 <- despeckle(hic_1_div, focal.size = 5)

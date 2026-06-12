@@ -62,11 +62,11 @@ process BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON {
     counts_filepath.ref <- "sim_ref_counts.tab"
     cell_info_filepath.ref <- "sim_ref_cell_info.tab"
     
-    # 1. Load query and reference datasets into SummarizedExperiment objects
+    # --- Load query and reference datasets into ---
     toy_ref_se   <- load_se_from_files(counts_file=counts_filepath.ref, cell_info_file=cell_info_filepath.ref)
     toy_query_se <- load_se_from_files(counts_file=counts_filepath.query, cell_info_file=cell_info_filepath.query)
     
-    # 2. Filter out low-expression genes and small cell groups
+    # --- Filter out low-expression genes and small cell groups ---
     toy_ref_se     <- trim_small_groups_and_low_expression_genes(toy_ref_se)
     toy_query_se   <- trim_small_groups_and_low_expression_genes(toy_query_se)
     
@@ -74,7 +74,7 @@ process BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON {
     saveRDS(toy_ref_se, "toy_ref_se.rds")
     saveRDS(toy_query_se, "toy_query_se.rds")
     
-    # 3. Run within-experiment differential expression
+    # --- Run within-experiment differential expression ---
     de_table.toy_ref   <- contrast_each_group_to_the_rest(toy_ref_se,    dataset_name="ref")
     de_table.toy_query <- contrast_each_group_to_the_rest(toy_query_se,  dataset_name="query")
     
@@ -82,7 +82,7 @@ process BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON {
     write.csv(de_table.toy_ref, "de_table_ref.csv", row.names = FALSE)
     write.csv(de_table.toy_query, "de_table_query.csv", row.names = FALSE)
     
-    # 4. Generate rank distribution violin plots
+    # --- Generate rank distribution violin plots ---
     pdf("ranking_violin_plot.pdf", width = 10, height = 8)
     plot_out <- make_ranking_violin_plot(de_table.test=de_table.toy_query, de_table.ref=de_table.toy_ref)
     if (inherits(plot_out, "ggplot")) {
@@ -90,7 +90,7 @@ process BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON {
     }
     dev.off()
     
-    # 5. Suggest cluster labels based on reference similarity
+    # --- Suggest cluster labels based on reference similarity ---
     similarity_labels <- make_ref_similarity_names(de_table.toy_query, de_table.toy_ref)
     
     # Save suggested cluster labels

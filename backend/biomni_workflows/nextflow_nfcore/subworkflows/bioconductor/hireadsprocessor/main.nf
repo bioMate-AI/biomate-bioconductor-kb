@@ -35,6 +35,15 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("hiReadsProcessor", "Biostrings", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Read Input and Generate Sequences
+    # --- Read Input and Generate Sequences ---
     # ==========================================
     message("Stage 1: Reading input and preparing sequences...")
     
@@ -90,7 +99,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     reads <- Biostrings::DNAStringSet(seqs)
     
     # ==========================================
-    # STAGE 2: Create and Read Metadata Template
+    # --- Create and Read Metadata Template ---
     # ==========================================
     message("Stage 2: Creating and reading metadata template...")
     
@@ -122,7 +131,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Demultiplexing and Trimming
+    # --- Demultiplexing and Trimming ---
     # ==========================================
     message("Stage 3: Finding LTR/Primers and Adapters/Linkers...")
     
@@ -152,7 +161,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Dereplication and Clustering
+    # --- Dereplication and Clustering ---
     # ==========================================
     message("Stage 4: Dereplicating and clustering reads...")
     
@@ -171,7 +180,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Integration Site Identification
+    # --- Integration Site Identification ---
     # ==========================================
     message("Stage 5: Mapping and identifying integration sites...")
     
@@ -203,7 +212,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Exporting Results and Diagnostics
+    # --- Exporting Results and Diagnostics ---
     # ==========================================
     message("Stage 6: Exporting results and generating plots...")
     

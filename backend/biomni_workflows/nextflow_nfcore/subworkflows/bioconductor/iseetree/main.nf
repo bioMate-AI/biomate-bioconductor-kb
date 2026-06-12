@@ -53,7 +53,7 @@ process BIOC_ISEETREE_ISEETREE_INTERACTIVE_EXPLORER {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(iSEEtree)
     library(mia)
     library(TreeSummarizedExperiment)
@@ -61,7 +61,7 @@ process BIOC_ISEETREE_ISEETREE_INTERACTIVE_EXPLORER {
     library(S4Vectors)
     library(ape)
     
-    # Stage 2: Read input files and align data
+    # --- Read input files and align data ---
     abundance_df <- read.csv("abundance.csv", check.names = FALSE)
     rownames(abundance_df) <- abundance_df\$taxon_id
     abundance_df\$taxon_id <- NULL
@@ -75,7 +75,7 @@ process BIOC_ISEETREE_ISEETREE_INTERACTIVE_EXPLORER {
     abundance_matrix <- abundance_matrix[, common_samples, drop = FALSE]
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 3: Construct phylogenetic trees for hierarchical visualization
+    # --- Construct phylogenetic trees for hierarchical ---
     # Generate a neighbor-joining or random tree for taxa (RowTreePlot)
     row_tree <- ape::rtree(nrow(abundance_matrix))
     row_tree\$tip.label <- rownames(abundance_matrix)
@@ -92,7 +92,7 @@ process BIOC_ISEETREE_ISEETREE_INTERACTIVE_EXPLORER {
         colTree = col_tree
     )
     
-    # Stage 4: Perform transformations and dimensionality reduction
+    # --- Perform transformations and dimensionality reduction ---
     # Transform counts to relative abundance
     tse <- mia::transformAssay(tse, method = "relabundance")
     
@@ -108,7 +108,7 @@ process BIOC_ISEETREE_ISEETREE_INTERACTIVE_EXPLORER {
         warning("RDA calculation skipped or failed: ", e\$message)
     })
     
-    # Stage 5: Configure iSEEtree panels
+    # --- Configure iSEEtree panels ---
     # Initialize a list of specialized panels provided by iSEEtree
     initial_panels <- list(
         AbundancePlot(),
@@ -120,7 +120,7 @@ process BIOC_ISEETREE_ISEETREE_INTERACTIVE_EXPLORER {
         LoadingPlot()
     )
     
-    # Stage 6: Save outputs and configurations
+    # --- Save outputs and configurations ---
     saveRDS(tse, "processed_tse.rds")
     saveRDS(initial_panels, "iseetree_config.rds")
     

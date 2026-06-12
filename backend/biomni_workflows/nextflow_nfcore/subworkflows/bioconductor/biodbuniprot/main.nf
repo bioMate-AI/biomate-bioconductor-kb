@@ -54,11 +54,11 @@ process BIOC_BIODBUNIPROT_UNIPROT_FUNCTIONAL_ANNOTATION {
           }
         }
     
-    # Stage 1: Load required libraries safely
+    # --- Load required libraries safely ---
     library(biodb)
     library(biodbUniprot)
     
-    # Stage 2: Read and parse input defensively
+    # --- Read and parse input defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Input file not found:", input_file))
@@ -103,12 +103,12 @@ process BIOC_BIODBUNIPROT_UNIPROT_FUNCTIONAL_ANNOTATION {
     # Filter unique valid accessions for querying
     unique_accessions <- unique(na.omit(mapping_df\$accession))
     
-    # Stage 3: Initialize biodb and UniProt connector
+    # --- Initialize biodb and UniProt connector ---
     message("Initializing biodb UniProt connector...")
     bd <- biodb::newBiodb()
     conn <- bd\$getFactory()\$createConn('uniprot')
     
-    # Stage 4: Query UniProt database
+    # --- Query UniProt database ---
     annot_df <- data.frame()
     
     if (length(unique_accessions) > 0) {
@@ -152,7 +152,7 @@ process BIOC_BIODBUNIPROT_UNIPROT_FUNCTIONAL_ANNOTATION {
       message("No valid UniProt accessions detected in the input file.")
     }
     
-    # Stage 5: Merge annotations back with original data
+    # --- Merge annotations back with original data ---
     if (!is.null(annot_df) && nrow(annot_df) > 0) {
       # Ensure accession column is present for merging
       if (!"accession" %in% colnames(annot_df) && "id" %in% colnames(annot_df)) {
@@ -179,7 +179,7 @@ process BIOC_BIODBUNIPROT_UNIPROT_FUNCTIONAL_ANNOTATION {
     write.csv(final_df, "annotated_uniprot_features.csv", row.names = FALSE)
     message("Saved annotated features to annotated_uniprot_features.csv")
     
-    # Stage 6: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     pdf("uniprot_summary.pdf", width = 8, height = 6)
     
     if (!is.null(annot_df) && nrow(annot_df) > 0) {

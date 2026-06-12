@@ -64,7 +64,7 @@ process BIOC_R453PLUS1TOOLBOX_GS_MAPPER_ANALYSIS {
       stop(paste("Required input files missing. Please ensure both", file1, "and", file2, "exist in the working directory."))
     }
     
-    # 1. Import GS Reference Mapper directories into a MapperSet object
+    # --- Import GS Reference Mapper directories into a MapperSet ---
     # Since the files are in 'mapping/', the parent directory is the current directory '.'
     dirs = "."
     mapperSet = MapperSet(dirs=dirs, samplenames="Sample1")
@@ -76,7 +76,7 @@ process BIOC_R453PLUS1TOOLBOX_GS_MAPPER_ANALYSIS {
     variants_df = fData(mapperSet)
     write.csv(variants_df, "detected_variants.csv", row.names = TRUE)
     
-    # 2. Annotate variants using Ensembl and 3. Generate HTML report
+    # --- Annotate variants using Ensembl and 3. Generate HTML ---
     # Wrapping in tryCatch as annotateVariants relies on external Ensembl biomaRt queries
     tryCatch({
       message("Annotating variants via Ensembl (biomaRt)...")

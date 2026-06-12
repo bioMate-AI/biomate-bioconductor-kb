@@ -34,6 +34,15 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MEAT")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,7 +55,7 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
     # Load required libraries
     library(MEAT)
     
-    # Stage 1: Read and align input data
+    # --- Read and align input data ---
     message("Stage 1: Loading and aligning input data...")
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'matrix.csv' and/or 'coldata.csv' are missing.")
@@ -77,7 +86,7 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
     beta_matrix <- beta_matrix[, common_samples, drop = FALSE]
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 2: Format data into a SummarizedExperiment object
+    # --- Format data into a SummarizedExperiment object ---
     message("Stage 2: Formatting data into SummarizedExperiment...")
     # MEAT requires the assay containing beta values to be named "beta"
     SE <- SummarizedExperiment(
@@ -85,12 +94,12 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
       colData = coldata_df
     )
     
-    # Stage 3: Data cleaning (subsetting to clock CpGs and imputing missing values)
+    # --- Data cleaning (subsetting to clock CpGs and imputing ---
     message("Stage 3: Cleaning beta values...")
     version_param <- "MEAT2.0" # Default version
     SE_clean <- clean_beta(SE = SE, version = version_param)
     
-    # Stage 4: Data calibration (re-scaling to the gold standard dataset)
+    # --- Data calibration (re-scaling to the gold standard dataset) ---
     message("Stage 4: Calibrating beta values using BMIQcalibration...")
     SE_calibrated <- BMIQcalibration(SE = SE_clean, version = version_param)
     
@@ -99,7 +108,7 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
     write.csv(calibrated_beta, "calibrated_beta.csv", row.names = TRUE)
     message("Calibrated beta matrix saved to 'calibrated_beta.csv'.")
     
-    # Stage 5: Epigenetic age estimation
+    # --- Epigenetic age estimation ---
     message("Stage 5: Estimating epigenetic age...")
     # Check if chronological age is provided in coldata (case-insensitive search)
     age_col <- grep("^age\$", colnames(colData(SE_calibrated)), ignore.case = TRUE, value = TRUE)
@@ -125,7 +134,7 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
       )
     }
     
-    # Stage 6: Export results
+    # --- Export results ---
     message("Stage 6: Exporting final results...")
     results_df <- as.data.frame(colData(SE_epiage))
     write.csv(results_df, "epigenetic_age_results.csv", row.names = TRUE)

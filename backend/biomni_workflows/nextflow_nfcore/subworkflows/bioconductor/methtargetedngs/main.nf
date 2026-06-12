@@ -71,7 +71,7 @@ process BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS {
       stop("Error: 'Reference.fasta' not found in the working directory.")
     }
     
-    # 1. Align reads to reference using methAlign
+    # --- Align reads to reference using methAlign ---
     message("Aligning healthy reads to reference...")
     hAlign <- methAlign(healthy, reference)
     
@@ -84,38 +84,38 @@ process BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS {
     write.csv(as.data.frame(hAlign), "healthy_alignment.csv", row.names = TRUE)
     write.csv(as.data.frame(tAlign), "tumor_alignment.csv", row.names = TRUE)
     
-    # 2. Generate methylation heatmap using methHeatmap
+    # --- Generate methylation heatmap using methHeatmap ---
     message("Generating methylation heatmap...")
     pdf("healthy_heatmap.pdf", width = 10, height = 8)
     hHeatmap <- methHeatmap(hAlign, plot = TRUE)
     dev.off()
     saveRDS(hHeatmap, "healthy_heatmap_data.rds")
     
-    # 3. Calculate methylation average using methAvg
+    # --- Calculate methylation average using methAvg ---
     message("Calculating methylation average...")
     hAvg <- methAvg(hAlign, plot = FALSE)
     write.csv(data.frame(CpG_Site = seq_along(hAvg), Average_Methylation = hAvg), 
               "healthy_average.csv", row.names = FALSE)
     
-    # 4. Calculate methylation entropy using methEntropy
+    # --- Calculate methylation entropy using methEntropy ---
     message("Calculating methylation entropy...")
     hEnt <- methEntropy(hAlign)
     write.csv(data.frame(Window = seq_along(hEnt), Entropy = hEnt), 
               "healthy_entropy.csv", row.names = FALSE)
     
-    # 5. Identify significant CpG sites using fishertest_cpg
+    # --- Identify significant CpG sites using fishertest_cpg ---
     message("Identifying significant CpG sites...")
     SigCpGsites <- fishertest_cpg(hAlign, tAlign, plot = FALSE)
     write.csv(data.frame(CpG_Site = seq_along(SigCpGsites), Fisher_FDR = SigCpGsites), 
               "significant_cpg_sites.csv", row.names = FALSE)
     
-    # 6. Calculate log odd ratios using odd_ratio
+    # --- Calculate log odd ratios using odd_ratio ---
     message("Calculating log odd ratios...")
     odSamps <- odd_ratio(hAlign, tAlign, plot = FALSE)
     write.csv(data.frame(CpG_Site = seq_along(odSamps), Log_Odd_Ratio = odSamps), 
               "odd_ratios.csv", row.names = FALSE)
     
-    # 7. Run complete comparative pipeline using compare_samples
+    # --- Run complete comparative pipeline using compare_samples ---
     message("Running complete comparative pipeline and saving plots...")
     pdf("comparative_analysis_plots.pdf", width = 12, height = 10)
     compare_samples(hAlign, tAlign)

@@ -66,22 +66,22 @@ process BIOC_QUASR_CHIP_SEQ_WORKFLOW {
     annotFile <- "hg19sub_annotation.gtf"
     annotationFile <- "hg19sub_annotation.gtf"
     
-    # 1. Align reads to genome and auxiliary targets using qAlign
+    # --- Align reads to genome and auxiliary targets using qAlign ---
     proj1 <- qAlign(sampleFile, genome = genomeFile, auxiliaryFile = auxFile)
     print(proj1)
     
-    # 2. Generate quality control report using qQCReport
+    # --- Generate quality control report using qQCReport ---
     qQCReport(proj1, pdfFilename = "qc_report.pdf")
     
-    # 3. Retrieve alignment statistics using alignmentStats
+    # --- Retrieve alignment statistics using alignmentStats ---
     stats <- alignmentStats(proj1)
     print(stats)
     write.csv(stats, "alignment_stats.csv", row.names = TRUE)
     
-    # 4. Export coverage tracks to wiggle format using qExportWig
+    # --- Export coverage tracks to wiggle format using qExportWig ---
     qExportWig(proj1, binsize = 100L, scaling = TRUE, collapseBySample = TRUE)
     
-    # 5. Quantify promoter region counts using qCount
+    # --- Quantify promoter region counts using qCount ---
     chrLen <- scanFaIndex(genomeFile)
     chrominfo <- data.frame(chrom = as.character(seqnames(chrLen)),
                             length = width(chrLen),
@@ -106,7 +106,7 @@ process BIOC_QUASR_CHIP_SEQ_WORKFLOW {
     print(cnt)
     write.csv(cnt, "promoter_counts.csv", row.names = TRUE)
     
-    # 6. Calculate average alignment profiles around TSS using qProfile
+    # --- Calculate average alignment profiles around TSS using ---
     tssRegions <- import.gff(annotationFile, format = "gtf",
                              feature.type = "start_codon",
                              colnames = "gene_name")

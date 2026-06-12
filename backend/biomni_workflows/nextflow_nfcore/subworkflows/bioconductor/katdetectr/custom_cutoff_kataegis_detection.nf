@@ -58,7 +58,7 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
     library(VariantAnnotation)
     library(GenomicRanges)
     
-    # 1. Read the user input file from the working directory
+    # --- Read the user input file from the working directory ---
     if (file.exists("syntheticData")) {
         syntheticData <- readRDS("syntheticData")
     } else if (file.exists("syntheticData.rds")) {
@@ -67,7 +67,7 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
         stop("Error: Input file 'syntheticData' or 'syntheticData.rds' not found in the working directory.")
     }
     
-    # 2. Define custom functions for modeling sample rate and calculating segment-specific IMD cutoffs
+    # --- Define custom functions for modeling sample rate and ---
     modelSampleRate <- function(IMDs) {
         lambda <- log(2) / median(IMDs)
     
@@ -96,10 +96,10 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
         return(IMDcutoff)
     }
     
-    # 3. Run detectKataegis() with the custom function passed to the IMDcutoff parameter
+    # --- Run detectKataegis() with the custom function passed to ---
     kdCustom <- detectKataegis(syntheticData, IMDcutoff = IMDcutoffFun)
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     saveRDS(kdCustom, "kdCustom.rds")
     
     # Extract and save genomic variants

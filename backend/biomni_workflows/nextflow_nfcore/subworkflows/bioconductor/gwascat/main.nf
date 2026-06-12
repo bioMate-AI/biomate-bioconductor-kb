@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Retrieve the cached GWAS catalog using get_cached_gwascat. 2. Convert the catalog to a GRanges object using as_GRanges. 3. Filter 
+//  * 1. [Core Analysis] Load genotype data from the working directory
+//  * 2. [Core Analysis] Filter standard chromosomes and query traits
+//  * 3. [Core Analysis] Find overlaps with a SNP chip
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +62,7 @@ process BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG {
         library(S4Vectors)
         library(GenomeInfoDb)
         
-        # 1. Load genotype data from the working directory
+        # --- Load genotype data from the working directory ---
         if (file.exists("locon6.rds")) {
           locon6 <- readRDS("locon6.rds")
         } else if (file.exists("locon6.csv")) {
@@ -75,12 +77,12 @@ process BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG {
         gwcat <- get_cached_gwascat()
         gwtrunc <- as_GRanges(gwcat)
         
-        # 2. Filter standard chromosomes and query traits
+        # --- Filter standard chromosomes and query traits ---
         gwtrunc <- keepStandardChromosomes(gwtrunc, pruning="coarse")
         tt <- topTraits(gwtrunc)
         result_subset <- subsetByTraits(gwtrunc, tr=names(tt)[1])
         
-        # 3. Find overlaps with a SNP chip
+        # --- Find overlaps with a SNP chip ---
         gr6.0 <- GRanges(seqnames=ifelse(is.na(locon6[[2]]), 0, locon6[[2]]),
                          IRanges(ifelse(is.na(locon6[[3]]), 1, locon6[[3]]), width=1))
         S4Vectors::mcols(gr6.0)\$rsid <- as.character(locon6[[1]])

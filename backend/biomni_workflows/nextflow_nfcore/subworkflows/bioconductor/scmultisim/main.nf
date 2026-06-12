@@ -35,6 +35,15 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scMultiSim", "dplyr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     library(dplyr)
     library(ggplot2)
     
-    # 1. Read input files
+    # --- Read input files ---
     counts <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts)) {
       rownames(counts) <- counts\$gene_id
@@ -67,11 +76,11 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
       coldata <- coldata[, -1, drop = FALSE]
     }
     
-    # 2. Determine simulation dimensions based on input data
+    # --- Determine simulation dimensions based on input data ---
     n_cells <- max(ncol(counts), 80)
     n_genes <- max(nrow(counts), 110)
     
-    # 3. Infer a Gene Regulatory Network (GRN) from input counts
+    # --- Infer a Gene Regulatory Network (GRN) from input counts ---
     # Map genes to integer IDs 1:nrow(counts)
     gene_mapping <- data.frame(
       gene_name = rownames(counts),
@@ -110,7 +119,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
       )
     }
     
-    # 4. Run true counts simulation with RNA velocity and ATAC-seq enabled
+    # --- Run true counts simulation with RNA velocity and ATAC-seq ---
     options <- list(
       GRN = grn_df,
       num.cells = n_cells,
@@ -125,14 +134,14 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     message("Running true counts simulation...")
     results <- sim_true_counts(options)
     
-    # 5. Add technical noise and batch effects
+    # --- Add technical noise and batch effects ---
     message("Adding experimental noise...")
     add_expr_noise(results, alpha_mean = 1e4)
     
     message("Adding batch effects...")
     divide_batches(results, nbatch = 2, effect = 1)
     
-    # 6. Save simulated datasets
+    # --- Save simulated datasets ---
     message("Saving simulated outputs...")
     write.csv(as.matrix(results\$counts), "simulated_true_counts.csv")
     
@@ -154,7 +163,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     
     write.csv(results\$cell_meta, "simulated_cell_metadata.csv", row.names = TRUE)
     
-    # 7. Generate diagnostic visualizations
+    # --- Generate diagnostic visualizations ---
     message("Generating diagnostic plots...")
     pdf("multimodal_plots.pdf", width = 10, height = 8)
     

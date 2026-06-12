@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Convert GTF annotations to an exon GRanges object using gtfToExons() 2. Read query SNPs using readQueryFile() or retrieve SNP coor
+//  * 1. [Visualization & Output] Convert GTF annotations to an exon GRanges object
+//  * 2. [Visualization & Output] Read query SNPs from the user-provided file
+//  * 3. [Visualization & Output] Predict branchpoint probabilities for reference and
+//  * 4. [Visualization & Output] Summarize the variant effects
+//  * 5. [Visualization & Output] Visualize and compare reference vs. alternative
 
 nextflow.enable.dsl = 2
 
@@ -64,10 +68,10 @@ process BIOC_BRANCHPOINTER_SNP_EFFECT_EVALUATION {
     gtfFile <- "gencode.v26.annotation.gtf"
     querySNPFile <- "SNP_example.txt"
     
-    # 1. Convert GTF annotations to an exon GRanges object
+    # --- Convert GTF annotations to an exon GRanges object ---
     exons <- gtfToExons(gtfFile)
     
-    # 2. Read query SNPs from the user-provided file
+    # --- Read query SNPs from the user-provided file ---
     querySNP <- readQueryFile(querySNPFile, 
                               queryType = "SNP", 
                               exons = exons, 
@@ -76,15 +80,15 @@ process BIOC_BRANCHPOINTER_SNP_EFFECT_EVALUATION {
     # Load the BSgenome object
     g <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
     
-    # 3. Predict branchpoint probabilities for reference and alternative alleles
+    # --- Predict branchpoint probabilities for reference and ---
     branchpointPredictionsSNP <- predictBranchpoints(querySNP,
                                             queryType = "SNP",
                                             BSgenome = g)
     
-    # 4. Summarize the variant effects
+    # --- Summarize the variant effects ---
     querySNPSummary <- predictionsToSummary(querySNP,branchpointPredictionsSNP)
     
-    # 5. Visualize and compare reference vs. alternative branchpoint windows
+    # --- Visualize and compare reference vs. alternative ---
     pdf("branchpoint_window_plot.pdf", width = 12, height = 8)
     plotBranchpointWindow(querySNP\$id[1], 
                           branchpointPredictionsSNP,

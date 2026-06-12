@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Read vendor-specific outputs (e.g., Xenium, CosMx, or MERSCOPE) into a MoleculeExperiment object. 2. Define a spatial extent and s
+//  * 1. [Visualization & Output] Import raw spatial transcriptomics data
+//  * 2. [Visualization & Output] Define a spatial extent and subset the MoleculeExperiment
+//  * 3. [Visualization & Output] Visualize the molecules and boundaries using specialized
 
 nextflow.enable.dsl = 2
 
@@ -73,7 +75,7 @@ process BIOC_MOLECULEEXPERIMENT_VENDOR_IMPORT_SUBSET_AND_VISUALIZE {
         is_merscope <- any(grepl("detected_transcripts", files)) || any(grepl("merfish", files, ignore.case = TRUE))
         is_cosmx <- any(grepl("tx_file", files)) || any(grepl("cosmx", files, ignore.case = TRUE))
         
-        # 1. Import raw spatial transcriptomics data
+        # --- Import raw spatial transcriptomics data ---
         if (is_merscope) {
           message("Detected MERSCOPE data. Reading with readMerscope.")
           me <- readMerscope(repoDir, keepCols = "essential", addBoundaries = "cell")
@@ -88,7 +90,7 @@ process BIOC_MOLECULEEXPERIMENT_VENDOR_IMPORT_SUBSET_AND_VISUALIZE {
         # Alias meMerscope to me to support the documented subsetting code
         meMerscope <- me
         
-        # 2. Define a spatial extent and subset the MoleculeExperiment object
+        # --- Define a spatial extent and subset the MoleculeExperiment ---
         new_extent = extent(meMerscope, "detected") - c(0, 100, 0, 0)
         
         me_sub = subset_by_extent(meMerscope, new_extent)
@@ -105,7 +107,7 @@ process BIOC_MOLECULEEXPERIMENT_VENDOR_IMPORT_SUBSET_AND_VISUALIZE {
           message("Could not export molecules to CSV: ", e\$message)
         })
         
-        # 3. Visualize the molecules and boundaries using specialized ggplot2 layers
+        # --- Visualize the molecules and boundaries using specialized ---
         # Documented visualization with dynamic zoom
         p_zoom <- ggplot_me() +
           geom_polygon_me(me, assayName = "cell", fill = "grey") +

@@ -60,18 +60,18 @@ process BIOC_CHEMMINER_LARGE_SDF_STREAMING {
       stop("Error: Required input file 'test.sdf' not found in the working directory.")
     }
     
-    # Stage 1: Define a descriptor extraction function
+    # --- Define a descriptor extraction function ---
     desc <- function(sdfset) cbind(SDFID=sdfid(sdfset), MW=MW(sdfset), groups(sdfset), APFP=desc2fp(x=sdf2ap(sdfset), descnames=1024, type="character"), AP=sdf2ap(sdfset, type="character"), rings(sdfset, type="count", upper=6, arom=TRUE) )
     
-    # Stage 2: Stream through the SDF and write descriptors to a tabular file
+    # --- Stream through the SDF and write descriptors to a tabular ---
     sdfStream(input="test.sdf", output="matrix.xls", fct=desc, Nlines=1000)
     
-    # Stage 3: Filter the tabular index and retrieve specific molecules of interest
+    # --- Filter the tabular index and retrieve specific molecules ---
     indexDF <- read.delim("matrix.xls", row.names=1)[,1:4]
     indexDFsub <- indexDF[indexDF\$MW < 400, ]
     sdfset <- read.SDFindex(file="test.sdf", index=indexDFsub, type="SDFset")
     
-    # Stage 4: Write output files for the meaningful results
+    # --- Write output files for the meaningful results ---
     # Save the filtered index table as a CSV file
     write.csv(indexDFsub, file = "filtered_index.csv", row.names = TRUE)
     

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Create and read the Prior Knowledge Network (PKN) from a SIF file. 2. Define the experimental design using dummyCNOlist. 3. Prepro
+//  * 1. [Visualization & Output] Create and read the Prior Knowledge Network (PKN) from a
+//  * 2. [Visualization & Output] Define the experimental design using dummyCNOlist
+//  * 3. [Visualization & Output] Preprocess the PKN and CNOlist to build the Boolean
+//  * 4. [Visualization & Output] Initialize the network state (binary string)
+//  * 5. [Visualization & Output] Run the B-NEM optimization using greedy, genetic, or
+//  * 6. [Visualization & Output] Visualize the optimized network and save to PDF
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_BNEM_PATHWAY_LOGIC_INFERENCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bnem", "CellNOptR", "mnem")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -96,7 +110,7 @@ process BIOC_BNEM_PATHWAY_LOGIC_INFERENCE {
         parallel <- NULL
         expression <- NULL
         
-        # 1. Create and read the Prior Knowledge Network (PKN) from a SIF file
+        # --- Create and read the Prior Knowledge Network (PKN) from a ---
         file <- tempfile(pattern="interaction",fileext=".sif")
         write.table(sifMatrix, file = file, sep = "\t",
                     row.names = FALSE, col.names = FALSE, quote = FALSE)
@@ -108,18 +122,18 @@ process BIOC_BNEM_PATHWAY_LOGIC_INFERENCE {
         stimuli <- stimuli[which(!(stimuli %in% children))]
         inhibitors <- PKN\$namesSpecies[!(PKN\$namesSpecies %in% stimuli)]
         
-        # 2. Define the experimental design using dummyCNOlist
+        # --- Define the experimental design using dummyCNOlist ---
         CNOlist <- dummyCNOlist(stimuli = stimuli,
                                 inhibitors = inhibitors,
                                 maxStim = 1, maxInhibit = 3)
         
-        # 3. Preprocess the PKN and CNOlist to build the Boolean search space
+        # --- Preprocess the PKN and CNOlist to build the Boolean ---
         model <- preprocessing(CNOlist, PKN)
         
-        # 4. Initialize the network state (binary string)
+        # --- Initialize the network state (binary string) ---
         initBstring <- rep(0, length(model\$reacID))
         
-        # 5. Run the B-NEM optimization using greedy, genetic, or exhaustive search
+        # --- Run the B-NEM optimization using greedy, genetic, or ---
         bcrRes <- bnem(search = "greedy",
                            fc=fc,
                            CNOlist=CNOlist,
@@ -167,7 +181,7 @@ process BIOC_BNEM_PATHWAY_LOGIC_INFERENCE {
           message("Skipping exhaustive search because the network has more than 20 hyper-edges.")
         }
         
-        # 6. Visualize the optimized network and save to PDF
+        # --- Visualize the optimized network and save to PDF ---
         pdf("network_plots.pdf", width = 12, height = 6)
         par(mfrow=c(1,3))
         plotDnf(PKN\$reacID, main = "PKN", stimuli = stimuli)

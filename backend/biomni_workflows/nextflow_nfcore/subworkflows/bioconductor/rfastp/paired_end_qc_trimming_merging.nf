@@ -70,16 +70,16 @@ process BIOC_RFASTP_PAIRED_END_QC_TRIMMING_MERGING {
     # Define output prefix for output FASTQ files
     outputPrefix <- "rfastp_output"
     
-    # 1. Run rfastp on paired-end FASTQ files
+    # --- Run rfastp on paired-end FASTQ files ---
     pe_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2,
         outputFastq = paste0(outputPrefix, "_pe"))
     
-    # 2. Run rfastp with read merging enabled
+    # --- Run rfastp with read merging enabled ---
     pe_merge_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, merge = TRUE,
         outputFastq = paste0(outputPrefix, '_unpaired'),
         mergeOut = paste0(outputPrefix, "_merged.fastq.gz"))
     
-    # 3. Extract QC and trimming summaries
+    # --- Extract QC and trimming summaries ---
     dfsummary <- qcSummary(pe_json_report)
     dfTrim <- trimSummary(pe_json_report)
     

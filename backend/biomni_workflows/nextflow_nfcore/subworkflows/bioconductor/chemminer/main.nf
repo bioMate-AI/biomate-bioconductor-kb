@@ -55,29 +55,29 @@ process BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING {
     # Load required library
     library(ChemmineR)
     
-    # Stage 1: Import and validate SDF structures
+    # --- Import and validate SDF structures ---
     # Reading the user-provided local file "sdfsample.sdf"
     sdfset <- read.SDFset("sdfsample.sdf")
     valid <- validSDF(sdfset)
     sdfset <- sdfset[valid]
     
-    # Stage 2: Calculate molecular weight, formula, and atom counts
+    # --- Calculate molecular weight, formula, and atom counts ---
     propma <- data.frame(MF=MF(sdfset), MW=MW(sdfset), atomcountMA(sdfset))
     write.csv(propma, "molecular_properties.csv", row.names = TRUE)
     
-    # Stage 3: Generate atom pair descriptors
+    # --- Generate atom pair descriptors ---
     apset <- sdf2ap(sdfset)
     saveRDS(apset, "atom_pair_descriptors.rds")
     
-    # Stage 4: Perform structural similarity search
+    # --- Perform structural similarity search ---
     search_results <- cmp.search(apset, apset[1], type=3, cutoff = 0.3, quiet=TRUE)
     write.csv(search_results, "similarity_search_results.csv", row.names = FALSE)
     
-    # Stage 5: Cluster compounds using binning clustering
+    # --- Cluster compounds using binning clustering ---
     clusters <- cmp.cluster(db=apset, cutoff = c(0.7, 0.8, 0.9), quiet = TRUE)
     write.csv(clusters, "compound_clusters.csv", row.names = FALSE)
     
-    # Stage 6: Plot chemical structures
+    # --- Plot chemical structures ---
     pdf("chemical_structures.pdf", width = 8, height = 8)
     plot(sdfset[1:4], regenCoords=TRUE, print=FALSE)
     dev.off()

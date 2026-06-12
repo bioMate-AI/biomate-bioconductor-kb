@@ -60,12 +60,12 @@ process BIOC_IMCRTOOLS_IMC_DATA_IMPORT {
     # Define the input path (working directory containing the user files)
     path <- "."
     
-    # 1. Browse and select CellProfiler features
+    # --- Browse and select CellProfiler features ---
     message("Browsing CellProfiler features...")
     cp_features <- show_cpout_features(path)
     write.csv(cp_features, "cp_features.csv", row.names = FALSE)
     
-    # 2. Read CellProfiler output into SpatialExperiment and SingleCellExperiment
+    # --- Read CellProfiler output into SpatialExperiment and ---
     cur_path <- "."
     message("Reading CellProfiler output as SpatialExperiment...")
     spe <- read_cpout(cur_path, graph_file = "Object_relationships.csv")
@@ -75,7 +75,7 @@ process BIOC_IMCRTOOLS_IMC_DATA_IMPORT {
     sce <- read_cpout(cur_path, graph_file = "Object_relationships.csv", return_as = "sce")
     saveRDS(sce, "sce_cellprofiler.rds")
     
-    # 3. Read Steinbock output into SpatialExperiment and SingleCellExperiment
+    # --- Read Steinbock output into SpatialExperiment and ---
     cur_path <- "."
     message("Reading Steinbock output as SpatialExperiment...")
     spe_steinbock <- read_steinbock(cur_path)
@@ -85,7 +85,7 @@ process BIOC_IMCRTOOLS_IMC_DATA_IMPORT {
     sce_steinbock <- read_steinbock(cur_path, return_as = "sce")
     saveRDS(sce_steinbock, "sce_steinbock.rds")
     
-    # 4. Read raw TXT files into a CytoImageList object
+    # --- Read raw TXT files into a CytoImageList object ---
     path <- "."
     message("Reading raw TXT files...")
     cur_CytoImageList <- tryCatch({

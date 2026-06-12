@@ -35,6 +35,15 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rsbml", "graph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     library(graph)
     
     # ==========================================
-    # Stage 1: Read Input Data Defensively
+    # --- Read Input Data Defensively ---
     # ==========================================
     input_file <- "input.csv"
     if (file.exists(input_file)) {
@@ -74,7 +83,7 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Define and Write a Valid SBML Model
+    # --- Define and Write a Valid SBML Model ---
     # ==========================================
     # We programmatically define a valid SBML Level 2 Version 1 model representing
     # a toy glycolysis pathway to avoid using forbidden system.file demo data.
@@ -110,7 +119,7 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     writeLines(sbml_content, sbml_file)
     
     # ==========================================
-    # Stage 3: Read and Validate SBML Document
+    # --- Read and Validate SBML Document ---
     # ==========================================
     message("Reading SBML document...")
     doc <- rsbml_read(sbml_file, dom = FALSE)
@@ -123,7 +132,7 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     writeLines(validation_msg, "validation_report.txt")
     
     # ==========================================
-    # Stage 4: S4 DOM Conversion and Manipulation
+    # --- S4 DOM Conversion and Manipulation ---
     # ==========================================
     message("Converting to S4 DOM...")
     dom <- rsbml_dom(doc)
@@ -149,7 +158,7 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Graph Conversion and Network Analysis
+    # --- Graph Conversion and Network Analysis ---
     # ==========================================
     message("Converting SBML to Bioconductor graph...")
     g <- rsbml_graph(doc)
@@ -179,7 +188,7 @@ process BIOC_RSBML_SBML_ANALYSIS_PIPELINE {
     write.csv(node_summary, "node_properties.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Export SBML back to XML
+    # --- Export SBML back to XML ---
     # ==========================================
     message("Exporting SBML to XML...")
     xml_output <- rsbml_xml(doc)

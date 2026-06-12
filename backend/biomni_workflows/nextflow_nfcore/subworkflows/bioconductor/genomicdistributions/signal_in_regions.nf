@@ -59,7 +59,7 @@ process BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS {
     library("data.table")
     library("ggplot2")
     
-    # 1. Load query genomic ranges and the signal matrix from the working directory
+    # --- Load query genomic ranges and the signal matrix from the ---
     queryFile = "vistaEnhancers.bed.gz"
     query = rtracklayer::import(queryFile)
     
@@ -69,7 +69,7 @@ process BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS {
     exampleCellMatrixFile = "example_cell_matrix.txt"
     cellMatrix = data.table::fread(exampleCellMatrixFile)
     
-    # 2. Calculate summary signal across regions using calcSummarySignal
+    # --- Calculate summary signal across regions using ---
     op = calcSummarySignal(query, cellMatrix)
     op2 = calcSummarySignal(queryList, cellMatrix)
     
@@ -79,7 +79,7 @@ process BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS {
     saveRDS(op, "summary_signal_single.rds")
     saveRDS(op2, "summary_signal_list.rds")
     
-    # 3. Plot summary signal using plotSummarySignal and save to PDF
+    # --- Plot summary signal using plotSummarySignal and save to ---
     # Plot 1: Single query summary signal
     p1 = plotSummarySignal(op)
     ggplot2::ggsave("plot_summary_signal_single.pdf", plot = p1, width = 8, height = 6)

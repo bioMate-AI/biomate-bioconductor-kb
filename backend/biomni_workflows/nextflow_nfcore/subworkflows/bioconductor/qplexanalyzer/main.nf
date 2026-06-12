@@ -36,6 +36,15 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("qPLEXanalyzer", "MSnbase", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     library(limma)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ---------------------------------------------------------
     
     # Read input files
@@ -100,7 +109,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     exprs(MSnset_data) <- exprs(MSnset_data) + 1.01
     
     # ---------------------------------------------------------
-    # Stage 2: Quality Control Visualizations
+    # --- Quality Control Visualizations ---
     # ---------------------------------------------------------
     
     pdf("qc_plots.pdf", width = 8, height = 6)
@@ -116,7 +125,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 3: Data Normalization
+    # --- Data Normalization ---
     # ---------------------------------------------------------
     
     message("Normalizing data...")
@@ -131,7 +140,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     }
     
     # ---------------------------------------------------------
-    # Stage 4: Aggregation of Peptides to Proteins
+    # --- Aggregation of Peptides to Proteins ---
     # ---------------------------------------------------------
     
     message("Aggregating peptide intensities to protein level...")
@@ -158,7 +167,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 5: Optional Regression Analysis (for qPLEX-RIME)
+    # --- Optional Regression Analysis (for qPLEX-RIME) ---
     # ---------------------------------------------------------
     
     if ("IgG" %in% pData(MSnset_Pnorm)\$SampleGroup) {
@@ -176,7 +185,7 @@ process BIOC_QPLEXANALYZER_QPLEX_QUANTITATIVE_PROTEOMICS {
     }
     
     # ---------------------------------------------------------
-    # Stage 6: Differential Statistical Analysis
+    # --- Differential Statistical Analysis ---
     # ---------------------------------------------------------
     
     message("Performing differential statistical analysis...")

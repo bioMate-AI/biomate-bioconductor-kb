@@ -35,6 +35,15 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("recount3", "S4Vectors", "GenomicRanges", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     library(BiocGenerics)
     
     # ==========================================
-    # Stage 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     message("Stage 1: Loading input counts and coldata...")
     
@@ -78,7 +87,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     coldata_df <- coldata_df[common_samples, drop = FALSE]
     
     # ==========================================
-    # Stage 2: Construct RangedSummarizedExperiment
+    # --- Construct RangedSummarizedExperiment ---
     # ==========================================
     message("Stage 2: Constructing RangedSummarizedExperiment...")
     
@@ -102,7 +111,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     )
     
     # ==========================================
-    # Stage 3: Inject recount3-specific Metadata
+    # --- Inject recount3-specific Metadata ---
     # ==========================================
     message("Stage 3: Injecting recount3-specific QC metrics...")
     
@@ -116,7 +125,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     colData(rse)\$mapped_read_count <- colSums(counts_mat)
     
     # ==========================================
-    # Stage 4: Transform Counts using recount3
+    # --- Transform Counts using recount3 ---
     # ==========================================
     message("Stage 4: Transforming counts using recount3 methods...")
     
@@ -143,7 +152,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     })
     
     # ==========================================
-    # Stage 5: Downstream Diagnostics & PCA
+    # --- Downstream Diagnostics & PCA ---
     # ==========================================
     message("Stage 5: Performing PCA diagnostics...")
     
@@ -169,7 +178,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     dev.off()
     
     # ==========================================
-    # Stage 6: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     message("Stage 6: Writing output files...")
     

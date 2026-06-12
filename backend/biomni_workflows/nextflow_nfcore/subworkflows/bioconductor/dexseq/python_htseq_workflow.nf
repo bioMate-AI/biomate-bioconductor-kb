@@ -55,10 +55,10 @@ process BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW {
     # Load required libraries
     library(DEXSeq)
     
-    # 1. Define paths to count files and the flattened GFF file
+    # --- Define paths to count files and the flattened GFF file ---
     flattenedFile = "flattened.gff"
     
-    # 2. Create a sample metadata data frame
+    # --- Create a sample metadata data frame ---
     # Read the sample metadata table from the working directory
     sampleTable = read.csv("sample_table.csv", row.names = 1, stringsAsFactors = TRUE)
     
@@ -74,14 +74,14 @@ process BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW {
       }
     })
     
-    # 3. Build a DEXSeqDataSet using DEXSeqDataSetFromHTSeq()
+    # --- Build a DEXSeqDataSet using DEXSeqDataSetFromHTSeq() ---
     dxd = DEXSeqDataSetFromHTSeq(
        countFiles,
        sampleData=sampleTable,
        design= ~ sample + exon + condition:exon,
        flattenedfile=flattenedFile )
     
-    # 4. Run the complete analysis using the wrapper function DEXSeq()
+    # --- Run the complete analysis using the wrapper function ---
     dxr = DEXSeq(dxd)
     
     # Save meaningful results to output files

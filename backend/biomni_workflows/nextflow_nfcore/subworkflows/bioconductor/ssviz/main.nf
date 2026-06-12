@@ -55,7 +55,7 @@ process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {
     # Load required libraries
     library(ssviz)
     
-    # 1. Identify and load BAM files
+    # --- Identify and load BAM files ---
     # The pipeline reads exactly these files from the working directory
     file1 <- "file1.bam"
     file2 <- "file2.bam"
@@ -63,7 +63,7 @@ process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {
     ctrlbam <- readBam(file1)
     treatbam <- readBam(file2)
     
-    # 2. Extract collapsed read counts and append them to the data frame
+    # --- Extract collapsed read counts and append them to the data ---
     ctrl.count <- getCountMatrix(ctrlbam)
     treat.count <- getCountMatrix(treatbam)
     
@@ -77,7 +77,7 @@ process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {
     # We calculate this from the extracted counts column
     counts <- c(sum(ctrl.count\$counts, na.rm = TRUE), sum(treat.count\$counts, na.rm = TRUE))
     
-    # 3. Plot read length distribution for single or multiple datasets
+    # --- Plot read length distribution for single or multiple ---
     # Plot single dataset (Control)
     pdf("plot_distro_control.pdf")
     plotDistro(list(ctrl.count), type = "qwidth", samplenames = c("Control"), ncounts = counts[1])
@@ -88,7 +88,7 @@ process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {
     plotDistro(list(ctrl.count, treat.count), type = "qwidth", samplenames = c("Control", "Treatment"), ncounts = counts)
     dev.off()
     
-    # 4. Plot read density over a specific genomic region
+    # --- Plot read density over a specific genomic region ---
     region <- 'chr1:3015526-3080526'
     pdf("plot_region_density.pdf")
     plotRegion(list(ctrl.count), region = region)

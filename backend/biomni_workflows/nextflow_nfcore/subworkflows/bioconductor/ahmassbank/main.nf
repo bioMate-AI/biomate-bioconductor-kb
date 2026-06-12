@@ -35,6 +35,15 @@ process BIOC_AHMASSBANK_MASSBANK_METABOLITE_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationHub", "CompoundDb", "S4Vectors", "BiocGenerics", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +64,7 @@ process BIOC_AHMASSBANK_MASSBANK_METABOLITE_ANNOTATION {
     tolerance <- 0.02
     fdr_threshold <- 0.05
     
-    # Stage 1: Load Input Data
+    # --- Load Input Data ---
     message("Loading input metabolomics data...")
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
@@ -72,7 +81,7 @@ process BIOC_AHMASSBANK_MASSBANK_METABOLITE_ANNOTATION {
     intensity <- intensity[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # Stage 2: Retrieve MassBank CompDb via AnnotationHub
+    # --- Retrieve MassBank CompDb via AnnotationHub ---
     message("Retrieving MassBank CompDb database from AnnotationHub...")
     cmp_df <- tryCatch({
         ah <- AnnotationHub()
@@ -104,7 +113,7 @@ process BIOC_AHMASSBANK_MASSBANK_METABOLITE_ANNOTATION {
         )
     })
     
-    # Stage 3: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     message("Performing differential abundance analysis...")
     conditions <- as.factor(coldata\$condition)
     levels_cond <- levels(conditions)
@@ -136,7 +145,7 @@ process BIOC_AHMASSBANK_MASSBANK_METABOLITE_ANNOTATION {
         stringsAsFactors = FALSE
     )
     
-    # Stage 4: Annotate Features using MassBank CompDb
+    # --- Annotate Features using MassBank CompDb ---
     message("Matching features to MassBank annotations...")
     feature_ids <- stats_df\$feature_id
     
@@ -173,7 +182,7 @@ process BIOC_AHMASSBANK_MASSBANK_METABOLITE_ANNOTATION {
     write.csv(annotated_stats, "annotated_metabolites.csv", row.names = FALSE)
     message("Saved annotations to 'annotated_metabolites.csv'.")
     
-    # Stage 5: Visualization
+    # --- Visualization ---
     message("Generating volcano plot...")
     annotated_stats\$significant <- !is.is.na(annotated_stats\$adj_pvalue) & annotated_stats\$adj_pvalue < fdr_threshold
     annotated_stats\$label <- ifelse(annotated_stats\$significant & !is.na(annotated_stats\$name), annotated_stats\$name, "")

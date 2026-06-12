@@ -69,12 +69,12 @@ process BIOC_CHIPSEEKER_OVERLAP_TESTING_AND_GEO_MINING {
     
     txdb <- readRDS("txdb.rds")
     
-    # Stage 1: Shuffle genomic coordinates using shuffle
+    # --- Shuffle genomic coordinates using shuffle ---
     p <- GRanges(seqnames=c("chr1", "chr3"), ranges=IRanges(start=c(1, 100), end=c(50, 130)))
     shuffled_p <- shuffle(p, TxDb=txdb)
     saveRDS(shuffled_p, "shuffled_peaks.rds")
     
-    # Stage 2: Test overlap significance using enrichPeakOverlap
+    # --- Test overlap significance using enrichPeakOverlap ---
     overlap_results <- enrichPeakOverlap(
       queryPeak     = files[[5]], 
       targetPeak    = unlist(files[1:4]), 
@@ -86,14 +86,14 @@ process BIOC_CHIPSEEKER_OVERLAP_TESTING_AND_GEO_MINING {
     )
     write.csv(overlap_results, "enrich_peak_overlap_results.csv", row.names = FALSE)
     
-    # Stage 3: Query GEO species and genomes using getGEOspecies and getGEOgenomeVersion
+    # --- Query GEO species and genomes using getGEOspecies and ---
     geo_species <- getGEOspecies()
     write.csv(geo_species, "geo_species.csv", row.names = FALSE)
     
     geo_genomes <- getGEOgenomeVersion()
     write.csv(geo_genomes, "geo_genomes.csv", row.names = FALSE)
     
-    # Stage 4: Retrieve GEO metadata using getGEOInfo
+    # --- Retrieve GEO metadata using getGEOInfo ---
     hg19 <- getGEOInfo(genome="hg19", simplify=TRUE)
     print(head(hg19))
     write.csv(hg19, "geo_hg19_info.csv", row.names = FALSE)

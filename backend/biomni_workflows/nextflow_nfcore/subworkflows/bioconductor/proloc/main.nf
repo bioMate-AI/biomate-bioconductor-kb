@@ -72,7 +72,7 @@ process BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM {
       stop(paste("Error: Input file missing:", f3))
     }
     
-    # 1. Import quantitative and metadata files into an MSnSet object
+    # --- Import quantitative and metadata files into an MSnSet ---
     tan2009r1 <- readMSnSet(exprsFile = f1, featureDataFile = f2, phenoDataFile = f3, sep = ",")
     
     # Ensure the markers column exists
@@ -80,15 +80,15 @@ process BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM {
       stop("The feature metadata must contain a 'markers' column for supervised classification.")
     }
     
-    # 2. Normalize the expression data to sum to 1
+    # --- Normalize the expression data to sum to 1 ---
     itraqdata <- tan2009r1
     itraqnorm <- normalise(itraqdata, method = "sum")
     tan2009r1 <- itraqnorm
     
-    # 3. Optimize SVM hyperparameters (cost and sigma) via grid search and cross-validation
+    # --- Optimize SVM hyperparameters (cost and sigma) via grid ---
     params <- svmOptimisation(tan2009r1, times = 10, xval = 5, verbose = FALSE)
     
-    # 4. Train the classifier and predict localization of unknown proteins
+    # --- Train the classifier and predict localization of unknown ---
     tan2009r1 <- svmClassification(tan2009r1, params)
     
     # Write outputs

@@ -34,6 +34,15 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("genomeIntervals", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Import Data & Construct Objects
+    # --- Import Data & Construct Objects ---
     # ==========================================
     message("Stage 1: Importing BED intervals and metadata...")
     
@@ -108,7 +117,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     rownames(gi) <- annot\$name
     
     # ==========================================
-    # STAGE 2: Standardization & Size Calculation
+    # --- Standardization & Size Calculation ---
     # ==========================================
     message("Stage 2: Standardizing intervals and calculating sizes...")
     
@@ -120,7 +129,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     annotation(gi_closed)\$size <- sizes
     
     # ==========================================
-    # STAGE 3: Set Operations (Union & Complement)
+    # --- Set Operations (Union & Complement) ---
     # ==========================================
     message("Stage 3: Performing set operations (Union and Complement)...")
     
@@ -135,7 +144,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     annotation(gi_complement)\$type <- "complement_interval"
     
     # ==========================================
-    # STAGE 4: Overlap & Distance Analysis
+    # --- Overlap & Distance Analysis ---
     # ==========================================
     message("Stage 4: Analyzing overlaps and nearest-neighbor distances...")
     
@@ -182,7 +191,7 @@ process BIOC_GENOMEINTERVALS_GENOMIC_INTERVAL_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 5: Exporting Results
+    # --- Exporting Results ---
     # ==========================================
     message("Stage 5: Writing output files...")
     

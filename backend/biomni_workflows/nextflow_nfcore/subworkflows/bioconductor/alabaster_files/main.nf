@@ -35,6 +35,15 @@ process BIOC_ALABASTER_FILES_ALABASTER_FILE_STAGING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("alabaster.files", "alabaster.base", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,12 +53,12 @@ process BIOC_ALABASTER_FILES_ALABASTER_FILE_STAGING {
           }
         }
     
-    # Stage 1: Load required libraries defensively
+    # --- Load required libraries defensively ---
     library(alabaster.files)
     library(alabaster.base)
     library(S4Vectors)
     
-    # Stage 2: Read and parse the input file defensively
+    # --- Read and parse the input file defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
         stop(paste("Required input file missing:", input_file))
@@ -67,7 +76,7 @@ process BIOC_ALABASTER_FILES_ALABASTER_FILE_STAGING {
         raw_data <- raw_data[, -1, drop = FALSE]
     }
     
-    # Stage 3: Process the data based on its type (numeric matrix vs identifier list)
+    # --- Process the data based on its type (numeric matrix vs ---
     is_numeric_matrix <- all(sapply(raw_data, is.numeric)) && ncol(raw_data) > 0
     
     if (is_numeric_matrix) {
@@ -89,11 +98,11 @@ process BIOC_ALABASTER_FILES_ALABASTER_FILE_STAGING {
         )
     }
     
-    # Stage 4: Write processed data to a local intermediate file
+    # --- Write processed data to a local intermediate file ---
     intermediate_file <- "processed_features.csv"
     write.csv(processed_data, intermediate_file, row.names = TRUE)
     
-    # Stage 5: Stage the file using alabaster.files
+    # --- Stage the file using alabaster.files ---
     stage_dir <- "staged_assets"
     if (dir.exists(stage_dir)) {
         unlink(stage_dir, recursive = TRUE)
@@ -106,7 +115,7 @@ process BIOC_ALABASTER_FILES_ALABASTER_FILE_STAGING {
     # Save the FileReference object to the staging directory
     alabaster.base::saveObject(ref, stage_dir)
     
-    # Stage 6: Read the staged object back to verify round-trip integrity
+    # --- Read the staged object back to verify round-trip integrity ---
     message("Loading staged file reference back into R...")
     loaded_ref <- alabaster.base::readObject(stage_dir)
     
@@ -143,7 +152,7 @@ process BIOC_ALABASTER_FILES_ALABASTER_FILE_STAGING {
     
     message(paste("Verified file path resolved to:", loaded_path))
     
-    # Stage 7: Read the verified file and write final outputs
+    # --- Read the verified file and write final outputs ---
     final_data <- read.csv(loaded_path, row.names = 1, check.names = FALSE)
     write.csv(final_data, "output_matrix.csv", row.names = TRUE)
     

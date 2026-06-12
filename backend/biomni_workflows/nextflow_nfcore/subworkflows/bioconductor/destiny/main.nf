@@ -60,24 +60,24 @@ process BIOC_DESTINY_QPCR_DIFFUSION_MAP_AND_DPT {
     library(destiny)
     library(Biobase)
     
-    # 1. Import raw Ct data and convert to ExpressionSet
+    # --- Import raw Ct data and convert to ExpressionSet ---
     raw_ct <- read_xls('mmc4.xls', 'Sheet1')
     ct <- as.ExpressionSet(as.data.frame(raw_ct))
     
-    # 2. Clean data by filtering out undivided cells and high Ct values
+    # --- Clean data by filtering out undivided cells and high Ct ---
     num_cells <- gsub('^(\\d+)C.*\$', '\\1', ct\$Cell)
     ct\$num_cells <- as.integer(num_cells)
     have_duplications <- ct\$num_cells > 1
     normal_vals <- apply(exprs(ct), 2, function(smp) all(smp <= 28))
     cleaned_ct <- ct[, have_duplications & normal_vals]
     
-    # 3. Normalize data using housekeeper genes
+    # --- Normalize data using housekeeper genes ---
     housekeepers <- c('Actb', 'Gapdh')
     normalizations <- colMeans(exprs(cleaned_ct)[housekeepers, ])
     guo_norm <- cleaned_ct
     exprs(guo_norm) <- exprs(guo_norm) - normalizations
     
-    # 4. Calculate Limit of Detection (LoD) from dilution series
+    # --- Calculate Limit of Detection (LoD) from dilution series ---
     dilutions <- read_xls('mmc6.xls', 1L)
     dilutions\$Cell <- NULL
     get_lod <- function(gene) gene[[max(which(gene != 28))]]
@@ -89,13 +89,13 @@ process BIOC_DESTINY_QPCR_DIFFUSION_MAP_AND_DPT {
     guo <- guo_norm
     exprs(guo)[exprs(cleaned_ct) >= 28] <- lod_norm
     
-    # 5. Create DiffusionMap with censoring model
+    # --- Create DiffusionMap with censoring model ---
     thresh_dm <- DiffusionMap(guo, censor_val = lod_norm, censor_range = c(lod_norm, max_cycles_norm), verbose = FALSE)
     
-    # 6. Calculate Diffusion Pseudo Time (DPT)
+    # --- Calculate Diffusion Pseudo Time (DPT) ---
     dpt <- DPT(thresh_dm)
     
-    # 7. Plot diffusion maps and DPT branching paths to PDF
+    # --- Plot diffusion maps and DPT branching paths to PDF ---
     pdf("destiny_plots.pdf", width = 10, height = 8)
     plot(thresh_dm, 1:2, col_by = 'num_cells', legend_main = 'Cell stage')
     plot(dpt)

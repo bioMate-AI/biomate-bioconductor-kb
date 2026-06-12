@@ -36,6 +36,15 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("paircompviz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +64,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     num_features <- 6
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found.")
@@ -81,7 +90,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     }
     
     # ==========================================
-    # Stage 2: Feature Selection & Reshaping
+    # --- Feature Selection & Reshaping ---
     # ==========================================
     # Select the top highly variable features to keep the Hasse diagram readable
     feature_variances <- apply(data_matrix, 1, var, na.rm = TRUE)
@@ -97,7 +106,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     df_long <- na.omit(df_long)
     
     # ==========================================
-    # Stage 3: Pairwise Comparisons & CSV Export
+    # --- Pairwise Comparisons & CSV Export ---
     # ==========================================
     # Perform pairwise t-test
     pairwise_results <- pairwise.t.test(
@@ -117,7 +126,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     write.csv(p_df, "pairwise_pvalues.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Hasse Diagram Visualization (paircomp)
+    # --- Hasse Diagram Visualization (paircomp) ---
     # ==========================================
     # Helper function to safely generate and save Hasse diagrams
     generate_hasse_pdf <- function(filename, compress, title) {
@@ -158,7 +167,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     )
     
     # ==========================================
-    # Stage 5: Manual Hasse Diagram Construction
+    # --- Manual Hasse Diagram Construction ---
     # ==========================================
     # Demonstrate manual construction using transReduct and hasse
     pdf("hasse_diagram_manual.pdf", width = 8, height = 8)

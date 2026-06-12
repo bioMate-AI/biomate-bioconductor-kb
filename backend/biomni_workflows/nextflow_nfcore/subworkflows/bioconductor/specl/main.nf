@@ -73,12 +73,12 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
       RDATA_LIBRARY_FILE = "specLibrary.RData"
     )
     
-    # 1. Read the filtered and redundant BiblioSpec SQLite files
+    # --- Read the filtered and redundant BiblioSpec SQLite files ---
     message("Reading BiblioSpec SQLite files...")
     BLIB_FILTERED <- read.bibliospec(INPUT\$BLIB_FILTERED_FILE) 
     BLIB_REDUNDANT <- read.bibliospec(INPUT\$BLIB_REDUNDANT_FILE) 
     
-    # 2. Read the FASTA file and 3. Annotate protein IDs to the filtered PSMs
+    # --- Read the FASTA file and 3. Annotate protein IDs to the ---
     if(INPUT\$ANNOTATE){
       message("Reading FASTA database and annotating protein IDs...")
       FASTA <- read.fasta(INPUT\$FASTA_FILE, 
@@ -89,7 +89,7 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
                                            fasta = FASTA)
     }
     
-    # 4. Define the fragment ion function
+    # --- Define the fragment ion function ---
     fragmentIonFunction_specL <- function (b, y) {
       Hydrogen <- 1.007825
       Oxygen <- 15.994915
@@ -101,7 +101,7 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
       return( cbind(b1_, y1_, b2_, y2_) )
     }
     
-    # 5. Generate the SWATH ion library
+    # --- Generate the SWATH ion library ---
     message("Generating SWATH ion library...")
     specLibrary <- specL::genSwathIonLib(
       data = BLIB_FILTERED,
@@ -115,7 +115,7 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
       iRT = INPUT\$NORMRTPEPTIDES
     )
     
-    # 6. Summarize and plot the generated library
+    # --- Summarize and plot the generated library ---
     message("Writing summary and generating plots...")
     # Save summary to a text file
     sink("specLibrary_summary.txt")
@@ -132,7 +132,7 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
     }
     dev.off()
     
-    # 7. Export the library to a Spectronaut-compatible text file and save RData
+    # --- Export the library to a Spectronaut-compatible text file ---
     message("Exporting spectral library...")
     write.spectronaut(specLibrary, file = INPUT\$OUTPUT_LIBRARY_FILE)
     save(specLibrary, file = INPUT\$RDATA_LIBRARY_FILE)

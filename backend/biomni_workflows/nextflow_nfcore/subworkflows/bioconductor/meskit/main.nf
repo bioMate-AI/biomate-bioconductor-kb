@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load somatic mutations, clinical data, and CCF data using readMaf to create a Maf object. 2. Classify mutations based on shared pa
+//  * 1. [Visualization & Output] Load somatic mutations, clinical data, and CCF data using
+//  * 2. [Visualization & Output] Classify mutations based on shared patterns using
+//  * 3. [Visualization & Output] Visualize the mutational landscape of driver genes across
+//  * 4. [Visualization & Output] Read copy number segmentation and GISTIC2 files using
+//  * 5. [Visualization & Output] Visualize the CNA landscape across samples using plotCNA
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_MESKIT_DATA_IMPORT_AND_PROFILING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MesKit")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -60,7 +73,7 @@ process BIOC_MESKIT_DATA_IMPORT_AND_PROFILING {
         amp.genes <- "COREAD_amp_genes.conf_99.txt"
         del.genes <- "COREAD_del_genes.conf_99.txt"
         
-        # 1. Load somatic mutations, clinical data, and CCF data using readMaf to create a Maf object
+        # --- Load somatic mutations, clinical data, and CCF data using ---
         maf <- readMaf(mafFile = maf.File,
                        ccfFile = ccf.File,
                        clinicalFile  = clin.File,
@@ -69,19 +82,19 @@ process BIOC_MESKIT_DATA_IMPORT_AND_PROFILING {
         # Save Maf object as RDS
         saveRDS(maf, file = "maf_object.rds")
         
-        # 2. Classify mutations based on shared patterns using classifyMut
+        # --- Classify mutations based on shared patterns using ---
         driverGene <- as.character(read.table(driverGene.file)\$V1)
         mut.class <- classifyMut(maf, class =  "SP", patient.id = 'V402')
         
         # Save classified mutations to CSV
         write.csv(mut.class, file = "mut_class_V402.csv", row.names = FALSE)
         
-        # 3. Visualize the mutational landscape of driver genes across regions using plotMutProfile
+        # --- Visualize the mutational landscape of driver genes across ---
         pdf("mut_profile_landscape.pdf", width = 11, height = 6.5)
         print(plotMutProfile(maf, class =  "SP", geneList = driverGene, use.tumorSampleLabel = TRUE))
         dev.off()
         
-        # 4. Read copy number segmentation and GISTIC2 files using readSegment
+        # --- Read copy number segmentation and GISTIC2 files using ---
         seg <- readSegment(segFile = segCN, gisticAllLesionsFile = all.lesions,
                            gisticAmpGenesFile = amp.genes, gisticDelGenesFile = del.genes)
         
@@ -89,7 +102,7 @@ process BIOC_MESKIT_DATA_IMPORT_AND_PROFILING {
         write.csv(seg\$V402, file = "seg_V402.csv", row.names = FALSE)
         saveRDS(seg, file = "segment_object.rds")
         
-        # 5. Visualize the CNA landscape across samples using plotCNA
+        # --- Visualize the CNA landscape across samples using plotCNA ---
         pdf("cna_landscape.pdf", width = 10, height = 5)
         print(plotCNA(seg, patient.id = c("V402", "V750", "V824"), use.tumorSampleLabel = TRUE))
         dev.off()

@@ -56,10 +56,10 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     library(OTUbase)
     library(vegan)
     
-    # 1. Define directory path (working directory where user files are located)
+    # --- Define directory path (working directory where user files ---
     dirPath <- "."
     
-    # 2. Read OTU data and metadata using readOTUset
+    # --- Read OTU data and metadata using readOTUset ---
     soginOTU <- readOTUset(
       dirPath = dirPath,
       level = "0.03",
@@ -72,7 +72,7 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     # Print object summary
     print(soginOTU)
     
-    # 3. Access sequence and sample IDs
+    # --- Access sequence and sample IDs ---
     cat("--- Sequence IDs ---\n")
     print(head(id(soginOTU)))
     
@@ -88,7 +88,7 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     cat("--- OTU IDs ---\n")
     print(head(otuID(soginOTU)))
     
-    # 4. Generate OTU abundance table
+    # --- Generate OTU abundance table ---
     abundOTU <- abundance(soginOTU, weighted = FALSE, collab = 'Site')
     cat("--- Abundance Table ---\n")
     print(head(abundOTU))
@@ -96,7 +96,7 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     # Save abundance table to CSV
     write.csv(abundOTU, file = "abundance_table.csv", row.names = TRUE)
     
-    # 5. Estimate richness using vegan::estimateR
+    # --- Estimate richness using vegan::estimateR ---
     estrichOTU <- apply(abundOTU, 2, estimateR)
     cat("--- Richness Estimates ---\n")
     print(estrichOTU)
@@ -104,12 +104,12 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     # Save richness estimates to CSV
     write.csv(estrichOTU, file = "richness_estimates.csv", row.names = TRUE)
     
-    # 6. Cluster samples (plots a dendrogram, save to PDF)
+    # --- Cluster samples (plots a dendrogram, save to PDF) ---
     pdf("sample_clustering.pdf", width = 8, height = 6)
     clusterSamples(soginOTU, distmethod = 'jaccard', clustermethod = 'complete', collab = 'Site')
     dev.off()
     
-    # 7. Subset the OTU set
+    # --- Subset the OTU set ---
     # Wrapped in tryCatch to handle cases where user-provided metadata/groups 
     # might not contain these exact sample IDs.
     tryCatch({

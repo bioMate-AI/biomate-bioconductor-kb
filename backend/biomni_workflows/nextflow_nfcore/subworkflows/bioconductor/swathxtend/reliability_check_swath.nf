@@ -70,12 +70,12 @@ process BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH {
       }
     }
     
-    # 1. Check library coverage using reliabilityCheckLibrary
+    # --- Check library coverage using reliabilityCheckLibrary ---
     message("Running reliabilityCheckLibrary...")
     res_lib <- reliabilityCheckLibrary(seed_lib_file, ext_lib_file)
     write.csv(res_lib, "reliability_check_library_results.csv", row.names = FALSE)
     
-    # 2. Run comprehensive SWATH results check using reliabilityCheckSwath
+    # --- Run comprehensive SWATH results check using ---
     # This function generates plots, so we wrap it in a PDF device to capture them.
     message("Running reliabilityCheckSwath...")
     pdf("reliability_check_swath_plots.pdf", width = 8, height = 8)
@@ -83,12 +83,12 @@ process BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH {
     dev.off()
     saveRDS(res_swath, "reliability_check_swath_results.rds")
     
-    # 3. Read FDR worksheets using readWorkbook
+    # --- Read FDR worksheets using readWorkbook ---
     message("Reading FDR worksheets...")
     fdr.seed = readWorkbook(swath_seed_file, sheet='FDR')
     fdr.ext = readWorkbook(swath_ext_file, sheet='FDR')
     
-    # 4. Calculate FDR pass statistics using fdr.crit
+    # --- Calculate FDR pass statistics using fdr.crit ---
     message("Calculating FDR pass statistics...")
     fdr.seed = fdr.crit(fdr.seed)
     fdr.ext = fdr.crit(fdr.ext)
@@ -101,7 +101,7 @@ process BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH {
     print("Head of extended FDR statistics:")
     print(head(fdr.ext[, c(1:2, ncol(fdr.ext))]))
     
-    # 5. Read Peptide worksheets using readWorkbook
+    # --- Read Peptide worksheets using readWorkbook ---
     message("Reading Peptide worksheets...")
     swa.seed = readWorkbook(swath_seed_file, 2)
     swa.ext = readWorkbook(swath_ext_file, 2)
@@ -110,7 +110,7 @@ process BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH {
     fdr.seed = fdr.seed[fdr.seed\$nfdr.pass > 0,]
     fdr.ext = fdr.ext[fdr.ext\$nfdr.pass > 0,]
     
-    # 6. Calculate quantification accuracy/consistency using quantification.accuracy
+    # --- Calculate quantification accuracy/consistency using ---
     message("Calculating quantification accuracy...")
     res_quant = quantification.accuracy(swa.seed[fdr.seed\$nfdr.pass >= 1,], 
                                         swa.ext[fdr.ext\$nfdr.pass >= 1,], 

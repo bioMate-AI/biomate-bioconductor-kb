@@ -35,6 +35,15 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RNAmodR", "RNAmodR.AlkAnilineSeq", "Biostrings", "Rsamtools", "GenomicFeatures", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Setup Metadata
+    # --- Read Input Data & Setup Metadata ---
     # ==========================================
     message("Reading input files...")
     counts <- read.csv("counts.csv", row.names = 1)
@@ -84,7 +93,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     replicates <- ave(seq_along(mapped_conditions), mapped_conditions, FUN = seq_along)
     
     # ==========================================
-    # STAGE 2: Generate Reference FASTA & GFF3
+    # --- Generate Reference FASTA & GFF3 ---
     # ==========================================
     message("Generating dummy reference FASTA and GFF3 files...")
     # Create dummy sequences of length 100 for the top genes
@@ -108,7 +117,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     writeLines(gff_lines, "dummy.gff3")
     
     # ==========================================
-    # STAGE 3: Generate Dummy BAM Files
+    # --- Generate Dummy BAM Files ---
     # ==========================================
     message("Generating dummy BAM files from count matrix...")
     create_dummy_sam <- function(sam_path, gene_ids, num_reads) {
@@ -162,7 +171,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     write.csv(targets, "targets.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Run RNAmodR AlkAnilineSeq Pipeline
+    # --- Run RNAmodR AlkAnilineSeq Pipeline ---
     # ==========================================
     message("Running ModAlkAnilineSeq analysis...")
     mods_df <- data.frame(

@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare expression matrix, group IDs, and comparison group matrix. 2. Fit correlation motif models for a range of motif numbers (K
+//  * 1. [Visualization & Output] Prepare expression matrix, group IDs, and comparison
+//  * 2. [Visualization & Output] Fit correlation motif models for a range of motif numbers
+//  * 3. [Visualization & Output] Evaluate model fit using BIC/AIC values and plot
+//  * 4. [Visualization & Output] Visualize the discovered correlation motifs and their
+//  * 5. [Visualization & Output] Extract posterior probabilities of differential
+//  * 6. [Visualization & Output] Rank genes in each study based on posterior probabilities
+//  * 7. [Visualization & Output] Fit alternative models (all, separate, or full motifs)
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Cormotif")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -89,7 +104,7 @@ process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
       stop(paste("File not found or could not be read:", base_name))
     }
     
-    # 1. Prepare expression matrix, group IDs, and comparison group matrix
+    # --- Prepare expression matrix, group IDs, and comparison ---
     exprs.simu2 <- read_file("exprs.simu2")
     exprs.simu2 <- as.matrix(exprs.simu2)
     
@@ -109,11 +124,11 @@ process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
     simu2_compgroup <- read_file("simu2_compgroup")
     simu2_compgroup <- as.matrix(simu2_compgroup)
     
-    # 2. Fit correlation motif models for a range of motif numbers (K) using cormotiffit
+    # --- Fit correlation motif models for a range of motif numbers ---
     motif.fitted <- cormotiffit(exprs.simu2, simu2_groupid, simu2_compgroup,
                                 K=1:5, max.iter=1000, BIC=TRUE)
     
-    # 3. Evaluate model fit using BIC/AIC values and plot information criteria using plotIC
+    # --- Evaluate model fit using BIC/AIC values and plot ---
     motif.fitted\$bic
     write.csv(motif.fitted\$bic, "motif_fitted_bic.csv", row.names = FALSE)
     
@@ -121,12 +136,12 @@ process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
     plotIC(motif.fitted)
     dev.off()
     
-    # 4. Visualize the discovered correlation motifs and their frequencies using plotMotif
+    # --- Visualize the discovered correlation motifs and their ---
     pdf("plot_motif.pdf")
     plotMotif(motif.fitted)
     dev.off()
     
-    # 5. Extract posterior probabilities of differential expression and identify active patterns
+    # --- Extract posterior probabilities of differential ---
     head(motif.fitted\$bestmotif\$p.post)
     write.csv(motif.fitted\$bestmotif\$p.post, "posterior_probabilities.csv", row.names = TRUE)
     
@@ -134,7 +149,7 @@ process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
     head(dif.pattern.simu2)
     write.csv(dif.pattern.simu2, "differential_patterns.csv", row.names = TRUE)
     
-    # 6. Rank genes in each study based on posterior probabilities using generank
+    # --- Rank genes in each study based on posterior probabilities ---
     topgenelist <- generank(motif.fitted\$bestmotif\$p.post)
     head(topgenelist)
     write.csv(topgenelist, "top_gene_list.csv", row.names = FALSE)
@@ -142,7 +157,7 @@ process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
     # Save the main fitted model object
     saveRDS(motif.fitted, "motif_fitted.rds")
     
-    # 7. Fit alternative models (all, separate, or full motifs) using cormotiffitall, cormotiffitsep, or cormotiffitfull
+    # --- Fit alternative models (all, separate, or full motifs) ---
     motif.fitted.all <- cormotiffitall(exprs.simu2, simu2_groupid, simu2_compgroup, max.iter=1)
     saveRDS(motif.fitted.all, "motif_fitted_all.rds")
     

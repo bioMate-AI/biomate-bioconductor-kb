@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate sample normalization factors using MedianNorm. 2. Assign isoforms to uncertainty groups (Ig groups) using GetNg. 3. Gene
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run EBSeq Multi-Condition Workflow
+//  * 3. [Core Analysis] Diagnostics and Visualization
+//  * 4. [Core Analysis] Write Output Files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EBSeq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +63,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         library(EBSeq)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         # Read raw isoform counts matrix
@@ -68,7 +80,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         Conditions <- as.character(cond_df[[1]])
         
         # ==========================================
-        # 2. Run EBSeq Multi-Condition Workflow
+        # --- Run EBSeq Multi-Condition Workflow ---
         # ==========================================
         
         # Calculate sample normalization factors
@@ -91,7 +103,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         IsoMultiFC=GetMultiFC(IsoMultiOut)
         
         # ==========================================
-        # 3. Diagnostics and Visualization
+        # --- Diagnostics and Visualization ---
         # ==========================================
         
         # Save diagnostic plots to PDF
@@ -102,7 +114,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         dev.off()
         
         # ==========================================
-        # 4. Write Output Files
+        # --- Write Output Files ---
         # ==========================================
         
         # Save posterior probabilities matrix

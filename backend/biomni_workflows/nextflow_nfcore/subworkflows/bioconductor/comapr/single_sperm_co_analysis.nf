@@ -77,7 +77,7 @@ process BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS {
       file.copy("sample_chr_viSegInfo.txt", paste0("s2_", chr, "_viSegInfo.txt"), overwrite = TRUE)
     }
     
-    # 1. Perform quality control on cells and chromosomes using perCellChrQC
+    # --- Perform quality control on cells and chromosomes using ---
     pcQC <- perCellChrQC(sampleName="s1",chroms=c("chr1"),
                          path=paste0(demo_path,"/"),
                          barcodeFile=NULL)
@@ -85,7 +85,7 @@ process BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS {
     # Save QC results
     write.csv(as.data.frame(pcQC), "per_cell_chr_qc.csv", row.names = FALSE)
     
-    # 2. Read and parse haplotype states while filtering low-confidence crossovers using readHapState
+    # --- Read and parse haplotype states while filtering ---
     s1_rse_state <- readHapState("s1",chroms=c("chr1","chr2"),
                                  path=demo_path,barcodeFile=NULL,
                                  minSNP = 0,
@@ -107,17 +107,17 @@ process BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS {
     
     colData(s2_rse_state)\$sampleGroup <- "s2"
     
-    # 3. Combine haplotype states from multiple samples using combineHapState
+    # --- Combine haplotype states from multiple samples using ---
     twoSample <- combineHapState(s1_rse_state,
                                  s2_rse_state)
     
     saveRDS(twoSample, "combined_hap_state.rds")
     
-    # 4. Count crossovers for SNP intervals using countCOs
+    # --- Count crossovers for SNP intervals using countCOs ---
     cocounts <- countCOs(twoSample)
     saveRDS(cocounts, "crossover_counts.rds")
     
-    # 5. Calculate overall or group-specific genetic distances using calGeneticDist
+    # --- Calculate overall or group-specific genetic distances ---
     dist_gr_overall <- calGeneticDist(co_count = cocounts, mapping_fun = "k")
     saveRDS(dist_gr_overall, "genetic_distances_overall.rds")
     
@@ -129,7 +129,7 @@ process BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS {
     p_gr <- granges(dist_gr)
     mcols(p_gr) <- rowData(dist_gr)\$kosambi
     
-    # 6. Plot whole-genome or chromosome-specific genetic distances using plotWholeGenome and plotGeneticDist
+    # --- Plot whole-genome or chromosome-specific genetic ---
     pdf("whole_genome_genetic_distances.pdf", width = 10, height = 6)
     plotWholeGenome(p_gr)
     dev.off()
@@ -138,7 +138,7 @@ process BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS {
     plotGeneticDist(p_gr,chr = "chr1",cumulative = TRUE)
     dev.off()
     
-    # 7. Test for statistical differences between groups using bootstrapDist or permuteDist
+    # --- Test for statistical differences between groups using ---
     set.seed(100)
     bootsDiff <- bootstrapDist(co_gr = cocounts,B=10,
                                group_by = "sampleGroup")

@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the variability model using varFit, specifying the design and coef of interest. 2. Extract top differentially variable CpGs us
+//  * 1. [Core Analysis] Fit the variability model using varFit, specifying the
+//  * 2. [Core Analysis] Extract top differentially variable CpGs using topVar
 
 nextflow.enable.dsl = 2
 
@@ -94,11 +95,11 @@ process BIOC_MISSMETHYL_DIFF_VAR_METHYLATION {
                 
                 # --- DOCUMENTED WORKFLOW ---
                 
-                # 1. Fit the variability model using varFit, specifying the design and coef of interest.
+                # --- Fit the variability model using varFit, specifying the ---
                 coef_interest <- ncol(design)
                 fitvar <- varFit(Mval, design = design, coef = c(1, coef_interest))
                 
-                # 2. Extract top differentially variable CpGs using topVar.
+                # --- Extract top differentially variable CpGs using topVar ---
                 topDV <- topVar(fitvar, coef=coef_interest)
                 
                 # 3. (Alternative) Test specific contrasts using contrasts.varFit.

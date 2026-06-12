@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate the resolution metrics between all pairs of sub-cellular niches using QSep. 2. Visualize the resolution distances using 
+//  * 1. [Visualization & Output] Load User Input Data
+//  * 2. [Visualization & Output] Calculate resolution metrics using QSep
+//  * 3. [Visualization & Output] Visualize resolution distances using levelPlot and plot
+//  * 4. [Visualization & Output] Convert standard marker character vector into binary
+//  * 5. [Visualization & Output] Compute normalized pairwise Euclidean distances
+//  * 6. [Visualization & Output] Plot the normalized distances
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +66,7 @@ process BIOC_PROLOC_SUBCELLULAR_RESOLUTION_ASSESSMENT {
         library(MSnbase)
         
         # -------------------------------------------------------------------------
-        # Stage 0: Load User Input Data
+        # --- Load User Input Data ---
         # -------------------------------------------------------------------------
         # Read the spatial proteomics data from the working directory
         input_file <- "spatial_proteomics_data.rds"
@@ -72,7 +77,7 @@ process BIOC_PROLOC_SUBCELLULAR_RESOLUTION_ASSESSMENT {
         hyperLOPIT2015 <- readRDS(input_file)
         
         # -------------------------------------------------------------------------
-        # Stage 1: Calculate resolution metrics using QSep
+        # --- Calculate resolution metrics using QSep ---
         # -------------------------------------------------------------------------
         hlq <- QSep(hyperLOPIT2015)
         
@@ -92,7 +97,7 @@ process BIOC_PROLOC_SUBCELLULAR_RESOLUTION_ASSESSMENT {
         })
         
         # -------------------------------------------------------------------------
-        # Stage 2: Visualize resolution distances using levelPlot and plot
+        # --- Visualize resolution distances using levelPlot and plot ---
         # -------------------------------------------------------------------------
         pdf("resolution_plots.pdf", width = 10, height = 8)
         levelPlot(hlq)
@@ -100,7 +105,7 @@ process BIOC_PROLOC_SUBCELLULAR_RESOLUTION_ASSESSMENT {
         dev.off()
         
         # -------------------------------------------------------------------------
-        # Stage 3: Convert standard marker character vector into binary marker matrix
+        # --- Convert standard marker character vector into binary ---
         # -------------------------------------------------------------------------
         hld <- mrkVecToMat(hyperLOPIT2015, fcol = "markers", mfcol = "MM")
         
@@ -108,7 +113,7 @@ process BIOC_PROLOC_SUBCELLULAR_RESOLUTION_ASSESSMENT {
         saveRDS(hld, "spatial_proteomics_binary_markers.rds")
         
         # -------------------------------------------------------------------------
-        # Stage 4: Compute normalized pairwise Euclidean distances
+        # --- Compute normalized pairwise Euclidean distances ---
         # -------------------------------------------------------------------------
         dd <- clustDist(hld, fcol = "MM", k = 1:3, n = 5, verbose = FALSE)
         
@@ -116,7 +121,7 @@ process BIOC_PROLOC_SUBCELLULAR_RESOLUTION_ASSESSMENT {
         saveRDS(dd, "clust_dist_results.rds")
         
         # -------------------------------------------------------------------------
-        # Stage 5: Plot the normalized distances
+        # --- Plot the normalized distances ---
         # -------------------------------------------------------------------------
         pdf("cluster_tightness_plots.pdf", width = 10, height = 8)
         plot(dd)

@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare a tensor from the list of matrices using prepareTensorfromList. 2. Wrap the tensor in a SummarizedExperiment-like object u
+//  * 1. [Visualization & Output] Prepare a tensor from the list of matrices
+//  * 2. [Visualization & Output] Wrap the tensor in a SummarizedExperiment-like object
+//  * 3. [Visualization & Output] Compute HOSVD
+//  * 4. [Visualization & Output] Select singular value vectors
+//  * 5. [Visualization & Output] Select features across individual omics profiles
+//  * 6. [Visualization & Output] Extract, print, and save selected features
 
 nextflow.enable.dsl = 2
 
@@ -63,10 +68,10 @@ process BIOC_TDBASEDUFEADV_MULTI_OMICS_SHARING_SAMPLES {
     CLL_data <- readRDS("CLL_data.rds")
     CLL_covariates <- readRDS("CLL_covariates.rds")
     
-    # 1. Prepare a tensor from the list of matrices
+    # --- Prepare a tensor from the list of matrices ---
     Z <- prepareTensorfromList(CLL_data, 10L)
     
-    # 2. Wrap the tensor in a SummarizedExperiment-like object
+    # --- Wrap the tensor in a SummarizedExperiment-like object ---
     Z <- PrepareSummarizedExperimentTensor(
       feature = character("1"),
       sample = array(colnames(CLL_data[[1]]), 1),
@@ -74,18 +79,18 @@ process BIOC_TDBASEDUFEADV_MULTI_OMICS_SHARING_SAMPLES {
       sampleData = list(CLL_covariates[, 1])
     )
     
-    # 3. Compute HOSVD
+    # --- Compute HOSVD ---
     HOSVD <- computeHosvd(Z, scale = FALSE)
     
-    # 4. Select singular value vectors
+    # --- Select singular value vectors ---
     cond <- list(NULL, attr(Z, "sampleData")[[1]], seq_along(CLL_data))
     input_all <- selectSingularValueVectorLarge(HOSVD, cond, input_all = c(1, 1))
     
-    # 5. Select features across individual omics profiles
+    # --- Select features across individual omics profiles ---
     HOSVD\$U[[1]] <- HOSVD\$U[[2]]
     index_all <- selectFeatureSquare(HOSVD, input_all, CLL_data, de = rep(0.1, length(CLL_data)), interact = FALSE)
     
-    # 6. Extract, print, and save selected features
+    # --- Extract, print, and save selected features ---
     for (id in seq_along(CLL_data)) {
       attr(Z, "feature") <- rownames(CLL_data[[id]])
       features_table <- tableFeatures(Z, index_all[[id]])

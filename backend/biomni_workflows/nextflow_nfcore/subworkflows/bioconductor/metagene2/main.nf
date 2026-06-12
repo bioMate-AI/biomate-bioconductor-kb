@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize metagene2 object; 2. Define experimental design; 3. Define region metadata; 4. Produce metagene plot
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Initialize metagene2 object
+//  * 3. [Visualization & Output] Define experimental design dynamically based on available
+//  * 4. [Visualization & Output] Define region metadata
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("metagene2", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +63,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     library(metagene2)
     library(GenomicRanges)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # Read BAM files
     bam_files <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
     if (length(bam_files) == 0) {
@@ -70,7 +82,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
       }
     }
     
-    # 2. Initialize metagene2 object
+    # --- Initialize metagene2 object ---
     mg <- metagene2\$new(regions = regions, 
                        bam_files = bam_files, 
                        assay='chipseq')
@@ -80,7 +92,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     print(mg\$produce_metagene(title = "Demo metagene plot"))
     dev.off()
     
-    # 3. Define experimental design dynamically based on available BAM files
+    # --- Define experimental design dynamically based on available ---
     n_bams <- length(bam_files)
     if (n_bams >= 3) {
       align1_vals <- rep(0, n_bams)
@@ -106,7 +118,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     print(mg\$produce_metagene(design=example_design))
     dev.off()
     
-    # 4. Define region metadata
+    # --- Define region metadata ---
     # Extract post-processed GRanges to build metadata
     regions_gr <- mg\$get_regions()
     

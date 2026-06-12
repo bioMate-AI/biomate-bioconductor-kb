@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the markers pool. 2. Run filter_subset_sig() on the list of datasets, specifying the target group, combination method (e.g.
+//  * 1. [Input & Preparation] Load User Inputs
+//  * 2. [Input & Preparation] Dynamically Determine Parameters from the First Dataset
+//  * 3. [Input & Preparation] Run the Documented Workflow Call
+//  * 4. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +40,15 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mastR", "edgeR", "GSEABase", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +64,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
     library(GSEABase)
     library(Biobase)
     
-    # 1. Load User Inputs
+    # --- Load User Inputs ---
     # Load the dataset list
     env_datasets <- new.env()
     load("user_dataset_list.RData", envir = env_datasets)
@@ -72,7 +84,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
       markers_vec <- as.character(markers_obj)
     }
     
-    # 2. Dynamically Determine Parameters from the First Dataset
+    # --- Dynamically Determine Parameters from the First Dataset ---
     obj1 <- dataset_list[[1]]
     if (inherits(obj1, "ExpressionSet")) {
       pdata <- Biobase::pData(obj1)
@@ -101,7 +113,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
       gene_id_type <- "SYMBOL"
     }
     
-    # 3. Run the Documented Workflow Call
+    # --- Run the Documented Workflow Call ---
     set.seed(123)
     m_ct_m <- filter_subset_sig(
       data = dataset_list,
@@ -116,7 +128,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
       summary = FALSE
     )
     
-    # 4. Save Outputs
+    # --- Save Outputs ---
     # Save the aggregated signature as an RDS object
     saveRDS(m_ct_m, file = "aggregated_signature.rds")
     

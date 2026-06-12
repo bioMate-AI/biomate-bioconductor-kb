@@ -61,7 +61,7 @@ process BIOC_MONALISA_BINARY_MOTIF_ENRICHMENT {
     library(rtracklayer)
     library(Biostrings)
     
-    # 1. Read user input files
+    # --- Read user input files ---
     unchanged_gr <- rtracklayer::import("unchanged_peaks.bed", format = "bed")
     upregulated_gr <- rtracklayer::import("upregulated_peaks.bed", format = "bed")
     
@@ -87,7 +87,7 @@ process BIOC_MONALISA_BINARY_MOTIF_ENRICHMENT {
     seSel <- SummarizedExperiment(assays = list(dummy = matrix(0, nrow = length(pwms), ncol = 1)))
     rownames(seSel) <- names(pwms)
     
-    # 2. Execute the documented workflow EXACTLY as shown
+    # --- Execute the documented workflow EXACTLY as shown ---
     lmr.unchanged <- lmrsel[abs(lmrsel\$deltaMeth) < 0.05]
     lmr.up <- lmrsel[lmrsel\$deltaMeth > 0.6]
     lmrsel2 <- c(lmr.unchanged, lmr.up)

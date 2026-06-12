@@ -68,7 +68,7 @@ process BIOC_CRISPRSEEK_ALLELE_SPECIFIC_GRNA_DESIGN {
       stop(paste("Required input file missing:", inputFile2Path))
     }
     
-    # Stage 1: Run compare2Sequences on the two input FASTA files
+    # --- Run compare2Sequences on the two input FASTA files ---
     message("Running compare2Sequences to identify and score gRNAs...")
     res <- compare2Sequences(inputFile1Path,
                              inputFile2Path, 
@@ -83,7 +83,7 @@ process BIOC_CRISPRSEEK_ALLELE_SPECIFIC_GRNA_DESIGN {
     write.csv(res, file = "all_compared_gRNAs.csv", row.names = FALSE)
     saveRDS(res, file = "all_compared_gRNAs.rds")
     
-    # Stage 2: Evaluate cleavage scores and score differences to select allele-specific gRNAs
+    # --- Evaluate cleavage scores and score differences to select ---
     # Convert score columns to numeric to facilitate filtering, handling potential non-numeric annotations safely
     res\$scoreDiff <- suppressWarnings(as.numeric(as.character(res\$scoreDiff)))
     res\$scoreForSeq1 <- suppressWarnings(as.numeric(as.character(res\$scoreForSeq1)))

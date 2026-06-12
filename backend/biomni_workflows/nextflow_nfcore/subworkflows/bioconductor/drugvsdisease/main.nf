@@ -35,6 +35,15 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DrugVsDisease")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +56,7 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
     # Load required libraries
     library(DrugVsDisease)
     
-    # Stage 1: Load and preprocess user input data
+    # --- Load and preprocess user input data ---
     message("Stage 1: Loading input files...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv")
@@ -64,7 +73,7 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
     row_vars <- apply(counts, 1, var)
     counts <- counts[row_vars > 1e-5, , drop = FALSE]
     
-    # Stage 2: Calculate Differential Expression and Ranks using Base R
+    # --- Calculate Differential Expression and Ranks using Base R ---
     message("Stage 2: Calculating differential expression and ranking genes...")
     conditions <- unique(coldata\$condition)
     if (length(conditions) < 2) {
@@ -100,11 +109,11 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
       pvalues = matrix(pvals, ncol = 1, dimnames = list(rownames(counts), contrast_name))
     )
     
-    # Stage 3: Select Ranked Lists
+    # --- Select Ranked Lists ---
     message("Stage 3: Selecting ranked lists for classification...")
     selprofiles <- selectrankedlists(profile, 1)
     
-    # Stage 4: Classify Profile against Reference Database
+    # --- Classify Profile against Reference Database ---
     message("Stage 4: Running profile classification...")
     # We use a high signif.fdr (1.1) to guarantee output generation even with small custom datasets
     results <- tryCatch({
@@ -122,7 +131,7 @@ process BIOC_DRUGVSDISEASE_DRUG_VS_DISEASE_ANALYSIS {
       NULL
     })
     
-    # Stage 5: Save Outputs and Generate Visualizations
+    # --- Save Outputs and Generate Visualizations ---
     message("Stage 5: Saving results and generating plots...")
     if (!is.null(results) && length(results) > 0) {
       df_results <- as.data.frame(results[[1]])

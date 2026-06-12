@@ -60,13 +60,13 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     library(ggplot2)
     library(ggraph)
     
-    # 1. Read User Input
+    # --- Read User Input ---
     if (!file.exists("SingleCellExperiment.rds")) {
       stop("Error: 'SingleCellExperiment.rds' not found in the working directory.")
     }
     pancreasSCE <- readRDS("SingleCellExperiment.rds")
     
-    # 2. Robustness & Preprocessing Checks
+    # --- Robustness & Preprocessing Checks ---
     # Ensure required columns exist in colData for the documented workflow
     if (!"ImageNb" %in% colnames(colData(pancreasSCE))) {
       if ("sample_id" %in% colnames(colData(pancreasSCE))) {
@@ -126,7 +126,7 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
       }
     }
     
-    # 3. Execute Documented Workflow Steps
+    # --- Execute Documented Workflow Steps ---
     
     # Step 3.1: Build spatial graphs
     pancreasSCE <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb", type = "expansion", threshold = 20)
@@ -205,7 +205,7 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     # Step 3.9: Calculate distances to cells of interest
     pancreasSCE <- distToCells(pancreasSCE, x_cells = pancreasSCE\$CellType == "celltype_B", coords = c("Pos_X","Pos_Y"), statistics = "min", name = "minDist", img_id = "ImageNb")
     
-    # 4. Save Final Processed Object
+    # --- Save Final Processed Object ---
     saveRDS(pancreasSCE, "pancreasSCE_processed.rds")
     message("Pipeline completed successfully. Outputs saved to working directory.")
 

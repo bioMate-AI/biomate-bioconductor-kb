@@ -67,11 +67,11 @@ process BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS {
       stop(paste("Error: Required input file", pon_file, "is missing from the working directory."))
     }
     
-    # 1. Read and bin the BAM file
+    # --- Read and bin the BAM file ---
     message("Reading and binning patient BAM file...")
     plasma_SampleBam <- read_bamfile(bam_file, apply_blacklist = FALSE)
     
-    # 2. Plot fragment length distribution
+    # --- Plot fragment length distribution ---
     message("Plotting fragment length distribution...")
     pdf("fragment_dist_single.pdf", width = 8, height = 6)
     plot_fragment_dist(list("Plasma.Sample" = plasma_SampleBam))
@@ -88,14 +88,14 @@ process BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS {
     plot_fragment_dist(comparing_list)
     dev.off()
     
-    # 3. Extract genome-wide fragment-length profile
+    # --- Extract genome-wide fragment-length profile ---
     message("Extracting genome-wide fragment-length profile...")
     sample_profile <- get_fragment_profile(sample_bins, sample_id = "Patient.1")
     
     # Save the extracted profile
     saveRDS(sample_profile, "patient_SampleFragment.rds")
     
-    # 4. Plot genome-wide short-fragment ratio
+    # --- Plot genome-wide short-fragment ratio ---
     message("Plotting genome-wide short-fragment ratio...")
     patient.SampleFragment <- sample_profile
     
@@ -103,45 +103,45 @@ process BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS {
     plot_sl_ratio(patient.SampleFragment)
     dev.off()
     
-    # 5. Normalize short-fragmented ratio against PoN
+    # --- Normalize short-fragmented ratio against PoN ---
     message("Normalizing short-fragmented ratio against Panel of Normals...")
     PoN.profiles <- readRDS(pon_file)
     sample_zscore <- get_zscore_profile(patient.SampleFragment, PoN.profiles)
     
-    # 6. Perform Circular Binary Segmentation (CBS)
+    # --- Perform Circular Binary Segmentation (CBS) ---
     message("Performing Circular Binary Segmentation...")
     sample_zscore_segment <- segmentByPSCB(sample_zscore)
     saveRDS(sample_zscore_segment, "sample_zscore_segment.rds")
     
-    # 7. Plot transformed short-to-long ratio and segmentation
+    # --- Plot transformed short-to-long ratio and segmentation ---
     message("Plotting transformed S/L ratio and segmentation...")
     pdf("transformed_sl_segmentation.pdf", width = 8, height = 4)
     plot_transformed_sl(sample_zscore, sample_zscore_segment)
     dev.off()
     
-    # 8. Call CNVs and estimate tumor fraction
+    # --- Call CNVs and estimate tumor fraction ---
     message("Calling CNVs and estimating tumor fraction...")
     sample_cnv <- call_cnv(sample_zscore_segment, sample_zscore)
     saveRDS(sample_cnv, "sample_cnv_solutions.rds")
     
-    # 9. Plot distance matrix of solutions
+    # --- Plot distance matrix of solutions ---
     message("Plotting distance matrix of solutions...")
     pdf("solution_distance_matrix.pdf", width = 6, height = 4)
     plot_distance_matrix(sample_cnv)
     dev.off()
     
-    # 10. Retrieve solution table
+    # --- Retrieve solution table ---
     message("Retrieving solution table...")
     solution_table <- get_solution_table(sample_cnv)
     write.csv(solution_table, "cnv_solution_table.csv", row.names = FALSE)
     
-    # 11. Plot optimal CNV profile (selected_solution = 1)
+    # --- Plot optimal CNV profile (selected_solution = 1) ---
     message("Plotting optimal CNV profile...")
     pdf("optimal_cnv_solution.pdf", width = 12, height = 5)
     plot_cnv_solution(sample_cnv, selected_solution = 1)
     dev.off()
     
-    # 12. Calculate ctDNA estimation score (CES)
+    # --- Calculate ctDNA estimation score (CES) ---
     message("Calculating ctDNA estimation score (CES)...")
     ces_score <- calculate_CES_score(sample_zscore_segment)
     writeLines(as.character(ces_score), "ces_score.txt")

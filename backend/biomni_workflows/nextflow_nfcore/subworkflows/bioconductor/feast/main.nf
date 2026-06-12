@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Preprocess the count matrix using process_Y to filter genes based on dropout rate. 2. Perform consensus clustering using Consensus
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run FEAST Workflow
+//  * 3. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +61,7 @@ process BIOC_FEAST_STEP_BY_STEP_EVALUATION {
     library(FEAST)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read raw count expression matrix Y
@@ -86,7 +88,7 @@ process BIOC_FEAST_STEP_BY_STEP_EVALUATION {
     Y <- as.matrix(Y)
     
     # ==========================================
-    # 2. Run FEAST Workflow
+    # --- Run FEAST Workflow ---
     # ==========================================
     
     # Preprocess the count matrix using process_Y to filter genes based on dropout rate
@@ -129,7 +131,7 @@ process BIOC_FEAST_STEP_BY_STEP_EVALUATION {
     names(mse_res) = names(cluster_res)
     
     # ==========================================
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save consensus clustering results

@@ -71,7 +71,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     peaks_E2F4 = peaks_file
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Run chipenrich without mappability correction
+    # --- Run chipenrich without mappability correction ---
     # -----------------------------------------------------------------------------
     message("Running chipenrich (without mappability)...")
     results = chipenrich(
@@ -92,7 +92,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     saveRDS(results, "results_ce.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Run chipenrich with mappability correction
+    # --- Run chipenrich with mappability correction ---
     # -----------------------------------------------------------------------------
     message("Running chipenrich (with mappability)...")
     results = chipenrich(
@@ -114,7 +114,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     saveRDS(results, "results_cem.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Run standard polyenrich
+    # --- Run standard polyenrich ---
     # -----------------------------------------------------------------------------
     message("Running polyenrich (standard)...")
     results = polyenrich(
@@ -136,7 +136,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     saveRDS(results, "results_pe.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Run weighted polyenrich
+    # --- Run weighted polyenrich ---
     # -----------------------------------------------------------------------------
     message("Running polyenrich (weighted)...")
     results = polyenrich(
@@ -158,7 +158,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     saveRDS(results, "results_pe_weighted.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Run hybridenrich
+    # --- Run hybridenrich ---
     # -----------------------------------------------------------------------------
     message("Running hybridenrich...")
     results = hybridenrich(
@@ -179,7 +179,7 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     saveRDS(results, "results_hybrid.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Generate Diagnostic QC Plots
+    # --- Generate Diagnostic QC Plots ---
     # -----------------------------------------------------------------------------
     message("Generating diagnostic QC plots...")
     

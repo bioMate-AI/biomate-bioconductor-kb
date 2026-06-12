@@ -12,7 +12,16 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load count data and sample annotations. 2. Load transcription factor list. 3. Run the complete integrated analysis using runAnalys
+//  * 1. [Visualization & Output] Load count data and sample annotations
+//  * 2. [Visualization & Output] Load transcription factor list
+//  * 3. [Visualization & Output] Run the complete integrated analysis
+//  * 4. [Visualization & Output] Visualize DE and TF impact using SmearPlot
+//  * 5. [Visualization & Output] Plot condition-specific networks
+//  * 6. [Visualization & Output] Perform group GO analysis
+//  * 7. [Visualization & Output] Generate integrated network plots
+//  * 8. [Visualization & Output] Plot RIF relationships
+//  * 9. [Visualization & Output] Generate enrichment plots
+//  * 10. [Visualization & Output] Save tabular outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +47,15 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CeTF", "org.Hs.eg.db", "dplyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +71,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
         library(dplyr)
         
         # ==========================================
-        # 1. Load count data and sample annotations
+        # --- Load count data and sample annotations ---
         # ==========================================
         counts_raw <- read.delim("counts_matrix.tsv", row.names = 1, check.names = FALSE)
         meta <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
@@ -79,7 +97,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
         nSamples2 <- sum(meta[[cond_col]] == conds[2])
         
         # ==========================================
-        # 2. Load transcription factor list
+        # --- Load transcription factor list ---
         # ==========================================
         TFs_all <- readLines("tf_list.txt")
         # Filter TFs to those present in the counts matrix
@@ -92,7 +110,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
         pdf("cetf_analysis_plots.pdf", width = 11, height = 8.5)
         
         # ==========================================
-        # 3. Run the complete integrated analysis
+        # --- Run the complete integrated analysis ---
         # ==========================================
         out <- runAnalysis(mat = counts, 
                            conditions = conds,
@@ -109,7 +127,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
         saveRDS(out, "cetf_analysis_output.rds")
         
         # ==========================================
-        # 4. Visualize DE and TF impact using SmearPlot
+        # --- Visualize DE and TF impact using SmearPlot ---
         # ==========================================
         print(SmearPlot(object = out, 
                   diffMethod = 'Reverter', 
@@ -130,12 +148,12 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
                   type = "TF"))
         
         # ==========================================
-        # 5. Plot condition-specific networks
+        # --- Plot condition-specific networks ---
         # ==========================================
         print(netConditionsPlot(out))
         
         # ==========================================
-        # 6. Perform group GO analysis
+        # --- Perform group GO analysis ---
         # ==========================================
         genes <- unique(c(as.character(NetworkData(out, "network1")[, "gene1"]), 
                           as.character(NetworkData(out, "network1")[, "gene2"])))
@@ -147,7 +165,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
                             level = 3)
         
         # ==========================================
-        # 7. Generate integrated network plots
+        # --- Generate integrated network plots ---
         # ==========================================
         t1 <- head(cond1\$results, 12)
         t2 <- subset(cond1\$netGO, cond1\$netGO\$gene1 %in% as.character(t1[, "ID"]))
@@ -193,7 +211,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
         print(pt_integrated\$plot)
         
         # ==========================================
-        # 8. Plot RIF relationships
+        # --- Plot RIF relationships ---
         # ==========================================
         print(RIFPlot(object = out,
                 color  = "darkblue",
@@ -204,7 +222,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
                 type   = "DE"))
         
         # ==========================================
-        # 9. Generate enrichment plots
+        # --- Generate enrichment plots ---
         # ==========================================
         cond1 <- getEnrich(genes = genes, organismDB = org.Hs.eg.db, 
                           keyType = 'ENSEMBL', ont = 'BP', fdrMethod = "BH", 
@@ -248,7 +266,7 @@ process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
         dev.off()
         
         # ==========================================
-        # 10. Save tabular outputs
+        # --- Save tabular outputs ---
         # ==========================================
         if (!is.null(key_tfs_df)) {
           write.csv(key_tfs_df, "key_tfs.csv", row.names = FALSE)

@@ -58,7 +58,7 @@ process BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION {
     library(sangerseqR)
     
     # ==========================================
-    # 1. AUTOMATED INPUT FILE DISCOVERY
+    # --- AUTOMATED INPUT FILE DISCOVERY ---
     # ==========================================
     
     message("Searching for input files in the working directory...")
@@ -110,7 +110,7 @@ process BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION {
     
     
     # ==========================================
-    # 2. FLOW CYTOMETRY INDEX SORTING PROCESSING
+    # --- FLOW CYTOMETRY INDEX SORTING PROCESSING ---
     # ==========================================
     
     message("Processing flow cytometry index sorting data...")
@@ -138,7 +138,7 @@ process BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION {
     
     
     # ==========================================
-    # 3. SANGER SEQUENCING QUALITY CONTROL
+    # --- SANGER SEQUENCING QUALITY CONTROL ---
     # ==========================================
     
     message("Processing a single Sanger sequence for quality control...")
@@ -171,7 +171,7 @@ process BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION {
     
     
     # ==========================================
-    # 4. DATA INTEGRATION & QUALITY REPORT
+    # --- DATA INTEGRATION & QUALITY REPORT ---
     # ==========================================
     
     message("Integrating flow cytometry and Sanger sequencing data...")
@@ -193,7 +193,7 @@ process BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION {
     
     
     # ==========================================
-    # 5. IGBLAST ANALYSIS
+    # --- IGBLAST ANALYSIS ---
     # ==========================================
     
     message("Running IgBlast analysis...")

@@ -71,19 +71,19 @@ process BIOC_COVERAGEVIEW_SINGLE_SAMPLE_COVERAGE_PROFILE {
       stop(paste("Required BED file not found:", tss_chr19_bed))
     }
     
-    # 1. Instantiate CoverageBamFile object
+    # --- Instantiate CoverageBamFile object ---
     trm <- CoverageBamFile(bam_file, reads_mapped=168042)
     
-    # 2. Calculate coverage matrix around coordinates
+    # --- Calculate coverage matrix around coordinates ---
     FoxA1_chr19 <- cov.matrix(trm, coordfile=tss_chr19_bed, extend=1000, num_cores=2, bin_width=10)
     
-    # 3. Draw coverage profile
+    # --- Draw coverage profile ---
     draw.profile(FoxA1_chr19, ylab="avg coverage", outfile="FoxA1_chr19.png", main="FoxA1 chr19")
     
-    # 4. Write coverage matrix to file
+    # --- Write coverage matrix to file ---
     write.profile(FoxA1_chr19, outfile="FoxA1_chr19.txt")
     
-    # 5. Draw coverage heatmap
+    # --- Draw coverage heatmap ---
     draw.heatmap(FoxA1_chr19, outfile="FoxA1_chr19_heatmap.png")
 
     writeLines(c(

@@ -36,6 +36,15 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tenXplore")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
           }
         }
     
-    # Stage 1: Load libraries and input datasets
+    # --- Load libraries and input datasets ---
     library(tenXplore)
     
     message("Loading input datasets...")
@@ -67,7 +76,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     counts <- counts[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, drop = FALSE]
     
-    # Stage 2: Construct and Preprocess SummarizedExperiment
+    # --- Construct and Preprocess SummarizedExperiment ---
     message("Preprocessing user dataset...")
     se_user <- SummarizedExperiment(
       assays = list(counts = as.matrix(counts)),
@@ -84,7 +93,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     cpm <- sweep(assay(se_user, "counts"), 2, libsizes, "/") * 1e6
     assay(se_user, "logcpm") <- log2(cpm + 1)
     
-    # Stage 3: Load Reference Dataset and Perform Comparative Analysis
+    # --- Load Reference Dataset and Perform Comparative Analysis ---
     message("Loading reference 1.3M neuron dataset...")
     se_ref <- tryCatch({
       se1.3M()
@@ -118,7 +127,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
       write.csv(data.frame(Error = "Reference dataset se1.3M could not be loaded"), "reference_correlation.csv")
     }
     
-    # Stage 4: Visualization
+    # --- Visualization ---
     message("Generating expression heatmap...")
     pdf("expression_heatmap.pdf", width = 8, height = 6)
     gene_vars <- apply(assay(se_user, "logcpm"), 1, var)
@@ -136,7 +145,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     }
     dev.off()
     
-    # Stage 5: App Initialization and Serialization
+    # --- App Initialization and Serialization ---
     message("Initializing tenXplore app object...")
     app <- tryCatch({
       tenXplore()

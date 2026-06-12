@@ -35,6 +35,15 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cummeRbund", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Read Input Data & Align Samples
+    # --- Read Input Data & Align Samples ---
     # ==========================================
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -60,7 +69,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     conditions <- unique(coldata\$condition)
     
     # ==========================================
-    # Stage 2: Generate Mock Cuffdiff Files
+    # --- Generate Mock Cuffdiff Files ---
     # ==========================================
     # Calculate condition-level mean FPKMs (using counts as proxy for FPKM)
     cond_fpkms <- do.call(cbind, lapply(conditions, function(cond) {
@@ -168,7 +177,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     }
     
     # ==========================================
-    # Stage 3: Initialize cummeRbund & Load Data
+    # --- Initialize cummeRbund & Load Data ---
     # ==========================================
     cuff <- readCufflinks(
       dir = ".",
@@ -192,7 +201,7 @@ process BIOC_CUMMERBUND_CUMMERBUND_TRANSCRIPTOMICS {
     write.csv(data.frame(significant_gene_id = sig_genes), "significant_genes.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     pdf("cummerbund_plots.pdf", width = 8, height = 8)
     
