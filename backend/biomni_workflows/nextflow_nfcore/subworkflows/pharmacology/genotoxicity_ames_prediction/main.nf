@@ -38,6 +38,7 @@ process GENOTOXICITY_AMES_PREDICTION {
     tuple val(meta), path("ames_prediction.json"),         emit: ames
     tuple val(meta), path("genotox_alerts.csv"),           emit: alerts
     tuple val(meta), path("ichs2_summary.json"),           emit: ichs2
+    tuple val(meta), path("qc_metrics.json"),              emit: qc_metrics
     path "versions.yml",                                   emit: versions
 
     script:
@@ -203,6 +204,28 @@ full = {
 }
 with open('genotox_results.json', 'w') as f:
     json.dump(full, f, indent=2)
+
+# ── QC gate: Ames positive count (ICH S2(R1), SILVER Kazius 2005) ─────────────
+# Pass = NEGATIVE for all; FAIL = any POSITIVE; ADVISORY = any SUSPECT.
+qc_metrics = {
+    'success': True,
+    'process': 'GENOTOXICITY_AMES_PREDICTION',
+    'domain': 'pharmacology',
+    'n_compounds': full['n_compounds'],
+    'ames_positive_count': full['positive_count'],
+    'ames_suspect_count': full['suspect_count'],
+    'ames_negative_count': full['negative_count'],
+    'worst_prediction': (
+        'POSITIVE' if full['positive_count'] > 0 else
+        'SUSPECT'  if full['suspect_count']  > 0 else
+        'NEGATIVE'
+    ),
+    'ames_clean': bool(full['positive_count'] == 0 and full['suspect_count'] == 0),
+    'evidence_tier': 'SILVER',
+    'citation': 'Kazius 2005 J Med Chem 48:312; ICH S2(R1) Genotoxicity Testing',
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 report = ['=== GENOTOXICITY / AMES PREDICTION REPORT ===', '']
 for r in all_records:
