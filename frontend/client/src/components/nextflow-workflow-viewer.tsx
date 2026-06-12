@@ -1548,6 +1548,27 @@ export function NextflowWorkflowViewer({
     return map;
   }, [renderedParameters, groupedPhases]);
 
+  /**
+   * Count global params that are required AND still empty.
+   * Mirrors the logic inside the Workflow-settings strip IIFE (~line 2490) but
+   * hoisted to component scope so the run-button hard gate can read it without
+   * duplicating the strip render. Excludes params already pinned to a phase
+   * section (those have their own per-phase editor).
+   *
+   * Used by the Run-button disabled prop so a user can't submit a workflow
+   * with empty required fields by ignoring the strip.
+   */
+  const globalRequiredUnfilledCount = React.useMemo(() => {
+    const phasePinned = new Set(
+      groupedPhases.filter(g => g.key !== 'all').flatMap(g => g.phaseParams)
+    );
+    return renderedParameters.filter((p: any) => {
+      const pName = p.id || p.name || '';
+      if (phasePinned.has(pName)) return false;
+      return p.required && (!p.value || p.value === '');
+    }).length;
+  }, [renderedParameters, groupedPhases]);
+
   // Derived state: results auto-open on completion; user can override either way.
   // Previously this was useState + useEffect — multiple agents added competing
   // setShowResults(true) hooks, neither of which was reliably firing in production
@@ -3078,7 +3099,29 @@ export function NextflowWorkflowViewer({
               className="btn primary"
               data-testid="button-run-workflow-panel"
               onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
-              disabled={status === 'running' || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
+              disabled={
+                status === 'running'
+                || isPrereqBlocked
+                || isAutofixActive
+                || isLicenseBlocked
+                // Hard gate (2026-06-11): block submit when required global
+                // params are empty. Without this, a user could ignore the
+                // Workflow-settings strip and click Run with blanks.
+                // Only enforced on initial run (idle / pending_review) —
+                // re-runs of completed / failed runs use the prior params.
+                || ((status === 'idle' || status === 'pending_review')
+                    && globalRequiredUnfilledCount > 0)
+              }
+              title={
+                (status === 'idle' || status === 'pending_review') && globalRequiredUnfilledCount > 0
+                  ? `Fill in ${globalRequiredUnfilledCount} required parameter${globalRequiredUnfilledCount > 1 ? 's' : ''} above before running`
+                  : undefined
+              }
+              data-required-unfilled={
+                (status === 'idle' || status === 'pending_review')
+                  ? globalRequiredUnfilledCount
+                  : undefined
+              }
             >
               {status === 'running' ? (
                 <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
