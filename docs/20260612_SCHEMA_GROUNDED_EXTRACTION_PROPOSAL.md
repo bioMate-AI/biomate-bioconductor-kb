@@ -160,16 +160,180 @@ Compare to the current pipeline (also measured this session via chat-stream prob
 
 ---
 
+## 3.5 Information flow & user-in-the-loop
+
+The pipeline runs in four stages. Each stage emits a user-visible status update (via the existing SSE stream) and has a defined clarification path when the model is uncertain.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ USER MESSAGE                                                                 │
+│   e.g. "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to       │
+│         T cells, transient persistence"                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 1 — INTENT DECOMPOSITION   (existing LLM call, modified)              │
+│   UI: "Analyzing your request…"                                              │
+│   Input:  user message + session memory                                      │
+│   Output: { type, keywords, has_parameter_signal: bool, sub_query }          │
+│                                                                              │
+│   NEW: instead of emitting inlineParameters with guessed keys, return        │
+│     a boolean: does this message contain extractable scientific              │
+│     parameters (targets, diseases, doses, files, modalities, …)?             │
+│                                                                              │
+│   Few-shot examples:                                                         │
+│     "Run RNA-seq"                          → has_parameter_signal: false     │
+│     "Run RNA-seq on SRR12345"              → has_parameter_signal: true      │
+│     "Design a PD-1 x VEGF bispecific…"     → has_parameter_signal: true      │
+│     "What's a good QC threshold?"          → has_parameter_signal: false     │
+│                                                                              │
+│   Clarification trigger:                                                     │
+│     - intent type is genuinely ambiguous (workflow vs research_question)     │
+│       → existing chat-message clarifier path; no change                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 2 — ROUTING                  (existing)                                │
+│   UI: "Finding the right workflow…"                                          │
+│   Output: workflow_ga                                                        │
+│                                                                              │
+│   Clarification trigger:                                                     │
+│     - ≥2 candidates score ≥6.0 with <3.0 gap                                 │
+│       → emit DisambiguationCard with up to 4 candidates (existing path)      │
+│       → halt downstream until user picks                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+                          has_parameter_signal?
+                          ┌─────┴─────┐
+                         NO          YES
+                          │           │
+                          │           ▼
+                          │  ┌────────────────────────────────────────────────┐
+                          │  │ STAGE 3 — SCHEMA-GROUNDED EXTRACTION   (NEW)   │
+                          │  │ UI: "Extracting parameters from your request…" │
+                          │  │                                                │
+                          │  │   3a. Rule pass (zero LLM)                     │
+                          │  │     - direct key hits                          │
+                          │  │     - global synonym graph (small, shared)     │
+                          │  │     - unit/enum normalization                  │
+                          │  │     - file path / accession ID regex           │
+                          │  │                                                │
+                          │  │   3b. LLM resolver (only if unresolved keys)   │
+                          │  │     - inject ONLY this workflow's schema       │
+                          │  │     - filter optional_params by query keyword  │
+                          │  │       hit (cap prompt at ~2K tokens)           │
+                          │  │     - return canonical-keyed JSON              │
+                          │  │                                                │
+                          │  │   3c. Validate                                 │
+                          │  │     - drop unknown keys                        │
+                          │  │     - coerce enum values                       │
+                          │  │     - flag invalid enums                       │
+                          │  │                                                │
+                          │  │ Clarification triggers (raised to chat):       │
+                          │  │   (i) required param missing AND no signal in  │
+                          │  │       user query → "I need <param> (e.g. <ex>) │
+                          │  │       to run this. What should I use?"         │
+                          │  │   (ii) extracted value violates enum →         │
+                          │  │       "You said 'B cells' but this workflow    │
+                          │  │       supports T_cell, NK_cell, macrophage —   │
+                          │  │       which is closest?"                       │
+                          │  │   (iii) ambiguous match (multiple plausible    │
+                          │  │       enum values, no clear winner) → list 2-3 │
+                          │  │       options as quick-reply chips             │
+                          │  └────────────────────────────────────────────────┘
+                          │           │
+                          ▼           ▼
+                       inlineParameters = {}     inlineParameters = {canonical}
+                          │           │
+                          └─────┬─────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 4 — FORM POPULATION       (existing UI)                                │
+│   UI: workflow panel opens; "Ready to run" / "Fix N required params"         │
+│   Behaviour:                                                                 │
+│     - Render workflow panel with required + optional fields                  │
+│     - Pre-fill from inlineParameters                                         │
+│     - Each pre-filled field gets a small "from your message" hint badge so   │
+│       the user can see WHY a value is there                                  │
+│     - Missing required → blocked + "Fix now" (existing)                      │
+│     - User edits → userOverriddenParams set                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+              ┌───────────────────┴───────────────────┐
+              │ Follow-up message arrives later?      │
+              │   e.g. "actually use BCMA not CD19"   │
+              └───────────────────┬───────────────────┘
+                                  │
+                                  ▼
+                       Loop back to STAGE 1
+                       Stage 1 routes as "workflow_modification" →
+                       Stage 2 short-circuits to the open workflow →
+                       Stage 3 runs with userOverriddenParams excluded
+                       from the keys it's allowed to set →
+                       diff vs current params surfaced in chat
+                       ("Updating car_target: CD19 → BCMA. OK?")
+```
+
+### Status messages — exact strings
+
+The SSE stream already supports `status` events. The schema-grounded path should emit one per stage transition. Default strings (configurable for i18n later):
+
+| Stage entry             | Message                                                |
+|-------------------------|--------------------------------------------------------|
+| Stage 1 begin           | _"Analyzing your request…"_                            |
+| Stage 2 begin           | _"Finding the right workflow…"_                        |
+| Stage 2 disambiguation  | _"Found multiple matches — please choose:"_ (card)     |
+| Stage 3 begin           | _"Reading the workflow's parameter schema…"_           |
+| Stage 3 rule pass done  | _"Extracted N parameters from your message"_           |
+| Stage 3 LLM resolver    | _"Resolving remaining parameters…"_                    |
+| Stage 3 clarification   | inline chat question (see triggers (i)–(iii))          |
+| Stage 4 panel ready     | _"Workflow panel ready — review parameters and run"_   |
+
+These give the user a clear timeline. The current pipeline jumps from "Analyzing…" straight to "Workflow ready" with no intermediate signal — a 6–15s opaque pause that users have flagged.
+
+### Clarification design principles
+
+1. **Ask only when the LLM is genuinely uncertain.** Confidence threshold (>0.7) → don't ask; show pre-fill with the "from your message" hint and let the user edit if wrong. Uncertainty (<0.7 confidence or enum violation) → ask.
+2. **Inline in chat, never modal.** Maintains conversational flow. The chat-message component already supports `workflow_type: 'disambiguation'`; add `workflow_type: 'param_clarification'` with the same chip-style UI.
+3. **Always offer a "skip / fill it in the panel" escape.** User in control; the model shouldn't block progress on a clarification dialog.
+4. **Quick-reply chips for enum mismatches.** Showing the 3 valid enum values as one-click chips is faster than typing.
+5. **One question per turn.** If multiple clarifications are needed, queue them and ask sequentially — never blast a list.
+6. **Persist answers per-workflow as preferences.** "Last time you ran ADMET, you used Lipinski Ro5" → next ADMET run, pre-fill that and don't ask.
+
+### Where each stage's code lives
+
+| Stage | New code | Existing code touched |
+|-------|----------|----------------------|
+| 1     | (modify existing prompt only — drop `inlineParameters` few-shots, add `has_parameter_signal`) | `galaxy-assistant.ts:3668` (intent prompt) |
+| 2     | none — existing routing unchanged | n/a |
+| 3a    | `frontend/server/lib/paramRules.ts` (rules + synonym graph) | new file |
+| 3b    | `frontend/server/lib/schemaGroundedExtractor.ts` (LLM resolver) | new file |
+| 3c    | same file as 3b | n/a |
+| Param schema parser | `frontend/server/lib/paramSchema.ts` (reads `.nf` or `params_schema` column) | new file |
+| Status events | `frontend/server/galaxy-assistant.ts` (emit SSE status at each stage) | existing SSE stream |
+| Clarification card | `frontend/client/src/components/param-clarification-card.tsx` | new file, mirrors disambiguation card |
+| Chat-message switch | `frontend/client/src/components/chat-message.tsx` | add `workflow_type: 'param_clarification'` branch |
+
+---
+
 ## 4. Implementation plan
 
-### Phase 1 — minimal viable replacement (this branch, ~1 day)
+### Phase 1 — minimal viable replacement (this branch, ~1–2 days)
 
 1. **Add `lib/paramSchema.ts`**: parse `.nf` params block into `{name, default, type, enum?, alias_of?, note?}[]`. Cache per workflow.
-2. **Add `lib/schemaGroundedExtractor.ts`**: rules + LLM resolver per Section 2. Returns canonical-keyed dict.
-3. **Wire into `galaxy-assistant.ts`** at the 4 existing `remapInlineParametersForWorkflow` call sites. Behind a feature flag `SCHEMA_GROUNDED_EXTRACTION=1` so we can compare side-by-side.
-4. **Shrink `WORKFLOW_PARAM_ALIASES`** to a TODO: leave it in place as a fallback when the flag is off, remove once the new path is validated.
-5. **Re-run tier-0 E2E** (T01–T05) — expect all 5 form-prefill checks to pass without any alias rows.
-6. **Re-run param_prefill benchmark** — expect ≥+15pp over current 61.7% baseline (the gap is mostly extraction precision).
+2. **Add `lib/paramRules.ts`**: rule pass (Stage 3a) — direct hits, global synonym graph, unit/enum normalization, file/accession regex.
+3. **Add `lib/schemaGroundedExtractor.ts`**: orchestrator + LLM resolver (Stage 3b) + validation (Stage 3c). Returns `{ params, confidence, missing_required, enum_violations }`.
+4. **Modify intent prompt** in `galaxy-assistant.ts:3668`: drop `inlineParameters` few-shots, add `has_parameter_signal: bool`.
+5. **Wire stages 3a–3c** into `galaxy-assistant.ts` at the 4 existing `remapInlineParametersForWorkflow` call sites. Behind feature flag `SCHEMA_GROUNDED_EXTRACTION=1` for side-by-side comparison.
+6. **Emit SSE status events** at each stage transition (strings from §3.5 table).
+7. **Add `param-clarification-card.tsx`** + `workflow_type: 'param_clarification'` branch in `chat-message.tsx`. Triggers: missing required, enum violation, ambiguous match.
+8. **Shrink `WORKFLOW_PARAM_ALIASES`** to a TODO: leave it in place as a fallback when the flag is off, remove once the new path is validated.
+9. **Re-run tier-0 E2E** (T01–T05) — expect all 5 form-prefill checks to pass without any alias rows AND that clarification card renders correctly for a deliberately-vague test query.
+10. **Re-run param_prefill benchmark** — expect ≥+15pp over current 61.7% baseline.
 
 ### Phase 2 — broaden coverage (next sprint)
 
