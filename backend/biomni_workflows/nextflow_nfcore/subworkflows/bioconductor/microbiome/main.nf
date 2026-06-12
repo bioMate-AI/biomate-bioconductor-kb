@@ -65,32 +65,44 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     abundance_df <- read.csv("abundance.csv", check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", check.names = FALSE)
     
-    # Format abundance data: ensure taxon_id is set as row names
+    # Format abundance data: taxon IDs as row names. Accept either a named "taxon_id"
+    # column or the conventional first-column-is-IDs CSV export (write.csv of an OTU
+    # table), then keep only numeric columns so read_csv2phyloseq receives a strictly
+    # numeric OTU matrix (a stray character ID column otherwise breaks otu_table()).
     if ("taxon_id" %in% colnames(abundance_df)) {
       rownames(abundance_df) <- abundance_df\$taxon_id
       abundance_df\$taxon_id <- NULL
+    } else {
+      rownames(abundance_df) <- as.character(abundance_df[[1]])
+      abundance_df[[1]] <- NULL
     }
-    
-    # Format metadata: ensure sample column is set as row names
+    abundance_df <- abundance_df[, vapply(abundance_df, is.numeric, logical(1)), drop = FALSE]
+
+    # Format metadata: sample IDs as row names (named "sample" column or first column)
     if ("sample" %in% colnames(coldata_df)) {
       rownames(coldata_df) <- coldata_df\$sample
+      coldata_df\$sample <- NULL
+    } else {
+      rownames(coldata_df) <- as.character(coldata_df[[1]])
+      coldata_df[[1]] <- NULL
     }
     
-    # Write temporary files formatted specifically for read_csv2phyloseq
-    # read_csv2phyloseq expects the first column of OTU file to be taxon IDs,
-    # and the first column of metadata file to be sample IDs.
-    otu_temp <- data.frame(taxon_id = rownames(abundance_df), abundance_df, check.names = FALSE)
-    write.csv(otu_temp, "temp_otu.csv", row.names = FALSE)
-    
-    meta_temp <- data.frame(sample = rownames(coldata_df), coldata_df, check.names = FALSE)
-    write.csv(meta_temp, "temp_meta.csv", row.names = FALSE)
-    
-    # Load into a phyloseq object using microbiome's native parser
-    pseq <- read_csv2phyloseq(otu.file = "temp_otu.csv", metadata.file = "temp_meta.csv", sep = ",")
-    
-    # Clean up temporary files immediately
-    unlink("temp_otu.csv")
-    unlink("temp_meta.csv")
+    # Construct the phyloseq object directly from the abundance matrix and metadata.
+    # (read_csv2phyloseq forces a CSV round-trip and additionally requires a taxonomy
+    # file the workflow does not produce — direct construction is robust and avoids it.)
+    otu_mat <- as.matrix(abundance_df)
+    storage.mode(otu_mat) <- "double"
+    # align samples present in both the abundance matrix (columns) and the metadata (rows)
+    common_samples <- intersect(colnames(otu_mat), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+      stop("No overlapping sample IDs between abundance columns and metadata rows.")
+    }
+    otu_mat <- otu_mat[, common_samples, drop = FALSE]
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    pseq <- phyloseq(
+      otu_table(otu_mat, taxa_are_rows = TRUE),
+      sample_data(coldata_df)
+    )
     
     # ==========================================
     # --- Quality Control & Profiling ---
