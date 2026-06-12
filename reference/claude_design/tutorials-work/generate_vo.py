@@ -508,144 +508,104 @@ TUTORIALS = {
   "bioc_kb": {
     "label": "Bioconductor · DESeq2 chain",
     "steps": [
-      # 1 — center welcome
-      ("We're going to run a Bioconductor differential expression analysis, "
-       "end to end. BioMate matches your request to a curated workflow, "
-       "routes each step to the right package, runs the six-phase chain, "
-       "then hands you a full report. "
-       "About three minutes — match, route, run, report.",
+      # 1 — center welcome (~3min target → ~10s)
+      ("End-to-end Bioconductor differential expression. "
+       "Match a curated workflow, route, run, report.",
        True, CLOSING_SPEED),
 
-      # 2 — spotlight: empty workflow panel
-      ("BioMate embeds your request against the Bioconductor knowledge base. "
-       "The panel stays empty for now — BioMate won't commit to a pipeline "
-       "before the match is resolved.",
+      # 2 — empty panel
+      ("Knowledge-base match in progress. "
+       "Panel stays empty until a pipeline is committed.",
        False, None),
 
-      # 3 — spotlight: disambiguation card (D1 — content-dense)
-      ("Two curated chains scored close — a count-matrix DeSeq2 path at "
-       "zero point seven one, and a fuller F-A-S-T-Q pipeline at zero point "
-       "six six. Rather than guess, BioMate surfaces both with their scores. "
-       "The top match is pre-selected, with a commit countdown.",
+      # 3 — disambig card
+      ("Two close matches — count matrix DeSeq2 at zero point seven one, "
+       "raw FASTQ pipeline at zero point six six. Top match auto-selected.",
        False, None),
 
-      # 4 — spotlight: phase list populates
-      ("With bulk RNA-seq DeSeq2 chosen, the panel fills with its six phases. "
-       "Q-C, normalise, D-E test, shrink, enrich, visualise. "
-       "Only now does a pipeline exist; chat and panel track the same run.",
+      # 4 — phase list
+      ("Six phases populate: QC, normalise, DE test, shrink, enrich, visualise.",
        False, None),
 
-      # 5 — spotlight: reason block (routing)
-      ("BioMate explains the choice. A raw integer count matrix calls for "
-       "a negative-binomial model — DeSeq2 — not limma-voom, which expects "
-       "continuous log-two intensities. "
-       "The reasoning is grounded in the Love twenty-fourteen citation.",
+      # 5 — routing reasoning
+      ("Routing chooses DeSeq2 — negative-binomial on integer counts, "
+       "not limma-voom on log intensities.",
        False, None),
 
-      # 6 — spotlight: Phase A running
-      ("Execution starts. The active phase auto-expands. "
-       "edgeR's filterByExpr drops genes under ten counts. "
-       "As each step finishes, its parameters and output files appear inline.",
+      # 6 — Phase A QC
+      ("Phase A runs filterByExpr. "
+       "Low-count genes dropped; outputs land inline.",
        False, None),
 
-      # 7 — spotlight: object handoff
-      ("After normalisation, counts, metadata and size factors fold into one "
-       "DeSeq Data Set. That object class is the contract every downstream "
-       "DeSeq2 step reads from — typed handoffs all the way through.",
+      # 7 — DESeqDataSet handoff
+      ("Counts, metadata, and size factors fold into one DeSeq Data Set — "
+       "the typed contract for every step below.",
        False, None),
 
-      # 8 — spotlight: Phase C running, DE testing
-      ("The Wald test runs on design tilde condition. "
-       "Two thousand eight hundred and forty-one genes pass at "
-       "false discovery rate under zero point zero five. "
-       "The result is a DeSeq Results table.",
+      # 8 — Phase C DE testing
+      ("Wald test on design tilde condition. "
+       "Two thousand eight hundred and forty-one genes at FDR under five percent.",
        False, None),
 
-      # 9 — spotlight: shrinkage explanation
-      ("Before ranking, apeglm shrinks low-count fold-changes toward zero. "
-       "The gene list feeding enrichment isn't dominated by noisy extremes. "
-       "apeglm isn't a blind default; the reasoning block says why.",
+      # 9 — apeglm shrinkage
+      ("apeglm shrinks low-count fold changes — "
+       "enrichment isn't dominated by noisy extremes.",
        False, None),
 
-      # 10 — spotlight: Phase E enrichment
-      ("clusterProfiler's gseGO runs on the shrunk ranked list. "
-       "Top GO term — regulation of apoptotic process. "
-       "Phase F then renders the volcano plot, dot plot and heatmap.",
+      # 10 — Phase E enrichment
+      ("clusterProfiler's gseGO ranks. "
+       "Top term: regulation of apoptotic process.",
        False, None),
 
-      # ── shared afterRunSteps (10 steps) ─────────────────────────────────────
-      # 11 — center: chain complete card
-      ("All six phases done — DeSeq2, apeglm, clusterProfiler, "
-       "EnhancedVolcano. The chat drops a findings card and the panel "
-       "flips to the after-run report. Next, we walk every tab.",
+      # 11 — center: chain complete
+      ("Six phases done. Findings card drops; the After-run report opens.",
        True, None),
 
-      # 12 — spotlight: after-run tabs overview
-      ("Every completed run produces a structured report. "
-       "Seven tabs — findings, outputs, methods, parameters, software, "
-       "citations, and the Q-C audit. Findings first, raw artifacts next, "
-       "then reproducibility, ending with audit.",
+      # 12 — tabs overview
+      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, "
+       "Citations, QC audit.",
        False, None),
 
-      # 13 — spotlight: Findings tab
-      ("The findings tab. Headline metric, a few bullets, and figures read "
-       "straight from the run manifest. "
-       "Figures are data-driven — bars for top G-O terms, a stacked bar for "
-       "D-E direction, a retention ring for gene filtering. "
-       "No numbers are invented.",
+      # 13 — Findings tab
+      ("Findings. Headline plus figures read from the manifest — "
+       "top GO terms, DE direction, gene-filtering retention.",
        False, None),
 
-      # 14 — spotlight: Outputs tab
-      ("Outputs. One row per file, grouped by phase and step. "
-       "DeSeq results, the volcano P-N-G, the G-O dot plot, the top fifty "
-       "heatmap. View previews each file inline; download grabs one or all.",
+      # 14 — Outputs tab
+      ("Outputs. One row per file. View previews inline; "
+       "Download all bundles every output as a ZIP.",
        False, None),
 
-      # 15 — spotlight: inline preview detour
-      ("Clicking view on the volcano P-N-G renders it inline — "
-       "log-two fold change versus negative log-ten adjusted p, "
-       "up genes in red, down in blue, cutoff lines drawn. "
-       "BioMate picks the volcano viewer from the file type.",
+      # 15 — inline volcano preview
+      ("Clicking view on the volcano renders it inline — "
+       "log-two fold change versus negative log-ten p.",
        False, None),
 
-      # 16 — spotlight: Methods tab
-      ("The methods tab. Paragraph-form prose you can paste straight into "
-       "a manuscript — tools, versions, exact parameters, written so peers "
-       "can replicate the DeSeq2 run.",
+      # 16 — Methods tab
+      ("Methods. Paste-ready prose with tools, versions, and exact parameters.",
        False, None),
 
-      # 17 — spotlight: Parameters tab
-      ("Parameters. Phase, step, parameter, value — for everything the run "
-       "touched, from filterByExpr thresholds to apeglm's shrinkage type. "
-       "A ready supplementary table.",
+      # 17 — Parameters tab
+      ("Parameters. Phase, step, parameter, value — every knob the run touched.",
        False, None),
 
-      # 18 — spotlight: Software tab
-      ("Software. Every package with its exact version — DeSeq2, apeglm, "
-       "edgeR, clusterProfiler, EnhancedVolcano. Match these with the "
-       "parameters tab and you reproduce the run.",
+      # 18 — Software tab
+      ("Software. Exact pinned versions — DeSeq2, apeglm, edgeR, clusterProfiler.",
        False, None),
 
-      # 19 — spotlight: Citations tab
-      ("Citations. An auto-generated reference list — "
-       "Love twenty-fourteen for DeSeq2, Zhu twenty-nineteen for apeglm, "
-       "Wu twenty twenty-one for clusterProfiler. "
-       "Methods and citations ship together in the download report export.",
+      # 19 — Citations tab
+      ("Citations. Love twenty-fourteen, Zhu twenty-nineteen, Wu twenty twenty-one. "
+       "Bundled in the download report.",
        False, None),
 
-      # 20 — spotlight: QC audit tab (D2 — strong claim now backed by the
-      # rich panel shipped in commit 8050e6c3d on the BioMate side)
-      ("The Q-C audit tab. Every gate that fired, with threshold, observed "
-       "value, result, and action. A four-stat header summarises pass, "
-       "auto-corrected, and manual interventions. "
-       "Twenty-one C-F-R Part Eleven friendly, with chain of custody.",
+      # 20 — QC audit tab
+      ("QC audit. Every gate with threshold, observed, result, and action. "
+       "Twenty-one CFR Part Eleven friendly.",
        False, None),
 
-      # 21 — center: wrap-up
-      ("That's the full DeSeq2 thread. Match, route, run six phases, "
-       "and a seven-tab report — all from one request. "
-       "Try the scRNA-seq and methylation tutorials next: "
-       "same agent, different science.",
+      # 21 — center wrap-up
+      ("Match, route, run, report — one request. "
+       "Try the scRNA-seq and methylation tutorials next.",
        True, CLOSING_SPEED),
     ],
   },
@@ -658,132 +618,95 @@ TUTORIALS = {
   "bioc_sc": {
     "label": "Bioconductor · scRNA-seq chain",
     "steps": [
-      # 1 — center welcome
-      ("Same agent, a single-cell request. BioMate routes to the O-S-C-A "
-       "stack, clusters and annotates in parallel, then runs condition "
-       "differential expression the statistically correct way — pseudobulk. "
-       "About three minutes — route, cluster, annotate, pseudobulk D-E, report.",
+      # 1 — center welcome (~3min target)
+      ("Single-cell request. Route to OSCA, cluster, annotate in parallel, "
+       "then condition DE the right way — pseudobulk.",
        True, CLOSING_SPEED),
 
-      # 2 — spotlight: phase list with parallel branch
-      ("Seven phases. Q-C, normalise, feature and P-C-A, cluster, "
-       "markers and annotation in parallel, then pseudobulk D-E. "
-       "Marker detection and annotation both read the clustered object, "
-       "so they're grouped to run concurrently.",
+      # 2 — phase list
+      ("Seven phases. QC, normalise, feature, cluster, "
+       "markers and annotation in parallel, pseudobulk DE.",
        False, None),
 
-      # 3 — spotlight: routed to OSCA
-      ("BioMate works backward from the goal. Condition D-E with DeSeq2 "
-       "means a single cell experiment with scran and scater — not Seurat — "
-       "so the final pseudobulk step hands off with no lossy conversion. "
-       "Routing is the whole object ecosystem, not just one tool.",
+      # 3 — routed to OSCA
+      ("Routed to OSCA. A single cell experiment hands off to pseudobulk "
+       "DeSeq2 with no lossy conversion.",
        False, None),
 
-      # 4 — spotlight: Phase A cell QC
-      ("Phase A. emptyDrops separates real cells from ambient barcodes. "
-       "perCellQCMetrics flags high-mitochondrial and low-count cells. "
-       "Nine thousand eight hundred and fourteen of twelve thousand four "
-       "hundred and two cells retained.",
+      # 4 — Phase A cell QC
+      ("Phase A. emptyDrops and perCellQCMetrics. "
+       "Nine thousand eight hundred fourteen of twelve thousand cells retained.",
        False, None),
 
-      # 5 — spotlight: one SCE throughout
-      ("Q-C and normalisation fold into a single cell experiment carrying "
-       "counts, log-counts, metadata, and size factors. Every step below — "
-       "including the pseudobulk DeSeq2 — reads from this one object. "
-       "Staying S-C-E-native avoids a lossy conversion at the end.",
+      # 5 — one SCE throughout
+      ("One single cell experiment carries counts, log-counts, metadata, "
+       "and size factors through every step.",
        False, None),
 
-      # 6 — spotlight: Phases B–D done, 11 clusters
-      ("Normalisation, highly-variable-gene selection plus P-C-A, and "
-       "graph-based clustering with buildSNNGraph plus Louvain are complete. "
-       "Eleven clusters. The U-MAP is a picture, not the clustering — "
-       "clusters come from the S-N-N graph.",
+      # 6 — Phases B–D, 11 clusters
+      ("Normalised. PCA. SNN graph plus Louvain. "
+       "Eleven clusters. UMAP is for visualisation.",
        False, None),
 
-      # 7 — spotlight: parallel markers + annotation
-      ("Phases E and F open together. scoreMarkers and SingleR — against "
-       "the Human Primary Cell Atlas — both read the clustered object, "
-       "so the engine fans them out and tracks the join. "
-       "Independent steps run concurrently; dependent ones wait.",
+      # 7 — parallel branch
+      ("scoreMarkers and SingleR open in parallel — "
+       "both read the clustered object.",
        False, None),
 
-      # 8 — spotlight: pseudobulk centerpiece (densest beat in the series)
-      ("The key teaching beat. The Q-C block flags the trap — testing "
-       "thousands of cells as replicates is pseudoreplication. The agent "
-       "block gives the fix — aggregate to pseudobulk, so the six samples "
-       "are the real replicates. Then DeSeq2 per cell type. "
-       "The agent corrects the stats trap before running the test.",
+      # 8 — pseudobulk centerpiece
+      ("Trap and fix. Thousands of cells aren't replicates — "
+       "aggregate to pseudobulk so six samples are. Then DeSeq2 per cell type.",
        False, None),
 
-      # ── shared afterRunSteps (10) ──────────────────────────────────────────
       # 9 — center: chain complete
-      ("All seven phases done. Routed to O-S-C-A, clustered, annotated in "
-       "parallel, then pseudobulk D-E. C-D-eight T cells are the strongest "
-       "responder — two hundred and fourteen D-E genes on true replicates. "
-       "Next, we walk every tab of the report.",
+      ("Seven phases done. CD-eight T cells lead with two hundred fourteen DE genes.",
        True, None),
 
-      # 10 — spotlight: tabs overview
-      ("Every completed run produces a structured report. Seven tabs — "
-       "findings, outputs, methods, parameters, software, citations, and "
-       "the Q-C audit. Same order as the bulk tutorial.",
+      # 10 — tabs overview
+      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, "
+       "Citations, QC audit.",
        False, None),
 
-      # 11 — spotlight: Findings tab
-      ("The findings tab. Headline metric and figures from the manifest — "
-       "D-E genes per cell type, cell-type composition, and Q-C retention. "
-       "Pseudobulk means significance rests on the six biological replicates.",
+      # 11 — Findings tab
+      ("Findings. DE genes per cell type, composition, QC retention — from the manifest.",
        False, None),
 
-      # 12 — spotlight: Outputs tab
-      ("Outputs. Files grouped by phase and step — the U-MAP, the marker "
-       "heatmap, per-cell-type D-E tables, and the cell-type calls. "
-       "View previews inline; download grabs one or all.",
+      # 12 — Outputs tab
+      ("Outputs. UMAP, marker heatmap, per-cell-type DE tables, cell-type calls.",
        False, None),
 
-      # 13 — spotlight: inline preview (annotated UMAP)
-      ("Clicking view on the U-MAP renders it inline. "
-       "Nine thousand eight hundred and fourteen cells coloured by the "
-       "eight SingleR cell types, with a legend. "
-       "The U-MAP is for visualisation; clusters come from the S-N-N graph.",
+      # 13 — UMAP preview
+      ("Clicking view on the UMAP renders it inline — "
+       "cells coloured by the eight SingleR types.",
        False, None),
 
-      # 14 — spotlight: Methods tab
-      ("Methods. Paste-ready prose — emptyDrops Q-C, scran normalisation, "
-       "S-N-N and Louvain clustering, SingleR annotation, and "
-       "aggregateAcrossCells into DeSeq2. With versions and parameters.",
+      # 14 — Methods tab
+      ("Methods. emptyDrops, scran, SNN/Louvain, SingleR, "
+       "aggregateAcrossCells into DeSeq2.",
        False, None),
 
-      # 15 — spotlight: Parameters tab
-      ("Parameters. Phase, step, parameter, value — emptyDrops F-D-R, "
-       "highly-variable-gene count, S-N-N k, the SingleR reference, "
-       "and the pseudobulk design. A ready supplementary table.",
+      # 15 — Parameters tab
+      ("Parameters. emptyDrops FDR, HVG count, SNN k, "
+       "SingleR reference, pseudobulk design.",
        False, None),
 
-      # 16 — spotlight: Software tab
-      ("Software. Exact versions — DropletUtils, scran, scater, SingleR, "
-       "DeSeq2. Match these with the parameters tab and you reproduce the run.",
+      # 16 — Software tab
+      ("Software. DropletUtils, scran, scater, SingleR, DeSeq2 — exact versions.",
        False, None),
 
-      # 17 — spotlight: Citations tab
-      ("Citations. Amezquita twenty-twenty for O-S-C-A, Lun twenty-nineteen "
-       "for emptyDrops, Aran twenty-nineteen for SingleR, "
-       "Love twenty-fourteen for DeSeq2. Pre-bundled in the download report.",
+      # 17 — Citations tab
+      ("Citations. Amezquita twenty-twenty, Lun twenty-nineteen, "
+       "Aran twenty-nineteen, Love twenty-fourteen.",
        False, None),
 
-      # 18 — spotlight: QC audit tab (includes the pseudoreplication gate)
-      ("The Q-C audit tab. Cells retained, size-factor range, cluster count, "
-       "pruned clusters, and the replicate-unit gate — sample, not cell. "
-       "The replicate-unit gate is what enforces pseudobulk over naive "
-       "per-cell D-E.",
+      # 18 — QC audit
+      ("QC audit. Cells retained, cluster count, "
+       "and the replicate-unit gate — sample, not cell.",
        False, None),
 
-      # 19 — center: wrap-up
-      ("That's the single-cell thread. Route to O-S-C-A, cluster, "
-       "annotate in parallel, pseudobulk D-E, and a seven-tab report. "
-       "One object, one request, statistically honest D-E. "
-       "Compare with the bulk and methylation tutorials — "
-       "same agent, different data.",
+      # 19 — center wrap-up
+      ("One object, one request, statistically honest DE. "
+       "Try the methylation tutorial next.",
        True, CLOSING_SPEED),
     ],
   },
@@ -795,136 +718,96 @@ TUTORIALS = {
   "bioc_methyl": {
     "label": "Bioconductor · 450k methylation chain",
     "steps": [
-      # 1 — center welcome
-      ("A methylation-array request. This chain rides a genomic backbone "
-       "object instead of a count matrix — probe coordinates travel with "
-       "the data, so region-level analysis is possible. "
-       "About three minutes — I-DAT, genomic ratio set, D-M-Rs, "
-       "C-p-G-corrected G-O, report.",
+      # 1 — center welcome (~3min target)
+      ("Methylation array. Genomic backbone, not a count matrix — "
+       "probe coordinates travel with the data.",
        True, CLOSING_SPEED),
 
-      # 2 — spotlight: five phases
-      ("Five phases. Read I-DAT, Q-C and normalise, D-M-P calling, "
-       "D-M-R calling, and C-p-G-corrected enrichment. "
-       "The panel shows the same five phases the chat narrates. "
-       "Each phase lists its real minfi steps, parameters, and outputs.",
+      # 2 — five phases
+      ("Five phases. Read IDAT, QC, DMP calling, DMR calling, "
+       "and CpG-corrected enrichment.",
        False, None),
 
-      # 3 — spotlight: routed to minfi
-      ("Raw I-DAT plus a four-fifty-k manifest routes to minfi, "
-       "because the downstream D-M-R step needs a genomic object, "
-       "not a plain matrix. The input format picks the whole ecosystem, "
-       "not just one tool.",
+      # 3 — routed to minfi
+      ("IDAT plus the 450k manifest routes to minfi — "
+       "DMRs need a genomic object, not a plain matrix.",
        False, None),
 
-      # 4 — spotlight: Phase A read IDAT
-      ("Phase A. minfi's read-meth-array-exp reads the I-DAT pairs into a "
-       "methyl set — raw methylated and unmethylated intensities, "
-       "four hundred and fifty thousand probes by twenty-four samples. "
-       "The running phase auto-expands.",
+      # 4 — Phase A read IDAT
+      ("Phase A. read-meth-array-exp returns a methyl set: "
+       "four hundred fifty thousand probes, twenty-four samples.",
        False, None),
 
-      # 5 — spotlight: GenomicRatioSet handoff
-      ("After Q-C and normalisation the object is a genomic ratio set. "
-       "Beta values with each probe's genomic coordinate. "
-       "That genomic ranges backbone is what lets the next step collapse "
-       "C-p-Gs into regions. Methyl set, genomic ratio set, data frame, "
-       "genomic ranges — each typed.",
+      # 5 — GenomicRatioSet handoff
+      ("After QC, a genomic ratio set. Beta values with probe coordinates. "
+       "Lets the next step collapse CpGs into regions.",
        False, None),
 
-      # 6 — spotlight: Phase C DMP calling
-      ("Phase C. Per-C-p-G differential methylation with limma e-Bayes "
-       "on M-values, design tilde group. "
-       "Twelve thousand four hundred and three significant C-p-Gs at "
-       "false discovery rate under zero point zero five, passed on to "
-       "bumphunter. M-values for testing; beta values for reporting.",
+      # 6 — Phase C DMP
+      ("Phase C. limma eBayes on M-values. "
+       "Twelve thousand four hundred CpGs significant.",
        False, None),
 
-      # 7 — spotlight: Phase D DMRs done
-      ("Phase D. bumphunter with one thousand bootstraps collapses "
-       "adjacent significant C-p-Gs into eight hundred and forty-seven "
-       "regions — a genomic ranges object of D-M-Rs, ready for enrichment. "
-       "Region-level analysis is only possible because coordinates rode along.",
+      # 7 — Phase D DMRs
+      ("Phase D. bumphunter, one thousand bootstraps. "
+       "Eight hundred forty-seven DMRs as genomic ranges.",
        False, None),
 
-      # 8 — spotlight: CpG-density bias centerpiece
-      ("The teaching beat. The Q-C block flags the trap — a normal G-O "
-       "over-represents C-p-G-rich promoters on the array. "
-       "The agent block gives the fix — missMethyl gometh weights genes by "
-       "C-p-G count, so enrichment p-values stay calibrated. "
-       "The agent reaches for the array-aware tool, not the generic one.",
+      # 8 — CpG-bias centerpiece
+      ("Trap and fix. Normal GO over-represents CpG-rich promoters. "
+       "missMethyl gometh weights by CpG count and keeps p-values calibrated.",
        False, None),
 
-      # ── shared afterRunSteps (10) ──────────────────────────────────────────
       # 9 — center: chain complete
-      ("All five phases done. minfi read, normalised, D-M-Ps, bumphunter "
-       "D-M-Rs, and C-p-G-corrected G-O. Eight hundred and forty-seven "
-       "D-M-Rs from twelve thousand four hundred and three significant "
-       "C-p-Gs. Next, we walk every tab of the report.",
+      ("Five phases done. Eight hundred forty-seven DMRs.",
        True, None),
 
-      # 10 — spotlight: tabs overview
-      ("Seven tabs — findings, outputs, methods, parameters, software, "
-       "citations, and the Q-C audit. Same structure as the other two "
-       "Bioconductor tutorials.",
+      # 10 — tabs overview
+      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, "
+       "Citations, QC audit.",
        False, None),
 
-      # 11 — spotlight: Findings tab
-      ("The findings tab. Headline plus figures from the manifest — "
-       "D-M-R direction, hyper or hypo, top C-p-G-corrected G-O terms, "
-       "and probe-Q-C retention. Numbers read from the run.",
+      # 11 — Findings tab
+      ("Findings. DMR direction, top CpG-corrected GO terms, probe-QC retention.",
        False, None),
 
-      # 12 — spotlight: Outputs tab
-      ("Outputs. Files by phase and step — the D-M-P table with twelve "
-       "thousand four hundred and three C-p-Gs, the D-M-R object with "
-       "eight hundred and forty-seven regions as genomic ranges, and the "
-       "C-p-G-corrected G-O enrichment. View previews; download grabs one "
-       "or all.",
+      # 12 — Outputs tab
+      ("Outputs. DMP table, DMR object as genomic ranges, "
+       "CpG-corrected GO enrichment.",
        False, None),
 
-      # 13 — spotlight: inline preview (DMR manhattan)
-      ("Clicking view on the D-M-R tracks P-N-G renders it inline — "
-       "negative log-ten p across chromosomes, with the eight hundred and "
-       "forty-seven significant D-M-Rs above the region-wide threshold "
-       "highlighted.",
+      # 13 — DMR manhattan preview
+      ("Clicking view on the DMR tracks renders it inline — "
+       "negative log-ten p across chromosomes.",
        False, None),
 
-      # 14 — spotlight: Methods tab
-      ("Methods. Paste-ready — read-meth-array, detection-p Q-C, "
-       "S-N-P and cross-reactive filtering, preprocessQuantile, "
-       "limma D-M-Ps, bumphunter D-M-Rs, gometh enrichment — "
-       "with versions and parameters.",
+      # 14 — Methods tab
+      ("Methods. read-meth-array, detection-p QC, preprocessQuantile, "
+       "limma DMPs, bumphunter DMRs, gometh.",
        False, None),
 
-      # 15 — spotlight: Parameters tab
-      ("Parameters. Phase, step, parameter, value — detection-p cutoff, "
-       "the M-value design, bumphunter bootstraps and cutoff, the gometh "
-       "array type. A ready supplementary table.",
+      # 15 — Parameters tab
+      ("Parameters. Detection-p cutoff, M-value design, "
+       "bumphunter bootstraps, gometh array type.",
        False, None),
 
-      # 16 — spotlight: Software tab
-      ("Software. Exact versions — minfi, limma, bumphunter, missMethyl. "
-       "Match these with the parameters tab and you reproduce the run.",
+      # 16 — Software tab
+      ("Software. minfi, limma, bumphunter, missMethyl — exact versions.",
        False, None),
 
-      # 17 — spotlight: Citations tab
-      ("Citations. Aryee twenty-fourteen for minfi, Jaffe twenty-twelve "
-       "for bumphunter, Phipson twenty-sixteen for missMethyl, "
-       "Ritchie twenty-fifteen for limma. Pre-bundled in the download report.",
+      # 17 — Citations tab
+      ("Citations. Aryee twenty-fourteen, Jaffe twenty-twelve, "
+       "Phipson twenty-sixteen, Ritchie twenty-fifteen.",
        False, None),
 
-      # 18 — spotlight: QC audit tab (includes the bias-corrected gate)
-      ("The Q-C audit tab. Samples read, probes retained, significant-C-p-G "
-       "count, D-M-R count, and the C-p-G-bias-corrected flag. "
-       "The bias-corrected gate is what enforces gometh over a generic G-O test.",
+      # 18 — QC audit
+      ("QC audit. Samples, probes, significant CpGs, DMRs, "
+       "and the CpG-bias-corrected flag.",
        False, None),
 
-      # 19 — center: wrap-up
-      ("That's the epigenomics thread. A genomic ranges backbone, D-M-Ps, "
-       "D-M-Rs, C-p-G-corrected enrichment, and a seven-tab report. "
-       "A different object lineage from the other two tutorials, "
-       "the same orchestration. That completes the three Bioconductor demos.",
+      # 19 — center wrap-up
+      ("Genomic backbone, DMRs, CpG-corrected GO — different lineage, "
+       "same orchestration. That's the three Bioconductor demos.",
        True, CLOSING_SPEED),
     ],
   },
