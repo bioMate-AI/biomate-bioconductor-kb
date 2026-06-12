@@ -94,15 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await response.json()
 
     if (!response.ok) {
+      // TRIAL_EXPIRED used to be thrown by the server here and the client
+      // redirected to /pricing — but /pricing is commented out, so users
+      // landed on a 404. As of 2026-06-12 the server demotes expired
+      // trials to the free plan and lets login succeed (see
+      // auth-service.ts verifyCredentials trial-expiry policy). This
+      // legacy branch is left as a safety net for any old server build
+      // still in flight; if a TRIAL_EXPIRED error ever does come back,
+      // surface a clear message rather than a broken redirect.
       if (data.error === 'TRIAL_EXPIRED') {
-        // Direct the user to the pricing page so they have a way to subscribe.
-        // Auto-navigate after a moment in case the toast/error message gets dismissed.
-        setTimeout(() => {
-          if (window.location.pathname !== '/pricing') {
-            window.location.href = '/pricing?from=trial-expired'
-          }
-        }, 1500)
-        throw new Error('Your trial has expired. Redirecting to pricing… or click here: /pricing')
+        throw new Error('Your free trial has ended — please contact support to continue, or upgrade from the in-app billing page.')
       }
       throw new Error(data.error || 'Login failed')
     }

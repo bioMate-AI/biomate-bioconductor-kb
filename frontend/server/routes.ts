@@ -1235,6 +1235,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await parameterRepository.initialize();
   await workflowRepository.initialize();
 
+  // Lane B3 — per-org adapter retrain queue
+  const { registerRegulatoryTrainingRoutes } = await import("./regulatory-training-routes.js");
+  registerRegulatoryTrainingRoutes(app);
+
   // ─── /api/contact — public contact form submission ───────────────────────
   // Sends to CONTACT_INBOX (default: yaoyun.zhang@biomate.ai) via AWS SES through
   // existing email-service.ts. Falls back to logging if email service is not
@@ -1853,10 +1857,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await authService.register(registerData);
 
-      // Send verification email (non-blocking — don't fail registration if email fails)
-      authService.sendVerificationEmail(result.user.id).catch((err) =>
-        console.error('[Auth] Failed to send verification email:', err)
-      );
+      // Issue the verification token here (not fire-and-forget) so we can
+      // return it to the client in dev / no-SMTP environments. The
+      // registration UI surfaces a "use this link to verify" affordance
+      // when SMTP isn't configured — without this token in the response,
+      // that link rendered as `/verify-email?token=null` and 404'd into
+      // the React error path. See 2026-06-12 auth audit.
+      let _verificationToken: string | null = null;
+      try {
+        _verificationToken = await authService.sendVerificationEmail(result.user.id, { returnToken: true });
+      } catch (err) {
+        console.error('[Auth] Failed to send verification email:', err);
+      }
 
       // Notify the admin of every new registration (fire-and-forget; never fails the signup)
       try {
@@ -1904,7 +1916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json({
         success: true,
-        user: result.user,
+        user: { ...result.user, verificationToken: _verificationToken },
         token: result.token,
         expiresIn: result.expiresIn,
       });
