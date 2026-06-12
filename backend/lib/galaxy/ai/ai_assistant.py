@@ -446,6 +446,15 @@ class AIAssistant:
         _ctx = context or {}
         _uid = _ctx.get('userId', '') or _ctx.get('user_id', '')
         _sid = _ctx.get('sessionId', '') or _ctx.get('session_id', '')
+
+        # Shadow-only chain composer telemetry. Default off, never raises, log-only.
+        # Enable via BIOMATE_COMPOSER_SHADOW=1. See chain_composer/telemetry.py.
+        try:
+            from .chain_composer.telemetry import shadow_log as _composer_shadow_log
+            _composer_shadow_log(query, _ctx)
+        except Exception:  # pragma: no cover — must never break routing
+            pass
+
         if self._looks_like_multi_task(query, user_id=_uid, session_id=_sid):
             return await self._handle_multi_task_clarification(query, _ctx)
 
