@@ -179,29 +179,62 @@ process NLMIXR2_POPULATION_PK {
     }
 
     # ── Fit model ────────────────────────────────────────────────────────────
+    # Pick the control function that matches the chosen estimation algorithm —
+    # do.call(saemControl, ...) was used regardless of algorithm, which broke
+    # FOCEI runs.
+    algo_lc <- tolower("${params.algorithm}")
+    control_fn <- switch(algo_lc,
+        saem  = saemControl,
+        focei = foceiControl,
+        saemControl
+    )
     control_args <- list(maxOuterIterations = ${params.max_iter})
+    fit_err <- NULL
     fit <- tryCatch(
         nlmixr2(pk_model, pk_data, est = "${params.algorithm}",
-                control = do.call(saemControl, control_args)),
+                control = do.call(control_fn, control_args)),
         error = function(e) {
-            cat("ERROR: nlmixr2 fitting failed:", conditionMessage(e), "\\n")
+            msg <- conditionMessage(e)
+            fit_err <<- msg
+            cat("ERROR: nlmixr2 fitting failed:", msg, "\\n")
             NULL
         }
     )
 
     if (is.null(fit)) {
-        # Write minimal failed-state JSON for QC gate
+        # Persist failure state so the QC monitor still has a qc_metrics.json
+        # to read instead of silently going dark.
         results_json <- list(
             convergence_status = "failed",
             model_type         = "${params.model_type}",
             algorithm          = "${params.algorithm}",
             n_subjects         = n_subjects,
-            n_observations     = n_obs
+            n_observations     = n_obs,
+            error_message      = fit_err
         )
         write_json(results_json, "nlmixr2_results.json", pretty = TRUE, auto_unbox = TRUE)
         fwrite(data.frame(), "parameter_estimates.csv")
         fwrite(data.frame(), "individual_estimates.csv")
-        stop("nlmixr2 model fitting failed — see log above.")
+        qc_failed <- list(
+            success            = FALSE,
+            process            = "NLMIXR2_POPULATION_PK",
+            domain             = "pharmacology",
+            convergence_status = "failed",
+            model_type         = "${params.model_type}",
+            algorithm          = "${params.algorithm}",
+            n_subjects         = n_subjects,
+            n_observations     = n_obs,
+            error_message      = fit_err,
+            evidence_tier      = "GOLD",
+            citation           = "Savic & Karlsson 2007 AAPS J 9:E251"
+        )
+        write_json(qc_failed, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
+        # Exit 0 so publishDir copies all declared outputs (including the
+        # qc_metrics.json failure record) — the QC monitor will then read the
+        # convergence_status="failed" and the gate will TRIGGER. Aborting here
+        # would suppress publishDir and leave the run silently dark.
+        cat("nlmixr2 fit failed; failure-state outputs published. Exiting 0.\\n")
+        quit(save = "no", status = 0)
     }
 
     # ── Extract QC metrics ───────────────────────────────────────────────────
