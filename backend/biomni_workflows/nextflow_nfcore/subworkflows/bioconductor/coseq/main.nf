@@ -44,7 +44,7 @@ process BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Biobase", "corrplot", "coseq", "DESeq2", "edgeR", "ggforce")
+    .bm_deps <- c("Biobase", "corrplot", "coseq", "DESeq2", "edgeR", "ggforce", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,6 +62,7 @@ process BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(coseq)
     
     # 1. Read user input

@@ -42,7 +42,7 @@ process BIOC_SCMERGE_SC_MERGE_V2 {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DelayedMatrixStats", "SingleCellExperiment", "batchelor", "ggplot2", "scMerge", "scater")
+    .bm_deps <- c("DelayedMatrixStats", "SingleCellExperiment", "batchelor", "ggplot2", "scMerge", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SCMERGE_SC_MERGE_V2 {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(scMerge)
     library(scater)
     library(batchelor)

@@ -63,6 +63,7 @@ process BIOC_PHENOMIS_OMICS_POST_PROCESSING_AND_ANALYSIS {
         
         # Load required libraries
         library(MultiAssayExperiment)
+        library(SummarizedExperiment)
         library(phenomis)
         
         # ==========================================

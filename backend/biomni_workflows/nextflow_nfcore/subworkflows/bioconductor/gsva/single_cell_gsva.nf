@@ -44,7 +44,7 @@ process BIOC_GSVA_SINGLE_CELL_GSVA {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GSVA", "GSEABase", "ggplot2", "org.Hs.eg.db")
+    .bm_deps <- c("GSVA", "GSEABase", "ggplot2", "org.Hs.eg.db", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_GSVA_SINGLE_CELL_GSVA {
         }
                     
                     # Load required libraries
-                    library(GSVA)
+                              library(SummarizedExperiment)
+          library(GSVA)
                     library(GSEABase)
                     library(ggplot2)
                     library(org.Hs.eg.db)

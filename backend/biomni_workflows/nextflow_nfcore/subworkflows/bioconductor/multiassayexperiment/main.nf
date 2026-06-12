@@ -38,7 +38,7 @@ process BIOC_MULTIASSAYEXPERIMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "MultiAssayExperiment", "RaggedExperiment", "jsonlite")
+    .bm_deps <- c("GenomicRanges", "MultiAssayExperiment", "RaggedExperiment", "jsonlite", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -46,7 +46,8 @@ process BIOC_MULTIASSAYEXPERIMENT {
       .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
       suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    library(GenomicRanges)
+       library(SummarizedExperiment)
+ library(GenomicRanges)
     library(MultiAssayExperiment)
     library(RaggedExperiment)
     library(jsonlite)

@@ -42,7 +42,7 @@ process BIOC_GARS_FEATURE_SELECTION_GARS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GARS")
+    .bm_deps <- c("GARS", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_GARS_FEATURE_SELECTION_GARS {
         }
         
         # Load required libraries
-        library(GARS)
+               library(SummarizedExperiment)
+ library(GARS)
         
         # 1. Read User Input
         # The pipeline expects 'datanorm' to be a SummarizedExperiment object

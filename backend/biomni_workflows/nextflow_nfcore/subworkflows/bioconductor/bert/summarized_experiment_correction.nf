@@ -39,7 +39,7 @@ process BIOC_BERT_SUMMARIZED_EXPERIMENT_CORRECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BERT")
+    .bm_deps <- c("BERT", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -56,7 +56,8 @@ process BIOC_BERT_SUMMARIZED_EXPERIMENT_CORRECTION {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(BERT)
     
     # 1. Load the SummarizedExperiment object

@@ -44,7 +44,7 @@ process BIOC_MICSQTL_MULTI_OMIC_CSQTL_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MICSQTL", "ggplot2")
+    .bm_deps <- c("MICSQTL", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_MICSQTL_MULTI_OMIC_CSQTL_PIPELINE {
         }
         
         # Load required libraries
-        library(MICSQTL)
+         library(SummarizedExperiment)
+       library(MICSQTL)
         library(ggplot2)
         
         # Helper function to load input files robustly

@@ -55,6 +55,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     
     # Load required libraries
     library(barcodetrackR)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # --- Read and preprocess input data ---

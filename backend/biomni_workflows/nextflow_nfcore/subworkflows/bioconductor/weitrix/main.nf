@@ -45,7 +45,7 @@ process BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("weitrix", "limma", "topconfects", "dplyr", "ggplot2", "BiocParallel")
+    .bm_deps <- c("weitrix", "limma", "topconfects", "dplyr", "ggplot2", "BiocParallel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(weitrix)
     library(limma)
     library(topconfects)

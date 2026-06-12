@@ -48,7 +48,7 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("scone", "BiocParallel")
+    .bm_deps <- c("scone", "BiocParallel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -65,7 +65,8 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
           }
         }
         
-        # Load required libraries
+        # Load required libraries        library(SummarizedExperiment)
+
         library(scone)
         library(BiocParallel)
         

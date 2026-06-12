@@ -44,7 +44,7 @@ process BIOC_CCFINDR_BAYESIAN_NMF {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ccfindR")
+    .bm_deps <- c("ccfindR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_CCFINDR_BAYESIAN_NMF {
         }
         
         # Load required libraries
-        library(ccfindR)
+        li        library(SummarizedExperiment)
+brary(ccfindR)
         
         # Define directory containing the user input files
         dir <- "."

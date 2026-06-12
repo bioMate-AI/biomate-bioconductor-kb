@@ -44,7 +44,7 @@ process BIOC_LIONESSR_SINGLE_SAMPLE_NETWORK_RECONSTRUCTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("lionessR", "igraph", "reshape2", "limma")
+    .bm_deps <- c("lionessR", "igraph", "reshape2", "limma", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_LIONESSR_SINGLE_SAMPLE_NETWORK_RECONSTRUCTION {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(lionessR)
     library(igraph)
     library(reshape2)

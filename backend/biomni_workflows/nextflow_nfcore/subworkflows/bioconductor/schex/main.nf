@@ -44,7 +44,7 @@ process BIOC_SCHEX_HEXBIN_PLOTTING_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("schex", "dplyr", "Seurat", "ggplot2", "ggrepel", "scater", "scran", "igraph")
+    .bm_deps <- c("schex", "dplyr", "Seurat", "ggplot2", "ggrepel", "scater", "scran", "igraph", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_SCHEX_HEXBIN_PLOTTING_WORKFLOW {
           }
         }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(schex)
     library(dplyr)
     library(Seurat)

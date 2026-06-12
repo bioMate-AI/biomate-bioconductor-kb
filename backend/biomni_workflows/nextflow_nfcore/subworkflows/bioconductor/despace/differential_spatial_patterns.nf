@@ -43,7 +43,7 @@ process BIOC_DESPACE_DIFFERENTIAL_SPATIAL_PATTERNS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESpace", "ggplot2", "SpatialExperiment", "reshape2", "dplyr", "tidyr", "purrr", "tibble", "patchwork", "edgeR")
+    .bm_deps <- c("DESpace", "ggplot2", "SpatialExperiment", "reshape2", "dplyr", "tidyr", "purrr", "tibble", "patchwork", "edgeR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_DESPACE_DIFFERENTIAL_SPATIAL_PATTERNS {
         }
     
     # Load required libraries
-    suppressMessages({
+    suppressMessages({      library(SummarizedExperiment)
+
       library(DESpace)
       library(ggplot2)
       library(SpatialExperiment)

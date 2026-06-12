@@ -42,7 +42,7 @@ process BIOC_CENSCYT_CENSORED_DA_STEP_BY_STEP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("censcyt", "BiocParallel", "ggplot2", "tidyr")
+    .bm_deps <- c("censcyt", "BiocParallel", "ggplot2", "tidyr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_CENSCYT_CENSORED_DA_STEP_BY_STEP {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({
+    suppressPackageStartupMessages({      library(SummarizedExperiment)
+
       library(censcyt)
       library(BiocParallel)
     })

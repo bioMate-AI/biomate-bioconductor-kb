@@ -34,7 +34,7 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("AnnotationHub", "DESeq2", "doubleexpseq", "edgeR", "ggplot2", "SpliceWiz")
+    .bm_deps <- c("AnnotationHub", "DESeq2", "doubleexpseq", "edgeR", "ggplot2", "SpliceWiz", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -51,7 +51,9 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
         }
       }
     }
-    
+        
+    library(SummarizedExperiment)
+
     library(SpliceWiz)
     library(edgeR)
     

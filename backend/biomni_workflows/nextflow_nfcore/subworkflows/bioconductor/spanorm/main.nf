@@ -45,7 +45,7 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ggplot2", "patchwork", "SpaNorm", "SpatialExperiment")
+    .bm_deps <- c("ggplot2", "patchwork", "SpaNorm", "SpatialExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
         }
         
         # Load required libraries
-        library(SpaNorm)
+         library(SummarizedExperiment)
+       library(SpaNorm)
         library(SpatialExperiment)
         library(ggplot2)
         

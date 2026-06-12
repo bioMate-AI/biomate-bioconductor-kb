@@ -62,6 +62,7 @@ process BIOC_DMRCATE_SEQUENCING_DMR_ANALYSIS {
     
     # Load required libraries
     library(DMRcate)
+    library(SummarizedExperiment)
     library(bsseq)
     
     # Helper function to read RDS files robustly

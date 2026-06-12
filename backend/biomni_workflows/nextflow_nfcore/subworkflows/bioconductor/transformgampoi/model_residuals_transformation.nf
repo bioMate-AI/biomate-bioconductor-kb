@@ -41,7 +41,7 @@ process BIOC_TRANSFORMGAMPOI_MODEL_RESIDUALS_TRANSFORMATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("transformGamPoi", "MatrixGenerics")
+    .bm_deps <- c("transformGamPoi", "MatrixGenerics", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_TRANSFORMGAMPOI_MODEL_RESIDUALS_TRANSFORMATION {
         }
     
     # Load required libraries
-    library(transformGamPoi)
+    l    library(SummarizedExperiment)
+ibrary(transformGamPoi)
     library(MatrixGenerics)
     
     # 1. Load the data from the user-specified input file

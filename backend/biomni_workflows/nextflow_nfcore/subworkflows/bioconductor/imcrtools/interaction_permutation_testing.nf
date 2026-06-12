@@ -34,7 +34,7 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "RColorBrewer", "SingleCellExperiment", "SpatialExperiment", "data.table", "ggplot2", "ggraph", "imcRtools")
+    .bm_deps <- c("BiocParallel", "RColorBrewer", "SingleCellExperiment", "SpatialExperiment", "data.table", "ggplot2", "ggraph", "imcRtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
       }
     }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(imcRtools)
     library(SingleCellExperiment)
     library(SpatialExperiment)

@@ -46,7 +46,7 @@ process BIOC_SKETCHR_SINGLE_CELL_SKETCHING_AND_PROJECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("sketchR", "scran", "scater", "snifter", "uwot", "bluster", "class", "ggplot2")
+    .bm_deps <- c("sketchR", "scran", "scater", "snifter", "uwot", "bluster", "class", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_SKETCHR_SINGLE_CELL_SKETCHING_AND_PROJECTION {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({
+    suppressPackageStartupMessages({      library(SummarizedExperiment)
+
       library(sketchR)
       library(scran)
       library(scater)

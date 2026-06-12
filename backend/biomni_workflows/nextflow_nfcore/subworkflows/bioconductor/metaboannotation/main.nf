@@ -60,6 +60,7 @@ process BIOC_METABOANNOTATION_MATCH_VALUES {
     
     # Load required libraries
     library(MetaboAnnotation)
+    library(SummarizedExperiment)
     library(QFeatures)
     
     # 1. Load query and target datasets from the working directory

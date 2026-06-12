@@ -36,7 +36,7 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("iSEE")
+    .bm_deps <- c("iSEE", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
           }
         }
     
-    # --- Load libraries and read input data ---
+    # --- Load libraries and read input data ---    library(SummarizedExperiment)
+
     library(iSEE)
     
     # Read counts.csv (gene-by-cell count matrix, column 'gene_id' contains row names)

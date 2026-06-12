@@ -37,7 +37,7 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("sesame")
+    .bm_deps <- c("sesame", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +55,8 @@ process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
         }
     
     # Load required libraries
-    library(sesame)
+     library(SummarizedExperiment)
+   library(sesame)
     
     # Print version info for reproducibility
     tryCatch({

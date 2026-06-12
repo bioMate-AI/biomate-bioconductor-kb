@@ -41,7 +41,7 @@ process BIOC_SEQGATE_SEQGATE_FILTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SeqGate")
+    .bm_deps <- c("SeqGate", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SEQGATE_SEQGATE_FILTERING {
         }
     
     # Load required libraries
-    library(SeqGate)
+      library(SummarizedExperiment)
+  library(SeqGate)
     
     # 1. Read User Input Files
     if (!file.exists("counts_matrix.csv")) {

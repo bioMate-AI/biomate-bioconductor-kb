@@ -47,7 +47,7 @@ process BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("pmp", "S4Vectors")
+    .bm_deps <- c("pmp", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION {
           }
         }
     
-    # Load required libraries
+    # Load required lib    library(SummarizedExperiment)
+raries
     library(pmp)
     library(S4Vectors)
     

@@ -34,7 +34,7 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "SpatialExperiment", "cytomapper", "ggplot2", "ggraph", "imcRtools")
+    .bm_deps <- c("SingleCellExperiment", "SpatialExperiment", "cytomapper", "ggplot2", "ggraph", "imcRtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     }
     
     # Load required libraries
-    library(SingleCellExperiment)
+    librar    library(SummarizedExperiment)
+y(SingleCellExperiment)
     library(SpatialExperiment)
     library(imcRtools)
     library(cytomapper)

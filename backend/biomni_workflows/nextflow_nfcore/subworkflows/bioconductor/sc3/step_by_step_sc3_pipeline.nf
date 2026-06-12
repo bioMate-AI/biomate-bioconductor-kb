@@ -46,7 +46,7 @@ process BIOC_SC3_STEP_BY_STEP_SC3_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SC3", "scater")
+    .bm_deps <- c("SC3", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_SC3_STEP_BY_STEP_SC3_PIPELINE {
           }
         }
         
-        # Load required libraries
+        # Load required librari        library(SummarizedExperiment)
+es
         library(SC3)
         library(scater)
         

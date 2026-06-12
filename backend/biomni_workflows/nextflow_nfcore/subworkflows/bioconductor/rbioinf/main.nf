@@ -35,7 +35,7 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("RBioinf", "S4Vectors")
+    .bm_deps <- c("RBioinf", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(RBioinf)
     library(S4Vectors)
     

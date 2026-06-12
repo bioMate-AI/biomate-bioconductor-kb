@@ -41,7 +41,7 @@ process BIOC_CATSCRADLE_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Seurat", "CatsCradle", "deldir", "SpatialExperiment")
+    .bm_deps <- c("Seurat", "CatsCradle", "deldir", "SpatialExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,6 +59,7 @@ process BIOC_CATSCRADLE_SPATIAL_NEIGHBORHOOD_ANALYSIS {
         }
         
         # Load required libraries
+        library(SummarizedExperiment)
         library(Seurat)
         library(CatsCradle)
         library(deldir)

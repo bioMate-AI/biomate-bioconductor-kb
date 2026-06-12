@@ -42,7 +42,7 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ggplot2", "scDesign3", "SingleCellExperiment")
+    .bm_deps <- c("ggplot2", "scDesign3", "SingleCellExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(scDesign3)
     library(ggplot2)
     

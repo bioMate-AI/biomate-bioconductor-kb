@@ -43,7 +43,7 @@ process BIOC_DESEQ2_MULTI_FACTOR_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2")
+    .bm_deps <- c("DESeq2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_DESEQ2_MULTI_FACTOR_ANALYSIS {
         }
         
     # Load required libraries
-    library(DESeq2)
+     library(SummarizedExperiment)
+   library(DESeq2)
     
     # Locate and read the user input file
     input_file <- "dds"

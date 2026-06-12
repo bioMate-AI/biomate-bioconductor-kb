@@ -60,6 +60,7 @@ process BIOC_ROPLS_MULTI_ASSAY_EXPERIMENT_WORKFLOW {
         
     # Load required libraries
     library(ropls)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     
     # 1. Read the user input MultiAssayExperiment object

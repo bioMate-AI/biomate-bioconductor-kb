@@ -42,7 +42,7 @@ process BIOC_BASICS_TWO_GROUP_DIFFERENTIAL_EXPRESSION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BASiCS")
+    .bm_deps <- c("BASiCS", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_BASICS_TWO_GROUP_DIFFERENTIAL_EXPRESSION {
         }
         
         # Load required libraries
-        library(BASiCS)
+        l        library(SummarizedExperiment)
+ibrary(BASiCS)
         
         # Check for user input files
         if (!file.exists("chain1.RData") || !file.exists("chain2.RData")) {

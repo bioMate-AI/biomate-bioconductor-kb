@@ -34,7 +34,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Rsubread", "SingleCellExperiment", "BiocStyle", "ggplot2", "patchwork", "scruff", "tenxbraindata")
+    .bm_deps <- c("Rsubread", "SingleCellExperiment", "BiocStyle", "ggplot2", "patchwork", "scruff", "tenxbraindata", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
       }
     }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(scruff)
     library(patchwork)
     library(Rsubread)

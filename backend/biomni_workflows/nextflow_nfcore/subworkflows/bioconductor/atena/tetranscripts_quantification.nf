@@ -42,7 +42,7 @@ process BIOC_ATENA_TETRANSCRIPTS_QUANTIFICATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "TxDb.Dmelanogaster.UCSC.dm6.ensGene", "atena")
+    .bm_deps <- c("BiocParallel", "TxDb.Dmelanogaster.UCSC.dm6.ensGene", "atena", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_ATENA_TETRANSCRIPTS_QUANTIFICATION {
           }
         }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(atena)
     library(BiocParallel)
     

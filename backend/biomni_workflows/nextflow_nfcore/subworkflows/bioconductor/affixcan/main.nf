@@ -42,7 +42,7 @@ process BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MultiAssayExperiment", "AffiXcan")
+    .bm_deps <- c("MultiAssayExperiment", "AffiXcan", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION {
         }
     
     # Load required libraries
-    library(MultiAssayExperiment)
+    librar    library(SummarizedExperiment)
+y(MultiAssayExperiment)
     library(AffiXcan)
     
     # Helper function to robustly read user input files from the working directory

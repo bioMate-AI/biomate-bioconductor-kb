@@ -43,7 +43,7 @@ process BIOC_MIAVIZ_ABUNDANCE_PLOTTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("dplyr", "ggplot2", "mia", "miaTime", "miaViz", "patchwork", "scater")
+    .bm_deps <- c("dplyr", "ggplot2", "mia", "miaTime", "miaViz", "patchwork", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_MIAVIZ_ABUNDANCE_PLOTTING {
           }
         }
     
-    # Load required libraries
+    # Load required lib    library(SummarizedExperiment)
+raries
     library(mia)
     library(miaViz)
     library(patchwork)

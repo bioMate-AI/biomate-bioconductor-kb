@@ -46,7 +46,7 @@ process BIOC_PRONE_PROTEOMICS_NORMALIZATION_EVALUATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("PRONE", "stringr")
+    .bm_deps <- c("PRONE", "stringr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_PRONE_PROTEOMICS_NORMALIZATION_EVALUATION {
           }
         }
         
-        # Load required libraries
+        # Load required libraries        library(SummarizedExperiment)
+
         library(PRONE)
         library(stringr)
         

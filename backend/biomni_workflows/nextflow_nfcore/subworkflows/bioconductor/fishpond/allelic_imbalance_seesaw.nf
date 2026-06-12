@@ -45,7 +45,7 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ensembldb", "plyranges", "EnsDb.Hsapiens.v86", "fishpond", "dplyr")
+    .bm_deps <- c("ensembldb", "plyranges", "EnsDb.Hsapiens.v86", "fishpond", "dplyr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
         }
         
         # Load required libraries
-        library(ensembldb)
+           library(SummarizedExperiment)
+     library(ensembldb)
         library(plyranges)
         library(EnsDb.Hsapiens.v86)
         library(fishpond)

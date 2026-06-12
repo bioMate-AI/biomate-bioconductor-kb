@@ -48,7 +48,7 @@ process BIOC_CYDAR_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "cydar", "edgeR", "flowCore", "knitr", "ncdfFlow")
+    .bm_deps <- c("BiocParallel", "cydar", "edgeR", "flowCore", "knitr", "ncdfFlow", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -65,7 +65,9 @@ process BIOC_CYDAR_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
           }
         }
             
-            library(cydar)
+               
+            library(SummarizedExperiment)
+         library(cydar)
             library(BiocParallel)
             register(SerialParam())
             set.seed(100)

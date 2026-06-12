@@ -42,7 +42,7 @@ process BIOC_SC3_STANDARD_SC3_CLUSTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SC3")
+    .bm_deps <- c("SC3", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SC3_STANDARD_SC3_CLUSTERING {
           }
         }
             
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(SC3)
     
     # Read user input files

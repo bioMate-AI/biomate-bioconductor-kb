@@ -45,7 +45,7 @@ process BIOC_MULTIRNAFLOW_TEMPORAL_MULTICONDITION_RNASEQ_FLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MultiRNAflow")
+    .bm_deps <- c("MultiRNAflow", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_MULTIRNAFLOW_TEMPORAL_MULTICONDITION_RNASEQ_FLOW {
         }
         
         # Load required libraries
-        library(MultiRNAflow)
+        library        library(SummarizedExperiment)
+(MultiRNAflow)
         
         # Create results directory
         dir.create("results", showWarnings = FALSE, recursive = TRUE)

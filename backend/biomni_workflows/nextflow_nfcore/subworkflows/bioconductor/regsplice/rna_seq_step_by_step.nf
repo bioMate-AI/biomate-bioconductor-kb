@@ -47,7 +47,7 @@ process BIOC_REGSPLICE_RNA_SEQ_STEP_BY_STEP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("regsplice")
+    .bm_deps <- c("regsplice", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -65,7 +65,8 @@ process BIOC_REGSPLICE_RNA_SEQ_STEP_BY_STEP {
         }
     
     # Load required library
-    library(regsplice)
+        library(SummarizedExperiment)
+library(regsplice)
     
     # ==========================================
     # 1. Read User Inputs from Working Directory

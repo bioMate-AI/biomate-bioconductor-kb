@@ -43,7 +43,7 @@ process BIOC_MSPREP_SUMMARIZED_EXPERIMENT_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MSPrep")
+    .bm_deps <- c("MSPrep", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_MSPREP_SUMMARIZED_EXPERIMENT_PIPELINE {
         }
         
         # Load required libraries
-        library(MSPrep)
+        l        library(SummarizedExperiment)
+ibrary(MSPrep)
         
         # -----------------------------------------------------------------------------
         # 1. Load User Input

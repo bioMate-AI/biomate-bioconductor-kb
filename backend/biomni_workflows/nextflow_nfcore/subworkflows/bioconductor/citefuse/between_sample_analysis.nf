@@ -42,7 +42,7 @@ process BIOC_CITEFUSE_BETWEEN_SAMPLE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CiteFuse", "scater", "ggplot2")
+    .bm_deps <- c("CiteFuse", "scater", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_CITEFUSE_BETWEEN_SAMPLE_ANALYSIS {
         }
         
         # Load required libraries
-        library(CiteFuse)
+          library(SummarizedExperiment)
+      library(CiteFuse)
         library(scater)
         library(ggplot2)
         

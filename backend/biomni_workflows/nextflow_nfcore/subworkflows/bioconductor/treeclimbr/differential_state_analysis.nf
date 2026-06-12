@@ -44,7 +44,7 @@ process BIOC_TREECLIMBR_DIFFERENTIAL_STATE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("TreeSummarizedExperiment", "treeclimbR", "ggtree", "dplyr", "ggplot2")
+    .bm_deps <- c("TreeSummarizedExperiment", "treeclimbR", "ggtree", "dplyr", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_TREECLIMBR_DIFFERENTIAL_STATE_ANALYSIS {
     
     # Load required libraries
     suppressPackageStartupMessages({
-        library(TreeSummarizedExperiment)
+        library(Tr        library(SummarizedExperiment)
+eeSummarizedExperiment)
         library(treeclimbR)
         library(ggtree)
         library(dplyr)

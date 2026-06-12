@@ -61,6 +61,7 @@ process BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA {
     # Load required libraries
     library(ontoProc)
     
+    library(SummarizedExperiment)
     # --- Load the mapping file from the working directory ---
     if (file.exists("hpca.csv")) {
       hpca_map = read.csv("hpca.csv", stringsAsFactors = FALSE)

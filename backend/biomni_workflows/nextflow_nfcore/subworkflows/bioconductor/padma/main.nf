@@ -43,7 +43,7 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MultiAssayExperiment", "padma")
+    .bm_deps <- c("MultiAssayExperiment", "padma", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
         }
         
         # Load required libraries
-        library(MultiAssayExperiment)
+        librar        library(SummarizedExperiment)
+y(MultiAssayExperiment)
         library(padma)
         
         # --- Format/read multi-omic data as a MultiAssayExperiment ---

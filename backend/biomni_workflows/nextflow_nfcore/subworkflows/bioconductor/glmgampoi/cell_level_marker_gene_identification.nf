@@ -41,7 +41,7 @@ process BIOC_GLMGAMPOI_CELL_LEVEL_MARKER_GENE_IDENTIFICATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "ggplot2", "glmGamPoi")
+    .bm_deps <- c("SingleCellExperiment", "ggplot2", "glmGamPoi", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_GLMGAMPOI_CELL_LEVEL_MARKER_GENE_IDENTIFICATION {
         }
         
         # Load required libraries
-        library(glmGamPoi)
+           library(SummarizedExperiment)
+     library(glmGamPoi)
         library(ggplot2)
         
         # -----------------------------------------------------------------------------

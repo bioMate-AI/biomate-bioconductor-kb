@@ -40,7 +40,7 @@ process BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("FeatSeekR", "pheatmap")
+    .bm_deps <- c("FeatSeekR", "pheatmap", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -57,7 +57,8 @@ process BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(FeatSeekR)
     library(pheatmap)
     

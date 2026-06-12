@@ -36,7 +36,7 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("msgbsR", "GenomicRanges", "BSgenome.Rnorvegicus.UCSC.rn6")
+    .bm_deps <- c("msgbsR", "GenomicRanges", "BSgenome.Rnorvegicus.UCSC.rn6", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(msgbsR)
     library(GenomicRanges)
     library(BSgenome.Rnorvegicus.UCSC.rn6)

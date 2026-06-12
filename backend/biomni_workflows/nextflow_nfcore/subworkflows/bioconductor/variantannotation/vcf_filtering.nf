@@ -42,7 +42,7 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("VariantAnnotation")
+    .bm_deps <- c("VariantAnnotation", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         }
         
         # Load required library
-        library(VariantAnnotation)
+        library(Vari        library(SummarizedExperiment)
+antAnnotation)
         
         # --- Define prefilter functions using fast string matching ---
         isGermlinePrefilter <- function(x) {
