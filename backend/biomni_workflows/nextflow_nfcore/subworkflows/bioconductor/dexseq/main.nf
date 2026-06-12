@@ -34,7 +34,7 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomeInfoDb", "GenomicAlignments", "GenomicFeatures", "Rsamtools", "DEXSeq", "txdbmaker")
+    .bm_deps <- c("GenomeInfoDb", "GenomicAlignments", "GenomicFeatures", "Rsamtools", "DEXSeq", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
     }
     
     # Load required libraries
-    library(GenomicFeatures)
+    l    library(SummarizedExperiment)
+ibrary(GenomicFeatures)
     library(txdbmaker)
     library(Rsamtools)
     library(GenomicAlignments)

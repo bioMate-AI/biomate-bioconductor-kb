@@ -36,7 +36,7 @@ process BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("peco")
+    .bm_deps <- c("peco", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -51,7 +51,8 @@ process BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE {
               if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
             }
           }
-        }
+        }    library(SummarizedExperiment)
+
     library(peco)
     
     # 1. Load input data

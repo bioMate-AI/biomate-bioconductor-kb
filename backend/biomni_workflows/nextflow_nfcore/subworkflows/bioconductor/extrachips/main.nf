@@ -37,7 +37,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("tidyverse", "extraChIPs", "GenomicRanges", "edgeR", "patchwork", "scales")
+    .bm_deps <- c("tidyverse", "extraChIPs", "GenomicRanges", "edgeR", "patchwork", "scales", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(tidyverse)
     library(extraChIPs)
     library(GenomicRanges)

@@ -41,7 +41,7 @@ process BIOC_SPLATTER_SPLATPOP_POPULATION_SIMULATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "VariantAnnotation", "rtracklayer", "splatter")
+    .bm_deps <- c("SingleCellExperiment", "VariantAnnotation", "rtracklayer", "splatter", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SPLATTER_SPLATPOP_POPULATION_SIMULATION {
         }
             
             # Load required libraries
-            library(splatter)
+                  library(SummarizedExperiment)
+      library(splatter)
             library(VariantAnnotation)
             library(rtracklayer)
             

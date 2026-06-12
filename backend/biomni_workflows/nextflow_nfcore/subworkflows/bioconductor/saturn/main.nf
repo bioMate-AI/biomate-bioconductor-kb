@@ -48,7 +48,7 @@ process BIOC_SATURN_DIFFERENTIAL_TRANSCRIPT_USAGE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("satuRn", "AnnotationHub", "ensembldb", "edgeR", "ggplot2", "DEXSeq", "stageR")
+    .bm_deps <- c("satuRn", "AnnotationHub", "ensembldb", "edgeR", "ggplot2", "DEXSeq", "stageR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -66,6 +66,7 @@ process BIOC_SATURN_DIFFERENTIAL_TRANSCRIPT_USAGE_ANALYSIS {
         }
         
         # Load required libraries
+        library(SummarizedExperiment)
         library(satuRn)
         library(AnnotationHub)
         library(ensembldb)

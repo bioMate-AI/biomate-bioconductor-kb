@@ -37,7 +37,7 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SpatialExperiment", "nnSVG", "scran", "ggplot2", "S4Vectors")
+    .bm_deps <- c("SpatialExperiment", "nnSVG", "scran", "ggplot2", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +55,8 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
         }
     
     # Load required libraries
-    library(SpatialExperiment)
+    lib    library(SummarizedExperiment)
+rary(SpatialExperiment)
     library(nnSVG)
     library(scran)
     library(ggplot2)

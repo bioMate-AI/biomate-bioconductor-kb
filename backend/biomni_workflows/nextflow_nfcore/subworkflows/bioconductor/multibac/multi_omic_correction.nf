@@ -42,7 +42,7 @@ process BIOC_MULTIBAC_MULTI_OMIC_CORRECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MultiBaC", "MultiAssayExperiment", "ggplot2", "ropls")
+    .bm_deps <- c("MultiBaC", "MultiAssayExperiment", "ggplot2", "ropls", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_MULTIBAC_MULTI_OMIC_CORRECTION {
         }
         
         # Load required libraries
-        library(MultiBaC)
+          library(SummarizedExperiment)
+      library(MultiBaC)
         library(MultiAssayExperiment)
         library(ggplot2)
         library(ropls)

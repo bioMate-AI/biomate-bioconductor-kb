@@ -41,7 +41,7 @@ process BIOC_BUSCORRECT_BUS_CORRECT_SUMMARIZED_EXPERIMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BUScorrect")
+    .bm_deps <- c("BUScorrect", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_BUSCORRECT_BUS_CORRECT_SUMMARIZED_EXPERIMENT {
         }
     
     # Load required libraries
-    library(BUScorrect)
+    l    library(SummarizedExperiment)
+ibrary(BUScorrect)
     
     # 1. Load SummarizedExperiment and prepare the object
     # Read the user-provided SummarizedExperiment object

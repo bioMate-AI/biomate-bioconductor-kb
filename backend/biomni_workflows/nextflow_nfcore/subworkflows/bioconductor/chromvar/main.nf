@@ -66,6 +66,7 @@ process BIOC_CHROMVAR_CHROMVAR_ANALYSIS_WORKFLOW {
         
         # Load required libraries
         library(chromVAR)
+        library(SummarizedExperiment)
         library(motifmatchr)
         library(Matrix)
         library(BiocParallel)

@@ -42,7 +42,7 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("zinbwave", "ggplot2", "magrittr", "BiocParallel")
+    .bm_deps <- c("zinbwave", "ggplot2", "magrittr", "BiocParallel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(zinbwave)
     library(ggplot2)
     library(magrittr)

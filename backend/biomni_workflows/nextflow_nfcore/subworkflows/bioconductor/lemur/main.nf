@@ -44,7 +44,7 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("lemur", "SingleCellExperiment", "tidyverse", "uwot")
+    .bm_deps <- c("lemur", "SingleCellExperiment", "tidyverse", "uwot", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(lemur)
     library(tidyverse)
     library(uwot)

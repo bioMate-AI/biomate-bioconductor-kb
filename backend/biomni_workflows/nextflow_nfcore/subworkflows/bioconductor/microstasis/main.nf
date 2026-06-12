@@ -42,7 +42,7 @@ process BIOC_MICROSTASIS_MICROBIOTA_STABILITY_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("microSTASIS", "TreeSummarizedExperiment", "ggplot2")
+    .bm_deps <- c("microSTASIS", "TreeSummarizedExperiment", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_MICROSTASIS_MICROBIOTA_STABILITY_ANALYSIS {
         }
     
     # Load required libraries
-    library(microSTASIS)
+     library(SummarizedExperiment)
+   library(microSTASIS)
     library(TreeSummarizedExperiment)
     library(ggplot2)
     

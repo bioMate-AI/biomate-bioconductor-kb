@@ -45,7 +45,7 @@ process BIOC_BIOGA_GENETIC_ALGORITHM_FEATURE_SELECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BioGA")
+    .bm_deps <- c("BioGA", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,6 +63,7 @@ process BIOC_BIOGA_GENETIC_ALGORITHM_FEATURE_SELECTION {
         }
     
     # Load necessary packages
+    library(SummarizedExperiment)
     library(BioGA)
     
     # Define input file path

@@ -62,6 +62,7 @@ process BIOC_BETAHMM_DMC_DMR_DETECTION {
         # Load required libraries
         library(betaHMM)
         
+        library(SummarizedExperiment)
         # Helper function to load user input files with various extensions
         load_input_file <- function(base_name) {
           extensions <- c(".csv", ".tsv", ".rds", ".txt", "")

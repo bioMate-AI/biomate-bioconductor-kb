@@ -43,7 +43,7 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("escheR", "SpatialExperiment", "ggplot2", "scater", "scuttle")
+    .bm_deps <- c("escheR", "SpatialExperiment", "ggplot2", "scater", "scuttle", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(escheR)
     library(SpatialExperiment)
     library(ggplot2)

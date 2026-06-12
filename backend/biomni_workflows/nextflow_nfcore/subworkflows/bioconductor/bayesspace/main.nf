@@ -47,7 +47,7 @@ process BIOC_BAYESSPACE_SPATIAL_CLUSTERING_AND_RESOLUTION_ENHANCEMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ggplot2", "BayesSpace", "Matrix", "purrr", "patchwork")
+    .bm_deps <- c("ggplot2", "BayesSpace", "Matrix", "purrr", "patchwork", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_BAYESSPACE_SPATIAL_CLUSTERING_AND_RESOLUTION_ENHANCEMENT {
           }
         }
         
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(ggplot2)
     library(BayesSpace)
     library(Matrix)

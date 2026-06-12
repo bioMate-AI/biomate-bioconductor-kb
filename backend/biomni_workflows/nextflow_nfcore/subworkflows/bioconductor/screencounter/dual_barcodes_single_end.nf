@@ -34,7 +34,7 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Biostrings", "S4Vectors", "screenCounter")
+    .bm_deps <- c("Biostrings", "S4Vectors", "screenCounter", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END {
     }
     
     # Load required libraries
-    library(screenCounter)
+       library(SummarizedExperiment)
+ library(screenCounter)
     library(Biostrings)
     library(S4Vectors)
     

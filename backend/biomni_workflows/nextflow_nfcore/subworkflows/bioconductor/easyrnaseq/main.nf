@@ -36,7 +36,7 @@ process BIOC_EASYRNASEQ_EASY_RNASEQ_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("easyRNASeq", "GenomicRanges", "S4Vectors")
+    .bm_deps <- c("easyRNASeq", "GenomicRanges", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_EASYRNASEQ_EASY_RNASEQ_ANALYSIS {
         }
     
     # Load required Bioconductor libraries
+    library(SummarizedExperiment)
     library(easyRNASeq)
     library(GenomicRanges)
     library(S4Vectors)

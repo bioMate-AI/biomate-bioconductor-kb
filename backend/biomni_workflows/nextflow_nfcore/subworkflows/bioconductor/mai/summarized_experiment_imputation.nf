@@ -63,6 +63,7 @@ process BIOC_MAI_SUMMARIZED_EXPERIMENT_IMPUTATION {
     # 1. Load the SummarizedExperiment and MAI packages
     suppressMessages({
       library(MAI)
+      library(SummarizedExperiment)
     })
     
     # 2. Read the SummarizedExperiment object from the working directory

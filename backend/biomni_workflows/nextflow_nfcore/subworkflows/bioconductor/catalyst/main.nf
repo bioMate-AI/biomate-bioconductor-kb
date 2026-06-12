@@ -43,7 +43,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CATALYST", "flowCore", "ggplot2", "cowplot")
+    .bm_deps <- c("CATALYST", "flowCore", "ggplot2", "cowplot", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
         }
             
             # Load required libraries
-            library(CATALYST)
+                  library(SummarizedExperiment)
+      library(CATALYST)
             library(flowCore)
             library(ggplot2)
             library(cowplot)

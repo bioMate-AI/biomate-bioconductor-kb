@@ -48,7 +48,7 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("cowplot", "flowCore", "kableExtra", "knitr", "PCAtools", "scDataviz")
+    .bm_deps <- c("cowplot", "flowCore", "kableExtra", "knitr", "PCAtools", "scDataviz", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -66,7 +66,8 @@ process BIOC_SCDATAVIZ_CYTOF_FCS_WORKFLOW {
         }
         
         # Load required libraries
-        library(scDataviz)
+           library(SummarizedExperiment)
+     library(scDataviz)
         library(PCAtools)
         library(cowplot)
         

@@ -37,7 +37,7 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CuratedAtlasQueryR", "ggplot2", "dplyr", "stringr")
+    .bm_deps <- c("CuratedAtlasQueryR", "ggplot2", "dplyr", "stringr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +55,8 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
         }
     
     # Load required libraries
-    library(CuratedAtlasQueryR)
+    libr    library(SummarizedExperiment)
+ary(CuratedAtlasQueryR)
     library(ggplot2)
     library(dplyr)
     library(stringr)

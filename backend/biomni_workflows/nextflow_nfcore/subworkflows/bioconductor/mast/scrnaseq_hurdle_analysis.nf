@@ -45,7 +45,7 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MAST", "data.table", "ggplot2")
+    .bm_deps <- c("MAST", "data.table", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libr    library(SummarizedExperiment)
+aries
     library(MAST)
     library(data.table)
     library(ggplot2)

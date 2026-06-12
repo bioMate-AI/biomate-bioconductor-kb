@@ -42,7 +42,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CNVRanger", "GenomicRanges", "AnnotationHub", "ensembldb")
+    .bm_deps <- c("CNVRanger", "GenomicRanges", "AnnotationHub", "ensembldb", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(CNVRanger)
     library(GenomicRanges)
     library(AnnotationHub)

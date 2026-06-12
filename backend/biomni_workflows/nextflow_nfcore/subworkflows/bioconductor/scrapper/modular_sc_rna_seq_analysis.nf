@@ -46,7 +46,7 @@ process BIOC_SCRAPPER_MODULAR_SC_RNA_SEQ_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "scrapper")
+    .bm_deps <- c("SingleCellExperiment", "scrapper", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_SCRAPPER_MODULAR_SC_RNA_SEQ_ANALYSIS {
         }
     
     # Load required libraries
-    library(scrapper)
+       library(SummarizedExperiment)
+ library(scrapper)
     
     # -----------------------------------------------------------------------------
     # 1. Read User Input

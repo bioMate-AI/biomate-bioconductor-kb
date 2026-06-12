@@ -62,6 +62,7 @@ process BIOC_AGGREGATEBIOVAR_PSEUDOBULK_AGGREGATION_AND_DGE {
         
         # Load required libraries
         library(aggregateBioVar)
+        library(SummarizedExperiment)
         library(SummarizedExperiment, quietly = TRUE)
         library(SingleCellExperiment, quietly = TRUE)
         library(DESeq2, quietly = TRUE)

@@ -42,7 +42,7 @@ process BIOC_FUSESOM_SCE_OR_SPE_INPUT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("FuseSOM", "SingleCellExperiment")
+    .bm_deps <- c("FuseSOM", "SingleCellExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_FUSESOM_SCE_OR_SPE_INPUT {
         }
             
             # Load required libraries
-            library(FuseSOM)
+            librar            library(SummarizedExperiment)
+y(FuseSOM)
             
             # Read the user input SCE/SPE object from the working directory
             if (file.exists("sce")) {

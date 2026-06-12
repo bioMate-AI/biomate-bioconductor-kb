@@ -34,7 +34,7 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("airway", "ALL", "EnrichmentBrowser")
+    .bm_deps <- c("airway", "ALL", "EnrichmentBrowser", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     }
     
     # Load required libraries
-    library(EnrichmentBrowser)
+    library(    library(SummarizedExperiment)
+EnrichmentBrowser)
     
     # Define input files as specified by the user
     exprs.file <- "exprs.tab"

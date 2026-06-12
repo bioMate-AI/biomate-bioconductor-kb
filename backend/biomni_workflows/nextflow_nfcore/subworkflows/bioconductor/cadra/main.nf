@@ -40,7 +40,7 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CaDrA")
+    .bm_deps <- c("CaDrA", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,6 +58,7 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
         }
     
     # Load R packages
+    library(SummarizedExperiment)
     library(CaDrA)
     
     # --- Read in binary features ---

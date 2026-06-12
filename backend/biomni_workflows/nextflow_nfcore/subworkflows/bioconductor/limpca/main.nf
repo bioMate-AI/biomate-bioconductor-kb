@@ -47,7 +47,7 @@ process BIOC_LIMPCA_ASCA_APCA_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("limpca", "ggplot2", "gridExtra", "pander", "car")
+    .bm_deps <- c("limpca", "ggplot2", "gridExtra", "pander", "car", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -65,6 +65,7 @@ process BIOC_LIMPCA_ASCA_APCA_ANALYSIS {
         }
         
         # Load required libraries
+        library(SummarizedExperiment)
         library(limpca)
         library(ggplot2)
         library(gridExtra)

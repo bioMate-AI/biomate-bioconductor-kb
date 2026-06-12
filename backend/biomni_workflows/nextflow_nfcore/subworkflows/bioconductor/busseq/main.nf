@@ -44,7 +44,7 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BUSseq")
+    .bm_deps <- c("BUSseq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
         }
     
     # Load required libraries
-    library(BUSseq)
+     library(SummarizedExperiment)
+   library(BUSseq)
     
     # --- Read user input files ---
     CountData <- as.matrix(read.csv("raw_counts.csv", row.names = 1, check.names = FALSE))

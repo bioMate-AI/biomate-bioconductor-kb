@@ -40,7 +40,7 @@ process BIOC_PHENOPATH_SUMMARIZED_EXPERIMENT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("phenopath", "ggplot2", "dplyr")
+    .bm_deps <- c("phenopath", "ggplot2", "dplyr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_PHENOPATH_SUMMARIZED_EXPERIMENT_WORKFLOW {
         
     # Load required libraries
     suppressPackageStartupMessages({
-      library(phenopath)
+       library(SummarizedExperiment)
+     library(phenopath)
       library(ggplot2)
       library(dplyr)
     })

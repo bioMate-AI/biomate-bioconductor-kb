@@ -45,7 +45,7 @@ process BIOC_MIAVIZ_TREE_PLOTTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ggplot2", "mia", "miaViz", "scater")
+    .bm_deps <- c("ggplot2", "mia", "miaViz", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_MIAVIZ_TREE_PLOTTING {
           }
         }
     
-    # Load required libraries
+    # Load required lib    library(SummarizedExperiment)
+raries
     library(mia)
     library(miaViz)
     library(scater)

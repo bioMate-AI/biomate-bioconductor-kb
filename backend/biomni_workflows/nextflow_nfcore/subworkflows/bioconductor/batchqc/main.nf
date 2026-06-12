@@ -70,6 +70,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     # Load required libraries
     library(BatchQC)
     
+    library(SummarizedExperiment)
     # ==========================================
     # --- Read User Input Files ---
     # ==========================================

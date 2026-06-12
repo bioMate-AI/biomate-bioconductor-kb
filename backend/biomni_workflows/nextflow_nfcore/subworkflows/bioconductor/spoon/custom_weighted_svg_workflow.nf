@@ -40,7 +40,7 @@ process BIOC_SPOON_CUSTOM_WEIGHTED_SVG_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SpatialExperiment", "spoon", "BiocParallel", "Matrix")
+    .bm_deps <- c("SpatialExperiment", "spoon", "BiocParallel", "Matrix", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,7 +58,8 @@ process BIOC_SPOON_CUSTOM_WEIGHTED_SVG_WORKFLOW {
         }
         
         # Load required libraries
-        library(SpatialExperiment)
+        lib        library(SummarizedExperiment)
+rary(SpatialExperiment)
         library(spoon)
         library(BiocParallel)
         library(Matrix)

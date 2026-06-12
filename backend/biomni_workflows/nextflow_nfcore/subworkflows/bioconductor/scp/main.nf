@@ -36,7 +36,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("scp", "QFeatures", "ggplot2")
+    .bm_deps <- c("scp", "QFeatures", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required lib    library(SummarizedExperiment)
+raries
     library(scp)
     library(QFeatures)
     library(ggplot2)

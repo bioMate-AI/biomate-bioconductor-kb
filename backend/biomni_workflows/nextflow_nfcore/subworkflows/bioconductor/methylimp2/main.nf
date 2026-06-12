@@ -41,7 +41,7 @@ process BIOC_METHYLIMP2_METHYLATION_IMPUTATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("methyLImp2", "BiocParallel")
+    .bm_deps <- c("methyLImp2", "BiocParallel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,6 +59,7 @@ process BIOC_METHYLIMP2_METHYLATION_IMPUTATION {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(methyLImp2)
     library(BiocParallel)
     

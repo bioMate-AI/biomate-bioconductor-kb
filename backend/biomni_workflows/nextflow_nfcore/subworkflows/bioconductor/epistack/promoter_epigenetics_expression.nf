@@ -65,6 +65,7 @@ process BIOC_EPISTACK_PROMOTER_EPIGENETICS_EXPRESSION {
     
     # Load required libraries
     library(GenomicRanges)
+    library(SummarizedExperiment)
     library(epistack)
     library(EnrichedHeatmap)
     

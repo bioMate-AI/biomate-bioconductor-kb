@@ -67,6 +67,7 @@ process BIOC_BANKSY_MULTI_SAMPLE_JOINT_CLUSTERING {
         
     # Load required libraries
     library(Banksy)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(scater)
     library(cowplot)

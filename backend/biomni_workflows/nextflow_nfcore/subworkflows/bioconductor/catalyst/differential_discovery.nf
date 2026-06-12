@@ -43,7 +43,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CATALYST", "flowCore", "diffcyt", "scater")
+    .bm_deps <- c("CATALYST", "flowCore", "diffcyt", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
         }
                 
                 # Load required libraries
-                library(CATALYST)
+                          library(SummarizedExperiment)
+      library(CATALYST)
                 library(flowCore)
                 library(diffcyt)
                 library(scater)

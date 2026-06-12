@@ -36,7 +36,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("snapcount", "GenomicRanges", "S4Vectors", "BiocGenerics")
+    .bm_deps <- c("snapcount", "GenomicRanges", "S4Vectors", "BiocGenerics", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(snapcount)
     library(GenomicRanges)
     library(S4Vectors)

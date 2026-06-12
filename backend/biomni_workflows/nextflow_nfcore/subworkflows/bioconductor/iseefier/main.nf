@@ -37,7 +37,7 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("iSEEfier", "scuttle", "scater", "ggplot2", "igraph")
+    .bm_deps <- c("iSEEfier", "scuttle", "scater", "ggplot2", "igraph", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,9 @@ process BIOC_ISEEFIER_ISEEFIER_INITIAL_CONFIG {
             }
           }
         }
-    
+       
+    library(SummarizedExperiment)
+ 
     library(iSEEfier)
     library(scuttle)
     library(scater)

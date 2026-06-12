@@ -41,7 +41,7 @@ process BIOC_MEAL_REGIONAL_RDA {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "MEAL", "minfi")
+    .bm_deps <- c("GenomicRanges", "MEAL", "minfi", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,7 +58,8 @@ process BIOC_MEAL_REGIONAL_RDA {
           }
         }
         
-    # Load required libraries
+    # Load required libr    library(SummarizedExperiment)
+aries
     library(MEAL)
     library(GenomicRanges)
     library(minfi)

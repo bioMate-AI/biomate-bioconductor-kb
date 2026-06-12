@@ -42,7 +42,7 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "PolyPhen.Hsapiens.dbSNP131", "TxDb.Hsapiens.UCSC.hg19.knownGene", "AnnotationHub", "GenomicRanges", "ggplot2", "microbenchmark", "rjsoncons", "VariantAnnotation")
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "PolyPhen.Hsapiens.dbSNP131", "TxDb.Hsapiens.UCSC.hg19.knownGene", "AnnotationHub", "GenomicRanges", "ggplot2", "microbenchmark", "rjsoncons", "VariantAnnotation", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
         }
     
     # Load required libraries
-    library(VariantAnnotation)
+    lib    library(SummarizedExperiment)
+rary(VariantAnnotation)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(BSgenome.Hsapiens.UCSC.hg19)
     library(PolyPhen.Hsapiens.dbSNP131)

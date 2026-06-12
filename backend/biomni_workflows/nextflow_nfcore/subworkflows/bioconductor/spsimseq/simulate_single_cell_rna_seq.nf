@@ -42,7 +42,7 @@ process BIOC_SPSIMSEQ_SIMULATE_SINGLE_CELL_RNA_SEQ {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SPsimSeq", "edgeR")
+    .bm_deps <- c("SPsimSeq", "edgeR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_SPSIMSEQ_SIMULATE_SINGLE_CELL_RNA_SEQ {
         }
         
         # Load required libraries
-        library(SPsimSeq)
+          library(SummarizedExperiment)
+      library(SPsimSeq)
         library(edgeR)
         
         # 1. Load the single-cell source data from the working directory

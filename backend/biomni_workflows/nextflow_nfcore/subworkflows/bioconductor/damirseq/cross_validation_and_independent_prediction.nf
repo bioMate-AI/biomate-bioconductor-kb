@@ -44,7 +44,7 @@ process BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DaMiRseq")
+    .bm_deps <- c("DaMiRseq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION {
         }
         
         # Load required libraries
-        library(DaMiRseq)
+        lib        library(SummarizedExperiment)
+rary(DaMiRseq)
         
         # 1. Read user input files
         if (!file.exists("count_data.txt") || !file.exists("covariate_data.txt")) {

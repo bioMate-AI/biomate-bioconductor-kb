@@ -42,7 +42,7 @@ process BIOC_GARS_FIND_OPTIMAL_FEATURES_LOOP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GARS")
+    .bm_deps <- c("GARS", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_GARS_FIND_OPTIMAL_FEATURES_LOOP {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(GARS)
     
     # Read input file from the working directory

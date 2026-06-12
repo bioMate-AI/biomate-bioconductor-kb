@@ -36,7 +36,7 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("NetActivity", "DESeq2", "limma", "ggplot2")
+    .bm_deps <- c("NetActivity", "DESeq2", "limma", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_NETACTIVITY_NETACTIVITY_GENE_SET_SCORES {
         }
     
     # Load required libraries
-    library(NetActivity)
+     library(SummarizedExperiment)
+   library(NetActivity)
     library(DESeq2)
     library(limma)
     library(ggplot2)

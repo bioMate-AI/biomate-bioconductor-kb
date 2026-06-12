@@ -61,6 +61,7 @@ process BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_COUNTING {
     
     # Load required libraries
     library(planttfhunter)
+    library(SummarizedExperiment)
     library(Biostrings)
     
     set.seed(123) # for reproducibility
