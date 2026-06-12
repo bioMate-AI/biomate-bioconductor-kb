@@ -26,6 +26,12 @@
 **Instantiations**:
 - `nf-core/rnaseq` → `nf-core/differentialabundance` → `clusterProfiler` (enrichment) — bulk RNA-seq DE
 - `nf-core/sarek` → `vep_annotation` → `variant_filter_report` — germline variant calling
+- `CryoSPARC Standard Single-Particle Analysis` → `GPCR Complex SPA` → `3D Variability Pipeline` — cryo-EM SPA
+- `allometric_scaling` → `pbpk_disease_state` → `virtual_patient_cohort` — PBPK simulation
+- `Fasta Binning Concoct` → `Mmseqs Contig Taxonomy` → `PathoStat` — shotgun metagenomics
+- `mrna_therapeutic_design` → `syncraft_synthesizability` — mRNA therapeutic design
+- `CYP450 DDI Panel + Hepatic Clearance` → `allometric_scaling` → `pbpk_simulation` — DDI assessment
+- `target_tractability_scorer` → `AlphaFold DB Search` — target validation
 
 **Pitfall**: Treating the user's question as a sequential pipeline when it's actually multi-modal or consensus. Listen for plurals: "results from RNA-seq *and* proteomics" is not sequential.
 
