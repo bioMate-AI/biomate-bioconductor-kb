@@ -175,6 +175,22 @@ const CASES = [
     ],
     rawParams: {},
   },
+  // True no-signal: no IDs, no schema keywords, no enum values. LLM gate
+  // should fire and stages.llm should be false.
+  {
+    name: "gate-skips-generic-query",
+    workflow: "in_vivo_cart_codesign",
+    required: ["car_target", "indication"],
+    nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
+    query: "please start it now",
+    expect: {},
+    expectClarifications: [
+      { kind: "missing_required", paramName: "car_target" },
+      { kind: "missing_required", paramName: "indication" },
+    ],
+    rawParams: {},
+    expectLlmSkipped: true,
+  },
   {
     name: "alias-of-respected",
     workflow: "glp1_modality_bakeoff",
@@ -276,7 +292,11 @@ async function runCase(c: (typeof CASES)[number]) {
       for (const k of c.forbidKeys)
         if (result.params[k] !== undefined) forbidOk = false;
     }
-    const ok = sum.fail.length === 0 && clarOk && forbidOk;
+    let llmGateOk = true;
+    if ((c as any).expectLlmSkipped && result.stagesFired.llm) {
+      llmGateOk = false;
+    }
+    const ok = sum.fail.length === 0 && clarOk && forbidOk && llmGateOk;
     if (ok) allGreen++;
     else failed.push(c.name);
 
@@ -288,6 +308,7 @@ async function runCase(c: (typeof CASES)[number]) {
     if (!clarOk) console.log("  ✗ expected clarifications:", c.expectClarifications);
     if (!forbidOk && c.forbidKeys)
       console.log("  ✗ forbidden keys present:", c.forbidKeys.filter((k) => result.params[k] !== undefined));
+    if (!llmGateOk) console.log("  ✗ LLM gate failed — expected stages.llm=false");
   }
   console.log(`\n=== TOTAL: ${allGreen}/${total} all-green | ${keysPass}/${keysTotal} keys correct ===`);
   if (failed.length > 0) {

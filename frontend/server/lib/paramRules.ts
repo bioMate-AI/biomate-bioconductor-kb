@@ -172,6 +172,45 @@ function normalizeSingle(value: string, spec: ParamSpec): string {
 }
 
 /**
+ * Cheap heuristic — does the user query plausibly contain extractable params
+ * for this workflow? Used to gate the Stage 3b LLM call.
+ *
+ * Returns true if ANY of:
+ *   - the query mentions a schema param name (case-insensitive token match)
+ *   - the query mentions any enum value declared by the schema
+ *   - the query contains uppercase ID-like tokens (CD19, BCMA, SRR123456,
+ *     PCSK9, etc.) — common shape for gene/drug/accession references
+ *   - the rawParams bag is non-empty
+ *
+ * False means the query is generic ("run rnaseq", "what's a good threshold?")
+ * — the extractor can skip the LLM call and just produce clarifications for
+ * missing required params.
+ */
+export function hasParameterSignal(args: {
+  userQuery: string;
+  schema: WorkflowSchema;
+  rawParams: Record<string, unknown>;
+}): boolean {
+  const { userQuery, schema, rawParams } = args;
+  if (Object.keys(rawParams).length > 0) return true;
+  const q = userQuery.toLowerCase();
+  for (const p of schema.params) {
+    if (q.includes(p.name.toLowerCase())) return true;
+    if (p.enum) {
+      for (const v of p.enum) {
+        if (q.includes(String(v).toLowerCase())) return true;
+      }
+    }
+  }
+  // Uppercase ID-shaped tokens: at least 3 chars, mostly uppercase or alnum.
+  // Catches "CD19", "BCMA", "PCSK9", "PD-1", "GLP-1", "SRR12345" etc. while
+  // not over-firing on common English words.
+  const idPattern = /\b[A-Z][A-Z0-9-]{2,}\b/g;
+  if (idPattern.test(userQuery)) return true;
+  return false;
+}
+
+/**
  * Validate a final params dict against the schema. Returns enum violations
  * and missing required params. Does NOT modify the dict.
  */

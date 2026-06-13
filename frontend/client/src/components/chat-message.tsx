@@ -56,6 +56,7 @@ import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
+import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
@@ -403,6 +404,38 @@ export function ChatMessage({
               </span>
             </div>
           )}
+
+          {/* ParamClarificationCard — surfaces missing-required / enum-violation
+              issues from schema-grounded extraction. Hidden when none present. */}
+          {!isUser && (message.metadata as any)?.paramClarifications?.length > 0 && (
+            <ParamClarificationCard
+              workflowName={
+                message.metadata?.workflow?.name ||
+                message.metadata?.workflow?.display_name ||
+                'workflow'
+              }
+              clarifications={(message.metadata as any).paramClarifications as ParamClarification[]}
+              onSelect={(paramName, value) => {
+                // Dispatch a custom event the workflow panel can listen for; the
+                // panel patches the param value in place. The card itself does
+                // not own param state.
+                window.dispatchEvent(
+                  new CustomEvent('biomate:param-clarification-resolved', {
+                    detail: { messageId: message.id, paramName, value },
+                  }),
+                )
+              }}
+              onSkip={(paramName) => {
+                window.dispatchEvent(
+                  new CustomEvent('biomate:param-clarification-skipped', {
+                    detail: { messageId: message.id, paramName },
+                  }),
+                )
+              }}
+              className="mt-2"
+            />
+          )}
+
           {/* Path A.4: Roll into IND project. Shows only when workflow completed +
               at least one IND project exists. The affordance itself queries
               listProjects() and hides if empty. */}

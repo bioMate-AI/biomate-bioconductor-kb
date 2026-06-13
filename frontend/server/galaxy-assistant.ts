@@ -46,13 +46,17 @@ import type {
 
 /** Emitted for each tool invocation during an agent loop turn. */
 export interface AgentToolEvent {
-  type: 'tool_call' | 'tool_result';
+  type: 'tool_call' | 'tool_result' | 'status';
   tool_use_id: string;
   name: string;
   input?: Record<string, unknown>;  // populated on tool_call
   output?: unknown;                 // populated on tool_result
   error?: string;                   // populated on tool_result when execution failed
   duration_ms?: number;             // populated on tool_result
+  // status events carry a user-visible message + optional structured payload
+  // (e.g. { stage: 'extracting', confidence: 0.92 }).
+  message?: string;
+  payload?: Record<string, unknown>;
 }
 
 /** Anthropic tool definitions registered with the agent. */
@@ -869,12 +873,14 @@ export async function groundInlineParameters(args: {
   requiredParams?: Array<BackendParamEntry | string>;
   optionalParams?: Array<BackendParamEntry | string>;
   userOverriddenKeys?: Set<string>;
+  /** Optional callback: emit user-visible progress to the SSE stream. */
+  onStatus?: (message: string, payload?: Record<string, unknown>) => void;
 }): Promise<{
   params: Record<string, string | string[]>;
   details?: ExtractorResult;
   path: 'schema-grounded' | 'legacy-alias' | 'noop';
 }> {
-  const { workflowName, rawParams, userQuery, requiredParams, optionalParams } = args;
+  const { workflowName, rawParams, userQuery, requiredParams, optionalParams, onStatus } = args;
   if (!workflowName) {
     return { params: (rawParams as any) || {}, path: 'noop' };
   }
@@ -883,17 +889,19 @@ export async function groundInlineParameters(args: {
     return { params: remapped, path: 'legacy-alias' };
   }
   try {
+    onStatus?.('Reading parameter schema for ' + workflowName + '…', { stage: 'schema' });
     const schema = buildSchemaFromWorkflowGa({
       workflowName,
       requiredParams,
       optionalParams,
     });
     if (schema.params.length === 0) {
-      // No schema metadata available — fall back to legacy alias.
+      onStatus?.('No schema metadata; using legacy parameter mapping', { stage: 'fallback' });
       const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
       return { params: remapped, path: 'legacy-alias' };
     }
     const llmCall = buildLlmGenerateAdapter(llmGenerate);
+    onStatus?.('Extracting parameters from your message…', { stage: 'extract', paramCount: schema.params.length });
     const result = await extractParameters({
       schema,
       userQuery,
@@ -901,11 +909,30 @@ export async function groundInlineParameters(args: {
       userOverriddenKeys: args.userOverriddenKeys,
       llmCall,
     });
+    const fillCount = Object.keys(result.params).length;
+    if (result.clarifications.length > 0) {
+      onStatus?.(
+        `Extracted ${fillCount} parameter${fillCount === 1 ? '' : 's'} — ${result.clarifications.length} need your input`,
+        {
+          stage: 'extracted',
+          confidence: result.confidence,
+          clarifications: result.clarifications.length,
+          missingRequired: result.validation.missingRequired,
+          enumViolations: result.validation.enumViolations.map((v) => v.key),
+        },
+      );
+    } else {
+      onStatus?.(
+        `Extracted ${fillCount} parameter${fillCount === 1 ? '' : 's'} from your message`,
+        { stage: 'extracted', confidence: result.confidence },
+      );
+    }
     return { params: result.params, details: result, path: 'schema-grounded' };
   } catch (e) {
     console.warn(
       `[groundInlineParameters] schema-grounded path failed for "${workflowName}" (${(e as Error).message}); falling back to legacy alias`,
     );
+    onStatus?.('Parameter extraction failed; using legacy mapping', { stage: 'error', error: (e as Error).message });
     const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
     return { params: remapped, path: 'legacy-alias' };
   }
@@ -1090,6 +1117,14 @@ export interface GalaxyAssistantResponse {
 
   // Extracted inline parameters from user message
   inlineParameters?: Record<string, string>;
+
+  // Schema-grounded extraction clarifications — shown to the user as
+  // a ParamClarificationCard. Only populated when SCHEMA_GROUNDED_EXTRACTION
+  // is on AND the workflow's schema flagged missing-required or enum violations.
+  paramClarifications?: Array<
+    | { kind: 'missing_required'; paramName: string; hint?: string; examples?: string[] }
+    | { kind: 'enum_violation'; paramName: string; userValue: string; allowed: string[] }
+  >;
 
   // Extracted typed facts from user message (for ConversationState)
   extractedFacts?: ExtractedFact[];
@@ -2849,6 +2884,16 @@ Rules:
       userQuery: message,
       requiredParams: generatedWorkflow?.workflow_ga?.required_params,
       optionalParams: generatedWorkflow?.workflow_ga?.optional_params,
+      onStatus: onToolEvent
+        ? (msg, payload) =>
+            onToolEvent({
+              type: 'status',
+              tool_use_id: 'param_ground_' + (_workflowNameForRemap || 'wf'),
+              name: 'parameter_extraction',
+              message: msg,
+              payload,
+            })
+        : undefined,
     });
     const _remappedInlineParams = stringifyParamValues(_groundResult.params);
     if (_groundResult.path !== 'noop') {
@@ -2866,6 +2911,9 @@ Rules:
       intentType: intent.type,
       intentConfidence: intent.confidence,
       inlineParameters: Object.keys(_remappedInlineParams).length > 0 ? _remappedInlineParams : undefined,
+      paramClarifications: (_groundResult.details?.clarifications?.length || 0) > 0
+        ? _groundResult.details!.clarifications
+        : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
@@ -3559,6 +3607,16 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       userQuery: primaryIntent.subQuery || message,
       requiredParams: _multiGeneratedWorkflow?.workflow_ga?.required_params,
       optionalParams: _multiGeneratedWorkflow?.workflow_ga?.optional_params,
+      onStatus: onToolEvent
+        ? (msg, payload) =>
+            onToolEvent({
+              type: 'status',
+              tool_use_id: 'param_ground_' + (_multiWorkflowName || 'wf'),
+              name: 'parameter_extraction',
+              message: msg,
+              payload,
+            })
+        : undefined,
     });
     const _multiRemappedInlineParams = stringifyParamValues(_multiGroundResult.params);
 
@@ -3567,6 +3625,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       intentType: primaryIntent.type,
       intentConfidence: primaryIntent.confidence,
       inlineParameters: Object.keys(_multiRemappedInlineParams).length > 0 ? _multiRemappedInlineParams : undefined,
+      paramClarifications: (_multiGroundResult.details?.clarifications?.length || 0) > 0
+        ? _multiGroundResult.details!.clarifications
+        : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
