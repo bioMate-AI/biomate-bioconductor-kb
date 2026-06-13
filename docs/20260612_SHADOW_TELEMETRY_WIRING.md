@@ -105,3 +105,21 @@ PYTHONPATH=lib python3 -c "import galaxy.ai.ai_assistant"  # clean import
 ```
 
 All passing as of commit on this branch.
+
+## Live smoke results (2026-06-12)
+
+Ran 3 cross-domain queries through the real composer against the live DB:
+
+| Query | Source | Confidence | Steps | Verifier | Latency |
+|---|---|---|---|---|---|
+| bulk rna-seq differential expression | curated_passthrough | 0.88 | 3 | ok | 2026ms (cold) |
+| cryoEM single particle reconstruction | curated_passthrough | 0.80 | 3 | ok | 38ms |
+| PBPK simulation for small molecule | curated_passthrough | 0.88 | 3 | ok | 41ms |
+
+End-to-end wiring confirmed working against real DB + real composer (not mocked).
+
+## Parked observations
+
+- **`mode: null` for `curated_passthrough`** — the live smoke shows `curated_passthrough` chains don't carry a surfacing mode. Likely expected (passthrough bypasses `choose_surfacing_mode`). Confirm against `composer.py` once real shadow data accumulates; if intentional, document in composer docstring; if a bug, fix in the composer not the telemetry.
+- **Cold-start latency** is 2s on first composer call per worker (DB load + LLM client init). Warm path is ~40ms. For dev rollout this is fine; for production at high traffic, consider warming on worker startup.
+
