@@ -19,6 +19,11 @@ abund <- as.data.frame(otu_table(dietswap))
 # Extract the sample metadata (coldata)
 coldata <- as(sample_data(dietswap), "data.frame")
 
-# Write the extracted data to the required input files
-write.csv(abund, file = "abundance.csv", quote = FALSE)
-write.csv(coldata, file = "coldata.csv", quote = FALSE)
+# Write the input files in the workflow's declared contract:
+#   abundance.csv -> first column 'taxon_id' (OTU/taxon IDs), remaining columns = samples
+#   coldata.csv   -> first column 'sample' (sample IDs), remaining columns = metadata
+if (!"taxon_id" %in% colnames(abund)) abund <- data.frame(taxon_id = rownames(abund), abund, check.names = FALSE)
+write.csv(abund, file = "abundance.csv", row.names = FALSE, quote = FALSE)
+
+if (!"sample" %in% colnames(coldata)) coldata <- data.frame(sample = rownames(coldata), coldata, check.names = FALSE)
+write.csv(coldata, file = "coldata.csv", row.names = FALSE, quote = FALSE)

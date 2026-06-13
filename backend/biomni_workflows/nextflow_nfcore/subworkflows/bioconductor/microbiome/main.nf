@@ -61,32 +61,11 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
-    # Read the abundance matrix and metadata
-    abundance_df <- read.csv("abundance.csv", check.names = FALSE)
-    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
-    
-    # Format abundance data: taxon IDs as row names. Accept either a named "taxon_id"
-    # column or the conventional first-column-is-IDs CSV export (write.csv of an OTU
-    # table), then keep only numeric columns so read_csv2phyloseq receives a strictly
-    # numeric OTU matrix (a stray character ID column otherwise breaks otu_table()).
-    if ("taxon_id" %in% colnames(abundance_df)) {
-      rownames(abundance_df) <- abundance_df\$taxon_id
-      abundance_df\$taxon_id <- NULL
-    } else {
-      rownames(abundance_df) <- as.character(abundance_df[[1]])
-      abundance_df[[1]] <- NULL
-    }
-    abundance_df <- abundance_df[, vapply(abundance_df, is.numeric, logical(1)), drop = FALSE]
+    # Read inputs per the declared contract: abundance.csv has a 'taxon_id' ID column
+    # (taxa as rows), coldata.csv has a 'sample' ID column (samples as rows).
+    abundance_df <- read.csv("abundance.csv", check.names = FALSE, row.names = "taxon_id")
+    coldata_df   <- read.csv("coldata.csv",   check.names = FALSE, row.names = "sample")
 
-    # Format metadata: sample IDs as row names (named "sample" column or first column)
-    if ("sample" %in% colnames(coldata_df)) {
-      rownames(coldata_df) <- coldata_df\$sample
-      coldata_df\$sample <- NULL
-    } else {
-      rownames(coldata_df) <- as.character(coldata_df[[1]])
-      coldata_df[[1]] <- NULL
-    }
-    
     # Construct the phyloseq object directly from the abundance matrix and metadata.
     # (read_csv2phyloseq forces a CSV round-trip and additionally requires a taxonomy
     # file the workflow does not produce — direct construction is robust and avoids it.)
