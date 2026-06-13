@@ -665,6 +665,15 @@ export function ChatInterface({
   const chatMutation = useMutation({
     mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
       const session = chatHistoryService.getSession(sessionId)
+      // Thread the active project id (if any) into chat-stream context.
+      // Server policy: null/missing → chat stays project-less; non-null
+      // → chat becomes project-scoped and cross-session recovery
+      // (within the same project) is in scope. See
+      // docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const _activeProjectId = (() => {
+        try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
+        catch { return null }
+      })()
       // Build the history payload. See:
       //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
       //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md
@@ -703,6 +712,7 @@ export function ChatInterface({
             // The server UPSERTs by assistantMessageId so client + server writes
             // are idempotent (no duplicate messages).
             ...(sessionId && { memorySessionId: sessionId, sessionId }),
+            ...(_activeProjectId && { projectId: _activeProjectId }),
             assistantMessageId: placeholderId,
           }
         })

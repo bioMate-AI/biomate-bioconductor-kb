@@ -1235,9 +1235,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await parameterRepository.initialize();
   await workflowRepository.initialize();
 
-  // Lane B3 — per-org adapter retrain queue
-  const { registerRegulatoryTrainingRoutes } = await import("./regulatory-training-routes.js");
-  registerRegulatoryTrainingRoutes(app);
+  // Project CRUD — list/create/fetch/update/archive/delete user projects.
+  // Provides the path by which client-sent projectId in chat-stream
+  // context comes to exist. See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+  const { registerProjectRoutes } = await import("./project-routes");
+  registerProjectRoutes(app);
+
+  // Lane B3 — per-org adapter retrain queue. Gated behind try/catch
+  // because the regulatory-training-routes module ships from a parallel
+  // work stream; a missing file must not break boot.
+  try {
+    // @ts-ignore — module may not exist yet
+    const { registerRegulatoryTrainingRoutes } = await import("./regulatory-training-routes.js");
+    registerRegulatoryTrainingRoutes(app);
+  } catch (e: any) {
+    console.warn('[routes] regulatory-training-routes not loaded:', e?.message ?? e);
+  }
 
   // ─── /api/contact — public contact form submission ───────────────────────
   // Sends to CONTACT_INBOX (default: yaoyun.zhang@biomate.ai) via AWS SES through
@@ -5270,33 +5283,26 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Project framework — Q4 from the chat-context audit. The LTM
-      // schema (frontend/migrations/0012_ltm_schema.sql, applied
-      // 2026-06-12) creates ltm_users / projects / episodes /
-      // procedures / project_knowledge etc., so the find-or-create
-      // path now actually persists. ensureDefaultProject is fully
-      // idempotent and falls back to null on any DB failure — chat
-      // works exactly as before if the call breaks. The returned
-      // projectId is threaded into enrichedContext so
-      // memory-integration's project-scoped paths (procedures,
-      // episodes, project_knowledge) come online without requiring a
-      // UI project selector.
-      // _resolvedProjectId is hoisted at the top of this handler (line ~5039)
-      // so persistAssistantMessage can read the resolved value. Just set it.
-      _resolvedProjectId = context?.projectId;
-      if (!_resolvedProjectId && req.user) {
+      // Project framework — Q4 (re-enabled 2026-06-12).
+      //
+      // Policy (docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md):
+      // NOT every chat lives in a project. A chat is project-scoped only
+      // when the client explicitly sends projectId. Standalone "ask
+      // BioMate a quick question" chats stay project-less. We do NOT
+      // auto-create a Default Workspace — that's surprising pollution.
+      //
+      // What we always do (regardless of project): ensure the ltm_users
+      // row exists, so user-scoped memory (preferences, corrections,
+      // episodes attached to the user not a project) can write.
+      if (req.user) {
         try {
           const { memoryService } = await import('./memory-repository');
           const _u = req.user as any;
-          const _pid = await memoryService.ensureDefaultProject(
-            String(_u.id),
-            _u.email,
-            _u.fullName ?? _u.name
-          );
-          if (_pid) _resolvedProjectId = _pid;
+          await memoryService.ensureLtmUser(String(_u.id), _u.email, _u.fullName ?? _u.name);
+          _resolvedProjectId = (await memoryService.resolveProjectForChat(context?.projectId)) ?? undefined;
         } catch (e: any) {
           // Defensive — never break chat on a memory-system error.
-          console.warn('[chat-stream] ensureDefaultProject failed:', e?.message ?? e);
+          console.warn('[chat-stream] memory bootstrap failed:', e?.message ?? e);
         }
       }
 

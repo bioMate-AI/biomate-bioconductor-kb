@@ -278,6 +278,33 @@ export class ProjectMemoryRepository {
   }
 
   /**
+   * Archive a project (soft-delete via status='archived').
+   * Keeps history + episodes intact for audit; just hides it from active lists.
+   */
+  async archiveProject(projectId: string): Promise<Project | null> {
+    const [updated] = await db.update(ltmSchema.projects)
+      .set({ status: 'archived', updatedAt: new Date() })
+      .where(eq(ltmSchema.projects.id, projectId))
+      .returning();
+    return updated || null;
+  }
+
+  /**
+   * Hard-delete a project. CASCADEs to episodes, procedures, project_knowledge
+   * (per the FK definitions in 0012_ltm_schema.sql). chat_sessions.project_id
+   * is set to NULL (ON DELETE SET NULL) so the conversation rows survive
+   * but become project-less.
+   *
+   * Returns true if a row was deleted, false otherwise.
+   */
+  async deleteProject(projectId: string): Promise<boolean> {
+    const result = await db.delete(ltmSchema.projects)
+      .where(eq(ltmSchema.projects.id, projectId))
+      .returning({ id: ltmSchema.projects.id });
+    return result.length > 0;
+  }
+
+  /**
    * Add knowledge to project
    */
   async addProjectKnowledge(data: InsertProjectKnowledge): Promise<ProjectKnowledgeEntry> {
@@ -1033,42 +1060,48 @@ export class MemoryService {
   }
 
   /**
-   * Ensure the user has at least one active project; create a default
-   * "Default Workspace" project if not. Returns the project ID. This is
-   * the minimum plumbing needed to re-enable the project framework — see
-   * docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q4). The chat-stream
-   * endpoint calls this once per request so memory-integration's
-   * project-scoped paths (procedures, episodes, project knowledge) come
-   * back online without requiring a UI project selector.
+   * Idempotently ensure the ltm_users row for this auth user exists.
+   * User-scoped memory (preferences, corrections, episodes) needs this
+   * row to exist regardless of whether the chat is project-scoped, so
+   * it's called on every chat-stream request and from project CRUD
+   * endpoints. Safe and cheap (UPSERT with ON CONFLICT DO NOTHING).
+   */
+  async ensureLtmUser(userId: string, email?: string, name?: string): Promise<void> {
+    if (!userId) return;
+    try {
+      await this.users.ensureLtmUser(userId, email, name);
+    } catch (e: any) {
+      console.warn('[MemoryService] ensureLtmUser failed:', e?.message ?? e);
+    }
+  }
+
+  /**
+   * Resolve the project this chat should be associated with, OR null
+   * if it shouldn't be associated with any project.
    *
-   * Idempotent: subsequent calls return the existing project's id.
-   * Defensive: any DB failure returns null so the caller can degrade
-   * gracefully to project-less context (the previous behaviour).
+   * Policy (docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md):
+   * NOT every chat lives in a project. We do NOT auto-create. The
+   * client either explicitly sends a projectId or the chat is
+   * project-less. Memory-integration's project-scoped paths gate on
+   * context.projectId and correctly no-op when null.
+   */
+  async resolveProjectForChat(clientProjectId?: string | null): Promise<string | null> {
+    return clientProjectId || null;
+  }
+
+  /**
+   * @deprecated Renamed and split.
+   * Kept as a thin wrapper for any internal call site we missed —
+   * NEVER call from chat-stream. Per policy, chats can have no project.
    */
   async ensureDefaultProject(userId: string, email?: string, name?: string): Promise<string | null> {
+    await this.ensureLtmUser(userId, email, name);
     if (!userId) return null;
     try {
-      // Step 1: ltm_users row must exist before projects.user_id FK can resolve.
-      // UserMemoryRepository.ensureLtmUser is idempotent (ON CONFLICT DO NOTHING)
-      // and reuses BioMate's auth users.id as the ltm_users.id — keeping the
-      // two user tables aligned by uuid so cross-table joins stay simple.
-      await this.users.ensureLtmUser(userId, email, name);
-
-      // Step 2: find-or-create the default project for this user.
       const existing = await this.projects.getUserProjects(userId, 'active');
-      if (existing.length > 0) return existing[0].id;
-      const created = await this.projects.createProject({
-        userId,
-        name: 'Default Workspace',
-        description: 'Auto-created default project; scopes memory + procedures per user.',
-        status: 'active',
-      } as InsertProject);
-      return created?.id ?? null;
+      return existing.length > 0 ? existing[0].id : null;
     } catch (e: any) {
-      // Defensive — schema mismatches / DB outages must not break chat.
-      // If this fails we just don't get project-scoped memory; the chat
-      // works exactly as before the Q4 wiring landed.
-      console.warn('[MemoryService] ensureDefaultProject failed:', e?.message ?? e);
+      console.warn('[MemoryService] ensureDefaultProject (legacy) failed:', e?.message ?? e);
       return null;
     }
   }

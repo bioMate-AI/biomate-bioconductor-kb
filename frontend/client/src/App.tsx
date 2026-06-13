@@ -5,9 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ActiveProjectProvider } from "@/contexts/active-project-context";
 import { useAuth } from "@/contexts/auth-context";
 import { ChatWithArtifacts } from "@/components/chat-with-artifacts";
 import ProjectsPage from "@/pages/projects";
+import WorkspacesPage from "@/pages/workspaces";
 import ProjectDetailPage from "@/pages/project-detail";
 import NotFound from "@/pages/not-found";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -449,6 +451,11 @@ function Router({
         />
       </Route>
 
+      {/* /workspaces — LTM project framework UI (project memory, episodes,
+          procedures, cross-session dataset isolation). See
+          docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md. */}
+      <Route path="/workspaces" component={WorkspacesPage} />
+
       <Route path="/projects">
         <PlatformLayout
           sidebarCollapsed={sidebarCollapsed}
@@ -617,7 +624,9 @@ export default function RootApp() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="biomate-ui-theme">
         <AuthProvider>
-          <AppWithAuthSync />
+          <ActiveProjectProvider>
+            <AppWithAuthSync />
+          </ActiveProjectProvider>
         </AuthProvider>
       </ThemeProvider>
       <TutorialTipOverlay />
