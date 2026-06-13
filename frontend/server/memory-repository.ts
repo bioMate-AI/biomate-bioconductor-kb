@@ -1060,6 +1060,69 @@ export class MemoryService {
   }
 
   /**
+   * Cold-refresh dataset recovery within a project.
+   *
+   * When a user opens a fresh chat session in a project where they have
+   * prior sessions with attached datasets, surface those datasets so
+   * the LLM can pick up where they left off — without the user having
+   * to re-attach files. Policy (docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md):
+   *
+   *   - Only within the same project — never cross-project, never
+   *     user-scoped fallback.
+   *   - Excludes the current session (datasets attached this turn are
+   *     handled by the normal session path).
+   *   - Last 14 days only — older work is presumed archived intent.
+   *   - Capped at 20 datasets; DISTINCT by id (dedupes when a dataset
+   *     was attached to multiple sister sessions).
+   *
+   * The returned entries carry `recovered: true` so the prompt block
+   * can label them distinctly ("from earlier sessions in this project")
+   * — the LLM should not claim the user just attached them in the
+   * current conversation.
+   *
+   * Returns [] on any DB error (chat must not break).
+   */
+  async recoverProjectDatasets(
+    projectId: string,
+    currentChatSessionId: string,
+  ): Promise<Array<{ id: string; name: string; type: string; recovered: true; sourceSessionId: string; lastActivity: string }>> {
+    if (!projectId || !currentChatSessionId) return [];
+    try {
+      const { pool } = await import('./db');
+      const rows = await pool.query(
+        `SELECT DISTINCT ON (d->>'id')
+           d->>'id'   AS id,
+           d->>'name' AS name,
+           COALESCE(d->>'type', 'unknown') AS type,
+           cs.session_id AS source_session_id,
+           cs.last_activity
+         FROM chat_sessions cs,
+              jsonb_array_elements(cs.datasets) d
+         WHERE cs.project_id = $1
+           AND cs.session_id != $2
+           AND cs.last_activity > NOW() - INTERVAL '14 days'
+           AND jsonb_array_length(cs.datasets) > 0
+         ORDER BY d->>'id', cs.last_activity DESC
+         LIMIT 20`,
+        [projectId, currentChatSessionId],
+      );
+      return (rows.rows || [])
+        .filter((r: any) => r.id && r.name)
+        .map((r: any) => ({
+          id: String(r.id),
+          name: String(r.name),
+          type: String(r.type || 'unknown'),
+          recovered: true as const,
+          sourceSessionId: String(r.source_session_id),
+          lastActivity: r.last_activity ? new Date(r.last_activity).toISOString() : '',
+        }));
+    } catch (e: any) {
+      console.warn('[MemoryService] recoverProjectDatasets failed:', e?.message ?? e);
+      return [];
+    }
+  }
+
+  /**
    * Bridge the chat-stream sessionId (text, e.g. "memw-1781314…") to
    * an LTM sessions row (uuid id). Idempotent: find-or-create by
    * chat_session_id (UNIQUE, added in 0016_ltm_sessions_chat_link.sql).

@@ -5587,15 +5587,34 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // bulletin in the system prompt — ~80 bytes per dataset, present every
     // turn, independent of chat-history slicing.
     const sessionDatasetsBlock = (() => {
-      const sd = (context as any)?.sessionDatasets as Array<{ id?: string; name?: string; type?: string; file_path?: string | null }> | undefined;
+      const sd = (context as any)?.sessionDatasets as Array<{
+        id?: string; name?: string; type?: string; file_path?: string | null;
+        recovered?: boolean; sourceSessionId?: string;
+      }> | undefined;
       if (!sd?.length) return '';
-      const rows = sd
-        .filter(d => d && d.id)
-        .slice(0, 32) // hard cap — pathological case where a user attaches hundreds
-        .map(d => `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}`)
-        .join('\n');
-      if (!rows) return '';
-      return `\n<session_datasets>\nDatasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${rows}\n\nWhen the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id with read_file (preview), run_code's input_datasets (analysis), or as a workflow parameter. Do NOT ask the user to re-upload datasets that already appear here.\n</session_datasets>\n`;
+
+      // Split into direct (attached this conversation) vs recovered
+      // (from a sister session in the same project — cold-refresh).
+      // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const valid = sd.filter(d => d && d.id);
+      const direct = valid.filter(d => !d.recovered).slice(0, 32);
+      const recovered = valid.filter(d => d.recovered).slice(0, 20);
+
+      const fmt = (d: any) => `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}`;
+      const directRows = direct.map(fmt).join('\n');
+      const recoveredRows = recovered.map(fmt).join('\n');
+
+      if (!directRows && !recoveredRows) return '';
+
+      let body = '\n<session_datasets>\n';
+      if (directRows) {
+        body += `Datasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${directRows}\n\n`;
+      }
+      if (recoveredRows) {
+        body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
+      }
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id with read_file (preview), run_code's input_datasets (analysis), or as a workflow parameter. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      return body;
     })();
 
     const runnableWorkflow = !!(
