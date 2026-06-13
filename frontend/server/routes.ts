@@ -13,6 +13,7 @@ import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSch
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
+import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -3103,6 +3104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           file_size: file.size,
           file_path: file.path,
         });
+        req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
       }
 
       // Return dataset information with local, Galaxy, and S3 IDs
@@ -3158,6 +3160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           file_path: serverPath,    // the real path passed to workflow params
           param_name: paramName || null,  // optional explicit param mapping
         });
+        req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets as any[]);
       }
 
       return res.json({
@@ -3241,6 +3244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             file_size: 0, // Size unknown until Galaxy fetches it
             source_url: url,  // Nextflow can fetch HTTP/S3 URLs directly
           });
+          req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
         }
 
         res.json({
@@ -5257,7 +5261,10 @@ ${paramLines || '(none recorded)'}`;
               if (_historyMessages && _historyMessages.length === 0) _historyMessages = undefined;
             }
             if (Array.isArray(_r.datasets) && _r.datasets.length > 0) {
-              _historyDatasets = _r.datasets.map((d: any) => ({
+              // Cap rehydrated entries too — defends against a stale row
+              // that pre-dates the cap from blowing up the prompt budget.
+              const _capped = capDatasetReferences(_r.datasets);
+              _historyDatasets = _capped.map((d: any) => ({
                 id: d.id || d.galaxy_dataset_id || d.dataset_id,
                 name: d.name || d.filename || 'unknown',
                 type: d.type || d.file_type || 'unknown',
@@ -12183,6 +12190,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
   app.put("/api/sessions/:sessionId", authenticateToken, express.json(), async (req: any, res) => {
     try {
       const { title, status, messages, workflows, datasets } = req.body;
+      const cappedDatasets = datasets ? capDatasetReferences(datasets) : null;
       const rows = await pool.query(
         `UPDATE chat_sessions SET
            title = COALESCE($3, title),
@@ -12196,7 +12204,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
         [req.params.sessionId, req.user.id, title, status,
          messages ? JSON.stringify(messages) : null,
          workflows ? JSON.stringify(workflows) : null,
-         datasets ? JSON.stringify(datasets) : null]
+         cappedDatasets ? JSON.stringify(cappedDatasets) : null]
       );
       if (!rows.rows.length) return res.status(404).json({ error: 'Session not found' });
       res.json(rows.rows[0]);
