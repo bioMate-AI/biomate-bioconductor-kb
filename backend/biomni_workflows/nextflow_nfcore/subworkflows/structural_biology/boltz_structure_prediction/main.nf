@@ -58,10 +58,7 @@ process PREPARE_INPUT {
 process BOLTZ_PREDICT {
     tag "boltz2"
     label 'process_gpu'
-    // publishDir intentionally omitted — executor injects 'process { publishDir = null }'
-    // for non-nf-core paths (AWS CRT JVM crash protection). Outputs land in
-    // work/<task-hash>/ on S3 where the QC monitor's _read_s3_report_metrics
-    // scans by process keyword. See nextflow_executor.py:1713 for the rationale.
+    publishDir { "${params.outdir}/structures" }, mode: 'copy'
 
     container ECR
 
@@ -92,8 +89,7 @@ process BOLTZ_PREDICT {
 process BOLTZ_SUMMARISE_RESULTS {
     tag "summary"
     label 'process_low'
-    // publishDir omitted — see BOLTZ_PREDICT comment above. qc_metrics.json
-    // is read straight from work/ by the QC monitor.
+    publishDir { "${params.outdir}" }, mode: 'copy'
 
     container ECR
 

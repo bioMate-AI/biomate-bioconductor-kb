@@ -1718,9 +1718,20 @@ def _generate_executor_config(
             # value and crashes with:
             #   Cannot compare groovy.util.ConfigObject [:] with Integer 0
             # Reproduced 2026-06-07 on nfcore/airrflow 5.1.0.
+            # Paths that must NOT receive the publishDir-null directive:
+            #   - /nf-core-workflows/ — newer nf-core uses
+            #     `workflow.output.mode = params.publish_dir_mode` which crashes
+            #     comparing ConfigObject [:] with Integer 0 (airrflow 5.1.0).
+            #   - structural_biology/boltz_* — Nextflow 25.10.5 rejects the
+            #     `publishDir = null` property assignment at config parse time
+            #     for this subworkflow's process shape; error surfaces as
+            #     "Could not find method publishDir() to invoke" (boltz v3-v5,
+            #     2026-06-12). nf-amazon@3.3.0 pin above already prevents the
+            #     CRT crash this null was guarding against.
             *(
                 ["process {", "    publishDir = null", "}"]
                 if "/nf-core-workflows/" not in nf_path
+                   and "structural_biology/" not in nf_path
                 else []
             ),
             "process {",
@@ -5496,12 +5507,40 @@ _WORKFLOW_DOMAIN_ALIASES: Dict[str, str] = {
 }
 
 
+def _lookup_workflow_domain_from_db(workflow_name: str) -> Optional[str]:
+    """Read the workflow's domain straight from galaxy_ai_tools.db.
+    Checks workflow_chains first (curated chains), then workflows.
+    Single source of truth — no per-chain keyword hardcoding needed."""
+    import sqlite3 as _sql
+    db_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..",
+        "database", "galaxy_ai_tools.db",
+    ))
+    if not os.path.exists(db_path):
+        return None
+    try:
+        with _sql.connect(db_path) as conn:
+            cur = conn.cursor()
+            for table in ("workflow_chains", "workflows"):
+                cur.execute(f"SELECT domain FROM {table} WHERE name=? LIMIT 1", (workflow_name,))
+                row = cur.fetchone()
+                if row and row[0]:
+                    return row[0]
+    except Exception:
+        pass
+    return None
+
+
 def _resolve_qc_evidence_domain(workflow_name: str, available_domains: list) -> Optional[str]:
     """Pick the best-matching qc_evidence domain for a workflow name.
     Returns None when no plausible match — citations endpoint then returns empty."""
     import re as _re
+    # 0) Authoritative: read the workflow's domain from the DB.
+    db_domain = _lookup_workflow_domain_from_db(workflow_name)
+    if db_domain and db_domain in available_domains:
+        return db_domain
     wf_low = workflow_name.lower()
-    # 1) Direct alias hit
+    # 1) Direct alias hit (legacy tool-name + domain-keyword classification)
     for keyword, domain in _WORKFLOW_DOMAIN_ALIASES.items():
         if keyword in wf_low and domain in available_domains:
             return domain
