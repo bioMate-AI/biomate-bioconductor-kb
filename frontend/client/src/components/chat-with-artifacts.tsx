@@ -355,9 +355,45 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
     window.addEventListener('biomate:run-again-with-edits', handler as EventListener)
     return () => window.removeEventListener('biomate:run-again-with-edits', handler as EventListener)
+    // Note: 'biomate:param-clarification-*' is handled in a separate effect below.
     // handleRunWorkflow identity changes each render but the closure captures
     // current values via the wrapper; we register once for the component lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ParamClarificationCard → workflow panel param-state bridge.
+  //
+  // The card dispatches 'biomate:param-clarification-resolved' when the user
+  // picks a chip; we patch the value onto the open workflow's inline_parameters
+  // so the panel pre-fills the field. Skip just removes the clarification from
+  // the message metadata so the card hides.
+  useEffect(() => {
+    const onResolved = (e: Event) => {
+      const ce = e as CustomEvent<{ messageId?: string; paramName: string; value: string }>
+      const { paramName, value } = ce.detail || ({} as any)
+      if (!paramName) return
+      setPanelWorkflow((prev: any) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          inline_parameters: {
+            ...((prev as any).inline_parameters || {}),
+            [paramName]: value,
+          },
+        }
+      })
+    }
+    const onSkipped = (_e: Event) => {
+      // No-op: the card visually disappears once the user clicks skip
+      // because we don't have a way to mutate prior messages' metadata
+      // without re-rendering. For now skip is purely advisory.
+    }
+    window.addEventListener('biomate:param-clarification-resolved', onResolved as EventListener)
+    window.addEventListener('biomate:param-clarification-skipped', onSkipped as EventListener)
+    return () => {
+      window.removeEventListener('biomate:param-clarification-resolved', onResolved as EventListener)
+      window.removeEventListener('biomate:param-clarification-skipped', onSkipped as EventListener)
+    }
   }, [])
 
   // Resizable panel width (px)
