@@ -4,8 +4,19 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 17 of 19 candidate workflows verified end-to-end. 2 are
-code-ready, each blocked by an issue independent of the QC code path.
+**Result:** 18 of 19 candidate workflows verified end-to-end. 1 remains
+code-ready and blocked by an issue independent of the QC code path
+(nlmixr2 — missing `biomate/r-pharma:x86` ECR image; r-pharma rebuild
+in flight 2026-06-12). Two earlier-blocked workflows have been unblocked:
+
+- `aizynthfinder_retrosynthesis` — container rebuilt with USPTO model
+  baked in from Zenodo (`https://zenodo.org/record/7797465`). Run
+  `b83d2a85` 2026-06-12 19:43 UTC succeeded with `num_solved_routes: 3`
+  on ibuprofen (GOLD Genheden 2020 gate ≥ 1).
+- `boltz_structure_prediction` — `process_gpu` queue routed to
+  `biomate-gpu-spot-queue` (SPOT_CAPACITY_OPTIMIZED, ~70% cost cut vs
+  on-demand). publishDir Map-form fix for Nextflow 25.10.5
+  ProcessBuilder overloads. Verification in flight.
 
 ## Verified workflows
 
