@@ -81,35 +81,51 @@ describe("Q2: compression dialog offers 'Start a new chat' at ≥85%", () => {
   });
 });
 
-describe("Q4: project framework — wired (LTM schema 0012 applied 2026-06-12)", () => {
+describe("Q4: project framework — wired, policy 'chats can be project-less'", () => {
+  // 2026-06-12 policy correction: NOT every chat lives in a project.
+  // Chats are project-scoped only when the client explicitly sends
+  // projectId. Standalone chats stay project-less. We do NOT
+  // auto-create a Default Workspace — see
+  // docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
   const ROUTES = fs.readFileSync(path.join(ROOT, "routes.ts"), "utf-8");
   const MEMORY = fs.readFileSync(path.join(ROOT, "memory-repository.ts"), "utf-8");
 
-  it("MemoryService.ensureDefaultProject(userId, email?, name?) accepts identity hints", () => {
-    expect(/async\s+ensureDefaultProject\s*\(\s*userId\s*:\s*string\s*,\s*email\?\s*:\s*string\s*,\s*name\?\s*:\s*string\s*\)\s*:\s*Promise<string\s*\|\s*null>/.test(MEMORY)).toBe(true);
+  it("MemoryService exposes ensureLtmUser (always-on, user-scoped) separately from project resolution", () => {
+    // Look for the wrapper method on MemoryService — UserMemoryRepository
+    // also has an ensureLtmUser, so anchor to the MemoryService class.
+    const svc = MEMORY.split("export class MemoryService")[1] ?? "";
+    expect(/async\s+ensureLtmUser\s*\(\s*userId\s*:\s*string\s*,\s*email\?\s*:\s*string\s*,\s*name\?\s*:\s*string\s*\)\s*:\s*Promise<void>/.test(svc)).toBe(true);
   });
 
-  it("ensureDefaultProject upserts ltm_users via ensureLtmUser before touching projects (FK precondition)", () => {
-    expect(/this\.users\.ensureLtmUser\(userId,\s*email,\s*name\)/.test(MEMORY)).toBe(true);
+  it("MemoryService.resolveProjectForChat returns the client's projectId or null — never auto-creates", () => {
+    expect(/async\s+resolveProjectForChat\s*\(\s*clientProjectId\?\s*:\s*string\s*\|\s*null\s*\)\s*:\s*Promise<string\s*\|\s*null>/.test(MEMORY)).toBe(true);
+    expect(/return\s+clientProjectId\s*\|\|\s*null/.test(MEMORY)).toBe(true);
   });
 
-  it("ensureDefaultProject returns the first active project or creates Default Workspace", () => {
-    expect(/getUserProjects\(\s*userId\s*,\s*['"]active['"]\s*\)/.test(MEMORY)).toBe(true);
-    expect(/createProject\(/.test(MEMORY)).toBe(true);
-    expect(MEMORY.includes("Default Workspace")).toBe(true);
+  it("chat-stream calls ensureLtmUser for every authenticated request (user-scoped memory always on)", () => {
+    expect(/memoryService\.ensureLtmUser\(\s*String\(_u\.id\)\s*,\s*_u\.email\s*,\s*_u\.fullName\s*\?\?\s*_u\.name\s*\)/.test(ROUTES)).toBe(true);
   });
 
-  it("chat-stream calls ensureDefaultProject with userId + email + fullName", () => {
-    expect(/memoryService\.ensureDefaultProject\(\s*String\(_u\.id\)\s*,\s*_u\.email\s*,\s*_u\.fullName\s*\?\?\s*_u\.name\s*\)/.test(ROUTES)).toBe(true);
+  it("chat-stream resolves projectId only from client context (does NOT auto-create)", () => {
+    expect(/memoryService\.resolveProjectForChat\(\s*context\?\.projectId\s*\)/.test(ROUTES)).toBe(true);
+    // Smoking-gun negative: no call to the deprecated auto-create helper.
+    expect(/memoryService\.ensureDefaultProject\(/.test(ROUTES)).toBe(false);
   });
 
-  it("chat-stream attaches projectId to enrichedContext", () => {
-    expect(/_resolvedProjectId\s*:\s*string\s*\|\s*undefined/.test(ROUTES)).toBe(true);
+  it("chat-stream attaches projectId (or null) to enrichedContext", () => {
+    expect(/let _resolvedProjectId\s*:\s*string\s*\|\s*undefined/.test(ROUTES)).toBe(true);
     expect(/projectId\s*:\s*_resolvedProjectId/.test(ROUTES)).toBe(true);
   });
 
-  it("chat-stream wraps the call in try/catch so a memory failure never breaks chat", () => {
-    // The wrap is the load-bearing safety net — keep it explicit in tests.
-    expect(/try\s*\{[\s\S]{0,400}ensureDefaultProject[\s\S]{0,400}\}\s*catch/.test(ROUTES)).toBe(true);
+  it("chat-stream wraps the memory bootstrap in try/catch so a memory failure never breaks chat", () => {
+    expect(/try\s*\{[\s\S]{0,400}ensureLtmUser[\s\S]{0,400}\}\s*catch/.test(ROUTES)).toBe(true);
+  });
+
+  it("the deprecated ensureDefaultProject helper survives but no longer creates a Default Workspace", () => {
+    expect(/@deprecated/.test(MEMORY)).toBe(true);
+    expect(/return existing\.length\s*>\s*0\s*\?\s*existing\[0\]\.id\s*:\s*null/.test(MEMORY)).toBe(true);
+    // The 'Default Workspace' literal must not appear in the resolve flow.
+    const helperBlock = MEMORY.split('async ensureDefaultProject')[1] ?? '';
+    expect(helperBlock.includes("'Default Workspace'") || helperBlock.includes('"Default Workspace"')).toBe(false);
   });
 });
