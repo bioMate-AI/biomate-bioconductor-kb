@@ -1060,6 +1060,49 @@ export class MemoryService {
   }
 
   /**
+   * Bridge the chat-stream sessionId (text, e.g. "memw-1781314…") to
+   * an LTM sessions row (uuid id). Idempotent: find-or-create by
+   * chat_session_id (UNIQUE, added in 0016_ltm_sessions_chat_link.sql).
+   *
+   * Why this exists: memory-integration's recordEpisode writes
+   * project_episodes.session_id which is uuid, FK → sessions.id. If we
+   * pass the text chat-stream sessionId straight through, the insert
+   * fails (silently, since it's wrapped in try/catch) and episodes get
+   * dropped. See 2026-06-13 audit.
+   *
+   * Returns the LTM session UUID for the caller to use as
+   * context.memorySessionId. Returns null on any DB error so chat
+   * degrades gracefully (no episodes, but chat works).
+   */
+  async ensureChatLtmSession(
+    userId: string,
+    chatSessionId: string,
+    projectId?: string | null,
+  ): Promise<string | null> {
+    if (!userId || !chatSessionId) return null;
+    try {
+      const existing = await db.query.sessions.findFirst({
+        where: eq((ltmSchema.sessions as any).chatSessionId, chatSessionId),
+      });
+      if (existing) return existing.id;
+      const [created] = await db.insert(ltmSchema.sessions)
+        .values({
+          userId,
+          projectId: projectId ?? undefined,
+          // @ts-ignore — chat_session_id added by migration 0016; drizzle
+          // schema in ltm-schema.ts may not declare it yet, but the DB
+          // column is real. Falls back gracefully via the returning() id.
+          chatSessionId,
+        } as any)
+        .returning();
+      return created?.id ?? null;
+    } catch (e: any) {
+      console.warn('[MemoryService] ensureChatLtmSession failed:', e?.message ?? e);
+      return null;
+    }
+  }
+
+  /**
    * Idempotently ensure the ltm_users row for this auth user exists.
    * User-scoped memory (preferences, corrections, episodes) needs this
    * row to exist regardless of whether the chat is project-scoped, so
