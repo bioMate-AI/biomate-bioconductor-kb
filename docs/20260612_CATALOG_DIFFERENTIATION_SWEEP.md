@@ -88,6 +88,48 @@ Each role is distinct; current `annotation_v2.when_to_use` is identical across a
 
 The `epialleler_*` and `knowyourcg_*` clusters follow the same shape and are similarly tractable. Doing all three (~25 workflows) is a half-day of work and would close the largest open disambiguation surface in the catalog.
 
+## Phyloprofile cluster — closed
+
+Authored role-specific `description` + `annotation_v2.when_to_use` for all 9 `phyloprofile_*` rows, grounded in the `.nf` header comments (the truth was always there; auto-extraction had silently failed for 5 of 9 → description was literally the workflow name).
+
+Source-of-truth for the new descriptions: the `// Bioconductor workflow: PhyloProfile — <role>\n// <one-line description>` block at the top of each `.nf` file.
+
+| Pre-state | Post-state |
+|---|---|
+| 5 of 9 had `description = "phyloprofile"` (12 chars, name not description) | All 9 have 167–296-char role-specific descriptions |
+| All 9 shared identical 1,258-byte `annotation_v2.when_to_use` | Each has role-specific `when_to_use`; 0 duplicates within cluster |
+
+**Per-role retrieval test, 5 queries:**
+
+| Query | Target sub-workflow | Rank |
+|---|---|---|
+| "identify core genes shared across taxa from phylogenetic profile" | `phyloprofile_core_gene_identification` | **1** |
+| "plot variable distributions to choose filtering thresholds for phyloprofile" | `phyloprofile_distribution_analysis` | **1** |
+| "estimate gene age via LCA from a processed phylogenetic profile" | `phyloprofile_gene_age_estimation` | **1** |
+| "cluster genes by similarity of phylogenetic profile presence-absence patterns" | `phyloprofile_profile_clustering` | **1** |
+| "compare ortholog scores between in-group and out-group of taxa" | `phyloprofile_group_comparison` | **1** |
+
+5/5 rank 1. Before the fix these queries could not distinguish among the 5 broken sub-workflows at all.
+
+Script: `backend/scripts/differentiate_phyloprofile_cluster.py` (atomic, dry-run default, row-level JSON backup).
+
+## Pattern is now reusable
+
+The `phyloprofile` script is the template for the remaining two large clusters:
+
+- `epialleler_*` (9 sub-workflows) — `.nf` headers under `backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/epialleler/`
+- `knowyourcg_*` (9 sub-workflows) — `.nf` headers under `backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/knowyourcg/`
+
+Same shape: shared `key_parameters` / `pitfalls` from the parent package, role-specific `description` + `when_to_use` per sub-workflow. ~1–2 hours per cluster to author, atomic apply with backup, retrieval verification analogous to the table above.
+
+A general extractor that backfills `description` from `.nf` header comments wherever the DB description equals the workflow name (`description == name`) would close the auto-extraction failure mode at catalog scale. Detection SQL:
+
+```sql
+SELECT count(*) FROM workflows WHERE description = name OR description = '';
+```
+
+Worth doing in a follow-up — that's the foundation, the cluster-specific `when_to_use` authoring sits on top.
+
 ## TL;DR
 
 Audit: 4,005 workflows, 53 chains. Real ambiguity surface is much smaller than the raw "short description" count suggests — most short descriptions are fine. The two structural problems that matter are:
