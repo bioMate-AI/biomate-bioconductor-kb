@@ -37,3 +37,22 @@ IDs/IPs are stale — launch fresh boxes and update them).
 - **imaging:3.20-deps** — clean win, all packages load.
 - **metabolomics / metagenomics :3.20-deps** — improved; `metaMS` and `mia`/`iSEEtree` still
   failed under `install.packages` → re-run with this `BiocManager` template to recover them.
+
+## 2026-06-13 — BiocManager rebuild result: still insufficient for mia/metaMS
+Rebuilt metagenomics with the BiocManager template; `mia`/`iSEEtree`/`miaViz` **still won't load**.
+Root cause is deeper than the install method: the BASE `:3.20` image already carries a **too-new
+`rbiom`** (CRAN package — BiocManager does NOT pin it to a Bioc release) that dropped the
+`unifrac` export, and `BiocManager::install(update=FALSE)` won't downgrade it. So `mia` (built
+against old `rbiom`) fails at load.
+
+**Precise fix the team needs (per-package version pin, before installing mia):**
+```r
+install.packages("remotes")
+remotes::install_version("rbiom", version = "<last version exporting unifrac>")  # then rebuild mia/miaViz
+```
+For `metaMS`: its `xcms` dep fails to COMPILE from source (R_NO_REMAP vs xcms 2.x). Install the
+**xcms binary** from the Bioc container-binaries repo (or pin a compatible xcms), not source.
+
+Until those pins are added, `mia`/`iSEEtree`/`miaViz`/`metaMS` remain non-runnable; their
+workflows keep the runtime self-install fallback (which hits the same conflict). imaging is the
+clean win and is already good.
