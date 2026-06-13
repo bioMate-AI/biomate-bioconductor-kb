@@ -53,8 +53,25 @@ async function run() {
     workflowName: "in_vivo_cart_codesign",
     rawParams: { car_target: "CD19", indication: "DLBCL", delivery_cell: "T cells" },
     userQuery: "co-design CAR",
-    requiredParams: ["car_target", "indication"],
-    optionalParams: ["delivery_cell", "lnp_targeting", "persistence"],
+    // Rich entries shaped like backend's workflow_ga response — options drive
+    // enum normalization in the rule pass.
+    requiredParams: [
+      { name: "car_target", type: "string", description: "CAR target antigen", required: true },
+      { name: "indication", type: "string", description: "disease", required: true },
+    ],
+    optionalParams: [
+      {
+        name: "delivery_cell",
+        type: "string",
+        description: "delivery cell type",
+        required: false,
+        options: [
+          { value: "T_cell" },
+          { value: "NK_cell" },
+          { value: "macrophage" },
+        ],
+      },
+    ],
   });
   // Schema-grounded should normalize "T cells" → "T_cell" via the rule pass
   // (zero LLM needed for this case).

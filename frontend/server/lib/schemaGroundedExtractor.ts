@@ -98,7 +98,7 @@ export async function extractParameters(
   const stagesFired = { rules: false, llm: false, validation: false };
 
   // Stage 3a — rules.
-  const rulePass = runRulePass({ schema, rawParams, userQuery });
+  const rulePass = runRulePass({ schema, rawParams });
   stagesFired.rules = true;
 
   let params: Record<string, string | string[]> = { ...rulePass.canonicalParams };
@@ -179,7 +179,7 @@ export async function extractParameters(
     clarifications.push({
       kind: "missing_required",
       paramName: missing,
-      hint: spec?.note,
+      hint: spec?.description,
       examples: spec?.enum,
     });
   }

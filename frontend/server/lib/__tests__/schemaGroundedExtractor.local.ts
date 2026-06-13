@@ -2,25 +2,60 @@
 /*
  * Local integration test for schema-grounded extraction.
  *
- * Drives the three new modules end-to-end against real tier-0 and gap-1
- * workflows, calling Claude Haiku for the LLM resolver. Does NOT need the
- * Galaxy backend running.
+ * Drives Stage 3 (rules + LLM resolver + validation) against tier-0
+ * workflows. The test fixture parses each workflow's .nf file into the
+ * shape the backend produces (workflow_ga.required_params/optional_params
+ * with name+description+default+options), simulating what the chat-stream
+ * receives.
  *
  * Run:
- *   cd frontend && node server/lib/__tests__/schemaGroundedExtractor.local.mjs
+ *   cd frontend && node_modules/.bin/tsx \
+ *       server/lib/__tests__/schemaGroundedExtractor.local.ts
  *
  * Env (loaded from frontend/.env):
  *   ANTHROPIC_API_KEY — required
  */
-// Run with: node_modules/.bin/tsx server/lib/__tests__/schemaGroundedExtractor.local.mjs
 import "dotenv/config";
+import fs from "node:fs";
 import path from "node:path";
 
-const { buildWorkflowSchemaFromFile } = await import("../paramSchema.ts");
+const { buildSchemaFromWorkflowGa } = await import("../paramSchema.ts");
 const { extractParameters } = await import("../schemaGroundedExtractor.ts");
 
-// ---------- LLM stub ----------
 const NF_ROOT = "/home/yzhang/biomate/backend/nf-core-workflows";
+
+// Helper: re-create the shape the backend ships in workflow_ga by parsing the
+// .nf file. In production this happens inside backend (_get_workflow_params)
+// and the frontend just receives the result.
+function fakeBackendEntries(nfText: string, requiredNames: string[]): {
+  required: Array<{ name: string; type: string; default?: string; options?: { value: string }[]; description: string; required: boolean }>;
+  optional: Array<{ name: string; type: string; default?: string; options?: { value: string }[]; description: string; required: boolean }>;
+} {
+  const required: any[] = [];
+  const optional: any[] = [];
+  const re = /^params\.(\w+)\s*=\s*(['"])([^'"]*)\2\s*(?:\/\/\s*(.*))?$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(nfText)) !== null) {
+    const [, name, , def, rawComment] = m;
+    if (name === "outdir") continue;
+    const comment = (rawComment ?? "").trim();
+    const entry: any = {
+      name,
+      type: "string",
+      default: def,
+      description: comment,
+      required: requiredNames.includes(name),
+    };
+    if (comment.includes("|")) {
+      entry.type = "string";
+      entry.options = comment.split("|").map((v) => ({ label: v.trim(), value: v.trim() }));
+    } else if (/^alias for\s+/i.test(comment)) {
+      entry.description = comment;
+    }
+    (entry.required ? required : optional).push(entry);
+  }
+  return { required, optional };
+}
 
 async function claude(prompt: string): Promise<string> {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -42,14 +77,11 @@ async function claude(prompt: string): Promise<string> {
   return j.content?.[0]?.text || "";
 }
 
-// ---------- Test cases ----------
 const CASES = [
-  // 5 tier-0 demos — should all pass with high confidence
   {
     name: "tier0-T01-bispecific",
     workflow: "bispecific_format_triage",
     required: ["target_a", "target_b"],
-    optional: ["indication", "mechanism"],
     nfPath: "modules/biomate-ai-tools/bispecific_format_triage/main.nf",
     query: "Design a PD-1 x VEGF bispecific in CrossMab format for NSCLC",
     expect: { target_a: /pd-?1/i, target_b: /vegf/i, indication: /nsclc/i },
@@ -59,10 +91,8 @@ const CASES = [
     name: "tier0-T02-cart",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
-    query:
-      "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to T cells, transient persistence",
+    query: "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to T cells, transient persistence",
     expect: {
       car_target: /cd19/i,
       indication: /dlbcl/i,
@@ -75,7 +105,6 @@ const CASES = [
     name: "tier0-T03-base-edit",
     workflow: "in_vivo_base_edit_design",
     required: ["target_gene", "edit_goal"],
-    optional: ["indication", "delivery", "editor_preference"],
     nfPath: "modules/biomate-ai-tools/in_vivo_base_edit_design/main.nf",
     query: "Design an in-vivo base-edit knockout of PCSK9 for hypercholesterolemia",
     expect: {
@@ -89,7 +118,6 @@ const CASES = [
     name: "tier0-T04-glp1",
     workflow: "glp1_modality_bakeoff",
     required: ["indication"],
-    optional: ["disease", "modalities", "delivery_pref"],
     nfPath: "modules/biomate-ai-tools/glp1_modality_bakeoff/main.nf",
     query: "Compare GLP-1 modalities for MASH — peptide vs mRNA vs gene therapy",
     expect: { indication: /mash|nash/i },
@@ -99,47 +127,34 @@ const CASES = [
     name: "tier0-T05-modality-triage",
     workflow: "modality_triage",
     required: ["target_gene"],
-    optional: ["atlas_expression", "indication", "modalities"],
     nfPath: "modules/biomate-ai-tools/modality_triage/main.nf",
     query: "Triage modalities for a BCMA oncology target — try all options",
     expect: { target_gene: /bcma/i, indication: /onco/i },
     rawParams: {},
   },
-  // Edge case: raw bag uses generic key ("target") and synonym graph must
-  // route it to car_target.
   {
     name: "synonym-graph-target-to-car_target",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
     query: "Design CAR-T for BCMA myeloma",
     expect: { car_target: /bcma/i, indication: /myeloma/i },
     rawParams: { target: "BCMA", disease: "myeloma" },
   },
-  // Edge case: user explicitly says "B cells" — LLM should surface the value
-  // and let the validator turn it into an enum-violation clarification rather
-  // than silently dropping it (UX gap fix).
   {
     name: "user-mentioned-out-of-enum-surfaces",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
     query: "Co-design CD19 CAR for DLBCL with delivery to B cells",
     expect: { car_target: /cd19/i, indication: /dlbcl/i },
     expectClarifications: [{ kind: "enum_violation", paramName: "delivery_cell" }],
     rawParams: {},
   },
-  // Edge case: validator catches an out-of-enum value supplied upstream
-  // (e.g. from a stale rawParams bag or a user override). When the LLM itself
-  // sees the schema, it correctly omits invalid values — see
-  // user-mentioned-but-llm-dropped case below for the harder UX gap.
   {
     name: "enum-violation-via-rawparams",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
     query: "Co-design CD19 CAR for DLBCL",
     expect: { car_target: /cd19/i, indication: /dlbcl/i },
@@ -147,14 +162,10 @@ const CASES = [
     rawParams: { car_target: "CD19", indication: "DLBCL", delivery_cell: "B_cell" },
     skipLlm: true,
   },
-  // Edge case: no params signal (would set has_parameter_signal=false upstream
-  // and skip extractor entirely; here we test the extractor handles "nothing
-  // to extract" gracefully when forced).
   {
     name: "no-signal-graceful",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
     query: "Run the CAR-T workflow please",
     expect: {},
@@ -164,37 +175,30 @@ const CASES = [
     ],
     rawParams: {},
   },
-  // Edge case: alias_of comment in glp1 — LLM should NOT use the 'disease'
-  // alias slot; it goes under indication.
   {
     name: "alias-of-respected",
     workflow: "glp1_modality_bakeoff",
     required: ["indication"],
-    optional: ["disease", "modalities", "delivery_pref"],
     nfPath: "modules/biomate-ai-tools/glp1_modality_bakeoff/main.nf",
     query: "GLP-1 modalities for obesity",
     expect: { indication: /obesity/i },
     forbidKeys: ["disease"],
     rawParams: {},
   },
-  // Rule pass: direct key hit (raw key matches schema canonical) — no LLM call needed.
   {
     name: "rule-pass-direct-hit",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
     query: "Co-design with these params",
     expect: { car_target: "CD19", indication: "DLBCL" },
     rawParams: { car_target: "CD19", indication: "DLBCL" },
-    skipLlm: true, // assert this works without LLM
+    skipLlm: true,
   },
-  // Enum normalization: "T cells" → "T_cell" via rule pass (no LLM)
   {
     name: "rule-enum-normalize",
     workflow: "in_vivo_cart_codesign",
     required: ["car_target", "indication"],
-    optional: ["delivery_cell", "lnp_targeting", "persistence"],
     nfPath: "modules/biomate-ai-tools/in_vivo_cart_codesign/main.nf",
     query: "deliver to T cells",
     expect: { delivery_cell: /^T_cell$/ },
@@ -203,7 +207,6 @@ const CASES = [
   },
 ];
 
-// ---------- Runner ----------
 function checkRegex(value: unknown, expected: unknown): boolean {
   if (value === undefined) return false;
   if (expected instanceof RegExp) return expected.test(String(value));
@@ -222,13 +225,13 @@ function summarize(extracted: Record<string, unknown>, expected: Record<string, 
 
 async function runCase(c: (typeof CASES)[number]) {
   const nfFull = path.join(NF_ROOT, c.nfPath);
-  const schema = buildWorkflowSchemaFromFile({
+  const nfText = fs.readFileSync(nfFull, "utf8");
+  const entries = fakeBackendEntries(nfText, c.required);
+  const schema = buildSchemaFromWorkflowGa({
     workflowName: c.workflow,
-    nfPath: nfFull,
-    requiredParams: c.required,
-    optionalParams: c.optional,
+    requiredParams: entries.required,
+    optionalParams: entries.optional,
   });
-  if (!schema) throw new Error(`could not load schema for ${c.workflow}`);
   const result = await extractParameters({
     schema,
     userQuery: c.query,
@@ -240,72 +243,55 @@ async function runCase(c: (typeof CASES)[number]) {
 }
 
 (async () => {
-  let totalCases = 0;
-  let totalKeysPass = 0;
-  let totalKeysTotal = 0;
-  let casesAllGreen = 0;
-  const failed = [];
+  let total = 0,
+    allGreen = 0,
+    keysPass = 0,
+    keysTotal = 0;
+  const failed: string[] = [];
 
   for (const c of CASES) {
-    totalCases++;
+    total++;
     let result, schema;
     try {
       ({ result, schema } = await runCase(c));
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       console.log(`\n=== ${c.name} ===\nERROR: ${msg}`);
-      failed.push({ name: c.name, reason: msg });
+      failed.push(c.name);
       continue;
     }
-    const summary = summarize(result.params, c.expect);
-    totalKeysPass += summary.pass.length;
-    totalKeysTotal += Object.keys(c.expect).length;
+    const sum = summarize(result.params, c.expect);
+    keysPass += sum.pass.length;
+    keysTotal += Object.keys(c.expect).length;
 
-    // Clarification expectations
     let clarOk = true;
     if (c.expectClarifications) {
-      for (const expected of c.expectClarifications) {
-        const found = result.clarifications.find(
-          (x) => x.kind === expected.kind && x.paramName === expected.paramName,
-        );
-        if (!found) clarOk = false;
+      for (const e of c.expectClarifications) {
+        if (!result.clarifications.find((x) => x.kind === e.kind && x.paramName === e.paramName))
+          clarOk = false;
       }
     }
-    // Forbidden keys
     let forbidOk = true;
     if (c.forbidKeys) {
-      for (const k of c.forbidKeys) {
+      for (const k of c.forbidKeys)
         if (result.params[k] !== undefined) forbidOk = false;
-      }
     }
-    const allGreen = summary.fail.length === 0 && clarOk && forbidOk;
-    if (allGreen) casesAllGreen++;
-    else failed.push({ name: c.name, summary, clarOk, forbidOk });
+    const ok = sum.fail.length === 0 && clarOk && forbidOk;
+    if (ok) allGreen++;
+    else failed.push(c.name);
 
     console.log(
-      `\n=== ${c.name} ${allGreen ? "✓" : "✗"} (${summary.pass.length}/${Object.keys(c.expect).length} keys, conf=${result.confidence.toFixed(2)}, stages=${Object.entries(result.stagesFired).filter(([, v]) => v).map(([k]) => k).join("+")}) ===`,
+      `\n=== ${c.name} ${ok ? "✓" : "✗"} (${sum.pass.length}/${Object.keys(c.expect).length} keys, conf=${result.confidence.toFixed(2)}, src=${schema.source}, stages=${Object.entries(result.stagesFired).filter(([, v]) => v).map(([k]) => k).join("+")}) ===`,
     );
-    console.log("  query:", c.query);
-    console.log("  raw:  ", c.rawParams);
-    console.log("  out:  ", result.params);
-    if (result.clarifications.length > 0)
-      console.log("  clar: ", result.clarifications);
-    if (summary.fail.length > 0)
-      console.log("  fail: ", summary.fail);
-    if (!clarOk)
-      console.log("  ✗ expected clarifications:", c.expectClarifications);
+    console.log("  out: ", result.params);
+    if (sum.fail.length > 0) console.log("  fail:", sum.fail);
+    if (!clarOk) console.log("  ✗ expected clarifications:", c.expectClarifications);
     if (!forbidOk && c.forbidKeys)
-      console.log("  ✗ forbidden keys found:", c.forbidKeys.filter((k) => result.params[k] !== undefined));
-    if (result.provenance.length > 0)
-      console.log("  prov: ", result.provenance);
+      console.log("  ✗ forbidden keys present:", c.forbidKeys.filter((k) => result.params[k] !== undefined));
   }
-
-  console.log(
-    `\n=== TOTAL: ${casesAllGreen}/${totalCases} cases all-green | ${totalKeysPass}/${totalKeysTotal} keys correct ===`,
-  );
+  console.log(`\n=== TOTAL: ${allGreen}/${total} all-green | ${keysPass}/${keysTotal} keys correct ===`);
   if (failed.length > 0) {
-    console.log("\nFAILED CASES:");
-    for (const f of failed) console.log(" -", f.name);
+    console.log("\nFAILED:", failed.join(", "));
     process.exit(1);
   }
 })();

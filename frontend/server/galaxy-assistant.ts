@@ -826,24 +826,21 @@ export function remapInlineParametersForWorkflow(
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema-grounded extraction wrapper (feature-flagged).
 //
-// When SCHEMA_GROUNDED_EXTRACTION=1, run the new Stage 3 pipeline:
+// When SCHEMA_GROUNDED_EXTRACTION=1, runs Stage 3:
 //   3a rule pass + 3b LLM resolver + 3c validation
-// Falls back to the legacy WORKFLOW_PARAM_ALIASES table when the flag is off
-// or when the workflow's .nf file can't be located (e.g. nf-core upstream
-// pipelines whose schemas live elsewhere).
+// Schema is read from workflow_ga.required_params / optional_params (which the
+// backend already populates from nextflow_schema.json or .nf parsing via
+// backend/lib/galaxy/ai/ai_assistant.py:_get_workflow_params). The frontend
+// never re-parses any schema file — that would duplicate backend logic.
 //
-// Returns the same shape as remapInlineParametersForWorkflow for drop-in
-// substitution at the existing call sites. The richer ExtractorResult
-// (clarifications, provenance, confidence) is surfaced via the optional
-// extraDetails out-parameter so callers can attach it to the chat response
-// without changing the function's primary return type.
+// Falls back to the legacy WORKFLOW_PARAM_ALIASES table when the flag is off,
+// when workflow_ga ships no schema metadata (older annotation rows), or when
+// the new pipeline throws — so default behavior is unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
-  buildWorkflowSchemaFromFile,
-  buildWorkflowSchema,
-  resolveNfPath,
-  type WorkflowSchema,
+  buildSchemaFromWorkflowGa,
+  type BackendParamEntry,
 } from './lib/paramSchema.js';
 import {
   extractParameters,
@@ -851,58 +848,26 @@ import {
   type ExtractorResult,
 } from './lib/schemaGroundedExtractor.js';
 import { llmGenerate } from './llm-client.js';
-import path from 'node:path';
 
 const SCHEMA_GROUNDED_FLAG = () =>
   process.env.SCHEMA_GROUNDED_EXTRACTION === '1';
-
-const NF_ROOTS = [
-  process.env.NF_WORKFLOWS_ROOT,
-  '/app/nf-core-workflows',
-  path.resolve(process.cwd(), '../backend/nf-core-workflows'),
-  path.resolve(process.cwd(), 'backend/nf-core-workflows'),
-  '/home/yzhang/biomate/backend/nf-core-workflows',
-].filter((p): p is string => !!p);
-
-function buildSchemaForWorkflow(args: {
-  workflowName: string;
-  requiredParams?: string[];
-  optionalParams?: string[];
-}): WorkflowSchema {
-  const { workflowName, requiredParams, optionalParams } = args;
-  const nfPath = resolveNfPath(workflowName, NF_ROOTS);
-  if (nfPath) {
-    const fromFile = buildWorkflowSchemaFromFile({
-      workflowName,
-      nfPath,
-      requiredParams,
-      optionalParams,
-    });
-    if (fromFile) return fromFile;
-  }
-  // Fallback to bare annotation when .nf isn't reachable.
-  return buildWorkflowSchema({
-    workflowName,
-    requiredParams,
-    optionalParams,
-  });
-}
 
 /**
  * Async wrapper used at chat-stream call sites. Returns the canonical-keyed
  * dict and (optionally) an ExtractorResult for the caller to surface in the
  * chat response.
  *
- * Drop-in: if flag is off OR an error fires inside the new pipeline, falls
- * back to the legacy alias table — no behavior regression on the default
- * path.
+ * Drop-in: if flag is off OR workflow_ga has no rich schema OR an error fires
+ * inside the new pipeline, falls back to the legacy alias table — no behavior
+ * regression on the default path.
  */
 export async function groundInlineParameters(args: {
   workflowName: string | undefined | null;
   rawParams: Record<string, unknown> | undefined | null;
   userQuery: string;
-  requiredParams?: string[];
-  optionalParams?: string[];
+  /** Backend's required_params from workflow_ga; either rich entries or bare names. */
+  requiredParams?: Array<BackendParamEntry | string>;
+  optionalParams?: Array<BackendParamEntry | string>;
   userOverriddenKeys?: Set<string>;
 }): Promise<{
   params: Record<string, string | string[]>;
@@ -918,9 +883,13 @@ export async function groundInlineParameters(args: {
     return { params: remapped, path: 'legacy-alias' };
   }
   try {
-    const schema = buildSchemaForWorkflow({ workflowName, requiredParams, optionalParams });
+    const schema = buildSchemaFromWorkflowGa({
+      workflowName,
+      requiredParams,
+      optionalParams,
+    });
     if (schema.params.length === 0) {
-      // Nothing to ground against — fall back to legacy.
+      // No schema metadata available — fall back to legacy alias.
       const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
       return { params: remapped, path: 'legacy-alias' };
     }
