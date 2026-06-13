@@ -17,6 +17,25 @@ JOBS_PATH = DATA_DIR / "training_jobs.jsonl"
 DPO_PAIRS_PATH = DATA_DIR / "dpo" / "customer_pairs.jsonl"
 
 VALID_STATUS = ("queued", "running", "succeeded", "failed", "cancelled")
+
+# Per-org "adaptation" — covers everything from cheap prompt-rule compilation
+# (works against the frontier API path today) up to GPU post-training (gated
+# on the cross-judge+reference harness showing local > frontier).
+#
+#   prompt_rules:     compile customer edit-pair patterns into a per-org rule
+#                     YAML loaded by _build_rag_context. Zero spend, runs in
+#                     seconds. Default mode — serves the frontier-API
+#                     production path today.
+#   few_shot_index:   build a per-org retrieval index over the edit pairs;
+#                     few-shot exemplars injected at prompt time. Cheap.
+#   post_train_lora:  full SFT/DPO LoRA on the open base. ONLY allowed when
+#                     the harness has shown a non-overlap-CI win for local
+#                     over the frontier default on the org's task mix. Stub
+#                     until that signal exists. See CLAUDE.md "Model-flip
+#                     discipline" + "Review Code Before Testing".
+VALID_ADAPTATION_MODE = ("prompt_rules", "few_shot_index", "post_train_lora")
+DEFAULT_ADAPTATION_MODE = "prompt_rules"
+
 _lock = threading.Lock()
 
 
@@ -31,6 +50,9 @@ class TrainingJob:
     edit_pair_count: int
     message: str = ""
     adapter_path: str = ""
+    # The kind of adaptation this job performs. Older job rows on disk
+    # predate this field and default to prompt_rules when missing.
+    adaptation_mode: str = DEFAULT_ADAPTATION_MODE
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -76,7 +98,11 @@ def _read_jobs() -> list[TrainingJob]:
         if not line.strip():
             continue
         try:
-            out.append(TrainingJob(**json.loads(line)))
+            row = json.loads(line)
+            # Back-fill the adaptation_mode default for rows that predate
+            # the field (the queue is on-disk append-only JSONL).
+            row.setdefault("adaptation_mode", DEFAULT_ADAPTATION_MODE)
+            out.append(TrainingJob(**row))
         except Exception:
             continue
     return out
@@ -91,12 +117,21 @@ def _coalesce_status(jobs: list[TrainingJob]) -> dict[str, TrainingJob]:
     return by_id
 
 
-def submit(user_id: str, org_id: str) -> TrainingJob:
+def submit(
+    user_id: str,
+    org_id: str,
+    adaptation_mode: str = DEFAULT_ADAPTATION_MODE,
+) -> TrainingJob:
     if not user_id:
         raise ValueError("user_id required")
     safe = _safe_org(org_id)
     if not safe:
         raise ValueError("invalid org_id (alphanumeric + _- only, max 32 chars)")
+    if adaptation_mode not in VALID_ADAPTATION_MODE:
+        raise ValueError(
+            f"invalid adaptation_mode: {adaptation_mode}; "
+            f"must be one of {VALID_ADAPTATION_MODE}"
+        )
     now = time.time()
     job = TrainingJob(
         job_id=uuid.uuid4().hex,
@@ -106,6 +141,7 @@ def submit(user_id: str, org_id: str) -> TrainingJob:
         submitted_at=now,
         updated_at=now,
         edit_pair_count=count_edit_pairs(safe),
+        adaptation_mode=adaptation_mode,
     )
     with _lock:
         _append_jsonl(job)
