@@ -54,6 +54,7 @@ import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
+import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
@@ -474,6 +475,25 @@ export function ChatMessage({
                     data-tour="chat-handoff"
                   />
                 );
+              }
+
+              // Disambiguation card — backend found several plausible workflows
+              const isDisambiguation = message.metadata?.workflow?.workflow_type === 'disambiguation'
+              if (isDisambiguation) {
+                const wf = message.metadata?.workflow
+                const candidates = (wf.candidates || []) as DisambigCandidate[]
+                return (
+                  <div
+                    id={`workflow-artifact-anchor-${message.id}`}
+                    data-testid={`workflow-artifact-anchor-${message.id}`}
+                  >
+                    <WorkflowDisambiguationCard
+                      message={wf.message || 'Which workflow best fits what you need?'}
+                      candidates={candidates}
+                      onSelect={(c) => onAdjustViaChat?.(`Use ${c.display_name || c.name}`)}
+                    />
+                  </div>
+                )
               }
 
               // Assembled sequential pipeline (Tier 2/3 assistant)
