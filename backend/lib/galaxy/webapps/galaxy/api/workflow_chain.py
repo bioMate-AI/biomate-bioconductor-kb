@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import sqlite3
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -565,17 +566,26 @@ def resolve_workflow_name_to_path(workflow_name: str) -> Optional[str]:
     if not workflow_name or not str(workflow_name).strip():
         return None
     name = str(workflow_name).strip()
+    # Curated chain templates reference steps as BIOC_<PKG> (the original atomic-wrapper
+    # convention), but the regenerated bioc workflows are indexed under their bare package
+    # name (e.g. 'minfi', 'dss', 'missmethyl'). Strip a leading BIOC_ so the chain resolves
+    # to the indexed row instead of returning 0 rows.
+    bare = re.sub(r'^bioc[_-]', '', name, flags=re.IGNORECASE).strip()
     slug = name.lower().replace(" ", "_").replace("-", "_")
+    bare_slug = bare.lower().replace(" ", "_").replace("-", "_")
     try:
         conn = sqlite3.connect(str(_DB_PATH))
         queries = [
             ("SELECT filename FROM workflows WHERE lower(name)=lower(?) AND executable=1 LIMIT 1", (name,)),
+            # BIOC_<PKG> -> bare package-name row (the dominant chain-resolution gap)
+            ("SELECT filename FROM workflows WHERE lower(name)=lower(?) AND executable=1 LIMIT 1", (bare,)),
             ("SELECT filename FROM workflows WHERE name LIKE ? AND executable=1 LIMIT 1", (f"%{name}%",)),
             (
                 "SELECT filename FROM workflows WHERE replace(lower(name),' ','') "
                 "= replace(lower(?),' ','') AND executable=1 LIMIT 1",
                 (name,),
             ),
+            ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%/{bare_slug}/%",)),
             ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%{slug}%",)),
             ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%{name.lower()}%",)),
         ]
