@@ -110,7 +110,10 @@ these changes have NOT been promoted there.
 uses `BiocManager::install` (Bioc-release-pinned dep resolution) instead of `install.packages`
 (which pulled latest CRAN deps → broke `mia` via `rbiom unifrac` and `metaMS` via `xcms` compile).
 
-### Dep-hell follow-up rebuild — IN PROGRESS
-Rebuilding metagenomics + metabolomics `:3.20-deps` with the BiocManager template to recover
-`mia`/`iSEEtree`/`miaViz`/`metaMS`. Spot box (m5.4xlarge, terminate-on-done). Result pending —
-verify `requireNamespace` TRUE for those packages on the freshly-pushed images before relying on it.
+### Dep-hell follow-up rebuild — DONE, still insufficient (honest negative result)
+Rebuilt metagenomics with BiocManager; `mia`/`iSEEtree`/`miaViz` **still FALSE**. The base image's
+`rbiom` (CRAN, not Bioc-pinned) is too new and dropped `unifrac`; `BiocManager::install(update=FALSE)`
+won't downgrade it, so `mia` still fails to load. NOT pushed (no improvement). Box terminated, no
+orphans/SG-leftovers. **Real fix:** `remotes::install_version("rbiom", "<unifrac version>")` then
+rebuild mia; install the `xcms` BINARY (not source) for metaMS. Details in
+`backend/scripts/domain_images/README.md`.
