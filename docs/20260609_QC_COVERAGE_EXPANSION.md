@@ -4,10 +4,13 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 18 of 19 candidate workflows verified end-to-end. 1 remains
+**Result:** 19 of 20 candidate workflows verified end-to-end. 1 remains
 code-ready and blocked by an issue independent of the QC code path
 (nlmixr2 — missing `biomate/r-pharma:x86` ECR image; r-pharma rebuild
-in flight 2026-06-12). Two earlier-blocked workflows have been unblocked:
+blocked under QEMU x86-on-ARM at R `install.packages`, needs the same
+two-tier Dockerfile pattern as aizynth — see
+`docs/20260613_QC_COVERAGE_BLOCKER_FIXES.md`). Two earlier-blocked
+workflows have been unblocked:
 
 - `aizynthfinder_retrosynthesis` — container rebuilt with USPTO model
   baked in from Zenodo (`https://zenodo.org/record/7797465`). Run
@@ -15,8 +18,12 @@ in flight 2026-06-12). Two earlier-blocked workflows have been unblocked:
   on ibuprofen (GOLD Genheden 2020 gate ≥ 1).
 - `boltz_structure_prediction` — `process_gpu` queue routed to
   `biomate-gpu-spot-queue` (SPOT_CAPACITY_OPTIMIZED, ~70% cost cut vs
-  on-demand). publishDir Map-form fix for Nextflow 25.10.5
-  ProcessBuilder overloads. Verification in flight.
+  on-demand). Verified end-to-end on chignolin via run `b6f0d970`
+  2026-06-13 19:02 UTC: `mean_plddt: 0.97` (GOLD Jumper 2021 ≥ 0.70).
+  Required `nextflow_executor.py` exclusion of `structural_biology/`
+  from the `publishDir = null` injection block + boltz CLI flag
+  fixes (`--output_format` etc.) + NO_FILE placeholder channel
+  removal.
 
 ## Verified workflows
 
