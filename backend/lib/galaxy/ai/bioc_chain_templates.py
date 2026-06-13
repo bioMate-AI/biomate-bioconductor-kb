@@ -84,36 +84,24 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "scran normalisation and HVG selection, UMAP embedding, "
             "and graph-based clustering. Input: raw count matrix."
         ),
+        # SingleCellExperiment (data-container) and uwot (UMAP, part of scater) are not
+        # standalone analysis workflows — scater loads the count matrix and runs UMAP itself.
         "steps": [
             {
                 "order": 1,
-                "workflow_name": "BIOC_SINGLECELLEXPERIMENT",
-                "role": "construct_sce",
-                "params_template": {},
-            },
-            {
-                "order": 2,
                 "workflow_name": "BIOC_SCATER",
                 "role": "qc_filtering",
                 "params_template": {"mito_threshold": 20, "min_genes": 200},
             },
             {
-                "order": 3,
+                "order": 2,
                 "workflow_name": "BIOC_SCRAN",
-                "role": "normalisation_hvg",
-                "params_template": {"n_hvgs": 2000},
-            },
-            {
-                "order": 4,
-                "workflow_name": "BIOC_UWOT",
-                "role": "umap_embedding",
-                "params_template": {"n_neighbors": 15, "min_dist": 0.1},
+                "role": "normalisation_hvg_umap",
+                "params_template": {"n_hvgs": 2000, "n_neighbors": 15, "min_dist": 0.1},
             },
         ],
         "connections": [
             {"from_step": 1, "from_output": "rds", "to_step": 2, "to_input": "sce_rds"},
-            {"from_step": 2, "from_output": "rds", "to_step": 3, "to_input": "sce_rds"},
-            {"from_step": 3, "from_output": "rds", "to_step": 4, "to_input": "sce_rds"},
         ],
         "required_inputs": ["count_matrix"],
         "expected_outputs": ["umap_plot", "clustered_sce_rds", "marker_genes"],
@@ -137,29 +125,24 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "with ChIPseeker, then run clusterProfiler GO enrichment on annotated genes. "
             "Natural handoff point from nf-core/chipseq BED output."
         ),
+        # GenomicRanges (data-container) is not a standalone workflow — ChIPseeker reads the
+        # BED/peak file directly and builds the GRanges internally.
         "steps": [
             {
                 "order": 1,
-                "workflow_name": "BIOC_GENOMICRANGES",
-                "role": "import_peaks",
-                "params_template": {},
-            },
-            {
-                "order": 2,
                 "workflow_name": "BIOC_CHIPSEEKER",
                 "role": "annotate_peaks",
                 "params_template": {"tss_region": [-3000, 3000], "organism": "hg38"},
             },
             {
-                "order": 3,
+                "order": 2,
                 "workflow_name": "BIOC_CLUSTERPROFILER",
                 "role": "pathway_enrichment",
                 "params_template": {"ontology": "BP", "organism": "hsa"},
             },
         ],
         "connections": [
-            {"from_step": 1, "from_output": "rds", "to_step": 2, "to_input": "granges_rds"},
-            {"from_step": 2, "from_output": "results", "to_step": 3, "to_input": "gene_list"},
+            {"from_step": 1, "from_output": "results", "to_step": 2, "to_input": "gene_list"},
         ],
         "required_inputs": ["bed_file"],
         "expected_outputs": ["annotated_peaks_csv", "peak_distribution_plot", "pathway_dotplot"],
@@ -184,6 +167,9 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "transcripts with ensembldb, then summarise at gene level with GenomicRanges. "
             "Natural handoff from nf-core/sarek or GATK variant calling output."
         ),
+        # VariantAnnotation imports the VCF and does gene/transcript annotation natively
+        # (ensembldb/GenomicRanges are data-containers it uses internally, not workflows).
+        # Downstream gene-set enrichment on the hit genes via clusterProfiler.
         "steps": [
             {
                 "order": 1,
@@ -193,20 +179,13 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             },
             {
                 "order": 2,
-                "workflow_name": "BIOC_ENSEMBLDB",
-                "role": "gene_transcript_annotation",
-                "params_template": {"organism": "Homo sapiens", "release": 109},
-            },
-            {
-                "order": 3,
-                "workflow_name": "BIOC_GENOMICRANGES",
-                "role": "gene_summary_overlap",
-                "params_template": {},
+                "workflow_name": "BIOC_CLUSTERPROFILER",
+                "role": "gene_set_enrichment",
+                "params_template": {"ontology": "BP", "organism": "hsa"},
             },
         ],
         "connections": [
-            {"from_step": 1, "from_output": "rds", "to_step": 2, "to_input": "vcf_rds"},
-            {"from_step": 2, "from_output": "results", "to_step": 3, "to_input": "annotated_variants"},
+            {"from_step": 1, "from_output": "results", "to_step": 2, "to_input": "gene_list"},
         ],
         "required_inputs": ["vcf_file"],
         "expected_outputs": ["annotated_variants_csv", "gene_summary_csv"],
@@ -276,6 +255,9 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "run limma differential protein expression, and produce MSstats QC report. "
             "Covers DDA label-free workflows."
         ),
+        # Core label-free MSstats is not indexed (only TMT/PTM variants, a different quant
+        # mode); limma already produces the differential-expression statistics + volcano, so
+        # the supplementary MSstats QC step is dropped rather than remapped to a wrong mode.
         "steps": [
             {
                 "order": 1,
@@ -289,16 +271,9 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
                 "role": "differential_expression",
                 "params_template": {"adj_method": "BH", "lfc_threshold": 1.0},
             },
-            {
-                "order": 3,
-                "workflow_name": "BIOC_MSSTATS",
-                "role": "qc_report",
-                "params_template": {},
-            },
         ],
         "connections": [
             {"from_step": 1, "from_output": "rds", "to_step": 2, "to_input": "msnset_rds"},
-            {"from_step": 2, "from_output": "results", "to_step": 3, "to_input": "de_results"},
         ],
         "required_inputs": ["mzml_files"],
         "expected_outputs": ["de_proteins_csv", "volcano_plot", "qc_report"],
