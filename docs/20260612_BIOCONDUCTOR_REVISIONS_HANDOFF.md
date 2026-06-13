@@ -70,16 +70,26 @@ Pushed `:3.20-deps` (base `:3.20` untouched) for metagenomics/metabolomics/imagi
 
 ---
 
-## 5. Open items (for the team)
+## 5. Dev deployment status (env: `biomate-galaxy-dev` @ dev-public.biomate.ai — staging, NOT confirmed prod)
+**DONE + verified on dev:**
+- 687 heredoc `.nf` + 2,380 changed `.nf` + B-2 executor + B-4 ranker (hot-patched, gunicorn restarted)
+- 6 `_v2` workflow chains upserted into `workflow_chains` (resolver + templates live) — all resolve 14/14 end-to-end on dev
+- BGE embeddings `.npz` (4,005 vectors) synced; `sentence-transformers 5.1.2` + BGE model installed → **dense retrieval confirmed active** (was lexical-only before)
+
+NOTE: the only app deployment found on `i-06696b0d91f4346e0` (tagged BioMate-Production) is the
+**dev** stack at `dev-public.biomate.ai`. `biomate.ai` on that box is the static marketing site.
+No separate prod app container was found. If a distinct production app exists on other infra,
+these changes have NOT been promoted there.
+
+## 6. Open items (for the team)
 1. **Bioc dep-hell follow-up build** — `BiocManager::install`-based rebuild with `xcms`/`rbiom` version pins to recover `metaMS`/`mia`; add `combi`/`immunoClust` to the deps lists.
-2. **Dev dense retrieval** — `pip install sentence-transformers` + BGE model in `biomate-galaxy-dev` + ship the `.npz` (DB IDs already match). Classifier-gated; needs explicit auth.
-3. **Validation wave** — run `realrun_test_bioc_workflows.py` on a fresh spot box (native amd64) against the `:3.20-deps` images + corrected fixtures to measure the true executable-rate lift. Local emulation is too slow (40-min timeouts on heavy pkgs).
-4. **biomformat** — the residual `as.data.frame(biom_obj)` serialization quirk is unsolved.
-5. **DB chain registrations** — the 6 `_v2` chains are registered in the canonical `galaxy_ai_tools.db`; ensure they reach dev (DB sync or re-run `register_bioc_chains()` on dev).
+2. **Validation wave** — run `realrun_test_bioc_workflows.py` on a fresh spot box (native amd64) against the `:3.20-deps` images + corrected fixtures to measure the true executable-rate lift. Local emulation is too slow (40-min timeouts on heavy pkgs).
+3. **biomformat** — the residual `as.data.frame(biom_obj)` serialization quirk is unsolved.
+4. **Production promotion** — confirm where the customer-facing app is served and promote the above there (only the `dev` stack was updated this session).
 
 ---
 
-## 6. Reproducible tooling added (`backend/scripts/`)
+## 7. Reproducible tooling added (`backend/scripts/`)
 - `fix_bioc_versions_heredoc.py` — heredoc→writeLines transform + importable sanitizer
 - `add_bioc_dep_bootstrap.py` — dep self-install bootstrap inserter
 - `add_bioc_section_markers.py` — step-marker regeneration
