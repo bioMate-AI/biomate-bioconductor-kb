@@ -74,3 +74,12 @@ CRAN deps are version-matched to the Bioc 3.20 release date. Either:
 Chasing individual pins (rbiom, then xfun, then the next) is whack-a-mole — fix the snapshot once.
 This affects metagenomics (mia/iSEEtree/miaViz) and metabolomics (metaMS/xcms). imaging happened
 to have no such skew → clean.
+
+## 2026-06-13 (cont.) — snapshot fix VERIFIED + baked into Dockerfile.tmpl
+Verified locally in the metagenomics base image: with `options(repos=c(CRAN="…/cran/2024-10-30"))`
+and `install.packages(c("rbiom","xfun"))` from the snapshot, `loadNamespace("mia")` SUCCEEDS
+(rbiom 1.0.3, xfun 0.48). `Dockerfile.tmpl` now applies this snapshot + offender-downgrade before
+BiocManager. A rebuild with this template should recover mia/iSEEtree/miaViz (metagenomics).
+metaMS/xcms (metabolomics) is a separate SOURCE-COMPILE failure — the snapshot may supply an xcms
+binary (Posit PPM has linux binaries); verify `metaMS` load on the built image, and if it still
+fails, the base image needs rebuilding FROM bioconductor/bioconductor_docker:RELEASE_3_20.
