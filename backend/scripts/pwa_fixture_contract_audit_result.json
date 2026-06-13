@@ -1,0 +1,423 @@
+[
+  [
+    "ahmassbank",
+    "collected",
+    {
+      "intensity.csv": "\"feature_id\",\"sample_1\",\"sample_2\",\"sample_3\"",
+      "coldata.csv": "\"sample_id\",\"group\""
+    },
+    [
+      "feature_id",
+      "sample"
+    ]
+  ],
+  [
+    "bugsigdbr",
+    "collected",
+    {
+      "abundance.csv": "placeholder for self-contained workflow",
+      "coldata.csv": "placeholder for self-contained workflow"
+    },
+    [
+      "sample"
+    ]
+  ],
+  [
+    "biomformat",
+    "collected",
+    {
+      "abundance.csv": "\"\",\"Sample1\",\"Sample2\",\"Sample3\",\"Sample4\",\"Sample5\",\"Sample6\"",
+      "coldata.csv": "\"\",\"BarcodeSequence\",\"LinkerPrimerSequence\",\"BODY_SITE\",\"Description\""
+    },
+    [
+      "group",
+      "sample",
+      "sample_id",
+      "taxon_id"
+    ]
+  ],
+  [
+    "biodbhmdb",
+    "collected",
+    {
+      "intensity.csv": "\"Feature\",\"Sample1\",\"Sample2\",\"Sample3\",\"Sample4\"",
+      "coldata.csv": "\"Sample\",\"Condition\""
+    },
+    [
+      "accession",
+      "feature_id",
+      "id",
+      "sample"
+    ]
+  ],
+  [
+    "compounddb",
+    "collected",
+    {
+      "intensity.csv": "placeholder for self-contained workflow",
+      "coldata.csv": "placeholder for self-contained workflow"
+    },
+    [
+      "condition",
+      "feature_id",
+      "sample"
+    ]
+  ],
+  [
+    "banocc",
+    "collected",
+    {
+      "compositions_null": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "combi",
+    "collected",
+    {
+      "zhangMicrobio": "(MISSING)",
+      "zhangMetabo": "(MISSING)",
+      "zhangMetavars": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "cbea",
+    "collected",
+    {
+      "abundance_matrix.csv": "\"\",\"Taxon1\",\"Taxon2\",\"Taxon3\",\"Taxon4\",\"Taxon5\",\"Taxon6\",\"Taxon7\",\"Taxon8\",\"Taxon9\",\"Taxon10\"",
+      "taxa_sets.gmt": "Set1\tDescription1\tTaxon1\tTaxon2\tTaxon3"
+    },
+    []
+  ],
+  [
+    "dirichletmultinomial",
+    "collected",
+    {
+      "Twins.csv": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "decontam",
+    "collected",
+    {
+      "otu_table": ",Seq1,Seq2,Seq3,Seq4,Seq5,Seq6,Seq7,Seq8,Seq9,Seq10,Seq11,Seq12,Seq13,Seq14,Seq15,Seq16,Seq17,Seq18,Seq19,Seq20,Seq21,Se",
+      "sample_data": ",X.SampleID,PlateNumber,Subject,Habitat,quant_reading,Sample_or_Control"
+    },
+    [
+      "quant_reading"
+    ]
+  ],
+  [
+    "crimage",
+    "collected",
+    {
+      "trainingData.txt": "(MISSING)",
+      "exImg2.jpg": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "flowclean",
+    "collected",
+    {
+      "user_data.fcs": "FCS2.0         256    2253    2304  162303       0       0                                                              "
+    },
+    []
+  ],
+  [
+    "flowcore",
+    "collected",
+    {
+      "file.name.FCS": "FCS3.0          58    2661    2662  112101       0       0|&10pt name|BJ#230500|&11Day|-6d|&12Sample ID|Leukocytes|&13An",
+      "fcs.dir": "(binary)",
+      "comp_match.csv": "\"filename\",\"channel\""
+    },
+    []
+  ],
+  [
+    "flowfp",
+    "collected",
+    {
+      "fs1": "(MISSING)",
+      "fs2": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "flowmerge",
+    "collected",
+    {
+      "sample.fcs": "FCS2.0         256    2253    2304  162303       0       0                                                              "
+    },
+    []
+  ],
+  [
+    "fella",
+    "collected",
+    {
+      "list_of_compounds.txt": "C00143"
+    },
+    []
+  ],
+  [
+    "flowmeans",
+    "collected",
+    {
+      "flow_data.csv": "\"\",\"FSC.H\",\"SSC.H\",\"FL1.H\",\"FL2.H\",\"FL3.H\",\"FL4.H\""
+    },
+    []
+  ],
+  [
+    "flowviz",
+    "collected",
+    {
+      "GvHD": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "flowtrans",
+    "collected",
+    {
+      "flowFrame.rds": "\u001f\ufffd\b\u0000\u0000\u0000\u0000\u0000\u0000\u0003t\ufffdK\ufffd\ufffdKr\u001fx\ufffdnI\ufffd\ufffdY"
+    },
+    []
+  ],
+  [
+    "immunoclust",
+    "collected",
+    {
+      "dat.fcs": "(MISSING)",
+      "dat.exp": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "cyanofilter",
+    "collected",
+    {
+      "metadata.csv": "\"Sample.Number\",\"Sample.ID\",\"Number.of.Events\",\"Dilution.Factor\",\"Original.Volume\",\"CellspML\",\"Sample.ID2\",\"Status\",\"Ret",
+      "sample.fcs": "FCS3.0          58   10864   10865  394940       0       0|$BEGINANALYSIS|0|$BEGINDATA|10865|$BEGINSTEXT|0|$BTIM|15:57:2"
+    },
+    []
+  ],
+  [
+    "matter",
+    "collected",
+    {
+      "raw_data.bin": "\u0000\u0000\u0000xj\u020a?\u0000\u0000\u0000\u0018dl\ufffd?\u0000\u0000\u0000|\"\ufffd?\u0000\u0000\u0000\ufffd_2\ufffd?\u0000\u0000\u0000\ufffd\ufffd,\ufffd?\u0000\u0000\u00006s\ufffd\ufffd?\u0000\u0000\u0000\ufffd\u0005\u0018\ufffd?\u0000\u0000\u0000\ufffd}\ufffd\ufffd?\u0000\u0000\u0000\ufffd4\ufffd\ufffd?\u0000\u0000\u0000A\ufffdv\ufffd?\u0000\u0000\u00006Hj\ufffd?\u0000\u0000\u0000Rx\ufffd?\u0000\u0000\u0000\ufffd1\ufffd\ufffd?\u0000\u0000\u0000\ufffd3'\ufffd?\u0000\u0000\ufffd{0\u0012\ufffd?\u0000\u0000\u0000"
+    },
+    []
+  ],
+  [
+    "mbecs",
+    "collected",
+    {
+      "abundance.csv": "placeholder for self-contained workflow",
+      "coldata.csv": "placeholder for self-contained workflow"
+    },
+    [
+      "batch",
+      "group",
+      "sample",
+      "taxon_id"
+    ]
+  ],
+  [
+    "iseetree",
+    "collected",
+    {
+      "abundance.csv": "(MISSING)",
+      "coldata.csv": "(MISSING)"
+    },
+    [
+      "sample",
+      "taxon_id"
+    ]
+  ],
+  [
+    "mai",
+    "collected",
+    {
+      "untargeted_LCMS_data": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "metaboannotation",
+    "collected",
+    {
+      "ms1_features.txt": "feature_id\tmz\trtime",
+      "LipidMaps_CompDB.txt": "headgroup\tname\texactmass\tformula\tchain_type"
+    },
+    []
+  ],
+  [
+    "metcirc",
+    "collected",
+    {
+      "intensity.csv": "placeholder for self-contained workflow",
+      "coldata.csv": "placeholder for self-contained workflow"
+    },
+    [
+      "feature_id",
+      "sample"
+    ]
+  ],
+  [
+    "fusesom",
+    "fixture_timeout",
+    {},
+    []
+  ],
+  [
+    "metmashr",
+    "collected",
+    {
+      "intensity.csv": "placeholder for self-contained workflow",
+      "coldata.csv": "placeholder for self-contained workflow"
+    },
+    [
+      "feature_id"
+    ]
+  ],
+  [
+    "metid",
+    "collected",
+    {
+      "metabolomics_data.csv": "\"\",\"Query.Mass\",\"Name\",\"Formula\",\"Exact.Mass\",\"PubChem.CID\",\"KEGG.ID\""
+    },
+    []
+  ],
+  [
+    "mia",
+    "collected",
+    {
+      "esophagus.RDS": "(MISSING)",
+      "GlobalPatterns.RDS": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "metams",
+    "collected",
+    {
+      "intensity.csv": "(MISSING)",
+      "coldata.csv": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "metapone",
+    "collected",
+    {
+      "pos_features.csv": "\"\",\"mz\",\"time\",\"p-value\",\"F-statistics\"",
+      "neg_features.csv": "\"\",\"mz\",\"time\",\"p-value\",\"F-statistics\""
+    },
+    []
+  ],
+  [
+    "miaviz",
+    "collected",
+    {
+      "GlobalPatterns": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "microbiome",
+    "collected",
+    {
+      "abundance.csv": "taxon_id,Sample-1,Sample-2,Sample-3,Sample-4,Sample-5,Sample-6,Sample-7,Sample-8,Sample-9,Sample-10,Sample-11,Sample-12,",
+      "coldata.csv": "subject,sex,nationality,group,sample,timepoint,timepoint.within.group,bmi_group"
+    },
+    [
+      "sample",
+      "taxon_id"
+    ]
+  ],
+  [
+    "microstasis",
+    "collected",
+    {
+      "paired_microbiome_data.rds": "\u001f\ufffd\b\u0000\u0000\u0000\u0000\u0000\u0000\u0003\ufffd\ufffdn#\ufffd\u0011\ufffdC\ufffdZER\ufffd\ufffdn\u0003~\b\u0003\ufffd\ufffd\ufffd\ufffd6f\ufffd\ufffd\u04d7\ufffd1\ufffd#!\u0442`-"
+    },
+    []
+  ],
+  [
+    "pairkat",
+    "collected",
+    {
+      "intensity.csv": "\"\",\"S1\",\"S2\",\"S3\",\"S4\",\"S5\",\"S6\",\"S7\",\"S8\",\"S9\",\"S10\",\"S11\",\"S12\",\"S13\",\"S14\",\"S15\",\"S16\",\"S17\",\"S18\",\"S19\",\"S20\",\"S21\",",
+      "coldata.csv": "\"\",\"log_FEV1_FVC_ratio\",\"high_log_FEV1_FVC_ratio_binary\",\"race_binary\",\"age\",\"bmi\",\"smoking_status\",\"pack_years\""
+    },
+    [
+      "condition",
+      "feature_id",
+      "sample"
+    ]
+  ],
+  [
+    "microbiomedasim",
+    "collected",
+    {
+      "abundance.csv": "\"\",\"Sample_1\",\"Sample_2\",\"Sample_3\",\"Sample_4\",\"Sample_5\",\"Sample_6\",\"Sample_7\",\"Sample_8\",\"Sample_9\",\"Sample_10\",\"Sampl",
+      "coldata.csv": "\"\",\"SampleID\",\"Group\",\"Timepoint\""
+    },
+    []
+  ],
+  [
+    "targetsearch",
+    "collected",
+    {
+      "intensity.csv": "placeholder for self-contained workflow",
+      "coldata.csv": "placeholder for self-contained workflow"
+    },
+    [
+      "sample"
+    ]
+  ],
+  [
+    "tidyflowcore",
+    "collected",
+    {
+      "fcs_files": "placeholder for self-contained workflow",
+      "flowSet_object": "placeholder for self-contained workflow"
+    },
+    []
+  ],
+  [
+    "pathostat",
+    "collected",
+    {
+      "abundance.csv": "(MISSING)",
+      "coldata.csv": "(MISSING)"
+    },
+    []
+  ],
+  [
+    "philr",
+    "collected",
+    {
+      "otu_table.tsv": "(MISSING)",
+      "phylo_tree.tre": "(MISSING)",
+      "taxonomy.tsv": "(MISSING)",
+      "metadata.tsv": "(MISSING)"
+    },
+    [
+      "Family",
+      "SampleType"
+    ]
+  ],
+  [
+    "phenomis",
+    "collected",
+    {
+      "SummarizedExperiment": "(MISSING)",
+      "MultiAssayExperiment": "(MISSING)"
+    },
+    []
+  ]
+]
