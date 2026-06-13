@@ -1,0 +1,14 @@
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-__DOMAIN__:3.20
+COPY deps.txt /tmp/deps.txt
+# Use BiocManager (NOT install.packages) so Bioconductor dependency versions resolve to the
+# image's Bioc release — install.packages(repos=bioc-urls) pulled the latest CRAN deps, which
+# broke mia (newer rbiom dropped the 'unifrac' export) and metaMS (xcms 2.x src vs newer R).
+RUN Rscript -e '\
+  pkgs <- readLines("/tmp/deps.txt"); \
+  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); \
+  miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=4); \
+  still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  wont <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
+  cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
+  cat("INSTALLED BUT WONT LOAD:", length(wont), paste(head(wont,40), collapse=","), "\n")'
