@@ -17,7 +17,11 @@ def main(argv: list[str]) -> int:
     verb = argv[1]
     try:
         if verb == "submit":
-            print(json.dumps(rj.submit(user_id=argv[2], org_id=argv[3]).to_dict()))
+            # submit <user> <org> [adaptation_mode]
+            mode = argv[4] if len(argv) > 4 else rj.DEFAULT_ADAPTATION_MODE
+            print(json.dumps(
+                rj.submit(user_id=argv[2], org_id=argv[3], adaptation_mode=mode).to_dict()
+            ))
         elif verb == "list":
             print(json.dumps([j.to_dict() for j in rj.list_for_user(argv[2])]))
         elif verb == "get":
