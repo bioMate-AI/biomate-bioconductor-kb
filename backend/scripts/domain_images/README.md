@@ -56,3 +56,21 @@ For `metaMS`: its `xcms` dep fails to COMPILE from source (R_NO_REMAP vs xcms 2.
 Until those pins are added, `mia`/`iSEEtree`/`miaViz`/`metaMS` remain non-runnable; their
 workflows keep the runtime self-install fallback (which hits the same conflict). imaging is the
 clean win and is already good.
+
+## 2026-06-13 (cont.) — root cause is a CASCADE of CRAN version skews (definitive)
+Verified locally without spot: pinning `rbiom` 1.0.3 DOES restore `unifrac`, but `mia` then fails
+with `object 'attr' is not exported by 'namespace:xfun'` — i.e. ANOTHER CRAN package (`xfun`) is
+too new. The base `:3.20` image was built with CRAN packages **newer than what the Bioc 3.20
+packages were compiled against**, so it's a cascade (rbiom → xfun → …), not a single pin.
+
+**Correct fix (base-image level, NOT per-package pins):** rebuild the domain base images so all
+CRAN deps are version-matched to the Bioc 3.20 release date. Either:
+- `FROM bioconductor/bioconductor_docker:RELEASE_3_20` (CRAN+Bioc already snapshot-consistent), or
+- set a dated CRAN snapshot before installing, e.g.
+  `options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2024-10-30"))`
+  (use the Posit Package Manager snapshot nearest the Bioc 3.20 release) so `install.packages`/
+  `BiocManager::install` pull compatible CRAN versions.
+
+Chasing individual pins (rbiom, then xfun, then the next) is whack-a-mole — fix the snapshot once.
+This affects metagenomics (mia/iSEEtree/miaViz) and metabolomics (metaMS/xcms). imaging happened
+to have no such skew → clean.
