@@ -706,7 +706,33 @@ def _llm_narrative(
     4. audit_constraint: when set, adds a negative constraint (used by regeneration loop)
 
     Returns empty string on any failure (graceful degradation).
+
+    B1 (2026-06-12): when data carries NOAEL + species we pre-compute HED/MRSD
+    deterministically via mrsd_calculator and inject the numbers as a
+    'use verbatim' anchor so the LLM does not redo BSA arithmetic (which
+    the n=70 cross-judge eval scored at 0.21 across every model tested).
     """
+    _mrsd_anchor = ""
+    try:
+        if data.get("noael_mg_per_kg") and data.get("species"):
+            from galaxy.ai.drug_discovery.mrsd_calculator import compute_mrsd
+            _r = compute_mrsd(
+                noael_mg_per_kg=float(data["noael_mg_per_kg"]),
+                species=str(data["species"]),
+                safety_factor=float(data.get("safety_factor", 10)),
+                human_weight_kg=float(data.get("human_weight_kg", 60)),
+            )
+            _mrsd_anchor = (
+                f"\n\nUse these computed numbers verbatim (do NOT recompute):\n"
+                f"  HED  = {_r.hed_mg_per_kg:.3f} mg/kg/day\n"
+                f"  MRSD = {_r.mrsd_mg_per_kg:.4f} mg/kg/day "
+                f"= {_r.mrsd_mg_per_patient:.1f} mg per 60-kg patient\n"
+                f"  (FDA 2005 BSA-conversion for {_r.species}; "
+                f"safety factor {_r.safety_factor:g}x)"
+            )
+    except Exception as _e:
+        log.debug("[_llm_narrative] MRSD pre-compute skipped: %s", _e)
+
     try:
         from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash
 
@@ -799,6 +825,10 @@ def _llm_narrative(
             if not user_prompt:
                 return ""
 
+        # B1: append deterministic MRSD numbers so the LLM uses them verbatim
+        if _mrsd_anchor:
+            user_prompt = user_prompt + _mrsd_anchor
+
         # ── RAG: inject narrative patterns from regulatory_skills_db ─────────
         rag_block = _build_rag_context(section_type, data, region)
         if rag_block:
@@ -874,6 +904,19 @@ def _build_rag_context(section_type: str, data: dict, region: str) -> str:
     2. OSP benchmark comparison for PBPK sections
     """
     lines = []
+
+    # B2: region-specific narrative style rules (FDA/EMA/NMPA/PMDA).
+    # Closes region_adaptation — the highest-variance task in the n=70
+    # cross-judge eval (macro 0.388, CI [0.338, 0.446]).
+    try:
+        from .regulatory_region_packs import region_style_rules
+        region_rules = region_style_rules(region, section_type)
+        if region_rules:
+            lines.append(f"Region-specific style rules for {region}:")
+            for r in region_rules:
+                lines.append(f"  • {r}")
+    except Exception:
+        pass  # region pack optional — graceful degradation
 
     # ── Narrative patterns from skills DB ────────────────────────────────────
     try:
