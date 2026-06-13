@@ -5299,6 +5299,7 @@ ${paramLines || '(none recorded)'}`;
       // memory-integration's episode + correction writes silently fail
       // against the uuid FK constraint. See 2026-06-13 audit.
       let _ltmSessionUuid: string | null = null;
+      let _recoveredDatasets: Array<{ id: string; name: string; type: string; recovered: true; sourceSessionId: string; lastActivity: string }> = [];
       if (req.user) {
         try {
           const { memoryService } = await import('./memory-repository');
@@ -5311,6 +5312,20 @@ ${paramLines || '(none recorded)'}`;
               _resolvedSessionId,
               _resolvedProjectId ?? null,
             );
+            // Cold-refresh recovery: pull datasets attached to OTHER
+            // sessions in the same project (last 14 days, capped 20).
+            // Only runs when the chat is project-scoped — project-less
+            // sessions have no scope to recover within. See
+            // docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+            if (_resolvedProjectId) {
+              _recoveredDatasets = await memoryService.recoverProjectDatasets(
+                _resolvedProjectId,
+                _resolvedSessionId,
+              );
+              if (_recoveredDatasets.length > 0) {
+                console.log(`[chat-stream] recovered ${_recoveredDatasets.length} project-scoped dataset(s)`);
+              }
+            }
           }
         } catch (e: any) {
           // Defensive — never break chat on a memory-system error.
@@ -5338,15 +5353,39 @@ ${paramLines || '(none recorded)'}`;
         // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input).
         // When the in-memory Express session has none (e.g. cross-device, post-refresh), fall back to
         // the persisted chat_sessions.datasets jsonb we just hydrated.
-        sessionDatasets: req.session?.uploadedDatasets?.length
-          ? req.session.uploadedDatasets.map((d: any) => ({
-              id: d.galaxy_dataset_id || d.dataset_id,
-              name: d.name,
-              type: d.file_type || 'unknown',
-              file_path: d.file_path || null,
-              param_name: d.param_name || null,  // explicit param mapping from register-path
-            }))
-          : _historyDatasets,
+        //
+        // Cold-refresh recovery: when this session has no attached datasets
+        // but we resolved sister sessions in the same project that DO have
+        // datasets, surface those as "recovered" entries below the
+        // direct ones. The sessionDatasetsBlock in galaxy-assistant.ts
+        // labels recovered ones distinctly so the LLM doesn't claim the
+        // user just attached them.
+        sessionDatasets: (() => {
+          const direct: Array<any> = req.session?.uploadedDatasets?.length
+            ? req.session.uploadedDatasets.map((d: any) => ({
+                id: d.galaxy_dataset_id || d.dataset_id,
+                name: d.name,
+                type: d.file_type || 'unknown',
+                file_path: d.file_path || null,
+                param_name: d.param_name || null,
+              }))
+            : (_historyDatasets ?? []);
+          // Dedupe: a recovered entry whose id is already in direct is dropped.
+          const seen = new Set(direct.map((d: any) => d.id));
+          const recovered = _recoveredDatasets
+            .filter((r) => !seen.has(r.id))
+            .map((r) => ({
+              id: r.id,
+              name: r.name,
+              type: r.type,
+              file_path: null,
+              param_name: null,
+              recovered: true,
+              sourceSessionId: r.sourceSessionId,
+            }));
+          const combined = [...direct, ...recovered];
+          return combined.length > 0 ? combined : undefined;
+        })(),
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
         credentialMap: credentialMap || undefined,
         // Per-request Galaxy proxy scoped to the authenticated user's own
