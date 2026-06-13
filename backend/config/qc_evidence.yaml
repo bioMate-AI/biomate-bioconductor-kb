@@ -950,3 +950,242 @@ biomarker_enrichment:
         Enrichment factor (N_all_comers / N_enriched) >= 1.5 = pass; < 1.5 = advisory.
       finding: >
         Below 1.5: targeted design saves insufficient sample size vs screening cost.
+
+# ─────────────────────────────────────────────────────────────────
+# Bioconductor handoff — 3 curated chains
+#  - transcriptomics: bulk_rnaseq_consensus_de_bioc (DESeq2 + clusterProfiler)
+#  - single_cell:     scrna_consensus_de_bioc (scater + MAST + Monocle)
+#  - epigenomics:     methylation_450k_array_analysis (minfi + limma + DMRcate + missMethyl)
+# Routed via _WORKFLOW_DOMAIN_ALIASES additions in nextflow_executor.py.
+# Citations tab consumes paper_ref + paper_doi for the resolved domain.
+# ─────────────────────────────────────────────────────────────────
+
+transcriptomics:
+  deseq2_negative_binomial_fit:
+    - paper_ref: "Love MI, Huber W, Anders S. Genome Biology 2014; 15:550"
+      paper_doi: "10.1186/s13059-014-0550-8"
+      provenance: GOLD
+      paper_supports: >
+        Original DESeq2 paper — Wald test on a negative-binomial GLM with
+        shrunken dispersion estimates. Cornerstone reference for bulk
+        RNA-seq DE on the BioMate consensus-DE chain.
+      rule_text: >
+        BioMate uses DESeq2 by default for n >= 6/group bulk RNA-seq;
+        falls back to edgeR QLF or limma-voom on smaller designs.
+      finding: >
+        Citation always emitted; alternative-tool refs (edgeR, limma)
+        listed below.
+
+  apeglm_lfc_shrinkage:
+    - paper_ref: "Zhu A, Ibrahim JG, Love MI. Bioinformatics 2019; 35(12):2084-2092"
+      paper_doi: "10.1093/bioinformatics/bty895"
+      provenance: GOLD
+      paper_supports: >
+        apeglm prior for log-fold-change shrinkage — improves ranking of
+        low-count genes in DESeq2 output.
+      rule_text: >
+        BioMate runs lfcShrink(type='apeglm') after DESeq() on every
+        bulk RNA-seq chain run.
+      finding: >
+        Shrinkage applied; citation emitted.
+
+  clusterprofiler_enrichment:
+    - paper_ref: "Yu G, Wang LG, Han Y, He QY. OMICS 2012; 16(5):284-287"
+      paper_doi: "10.1089/omi.2012.0118"
+      provenance: GOLD
+      paper_supports: >
+        clusterProfiler — GO + KEGG over-representation and GSEA
+        analysis for the post-DE gene list. Standard Bioconductor
+        enrichment workhorse.
+      rule_text: >
+        Pathway tab uses clusterProfiler::gseGO with org.Hs.eg.db
+        (human) or org.Mm.eg.db (mouse), BP ontology, 10k permutations.
+      finding: >
+        Enrichment always run on the shrunken LFC ranked list.
+
+  edger_qlf_alternative:
+    - paper_ref: "Chen Y, Lun ATL, Smyth GK. F1000Research 2016; 5:1438"
+      paper_doi: "10.12688/f1000research.8987.2"
+      provenance: GOLD
+      paper_supports: >
+        edgeR Quasi-Likelihood F-test — alternative DE method when DESeq2
+        assumptions are violated. Listed as a swap-point alternative in
+        the bulk_rnaseq_consensus_de_bioc example queries.
+      rule_text: >
+        Available via the DisambigCard when the user requests edgeR
+        explicitly or the chain runs in consensus-DE mode.
+      finding: >
+        Emitted only when edgeR is the selected step-2 tool.
+
+  limma_voom_alternative:
+    - paper_ref: "Law CW, Chen Y, Shi W, Smyth GK. Genome Biology 2014; 15:R29"
+      paper_doi: "10.1186/gb-2014-15-2-r29"
+      provenance: GOLD
+      paper_supports: >
+        limma-voom — variance-stabilising transformation for RNA-seq
+        counts then linear modelling. Third alternative for the
+        consensus-DE chain swap point.
+      rule_text: >
+        DisambigCard candidate when n < 6/group or the user requests
+        limma explicitly.
+      finding: >
+        Emitted only when limma-voom is the selected step-2 tool.
+
+single_cell:
+  scater_qc_normalization:
+    - paper_ref: "McCarthy DJ, Campbell KR, Lun ATL, Wills QF. Bioinformatics 2017; 33(8):1179-1186"
+      paper_doi: "10.1093/bioinformatics/btw777"
+      provenance: GOLD
+      paper_supports: >
+        scater — per-cell QC metrics and SingleCellExperiment
+        normalization. Step 2 of the scrna_consensus_de_bioc chain.
+      rule_text: >
+        BioMate runs perCellQCMetrics + computeSumFactors before any
+        DE call on the single-cell chain.
+      finding: >
+        QC + normalization always run; citation emitted.
+
+  mast_hurdle_de:
+    - paper_ref: "Finak G, McDavid A, et al. Genome Biology 2015; 16:278"
+      paper_doi: "10.1186/s13059-015-0844-5"
+      provenance: GOLD
+      paper_supports: >
+        MAST — two-part generalised linear hurdle model for single-cell
+        RNA-seq DE that handles zero-inflation. One of the two parallel
+        DE methods in the scRNA consensus chain.
+      rule_text: >
+        Per-cluster DE call uses MAST::zlm + lrTest on the
+        SingleCellExperiment from scater.
+      finding: >
+        DE table emitted to mast_de_results.tsv.
+
+  monocle_pseudotime_de:
+    - paper_ref: "Qiu X, Mao Q, et al. Nature Methods 2017; 14(10):979-982"
+      paper_doi: "10.1038/nmeth.4402"
+      provenance: GOLD
+      paper_supports: >
+        Monocle 3 — pseudotime-aware DE for ordered cell-state
+        progression. The second arm of the scRNA consensus DE fan-out.
+      rule_text: >
+        Trajectory + pseudotime-DE run in parallel to MAST when chain
+        invoked with default config.
+      finding: >
+        Trajectory + DE always emitted; cross-method consistency is
+        the chain's value proposition.
+
+  # ── OSCA pseudobulk DE chain (scrna_pseudobulk_de_bioc, id 60) ──
+  scran_normalization_hvg:
+    - paper_ref: "Lun ATL, McCarthy DJ, Marioni JC. F1000Research 2016; 5:2122"
+      paper_doi: "10.12688/f1000research.9501.2"
+      provenance: GOLD
+      paper_supports: >
+        scran — pooled-cell size factors for single-cell normalization
+        and modelGeneVar for HVG selection. Standard step-3 of the
+        OSCA pseudobulk DE chain.
+      rule_text: >
+        BioMate runs computeSumFactors + logNormCounts + modelGeneVar
+        on every scRNA pseudobulk chain run; HVGs feed PCA.
+      finding: >
+        Size factors + HVG list emitted; baseline for clustering.
+
+  score_markers_per_cluster:
+    - paper_ref: "Lun ATL. OSCA book 2024 — Marker detection chapter"
+      paper_doi: "https://bioconductor.org/books/release/OSCA/marker-detection.html"
+      provenance: SILVER
+      paper_supports: >
+        scoreMarkers — effect-size-based marker scoring per cluster.
+        Used in the OSCA pseudobulk DE chain's parallel branch with
+        SingleR annotation.
+      rule_text: >
+        Marker detection step uses scran::scoreMarkers on the
+        clustered SingleCellExperiment, output ranked by Cohen's d.
+      finding: >
+        Per-cluster marker tables emitted.
+
+  singler_celltype_annotation:
+    - paper_ref: "Aran D, Looney AP, et al. Nature Immunology 2019; 20(2):163-172"
+      paper_doi: "10.1038/s41590-018-0276-y"
+      provenance: GOLD
+      paper_supports: >
+        SingleR — reference-based per-cell label transfer. The OSCA
+        chain runs SingleR against the Human Primary Cell Atlas in
+        parallel with scoreMarkers, then joins on the clustered SCE.
+      rule_text: >
+        Annotation step uses SingleR with HumanPrimaryCellAtlasData
+        reference by default; gates on min delta-score.
+      finding: >
+        Per-cell labels emitted; cell-type proportions feed pseudobulk.
+
+  pseudobulk_aggregation_deseq2:
+    - paper_ref: "Crowell HL, Soneson C, et al. Nature Communications 2020; 11(1):6077"
+      paper_doi: "10.1038/s41467-020-19894-4"
+      provenance: GOLD
+      paper_supports: >
+        Crowell muscat benchmark — pseudobulk aggregation with sample-
+        level DESeq2 controls type-I error vs naive per-cell tests
+        (MAST, edgeR-LRT on cells), which inflate false positives by
+        treating cells as replicates. Pseudobulk is the OSCA-book
+        recommended approach for condition DE in scRNA.
+      rule_text: >
+        BioMate uses aggregateAcrossCells(group_by = sample + cluster)
+        followed by DESeq2 Wald test on the sample × cluster
+        pseudobulk table.
+      finding: >
+        Per-cluster DE tables emitted with samples (not cells) as
+        replicates — the statistical correctness beat of the tour.
+
+epigenomics:
+  minfi_array_processing:
+    - paper_ref: "Aryee MJ, Jaffe AE, et al. Bioinformatics 2014; 30(10):1363-1369"
+      paper_doi: "10.1093/bioinformatics/btu049"
+      provenance: GOLD
+      paper_supports: >
+        minfi — read IDATs, detection-p QC, preprocessQuantile
+        normalization, GenomicRatioSet assembly. Step 1 of the
+        methylation chain.
+      rule_text: >
+        BioMate runs read.metharray.exp + preprocessQuantile + SNP /
+        cross-reactive probe filter on every 450k/EPIC run.
+      finding: >
+        GenomicRatioSet emitted with retention metrics.
+
+  limma_dmp_test:
+    - paper_ref: "Ritchie ME, Phipson B, et al. NAR 2015; 43(7):e47"
+      paper_doi: "10.1093/nar/gkv007"
+      provenance: GOLD
+      paper_supports: >
+        limma::lmFit + eBayes on M-values is the standard CpG-level
+        DMP test on the 450k/EPIC arrays.
+      rule_text: >
+        DMP step uses limma eBayes on M-values with design = ~ group.
+      finding: >
+        Significant CpGs emitted to dmps.tsv at FDR < 0.05.
+
+  dmrcate_region_call:
+    - paper_ref: "Peters TJ, Buckley MJ, et al. Epigenetics & Chromatin 2015; 8:6"
+      paper_doi: "10.1186/1756-8935-8-6"
+      provenance: GOLD
+      paper_supports: >
+        DMRcate — kernel-smoothing region caller for 450k/EPIC arrays.
+        Runs in parallel to limma DMPs on the methylation chain.
+      rule_text: >
+        DMRs called with DMRcate default lambda=1000, C=2; outputs
+        to dmrs.tsv.
+      finding: >
+        Regions emitted. DMRcate is the methylationArrayAnalysis
+        vignette default; bumphunter (Jaffe 2012) is an older alternate.
+
+  missmethyl_cpg_corrected_go:
+    - paper_ref: "Phipson B, Maksimovic J, Oshlack A. Bioinformatics 2016; 32(2):286-288"
+      paper_doi: "10.1093/bioinformatics/btv560"
+      provenance: GOLD
+      paper_supports: >
+        missMethyl::gometh — CpG-density-corrected GO enrichment.
+        Without this correction a generic GO test over-calls CpG-rich
+        promoters because the array oversamples them.
+      rule_text: >
+        Enrichment step always uses gometh (not generic GO) for the
+        methylation chain. This is the headline pedagogical point of
+        the bioc_methyl tutorial.
+      finding: >
+        Bias-corrected GO terms emitted to enriched_terms.tsv.

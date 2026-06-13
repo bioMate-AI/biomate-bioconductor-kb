@@ -92,7 +92,8 @@
   // ─────────────────────────────────────────────────────────────
   // BIO — Bioconductor · DESeq2 chain (bulk RNA-seq)
   // ─────────────────────────────────────────────────────────────
-  if (T['bioc-kb-routing']) {
+  if (!T['bioc-kb-routing']) T['bioc-kb-routing'] = { id: 'bioc-kb-routing', label: 'BIO — Bioconductor · KB routing & execution' };
+  {
     T['bioc-kb-routing'].steps = [
       { target: null, placement: 'center', icon: '🧬',
         title: 'Bioconductor · DESeq2 chain',
@@ -179,7 +180,8 @@
   // ─────────────────────────────────────────────────────────────
   // BIO2 — Bioconductor · scRNA-seq → pseudobulk DE
   // ─────────────────────────────────────────────────────────────
-  if (T['bioc-sc-routing']) {
+  if (!T['bioc-sc-routing']) T['bioc-sc-routing'] = { id: 'bioc-sc-routing', label: 'BIO — Bioconductor · single-cell RNA-seq chain' };
+  {
     T['bioc-sc-routing'].steps = [
       { target: null, placement: 'center', icon: '🔬',
         title: 'Bioconductor · scRNA-seq chain',
@@ -254,7 +256,8 @@
   // ─────────────────────────────────────────────────────────────
   // BIO3 — Bioconductor · 450k methylation → DMRs
   // ─────────────────────────────────────────────────────────────
-  if (T['bioc-methyl-routing']) {
+  if (!T['bioc-methyl-routing']) T['bioc-methyl-routing'] = { id: 'bioc-methyl-routing', label: 'BIO — Bioconductor · 450k methylation chain' };
+  {
     T['bioc-methyl-routing'].steps = [
       { target: null, placement: 'center', icon: '🧫',
         title: 'Bioconductor · 450k methylation chain',
@@ -288,13 +291,13 @@
 
       { target: '[data-tour="phase-list"] .phase.open', placement: 'left', icon: '🧮',
         title: 'Phase C running · DMP calling',
-        body: (<>Per-CpG differential methylation with <code>limma</code> eBayes on <b>M-values</b> (design <code>~ group</code>) — <b>12,403</b> significant CpGs at FDR &lt; 0.05, passed on to bumphunter.<div className="hint">M-values (logit β) are used for testing; β-values for reporting.</div></>),
+        body: (<>Per-CpG differential methylation with <code>limma</code> eBayes on <b>M-values</b> (design <code>~ group</code>) — <b>12,403</b> significant CpGs at FDR &lt; 0.05. Per-CpG statistics flow into DMRcate next.<div className="hint">M-values for testing; β-values for reporting.</div></>),
         setup: () => { ff('bioc_methyl_C_run'); scroll('[data-tour="phase-list"]', 'center'); return null; },
         },
 
       { target: '[data-tour="phase-list"]', placement: 'left', icon: '🧬',
         title: 'Phase D done · 847 DMRs',
-        body: (<><code>bumphunter</code> (1,000 bootstraps) collapses adjacent significant CpGs into <b>847 regions</b> — a <code>GRanges</code> object of DMRs, ready for enrichment.<div className="hint">Region-level analysis is only possible because coordinates rode along.</div></>),
+        body: (<><code>DMRcate</code> smooths the per-CpG limma statistics along the genome (kernel λ = 1000) and calls <b>847 regions</b> — a <code>GRanges</code> object of DMRs, ready for enrichment.<div className="hint">Region-level analysis is only possible because coordinates rode along.</div></>),
         setup: () => { ff('bioc_methyl_dmr_done'); scroll('[data-tour="phase-list"]', 'center'); return null; },
         },
 
@@ -309,13 +312,13 @@
         previewTitle: 'Visualised · DMR manhattan',
         previewBody: (<>Clicking <b>view</b> on <code>dmr_tracks.png</code> renders it inline — −log₁₀ p across chromosomes, with the 847 significant DMRs above the region-wide threshold highlighted.<div className="hint">Every output renders inline; no need to download to look.</div></>),
         completeTitle: 'Chain complete · 847 DMRs',
-        completeBody: (<>All five phases done — minfi read, normalised, DMPs, bumphunter DMRs, CpG-corrected GO. 847 DMRs from 12,403 significant CpGs.<div className="hint">Next: we walk every tab of the report.</div></>),
+        completeBody: (<>All five phases done — minfi read, normalised, limma DMPs, DMRcate DMRs, CpG-corrected GO. 847 DMRs from 12,403 significant CpGs.<div className="hint">Next: we walk every tab of the report.</div></>),
         findingsBody: (<>Headline plus figures from the manifest — DMR direction (hyper / hypo), top CpG-corrected GO terms, and probe-QC retention. Numbers read from the run, not generated.<div className="hint">Findings without a citation are tagged <i>author judgment</i>.</div></>),
         outputsBody: (<>Files by phase and step — <code>dmps.csv</code> (12,403 CpGs), <code>dmrs.rds</code> (847 DMRs as GRanges), and the CpG-corrected <code>go_enrichment.csv</code>. <b>view</b> previews; <b>download</b> grabs one or all.<div className="hint">BioMate picks the right viewer per file type.</div></>),
-        methodsBody: (<>Paste-ready Methods — read.metharray, detection-p QC, SNP/cross-reactive filtering, preprocessQuantile, limma DMPs, bumphunter DMRs, gometh enrichment — with versions and parameters.<div className="hint">Inferred values are flagged separately from manifest-read ones.</div></>),
-        paramsBody: (<>Phase · step · parameter · value — detection-p cutoff, the M-value design, bumphunter bootstraps + cutoff, the gometh array type. A ready supplementary table.<div className="hint">Defaults, overrides and auto-loop tweaks are distinguished.</div></>),
-        softwareBody: (<>Exact versions — minfi, limma, bumphunter, missMethyl. Match these with Parameters and you reproduce the run.<div className="hint">This pair is the reproducibility baseline.</div></>),
-        citeBody: (<>References for the methods above — Aryee 2014 (minfi), Jaffe 2012 (bumphunter), Phipson 2016 (missMethyl), Ritchie 2015 (limma).<div className="hint">Methods + Citations ship together in the Download report export.</div></>),
+        methodsBody: (<>Paste-ready Methods — read.metharray, detection-p QC, SNP/cross-reactive filtering, preprocessQuantile, limma DMPs, DMRcate DMRs, gometh enrichment — with versions and parameters.<div className="hint">Inferred values are flagged separately from manifest-read ones.</div></>),
+        paramsBody: (<>Phase · step · parameter · value — detection-p cutoff, the M-value design, DMRcate kernel λ + significance cutoff, the gometh array type. A ready supplementary table.<div className="hint">Defaults, overrides and auto-loop tweaks are distinguished.</div></>),
+        softwareBody: (<>Exact versions — minfi, limma, DMRcate, missMethyl. Match these with Parameters and you reproduce the run.<div className="hint">This pair is the reproducibility baseline.</div></>),
+        citeBody: (<>References for the methods above — Aryee 2014 (minfi), Peters 2015 (DMRcate), Phipson 2016 (missMethyl), Ritchie 2015 (limma).<div className="hint">Methods + Citations ship together in the Download report export.</div></>),
         qcBody: (<>Every QC gate — samples read, probes retained, significant-CpG count, DMR count, and the CpG-bias-corrected flag. Threshold, observed value, result, action.<div className="hint">The bias-corrected gate is what enforces gometh over a generic GO test.</div></>),
       }),
 
@@ -325,4 +328,5 @@
         cta: 'Done' },
     ];
   }
+  window.BIOC_TOURS_LOADED = true;
 })();

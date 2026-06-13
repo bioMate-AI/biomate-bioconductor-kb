@@ -38,18 +38,19 @@ process PREPARE_INPUT {
     container ECR
 
     input:
-    path(fasta)
-    path(yaml_input)
+    path(input_file)
 
     output:
     path("boltz_input.*"), emit: input_file
 
     script:
-    def use_yaml = yaml_input.name != 'NO_FILE'
-    def src = use_yaml ? yaml_input : fasta
-    def dst = use_yaml ? 'boltz_input.yaml' : 'boltz_input.fasta'
+    // Real file — pick destination extension by source. Avoids the NO_FILE
+    // placeholder pattern (which AWS Batch can't stage — no physical file).
+    def dst = input_file.name.toLowerCase().endsWith('.yaml') || input_file.name.toLowerCase().endsWith('.yml')
+        ? 'boltz_input.yaml'
+        : 'boltz_input.fasta'
     """
-    cp ${src} ${dst}
+    cp ${input_file} ${dst}
     """
 }
 
@@ -167,15 +168,15 @@ EOF
 // -- Workflow ----------------------------------------------------------------
 
 workflow {
-    fasta_ch = params.input_fasta
-        ? Channel.fromPath(params.input_fasta, checkIfExists: true)
-        : Channel.fromPath('NO_FILE', checkIfExists: false).ifEmpty(file('NO_FILE'))
+    // Pick whichever real input was supplied — YAML wins if both set.
+    // Avoids the NO_FILE placeholder channel which AWS Batch can't stage.
+    if (!params.input_fasta && !params.input_yaml) {
+        error "Please provide --input_fasta or --input_yaml (one is required)"
+    }
+    def input_path = params.input_yaml ?: params.input_fasta
+    input_ch = Channel.fromPath(input_path, checkIfExists: true)
 
-    yaml_ch = params.input_yaml
-        ? Channel.fromPath(params.input_yaml, checkIfExists: true)
-        : Channel.fromPath('NO_FILE', checkIfExists: false).ifEmpty(file('NO_FILE'))
-
-    PREPARE_INPUT(fasta_ch, yaml_ch)
+    PREPARE_INPUT(input_ch)
     BOLTZ_PREDICT(PREPARE_INPUT.out.input_file)
     BOLTZ_SUMMARISE_RESULTS(BOLTZ_PREDICT.out.results_dir)
 }
