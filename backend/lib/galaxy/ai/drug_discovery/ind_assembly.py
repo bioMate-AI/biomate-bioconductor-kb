@@ -858,6 +858,11 @@ def _llm_narrative(
         )
         source = "local"
 
+        # #49: instrument call latency + fallback decision
+        from galaxy.ai.drug_discovery.regulatory_metrics import record_call, record_fallback
+        import time as _time
+        _t0 = _time.time()
+
         # Check: empty output or too short → Gemini fallback
         too_short = not narrative or len(narrative.split()) < 30
         # Check: MAJOR audit findings → Gemini fallback for citation-critical sections
@@ -866,6 +871,7 @@ def _llm_narrative(
 
         if needs_gemini:
             reason = "empty" if too_short else f"audit_fail:{','.join(major_findings)}"
+            record_fallback(section_type, reason)
             log.debug("[IND narrative] local model fallback reason=%s — using Gemini", reason)
             gemini_narrative = _gemini_flash(
                 messages=[{"role": "user", "content": user_prompt}],
@@ -877,6 +883,7 @@ def _llm_narrative(
                 narrative = gemini_narrative
                 source = "gemini"
             # else: keep local model output (Gemini also failed) + let guardrails handle
+        record_call(section_type, source, _time.time() - _t0)
 
         log.debug("[IND narrative] %s/%s source=%s words=%d",
                   section_type, region, source, len(narrative.split()) if narrative else 0)
