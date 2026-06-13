@@ -121,14 +121,26 @@ eeddfd370 feat(catalog): differentiate ambiguous Bioc / nf-core workflow descrip
 
 Plus this summary, committed and pushed alongside.
 
+## Layer E — General `.nf`-header backfill (`7ce3d6451`)
+
+The foundation move. Detection: rows where `description` is a substring of `name` (parent-package leak: `ballgown_transcript_clustering` had description `"ballgown"`) OR equals `"Bioconductor module: <pkg>"` (auto-extraction failure).
+
+Resolver: parse `.nf` header `// Bioconductor workflow: ...` / `// Bioconductor module: ...` and grab the next descriptive line. Two-tier file lookup: direct (25 rows where sub-role `.nf` exists) and parent-main-nf fallback (252 rows where the package's `main.nf` carries the truth).
+
+**Result: 277 of 277 candidate rows applied**, with row-level JSON backup at `backend/database/backfill_descriptions_backup_20260613T134936.json`.
+
+**Side-effect that obsoleted items 2 + 3 of the prior follow-up list**: the backfill closed the remaining two large copy-paste clusters (`epialleler_*`, `knowyourcg_*`) via description-only differentiation. **No dedicated cluster scripts needed.** Per-role retrieval test: 8/9 queries across both clusters return the targeted sub-workflow at rank 1; the one rank-2 is a genuine synonym pair (both valid answers).
+
+Pre-merge verification:
+- **54/54** chain_composer + telemetry tests pass
+- **3/3** regression queries (`plain DESeq2 + clusterProfiler`, `Bioc methylation 450k`, `scrna MAST+Monocle`) still resolve to the correct chain EXACTLY
+
 ## Recommended next operational moves
 
 1. **Enable shadow telemetry on dev EC2** — set `BIOMATE_COMPOSER_SHADOW=1`, restart galaxy backend, let ~500 records accumulate. Phase plan in `docs/20260612_RECOMMENDATION.md` § "concrete plan."
-2. **Close the remaining two copy-paste clusters** (`epialleler_*`, `knowyourcg_*`) — `backend/scripts/differentiate_phyloprofile_cluster.py` is the template, `.nf` headers carry the role descriptions, ~1–2 hours per cluster.
-3. **Build the general `.nf`-header description extractor** — detection SQL `SELECT count(*) FROM workflows WHERE description = name OR description = ''`. This is the foundation move that closes the auto-extraction failure mode at catalog scale (likely hundreds of rows).
-4. **Coordinate with `bioc/per-workflow-analysis` merge** — rebuild BGE embeddings to pick up these 16 workflow description rewrites (~67 s job); confirm their `resolve_workflow_name_to_path` is case-insensitive enough to handle `BIOC_DMRcate → dmrcate`.
+2. **Coordinate with `bioc/per-workflow-analysis` merge** — rebuild BGE embeddings to pick up the 293 workflow + 3 chain description rewrites this session (~67 s job); confirm their `resolve_workflow_name_to_path` is case-insensitive enough to handle `BIOC_DMRcate → dmrcate`.
 
-All four are documented; none is in flight.
+Items 2 and 3 from the original follow-up list (close epialleler/knowyourcg clusters; build the general extractor) were completed in Layer E. The general extractor's side-effect of closing the remaining clusters obsoleted the need for cluster-specific scripts.
 
 ## State at session end
 
