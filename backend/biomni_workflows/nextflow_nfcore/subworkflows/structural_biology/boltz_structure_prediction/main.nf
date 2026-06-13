@@ -58,7 +58,7 @@ process PREPARE_INPUT {
 process BOLTZ_PREDICT {
     tag "boltz2"
     label 'process_gpu'
-    publishDir { "${params.outdir}/structures" }, mode: 'copy'
+    publishDir path: { "${params.outdir}/structures" }, mode: 'copy'
 
     container ECR
 
@@ -89,7 +89,7 @@ process BOLTZ_PREDICT {
 process BOLTZ_SUMMARISE_RESULTS {
     tag "summary"
     label 'process_low'
-    publishDir { "${params.outdir}" }, mode: 'copy'
+    publishDir path: { "${params.outdir}" }, mode: 'copy'
 
     container ECR
 
