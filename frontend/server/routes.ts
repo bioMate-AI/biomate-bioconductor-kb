@@ -6450,8 +6450,22 @@ ${paramLines || '(none recorded)'}`;
 
   // Record interaction (message + episode)
   app.post("/api/memory/interactions", authenticateToken, async (req, res) => {
+    const { sessionId, projectId, userMessage, assistantResponse, userIntent, toolsUsed, workflowGenerated, workflowId } = req.body ?? {};
+
+    // Bug #58 fix — validate before hitting the DB so malformed payloads
+    // and FK violations don't all collapse to a generic 500.
+    const missing: string[] = [];
+    if (!sessionId)         missing.push("sessionId");
+    if (!userMessage)       missing.push("userMessage");
+    if (!assistantResponse) missing.push("assistantResponse");
+    if (missing.length) {
+      return res.status(400).json({ error: "missing_required_fields", missing });
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(sessionId))) {
+      return res.status(400).json({ error: "invalid_session_id", message: "sessionId must be a UUID" });
+    }
+
     try {
-      const { sessionId, projectId, userMessage, assistantResponse, userIntent, toolsUsed, workflowGenerated, workflowId } = req.body;
       const result = await memoryService.recordInteraction({
         sessionId,
         projectId,
@@ -6465,6 +6479,11 @@ ${paramLines || '(none recorded)'}`;
       res.json(result);
     } catch (error: any) {
       console.error('[API] Record interaction failed:', error);
+      const msg = String(error?.message ?? "");
+      // Foreign-key violation = the session row doesn't exist yet → 404 is more honest than 500
+      if (msg.includes("violates foreign key constraint") && msg.includes("session_id")) {
+        return res.status(404).json({ error: "session_not_found", sessionId });
+      }
       res.status(500).json({ error: 'Failed to record interaction', message: error.message });
     }
   });
