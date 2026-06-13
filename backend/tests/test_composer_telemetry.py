@@ -25,14 +25,15 @@ def _isolate(tmp_path, monkeypatch):
 
 
 def _fake_chain():
+    # Mirrors the real ComposedChain schema from chain_composer/types.py.
     return SimpleNamespace(
-        source="curated",
-        mode="upfront",
+        source="curated_passthrough",
+        surfacing_mode="upfront",
         confidence=0.91,
-        confidence_signals={"curated_chain_score": 1.0, "pattern_match_score": 0.8},
-        steps=[SimpleNamespace(workflow_id=1, name="nf-core/rnaseq", domain="transcriptomics")],
-        verifier_report=SimpleNamespace(ok=True),
-        pattern=SimpleNamespace(name="sequential_omics_pipeline"),
+        signals={"curated_chain_score": 1.0, "pattern_match_score": 0.8},
+        steps=[SimpleNamespace(order=1, workflow_name="nf-core/rnaseq", role="primary")],
+        verifier_report={"ok": True, "errors": []},
+        patterns_used=["sequential_omics_pipeline"],
     )
 
 
@@ -59,12 +60,13 @@ def test_enabled_writes_record(_isolate, monkeypatch):
     assert rec["query"] == "rna-seq DE analysis"
     assert rec["session_id"] == "s1"
     assert rec["user_id"] == "u1"
-    assert rec["composer"]["source"] == "curated"
+    assert rec["composer"]["source"] == "curated_passthrough"
     assert rec["composer"]["mode"] == "upfront"
     assert rec["composer"]["confidence"] == pytest.approx(0.91)
     assert rec["composer"]["step_count"] == 1
+    assert rec["composer"]["steps"][0]["workflow_name"] == "nf-core/rnaseq"
     assert rec["composer"]["verifier_ok"] is True
-    assert rec["composer"]["pattern"] == "sequential_omics_pipeline"
+    assert rec["composer"]["patterns"] == ["sequential_omics_pipeline"]
     assert "latency_ms" in rec
 
 

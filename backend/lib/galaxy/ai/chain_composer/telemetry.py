@@ -78,7 +78,8 @@ def _summarise_chain(chain: Any) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     try:
         out["source"] = getattr(chain, "source", None)
-        out["mode"] = getattr(chain, "mode", None)
+        # ComposedChain uses `surfacing_mode`; accept `mode` for test fixtures.
+        out["mode"] = getattr(chain, "surfacing_mode", None) or getattr(chain, "mode", None)
         conf = getattr(chain, "confidence", None)
         out["confidence"] = float(conf) if conf is not None else None
         signals = getattr(chain, "confidence_signals", None) or getattr(chain, "signals", None)
@@ -88,9 +89,9 @@ def _summarise_chain(chain: Any) -> Dict[str, Any]:
         steps = getattr(chain, "steps", None) or []
         out["steps"] = [
             {
-                "workflow_id": getattr(s, "workflow_id", None),
-                "name": getattr(s, "name", None),
-                "domain": getattr(s, "domain", None),
+                "order": getattr(s, "order", None),
+                "workflow_name": getattr(s, "workflow_name", None) or getattr(s, "name", None),
+                "role": getattr(s, "role", None),
             }
             for s in steps
         ]
@@ -99,9 +100,14 @@ def _summarise_chain(chain: Any) -> Dict[str, Any]:
         if verifier is not None:
             out["verifier_ok"] = bool(getattr(verifier, "ok", None) if not isinstance(verifier, dict)
                                        else verifier.get("ok"))
-        pattern = getattr(chain, "pattern", None)
-        if pattern is not None:
-            out["pattern"] = getattr(pattern, "name", None) if not isinstance(pattern, str) else pattern
+        # ComposedChain stores `patterns_used: List[str]`; older test fixtures use `pattern`.
+        patterns_used = getattr(chain, "patterns_used", None)
+        if patterns_used:
+            out["patterns"] = list(patterns_used)
+        else:
+            pattern = getattr(chain, "pattern", None)
+            if pattern is not None:
+                out["patterns"] = [getattr(pattern, "name", None) if not isinstance(pattern, str) else pattern]
     except Exception as exc:  # pragma: no cover — defensive
         out["_summarise_error"] = repr(exc)
     return out
