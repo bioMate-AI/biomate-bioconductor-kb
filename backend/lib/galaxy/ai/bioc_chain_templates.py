@@ -32,10 +32,11 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
         "display_name": "Bulk RNA-seq → Differential Expression → Pathway Enrichment",
         "domain": "transcriptomics",
         "description": (
-            "Full downstream Bioconductor RNA-seq analysis using BIOC_* wrappers: "
-            "DESeq2 differential expression on a pre-computed count matrix, "
-            "followed by clusterProfiler GO/KEGG enrichment and enrichplot visualisation. "
-            "Input: count matrix TSV + sample sheet CSV."
+            "Single-method downstream RNA-seq differential expression from a PRE-COMPUTED "
+            "COUNT MATRIX — use when you already have counts + a sample sheet and want a "
+            "DESeq2-only wrapper chain (not multi-method consensus DE, and not raw-read "
+            "processing). DESeq2 DE, then clusterProfiler GO/KEGG enrichment and enrichplot "
+            "visualisation. Input: count matrix TSV + sample sheet CSV."
         ),
         "steps": [
             {
@@ -79,10 +80,10 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
         "display_name": "Single-cell RNA-seq → QC → Normalisation → Clustering → UMAP",
         "domain": "single_cell",
         "description": (
-            "Full single-cell downstream analysis using Bioconductor wrappers: "
-            "SingleCellExperiment construction, scater QC and filtering, "
-            "scran normalisation and HVG selection, UMAP embedding, "
-            "and graph-based clustering. Input: raw count matrix."
+            "Single-cell downstream QC + normalisation from a COUNT MATRIX — use when you "
+            "already have a count matrix and want scater QC/filtering then scran "
+            "normalisation, HVG selection and UMAP (lighter than the per-method consensus "
+            "DE pipeline). Input: raw count matrix."
         ),
         # SingleCellExperiment (data-container) and uwot (UMAP, part of scater) are not
         # standalone analysis workflows — scater loads the count matrix and runs UMAP itself.
@@ -204,9 +205,9 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
         "display_name": "IDAT → Normalisation → Differential Methylation → Gene Enrichment",
         "domain": "epigenomics",
         "description": (
-            "Bioconductor EPIC/450K array methylation pipeline: "
-            "load IDAT files with minfi, normalise, detect differentially methylated "
-            "positions with DSS, and run missMethyl gene set enrichment. "
+            "EPIC/450K array methylation from IDAT — minfi load + functional normalisation, "
+            "DSS differential methylation, missMethyl gene-set enrichment. Use when you want "
+            "the DSS-based differential-methylation + enrichment wrapper chain. "
             "Also applicable to bismark bisulfite coverage from nf-core/methylseq."
         ),
         "steps": [
