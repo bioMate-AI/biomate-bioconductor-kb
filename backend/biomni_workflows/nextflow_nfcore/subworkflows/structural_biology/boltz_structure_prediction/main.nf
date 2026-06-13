@@ -72,13 +72,13 @@ process BOLTZ_PREDICT {
     path("boltz_results/**/confidence_*.json"), emit: confidence, optional: true
 
     script:
-    def msa_flag = params.use_msa_server ? '--use-msa-server' : ''
+    def msa_flag = params.use_msa_server ? '--use_msa_server' : ''
     """
     boltz predict ${input_file} \\
         --out_dir boltz_results/ \\
-        --output-format ${params.output_format} \\
-        --sampling-steps ${params.sampling_steps} \\
-        --recycling-steps ${params.recycling_steps} \\
+        --output_format ${params.output_format} \\
+        --sampling_steps ${params.sampling_steps} \\
+        --recycling_steps ${params.recycling_steps} \\
         ${msa_flag} \\
         --accelerator gpu \\
         --devices 1
