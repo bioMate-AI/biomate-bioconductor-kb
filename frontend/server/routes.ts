@@ -5294,12 +5294,24 @@ ${paramLines || '(none recorded)'}`;
       // What we always do (regardless of project): ensure the ltm_users
       // row exists, so user-scoped memory (preferences, corrections,
       // episodes attached to the user not a project) can write.
+      // Bridge chat-stream's text sessionId to an LTM uuid sessionId so
+      // recordEpisode / project_episodes writes can land. Without this,
+      // memory-integration's episode + correction writes silently fail
+      // against the uuid FK constraint. See 2026-06-13 audit.
+      let _ltmSessionUuid: string | null = null;
       if (req.user) {
         try {
           const { memoryService } = await import('./memory-repository');
           const _u = req.user as any;
           await memoryService.ensureLtmUser(String(_u.id), _u.email, _u.fullName ?? _u.name);
           _resolvedProjectId = (await memoryService.resolveProjectForChat(context?.projectId)) ?? undefined;
+          if (_resolvedSessionId) {
+            _ltmSessionUuid = await memoryService.ensureChatLtmSession(
+              String(_u.id),
+              _resolvedSessionId,
+              _resolvedProjectId ?? null,
+            );
+          }
         } catch (e: any) {
           // Defensive — never break chat on a memory-system error.
           console.warn('[chat-stream] memory bootstrap failed:', e?.message ?? e);
@@ -5312,6 +5324,11 @@ ${paramLines || '(none recorded)'}`;
         // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
+        // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
+        // project_episodes.session_id FK is satisfied. If the bridge call
+        // failed (no LTM session created), leave it undefined and let
+        // memory-integration's gates skip the episode write.
+        memorySessionId: _ltmSessionUuid ?? undefined,
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
