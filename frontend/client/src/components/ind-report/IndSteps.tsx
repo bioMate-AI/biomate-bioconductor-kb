@@ -225,7 +225,7 @@ export function Step2Admet({
   }
 
   return (
-    <StepShell num="②" title="ADMET Screening" state="complete" statusText={`${data.summary.pass}/${data.summary.total} pass`} expanded={expanded} onToggle={onToggle}>
+    <StepShell num="②" title="ADMET Screening" state="complete" statusText={`${data.summary?.pass ?? 0}/${data.summary?.total ?? 0} pass`} expanded={expanded} onToggle={onToggle}>
       {importedFromChat && (
         <div
           style={{
@@ -244,7 +244,7 @@ export function Step2Admet({
         </div>
       )}
       <div className="kv-list">
-        <div className="k">Lead ({data.compounds[0].id})</div>
+        <div className="k">Lead ({data.compounds?.[0]?.id ?? "—"})</div>
         <div className="v" style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12 }}>
           <span className="gate clear" style={{ color: "var(--ind-ok)" }}>hERG ✓</span>
           <span className="gate clear" style={{ color: "var(--ind-ok)" }}>DILI ✓</span>
@@ -580,7 +580,7 @@ export function Step4Leads({ data, expanded, onToggle }: { data: LeadsData; expa
       state="complete"
       statusText={
         <>
-          <Check size={13} /> Top: {data.ranking[0].id}
+          <Check size={13} /> Top: {data.ranking?.[0]?.id ?? "—"}
         </>
       }
       expanded={expanded}
