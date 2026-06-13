@@ -17,6 +17,7 @@
 
 import {
   runRulePass,
+  hasParameterSignal,
   validateAgainstSchema,
   type ValidationReport,
 } from "./paramRules.js";
@@ -115,13 +116,24 @@ export async function extractParameters(
     .map((p) => p.name);
 
   // Stage 3b — LLM resolver.
-  // Only call if there are unresolved raw keys OR required params still missing
-  // OR the user query has text content we haven't fully attributed.
+  // Gate: only call when (a) there are unresolved raw keys, OR (b) required
+  // params remain unfilled AND the query has a parameter signal, OR (c) the
+  // query has a parameter signal we haven't attributed yet.
+  // Skips the LLM entirely for generic queries like "run rnaseq" where
+  // missing-required clarifications are sufficient.
+  const requiredUnfilled = schema.params.some(
+    (p) => p.required && !filled.has(p.name),
+  );
+  const querySignal = hasParameterSignal({
+    userQuery,
+    schema,
+    rawParams,
+  });
   const needLlm =
     !skipLlm &&
     (Object.keys(rulePass.unresolvedRaw).length > 0 ||
-      schema.params.some((p) => p.required && !filled.has(p.name)) ||
-      userQuery.trim().length > 20);
+      (requiredUnfilled && querySignal) ||
+      querySignal);
 
   if (needLlm) {
     try {
