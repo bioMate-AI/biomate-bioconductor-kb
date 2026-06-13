@@ -238,26 +238,26 @@ process NLMIXR2_POPULATION_PK {
     }
 
     # ── Extract QC metrics ───────────────────────────────────────────────────
-    params_df <- as.data.frame(fit$parFixed)
-    etas       <- fit$eta
+    params_df <- as.data.frame(fit\$parFixed)
+    etas       <- fit\$eta
 
     # ETA shrinkage (per random effect)
-    shrinkage_vals <- tryCatch(fit$shrink, error = function(e) NULL)
+    shrinkage_vals <- tryCatch(fit\$shrink, error = function(e) NULL)
     max_shrinkage  <- if (!is.null(shrinkage_vals)) max(shrinkage_vals, na.rm = TRUE) else NA
 
     # Condition number from covariance matrix
-    cov_mat <- tryCatch(fit$covMatrix, error = function(e) NULL)
+    cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
     cond_number <- if (!is.null(cov_mat) && nrow(cov_mat) > 0) {
-        eig <- eigen(cov_mat, only.values = TRUE)$values
+        eig <- eigen(cov_mat, only.values = TRUE)\$values
         max(abs(eig)) / min(abs(eig[abs(eig) > 1e-10]))
     } else NA
 
     # OFV (objective function value)
-    ofv <- tryCatch(fit$ofv, error = function(e) NA)
+    ofv <- tryCatch(fit\$ofv, error = function(e) NA)
 
-    # Convergence: nlmixr2 sets fit$message; SAEM converged if no warning keyword
+    # Convergence: nlmixr2 sets fit\$message; SAEM converged if no warning keyword
     converged <- tryCatch({
-        msg <- fit$message
+        msg <- fit\$message
         !grepl("not converge|failed|warning", msg, ignore.case = TRUE)
     }, error = function(e) TRUE)  # assume converged if message not accessible
 
@@ -313,14 +313,14 @@ process NLMIXR2_POPULATION_PK {
     # OFV-stability gate needs successive-iteration ΔOFV which would
     # require a refit pipeline. Gate skips with None — by design.
     qc_metrics <- list(
-        eta_shrinkage_pct_max = results_json$max_eta_shrinkage_pct,
-        condition_number      = results_json$condition_number,
-        ofv                   = results_json$ofv,
-        convergence_status    = results_json$convergence_status,
-        n_subjects            = results_json$n_subjects,
-        n_observations        = results_json$n_observations,
-        model_type            = results_json$model_type,
-        algorithm             = results_json$algorithm
+        eta_shrinkage_pct_max = results_json\$max_eta_shrinkage_pct,
+        condition_number      = results_json\$condition_number,
+        ofv                   = results_json\$ofv,
+        convergence_status    = results_json\$convergence_status,
+        n_subjects            = results_json\$n_subjects,
+        n_observations        = results_json\$n_observations,
+        model_type            = results_json\$model_type,
+        algorithm             = results_json\$algorithm
     )
     write_json(qc_metrics, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
     REOF
