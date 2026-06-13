@@ -18,7 +18,7 @@ process BIOC_CARDINALIO {
     label 'process_medium'
 
     conda "bioconductor-cardinalio"
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(count_data)
