@@ -823,6 +823,140 @@ export function remapInlineParametersForWorkflow(
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Schema-grounded extraction wrapper (feature-flagged).
+//
+// When SCHEMA_GROUNDED_EXTRACTION=1, run the new Stage 3 pipeline:
+//   3a rule pass + 3b LLM resolver + 3c validation
+// Falls back to the legacy WORKFLOW_PARAM_ALIASES table when the flag is off
+// or when the workflow's .nf file can't be located (e.g. nf-core upstream
+// pipelines whose schemas live elsewhere).
+//
+// Returns the same shape as remapInlineParametersForWorkflow for drop-in
+// substitution at the existing call sites. The richer ExtractorResult
+// (clarifications, provenance, confidence) is surfaced via the optional
+// extraDetails out-parameter so callers can attach it to the chat response
+// without changing the function's primary return type.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import {
+  buildWorkflowSchemaFromFile,
+  buildWorkflowSchema,
+  resolveNfPath,
+  type WorkflowSchema,
+} from './lib/paramSchema.js';
+import {
+  extractParameters,
+  buildLlmGenerateAdapter,
+  type ExtractorResult,
+} from './lib/schemaGroundedExtractor.js';
+import { llmGenerate } from './llm-client.js';
+import path from 'node:path';
+
+const SCHEMA_GROUNDED_FLAG = () =>
+  process.env.SCHEMA_GROUNDED_EXTRACTION === '1';
+
+const NF_ROOTS = [
+  process.env.NF_WORKFLOWS_ROOT,
+  '/app/nf-core-workflows',
+  path.resolve(process.cwd(), '../backend/nf-core-workflows'),
+  path.resolve(process.cwd(), 'backend/nf-core-workflows'),
+  '/home/yzhang/biomate/backend/nf-core-workflows',
+].filter((p): p is string => !!p);
+
+function buildSchemaForWorkflow(args: {
+  workflowName: string;
+  requiredParams?: string[];
+  optionalParams?: string[];
+}): WorkflowSchema {
+  const { workflowName, requiredParams, optionalParams } = args;
+  const nfPath = resolveNfPath(workflowName, NF_ROOTS);
+  if (nfPath) {
+    const fromFile = buildWorkflowSchemaFromFile({
+      workflowName,
+      nfPath,
+      requiredParams,
+      optionalParams,
+    });
+    if (fromFile) return fromFile;
+  }
+  // Fallback to bare annotation when .nf isn't reachable.
+  return buildWorkflowSchema({
+    workflowName,
+    requiredParams,
+    optionalParams,
+  });
+}
+
+/**
+ * Async wrapper used at chat-stream call sites. Returns the canonical-keyed
+ * dict and (optionally) an ExtractorResult for the caller to surface in the
+ * chat response.
+ *
+ * Drop-in: if flag is off OR an error fires inside the new pipeline, falls
+ * back to the legacy alias table — no behavior regression on the default
+ * path.
+ */
+export async function groundInlineParameters(args: {
+  workflowName: string | undefined | null;
+  rawParams: Record<string, unknown> | undefined | null;
+  userQuery: string;
+  requiredParams?: string[];
+  optionalParams?: string[];
+  userOverriddenKeys?: Set<string>;
+}): Promise<{
+  params: Record<string, string | string[]>;
+  details?: ExtractorResult;
+  path: 'schema-grounded' | 'legacy-alias' | 'noop';
+}> {
+  const { workflowName, rawParams, userQuery, requiredParams, optionalParams } = args;
+  if (!workflowName) {
+    return { params: (rawParams as any) || {}, path: 'noop' };
+  }
+  if (!SCHEMA_GROUNDED_FLAG()) {
+    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    return { params: remapped, path: 'legacy-alias' };
+  }
+  try {
+    const schema = buildSchemaForWorkflow({ workflowName, requiredParams, optionalParams });
+    if (schema.params.length === 0) {
+      // Nothing to ground against — fall back to legacy.
+      const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+      return { params: remapped, path: 'legacy-alias' };
+    }
+    const llmCall = buildLlmGenerateAdapter(llmGenerate);
+    const result = await extractParameters({
+      schema,
+      userQuery,
+      rawParams: rawParams || {},
+      userOverriddenKeys: args.userOverriddenKeys,
+      llmCall,
+    });
+    return { params: result.params, details: result, path: 'schema-grounded' };
+  } catch (e) {
+    console.warn(
+      `[groundInlineParameters] schema-grounded path failed for "${workflowName}" (${(e as Error).message}); falling back to legacy alias`,
+    );
+    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    return { params: remapped, path: 'legacy-alias' };
+  }
+}
+
+/**
+ * Coerce array values to comma-joined strings so the legacy
+ * `Record<string, string>` consumer (workflow form pre-fill) accepts them.
+ * The form's multi-value renderer splits on comma for list-typed params.
+ */
+function stringifyParamValues(
+  params: Record<string, string | string[]>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) {
+    out[k] = Array.isArray(v) ? v.join(',') : String(v);
+  }
+  return out;
+}
+
 export function buildWorkflowRoutingBlock(preferredDomains: string[]): string {
   if (!preferredDomains || preferredDomains.length === 0) {
     return Object.values(DOMAIN_ROUTING_RULES).join('\n');
@@ -2734,15 +2868,29 @@ Rules:
       finalMessage += '\n\n→ Open your [CRO Compliance workspace](/drug-discovery-cro) to manage campaigns, view the audit chain, and generate IND packages.';
     }
 
-    // Remap LLM-extracted keys → workflow-required keys so the workflow panel
-    // form actually populates. Without this, the form stays empty and Run
-    // dispatches with `params.X='null'` defaults (see audit doc).
+    // Ground LLM-extracted keys against the workflow schema so the panel
+    // form actually populates. When SCHEMA_GROUNDED_EXTRACTION=1, runs the
+    // rule+LLM+validate pipeline; otherwise falls back to the legacy
+    // WORKFLOW_PARAM_ALIASES table.
     const _workflowNameForRemap =
       generatedWorkflow?.workflow_ga?.name || generatedWorkflow?.workflow_name;
-    const _remappedInlineParams = remapInlineParametersForWorkflow(
-      _workflowNameForRemap,
-      intent.inlineParameters,
-    );
+    const _groundResult = await groundInlineParameters({
+      workflowName: _workflowNameForRemap,
+      rawParams: intent.inlineParameters,
+      userQuery: message,
+      requiredParams: generatedWorkflow?.workflow_ga?.required_params,
+      optionalParams: generatedWorkflow?.workflow_ga?.optional_params,
+    });
+    const _remappedInlineParams = stringifyParamValues(_groundResult.params);
+    if (_groundResult.path !== 'noop') {
+      console.log(
+        '[InlineParam Ground]',
+        _workflowNameForRemap,
+        'path:', _groundResult.path,
+        'confidence:', _groundResult.details?.confidence?.toFixed(2),
+        'clarifications:', _groundResult.details?.clarifications?.length || 0,
+      );
+    }
 
     const finalResult: GalaxyAssistantResponse = {
       message: finalMessage,
@@ -3436,10 +3584,14 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const _multiWorkflowName: string | undefined =
       _multiGeneratedWorkflow?.workflow_ga?.name ||
       _multiGeneratedWorkflow?.workflow_name;
-    const _multiRemappedInlineParams = remapInlineParametersForWorkflow(
-      _multiWorkflowName,
-      primaryIntent.inlineParameters,
-    );
+    const _multiGroundResult = await groundInlineParameters({
+      workflowName: _multiWorkflowName,
+      rawParams: primaryIntent.inlineParameters,
+      userQuery: primaryIntent.subQuery || message,
+      requiredParams: _multiGeneratedWorkflow?.workflow_ga?.required_params,
+      optionalParams: _multiGeneratedWorkflow?.workflow_ga?.optional_params,
+    });
+    const _multiRemappedInlineParams = stringifyParamValues(_multiGroundResult.params);
 
     const multiIntentResult: GalaxyAssistantResponse = {
       message: response.message,
