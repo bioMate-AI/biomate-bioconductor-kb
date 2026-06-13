@@ -94,3 +94,23 @@ these changes have NOT been promoted there.
 - `add_bioc_dep_bootstrap.py` — dep self-install bootstrap inserter
 - `add_bioc_section_markers.py` — step-marker regeneration
 - `pwa_fixture_contract_audit.py` / `pwa_fixture_error_capture.py` / `pwa_local_validation_batch.py` — local (no-spot) fixture/data diagnostics
+
+---
+
+## 8. Post-handoff updates (2026-06-13)
+
+### Conflict-check items (from the other team's `20260612_HANDOFF_CONFLICT_CHECK.md`) — all resolved
+1. **Stale embeddings on 4 workflows** — re-ran the full embed (4,005 vectors, current descriptions for deseq2/clusterprofiler/differentialabundance/+) and **re-synced the `.npz` to dev**. (no separate commit — `.npz` is a gitignored artifact; rebuild via `unified_workflow_search._build_workflow_embeddings`.)
+2. **`BIOC_DMRcate` case-mismatch** — **confirmed safe (no fix needed):** `resolve_workflow_name_to_path` uses `lower(name)=lower(?)`, so `BIOC_DMRcate`/`BIOC_DMRCATE` both resolve to `dmrcate/main.nf`. (Their cross-check saw the verbatim name because `compose_chain` returns step names un-resolved; the resolution layer normalizes case.)
+3. **Chain coexistence** (`6e8eec579d`) — the 6 `_v2` chains overlap 3 consensus/analog chains. `workflow_chains` has no `when_to_use` field, so sharpened the 3 overlapping **descriptions** (distinct entry point: downstream-from-count-matrix / single-method wrapper) + fixed the stale scrna description (named removed steps). Re-registered + re-synced to dev. The deeper chain-level differentiation remains the other team's deferred item.
+
+### Domain-image build tooling persisted + dep resolution fixed (`cebc5dc4a`)
+`backend/scripts/domain_images/` now holds the Dockerfile template, per-domain deps lists
+(with `combi`/`immunoClust` added), build script, and README. **Root-cause fix:** the template
+uses `BiocManager::install` (Bioc-release-pinned dep resolution) instead of `install.packages`
+(which pulled latest CRAN deps → broke `mia` via `rbiom unifrac` and `metaMS` via `xcms` compile).
+
+### Dep-hell follow-up rebuild — IN PROGRESS
+Rebuilding metagenomics + metabolomics `:3.20-deps` with the BiocManager template to recover
+`mia`/`iSEEtree`/`miaViz`/`metaMS`. Spot box (m5.4xlarge, terminate-on-done). Result pending —
+verify `requireNamespace` TRUE for those packages on the freshly-pushed images before relying on it.
