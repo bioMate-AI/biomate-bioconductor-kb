@@ -21,8 +21,9 @@ process BIOC_CHROMDRAW_BED_FILE_KARYOTYPE {
     tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
+    tuple val(meta), path("*.eps"), emit: eps,    optional: true
+    tuple val(meta), path("*.svg"), emit: svg,    optional: true
     tuple val(meta), path("*.csv"), emit: tables, optional: true
-    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
     path "versions.yml",            emit: versions
 
@@ -92,8 +93,9 @@ workflow BIOC_CHROMDRAW_BED_FILE_KARYOTYPE_WORKFLOW {
     BIOC_CHROMDRAW_BED_FILE_KARYOTYPE(ch_input)
 
     emit:
+    eps      = BIOC_CHROMDRAW_BED_FILE_KARYOTYPE.out.eps
+    svg      = BIOC_CHROMDRAW_BED_FILE_KARYOTYPE.out.svg
     tables   = BIOC_CHROMDRAW_BED_FILE_KARYOTYPE.out.tables
-    plots    = BIOC_CHROMDRAW_BED_FILE_KARYOTYPE.out.plots
     objects  = BIOC_CHROMDRAW_BED_FILE_KARYOTYPE.out.objects
     versions = BIOC_CHROMDRAW_BED_FILE_KARYOTYPE.out.versions
 }

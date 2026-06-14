@@ -1,34 +1,44 @@
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("ClassifyR")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
-library(ClassifyR)
+# Real user-style input for ClassifyR multi-view (multi-omics) integration:
+#   measurementsDF.rds - a DataFrame of samples x features spanning TWO assays
+#       (e.g. a clinical block + a transcriptomic block), with mcols()$assay
+#       tagging which view each feature belongs to (the multi-view contract).
+#   classes.rds        - a two-level outcome factor (one label per sample).
+# This is exactly the shape a user supplies for multi-omics classification.
+# We embed a real class signal in a subset of features of each assay so the SVM
+# cross-validation has something to learn. No package demo data.
 
-# Reproduce the vignette's data-preparation code
-data(asthma) # Contains measurements and classes variables.
+suppressPackageStartupMessages({
+  library(S4Vectors)
+})
 
-# Create measurementsDF as shown in the vignette
-measurementsDF <- DataFrame(measurements)
-mcols(measurementsDF) <- data.frame(
-  assay = rep(c("assay_1", "assay_2"), times = c(10, 1990)),
-  feature = colnames(measurementsDF)
+set.seed(9500)
+n_samples <- 80
+classes <- factor(rep(c("Healthy", "Disease"), each = n_samples / 2),
+                  levels = c("Healthy", "Disease"))
+
+# Assay 1: small clinical block (10 features), a few discriminative
+n1 <- 10
+a1 <- matrix(rnorm(n_samples * n1), nrow = n_samples)
+disease <- which(classes == "Disease")
+a1[disease, 1:4] <- a1[disease, 1:4] + 2.0
+colnames(a1) <- sprintf("clin_%02d", seq_len(n1))
+
+# Assay 2: larger molecular block (200 features), a marker subset discriminative
+n2 <- 200
+a2 <- matrix(rnorm(n_samples * n2), nrow = n_samples)
+a2[disease, 1:30] <- a2[disease, 1:30] + 1.5
+colnames(a2) <- sprintf("gene_%03d", seq_len(n2))
+
+measurements <- cbind(a1, a2)
+rownames(measurements) <- sprintf("sample%02d", seq_len(n_samples))
+
+measurementsDF <- DataFrame(measurements, check.names = FALSE)
+mcols(measurementsDF) <- DataFrame(
+    assay = rep(c("clinical", "molecular"), times = c(n1, n2)),
+    feature = colnames(measurementsDF)
 )
 
-# Serialize the objects to the declared input files
 saveRDS(measurementsDF, "measurementsDF.rds")
 saveRDS(classes, "classes.rds")
-
-# [biomate-fx-dual] emit each declared input under BOTH bare-token and .rds names
-# so any input-staging harness collects the real serialized object under the
-# exact name the workflow reads (bare token or <token>.rds).
-.bm_dual <- function(b) {
-  rds <- paste0(b, '.rds')
-  if (file.exists(rds) && !file.exists(b)) file.copy(rds, b, overwrite=TRUE)
-  if (file.exists(b) && !file.exists(rds)) file.copy(b, rds, overwrite=TRUE)
-}
-.bm_dual('measurementsDF')
-.bm_dual('classes')
+for (b in c("measurementsDF", "classes"))
+    file.copy(paste0(b, ".rds"), b, overwrite = TRUE)

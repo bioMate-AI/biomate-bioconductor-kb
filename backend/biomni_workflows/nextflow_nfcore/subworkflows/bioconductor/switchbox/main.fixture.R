@@ -1,29 +1,43 @@
-# [biomate] structured fixture (rule: package_example_data) — deterministic, no LLM
-# switchBox ships the vignette example data set `matchedDatasets`, which provides:
-#   matTraining   (genes x training-samples expression matrix)
-#   trainingGroup (factor of class labels for the training samples)
-#   matTesting    (genes x testing-samples expression matrix)
-# The workflow's read_input() accepts either <name>.rds or <name>.csv; emit .rds (real
-# serialized objects) AND the bare-token name so any input-staging harness collects them.
-.fx_deps <- c("switchBox")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
+# Real user-style input for switchBox K-TSP classifier training/prediction:
+#   matTraining   - genes x training-samples expression matrix
+#   trainingGroup - factor of binary class labels for the training samples
+#   matTesting    - genes x testing-samples expression matrix (same gene rows)
+# This is exactly what a user supplies to build a Top-Scoring-Pairs classifier
+# (a labelled training cohort + an unlabelled test cohort). We simulate a real
+# two-class transcriptomic signal: a block of genes is up-regulated in class
+# "Bad" relative to "Good" so K-TSP can recover discriminating gene pairs.
+# No package demo data.
+
+set.seed(123)
+n_genes  <- 200
+n_train  <- 60
+n_test   <- 40
+gene_ids <- sprintf("Gene%03d", seq_len(n_genes))
+
+train_class <- factor(rep(c("Good", "Bad"), each = n_train / 2),
+                       levels = c("Good", "Bad"))
+test_class  <- rep(c("Good", "Bad"), each = n_test / 2)
+
+# ~40 "signature" genes are higher in Bad; rest are background with biological noise.
+sig <- 1:40
+make_mat <- function(cls, n) {
+    m <- matrix(rnorm(n_genes * n, mean = 8, sd = 1.2), nrow = n_genes)
+    bad <- which(cls == "Bad")
+    m[sig, bad] <- m[sig, bad] + rnorm(length(sig) * length(bad), mean = 3, sd = 0.8)
+    rownames(m) <- gene_ids
+    m
 }
-library(switchBox)
 
-data(matchedDatasets)
+matTraining <- make_mat(train_class, n_train)
+colnames(matTraining) <- sprintf("train%02d", seq_len(n_train))
+matTesting  <- make_mat(test_class, n_test)
+colnames(matTesting)  <- sprintf("test%02d", seq_len(n_test))
+trainingGroup <- train_class
 
-stopifnot(exists("matTraining"), exists("trainingGroup"), exists("matTesting"))
+saveRDS(matTraining,   "matTraining.rds")
+saveRDS(trainingGroup, "trainingGroup.rds")
+saveRDS(matTesting,    "matTesting.rds")
 
-.emit <- function(obj, base) {
-  rds <- paste0(base, ".rds")
-  saveRDS(obj, rds)
-  file.copy(rds, base, overwrite = TRUE)   # bare-token alias for staging harnesses
-}
-
-.emit(matTraining, "matTraining")
-.emit(trainingGroup, "trainingGroup")
-.emit(matTesting, "matTesting")
+# bare-token aliases for input-staging harnesses
+for (b in c("matTraining", "trainingGroup", "matTesting"))
+    file.copy(paste0(b, ".rds"), b, overwrite = TRUE)
