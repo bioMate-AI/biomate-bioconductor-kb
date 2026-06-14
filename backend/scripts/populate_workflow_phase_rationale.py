@@ -41,35 +41,44 @@ QC_EVIDENCE_YAML = os.path.join(ROOT, "backend", "config", "qc_evidence.yaml")
 # Mapping from §2 of the plan. Each tuple: (chain_name, phase_id, source_line,
 # qc_evidence_gate_or_None). source_line is the 1-based line of the `body: (<>…</>)`
 # (or `previewBody:` / `completeBody:`) we extract the rationale_text from.
+#
+# phase_id format: plain capital letter (A, B, C, …) matching the panel
+# scenarios in reference/claude_design/bioconductor-handoff/src/data.js
+# (BIOC_KB/SC/METHYL.phases[].id) and the most likely SSE emission key
+# from the chain runner. The descriptive suffix (e.g. "A_qc") that earlier
+# drafts of the plan used does NOT align with what either the panel or
+# the chat narrator emits, so we drop it. The original descriptive label
+# is captured in `qc_gate_name` (for cited phases) and via the
+# `rationale_text` content itself.
 ROWS = [
     # ── Chain 1 — bulk_rnaseq_consensus_de_bioc (transcriptomics, 6 phases) ──
-    ("bulk_rnaseq_consensus_de_bioc", "A_qc",      135, None),
-    ("bulk_rnaseq_consensus_de_bioc", "B_norm",    141, "deseq2_negative_binomial_fit"),
-    ("bulk_rnaseq_consensus_de_bioc", "C_de",      147, "deseq2_negative_binomial_fit"),
-    ("bulk_rnaseq_consensus_de_bioc", "D_shrink",  153, "apeglm_lfc_shrinkage"),
-    ("bulk_rnaseq_consensus_de_bioc", "E_enrich",  159, "clusterprofiler_enrichment"),
-    ("bulk_rnaseq_consensus_de_bioc", "F_viz",     166, None),
+    ("bulk_rnaseq_consensus_de_bioc", "A", 135, None),
+    ("bulk_rnaseq_consensus_de_bioc", "B", 141, "deseq2_negative_binomial_fit"),
+    ("bulk_rnaseq_consensus_de_bioc", "C", 147, "deseq2_negative_binomial_fit"),
+    ("bulk_rnaseq_consensus_de_bioc", "D", 153, "apeglm_lfc_shrinkage"),
+    ("bulk_rnaseq_consensus_de_bioc", "E", 159, "clusterprofiler_enrichment"),
+    ("bulk_rnaseq_consensus_de_bioc", "F", 166, None),
     # ── Chain 2 — scrna_consensus_de_bioc (single_cell, 7 phases) ──
-    ("scrna_consensus_de_bioc",       "A_qc",            215, "scater_qc_normalization"),
-    ("scrna_consensus_de_bioc",       "B_norm",          221, "scran_normalization_hvg"),
-    ("scrna_consensus_de_bioc",       "C_cluster",       227, "scran_normalization_hvg"),
-    ("scrna_consensus_de_bioc",       "D_markers",       233, "score_markers_per_cluster"),
-    ("scrna_consensus_de_bioc",       "E_annotate",      233, "singler_celltype_annotation"),
-    ("scrna_consensus_de_bioc",       "F_pseudobulk_de", 239, "pseudobulk_aggregation_deseq2"),
-    ("scrna_consensus_de_bioc",       "G_report",        248, None),
+    ("scrna_consensus_de_bioc",       "A", 215, "scater_qc_normalization"),
+    ("scrna_consensus_de_bioc",       "B", 221, "scran_normalization_hvg"),
+    ("scrna_consensus_de_bioc",       "C", 227, "scran_normalization_hvg"),
+    ("scrna_consensus_de_bioc",       "D", 233, "score_markers_per_cluster"),
+    ("scrna_consensus_de_bioc",       "E", 233, "singler_celltype_annotation"),
+    ("scrna_consensus_de_bioc",       "F", 239, "pseudobulk_aggregation_deseq2"),
+    ("scrna_consensus_de_bioc",       "G", 248, None),
     # ── Chain 3 — methylation_450k_array_analysis (epigenomics, 5 phases) ──
-    ("methylation_450k_array_analysis", "A_read",     295, "minfi_array_processing"),
-    ("methylation_450k_array_analysis", "B_qc_norm",  301, "minfi_array_processing"),
-    ("methylation_450k_array_analysis", "C_dmp",      307, "limma_dmp_test"),
-    ("methylation_450k_array_analysis", "D_dmr",      313, "dmrcate_region_call"),
-    ("methylation_450k_array_analysis", "E_enrich",   319, "missmethyl_cpg_corrected_go"),
+    ("methylation_450k_array_analysis", "A", 295, "minfi_array_processing"),
+    ("methylation_450k_array_analysis", "B", 301, "minfi_array_processing"),
+    ("methylation_450k_array_analysis", "C", 307, "limma_dmp_test"),
+    ("methylation_450k_array_analysis", "D", 313, "dmrcate_region_call"),
+    ("methylation_450k_array_analysis", "E", 319, "missmethyl_cpg_corrected_go"),
     # ── Chain 4 — scrna_pseudobulk_de_bioc (single_cell, 6 phases) ──
-    ("scrna_pseudobulk_de_bioc",       "A_qc",          215, "scater_qc_normalization"),
-    ("scrna_pseudobulk_de_bioc",       "B_norm_hvg",    221, "scran_normalization_hvg"),
-    ("scrna_pseudobulk_de_bioc",       "C_cluster",     227, "scran_normalization_hvg"),
-    ("scrna_pseudobulk_de_bioc",       "D_annotate",    233, "singler_celltype_annotation"),
-    ("scrna_pseudobulk_de_bioc",       "E_pseudobulk",  239, "pseudobulk_aggregation_deseq2"),
-    ("scrna_pseudobulk_de_bioc",       "F_report",      248, None),
+    ("scrna_pseudobulk_de_bioc",       "A", 215, "scater_qc_normalization"),
+    ("scrna_pseudobulk_de_bioc",       "B", 221, "scran_normalization_hvg"),
+    ("scrna_pseudobulk_de_bioc",       "C", 227, "scran_normalization_hvg"),
+    ("scrna_pseudobulk_de_bioc",       "D", 233, "singler_celltype_annotation"),
+    ("scrna_pseudobulk_de_bioc",       "E", 239, "pseudobulk_aggregation_deseq2"),
+    ("scrna_pseudobulk_de_bioc",       "F", 248, None),
 ]
 
 CREATE_SCHEMA = """
