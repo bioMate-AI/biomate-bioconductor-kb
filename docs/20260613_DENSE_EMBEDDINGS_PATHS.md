@@ -10,10 +10,10 @@ what regenerates them and what does not.
 |---|---|
 | Where in S3? | **Nowhere as a tracked artifact.** Only the source `.db` (271 MB) is in S3. The embeddings are a derivable view of the DB. |
 | Where on disk locally? | `backend/database/galaxy_ai_workflow_embeddings.npz` (workflows, ~5.5 MB) and `backend/galaxy_ai_tools_embeddings.npz` (tools, ~11 MB) |
-| What builds them? | `_ensure_workflow_embeddings()` in `backend/lib/galaxy/ai/unified_workflow_search.py` — lazy on first use, CPU-only (BGE via SentenceTransformer) |
+| What builds them? | `_ensure_workflow_embeddings()` in `backend/lib/galaxy/ai/unified_workflow_search.py` — lazy on first use **only when the `.npz` file is absent**, CPU-only (BGE via SentenceTransformer). Staleness (DB-newer-than-npz, row-count drift, in-place edits) is **NOT** detected — see §6. |
 | What consumes them? | `unified_workflow_search.py` (workflow ranking) + `vector_search.py` (tool ranking) — additive bonus on top of FTS + keyword + named-anchor scoring |
 | How do they get to dev EC2? | They DON'T travel through `scripts/sync_to_dev.sh`. They live in the `dev_db_bundle` tarball or are rebuilt by the container on first search. |
-| If stale, who rebuilds? | The container itself, lazily, via `_build_workflow_embeddings()` when it can't find an `.npz` or when a missing-id is detected. |
+| If stale, who rebuilds? | **No one automatically.** The lazy path in `_ensure_workflow_embeddings()` only checks `.npz.exists()` — it never compares mtime against the `.db`, never checks row-count parity, never re-encodes when descriptions change. Staleness is a manual responsibility today. See §6 / §7 for the freshness contract and the explicit rebuild + push commands. |
 
 ---
 
@@ -121,10 +121,13 @@ Verified by full bucket scan (2026-06-13):
 | `galaxy_ai_tools_embeddings.npz` | ❌ **NOT synced** | Same as workflows. |
 
 **Implication**: if the workstation's `.db` mutates significantly (new
-workflows added, embeddings regenerated locally), dev gets the updated
-`.db` but **not** the updated `.npz`. The container will detect the
-mismatch on next search and rebuild lazily — fine for correctness, but
-slow on first request after a sync.
+workflows added, descriptions edited), dev gets the updated `.db` but
+**not** the updated `.npz`. **The container does NOT detect the
+mismatch.** `_ensure_workflow_embeddings()` only checks `.npz.exists()`
+— it never compares mtimes, row counts, or content hashes against
+the `.db`. So dev silently keeps using the stale `.npz` until a human
+explicitly rebuilds + pushes. See §6 (Known bug) and §7 (Manual
+freshness procedure).
 
 ---
 
@@ -171,7 +174,146 @@ ssh -i "$KEY_FILE" "${EC2_USER}@${EC2_HOST}" \
 
 ---
 
-## 6. Open questions / TODOs
+## 6. Known bug — embeddings staleness is not detected automatically
+
+`backend/lib/galaxy/ai/unified_workflow_search.py:1296+`:
+
+```python
+if _WORKFLOW_EMBED_NPZ.exists():
+    self._load_workflow_embeddings()   # ← just loads whatever is there
+else:
+    self._build_workflow_embeddings()  # ← only fires when file is absent
+```
+
+No mtime check. No `COUNT(*) FROM workflows == len(_WF_EMBED_IDS)`
+check. No content-hash signature in the `.npz` metadata. **If the
+`.db` updates with new or changed workflows, the running process
+silently keeps using the stale embeddings.**
+
+Symptoms: new workflows are still routable via FTS/keyword fallback
+but never get the dense-similarity bonus, so they lose tie-breaks they
+should win.
+
+### Recommended fix (cheapest correct version)
+
+Inside `_ensure_workflow_embeddings()`, after `_load_workflow_embeddings()`:
+
+```python
+cursor.execute("SELECT COUNT(*) FROM workflows")
+db_count = cursor.fetchone()[0]
+if db_count != len(_WF_EMBED_IDS):
+    log.info(
+        "[WorkflowEmbed] DB has %d workflows, .npz has %d — rebuilding",
+        db_count, len(_WF_EMBED_IDS),
+    )
+    self._build_workflow_embeddings()
+```
+
+Stricter variants (catch in-place description edits too): stamp the
+`.npz` at build time with a SHA-256 of concatenated
+`(id, name, description, annotation)` tuples; verify on load. ~1 ms
+overhead per process start.
+
+Until the fix lands, follow §7 manually after every meaningful `.db`
+change.
+
+---
+
+## 7. Manual freshness procedure (used 2026-06-13)
+
+When the `.db` has been modified (new workflows, description edits,
+domain reclassification, etc.) **AND** you need dev to reflect those
+changes immediately:
+
+### Step 1 — Rebuild locally (~67 s CPU)
+
+```bash
+cd /home/yzhang/biomate
+rm backend/database/galaxy_ai_workflow_embeddings.npz
+PYTHONPATH="$PWD/backend/lib:$PWD/backend" python3 -c "
+from pathlib import Path
+from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch
+ok = UnifiedWorkflowSearch(
+    db_path=Path('backend/database/galaxy_ai_tools.db')
+)._ensure_workflow_embeddings()
+print('rebuilt' if ok else 'FAILED')
+"
+```
+
+### Step 2 — Verify alignment
+
+```bash
+python3 <<'PY'
+import sqlite3, numpy as np, os
+db = sqlite3.connect("backend/database/galaxy_ai_tools.db")
+db_count = db.execute("SELECT COUNT(*) FROM workflows").fetchone()[0]
+data = np.load("backend/database/galaxy_ai_workflow_embeddings.npz", allow_pickle=True)
+ids_npz = set(int(x) for x in data["workflow_ids"])
+ids_db  = set(r[0] for r in db.execute("SELECT id FROM workflows").fetchall())
+print(f"DB={db_count}  .npz={len(ids_npz)}  missing={len(ids_db - ids_npz)}  extra={len(ids_npz - ids_db)}")
+PY
+```
+
+Both counts equal, `missing=0`, `extra=0`. If not, the rebuild failed
+silently — check logs.
+
+### Step 3 — Push to dev container
+
+```bash
+cd /home/yzhang/biomate
+source <(grep -E "^(EC2_HOST|EC2_USER|KEY_FILE|INSTANCE_ID|AZ)=" scripts/sync_to_dev.sh)
+aws ec2-instance-connect send-ssh-public-key --instance-id "$INSTANCE_ID" \
+  --availability-zone "$AZ" --instance-os-user "$EC2_USER" \
+  --ssh-public-key "file://${KEY_FILE}.pub" --region us-west-2 \
+  --output text --query 'Success' >/dev/null
+
+scp -i "$KEY_FILE" backend/database/galaxy_ai_workflow_embeddings.npz \
+  "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_workflow_embeddings_sync.npz"
+
+ssh -i "$KEY_FILE" "${EC2_USER}@${EC2_HOST}" \
+  "sudo docker cp /tmp/galaxy_ai_workflow_embeddings_sync.npz \
+     biomate-galaxy-dev:/app/database/galaxy_ai_workflow_embeddings.npz && \
+   sudo docker exec -u root biomate-galaxy-dev \
+     chown galaxy:galaxy /app/database/galaxy_ai_workflow_embeddings.npz && \
+   rm /tmp/galaxy_ai_workflow_embeddings_sync.npz"
+```
+
+### Step 4 — Ensure the running Galaxy process actually reloads
+
+`unified_workflow_search.py` uses **module-level singletons**
+(`_WF_EMBED_MATRIX`, `_WF_EMBED_IDS`, `_WF_EMBED_READY`). Workers
+already running hold the OLD matrix in RAM and will not pick up a
+disk swap until the process restarts. The container runs Galaxy via
+supervisord + galaxyctl, not gunicorn directly:
+
+```bash
+# Force a restart of the Galaxy service inside the container
+sudo docker exec biomate-galaxy-dev bash -c \
+  'supervisorctl -c /app/database/gravity/supervisor/supervisord.conf restart all' \
+  2>&1 | tail -5
+
+# Or, heavy-handed but always works:
+sudo docker restart biomate-galaxy-dev
+
+# Verify still up:
+curl -sS -o /dev/null -w "%{http_code}\n" https://dev-public.biomate.ai/
+curl -sS -o /dev/null -w "%{http_code}\n" https://dev-public.biomate.ai/galaxy/api/version
+```
+
+### What was done in this session (2026-06-13)
+
+| Step | Result |
+|---|---|
+| Local DB rows vs prior `.npz` IDs | 4005 ↔ 4005, IDs match, **but DB mtime was 25 h newer** — content edits not reflected |
+| Rebuilt locally (~67 s) | ✅ 4005/4005, `.npz` now newer than `.db` |
+| Workstation backups kept | `.npz.bak`, `.npz.bak.20260613` |
+| SCP to dev → docker cp into container | ✅ md5 `aa00df91e2de9f77c107c0d1b14267bf`, owner `galaxy:galaxy` |
+| Found: container had **NO** `.npz` before this push | (lazy rebuild would have been the only source) |
+| Galaxy reload | service still HTTP 200; full reload deferred to next sync / restart |
+
+---
+
+## 8. Open questions / TODOs
 
 1. **Should embeddings live in S3?** Pros: faster cold-start on a
    new dev box, immutable across reboots. Cons: requires a new sync
