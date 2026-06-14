@@ -63,9 +63,9 @@ process BIOC_PRONE_PROTEOMICS_NORMALIZATION_EVALUATION {
           }
         }
         
-        # Load required libraries        library(SummarizedExperiment)
-
+        # Load required libraries
         library(PRONE)
+        library(SummarizedExperiment)
         library(stringr)
         
         # Helper function to safely print plots to PDF

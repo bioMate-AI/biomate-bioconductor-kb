@@ -59,9 +59,9 @@ process BIOC_CAEN_CAEN_FEATURE_SELECTION_AND_CLASSIFICATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(CAEN)
+    library(SummarizedExperiment)
     
     # -----------------------------------------------------------------------------
     # 1. Read User Input Files

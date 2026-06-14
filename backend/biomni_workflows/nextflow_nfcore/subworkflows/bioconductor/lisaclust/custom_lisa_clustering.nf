@@ -59,9 +59,9 @@ process BIOC_LISACLUST_CUSTOM_LISA_CLUSTERING {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(lisaClust)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # 1. Read the user input file

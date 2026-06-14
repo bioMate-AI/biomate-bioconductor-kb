@@ -54,9 +54,9 @@ process BIOC_EDS_EDS_ALEVIN_IMPORT_PIPELINE {
           }
         }
     
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(eds)
+    library(SummarizedExperiment)
     library(Matrix)
     
     # --- Read input metadata and prepare dimensions ---

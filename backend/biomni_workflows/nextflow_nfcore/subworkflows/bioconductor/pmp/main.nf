@@ -64,9 +64,9 @@ process BIOC_PMP_METABOLOMICS_FILTERING_AND_NORMALIZATION {
           }
         }
     
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(pmp)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # 1. Read input file

@@ -52,9 +52,9 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(RBioinf)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # --- Read Input Data ---

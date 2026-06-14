@@ -61,9 +61,9 @@ process BIOC_RNASENSE_TIME_RESOLVED_RNASEQ_ANALYSIS {
           }
         }
         
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(RNAsense)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # ==========================================

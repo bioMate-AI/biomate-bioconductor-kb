@@ -61,9 +61,9 @@ process BIOC_SUPERSIGS_TRAIN_SUPERSIG {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(supersigs)
+    library(SummarizedExperiment)
     library(VariantAnnotation)
     library(BSgenome.Hsapiens.UCSC.hg19)
     library(dplyr)

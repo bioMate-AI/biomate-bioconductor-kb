@@ -59,9 +59,9 @@ process BIOC_CELLMIXS_EVALUATE_AND_COMPARE_INTEGRATION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(CellMixS)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(cowplot)
     

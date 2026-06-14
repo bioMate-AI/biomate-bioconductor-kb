@@ -60,8 +60,8 @@ process BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION {
         }
             
         # Load required libraries
-        li        library(SummarizedExperiment)
-brary(scuttle)
+        library(scuttle)
+        library(SummarizedExperiment)
         
         # Read user input files from the working directory
         sce <- readRDS("sce.rds")

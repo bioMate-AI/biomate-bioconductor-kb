@@ -58,9 +58,9 @@ process BIOC_MEAL_REGIONAL_RDA {
           }
         }
         
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(MEAL)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(minfi)
     

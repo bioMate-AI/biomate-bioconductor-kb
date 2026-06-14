@@ -61,9 +61,9 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
           }
         }
         
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(DEGreport)
+    library(SummarizedExperiment)
     library(DESeq2)
     library(ggplot2)
     

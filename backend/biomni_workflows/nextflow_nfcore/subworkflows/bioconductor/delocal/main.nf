@@ -61,9 +61,9 @@ process BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(DELocal)
+    library(SummarizedExperiment)
     library(dplyr)
     library(ggplot2)
     

@@ -58,9 +58,9 @@ process BIOC_SCGPS_SUBPOPULATION_RELATIONSHIP_PREDICTION {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(scGPS)
+    library(SummarizedExperiment)
     library(networkD3)
     library(dplyr)
     

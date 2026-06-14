@@ -59,9 +59,9 @@ process BIOC_SCMERGE_SC_MERGE_V2 {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(scMerge)
+    library(SummarizedExperiment)
     library(scater)
     library(batchelor)
     library(DelayedMatrixStats)

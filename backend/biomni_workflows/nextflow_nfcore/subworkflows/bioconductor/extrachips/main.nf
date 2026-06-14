@@ -54,9 +54,9 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(tidyverse)
+    library(SummarizedExperiment)
     library(extraChIPs)
     library(GenomicRanges)
     library(edgeR)

@@ -65,9 +65,9 @@ process BIOC_SCONE_SCONE_NORMALIZATION_COMPARISON {
           }
         }
         
-        # Load required libraries        library(SummarizedExperiment)
-
+        # Load required libraries
         library(scone)
+        library(SummarizedExperiment)
         library(BiocParallel)
         
         # ==========================================

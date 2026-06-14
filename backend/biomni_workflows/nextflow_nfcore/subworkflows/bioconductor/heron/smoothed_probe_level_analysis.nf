@@ -60,9 +60,9 @@ process BIOC_HERON_SMOOTHED_PROBE_LEVEL_ANALYSIS {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages      library(SummarizedExperiment)
-({
+    suppressPackageStartupMessages({
       library(HERON)
+      library(SummarizedExperiment)
     })
     
     # Helper function to locate and read the input files robustly

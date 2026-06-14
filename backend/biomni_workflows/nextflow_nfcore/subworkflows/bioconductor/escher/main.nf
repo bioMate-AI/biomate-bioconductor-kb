@@ -60,9 +60,9 @@ process BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(escheR)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(ggplot2)
     library(scater)

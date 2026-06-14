@@ -57,9 +57,9 @@ process BIOC_FEATSEEKR_UNSUPERVISED_FEATURE_SELECTION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(FeatSeekR)
+    library(SummarizedExperiment)
     library(pheatmap)
     
     # Define input file path

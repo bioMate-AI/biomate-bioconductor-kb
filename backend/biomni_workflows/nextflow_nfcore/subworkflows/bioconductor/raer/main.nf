@@ -58,9 +58,9 @@ process BIOC_RAER_SINGLE_CELL_EDITING {
           }
         }
                     
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(raer)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(Rsamtools)
     

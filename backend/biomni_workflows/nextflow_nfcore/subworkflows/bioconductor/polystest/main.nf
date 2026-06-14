@@ -61,9 +61,9 @@ process BIOC_POLYSTEST_QUANTITATIVE_OMICS_DIFFERENTIAL_TESTING {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(PolySTest)
+    library(SummarizedExperiment)
     library(matrixStats)
     
     # 1. Load and preprocess quantitative data

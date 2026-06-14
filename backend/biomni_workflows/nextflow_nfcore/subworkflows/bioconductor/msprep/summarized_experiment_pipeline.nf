@@ -61,8 +61,8 @@ process BIOC_MSPREP_SUMMARIZED_EXPERIMENT_PIPELINE {
         }
         
         # Load required libraries
-        l        library(SummarizedExperiment)
-ibrary(MSPrep)
+        library(MSPrep)
+        library(SummarizedExperiment)
         
         # -----------------------------------------------------------------------------
         # 1. Load User Input

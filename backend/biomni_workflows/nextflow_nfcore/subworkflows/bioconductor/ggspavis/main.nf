@@ -61,9 +61,9 @@ process BIOC_GGSPAVIS_SPATIAL_COORDINATE_AND_VISIUM_PLOTTING {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(ggspavis)
+    library(SummarizedExperiment)
     library(patchwork)
     library(ggplot2)
     library(SpatialExperiment)

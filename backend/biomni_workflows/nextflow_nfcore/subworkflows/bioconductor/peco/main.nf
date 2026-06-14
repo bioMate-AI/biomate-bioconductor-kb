@@ -51,9 +51,9 @@ process BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE {
               if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
             }
           }
-        }    library(SummarizedExperiment)
-
+        }
     library(peco)
+    library(SummarizedExperiment)
     
     # 1. Load input data
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {

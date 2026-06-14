@@ -59,9 +59,9 @@ process BIOC_DEEPSNV_SHEARWATER_ML_VARIANT_CALLING {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(deepSNV)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(VariantAnnotation)
     library(Rsamtools)

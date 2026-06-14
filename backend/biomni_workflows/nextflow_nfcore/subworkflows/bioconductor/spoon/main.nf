@@ -60,9 +60,9 @@ process BIOC_SPOON_WEIGHTED_NNSVG_WORKFLOW {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(nnSVG)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(BRISC)
     library(BiocParallel)

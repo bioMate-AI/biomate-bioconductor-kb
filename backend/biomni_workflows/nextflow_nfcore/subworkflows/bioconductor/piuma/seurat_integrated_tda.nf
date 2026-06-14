@@ -64,9 +64,9 @@ process BIOC_PIUMA_SEURAT_INTEGRATED_TDA {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(Seurat)
+    library(SummarizedExperiment)
     library(PIUMA)
     library(ggplot2)
     library(dplyr)

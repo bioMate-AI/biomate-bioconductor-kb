@@ -61,8 +61,8 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
         }
         
         # Load required libraries
-        librar        library(SummarizedExperiment)
-y(MultiAssayExperiment)
+        library(MultiAssayExperiment)
+        library(SummarizedExperiment)
         library(padma)
         
         # --- Format/read multi-omic data as a MultiAssayExperiment ---

@@ -60,9 +60,9 @@ process BIOC_MPRA_TISSUE_COMPARISON {
           }
         }
         
-        # Load required librarie        library(SummarizedExperiment)
-s
+        # Load required libraries
         library(mpra)
+        library(SummarizedExperiment)
         library(limma)
         
         # 1. Read User Input Files
