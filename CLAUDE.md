@@ -1,5 +1,50 @@
 # BioMate Project Instructions
 
+## Sync Rule: Only `integration/next-phase` Syncs to Dev
+
+**Hard rule, no exceptions in a single session: only the
+`integration/next-phase` branch is allowed to be the source of
+`scripts/sync_to_dev.sh`. No other branch (`bioc/v2-qc-audit-panel`,
+`integration/*` topic branches, agent worktrees, etc.) ever syncs
+directly to dev.**
+
+Why: dev is a shared resource for the whole team. Parallel sessions
+each syncing their own branch creates an unobservable race where
+"dev is at commit X" depends on whose sync ran last. Anchoring sync
+to a single canonical branch makes "what's on dev" deterministic and
+easy to reason about.
+
+**Workflow when your branch has changes you want on dev:**
+
+1. Land + test the change on your topic branch (e.g.
+   `bioc/v2-qc-audit-panel`).
+2. Merge the topic branch into `integration/next-phase`. The merge
+   itself is where conflicts get resolved and where the change
+   becomes "promoted" to the canonical line.
+3. From `integration/next-phase`, run `scripts/sync_to_dev.sh`.
+
+**Specifically forbidden:**
+
+- Running `scripts/sync_to_dev.sh` while checked out on any branch
+  other than `integration/next-phase`.
+- Cherry-picking a single commit from a topic branch directly onto
+  dev's container (`docker cp` / `scp` of source files) to "skip the
+  merge step." Always go through next-phase.
+- Pushing a topic-branch state to dev as a one-off because "it's
+  faster" — same problem as above; merge first.
+
+**Edge case — emergency hotfix that can't wait for a merge cycle:**
+the hotfix still goes on `integration/next-phase` first; cherry-pick
+the fix commit there, push, then sync. The hotfix author is
+responsible for back-porting / merging it to whatever topic branches
+need it after.
+
+If you're uncertain whether you're on the canonical branch, run
+`git branch --show-current` before any sync command. If the answer
+is anything other than `integration/next-phase`, STOP.
+
+---
+
 ## Engineering Discipline: Resolve Root Causes — Never Workaround
 
 **This is the highest-priority rule in this file. It overrides all convenience shortcuts.**
