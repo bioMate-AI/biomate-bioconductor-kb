@@ -92,15 +92,18 @@ RUN test -d /usr/local/lib/R/site-library/Rcpp \
     || (echo "FATAL: Rcpp family missing from site-library" && exit 1)
 
 # ── Core tidyverse + reporting ────────────────────────────────────────────────
-RUN Rscript -e " \
-    install.packages( \
-        c('tidyverse', 'data.table', 'nlme', \
-          'rmarkdown', 'knitr', 'DT', 'plotly', \
-          'jsonlite', 'ggplot2'), \
-        dependencies = TRUE \
-    ); \
-    cat('Core install done\n') \
-" || true
+# 2026-06-13: split into one-package-at-a-time install so a single failed
+# subdep doesn't tank the whole layer silently under '|| true'. Each install
+# is its own cache key so a partial failure is visible per-package.
+RUN Rscript -e "install.packages('data.table', dependencies = TRUE); cat('data.table install done\n')" || true
+RUN Rscript -e "install.packages('nlme', dependencies = TRUE); cat('nlme install done\n')" || true
+RUN Rscript -e "install.packages('jsonlite', dependencies = TRUE); cat('jsonlite install done\n')" || true
+RUN Rscript -e "install.packages('ggplot2', dependencies = TRUE); cat('ggplot2 install done\n')" || true
+RUN Rscript -e "install.packages('rmarkdown', dependencies = TRUE); cat('rmarkdown install done\n')" || true
+RUN Rscript -e "install.packages('knitr', dependencies = TRUE); cat('knitr install done\n')" || true
+RUN Rscript -e "install.packages('DT', dependencies = TRUE); cat('DT install done\n')" || true
+RUN Rscript -e "install.packages('plotly', dependencies = TRUE); cat('plotly install done\n')" || true
+RUN Rscript -e "install.packages('tidyverse', dependencies = TRUE); cat('tidyverse install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/tidyverse \
     && test -d /usr/local/lib/R/site-library/data.table \
     && test -d /usr/local/lib/R/site-library/nlme \
