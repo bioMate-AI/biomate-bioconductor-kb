@@ -82,6 +82,18 @@ export function buildSchemaFromWorkflowGa(args: {
       if (e.description) spec.description = e.description;
       if (e.options && e.options.length > 0) {
         spec.enum = e.options.map((o) => String(o.value));
+        spec.type = "enum";
+      } else if (e.description) {
+        // The backend's _parse_nextflow_params (.nf fallback path) preserves
+        // pipe-separated enum hints inline in the description field rather
+        // than populating options[]. Detect them so the rule pass can
+        // normalize ("T cells" → "T_cell") and the validator can catch
+        // enum violations.
+        const inlineEnum = extractInlineEnum(e.description);
+        if (inlineEnum) {
+          spec.enum = inlineEnum;
+          spec.type = "enum";
+        }
       }
       params.push(spec);
     }
@@ -96,6 +108,30 @@ export function buildSchemaFromWorkflowGa(args: {
         ? "workflow_ga"
         : "annotation-only";
   return { workflowName, params, source };
+}
+
+/**
+ * Recognize an inline pipe-separated enum in a description like
+ *   "T_cell | NK_cell | macrophage"
+ *   "transient | persistent"
+ *   "obesity | t2d | mash | cv_outcomes | osa"
+ *
+ * Heuristic: at least 2 pipe-separated tokens, each token is short (< 30 chars)
+ * and looks like an identifier (no spaces inside tokens, alnum/underscore/dash).
+ * Returns null when the description is prose, not an enum hint.
+ */
+function extractInlineEnum(description: string): string[] | null {
+  if (!description.includes("|")) return null;
+  const tokens = description
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (tokens.length < 2) return null;
+  // Each token must look like an enum value (no whitespace inside, < 30 chars,
+  // alnum/_/-/+).
+  const tokenRe = /^[A-Za-z0-9][A-Za-z0-9_\-+.]{0,29}$/;
+  if (!tokens.every((t) => tokenRe.test(t))) return null;
+  return tokens;
 }
 
 function normalizeType(
