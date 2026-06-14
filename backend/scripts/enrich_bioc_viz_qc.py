@@ -52,6 +52,15 @@ VIZ_FUNCS = {
     "VlnPlot": "violin plot", "RidgePlot": "ridge plot", "DoHeatmap": "heatmap",
     "ElbowPlot": "elbow plot", "plot_cells": "trajectory plot",
     "plot_genes_in_pseudotime": "pseudotime plot",
+    # high-frequency gaps surfaced by docs/20260614_BIOC_VIZ_COVERAGE_AUDIT.md
+    "heatmap": "heatmap",                    # base graphics heatmap() — the single biggest miss (97 calls)
+    "plotHeatmap": "heatmap", "meanSdPlot": "mean-SD plot",
+    "plotVolcano": "volcano plot", "MAplot": "MA plot",
+    "plotTracks": "genomic tracks (Gviz)", "plotRegion": "genomic region plot",
+    "plotProfile": "profile plot", "plotCorrelation": "correlation plot",
+    "ggtree": "phylogenetic tree", "plotKaryotype": "karyotype plot",
+    "chordDiagram": "circos plot", "circlize": "circos plot",
+    "pathview": "pathway diagram", "plotROC": "ROC curve", "plotPCA3D": "3D PCA plot",
 }
 # generic plotting devices / ggplot indicate a figure is produced
 GENERIC_VIZ = ("ggplot", "ggsave", "pdf(", "png(", "tiff(", "svg(", "jpeg(", "bmp(", "dev.print")
