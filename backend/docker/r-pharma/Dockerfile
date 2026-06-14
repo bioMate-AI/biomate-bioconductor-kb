@@ -61,6 +61,15 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awsc
 RUN echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' \
     >> /usr/local/lib/R/etc/Rprofile.site
 
+# ── fs/libuv: use bundled libuv instead of system libuv1-dev ─────────────────
+# The 'fs' R package configure script needs libuv. Rather than apt-install
+# libuv1-dev (and risk version skew vs what fs vendors), tell fs to build
+# its bundled static libuv copy. fs is in the hard Imports chain of sass →
+# bslib → rmarkdown → htmlwidgets → DT/plotly and gargle → tidyverse, so
+# missing it cascades broadly. Surfaced 2026-06-13 during this rebuild —
+# the configure failure message itself names this env var as the fix.
+ENV USE_BUNDLED_LIBUV=1
+
 # ── QEMU x86-on-ARM build pattern (matches aizynth Dockerfile) ───────────────
 # Every R install layer has TWO jobs:
 #   1. Real work — install.packages() compiles + writes .so files into
