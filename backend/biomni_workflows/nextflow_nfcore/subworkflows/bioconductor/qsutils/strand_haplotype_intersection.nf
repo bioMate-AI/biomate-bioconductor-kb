@@ -110,7 +110,7 @@ process BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION {
 
     writeLines(c(
         '"BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION":',
-        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+        paste0('        qsutils: ', as.character(packageVersion("QSutils")))
     ), "versions.yml")
     """
 
