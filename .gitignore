@@ -178,3 +178,5 @@ backend/<*>
 
 # Local .claude/ workspace (project-scoped agent state — not source)
 .claude/
+docs/pre_sync_logs/
+docs/post_sync_logs/
