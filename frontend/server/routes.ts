@@ -6676,6 +6676,24 @@ ${paramLines || '(none recorded)'}`;
     if (missing.length) {
       return res.status(400).json({ error: "missing_required_fields", missing });
     }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(sessionId))) {
+      return res.status(400).json({ error: "invalid_session_id", message: "sessionId must be a UUID" });
+    }
+
+    try {
+      const result = await memoryService.recordInteraction({
+        sessionId,
+        projectId,
+        userMessage,
+        assistantResponse,
+        userIntent,
+        toolsUsed,
+        workflowGenerated,
+        workflowId,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error('[API] Record interaction failed:', error);
       // Foreign-key violation = session row doesn't exist yet → 404 is more honest than 500
       const msg = String(error?.message ?? "");
       if (msg.includes("violates foreign key constraint") && msg.includes("session_id")) {
