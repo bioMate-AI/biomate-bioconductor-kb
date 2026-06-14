@@ -118,7 +118,10 @@ describe("Q4: project framework — wired, policy 'chats can be project-less'", 
   });
 
   it("chat-stream wraps the memory bootstrap in try/catch so a memory failure never breaks chat", () => {
-    expect(/try\s*\{[\s\S]{0,400}ensureLtmUser[\s\S]{0,400}\}\s*catch/.test(ROUTES)).toBe(true);
+    // The try block legitimately spans ensureLtmUser → resolveProjectForChat →
+    // ensureChatLtmSession → recoverProjectDatasets (all must be guarded), so the
+    // window from ensureLtmUser to the closing catch is large by design.
+    expect(/try\s*\{[\s\S]{0,400}ensureLtmUser[\s\S]{0,2000}\}\s*catch/.test(ROUTES)).toBe(true);
   });
 
   it("the deprecated ensureDefaultProject helper survives but no longer creates a Default Workspace", () => {
