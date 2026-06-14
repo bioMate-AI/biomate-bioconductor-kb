@@ -1657,15 +1657,24 @@ The GLP declaration above applies to any wet-lab validation studies cited herein
         n_ref = vr.get("n_reference_compounds", 0)
         reg_summary = vr.get("regulatory_summary", "")
 
-        narrative = _llm_narrative("pbpk", {
-            "AFE_Cmax": _fmt(m.get("AFE_Cmax")),
-            "AAFE_Cmax": _fmt(m.get("AAFE_Cmax")),
-            "R2_Cmax": _fmt(m.get("R2_Cmax")),
-            "within_2fold_Cmax": _pct(m.get("within_2fold_Cmax")),
-            "within_2fold_AUC": _pct(m.get("within_2fold_AUC")),
-            "ema_criterion_met": ema_met,
-        },
-            region=ctx.get("region","FDA"))
+        # B4: citation-critical section — wrap with autoloop so a missing
+        # EMA/CHMP/EWP/37498/2011 citation (CITE_001) triggers a regen with
+        # the rule injected as a constraint instead of one-shot fallback.
+        from galaxy.ai.drug_discovery.ind_autoloop import llm_narrative_with_retry
+        narrative, _autoloop_constraints = llm_narrative_with_retry(
+            "pbpk",
+            {
+                "AFE_Cmax": _fmt(m.get("AFE_Cmax")),
+                "AAFE_Cmax": _fmt(m.get("AAFE_Cmax")),
+                "R2_Cmax": _fmt(m.get("R2_Cmax")),
+                "within_2fold_Cmax": _pct(m.get("within_2fold_Cmax")),
+                "within_2fold_AUC": _pct(m.get("within_2fold_AUC")),
+                "ema_criterion_met": ema_met,
+            },
+            region=ctx.get("region", "FDA"),
+        )
+        if _autoloop_constraints:
+            log.debug("[IND autoloop] pbpk regenerated under constraints: %s", _autoloop_constraints)
 
         # Build per-compound table (top 15 by fold error)
         per_cpd = vr.get("per_compound", [])
@@ -2528,20 +2537,34 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
             "ames_flagged": ames_flagged,
         },
             region=ctx.get("region","FDA"))
-        narrative_genotox = _llm_narrative("tox_genotox", {
-            "molecule_name": ctx["molecule_name"],
-            "total_compounds": total,
-            "ames_flagged": ames_flagged,
-            "ames_result": lead_ames,
-        },
-            region=ctx.get("region","FDA"))
-        narrative_cardiac = _llm_narrative("tox_cardiac", {
-            "molecule_name": ctx["molecule_name"],
-            "total_compounds": total,
-            "herg_flagged": herg_flagged,
-            "lead_herg_ic50": lead_herg,
-        },
-            region=ctx.get("region","FDA"))
+        # B4: citation-critical sections — autoloop covers CITE_002 (S2(R1))
+        # and CONTENT_002 (Ames mention) for genotox, CITE_003 (S7B) for
+        # cardiac. Each gets up to 3 attempts with failed-rule constraint.
+        from galaxy.ai.drug_discovery.ind_autoloop import llm_narrative_with_retry
+        narrative_genotox, _gt_constraints = llm_narrative_with_retry(
+            "tox_genotox",
+            {
+                "molecule_name": ctx["molecule_name"],
+                "total_compounds": total,
+                "ames_flagged": ames_flagged,
+                "ames_result": lead_ames,
+            },
+            region=ctx.get("region", "FDA"),
+        )
+        if _gt_constraints:
+            log.debug("[IND autoloop] tox_genotox regenerated under constraints: %s", _gt_constraints)
+        narrative_cardiac, _ca_constraints = llm_narrative_with_retry(
+            "tox_cardiac",
+            {
+                "molecule_name": ctx["molecule_name"],
+                "total_compounds": total,
+                "herg_flagged": herg_flagged,
+                "lead_herg_ic50": lead_herg,
+            },
+            region=ctx.get("region", "FDA"),
+        )
+        if _ca_constraints:
+            log.debug("[IND autoloop] tox_cardiac regenerated under constraints: %s", _ca_constraints)
 
         intro_block = f"\n{narrative_intro}\n" if narrative_intro else ""
         genotox_block = f"\n{narrative_genotox}\n" if narrative_genotox else ""
