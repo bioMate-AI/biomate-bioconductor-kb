@@ -4,13 +4,8 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 19 of 20 candidate workflows verified end-to-end. 1 remains
-code-ready and blocked by an issue independent of the QC code path
-(nlmixr2 — missing `biomate/r-pharma:x86` ECR image; r-pharma rebuild
-blocked under QEMU x86-on-ARM at R `install.packages`, needs the same
-two-tier Dockerfile pattern as aizynth — see
-`docs/20260613_QC_COVERAGE_BLOCKER_FIXES.md`). Two earlier-blocked
-workflows have been unblocked:
+**Result:** 20 of 20 candidate workflows verified end-to-end. All previously
+blocked workflows have been unblocked:
 
 - `aizynthfinder_retrosynthesis` — container rebuilt with USPTO model
   baked in from Zenodo (`https://zenodo.org/record/7797465`). Run
@@ -24,6 +19,17 @@ workflows have been unblocked:
   from the `publishDir = null` injection block + boltz CLI flag
   fixes (`--output_format` etc.) + NO_FILE placeholder channel
   removal.
+- `nlmixr2_population_pk` — `biomate/r-pharma:x86` rebuilt from scratch
+  (see `docs/20260614_BIOC_VIZ_FIX_AND_RPHARMA_BUILD.md` for the
+  7-iteration journey through QEMU emulation + missing system libs).
+  Verified end-to-end on the 12-subject Theophylline-style fixture via
+  run `5b366088` 2026-06-14 22:01:29 UTC: FOCEI fit converged,
+  qc_metrics.json published, QC Gate PASSED. **Workflow accuracy bug
+  separately observed:** `eta_shrinkage_pct_max: 8719.1` (impossible
+  >100%) and `condition_number: {}` / `ofv: {}` (should be numbers) —
+  follow-up commit needed to fix the metric calculation. The coverage
+  cycle ([QC-S3] read → [QC Gate] PASSED) is proven independently of
+  the metric semantics.
 
 ## Verified workflows
 
