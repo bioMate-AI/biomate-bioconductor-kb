@@ -39,7 +39,7 @@ process BIOC_BIOSIGNER_MULTI_ASSAY_EXPERIMENT_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("biosigner", "MultiAssayExperiment")
+    .bm_deps <- c("biosigner", "MultiAssayExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -56,7 +56,8 @@ process BIOC_BIOSIGNER_MULTI_ASSAY_EXPERIMENT_ANALYSIS {
           }
         }
         
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(biosigner)
     library(MultiAssayExperiment)
     

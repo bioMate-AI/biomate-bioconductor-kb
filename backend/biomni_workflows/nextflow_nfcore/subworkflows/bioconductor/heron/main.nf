@@ -46,7 +46,7 @@ process BIOC_HERON_STANDARD_EPITOPE_PROTEIN_BINDING_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("HERON", "S4Vectors")
+    .bm_deps <- c("HERON", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_HERON_STANDARD_EPITOPE_PROTEIN_BINDING_ANALYSIS {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({
+    suppressPackageStartupMessages      library(SummarizedExperiment)
+({
       library(HERON)
       library(S4Vectors)
     })

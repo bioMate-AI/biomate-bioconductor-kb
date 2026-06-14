@@ -46,7 +46,7 @@ process BIOC_BROADSEQ_RNASEQ_ANALYSIS_AND_COMPARISON {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("broadSeq", "ggplot2", "ggpubr", "dplyr")
+    .bm_deps <- c("broadSeq", "ggplot2", "ggpubr", "dplyr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_BROADSEQ_RNASEQ_ANALYSIS_AND_COMPARISON {
         }
         
         # Load required libraries
-        library(broadSeq)
+          library(SummarizedExperiment)
+      library(broadSeq)
         library(ggplot2)
         library(ggpubr)
         library(dplyr)

@@ -42,7 +42,7 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("zinbwave", "BiocParallel", "edgeR", "DESeq2")
+    .bm_deps <- c("zinbwave", "BiocParallel", "edgeR", "DESeq2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
         }
         
         # Load required libraries
-        library(zinbwave)
+          library(SummarizedExperiment)
+      library(zinbwave)
         library(BiocParallel)
         library(edgeR)
         library(DESeq2)

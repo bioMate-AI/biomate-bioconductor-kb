@@ -34,7 +34,7 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SpliceWiz", "edgeR")
+    .bm_deps <- c("SpliceWiz", "edgeR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
     }
     
     # Load the required SpliceWiz library
-    library(SpliceWiz)
+        library(SummarizedExperiment)
+library(SpliceWiz)
     
     # --- Build the SpliceWiz reference using buildRef() ---
     ref_path <- file.path(tempdir(), "Reference")

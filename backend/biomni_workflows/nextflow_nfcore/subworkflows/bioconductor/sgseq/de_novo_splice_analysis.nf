@@ -43,7 +43,7 @@ process BIOC_SGSEQ_DE_NOVO_SPLICE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BSgenome", "GenomicFeatures", "GenomicRanges", "SGSeq")
+    .bm_deps <- c("BSgenome", "GenomicFeatures", "GenomicRanges", "SGSeq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_SGSEQ_DE_NOVO_SPLICE_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(SGSeq)
     library(GenomicRanges)
     library(GenomicFeatures)

@@ -34,7 +34,7 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ExperimentHub", "ggalluvial", "ggplot2", "limma", "SpatialExperiment", "standR")
+    .bm_deps <- c("ExperimentHub", "ggalluvial", "ggplot2", "limma", "SpatialExperiment", "standR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
       stop("Error: Missing required input files ('countFile', 'sampleAnnoFile', 'featureAnnoFile') in the working directory.")
     }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(standR)
     library(SpatialExperiment)
     library(limma)

@@ -36,7 +36,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("dinoR", "ggplot2", "dplyr", "S4Vectors", "GenomicRanges")
+    .bm_deps <- c("dinoR", "ggplot2", "dplyr", "S4Vectors", "GenomicRanges", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({
+    suppressPackageStartupMessages({        library(SummarizedExperiment)
+
         library(dinoR)
         library(ggplot2)
         library(dplyr)

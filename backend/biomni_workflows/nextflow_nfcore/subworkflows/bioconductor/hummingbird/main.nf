@@ -42,7 +42,7 @@ process BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "hummingbird")
+    .bm_deps <- c("GenomicRanges", "hummingbird", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,9 @@ process BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION {
           }
         }
         
-    library(GenomicRanges)
+           
+    library(SummarizedExperiment)
+ library(GenomicRanges)
     library(hummingbird)
     
     # Helper function to robustly load input files from the working directory

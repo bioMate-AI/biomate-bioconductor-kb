@@ -37,7 +37,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("shinyMethyl", "minfi", "IlluminaHumanMethylation450kanno.ilmn12.hg19")
+    .bm_deps <- c("shinyMethyl", "minfi", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +55,8 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
         }
     
     # --- Load required libraries ---
-    library(shinyMethyl)
+     library(SummarizedExperiment)
+   library(shinyMethyl)
     library(minfi)
     library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     

@@ -62,6 +62,7 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
     
     # Load required libraries
     library(tximeta)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     
     # --- Read user input files from the working directory ---

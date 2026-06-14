@@ -43,7 +43,7 @@ process BIOC_TRICYCLE_CELL_CYCLE_INFERENCE_AND_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("tricycle", "ggplot2", "cowplot")
+    .bm_deps <- c("tricycle", "ggplot2", "cowplot", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_TRICYCLE_CELL_CYCLE_INFERENCE_AND_VISUALIZATION {
         }
         
         # Load required libraries
-        library(tricycle)
+          library(SummarizedExperiment)
+      library(tricycle)
         library(ggplot2)
         library(cowplot)
         

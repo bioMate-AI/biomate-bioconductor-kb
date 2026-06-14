@@ -41,7 +41,7 @@ process BIOC_SPOTSWEEPER_TECHNICAL_ARTIFACT_DETECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SpatialExperiment", "SpotSweeper", "ggplot2")
+    .bm_deps <- c("SpatialExperiment", "SpotSweeper", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SPOTSWEEPER_TECHNICAL_ARTIFACT_DETECTION {
         }
     
     # Load required libraries
-    library(SpotSweeper)
+     library(SummarizedExperiment)
+   library(SpotSweeper)
     library(SpatialExperiment)
     library(ggplot2)
     

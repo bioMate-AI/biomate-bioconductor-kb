@@ -45,7 +45,7 @@ process BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DaMiRseq")
+    .bm_deps <- c("DaMiRseq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION {
         }
         
         # Load required libraries
-        library(DaMiRseq)
+        lib        library(SummarizedExperiment)
+rary(DaMiRseq)
         
         # 1. Import data and create a SummarizedExperiment object
         count_data <- read.delim("count_data.txt", header = TRUE, row.names = 1)

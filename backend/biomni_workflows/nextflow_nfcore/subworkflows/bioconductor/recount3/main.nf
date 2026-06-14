@@ -36,7 +36,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("recount3", "S4Vectors", "GenomicRanges", "BiocGenerics")
+    .bm_deps <- c("recount3", "S4Vectors", "GenomicRanges", "BiocGenerics", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(recount3)
     library(S4Vectors)
     library(GenomicRanges)

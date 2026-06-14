@@ -37,7 +37,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("TTMap", "rgl")
+    .bm_deps <- c("TTMap", "rgl", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -56,6 +56,8 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     
     # Set rgl to use NULL device to prevent headless display errors
     options(rgl.useNULL = TRUE)
+    
+    library(SummarizedExperiment)
     
     library(TTMap)
     library(rgl)

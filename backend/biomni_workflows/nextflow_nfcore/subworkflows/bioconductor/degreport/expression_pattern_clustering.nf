@@ -42,7 +42,7 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "DEGreport")
+    .bm_deps <- c("DESeq2", "DEGreport", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
           }
         }
             
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(DESeq2)
     library(DEGreport)
     

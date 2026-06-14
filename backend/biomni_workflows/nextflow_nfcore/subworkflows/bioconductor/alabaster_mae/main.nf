@@ -36,7 +36,7 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MultiAssayExperiment", "S4Vectors", "alabaster.base", "alabaster.mae")
+    .bm_deps <- c("MultiAssayExperiment", "S4Vectors", "alabaster.base", "alabaster.mae", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
         }
     
     # Load required libraries
-    library(MultiAssayExperiment)
+    librar    library(SummarizedExperiment)
+y(MultiAssayExperiment)
     library(S4Vectors)
     library(alabaster.base)
     library(alabaster.mae)

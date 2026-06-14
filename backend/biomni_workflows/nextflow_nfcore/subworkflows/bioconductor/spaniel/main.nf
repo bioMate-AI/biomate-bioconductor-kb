@@ -46,7 +46,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DropletUtils", "ggplot2", "scater", "scran", "Spaniel")
+    .bm_deps <- c("DropletUtils", "ggplot2", "scater", "scran", "Spaniel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
           }
         }
         
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(Spaniel)
     library(DropletUtils)
     library(scater)

@@ -34,7 +34,7 @@ process BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("S4Vectors", "SpatialExperiment", "SpotClean")
+    .bm_deps <- c("S4Vectors", "SpatialExperiment", "SpotClean", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW {
     }
     
     # Load required libraries
-    library(SpatialExperiment)
+    lib    library(SummarizedExperiment)
+rary(SpatialExperiment)
     library(SpotClean)
     library(S4Vectors)
     

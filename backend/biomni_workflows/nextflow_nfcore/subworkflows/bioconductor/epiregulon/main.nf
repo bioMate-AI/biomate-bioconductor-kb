@@ -48,7 +48,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "SingleCellExperiment", "epiregulon", "scuttle")
+    .bm_deps <- c("BiocParallel", "SingleCellExperiment", "epiregulon", "scuttle", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -66,6 +66,7 @@ process BIOC_EPIREGULON_SC_MULTIOMIC_TF_ACTIVITY_INFERENCE {
         }
         
     # Load required libraries
+    library(SummarizedExperiment)
     library(epiregulon)
     library(scuttle)
     library(BiocParallel)

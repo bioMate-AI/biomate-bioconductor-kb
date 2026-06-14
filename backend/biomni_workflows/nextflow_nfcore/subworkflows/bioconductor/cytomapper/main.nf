@@ -34,7 +34,7 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "cowplot", "cytomapper", "ggplot2", "HDF5Array")
+    .bm_deps <- c("SingleCellExperiment", "cowplot", "cytomapper", "ggplot2", "HDF5Array", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,6 +53,7 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(cytomapper)
     library(SingleCellExperiment)
     

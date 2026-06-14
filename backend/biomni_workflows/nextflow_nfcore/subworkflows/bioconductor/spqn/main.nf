@@ -64,6 +64,7 @@ process BIOC_SPQN_SPATIAL_QUANTILE_NORMALIZATION {
     
     # Load required libraries
     library(spqn)
+    library(SummarizedExperiment)
     library(matrixStats)
     library(WGCNA)
     library(ggplot2)

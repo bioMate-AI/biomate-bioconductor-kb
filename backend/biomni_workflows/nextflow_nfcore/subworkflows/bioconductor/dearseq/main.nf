@@ -43,7 +43,7 @@ process BIOC_DEARSEQ_GENE_WISE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("dearseq", "readxl", "edgeR")
+    .bm_deps <- c("dearseq", "readxl", "edgeR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_DEARSEQ_GENE_WISE_ANALYSIS {
         }
         
         # Load required libraries
-        library(dearseq)
+         library(SummarizedExperiment)
+       library(dearseq)
         library(readxl)
         library(edgeR)
         

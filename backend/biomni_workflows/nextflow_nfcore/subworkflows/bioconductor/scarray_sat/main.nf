@@ -36,7 +36,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("S4Vectors", "scarray_sat", "SCArray.sat")
+    .bm_deps <- c("S4Vectors", "scarray_sat", "SCArray.sat", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
         }
     
     # Load required libraries
-    library(S4Vectors)
+        library(SummarizedExperiment)
+library(S4Vectors)
     
     # Load scarray_sat package dynamically to handle potential naming variations
     if (requireNamespace("scarray_sat", quietly = TRUE)) {

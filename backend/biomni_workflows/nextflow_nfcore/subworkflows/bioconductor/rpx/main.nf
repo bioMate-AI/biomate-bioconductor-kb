@@ -35,7 +35,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("rpx")
+    .bm_deps <- c("rpx", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -51,7 +51,9 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
             }
           }
         }
-    
+       
+    library(SummarizedExperiment)
+ 
     library(rpx)
     
     # --- Load and process user input files ---

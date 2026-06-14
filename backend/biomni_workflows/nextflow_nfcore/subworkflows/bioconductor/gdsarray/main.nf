@@ -35,7 +35,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("gdsfmt", "GDSArray", "S4Vectors")
+    .bm_deps <- c("gdsfmt", "GDSArray", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(gdsfmt)
     library(GDSArray)
     library(S4Vectors)

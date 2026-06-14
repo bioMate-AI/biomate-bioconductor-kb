@@ -46,7 +46,7 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_BAM {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("TxDb.Hsapiens.UCSC.hg19.knownGene", "BiocParallel", "data.table", "FRASER", "org.Hs.eg.db")
+    .bm_deps <- c("TxDb.Hsapiens.UCSC.hg19.knownGene", "BiocParallel", "data.table", "FRASER", "org.Hs.eg.db", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,9 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_BAM {
             }
           }
         }
-    
+     
+    library(SummarizedExperiment)
+   
     library(FRASER)
     library(data.table)
     library(BiocParallel)

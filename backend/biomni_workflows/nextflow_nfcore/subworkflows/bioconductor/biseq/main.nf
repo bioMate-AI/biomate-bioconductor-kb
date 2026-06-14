@@ -49,7 +49,7 @@ process BIOC_BISEQ_GROUP_WISE_DMR_DETECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "BiSeq")
+    .bm_deps <- c("GenomicRanges", "BiSeq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -66,7 +66,8 @@ process BIOC_BISEQ_GROUP_WISE_DMR_DETECTION {
           }
         }
         
-        # Load required libraries
+        # Load required libraries        library(SummarizedExperiment)
+
         library(BiSeq)
         library(GenomicRanges)
         

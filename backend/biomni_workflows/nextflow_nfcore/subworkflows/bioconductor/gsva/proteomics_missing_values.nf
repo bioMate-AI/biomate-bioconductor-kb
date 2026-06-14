@@ -41,7 +41,7 @@ process BIOC_GSVA_PROTEOMICS_MISSING_VALUES {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GSVA", "GSEABase", "org.Hs.eg.db")
+    .bm_deps <- c("GSVA", "GSEABase", "org.Hs.eg.db", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_GSVA_PROTEOMICS_MISSING_VALUES {
         }
             
             # Load required libraries
-            library(GSVA)
+              library(SummarizedExperiment)
+          library(GSVA)
             library(GSEABase)
             library(org.Hs.eg.db)
             

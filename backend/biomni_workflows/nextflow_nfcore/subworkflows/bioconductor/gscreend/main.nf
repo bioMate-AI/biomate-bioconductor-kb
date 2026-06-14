@@ -43,7 +43,7 @@ process BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("gscreend")
+    .bm_deps <- c("gscreend", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS {
         }
     
     # Load required libraries
-    library(gscreend)
+       library(SummarizedExperiment)
+ library(gscreend)
     
     # 1. Load raw count data from the user-specified file
     # The file is expected to be a tab-separated text file in the working directory
