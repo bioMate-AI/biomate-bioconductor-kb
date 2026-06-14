@@ -61,6 +61,24 @@ VIZ_FUNCS = {
     "ggtree": "phylogenetic tree", "plotKaryotype": "karyotype plot",
     "chordDiagram": "circos plot", "circlize": "circos plot",
     "pathview": "pathway diagram", "plotROC": "ROC curve", "plotPCA3D": "3D PCA plot",
+    # long-tail uncovered functions from the same audit
+    "qcReport": "array QC report", "plotDensities": "density plot",
+    "plotRLE": "RLE plot", "mdsPlot": "MDS plot",
+    "vennDiagram": "Venn diagram", "venn": "Venn diagram", "upset": "UpSet plot",
+    "qq": "QQ plot", "plotManhattan": "Manhattan plot",
+    "ggbio": "genomic plot (ggbio)", "forestplot": "forest plot",
+    "corrplot": "correlation plot", "densityPlot": "density plot",
+    "plotDiagnostics": "diagnostic plot", "plotDMRs": "DMR plot",
+    "ideogram": "ideogram", "plotChromosome": "chromosome plot",
+    "plotGenes": "gene track plot", "fviz_nbclust": "elbow plot",
+    "beeswarm": "beeswarm plot", "plotSA": "SA diagnostic",
+    "plotCoverage": "coverage plot", "screeplot": "scree plot",
+    "biplot": "biplot", "plotPosterior": "posterior plot",
+    "xyplot": "scatter plot", "levelplot": "level plot", "splom": "scatter matrix",
+    "cloud": "3D scatter", "smoothScatter": "smooth scatter",
+    "plotDendrogram": "dendrogram", "dendrogram": "dendrogram",
+    "stripchart": "strip chart", "matplot": "matrix plot",
+    "mosaicplot": "mosaic plot",
 }
 # generic plotting devices / ggplot indicate a figure is produced
 GENERIC_VIZ = ("ggplot", "ggsave", "pdf(", "png(", "tiff(", "svg(", "jpeg(", "bmp(", "dev.print")
@@ -78,6 +96,20 @@ FIG_HINTS = [
     (r'enrich|emap|gsea', "enrichment plot"), (r'cluster', "cluster plot"),
     (r'pseudotime|trajectory', "trajectory plot"), (r'\bqc\b', "QC plot"),
     (r'scatter', "scatter plot"), (r'elbow', "elbow plot"), (r'survival|kaplan', "survival plot"),
+    # broader hints to shrink the 1,487 generic-only bucket from the 06-14 audit
+    (r'\btrack', "genomic tracks"), (r'\bprofile\b', "profile plot"),
+    (r'\bcorrelation\b|\bcorr\b', "correlation plot"),
+    (r'karyotype|ideogram', "karyotype plot"),
+    (r'pathway|\bkegg\b', "pathway diagram"),
+    (r'\broc\b', "ROC curve"), (r'manhattan', "Manhattan plot"),
+    (r'\bqq\b', "QQ plot"), (r'tree|phylo', "phylogenetic tree"),
+    (r'mean[_.-]?sd', "mean-SD plot"), (r'\brle\b', "RLE plot"),
+    (r'forest', "forest plot"), (r'circos|chord', "circos plot"),
+    (r'venn', "Venn diagram"), (r'upset', "UpSet plot"),
+    (r'mds[_.-]', "MDS plot"), (r'biplot', "biplot"),
+    (r'beeswarm', "beeswarm plot"), (r'coverage', "coverage plot"),
+    (r'screeplot|\bscree\b', "scree plot"),
+    (r'mosaic', "mosaic plot"), (r'strip[_.-]?chart', "strip chart"),
 ]
 
 
