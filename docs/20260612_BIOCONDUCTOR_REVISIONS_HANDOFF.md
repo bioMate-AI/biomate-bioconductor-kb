@@ -82,7 +82,14 @@ No separate prod app container was found. If a distinct production app exists on
 these changes have NOT been promoted there.
 
 ## 6. Open items (for the team)
-1. **Bioc dep-hell follow-up build** — `BiocManager::install`-based rebuild with `xcms`/`rbiom` version pins to recover `metaMS`/`mia`; add `combi`/`immunoClust` to the deps lists.
+1. **Bioc dep-hell — CLOSED as upstream (not a build away).** Exhausted incrementally
+   (install.packages, BiocManager, rbiom/xfun pins, CRAN snapshot, AND the official
+   `bioconductor_docker:RELEASE_3_20` base — all fail). It is **upstream Bioconductor/CRAN drift**:
+   the miaverse for Bioc 3.20 (`mia` 1.14.0) is mutually incompatible with current CRAN
+   `rbiom`/`xfun`. **Precise impact: 11 `.nf` / 4 pkgs** (`mia`/`iSEEtree`/`miaViz`/`philr`);
+   33/44 metagenomics + all else fine. Options (team call): date-pin the base by digest (~Oct 2024),
+   exclude the miaverse subtree, or move to Bioc 3.21/3.22. Full analysis in
+   `backend/scripts/domain_images/README.md`.
 2. **Validation wave** — run `realrun_test_bioc_workflows.py` on a fresh spot box (native amd64) against the `:3.20-deps` images + corrected fixtures to measure the true executable-rate lift. Local emulation is too slow (40-min timeouts on heavy pkgs).
 3. **biomformat** — the residual `as.data.frame(biom_obj)` serialization quirk is unsolved.
 4. **Production promotion** — confirm where the customer-facing app is served and promote the above there (only the `dev` stack was updated this session).
