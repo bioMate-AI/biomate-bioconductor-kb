@@ -124,32 +124,61 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run deploy.sh
+      - name: Render managed env + run deploy.sh
         if: steps.verify.outputs.skip != 'true'
         env:
-          # Optional: Pass GitHub Secrets to deploy.sh
-          # If these are not configured, deploy.sh will use existing /opt/biomate/.env (backward compatible)
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          BILLING_INTERNAL_KEY: ${{ secrets.BILLING_INTERNAL_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
-          GALAXY_URL: ${{ secrets.GALAXY_URL }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          LAGO_API_KEY: ${{ secrets.LAGO_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          BIOLM_API_KEY: ${{ secrets.BIOLM_API_KEY }}
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-          CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
+          # Pass ALL repo Secrets and Variables without a hand-maintained list.
+          # deploy/biomate.env.manifest decides which of them are written to the
+          # host /opt/biomate/.env. Add a value in the GitHub UI + a manifest
+          # line — no edit to this workflow is needed.
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
         run: |
-          chmod +x scripts/deploy.sh
+          set -euo pipefail
+          chmod +x scripts/deploy.sh scripts/render_env_manifest.sh
+
+          # Opt-in gate: only manage env via CI when at least one Secret/Variable
+          # is configured. github_token is always present, so exclude it. With
+          # nothing configured, deploy.sh preserves the existing host .env.
+          SECRET_COUNT=$(jq -r '[keys[] | select(. != "github_token")] | length' <<< "$SECRETS_JSON")
+          VAR_COUNT=$(jq -r 'keys | length' <<< "$VARS_JSON")
+
+          if [[ "$SECRET_COUNT" -gt 0 || "$VAR_COUNT" -gt 0 ]]; then
+            echo "Detected $SECRET_COUNT secret(s) + $VAR_COUNT variable(s) → rendering managed env"
+
+            # The OIDC step put deploy-role creds in the env. Save them: rendering
+            # overwrites AWS_ACCESS_KEY_ID with the APP's key (a value to WRITE
+            # into .env), but deploy.sh's own aws calls must use the deploy role.
+            DEPLOY_AK="${AWS_ACCESS_KEY_ID:-}"
+            DEPLOY_SK="${AWS_SECRET_ACCESS_KEY:-}"
+            DEPLOY_ST="${AWS_SESSION_TOKEN:-}"
+            DEPLOY_REGION="${AWS_REGION:-us-west-2}"
+
+            # Clear the OIDC role creds before rendering so they cannot leak into
+            # the app .env. The app's own AWS_ACCESS_KEY_ID must come from a
+            # GitHub Secret (eval below); if absent, render fails required-check
+            # rather than silently writing the deploy role's temporary creds.
+            unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+
+            # Flatten Secrets + Variables into the env (jq @sh keeps values safe).
+            eval "$(jq -r 'to_entries[] | select(.key != "github_token") | "export \(.key)=\(.value | @sh)"' <<< "$SECRETS_JSON")"
+            eval "$(jq -r 'to_entries[] | "export \(.key)=\(.value | @sh)"' <<< "$VARS_JSON")"
+
+            MANAGED_ENV_FILE="$(mktemp)"
+            scripts/render_env_manifest.sh "$MANAGED_ENV_FILE"
+
+            # Restore deploy-role creds for deploy.sh's S3/SSM/ECR calls.
+            export AWS_ACCESS_KEY_ID="$DEPLOY_AK"
+            export AWS_SECRET_ACCESS_KEY="$DEPLOY_SK"
+            export AWS_SESSION_TOKEN="$DEPLOY_ST"
+            export AWS_REGION="$DEPLOY_REGION"
+            export MANAGED_ENV_FILE
+          else
+            echo "No Secrets/Variables configured → backward-compatible (host .env preserved)"
+          fi
+
           bash scripts/deploy.sh test "${{ steps.tag.outputs.tag }}"
+          [[ -n "${MANAGED_ENV_FILE:-}" ]] && rm -f "$MANAGED_ENV_FILE" || true
 
       - name: Summary
         if: always()

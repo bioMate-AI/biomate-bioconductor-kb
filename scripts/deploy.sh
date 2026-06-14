@@ -165,97 +165,53 @@ ssm_run "if [ -f /opt/biomate/.env ]; then cp /opt/biomate/.env /opt/biomate/.en
   "Backing up existing .env"
 echo ""
 
-# Step 2: Merge secrets (backward compatible)
-echo "=== Step 2: Configure environment variables (backward compatible) ==="
+# Step 2: Upsert pre-rendered managed env into /opt/biomate/.env
+echo "=== Step 2: Configure environment variables (manifest-driven) ==="
+#
+# The managed env file is rendered upstream (scripts/render_env_manifest.sh,
+# invoked by deploy.yml) from deploy/biomate.env.manifest, using the APP's
+# secret values. It is passed here via $MANAGED_ENV_FILE. This split is
+# deliberate: rendering needs the app's AWS_ACCESS_KEY_ID as a *value to write*,
+# while deploy.sh's own aws calls below must use the OIDC deploy-role creds —
+# same env var name, two identities, so they cannot share one process.
+#
+# We upsert per-key into the host .env (managed value overrides; host-only keys
+# NOT in the manifest — EMAIL_PASS, GALAXY_MASTER_API_KEY, LAGO_WEBHOOK_SECRET,
+# etc. — are preserved). Replaces the old `cat | sort -u` merge, which produced
+# duplicate keys and reordered the file.
 
-# Check if ANY GitHub Secrets are provided
-SECRETS_PROVIDED=false
-if [[ -n "${ANTHROPIC_API_KEY:-}" ]] || \
-   [[ -n "${JWT_SECRET:-}" ]] || \
-   [[ -n "${SESSION_SECRET:-}" ]] || \
-   [[ -n "${BILLING_INTERNAL_KEY:-}" ]]; then
-  SECRETS_PROVIDED=true
-fi
+if [[ -z "${MANAGED_ENV_FILE:-}" || ! -s "${MANAGED_ENV_FILE:-}" ]]; then
+  # No managed env rendered (operator hasn't opted into GitHub Secrets yet, or
+  # render produced nothing) → preserve existing /opt/biomate/.env.
+  echo "No managed env file provided → keeping existing /opt/biomate/.env (backward compatible)."
+  echo "To manage env via CI/CD, set values in GitHub Secrets/Variables; see deploy/biomate.env.manifest."
+else
+  MANAGED_COUNT=$(grep -c '=' "$MANAGED_ENV_FILE" || true)
+  echo "Upserting $MANAGED_COUNT managed env var(s) into /opt/biomate/.env"
 
-if [[ "$SECRETS_PROVIDED" == "true" ]]; then
-  echo "GitHub Secrets detected → Merging with existing .env..."
+  # Transport to EC2 via the deploy temp bucket (runner has no SSH path).
+  aws s3 cp "$MANAGED_ENV_FILE" "s3://biomate-deploy-temp/.env.managed" --region "$AWS_REGION"
 
-  # Build env file with secrets (only set non-empty values)
-  ENV_CONTENT=""
-
-  # Critical secrets
-  [[ -n "${ANTHROPIC_API_KEY:-}" ]] && ENV_CONTENT+="ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}\n"
-  [[ -n "${JWT_SECRET:-}" ]] && ENV_CONTENT+="JWT_SECRET=${JWT_SECRET}\n"
-  [[ -n "${SESSION_SECRET:-}" ]] && ENV_CONTENT+="SESSION_SECRET=${SESSION_SECRET}\n"
-  [[ -n "${BILLING_INTERNAL_KEY:-}" ]] && ENV_CONTENT+="BILLING_INTERNAL_KEY=${BILLING_INTERNAL_KEY}\n"
-  [[ -n "${DATABASE_URL:-}" ]] && ENV_CONTENT+="DATABASE_URL=${DATABASE_URL}\n"
-
-  # AWS secrets
-  [[ -n "${AWS_ACCESS_KEY_ID:-}" ]] && ENV_CONTENT+="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}\n"
-  [[ -n "${AWS_SECRET_ACCESS_KEY:-}" ]] && ENV_CONTENT+="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}\n"
-  [[ -n "${AWS_REGION:-}" ]] && ENV_CONTENT+="AWS_REGION=${AWS_REGION}\n"
-  [[ -n "${S3_BUCKET_NAME:-}" ]] && ENV_CONTENT+="S3_BUCKET_NAME=${S3_BUCKET_NAME}\n"
-
-  # Galaxy secrets
-  [[ -n "${GALAXY_API_KEY:-}" ]] && ENV_CONTENT+="GALAXY_API_KEY=${GALAXY_API_KEY}\n"
-  [[ -n "${GALAXY_URL:-}" ]] && ENV_CONTENT+="GALAXY_URL=${GALAXY_URL}\n"
-
-  # Optional secrets
-  [[ -n "${REDIS_URL:-}" ]] && ENV_CONTENT+="REDIS_URL=${REDIS_URL}\n"
-  [[ -n "${LAGO_API_KEY:-}" ]] && ENV_CONTENT+="LAGO_API_KEY=${LAGO_API_KEY}\n"
-  [[ -n "${OPENAI_API_KEY:-}" ]] && ENV_CONTENT+="OPENAI_API_KEY=${OPENAI_API_KEY}\n"
-  [[ -n "${GEMINI_API_KEY:-}" ]] && ENV_CONTENT+="GEMINI_API_KEY=${GEMINI_API_KEY}\n"
-  [[ -n "${NVIDIA_API_KEY:-}" ]] && ENV_CONTENT+="NVIDIA_API_KEY=${NVIDIA_API_KEY}\n"
-  [[ -n "${BIOLM_API_KEY:-}" ]] && ENV_CONTENT+="BIOLM_API_KEY=${BIOLM_API_KEY}\n"
-
-  # Encryption secrets
-  [[ -n "${ENCRYPTION_KEY:-}" ]] && ENV_CONTENT+="ENCRYPTION_KEY=${ENCRYPTION_KEY}\n"
-  [[ -n "${CSRF_SECRET:-}" ]] && ENV_CONTENT+="CSRF_SECRET=${CSRF_SECRET}\n"
-
-  # Create temporary file with secrets
-  TEMP_ENV="/tmp/.env.secrets.$$"
-  echo -e "$ENV_CONTENT" > "$TEMP_ENV"
-
-  # Upload secrets to EC2
-  aws s3 cp "$TEMP_ENV" "s3://biomate-deploy-temp/.env.secrets" --region "$AWS_REGION"
-
-  # Merge on EC2 (preserve existing values, add new ones)
   ssm_run "
     set -e
     mkdir -p /opt/biomate
     cd /opt/biomate
+    aws s3 cp s3://biomate-deploy-temp/.env.managed /tmp/.env.managed --region $AWS_REGION
+    touch .env
 
-    # Download secrets from S3
-    aws s3 cp s3://biomate-deploy-temp/.env.secrets /tmp/.env.secrets --region $AWS_REGION
-
-    # If .env exists, merge (new secrets override old values)
-    if [ -f .env ]; then
-      # Load existing .env
-      cp .env .env.old
-
-      # Merge: existing .env + new secrets (secrets take precedence)
-      cat .env.old /tmp/.env.secrets | sort -u > .env.merged
-      mv .env.merged .env
-
-      echo 'Merged GitHub Secrets with existing .env'
-    else
-      # No existing .env, just use secrets
-      mv /tmp/.env.secrets .env
-      echo 'Created new .env from GitHub Secrets'
-    fi
+    # Per-key upsert: drop any existing line for each managed key, then append
+    # the fresh managed block. Host-only keys (not in the managed file) survive.
+    while IFS='=' read -r k _; do
+      [ -n \"\$k\" ] && sed -i \"/^\${k}=/d\" .env
+    done < /tmp/.env.managed
+    cat /tmp/.env.managed >> .env
 
     chmod 600 .env
-    rm -f /tmp/.env.secrets .env.old
-  " "Merging secrets with existing .env"
+    rm -f /tmp/.env.managed
+    echo \"Upserted managed vars; .env now has \$(wc -l < .env) line(s)\"
+  " "Upserting managed env vars into /opt/biomate/.env"
 
-  # Cleanup
-  rm -f "$TEMP_ENV"
-  aws s3 rm "s3://biomate-deploy-temp/.env.secrets" --region "$AWS_REGION" 2>/dev/null || true
-
-else
-  echo "No GitHub Secrets detected → Using existing /opt/biomate/.env (backward compatible mode)"
-  echo "If you want to use GitHub Secrets, configure them at:"
-  echo "https://github.com/bioMate-AI/biomate/settings/secrets/actions"
+  aws s3 rm "s3://biomate-deploy-temp/.env.managed" --region "$AWS_REGION" 2>/dev/null || true
 fi
 echo ""
 
