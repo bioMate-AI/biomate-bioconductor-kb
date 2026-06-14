@@ -56,7 +56,7 @@ process BIOC_ACGH_STANDARD_ACGH_PIPELINE {
     library(multtest)
     library(survival)
     
-    # 1. Import data and create aCGH object
+    # --- Import data and create aCGH object ---
     clones.info <- read.table(file = "clones.info.ex.txt",
                               header = TRUE, sep = "\t", quote = "", comment.char = "")
     log2.ratios <- read.table(file = "log2.ratios.ex.txt",
@@ -65,29 +65,29 @@ process BIOC_ACGH_STANDARD_ACGH_PIPELINE {
                              header = TRUE, sep = "\t", quote = "", comment.char = "")
     ex.acgh <- create.aCGH(log2.ratios, clones.info, pheno.type)
     
-    # 2. Filter and process clones
+    # --- Filter and process clones ---
     ex.acgh <- aCGH.process(ex.acgh, chrom.remove.threshold = 23, prop.missing = .25, 
                             sample.quality.threshold = .4, unmapScreen = TRUE, dupRemove = FALSE)
     
-    # 3. Impute missing values
+    # --- Impute missing values ---
     log2.ratios.imputed(ex.acgh) <- impute.lowess(ex.acgh, maxChrom = 24)
     
-    # 4. Fit HMM states
+    # --- Fit HMM states ---
     hmm(ex.acgh) <- find.hmm.states(ex.acgh)
     
-    # 5. Merge HMM states
+    # --- Merge HMM states ---
     hmm.merged(ex.acgh) <- mergeHmmStates(ex.acgh, model.use = 1, minDiff = .25)
     
-    # 6. Compute sample standard deviations
+    # --- Compute sample standard deviations ---
     sd.samples(ex.acgh) <- computeSD.Samples(ex.acgh)
     
-    # 7. Identify genomic events
+    # --- Identify genomic events ---
     genomic.events(ex.acgh) <- find.genomic.events(ex.acgh)
     
     # Open PDF device for all visualizations
     pdf("acgh_pipeline_plots.pdf", width = 10, height = 8)
     
-    # 8. Visualize profiles and HMM states
+    # --- Visualize profiles and HMM states ---
     plot(ex.acgh)
     
     plotGenome(ex.acgh, samples = 2, Y = FALSE)
@@ -112,7 +112,7 @@ process BIOC_ACGH_STANDARD_ACGH_PIPELINE {
     col.fga <- fga.func(ex.acgh, factor = 3, chrominfo = human.chrom.info.Jul03)
     write.csv(as.data.frame(col.fga), "fga_results.csv")
     
-    # 9. Perform association testing
+    # --- Perform association testing ---
     # Categorical outcome (Sex)
     sex <- phenotype(ex.acgh)\$sex
     sex.na <- !is.na(sex)
@@ -144,7 +144,7 @@ process BIOC_ACGH_STANDARD_ACGH_PIPELINE {
     stat.age <- aCGH.test(ex.acgh.na2, age, test = "linear.regression", p.adjust.method = "fdr")
     write.csv(stat.age, "age_association_linear.csv")
     
-    # 10. Cluster samples
+    # --- Cluster samples ---
     par(mfrow = c(2, 1))
     clusterGenome(ex.acgh.na, response = sex[sex.na],
                   titles = c("Female", "Male"),

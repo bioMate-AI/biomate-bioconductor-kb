@@ -52,7 +52,7 @@ process BIOC_EPIDECODER_EPIGENETIC_DEG_INTEGRATION {
       }
     }
     
-    # 1. Load the epidecodeR package
+    # --- Load the epidecodeR package ---
     library(epidecodeR)
     
     # Define input file paths (must exist in the working directory)
@@ -67,27 +67,27 @@ process BIOC_EPIDECODER_EPIGENETIC_DEG_INTEGRATION {
       stop(paste("Required input file missing:", deg_file))
     }
     
-    # 2. Define paths to the events BED file and the differential gene expression (DEG) file
+    # --- Define paths to the events BED file and the differential ---
     events <- events_file
     deg <- deg_file
     
-    # 3. Run the epidecodeR function to map events to genes, group genes by modification degree, and perform statistical testing
+    # --- Run the epidecodeR function to map events to genes, group ---
     epiobj <- epidecodeR(events = events, deg = deg, pval = 0.05, param = 3, ints = c(2, 4))
     
     # Save the S4 object for reproducibility
     saveRDS(epiobj, file = "epiobj.rds")
     
-    # 4. Generate cumulative distribution function (CDF) plots using makeplot
+    # --- Generate cumulative distribution function (CDF) plots ---
     pdf("cdf_plot.pdf", width = 7, height = 7)
     makeplot(epiobj, lim = c(-10, 10), title = "m6A mediated dysregulation after FTO inhibitor treatment", xlab = "log2FC")
     dev.off()
     
-    # 5. Generate boxplots of log2FC distribution across groups using plot_test
+    # --- Generate boxplots of log2FC distribution across groups ---
     pdf("boxplot_test.pdf", width = 7, height = 7)
     plot_test(epiobj, title = "m6A mediated dysregulation after FTO inhibitor treatment", ylab = "log2FC")
     dev.off()
     
-    # 6. Retrieve theoretical and empirical cumulative tables, group counts, and gene lists using helper functions
+    # --- Retrieve theoretical and empirical cumulative tables, ---
     theoretical_table <- get_theoretical_table(epiobj)
     empirical_table <- get_empirical_table(epiobj)
     grpcounts <- get_grpcounts(epiobj)

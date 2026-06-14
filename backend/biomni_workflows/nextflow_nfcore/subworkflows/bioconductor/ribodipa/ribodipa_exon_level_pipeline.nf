@@ -55,7 +55,7 @@ process BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE {
     # Load required libraries
     library(RiboDiPA)
     
-    # 1. Locate input files in the working directory
+    # --- Locate input files in the working directory ---
     # Expecting 4 BAM files and 1 GTF file
     bam_files <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
     gtf_files <- list.files(pattern = "\\\\.gtf\$", full.names = TRUE)
@@ -71,7 +71,7 @@ process BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE {
     # bam_path[1:4] are BAM files, bam_path[5] is the GTF file
     bam_path <- c(bam_files[1:4], gtf_files[1])
     
-    # 2. Define the experimental design (classlabel)
+    # --- Define the experimental design (classlabel) ---
     # We assign the first two BAMs to treatment (2) and the next two to control (1)
     bam_names <- gsub("\\\\.bam\$", "", basename(bam_path[1:4]))
     classlabel <- data.frame(
@@ -80,17 +80,17 @@ process BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE {
     )
     rownames(classlabel) <- bam_names
     
-    # 3. Map RPFs to P-sites and generate total transcript coordinates
+    # --- Map RPFs to P-sites and generate total transcript ---
     message("Mapping P-sites...")
     data.psite <- psiteMapping(bam_file_list = bam_path[1:4], 
         gtf_file = bam_path[5], psite.mapping = "auto", cores = 2)
     
-    # 4. Perform exon-level binning and differential pattern testing
+    # --- Perform exon-level binning and differential pattern ---
     message("Performing exon-level differential pattern testing...")
     result.exon <- diffPatternTestExon(psitemap = data.psite,
         classlabel = classlabel, method = c('gtxr', 'qvalue'))
     
-    # 5. Save results to output files
+    # --- Save results to output files ---
     message("Saving results...")
     saveRDS(result.exon, "ribodipa_exon_results.rds")
     

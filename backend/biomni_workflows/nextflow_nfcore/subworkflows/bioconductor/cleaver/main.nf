@@ -35,6 +35,15 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cleaver", "Biostrings", "S4Vectors", "UniProt.ws")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' or 'coldata.csv' are missing.")
@@ -66,7 +75,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     protein_ids <- unique(intensity_df\$feature_id)
     
     # ==========================================
-    # STAGE 2: Retrieve Protein Sequences
+    # --- Retrieve Protein Sequences ---
     # ==========================================
     # Local database of common proteins for offline robustness
     local_db <- list(
@@ -115,7 +124,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     aa_seqs <- AAStringSet(sequences)
     
     # ==========================================
-    # STAGE 3: In-Silico Cleavage
+    # --- In-Silico Cleavage ---
     # ==========================================
     # Perform cleavage with 0 and 1 missed cleavages
     cleaved_peptides_0 <- cleave(aa_seqs, enzym = "trypsin", missedCleavages = 0)
@@ -162,7 +171,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     rownames(peptide_map) <- NULL
     
     # ==========================================
-    # STAGE 4: Integrate with Intensity Data
+    # --- Integrate with Intensity Data ---
     # ==========================================
     # Merge peptide map with original protein intensities
     peptide_intensities <- merge(peptide_map, intensity_df, by.x = "protein_id", by.y = "feature_id", all.x = TRUE)
@@ -189,7 +198,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     write.csv(peptide_intensities, "peptide_intensities.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     pdf("cleavage_report.pdf", width = 8, height = 10)
     par(mfrow = c(3, 1), mar = c(5, 4, 4, 2) + 0.1)

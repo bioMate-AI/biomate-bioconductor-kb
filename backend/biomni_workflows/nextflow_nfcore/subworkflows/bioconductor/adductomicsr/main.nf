@@ -55,27 +55,27 @@ process BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW {
     # Load required library
     library(adductomicsR)
     
-    # 1. Model retention time deviation across samples using rtDevModelling
+    # --- Model retention time deviation across samples using ---
     rtDevModelling(
       MS2Dir = ".",
       nCores = 4,
       runOrder = "runOrder.csv"
     )
     
-    # 2. Identify peptide adducts and group spectra using specSimPepId
+    # --- Identify peptide adducts and group spectra using ---
     specSimPepId(
       MS2Dir = ".",
       nCores = 4,
       rtDevModels = "./rtDevModels.RData"
     )
     
-    # 3. Generate a target table of adducts for quantification using generateTargTable
+    # --- Generate a target table of adducts for quantification ---
     generateTargTable(
       allresultsFile = "allResults_ALVLIAFAQYLQQCPFEDHVK_example.csv",
       csvDir = "."
     )
     
-    # 4. Quantify adduct peaks across samples using adductQuant
+    # --- Quantify adduct peaks across samples using adductQuant ---
     object <- adductQuant(
       nCores = 2,
       targTable = "exampletargTable2.csv",
@@ -102,13 +102,13 @@ process BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW {
       }
     }
     
-    # 5. Extract and save the peak table from the quantification object using outputPeakTable
+    # --- Extract and save the peak table from the quantification ---
     outputPeakTable(
       object = object,
       outputDir = "."
     )
     
-    # 6. Filter the peak table to remove noisy adducts and low-quality samples using filterAdductTable
+    # --- Filter the peak table to remove noisy adducts and ---
     filterAdductTable(
       paste0("./adductQuantif_peakList_", Sys.Date(), ".csv")
     )

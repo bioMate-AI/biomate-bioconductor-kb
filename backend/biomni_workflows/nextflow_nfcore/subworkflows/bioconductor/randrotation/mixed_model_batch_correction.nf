@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Estimate the correlation matrix (cormat) between sample replicates within batches. 2. Create the design model matrix. 3. Initializ
+//  * 1. [Input & Preparation] Load user inputs
+//  * 2. [Input & Preparation] Create the design model matrix
+//  * 3. [Input & Preparation] Initialize the batch random rotation object
+//  * 4. [Input & Preparation] Define the custom statistic function (exactly as
+//  * 5. [Input & Preparation] Run the rotation using rotateStat and calculate p-values
+//  * 6. [Input & Preparation] Write output files
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +44,15 @@ process BIOC_RANDROTATION_MIXED_MODEL_BATCH_CORRECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("randRotation", "nlme", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -84,7 +98,7 @@ process BIOC_RANDROTATION_MIXED_MODEL_BATCH_CORRECTION {
           }
         }
         
-        # 1. Load user inputs
+        # --- Load user inputs ---
         edata <- as.matrix(load_input("edata"))
         pdata <- load_input("pdata")
         
@@ -125,14 +139,14 @@ process BIOC_RANDROTATION_MIXED_MODEL_BATCH_CORRECTION {
         }
         cormat <- unname(cormat)
         
-        # 2. Create the design model matrix
+        # --- Create the design model matrix ---
         mod1 <- model.matrix(~1+tissue, pdata)
         
-        # 3. Initialize the batch random rotation object
+        # --- Initialize the batch random rotation object ---
         rr1 <- initBatchRandrot(Y = edata, X = mod1, coef.h = 2, batch = pdata\$batch,
                                 cormat = cormat)
         
-        # 4. Define the custom statistic function (exactly as documented)
+        # --- Define the custom statistic function (exactly as ---
         statistic <- function(Y, batch, mod, df1){
           Y <- limma::removeBatchEffect(Y, batch = batch, design = mod)
           apply(Y, 1, function(j){
@@ -143,12 +157,12 @@ process BIOC_RANDROTATION_MIXED_MODEL_BATCH_CORRECTION {
           })
         }
         
-        # 5. Run the rotation using rotateStat and calculate p-values using pFdr
+        # --- Run the rotation using rotateStat and calculate p-values ---
         rs1 <- rotateStat(initialised.obj = rr1, R = 20, statistic = statistic, 
                           batch = pdata\$batch, mod = mod1, df1 = df1, parallel = TRUE)
         p1 <- pFdr(rs1)
         
-        # 6. Write output files
+        # --- Write output files ---
         # Save p-values to CSV
         p_df <- data.frame(Feature = rownames(edata), p_value = p1)
         write.csv(p_df, "p_values.csv", row.names = FALSE)

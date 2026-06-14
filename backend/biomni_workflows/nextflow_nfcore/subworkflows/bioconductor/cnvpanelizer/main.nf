@@ -77,7 +77,7 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
     removePcrDuplicates <- FALSE
     replicates <- 10000
     
-    # 1. Extract genomic ranges and metadata from the BED file
+    # --- Extract genomic ranges and metadata from the BED file ---
     genomicRangesFromBed <- BedToGenomicRanges(bedFilepath,
                                                ampliconColumn = amplColumnNumber,
                                                split = "_")
@@ -86,7 +86,7 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
     geneNames = metadataFromGenomicRanges["geneNames"][, 1]
     ampliconNames = metadataFromGenomicRanges["ampliconNames"][, 1]
     
-    # 2. Identify test and reference BAM files
+    # --- Identify test and reference BAM files ---
     sampleFilenames <- list.files(path = sampleDirectory,
                                   pattern = ".bam\$",
                                   full.names = TRUE)
@@ -102,7 +102,7 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
       stop("Error: No BAM files found in referenceDirectory.")
     }
     
-    # 3. Count reads overlapping amplicons from BAM files
+    # --- Count reads overlapping amplicons from BAM files ---
     referenceReadCounts <- ReadCountsFromBam(referenceFilenames,
                                              genomicRangesFromBed,
                                              sampleNames = referenceFilenames,
@@ -115,7 +115,7 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
                                           ampliconNames = ampliconNames,
                                           removeDup = removePcrDuplicates)
     
-    # 4. Normalize read counts using TMM normalization
+    # --- Normalize read counts using TMM normalization ---
     normalizedReadCounts <- CombinedNormalizedCounts(sampleReadCounts,
                                                      referenceReadCounts,
                                                      ampliconNames = ampliconNames)
@@ -124,13 +124,13 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
     samplesNormalizedReadCounts = normalizedReadCounts["samples"][[1]]
     referenceNormalizedReadCounts = normalizedReadCounts["reference"][[1]]
     
-    # 5. Perform bootstrap-based subsampling analysis
+    # --- Perform bootstrap-based subsampling analysis ---
     bootList <- BootList(geneNames,
                          samplesNormalizedReadCounts,
                          referenceNormalizedReadCounts,
                          replicates = replicates)
     
-    # 6. Estimate background noise to handle low-amplicon gene bias
+    # --- Estimate background noise to handle low-amplicon gene bias ---
     backgroundNoise <- Background(geneNames,
                                   samplesNormalizedReadCounts,
                                   referenceNormalizedReadCounts,
@@ -139,7 +139,7 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
                                   significanceLevel = 0.1,
                                   robust = TRUE)
     
-    # 7. Generate genewise report tables
+    # --- Generate genewise report tables ---
     reportTables <- ReportTables(geneNames,
                                  samplesNormalizedReadCounts,
                                  referenceNormalizedReadCounts,
@@ -164,7 +164,7 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
       write.csv(reportTables[[sampleName]], file = csvPath, row.names = TRUE)
     }
     
-    # 8. Plot bootstrap distributions for visual inspection
+    # --- Plot bootstrap distributions for visual inspection ---
     pdfPath <- file.path(outputDir, "bootstrap_distributions.pdf")
     pdf(pdfPath, width = 11, height = 8.5)
     plots <- PlotBootstrapDistributions(bootList, reportTables)

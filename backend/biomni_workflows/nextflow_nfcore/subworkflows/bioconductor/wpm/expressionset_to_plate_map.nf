@@ -57,7 +57,7 @@ process BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP {
     library(Biobase)
     library(ggplot2)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     # The user input is 'my_MSnSet_object' in the working directory.
     if (file.exists("my_MSnSet_object")) {
       my_MSnSet_object <- readRDS("my_MSnSet_object")
@@ -70,10 +70,10 @@ process BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP {
     # Extract phenoData to get the grouping factor levels
     pd <- Biobase::pData(my_MSnSet_object)
     
-    # 2. Convert the ExpressionSet/MSnSet object into the WPM-compatible dataframe format
+    # --- Convert the ExpressionSet/MSnSet object into the ---
     df <- wpm::convertESet(my_MSnSet_object, "Environment")
     
-    # 3. Run the randomization algorithm using wrapperWPM
+    # --- Run the randomization algorithm using wrapperWPM ---
     wpm_result <- wpm::wrapperWPM(user_df = df,
                 plate_dims = list(8,12),
                 nb_plates = 1,
@@ -81,7 +81,7 @@ process BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP {
                 fixed_wells = "B1,B2",
                 spatial_constraint = "NS")
     
-    # 4. Visualize the generated plate map using drawMap
+    # --- Visualize the generated plate map using drawMap ---
     numberOfThePlate <- 1
     drawned_map <- wpm::drawMap(df = wpm_result[[numberOfThePlate]],
             sample_gps = length(levels(as.factor(pd\$Environment))),
@@ -93,7 +93,7 @@ process BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP {
     # Print the map to the standard output/device
     print(drawned_map)
     
-    # 5. Save outputs to the working directory
+    # --- Save outputs to the working directory ---
     # Save the full WPM result list as an RDS object
     saveRDS(wpm_result, "wpm_result.rds")
     

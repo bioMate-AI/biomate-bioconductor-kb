@@ -12,7 +12,15 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define conditions for the two traits from the sample metadata. 2. Construct combined and condition-specific networks using constru
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Network Construction
+//  * 3. [Visualization & Output] Compare Modules Across Conditions
+//  * 4. [Visualization & Output] Visualize Module Overlap Across Networks
+//  * 5. [Visualization & Output] Differential Module Expression Analysis
+//  * 6. [Visualization & Output] Visualize Multi-Level Network Correspondences
+//  * 7. [Visualization & Output] Identify Reciprocal Best Matches
+//  * 8. [Visualization & Output] Plot Co-expression of Top Module Genes
+//  * 9. [Visualization & Output] Permutation-Based Preservation Testing
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +69,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         library(ggplot2)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         if (file.exists("astrocyte_se")) {
           astrocyte_se = readRDS("astrocyte_se")
@@ -95,7 +103,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         cond1_B = conditions1[2]
         
         # ==========================================
-        # 2. Network Construction
+        # --- Network Construction ---
         # ==========================================
         astrocyte_networks = constructNetworks(
           astrocyte_se, 
@@ -118,14 +126,14 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         saveRDS(astrocyte_networks, "astrocyte_networks.rds")
         
         # ==========================================
-        # 3. Compare Modules Across Conditions
+        # --- Compare Modules Across Conditions ---
         # ==========================================
         results = list()
         results\$overlaps = iterate(astrocyte_networks, overlapComparisons, plot=FALSE)
         saveRDS(results\$overlaps, "overlaps.rds")
         
         # ==========================================
-        # 4. Visualize Module Overlap Across Networks
+        # --- Visualize Module Overlap Across Networks ---
         # ==========================================
         pdf("ModuleFlowPlot.pdf", width = 10, height = 12)
         ModuleFlowPlot(
@@ -142,7 +150,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 5. Differential Module Expression Analysis
+        # --- Differential Module Expression Analysis ---
         # ==========================================
         results\$diffModExp = runDME(
           astrocyte_networks[["combined"]], 
@@ -169,7 +177,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 6. Visualize Multi-Level Network Correspondences
+        # --- Visualize Multi-Level Network Correspondences ---
         # ==========================================
         pdf(paste0("drawMultiWGCNAnetwork_", top_module, ".pdf"), width = 8, height = 8)
         drawMultiWGCNAnetwork(
@@ -189,7 +197,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 7. Identify Reciprocal Best Matches
+        # --- Identify Reciprocal Best Matches ---
         # ==========================================
         comp_name = paste0("combined_vs_", cond1_A)
         best_matches = bidirectionalBestMatches(results\$overlaps[[comp_name]])
@@ -215,7 +223,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         }
         
         # ==========================================
-        # 8. Plot Co-expression of Top Module Genes
+        # --- Plot Co-expression of Top Module Genes ---
         # ==========================================
         datExpr = GetDatExpr(astrocyte_networks[[1]], genes = topNGenes(astrocyte_networks[[cond1_A]], cond1_module, 20))
         
@@ -226,7 +234,7 @@ process BIOC_MULTIWGCNA_ASTROCYTE_RNASEQ_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 9. Permutation-Based Preservation Testing
+        # --- Permutation-Based Preservation Testing ---
         # ==========================================
         # Calculate actual preservation to get the observed score
         results\$preservation = iterate(

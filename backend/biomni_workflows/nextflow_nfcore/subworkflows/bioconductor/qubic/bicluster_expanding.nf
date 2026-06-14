@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the QUBIC algorithm with the seedbicluster parameter and consistency level f
+//  * 1. [Core Analysis] Read User Inputs
+//  * 2. [Core Analysis] Run the QUBIC algorithm with the seedbicluster parameter
+//  * 3. [Core Analysis] Write Named Output Files
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_QUBIC_BICLUSTER_EXPANDING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("QUBIC")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +60,7 @@ process BIOC_QUBIC_BICLUSTER_EXPANDING {
         # Load the required QUBIC package
         library(QUBIC)
         
-        # 1. Read User Inputs
+        # --- Read User Inputs ---
         if (!file.exists("expression_matrix.csv")) {
           stop("Error: 'expression_matrix.csv' not found in the working directory.")
         }
@@ -64,12 +75,12 @@ process BIOC_QUBIC_BICLUSTER_EXPANDING {
         # Read the existing QUBICBiclustResult object
         res <- readRDS("existing_biclusters.rds")
         
-        # 2. Run the QUBIC algorithm with the seedbicluster parameter and consistency level f
+        # --- Run the QUBIC algorithm with the seedbicluster parameter ---
         # (This matches the documented vignette code exactly)
         res5 <- qubiclust(x = ecoli, seedbicluster = res, f = 0.25, verbose = FALSE)
         summary(res5)
         
-        # 3. Write Named Output Files
+        # --- Write Named Output Files ---
         # Save the complete expanded bicluster result object
         saveRDS(res5, "expanded_biclusters.rds")
         

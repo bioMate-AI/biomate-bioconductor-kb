@@ -61,7 +61,7 @@ process BIOC_FLOWSOM_FLOWSOM_CYTOMETRY_CLUSTERING {
     set.seed(42)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     
@@ -87,7 +87,7 @@ process BIOC_FLOWSOM_FLOWSOM_CYTOMETRY_CLUSTERING {
     fSOM <- ReadInput(ff, compensate = FALSE, transform = FALSE, scale = TRUE)
     
     # ==========================================
-    # Stage 2: Build Self-Organizing Map (SOM)
+    # --- Build Self-Organizing Map (SOM) ---
     # ==========================================
     message("Stage 2: Building Self-Organizing Map...")
     
@@ -111,13 +111,13 @@ process BIOC_FLOWSOM_FLOWSOM_CYTOMETRY_CLUSTERING {
     fSOM <- BuildSOM(fSOM, colsToUse = colnames(ff), xdim = xdim, ydim = ydim)
     
     # ==========================================
-    # Stage 3: Build Minimal Spanning Tree (MST)
+    # --- Build Minimal Spanning Tree (MST) ---
     # ==========================================
     message("Stage 3: Building Minimal Spanning Tree...")
     fSOM <- BuildMST(fSOM)
     
     # ==========================================
-    # Stage 4: Metaclustering
+    # --- Metaclustering ---
     # ==========================================
     message("Stage 4: Performing metaclustering...")
     
@@ -144,7 +144,7 @@ process BIOC_FLOWSOM_FLOWSOM_CYTOMETRY_CLUSTERING {
     message("Saved cell assignments to 'flowsom_assignments.csv'.")
     
     # ==========================================
-    # Stage 5: Visualisation and Reporting
+    # --- Visualisation and Reporting ---
     # ==========================================
     message("Stage 5: Generating visualisations...")
     

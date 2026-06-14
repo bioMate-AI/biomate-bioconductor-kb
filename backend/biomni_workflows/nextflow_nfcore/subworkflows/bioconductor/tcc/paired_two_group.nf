@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Construct a TCC class object using the raw count matrix and the design data frame. 2. Calculate robust normalization factors using
+//  * 1. [Visualization & Output] Read User Input Files and Construct TCC Object
+//  * 2. [Visualization & Output] Calculate Robust Normalization Factors (Paired
+//  * 3. [Visualization & Output] Perform Paired Differential Expression Analysis
+//  * 4. [Visualization & Output] Retrieve Results and Generate Outputs
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +64,7 @@ process BIOC_TCC_PAIRED_TWO_GROUP {
         library(TCC)
         
         # -----------------------------------------------------------------------------
-        # Stage 1: Read User Input Files and Construct TCC Object
+        # --- Read User Input Files and Construct TCC Object ---
         # -----------------------------------------------------------------------------
         
         # Read hypoData (matrix of raw integer counts)
@@ -97,18 +100,18 @@ process BIOC_TCC_PAIRED_TWO_GROUP {
         tcc <- new("TCC", hypoData, cl)
         
         # -----------------------------------------------------------------------------
-        # Stage 2: Calculate Robust Normalization Factors (Paired DEGES/edgeR)
+        # --- Calculate Robust Normalization Factors (Paired ---
         # -----------------------------------------------------------------------------
         tcc <- calcNormFactors(tcc, norm.method = "tmm", test.method = "edger",
                                iteration = 3, FDR = 0.1, floorPDEG = 0.05, paired = TRUE)
         
         # -----------------------------------------------------------------------------
-        # Stage 3: Perform Paired Differential Expression Analysis
+        # --- Perform Paired Differential Expression Analysis ---
         # -----------------------------------------------------------------------------
         tcc <- estimateDE(tcc, test.method = "edger", FDR = 0.1, paired = TRUE)
         
         # -----------------------------------------------------------------------------
-        # Stage 4: Retrieve Results and Generate Outputs
+        # --- Retrieve Results and Generate Outputs ---
         # -----------------------------------------------------------------------------
         # Retrieve the sorted results table
         result <- getResult(tcc, sort = TRUE)

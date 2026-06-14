@@ -13,7 +13,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Filter out lowly expressed genes and select highly variable genes. 2. Run zinbwave to obtain the low-dimensional representation (W
+//  * 1. [Core Analysis] Load the user-provided SummarizedExperiment object
+//  * 2. [Core Analysis] Gene filtering
+//  * 3. [Core Analysis] Basic ZINB-WaVE dimensionality reduction
+//  * 4. [Core Analysis] ZINB-WaVE with sample-level covariates
+//  * 5. [Core Analysis] ZINB-WaVE with gene-level covariates
+//  * 6. [Core Analysis] Compute t-SNE on the reduced space
+//  * 7. [Core Analysis] Compute normalized values and residuals
+//  * 8. [Core Analysis] Export results and generate plots
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +46,15 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("zinbwave", "matrixStats", "sparseMatrixStats", "magrittr", "ggplot2", "Rtsne", "BiocParallel", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +64,8 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(zinbwave)
     library(matrixStats)
     library(sparseMatrixStats)
@@ -60,7 +77,7 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
     # Register BiocParallel Serial Execution to ensure stability
     BiocParallel::register(BiocParallel::SerialParam())
     
-    # 1. Load the user-provided SummarizedExperiment object
+    # --- Load the user-provided SummarizedExperiment object ---
     if (!file.exists("SummarizedExperiment_object.rds")) {
       stop("Error: 'SummarizedExperiment_object.rds' not found in the working directory.")
     }
@@ -75,7 +92,7 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
       colData(fluidigm)\$Biological_Condition <- sample(c("NPC", "GW16", "GW21"), ncol(fluidigm), replace = TRUE)
     }
     
-    # 2. Gene filtering
+    # --- Gene filtering ---
     filter <- rowSums(assay(fluidigm) > 5) > 5
     
     # Fallback check: if filtering is too stringent, relax it to ensure we have enough genes
@@ -97,15 +114,15 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
     fluidigm <- fluidigm[names(vars)[1:num_genes], ]
     assayNames(fluidigm)[1] <- "counts"
     
-    # 3. Basic ZINB-WaVE dimensionality reduction
+    # --- Basic ZINB-WaVE dimensionality reduction ---
     fluidigm_zinb <- zinbwave(fluidigm, K = 2, epsilon = 1000)
     W <- reducedDim(fluidigm_zinb)
     
-    # 4. ZINB-WaVE with sample-level covariates
+    # --- ZINB-WaVE with sample-level covariates ---
     fluidigm_cov <- zinbwave(fluidigm, K = 2, X = "~Coverage_Type", epsilon = 1000)
     W_cov <- reducedDim(fluidigm_cov)
     
-    # 5. ZINB-WaVE with gene-level covariates
+    # --- ZINB-WaVE with gene-level covariates ---
     # We mock the GC-content and length covariates to avoid flaky external biomaRt queries
     gcc <- runif(nrow(fluidigm), 30, 60)
     names(gcc) <- rownames(fluidigm)
@@ -115,7 +132,7 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
     rowData(fluidigm) <- data.frame(gccontent = gcc, length = len)
     fluidigm_gcc <- zinbwave(fluidigm, K = 2, V = "~gccontent + log(length)", epsilon = 1000)
     
-    # 6. Compute t-SNE on the reduced space
+    # --- Compute t-SNE on the reduced space ---
     W_tsne_input <- reducedDim(fluidigm_cov)
     # Ensure perplexity is appropriate for the sample size
     perp <- min(10, floor((nrow(W_tsne_input) - 1) / 3))
@@ -123,10 +140,10 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
     
     tsne_data <- Rtsne(W_tsne_input, pca = FALSE, perplexity = perp, max_iter = 5000)
     
-    # 7. Compute normalized values and residuals
+    # --- Compute normalized values and residuals ---
     fluidigm_norm <- zinbwave(fluidigm, K = 2, epsilon = 1000, normalizedValues = TRUE, residuals = TRUE)
     
-    # 8. Export results and generate plots
+    # --- Export results and generate plots ---
     # Save RDS objects
     saveRDS(fluidigm_zinb, "fluidigm_zinb_basic.rds")
     saveRDS(fluidigm_cov, "fluidigm_zinb_covariates.rds")

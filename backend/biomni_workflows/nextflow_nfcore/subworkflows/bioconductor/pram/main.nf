@@ -55,7 +55,7 @@ process BIOC_PRAM_CONVENIENT_WRAPPER_RUNPRAM {
     # Load required library
     library(pram)
     
-    # 1. Define input files and output path
+    # --- Define input files and output path ---
     in_gtf <- "in.gtf"
     in_bamv <- c("SZP.bam", "TLC.bam")
     pred_out_gtf <- "predicted_out.gtf"
@@ -68,7 +68,7 @@ process BIOC_PRAM_CONVENIENT_WRAPPER_RUNPRAM {
       stop("One or more input BAM files ('SZP.bam', 'TLC.bam') are missing from the working directory.")
     }
     
-    # 2. Run the wrapper function runPRAM to predict transcript models
+    # --- Run the wrapper function runPRAM to predict transcript ---
     message("Starting PRAM prediction...")
     tryCatch({
       pram::runPRAM(in_gtf, in_bamv, pred_out_gtf, method='plst',

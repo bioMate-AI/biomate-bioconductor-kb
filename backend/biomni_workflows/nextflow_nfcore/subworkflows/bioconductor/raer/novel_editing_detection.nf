@@ -65,6 +65,7 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
     
     # Load required libraries
     library(raer)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(GenomicFeatures)
     

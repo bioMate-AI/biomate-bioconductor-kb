@@ -17,7 +17,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("microbiomeDASim", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Input Processing & Parameter Estimation
+    # --- Input Processing & Parameter Estimation ---
     # ==========================================
     
     # Read user-provided input files
@@ -103,7 +112,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     diff_abun_features <- max(1, round(features * 0.2)) # 20% of features are DA
     
     # ==========================================
-    # STAGE 2: Single-Feature Longitudinal Simulation
+    # --- Single-Feature Longitudinal Simulation ---
     # ==========================================
     
     message("Simulating single-feature longitudinal trends...")
@@ -144,7 +153,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     )
     
     # ==========================================
-    # STAGE 3: Multi-Feature Community Simulation
+    # --- Multi-Feature Community Simulation ---
     # ==========================================
     
     message("Simulating multi-feature community data...")
@@ -170,7 +179,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     )
     
     # ==========================================
-    # STAGE 4: Downstream Integration & Object Conversion
+    # --- Downstream Integration & Object Conversion ---
     # ==========================================
     
     message("Converting simulated datasets to Bioconductor objects...")
@@ -192,7 +201,7 @@ process BIOC_MICROBIOMEDASIM_MICROBIOME_DA_SIMULATION {
     })
     
     # ==========================================
-    # STAGE 5: Exporting Results & Visualizations
+    # --- Exporting Results & Visualizations ---
     # ==========================================
     
     message("Writing outputs to disk...")

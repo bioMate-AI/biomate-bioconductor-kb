@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the package and data. 2. Run summix() to estimate reference ancestry proportions
+//  * 1. [Input & Preparation] Load the package
+//  * 2. [Input & Preparation] Read the user input file 'ancestryData'
+//  * 3. [Input & Preparation] Run summix to estimate reference ancestry proportions
+//  * 4. [Input & Preparation] Write named output files
 
 nextflow.enable.dsl = 2
 
@@ -55,10 +58,10 @@ process BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION {
           }
         }
         
-    # 1. Load the package
+    # --- Load the package ---
     library(Summix)
     
-    # 2. Read the user input file 'ancestryData'
+    # --- Read the user input file 'ancestryData' ---
     # We check for common formats: CSV, TSV, or RDS
     if (file.exists("ancestryData.csv")) {
       ancestryData <- read.csv("ancestryData.csv", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
@@ -90,7 +93,7 @@ process BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION {
     reference_cols <- af_cols[1:(length(af_cols) - 1)]
     observed_col <- af_cols[length(af_cols)]
     
-    # 3. Run summix to estimate reference ancestry proportions
+    # --- Run summix to estimate reference ancestry proportions ---
     results <- summix(data = ancestryData,
         reference = reference_cols,
         observed = observed_col)
@@ -98,7 +101,7 @@ process BIOC_SUMMIX_GLOBAL_ANCESTRY_ESTIMATION {
     # Print the results to console
     print(results)
     
-    # 4. Write named output files
+    # --- Write named output files ---
     write.csv(results, "global_ancestry_proportions.csv", row.names = FALSE)
     saveRDS(results, "global_ancestry_proportions.rds")
 

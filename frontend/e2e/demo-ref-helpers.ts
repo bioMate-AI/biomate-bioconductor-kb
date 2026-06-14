@@ -97,6 +97,14 @@ export async function runTourDemo(
   demo: string,
   label: string,
   nSteps: number,
+  /**
+   * Optional per-step pause override (index 0 = first step).
+   * Sparse map; missing indices fall back to TIP_STEP_PAUSE then 5_500ms.
+   * Use for content-dense steps like a stats-trap explanation or a multi-score
+   * disambig card — see docs/20260610_BIOC_TUTORIAL_NARRATIVE_AUDIT.md
+   * for the timing audit that prompted this hook.
+   */
+  pauseOverride?: Record<number, number>,
 ): Promise<void> {
   // Click the Tutorial button to open the picker
   const tutBtn = page.locator('.tut-btn').first();
@@ -120,8 +128,8 @@ export async function runTourDemo(
     await page.locator('.tour-callout').waitFor({ state: 'visible', timeout: 10_000 });
     await page.waitForTimeout(500);
     await shot(page, demo, `tip_${String(i + 1).padStart(2, '0')}`);
-    const hold = (TIP_STEP_PAUSE[i] ?? 5_500) - 500;
-    await page.waitForTimeout(hold);
+    const baseHold = pauseOverride?.[i] ?? TIP_STEP_PAUSE[i] ?? 5_500;
+    await page.waitForTimeout(baseHold - 500);
     const nextBtn = page.locator('.tour-callout .btn.primary').first();
     await nextBtn.waitFor({ state: 'visible', timeout: 5_000 });
     await nextBtn.click();

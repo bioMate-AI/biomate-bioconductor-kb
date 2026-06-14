@@ -56,7 +56,7 @@ process BIOC_BASECALLQC_BCL2FASTQ_QC_ANALYSIS_AND_REPORTING {
     library(basecallQC)
     
     # ----------------------------------------------------------------------
-    # 1. Input File Verification and Directory Setup
+    # --- Input File Verification and Directory Setup ---
     # ----------------------------------------------------------------------
     # Define the exact user input files required from the working directory
     runXML <- "runParameters.xml"
@@ -84,7 +84,7 @@ process BIOC_BASECALLQC_BCL2FASTQ_QC_ANALYSIS_AND_REPORTING {
     file.copy(demuxStatsIn, file.path(statsDir, "DemultiplexingStats.xml"), overwrite = TRUE)
     
     # ----------------------------------------------------------------------
-    # 2. Run basecallQC Pipeline (Documented Code Workflow)
+    # --- Run basecallQC Pipeline (Documented Code Workflow) ---
     # ----------------------------------------------------------------------
     # Initialize run parameters with the output directory specified
     bcl2fastqparams <- BCL2FastQparams(runXML, config, runDir=getwd(), outDir, verbose=FALSE)
@@ -109,7 +109,7 @@ process BIOC_BASECALLQC_BCL2FASTQ_QC_ANALYSIS_AND_REPORTING {
     reportBCL(bclQC)
     
     # ----------------------------------------------------------------------
-    # 3. Export and Save Meaningful Results
+    # --- Export and Save Meaningful Results ---
     # ----------------------------------------------------------------------
     # Save core R objects
     saveRDS(bclQC, "bclQC_object.rds")

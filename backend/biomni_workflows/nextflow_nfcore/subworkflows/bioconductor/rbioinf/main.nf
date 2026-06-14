@@ -34,6 +34,15 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RBioinf", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,11 +52,12 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(RBioinf)
     library(S4Vectors)
     
-    # 1. Read Input Data
+    # --- Read Input Data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and 'coldata.csv' are missing.")
     }
@@ -68,13 +78,13 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     count_matrix <- as.matrix(counts_df)
     class(count_matrix) <- "integer"
     
-    # 2. Construct SummarizedExperiment
+    # --- Construct SummarizedExperiment ---
     se <- SummarizedExperiment(
       assays = list(counts = count_matrix),
       colData = DataFrame(coldata_df)
     )
     
-    # 3. S4 Class Architecture Analysis using RBioinf
+    # --- S4 Class Architecture Analysis using RBioinf ---
     # Inspect the class hierarchy of the SummarizedExperiment container
     se_class_name <- class(se)[1]
     
@@ -100,7 +110,7 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     )
     write.csv(class_struct_df, "class_structure.csv", row.names = FALSE)
     
-    # 4. Simulate Probe Sequences using RBioinf::randDNA
+    # --- Simulate Probe Sequences using RBioinf::randDNA ---
     # Generate a random DNA probe sequence of length 50 for each gene in the dataset
     gene_ids <- rownames(se)
     probe_length <- 50
@@ -122,7 +132,7 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     )
     write.csv(probes_df, "gene_sequences.csv", row.names = FALSE)
     
-    # 5. Expression Summary Statistics
+    # --- Expression Summary Statistics ---
     # Compute basic expression statistics (mean and SD) per condition
     conditions <- unique(colData(se)\$condition)
     summary_list <- list()

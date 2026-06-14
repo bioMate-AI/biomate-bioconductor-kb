@@ -34,6 +34,15 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("metabolomicsWorkbenchR", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,9 +53,10 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
         }
     
     # Load required libraries
-    library(metabolomicsWorkbenchR)
+    library(metab    library(SummarizedExperiment)
+olomicsWorkbenchR)
     
-    # Stage 1: Load local data
+    # --- Load local data ---
     message("Stage 1: Loading local data...")
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'intensity.csv' or 'coldata.csv' are missing.")
@@ -63,14 +73,14 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     intensity <- intensity[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, , drop = FALSE]
     
-    # Stage 2: Create SummarizedExperiment
+    # --- Create SummarizedExperiment ---
     message("Stage 2: Creating SummarizedExperiment...")
     se <- SummarizedExperiment(
         assays = list(intensity = as.matrix(intensity)),
         colData = DataFrame(coldata)
     )
     
-    # Stage 3: Query Metabolomics Workbench for related studies
+    # --- Query Metabolomics Workbench for related studies ---
     message("Stage 3: Querying Metabolomics Workbench for related studies...")
     conditions <- unique(coldata\$condition)
     study_list <- list()
@@ -111,7 +121,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
         )
     }
     
-    # Stage 4: Query Metabolomics Workbench for feature annotations
+    # --- Query Metabolomics Workbench for feature annotations ---
     message("Stage 4: Querying Metabolomics Workbench for feature annotations...")
     feature_ids <- rownames(se)
     # Limit to first 20 features to avoid API rate limits/timeout
@@ -199,7 +209,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
         )
     }
     
-    # Stage 5: Integrate annotations into SummarizedExperiment rowData
+    # --- Integrate annotations into SummarizedExperiment rowData ---
     message("Stage 5: Integrating annotations into SummarizedExperiment...")
     row_df <- data.frame(feature_id = feature_ids, row.names = feature_ids, stringsAsFactors = FALSE)
     if (nrow(annotations_df) > 0 && "feature_id" %in% colnames(annotations_df)) {
@@ -209,7 +219,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     }
     rowData(se) <- DataFrame(row_df)
     
-    # Stage 6: Write outputs
+    # --- Write outputs ---
     message("Stage 6: Writing outputs...")
     write.csv(matched_studies, "matched_studies.csv", row.names = FALSE)
     write.csv(row_df, "feature_annotations.csv", row.names = FALSE)

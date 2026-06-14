@@ -34,6 +34,15 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("iSEEhub", "ExperimentHub", "S4Vectors", "iSEE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,12 +52,12 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(iSEEhub)
     library(ExperimentHub)
     library(S4Vectors)
     
-    # Stage 2: Read and parse the input file defensively
+    # --- Read and parse the input file defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop("Input file 'input.csv' not found in the working directory.")
@@ -72,7 +81,7 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
       message(sprintf("Successfully loaded list of %d features.", length(feature_ids)))
     }
     
-    # Stage 3: Query ExperimentHub for compatible datasets
+    # --- Query ExperimentHub for compatible datasets ---
     message("Connecting to ExperimentHub...")
     eh <- tryCatch({
       ExperimentHub()
@@ -93,7 +102,7 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
       write.csv(data.frame(Error = "ExperimentHub connection offline"), "available_eh_datasets.csv")
     }
     
-    # Stage 4: Generate a custom iSEE configuration script based on input features
+    # --- Generate a custom iSEE configuration script based on ---
     # We select the top features to pre-configure a ComplexHeatmapPlot
     top_features <- head(feature_ids, 10)
     top_features_str <- paste(sprintf("'%s'", top_features), collapse = ", ")
@@ -112,7 +121,7 @@ process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
     writeLines(config_lines, "custom_isee_config.R")
     message("Created custom iSEE configuration in 'custom_isee_config.R'.")
     
-    # Stage 5: Initialize and serialize the iSEEhub Shiny App
+    # --- Initialize and serialize the iSEEhub Shiny App ---
     if (!is.null(eh)) {
       message("Initializing iSEEhub application...")
       app <- iSEEhub(eh, runtime_install = FALSE)

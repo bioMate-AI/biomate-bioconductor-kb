@@ -53,11 +53,11 @@ process BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION {
           }
         }
     
-    # Stage 1: Load required libraries safely
+    # --- Load required libraries safely ---
     library(biodb)
     library(biodbNci)
     
-    # Stage 2: Read and parse input defensively
+    # --- Read and parse input defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -85,11 +85,11 @@ process BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION {
     
     message(paste("Loaded", length(ids), "unique identifiers for NCI CACTUS annotation."))
     
-    # Stage 3: Initialize biodb and the NCI connector
+    # --- Initialize biodb and the NCI connector ---
     bd <- biodb::newBiodb()
     conn <- bd\$getFactory()\$createConn('nci')
     
-    # Stage 4: Query NCI CACTUS database with error handling
+    # --- Query NCI CACTUS database with error handling ---
     entries <- list()
     for (id in ids) {
       message(paste("Querying NCI CACTUS for:", id))
@@ -104,7 +104,7 @@ process BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION {
       })
     }
     
-    # Stage 5: Process results and build output dataframe
+    # --- Process results and build output dataframe ---
     if (length(entries) > 0) {
       # Convert retrieved biodb entries to a standard data frame
       df_entries <- bd\$entriesToDataframe(entries)
@@ -127,7 +127,7 @@ process BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION {
     write.csv(df_entries, "nci_annotations.csv", row.names = FALSE)
     message("Saved annotations to 'nci_annotations.csv'.")
     
-    # Stage 6: Generate diagnostic visualization
+    # --- Generate diagnostic visualization ---
     pdf("mass_distribution.pdf", width = 7, height = 5)
     
     # Check if molecular weight column exists and has numeric values
@@ -157,7 +157,7 @@ process BIOC_BIODBNCI_NCI_CACTUS_ANNOTATION {
     dev.off()
     message("Saved visualization to 'mass_distribution.pdf'.")
     
-    # Stage 7: Clean up biodb instance
+    # --- Clean up biodb instance ---
     bd\$terminate()
     message("Pipeline completed successfully.")
 

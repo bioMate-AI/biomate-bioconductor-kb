@@ -55,15 +55,15 @@ process BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING {
     # Load required library
     library(marray)
     
-    # 1. Read target information
+    # --- Read target information ---
     # The pipeline assumes SwirlSample.txt, fish.gal, and raw spot files are in the working directory.
     datadir <- "."
     swirlTargets <- read.marrayInfo(file.path(datadir, "SwirlSample.txt"))
     
-    # 2. Read raw intensity data
+    # --- Read raw intensity data ---
     mraw <- read.Spot(targets = swirlTargets, path=datadir)
     
-    # 3. Read layout and gene information from GAL file and assign to raw object
+    # --- Read layout and gene information from GAL file and assign ---
     galinfo <- read.Galfile("fish.gal", path=datadir)
     mraw@maLayout <- galinfo\$layout
     mraw@maGnames <- galinfo\$gnames
@@ -71,10 +71,10 @@ process BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING {
     # Assign the raw object to 'swirl' to match the documented vignette workflow
     swirl <- mraw
     
-    # 4. Compute and assign plate metadata
+    # --- Compute and assign plate metadata ---
     maPlate(swirl)<-maCompPlate(swirl,n=384)
     
-    # 5. Perform pre-normalization diagnostic plotting
+    # --- Perform pre-normalization diagnostic plotting ---
     pdf("pre_normalization_diagnostics.pdf", width=10, height=8)
     par(mfrow=c(2,2))
     boxplot(swirl[,3], xvar="maPrintTip", yvar="maM", main="Swirl array 93: pre--normalization")
@@ -82,14 +82,14 @@ process BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING {
     plot(swirl[,3], main="Swirl array 93: pre--normalization MA--plot")
     dev.off()
     
-    # 6. Normalize intensity data
+    # --- Normalize intensity data ---
     swirl.norm <- maNorm(swirl, norm="p")
     summary(swirl.norm)
     
     swirl.norm1 <- maNorm(swirl, norm="p")
     swirl.norm2 <- maNormScale(swirl.norm1, norm="p")
     
-    # 7. Perform post-normalization diagnostic plotting
+    # --- Perform post-normalization diagnostic plotting ---
     pdf("post_normalization_diagnostics.pdf", width=10, height=8)
     par(mfrow=c(2,2))
     boxplot(swirl.norm[,3], xvar="maPrintTip", yvar="maM", main="Swirl array 93: post--normalization")

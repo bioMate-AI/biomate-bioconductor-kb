@@ -78,7 +78,7 @@ process BIOC_RAWDIAG_LAUNCH_RAWDIAG_SHINY_APP {
       warning("Failed to initialize rawrr assembly: ", e\$message)
     })
     
-    # 1. Build the Shiny application from the raw files directory
+    # --- Build the Shiny application from the raw files directory ---
     rawfile |>
       dirname() |>
       rawDiag::buildRawDiagShinyApp() -> app
@@ -86,7 +86,7 @@ process BIOC_RAWDIAG_LAUNCH_RAWDIAG_SHINY_APP {
     # Save the built Shiny app object as an RDS file
     saveRDS(app, file = "rawdiag_shiny_app.rds")
     
-    # 2. Launch the application
+    # --- Launch the application ---
     shiny::runApp(app)
 
     writeLines(c(

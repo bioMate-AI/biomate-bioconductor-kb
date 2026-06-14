@@ -34,7 +34,7 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "cowplot", "cytomapper", "ggplot2", "HDF5Array")
+    .bm_deps <- c("SingleCellExperiment", "cowplot", "cytomapper", "ggplot2", "HDF5Array", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,24 +53,25 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(cytomapper)
     library(SingleCellExperiment)
     
-    # 1. Load segmentation masks and multi-channel images
+    # --- Load segmentation masks and multi-channel images ---
     all_masks <- loadImages("segmentation_masks.tiff")
     all_stacks <- loadImages("multi_channel_images.tiff")
     
-    # 2. Add image metadata to the elementMetadata slot of both CytoImageList objects
+    # --- Add image metadata to the elementMetadata slot of both ---
     mcols(all_masks)\$ImageNb <- as.character(seq_along(all_masks))
     mcols(all_stacks)\$ImageNb <- as.character(seq_along(all_stacks))
     
-    # 3. Scale segmentation masks to restore integer cell IDs
+    # --- Scale segmentation masks to restore integer cell IDs ---
     all_masks <- scaleImages(all_masks, 2^16-1)
     
-    # 4. Set channel names
+    # --- Set channel names ---
     channelNames(all_stacks) <- c("H3", "CD99", "PIN", "CD8a", "CDH")
     
-    # 5. Measure cell-specific intensities and morphological features to generate a SingleCellExperiment
+    # --- Measure cell-specific intensities and morphological ---
     sce <- measureObjects(all_masks, all_stacks, img_id = "ImageNb")
     
     # Prepare the SingleCellExperiment object with required metadata columns for plotting
@@ -78,12 +79,12 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     cd99_expr <- assay(sce, "counts")["CD99", ]
     sce\$CellType <- ifelse(cd99_expr > median(cd99_expr), "CD99_high", "CD99_low")
     
-    # 6. Plot pixel-level intensities and save to PDF
+    # --- Plot pixel-level intensities and save to PDF ---
     pdf("pixel_intensities_plot.pdf")
     plotPixels(image = all_stacks, colour_by = c("H3", "CD99", "CDH"))
     dev.off()
     
-    # 7. Plot cell-level expression and metadata on segmentation masks and save to PDFs
+    # --- Plot cell-level expression and metadata on segmentation ---
     pdf("cell_expression_plot.pdf")
     plotCells(mask = all_masks, object = sce, cell_id = "CellNb", img_id = "ImageNb", colour_by = "CD99", outline_by = "CellType")
     dev.off()
@@ -92,7 +93,7 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     plotCells(mask = all_masks, object = sce, cell_id = "CellNb", img_id = "ImageNb", colour_by = "CellType")
     dev.off()
     
-    # 8. Write named output files for the results
+    # --- Write named output files for the results ---
     saveRDS(sce, "measured_cells_sce.rds")
     write.csv(as.data.frame(colData(sce)), "cell_metadata.csv", row.names = FALSE)
     write.csv(as.data.frame(assay(sce, "counts")), "cell_counts.csv", row.names = TRUE)

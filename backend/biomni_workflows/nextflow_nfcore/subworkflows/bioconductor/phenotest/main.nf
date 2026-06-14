@@ -35,6 +35,15 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("phenoTest", "GSEABase", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     library(Biobase)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (probes/genes as rows, samples as columns)
@@ -90,7 +99,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     )
     
     # ==========================================
-    # STAGE 2: Individual Gene Association Testing
+    # --- Individual Gene Association Testing ---
     # ==========================================
     
     # Run ExpressionPhenoTest
@@ -117,7 +126,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     message("Gene-level association testing completed and saved.")
     
     # ==========================================
-    # STAGE 3: Gene Set Signature Analysis
+    # --- Gene Set Signature Analysis ---
     # ==========================================
     
     # Define gene signatures dynamically based on available features
@@ -164,7 +173,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     })
     
     # ==========================================
-    # STAGE 4: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ==========================================
     
     # Run GSEA with permutation test

@@ -71,11 +71,11 @@ process BIOC_COVERAGEVIEW_MULTI_SAMPLE_COMPARISON {
       stop(paste("Required BED file not found:", H3K4me3_chr19_bed))
     }
     
-    # 1. Instantiate CoverageBamFile objects for treatment and control
+    # --- Instantiate CoverageBamFile objects for treatment and ---
     trm <- CoverageBamFile(bam_treatment, reads_mapped=864924)
     ctl <- CoverageBamFile(bam_control, reads_mapped=319369)
     
-    # 2. Calculate normalized coverage matrices across gene windows
+    # --- Calculate normalized coverage matrices across gene windows ---
     DF_H3K4me3 <- cov.matrix(trm, coordfile=H3K4me3_chr19_bed, no_windows=100, offset=10, num_cores=2, normalization="rpm")
     DF_H3K4me3_ctl <- cov.matrix(ctl, coordfile=H3K4me3_chr19_bed, no_windows=100, offset=10, num_cores=2, normalization="rpm")
     
@@ -85,13 +85,13 @@ process BIOC_COVERAGEVIEW_MULTI_SAMPLE_COMPARISON {
     write.csv(as.data.frame(DF_H3K4me3), file="DF_H3K4me3.csv", row.names=FALSE)
     write.csv(as.data.frame(DF_H3K4me3_ctl), file="DF_H3K4me3_ctl.csv", row.names=FALSE)
     
-    # 3. Combine matrices into a list
+    # --- Combine matrices into a list ---
     input_list = list(DF_H3K4me3, DF_H3K4me3_ctl) 
     
-    # 4. Draw comparative profile
+    # --- Draw comparative profile ---
     draw.profile(data=input_list, ylab="avg coverage", outfile="H3K4me3cmp.png", main="H3K4me3")
     
-    # 5. Draw comparative heatmap
+    # --- Draw comparative heatmap ---
     draw.heatmap(data=input_list, outfile="H3K4me3cmp_heatmap.png")
 
     writeLines(c(

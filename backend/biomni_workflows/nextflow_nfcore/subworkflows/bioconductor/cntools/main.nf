@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Instantiate a CNSeg object from the segment data using CNSeg. 2. Convert segments to a reduced segment matrix by region or gene us
+//  * 1. [Core Analysis] Instantiate a CNSeg object from the segment data using
+//  * 2. [Core Analysis] Convert segments to a reduced segment matrix by region or
+//  * 3. [Core Analysis] Extract the reduced segment matrix using rs
+//  * 4. [Core Analysis] Filter features using genefilter or madFilter
+//  * 5. [Core Analysis] Calculate sample distances and perform hierarchical
 
 nextflow.enable.dsl = 2
 
@@ -90,20 +94,20 @@ process BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS {
     # Ensure geneInfo is a matrix as required by CNTools
     geneInfo <- as.matrix(geneInfo)
     
-    # 1. Instantiate a CNSeg object from the segment data using CNSeg
+    # --- Instantiate a CNSeg object from the segment data using ---
     # Robust sampling to handle cases where there are fewer than 20 unique IDs
     unique_ids <- unique(sampleData[, "ID"])
     sampled_ids <- sample(unique_ids, min(20, length(unique_ids)))
     cnseg <- CNSeg(sampleData[which(is.element(sampleData[, "ID"], sampled_ids)), ])
     
-    # 2. Convert segments to a reduced segment matrix by region or gene using getRS
+    # --- Convert segments to a reduced segment matrix by region or ---
     rdseg <- getRS(cnseg, by = "region", imput = FALSE, XY = FALSE, what = "mean")
     
     # Robust sampling for geneInfo to handle cases where there are fewer than 2000 genes
     geneInfo <- geneInfo[sample(1:nrow(geneInfo), min(2000, nrow(geneInfo))), , drop = FALSE]
     rdByGene <- getRS(cnseg, by = "gene", imput = FALSE, XY = FALSE, geneMap = geneInfo, what = "median")
     
-    # 3. Extract the reduced segment matrix using rs
+    # --- Extract the reduced segment matrix using rs ---
     reducedseg <- rs(rdseg)
     reducedseg_gene <- rs(rdByGene)
     
@@ -111,7 +115,7 @@ process BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS {
     write.csv(reducedseg, "reduced_segment_region.csv", row.names = TRUE)
     write.csv(reducedseg_gene, "reduced_segment_gene.csv", row.names = TRUE)
     
-    # 4. Filter features using genefilter or madFilter
+    # --- Filter features using genefilter or madFilter ---
     f1 <- kOverA(5, 1)
     ffun <- filterfun(f1)
     filteredrs_gf <- genefilter(rdseg, ffun)
@@ -124,7 +128,7 @@ process BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS {
     # Save madFilter result
     write.csv(rs(filteredrs), "filtered_segment_madfilter.csv", row.names = TRUE)
     
-    # 5. Calculate sample distances and perform hierarchical clustering using getDist and hclust
+    # --- Calculate sample distances and perform hierarchical ---
     hc <- hclust(getDist(filteredrs, method = "euclidian"), method = "complete") 
     
     # Save clustering object

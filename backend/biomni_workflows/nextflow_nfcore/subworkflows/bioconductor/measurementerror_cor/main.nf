@@ -35,6 +35,15 @@ process BIOC_MEASUREMENTERROR_COR_MEASUREMENT_ERROR_CORRELATION_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MeasurementError.cor")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_MEASUREMENTERROR_COR_MEASUREMENT_ERROR_CORRELATION_ANALYSIS {
           }
         }
     
-    # Stage 1: Load libraries and read input defensively
+    # --- Load libraries and read input defensively ---
     library(MeasurementError.cor)
     
     input_file <- "input.csv"
@@ -75,7 +84,7 @@ process BIOC_MEASUREMENTERROR_COR_MEASUREMENT_ERROR_CORRELATION_ANALYSIS {
     class(data_mat) <- "numeric"
     data_mat <- data_mat[rowSums(is.na(data_mat)) < ncol(data_mat), , drop = FALSE]
     
-    # Stage 2: Group replicates and estimate means and standard errors
+    # --- Group replicates and estimate means and standard errors ---
     col_names <- colnames(data_mat)
     # Attempt to identify replicate groups by stripping common suffixes
     prefixes <- sub("[._-][rR]?[0-9]+\$", "", col_names)
@@ -119,7 +128,7 @@ process BIOC_MEASUREMENTERROR_COR_MEASUREMENT_ERROR_CORRELATION_ANALYSIS {
       ses <- 0.1 * abs(data_mat) + 0.05
     }
     
-    # Stage 3: Select top highly variable features for pairwise correlation
+    # --- Select top highly variable features for pairwise ---
     # Measurement error correction can be computationally intensive; limit to top 50 features
     max_features <- 50
     vars <- apply(means, 1, var, na.rm = TRUE)
@@ -135,7 +144,7 @@ process BIOC_MEASUREMENTERROR_COR_MEASUREMENT_ERROR_CORRELATION_ANALYSIS {
       stop("Not enough features to perform pairwise correlation analysis.")
     }
     
-    # Stage 4: Compute standard Pearson and Measurement Error Corrected Correlations
+    # --- Compute standard Pearson and Measurement Error Corrected ---
     cor_me_mat <- matrix(NA, nrow = n_feat, ncol = n_feat)
     cor_pearson_mat <- matrix(NA, nrow = n_feat, ncol = n_feat)
     rownames(cor_me_mat) <- colnames(cor_me_mat) <- features
@@ -184,7 +193,7 @@ process BIOC_MEASUREMENTERROR_COR_MEASUREMENT_ERROR_CORRELATION_ANALYSIS {
     
     comparison_df <- do.call(rbind, comparison_results)
     
-    # Stage 5: Write outputs and generate diagnostic plots
+    # --- Write outputs and generate diagnostic plots ---
     write.csv(comparison_df, "corrected_correlations.csv", row.names = FALSE)
     message("Saved correlation comparisons to 'corrected_correlations.csv'")
     

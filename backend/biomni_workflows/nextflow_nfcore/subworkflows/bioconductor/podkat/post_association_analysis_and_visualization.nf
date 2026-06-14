@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Adjust p-values using the Benjamini-Hochberg method. 2. Filter association results by adjusted p-value. 3. Compute variant weights
+//  * 1. [Visualization & Output] Adjust p-values using the Benjamini-Hochberg method
+//  * 2. [Visualization & Output] Filter association results by adjusted p-value
+//  * 3. [Visualization & Output] Compute variant weights and contributions for the
+//  * 4. [Visualization & Output] Plot raw variant weights along the genome for the most
+//  * 5. [Visualization & Output] Sort association results, read the genotype matrix for
 
 nextflow.enable.dsl = 2
 
@@ -85,11 +89,11 @@ process BIOC_PODKAT_POST_ASSOCIATION_ANALYSIS_AND_VISUALIZATION {
     pheno.c <- read.csv(pheno_c_file, header=TRUE)
     vcfFile <- vcf_file
     
-    # 1. Adjust p-values using the Benjamini-Hochberg method
+    # --- Adjust p-values using the Benjamini-Hochberg method ---
     res.c.adj <- p.adjust(res.c, method="BH")
     saveRDS(res.c.adj, "res.c.adj.rds")
     
-    # 2. Filter association results by adjusted p-value
+    # --- Filter association results by adjusted p-value ---
     res.c.adj.f <- filterResult(res.c.adj, filterBy="p.value.adj")
     saveRDS(res.c.adj.f, "res.c.adj.f.rds")
     
@@ -100,16 +104,16 @@ process BIOC_PODKAT_POST_ASSOCIATION_ANALYSIS_AND_VISUALIZATION {
       warning("Could not export res.c.adj.f to CSV: ", e\$message)
     })
     
-    # 3. Compute variant weights and contributions for the filtered significant regions
+    # --- Compute variant weights and contributions for the ---
     w.res.c.adj <- weights(res.c.adj.f, geno, model.c)
     saveRDS(w.res.c.adj, "w.res.c.adj.rds")
     
-    # 4. Plot raw variant weights along the genome for the most significant region
+    # --- Plot raw variant weights along the genome for the most ---
     pdf("weight_raw_plot.pdf", width=8, height=6)
     plot(w.res.c.adj[[1]], "weight.raw", alongGenome=TRUE, type="b")
     dev.off()
     
-    # 5. Sort association results, read the genotype matrix for the top region, and plot the genotype matrix against the phenotype
+    # --- Sort association results, read the genotype matrix for ---
     res.c.adj.sorted <- sort(res.c.adj, sortBy="p.value.adj")
     saveRDS(res.c.adj.sorted, "res.c.adj.sorted.rds")
     

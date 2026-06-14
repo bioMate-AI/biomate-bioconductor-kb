@@ -60,27 +60,27 @@ process BIOC_COVERAGEVIEW_SAMPLE_RATIO_AND_INTERVAL_ANALYSIS {
     ctl_bam <- "./H3K4me3_Control.chr19.bam"
     H3K4me3_chr19_nopeaks_bed <- "./H3K4me3.chr19.nopeaks.bed"
     
-    # 1. Instantiate CoverageBamFile objects
+    # --- Instantiate CoverageBamFile objects ---
     trm <- CoverageBamFile(trm_bam, reads_mapped=864924)
     ctl <- CoverageBamFile(ctl_bam, reads_mapped=319369)
     
-    # 2. Calculate log2ratio coverage matrix across BED coordinates
+    # --- Calculate log2ratio coverage matrix across BED coordinates ---
     DF_H3K4me3_nopeaks_ratios = cov.matrix(trm, ctl, coordfile=H3K4me3_chr19_nopeaks_bed, no_windows=100, offset=10, num_cores=2, normalization="rpm", do="log2ratio")
     
     # Save the calculated matrix to RDS and CSV formats
     saveRDS(DF_H3K4me3_nopeaks_ratios, file="DF_H3K4me3_nopeaks_ratios.rds")
     write.csv(as.data.frame(DF_H3K4me3_nopeaks_ratios), file="DF_H3K4me3_nopeaks_ratios.csv", row.names=FALSE)
     
-    # 3. Draw ratio profile
+    # --- Draw ratio profile ---
     draw.profile(DF_H3K4me3_nopeaks_ratios, ylab="avg coverage", outfile="H3K4me3nopeaks_ratios.png", main="H3K4me3 ratio")
     
-    # 4. Calculate ratio across a specific genomic interval
+    # --- Calculate ratio across a specific genomic interval ---
     chr19_246050_247000.ratios = cov.interval(trm, ctl, bin_width=1, chr="chr19", start=246050, end=247000, do='ratio')
     
     # Save the interval ratios to an RDS file
     saveRDS(chr19_246050_247000.ratios, file="chr19_246050_247000_ratios.rds")
     
-    # 5. Export interval ratios to WIG format
+    # --- Export interval ratios to WIG format ---
     export.wig(chr19_246050_247000.ratios, outfile="chr19_246050_247000.ratios.wig")
 
     writeLines(c(

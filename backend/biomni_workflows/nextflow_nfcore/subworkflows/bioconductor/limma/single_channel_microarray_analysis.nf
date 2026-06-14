@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read targets metadata using readTargets(). 2. Read and pre-process raw data using ReadAffy() and gcrma() from the gcrma package. 3
+//  * 1. [Input & Preparation] Read targets metadata using readTargets()
+//  * 2. [Input & Preparation] Read and pre-process raw data using ReadAffy() and gcrma()
+//  * 3. [Input & Preparation] Construct a design matrix representing the experimental
+//  * 4. [Input & Preparation] Fit gene-wise linear models using lmFit()
+//  * 5. [Input & Preparation] Apply empirical Bayes smoothing with robust and trend
+//  * 6. [Input & Preparation] Extract top differentially expressed genes using
 
 nextflow.enable.dsl = 2
 
@@ -61,26 +66,26 @@ process BIOC_LIMMA_SINGLE_CHANNEL_MICROARRAY_ANALYSIS {
     library(gcrma)
     library(limma)
     
-    # 1. Read targets metadata using readTargets()
+    # --- Read targets metadata using readTargets() ---
     targets <- readTargets("targets.txt")
     
-    # 2. Read and pre-process raw data using ReadAffy() and gcrma()
+    # --- Read and pre-process raw data using ReadAffy() and gcrma() ---
     ab <- ReadAffy(filenames=targets\$FileName)
     eset <- gcrma(ab)
     
-    # 3. Construct a design matrix representing the experimental groups
+    # --- Construct a design matrix representing the experimental ---
     # Dynamically identify the condition column (first column that is not 'FileName')
     cond_col <- setdiff(colnames(targets), "FileName")[1]
     condition <- factor(targets[[cond_col]])
     design <- model.matrix(~ condition)
     
-    # 4. Fit gene-wise linear models using lmFit()
+    # --- Fit gene-wise linear models using lmFit() ---
     fit <- lmFit(eset, design)
     
-    # 5. Apply empirical Bayes smoothing with robust and trend options using eBayes()
+    # --- Apply empirical Bayes smoothing with robust and trend ---
     fit <- eBayes(fit, trend=TRUE, robust=TRUE)
     
-    # 6. Extract top differentially expressed genes using topTable()
+    # --- Extract top differentially expressed genes using ---
     top_genes <- topTable(fit, coef=2, number=Inf)
     
     # Write named output files for the meaningful results

@@ -61,7 +61,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     library(Rsamtools)
     
     # ==========================================
-    # STAGE 1: Filter active sequences in the gene model
+    # --- Filter active sequences in the gene model ---
     # ==========================================
     
     # Read user input TxDb object
@@ -83,7 +83,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     }
     
     # ==========================================
-    # STAGE 2: Construct the SplicingGraphs object using SplicingGraphs()
+    # --- Construct the SplicingGraphs object using SplicingGraphs() ---
     # ==========================================
     
     sg <- SplicingGraphs(txdb)
@@ -122,7 +122,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     ex_by_tx <- unlist(sg)
     
     # ==========================================
-    # STAGE 3: Extract and visualize splicing graph edges and nodes
+    # --- Extract and visualize splicing graph edges and nodes ---
     # ==========================================
     
     sg["3183"]
@@ -140,7 +140,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     dev.off()
     
     # ==========================================
-    # STAGE 4: Identify and classify alternative splicing bubbles using bubbles()
+    # --- Identify and classify alternative splicing bubbles using ---
     # ==========================================
     
     tryCatch({
@@ -151,7 +151,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     })
     
     # ==========================================
-    # STAGE 5: Load paired-end RNA-seq reads using readGAlignmentPairs()
+    # --- Load paired-end RNA-seq reads using readGAlignmentPairs() ---
     # ==========================================
     
     # Read user input BAM files from the working directory
@@ -165,7 +165,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     param0 <- ScanBamParam(flag=flag0)
     
     # ==========================================
-    # STAGE 6: Assign reads to splicing graph edges using assignReads()
+    # --- Assign reads to splicing graph edges using assignReads() ---
     # ==========================================
     
     for (i in seq_along(bam_files)) {
@@ -175,7 +175,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     }
     
     # ==========================================
-    # STAGE 7: Extract detailed read assignments using sgedgesByTranscript()
+    # --- Extract detailed read assignments using ---
     # ==========================================
     
     edges_by_tx <- sgedgesByTranscript(sg["3183"], with.hits.mcols=TRUE)
@@ -200,7 +200,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     dev.off()
     
     # ==========================================
-    # STAGE 8: Summarize read counts per edge using countReads()
+    # --- Summarize read counts per edge using countReads() ---
     # ==========================================
     
     sg_counts <- countReads(sg)

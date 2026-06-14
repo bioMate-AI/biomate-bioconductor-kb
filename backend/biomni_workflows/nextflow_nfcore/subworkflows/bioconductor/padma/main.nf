@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Format multi-omic data as a MultiAssayExperiment or a list of matrices with matched individuals. 2. Retrieve the target pathway na
+//  * 1. [Visualization & Output] Format/read multi-omic data as a MultiAssayExperiment
+//  * 2. [Visualization & Output] Retrieve the target pathway name or gene list
+//  * 3. [Visualization & Output] Run the padma analysis to compute deviation scores
+//  * 4. [Visualization & Output] Extract pathway deviation scores and gene-specific
+//  * 5. [Visualization & Output] Visualize individual factor maps, partial factor maps,
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MultiAssayExperiment", "padma", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,10 +61,11 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
         }
         
         # Load required libraries
-        library(MultiAssayExperiment)
+        librar        library(SummarizedExperiment)
+y(MultiAssayExperiment)
         library(padma)
         
-        # 1. Format/read multi-omic data as a MultiAssayExperiment
+        # --- Format/read multi-omic data as a MultiAssayExperiment ---
         # Read the user-provided 'mae' object from the working directory
         if (file.exists("mae")) {
           mae <- readRDS("mae")
@@ -61,7 +75,7 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
           stop("Error: Input file 'mae' or 'mae.rds' not found in the working directory.")
         }
         
-        # 2. Retrieve the target pathway name or gene list
+        # --- Retrieve the target pathway name or gene list ---
         # Retrieve the D4GDI pathway name from the built-in msigdb data frame
         D4GDI <- padma::msigdb[grep("D4GDI", padma::msigdb\$geneset), "geneset"]
         if (length(D4GDI) == 0) {
@@ -69,11 +83,11 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
           D4GDI <- padma::msigdb\$geneset[1]
         }
         
-        # 3. Run the padma analysis to compute deviation scores
+        # --- Run the padma analysis to compute deviation scores ---
         run_padma <- 
           padma(mae, pathway_name = D4GDI, verbose = FALSE)
         
-        # 4. Extract pathway deviation scores and gene-specific deviation scores
+        # --- Extract pathway deviation scores and gene-specific ---
         # Extract pathway deviation scores using assay()
         pathway_scores <- assay(run_padma)
         write.csv(as.data.frame(pathway_scores), "pathway_deviation_scores.csv", row.names = TRUE)
@@ -85,7 +99,7 @@ process BIOC_PADMA_STANDARD_PATHWAY_DEVIATION_ANALYSIS {
         # Save the full padma results object
         saveRDS(run_padma, "padma_results.rds")
         
-        # 5. Visualize individual factor maps, partial factor maps, and omics contributions
+        # --- Visualize individual factor maps, partial factor maps, ---
         # Save Factor Map
         pdf("factor_map.pdf")
         print(factorMap(run_padma, dim_x = 1, dim_y = 2))

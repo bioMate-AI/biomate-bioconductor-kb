@@ -35,6 +35,15 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("edgeR", "multiMiR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,11 +53,11 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(edgeR)
     library(multiMiR)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -70,7 +79,7 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
     counts_df <- counts_df[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), ]
     
-    # Stage 3: Differential Expression Analysis using edgeR
+    # --- Differential Expression Analysis using edgeR ---
     message("Performing differential expression analysis...")
     design <- model.matrix(~ condition, data = coldata)
     dge <- DGEList(counts = counts_df)
@@ -100,7 +109,7 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
     }
     message("Detected organism: ", org)
     
-    # Stage 4: Query multiMiR for Validated Targets
+    # --- Query multiMiR for Validated Targets ---
     message("Querying multiMiR for validated targets...")
     validated_results <- tryCatch({
         get_multimir(
@@ -114,7 +123,7 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
         NULL
     })
     
-    # Stage 5: Query multiMiR for Predicted Targets
+    # --- Query multiMiR for Predicted Targets ---
     message("Querying multiMiR for predicted targets...")
     predicted_results <- tryCatch({
         get_multimir(
@@ -130,7 +139,7 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
         NULL
     })
     
-    # Stage 6: Process and Save Outputs
+    # --- Process and Save Outputs ---
     # 1. Validated Targets
     if (!is.null(validated_results) && !is.null(validated_results@data) && nrow(validated_results@data) > 0) {
         write.csv(validated_results@data, "validated_targets.csv", row.names = FALSE)

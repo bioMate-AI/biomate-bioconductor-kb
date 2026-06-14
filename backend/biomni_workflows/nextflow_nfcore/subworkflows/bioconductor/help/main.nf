@@ -54,7 +54,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     
     library(HELP)
     
-    # 1. Import raw pair files
+    # --- Import raw pair files ---
     msp1.files <- dir(".", pattern="532[._]pair", full.names=TRUE)
     hpa2.files <- dir(".", pattern="635[._]pair", full.names=TRUE)
     N <- length(msp1.files)
@@ -67,18 +67,18 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     	}
     }
     
-    # 2. Map chip IDs to human-readable sample names
+    # --- Map chip IDs to human-readable sample names ---
     chips <- sub("[_.]*532[_.]*pair.*","",basename(msp1.files))
     samplekey <- "sample.key.txt"
     chips <- readSampleKey(file=samplekey,chips=chips)
     sampleNames(pairs) <- chips
     
-    # 3. Load design and genomic feature information
+    # --- Load design and genomic feature information ---
     ndf.file <- "HELP.ndf.txt"
     ngd.file <- "HELP.ngd.txt"
     pairs <- readDesign(ndf.file, ngd.file, pairs)
     
-    # 4. Calculate probe properties
+    # --- Calculate probe properties ---
     tm_single <- calcTm("ATCTAGGAAGATTTAGAGAGGCAATGTGTCATTTAGCATCTAATTTTACC")
     tm_multi <- calcTm(getFeatures(pairs,"SEQUENCE")[1:4])
     gc_single <- calcGC("ATCTAGGAAGATTTAGAGAGGCAATGTGTCATTTAGCATCTAATTTTACC")
@@ -91,7 +91,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     )
     write.csv(tm_gc_results, "tm_gc_results.csv", row.names=FALSE)
     
-    # 5. Quality control and exploration
+    # --- Quality control and exploration ---
     samples_head <- getSamples(pairs)[1:4,]
     write.csv(samples_head, "samples_head.csv")
     
@@ -109,7 +109,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     plotFeature(pairs[,"Brain2"],cex=0.5)
     dev.off()
     
-    # 6. Identify background noise thresholds
+    # --- Identify background noise thresholds ---
     rand <- which(getFeatures(pairs, "TYPE")=="RAND")
     msp.rand <- getSamples(pairs, element="exprs")[rand,]
     hpa.rand <- getSamples(pairs, element="exprs2")[rand,]
@@ -121,7 +121,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     hpa.fail <- hpa.rand.med + 2.5*hpa.rand.mad
     hpa.meth <- apply(hpa.rand, 2, quantile, 0.99)
     
-    # 7. Single-sample quantile normalization
+    # --- Single-sample quantile normalization ---
     norand <- which(getFeatures(pairs, "TYPE")=="DATA")
     size <- as.numeric(getFeatures(pairs, "SIZE"))[norand]
     msp <- getSamples(pairs, "Brain2", element="exprs")[norand]
@@ -141,7 +141,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     
     saveRDS(pairs.norm, "pairs_normalized.rds")
     
-    # 8. Summarize probe-level data
+    # --- Summarize probe-level data ---
     data <- getSamples(pairs,element="exprs2")
     seqids <- getFeatures(pairs,'SEQ_ID')
     weight <- getSamples(pairs,element="exprs")
@@ -151,7 +151,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     comb2 <- combineData(pairs, feature.group='SEQ_ID', trim=0.2)[1:5,]
     write.csv(comb2, "combined_data_unweighted_head.csv")
     
-    # 9. Visualize sample relationships
+    # --- Visualize sample relationships ---
     pdf("pairs_plot.pdf")
     plotPairs(pairs,element="exprs2")
     dev.off()

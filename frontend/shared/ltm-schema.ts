@@ -146,10 +146,16 @@ export const sessions = pgTable("sessions", {
 
   // Conversation state (pre-compaction flush — persisted every turn)
   conversationState: jsonb("conversation_state"),
+
+  // Bridge to chat-stream's text sessionId — UNIQUE, used by
+  // MemoryService.ensureChatLtmSession to find-or-create this row. See
+  // 0016_ltm_sessions_chat_link.sql and 2026-06-13 audit.
+  chatSessionId: text("chat_session_id"),
 }, (table) => ({
   userIdIdx: index("sessions_user_id_idx").on(table.userId),
   projectIdIdx: index("sessions_project_id_idx").on(table.projectId),
   startedAtIdx: index("sessions_started_at_idx").on(table.startedAt),
+  chatSessionIdIdx: index("sessions_chat_session_id_idx").on(table.chatSessionId),
 }));
 
 // ============================================================================

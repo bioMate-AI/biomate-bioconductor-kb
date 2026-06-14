@@ -58,7 +58,7 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
     library(data.table)
     
     # ----------------------------------------------------------------------
-    # 1. Read User Input Files from Working Directory
+    # --- Read User Input Files from Working Directory ---
     # ----------------------------------------------------------------------
     
     # Read metadata (expects metadata.csv or metadata.tsv in the working directory)
@@ -88,7 +88,7 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
     names(fq_files) <- sample_name
     
     # ----------------------------------------------------------------------
-    # 2. Quality Control and Filtering
+    # --- Quality Control and Filtering ---
     # ----------------------------------------------------------------------
     
     # Evaluate sequence quality
@@ -107,7 +107,7 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
       sample_name = sample_name)
     
     # ----------------------------------------------------------------------
-    # 3. Barcode and UMI Extraction
+    # --- Barcode and UMI Extraction ---
     # ----------------------------------------------------------------------
     
     pattern <- "([ACGA]{12})CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT"
@@ -119,14 +119,14 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
       pattern_type = c(UMI = 1, barcode = 2))
     
     # ----------------------------------------------------------------------
-    # 4. Subset Samples (dynamically selecting the first two samples)
+    # --- Subset Samples (dynamically selecting the first two ---
     # ----------------------------------------------------------------------
     
     sub_samples <- sample_name[1:min(2, length(sample_name))]
     bc_obj_umi_sub <- bc_obj_umi[, sub_samples]
     
     # ----------------------------------------------------------------------
-    # 5. Filter UMI-barcode tags
+    # --- Filter UMI-barcode tags ---
     # ----------------------------------------------------------------------
     
     bc_obj_umi_sub <- bc_cure_umi(
@@ -135,19 +135,19 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
         doFish = TRUE)
     
     # ----------------------------------------------------------------------
-    # 6. Filter by sequence/UMI depth
+    # --- Filter by sequence/UMI depth ---
     # ----------------------------------------------------------------------
     
     bc_obj_umi_sub <- bc_cure_depth(bc_obj_umi_sub, depth = 3, isUpdate = TRUE)
     
     # ----------------------------------------------------------------------
-    # 7. Cluster and merge similar barcodes
+    # --- Cluster and merge similar barcodes ---
     # ----------------------------------------------------------------------
     
     bc_cure_cluster(bc_obj_umi_sub)
     
     # ----------------------------------------------------------------------
-    # 8. Visualize barcode distributions
+    # --- Visualize barcode distributions ---
     # ----------------------------------------------------------------------
     
     pdf("barcode_distribution_single.pdf", width = 7, height = 7)
@@ -155,7 +155,7 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
     dev.off()
     
     # ----------------------------------------------------------------------
-    # 9. Export quantified barcodes
+    # --- Export quantified barcodes ---
     # ----------------------------------------------------------------------
     
     # Export to data.frame and save

@@ -71,15 +71,15 @@ process BIOC_SPICYR_SURVIVAL_ANALYSIS {
       stop("Input file 'kerenSPE' or 'kerenSPE.rds' not found in the working directory.")
     }
     
-    # 1. Create a Surv object and store it in the "survival" column of the spatial object
+    # --- Create a Surv object and store it in the "survival" ---
     kerenSPE\$event = 1 - kerenSPE\$Censored
     kerenSPE\$survival = Surv(kerenSPE\$`Survival_days_capped*`, kerenSPE\$event)
     
-    # 2. Run spicy() with condition set to "survival"
+    # --- Run spicy() with condition set to "survival" ---
     spicySurvival = spicy(kerenSPE,
                           condition = "survival")
     
-    # 3. Access the survival analysis results from the survivalResults slot of the output object
+    # --- Access the survival analysis results from the ---
     survival_results_head <- head(spicySurvival\$survivalResults, 10)
     print(survival_results_head)
     

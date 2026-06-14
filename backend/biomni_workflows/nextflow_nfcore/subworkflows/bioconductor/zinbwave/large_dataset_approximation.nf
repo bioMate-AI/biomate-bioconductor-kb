@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run zinbsurf specifying the proportion of cells to use for the initial model fit. 2. Extract the low-dimensional representation (W
+//  * 1. [Core Analysis] Read the user input file
+//  * 2. [Core Analysis] Run zinbsurf specifying the proportion of cells to use
+//  * 3. [Core Analysis] Extract the low-dimensional representation (W matrix)
+//  * 4. [Core Analysis] Save the outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("zinbwave", "ggplot2", "magrittr", "BiocParallel", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +59,8 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(zinbwave)
     library(ggplot2)
     library(magrittr)
@@ -56,7 +69,7 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
     # Register BiocParallel Serial Execution for stability and reproducibility
     BiocParallel::register(BiocParallel::SerialParam())
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     input_file <- "SummarizedExperiment_object.rds"
     if (!file.exists(input_file)) {
       stop(paste("Input file", input_file, "not found in the working directory."))
@@ -69,13 +82,13 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
       assayNames(fluidigm)[1] <- "counts"
     }
     
-    # 2. Run zinbsurf specifying the proportion of cells to use for the initial model fit
+    # --- Run zinbsurf specifying the proportion of cells to use ---
     fluidigm_surf <- zinbsurf(fluidigm, K = 2, epsilon = 1000, prop_fit = 0.5)
     
-    # 3. Extract the low-dimensional representation (W matrix) projected for all cells
+    # --- Extract the low-dimensional representation (W matrix) ---
     W2 <- reducedDim(fluidigm_surf)
     
-    # 4. Save the outputs
+    # --- Save the outputs ---
     # Save the low-dimensional representation matrix as a CSV table
     write.csv(as.data.frame(W2), "zinbsurf_W2_representation.csv", row.names = TRUE)
     

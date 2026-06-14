@@ -36,6 +36,15 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("shinyMethyl", "minfi", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,12 +54,13 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
           }
         }
     
-    # Stage 1: Load required libraries
-    library(shinyMethyl)
+    # --- Load required libraries ---
+     library(SummarizedExperiment)
+   library(shinyMethyl)
     library(minfi)
     library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     
-    # Stage 2: Read and validate input files
+    # --- Read and validate input files ---
     message("Reading input files...")
     matrix_df <- read.csv("matrix.csv", row.names = 1, check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -68,7 +78,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
     rownames(coldata_df) <- coldata_df\$sample
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 3: Map features to valid Illumina 450k probe IDs
+    # --- Map features to valid Illumina 450k probe IDs ---
     # shinyMethyl and minfi require valid probe annotations to build the GenomicRatioSet.
     ann <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     valid_probes <- rownames(ann)
@@ -92,7 +102,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
         beta_matrix[na_idx] <- row_means[na_idx[, 1]]
     }
     
-    # Stage 4: Create GenomicRatioSet and summarize with shinyMethyl
+    # --- Create GenomicRatioSet and summarize with shinyMethyl ---
     message("Creating GenomicRatioSet...")
     grset <- makeGenomicRatioSetFromMatrix(
         beta_matrix,
@@ -108,7 +118,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
     # Save the complete shinyMethylSet object for downstream interactive visualization
     saveRDS(summary_obj, "shinymethyl_summary.rds")
     
-    # Stage 5: Extract diagnostic summaries using authoritative accessors
+    # --- Extract diagnostic summaries using authoritative accessors ---
     message("Extracting summaries...")
     
     # Extract Beta Quantiles
@@ -151,7 +161,7 @@ process BIOC_SHINYMETHYL_SHINYMETHYL_QC_SUMMARY {
         write.csv(data.frame(Error = "Extraction failed"), "pca_coordinates.csv")
     })
     
-    # Stage 6: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     message("Generating diagnostic plots...")
     
     # Plot 1: PCA Plot

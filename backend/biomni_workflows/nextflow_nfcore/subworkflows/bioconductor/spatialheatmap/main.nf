@@ -59,7 +59,7 @@ process BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP {
     library(ggplot2)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read the annotated SVG anatomical image
@@ -87,7 +87,7 @@ process BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP {
     )
     
     # ==========================================
-    # 2. Run Documented Workflow Stages
+    # --- Run Documented Workflow Stages ---
     # ==========================================
     
     # Normalize raw count data
@@ -134,7 +134,7 @@ process BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP {
     dev.off()
     
     # ==========================================
-    # 3. Write Output Files
+    # --- Write Output Files ---
     # ==========================================
     
     # Save processed data matrices

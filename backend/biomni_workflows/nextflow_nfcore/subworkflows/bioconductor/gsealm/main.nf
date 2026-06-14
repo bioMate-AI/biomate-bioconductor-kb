@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Fit gene-specific linear models using lmPerGene. 2. Extract Studentized residuals using getResidPerGene. 3. Plot residuals grouped
+//  * 1. [Visualization & Output] Fit gene-specific linear models using lmPerGene
+//  * 2. [Visualization & Output] Extract Studentized residuals using getResidPerGene
+//  * 3. [Visualization & Output] Plot residuals grouped by sample and phenotype using
+//  * 4. [Visualization & Output] Aggregate residuals over gene sets using GSNormalize
+//  * 5. [Visualization & Output] Perform permutation-based GSEA using gsealmPerm
+//  * 6. [Visualization & Output] Calculate Cook's Distance per gene using CooksDPerGene
 
 nextflow.enable.dsl = 2
 
@@ -91,28 +96,28 @@ process BIOC_GSEALM_GSEA_LINEAR_MODELING_AND_DIAGNOSTICS {
         workingEset[[primary_pheno]] <- as.factor(workingEset[[primary_pheno]])
         form_pheno <- as.formula(paste("~", sprintf("`%s`", primary_pheno)))
         
-        # 1. Fit gene-specific linear models using lmPerGene
+        # --- Fit gene-specific linear models using lmPerGene ---
         lmPhen <- lmPerGene(workingEset, form_pheno)
         
-        # 2. Extract Studentized residuals using getResidPerGene
+        # --- Extract Studentized residuals using getResidPerGene ---
         lmPhenRes <- getResidPerGene(lmPhen)
         
-        # 3. Plot residuals grouped by sample and phenotype using resplot
+        # --- Plot residuals grouped by sample and phenotype using ---
         pdf("resplot.pdf", width = 10, height = 8)
         resplot(resmat=exprs(lmPhenRes),fac=workingEset[[primary_pheno]],cex.main=.7,cex.axis=.6,horiz=TRUE,lims=c(-5,5),xname="",col=5,cex=.3)
         dev.off()
         
-        # 4. Aggregate residuals over gene sets using GSNormalize
+        # --- Aggregate residuals over gene sets using GSNormalize ---
         stdrAchr=GSNormalize(exprs(lmPhenRes),AmatChr3)
         form_expand <- as.formula(paste("~", paste(sprintf("`%s`", pheno_cols), collapse="+")))
         lmExpand <- lmPerGene(workingEset, form_expand)
         lmExpandRes <- getResidPerGene(lmExpand,type="extStudent")
         GSresidExpand=GSNormalize(exprs(lmExpandRes),AmatChr3)
         
-        # 5. Perform permutation-based GSEA using gsealmPerm
+        # --- Perform permutation-based GSEA using gsealmPerm ---
         pvalsExpand=gsealmPerm(workingEset[LeafGenes,], form_expand, AmatChr3[ChrLeaves,LeafGenes],nperm=nperm,removeShift=TRUE)
         
-        # 6. Calculate Cook's Distance per gene using CooksDPerGene and aggregate over gene sets using GSNormalize
+        # --- Calculate Cook's Distance per gene using CooksDPerGene ---
         cookie1=CooksDPerGene(lmPhen)
         BandCooks1=GSNormalize(cookie1,AmatChr3,fun2=identity)
         

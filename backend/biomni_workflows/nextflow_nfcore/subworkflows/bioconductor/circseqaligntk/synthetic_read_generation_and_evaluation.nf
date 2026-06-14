@@ -70,26 +70,26 @@ process BIOC_CIRCSEQALIGNTK_SYNTHETIC_READ_GENERATION_AND_EVALUATION {
       stop(paste("Required input file '", genome_seq, "' not found in the working directory.", sep = ""))
     }
     
-    # 1. Generate synthetic reads with custom peaks, lengths, and mismatches using generate_reads()
+    # --- Generate synthetic reads with custom peaks, lengths, and ---
     # We pass the user-provided genome_seq to avoid using the package's default bundled genome.
     sim <- generate_reads(seq = genome_seq,
                           adapter = NA,
                           mismatch_prob = 0,
                           output = file.path(ws, 'synthetic_reads.fq.gz'))
     
-    # 2. Build circular-aware index files using build_index()
+    # --- Build circular-aware index files using build_index() ---
     ref_index <- build_index(input = genome_seq, 
                              output = file.path(ws, 'index'))
     
-    # 3. Align the synthetic reads using align_reads()
+    # --- Align the synthetic reads using align_reads() ---
     aln <- align_reads(input = file.path(ws, 'synthetic_reads.fq.gz'),
                        index = ref_index, 
                        output = file.path(ws, 'align_results'))
     
-    # 4. Calculate predicted coverage using calc_coverage()
+    # --- Calculate predicted coverage using calc_coverage() ---
     alncov <- calc_coverage(aln)
     
-    # 5. Extract true coverage from the simulation object and calculate RMSE for both strands
+    # --- Extract true coverage from the simulation object and ---
     fwd_pred <- slot(alncov, 'forward')
     fwd_true <- slot(slot(sim, 'coverage'), 'forward')
     fwd_rmse <- sqrt(sum((fwd_pred - fwd_true) ^ 2) / length(fwd_true))

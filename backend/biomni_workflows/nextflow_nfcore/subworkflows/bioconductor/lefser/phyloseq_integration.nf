@@ -58,6 +58,7 @@ process BIOC_LEFSER_PHYLOSEQ_INTEGRATION {
     
     # Load required libraries
     library(phyloseq)
+    library(SummarizedExperiment)
     library(lefser)
     
     # Define input file path (expected in the working directory)

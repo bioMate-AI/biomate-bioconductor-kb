@@ -35,6 +35,15 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("slalom", "GSEABase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     library(GSEABase)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -87,7 +96,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 2: Construct Gene Set Collection
+    # --- Construct Gene Set Collection ---
     # ==========================================
     
     message("Constructing gene sets from input genes...")
@@ -113,7 +122,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     genesets <- GeneSetCollection(gs_list)
     
     # ==========================================
-    # Stage 3: Initialize and Train Slalom Model
+    # --- Initialize and Train Slalom Model ---
     # ==========================================
     
     message("Initializing Slalom model...")
@@ -141,7 +150,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 4: Extract and Save Results
+    # --- Extract and Save Results ---
     # ==========================================
     
     message("Extracting results...")
@@ -157,7 +166,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     write.csv(latent_factors, "slalom_latent_factors.csv")
     
     # ==========================================
-    # Stage 5: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ==========================================
     
     message("Generating plots...")

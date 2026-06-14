@@ -34,6 +34,15 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gdsfmt", "GDSArray", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,13 +52,14 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(gdsfmt)
     library(GDSArray)
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read and Clean Input Defensively
+    # --- Read and Clean Input Defensively ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found in the working directory.")
@@ -78,7 +88,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     mat[is.na(mat)] <- 0
     
     # ==========================================
-    # STAGE 2: Create GDS File from Matrix
+    # --- Create GDS File from Matrix ---
     # ==========================================
     gds_path <- "input_data.gds"
     if (file.exists(gds_path)) {
@@ -93,7 +103,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     closefn.gds(f)
     
     # ==========================================
-    # STAGE 3: Represent GDS Nodes as GDSArrays
+    # --- Represent GDS Nodes as GDSArrays ---
     # ==========================================
     # Instantiate GDSArray for the main data matrix
     gds_arr <- GDSArray(gds_path, "assay/data")
@@ -115,7 +125,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     gds_nodes <- gdsnodes(gf)
     
     # ==========================================
-    # STAGE 4: Delayed Operations & Filtering
+    # --- Delayed Operations & Filtering ---
     # ==========================================
     # Perform delayed log-transformation (no memory overhead)
     log_arr <- log1p(gds_arr)
@@ -129,7 +139,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     filtered_arr <- log_arr[keep_idx, , drop = FALSE]
     
     # ==========================================
-    # STAGE 5: SummarizedExperiment Integration
+    # --- SummarizedExperiment Integration ---
     # ==========================================
     se <- SummarizedExperiment(
       assays = list(log_counts = filtered_arr),
@@ -143,7 +153,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     )
     
     # ==========================================
-    # STAGE 6: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     # 1. Processed matrix (realize the delayed array to in-memory matrix for writing)
     write.csv(as.matrix(assay(se, "log_counts")), "processed_features.csv", row.names = TRUE)
@@ -159,7 +169,7 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     write.csv(gds_report, "gds_structure.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Cleanup and Resource Release
+    # --- Cleanup and Resource Release ---
     # ==========================================
     tryCatch({
       releaseGDS(gds_path)

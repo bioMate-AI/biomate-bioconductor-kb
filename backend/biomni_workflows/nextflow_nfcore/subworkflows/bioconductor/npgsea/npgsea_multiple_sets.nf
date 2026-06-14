@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data and phenotype factor. 2. Define a collection of gene sets using GeneSetCollection. 3. Run npGSEA on the colle
+//  * 1. [Visualization & Output] Load expression data and phenotype factor
+//  * 2. [Visualization & Output] Define a collection of gene sets using GeneSetCollection
+//  * 3. [Visualization & Output] Run npGSEA on the collection to obtain a
+//  * 4. [Visualization & Output] Extract statistics and p-values across all sets using
+//  * 5. [Visualization & Output] Adjust p-values for multiple testing and publish results
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +41,15 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GSEABase", "npGSEA", "ReportingTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +65,7 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
         library(npGSEA)
         library(ReportingTools)
         
-        # 1. Load expression data and phenotype factor
+        # --- Load expression data and phenotype factor ---
         if (!file.exists("expression_matrix.csv")) {
           stop("Error: 'expression_matrix.csv' not found in the working directory.")
         }
@@ -84,13 +97,13 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
         # Construct the ExpressionSet object named 'ALL' to match documented code
         ALL <- ExpressionSet(exprs = expr_mat, phenoData = AnnotatedDataFrame(pheno_data))
         
-        # 2. Define a collection of gene sets using GeneSetCollection
+        # --- Define a collection of gene sets using GeneSetCollection ---
         gsc <- getGmt("gene_sets.gmt")
         
-        # 3. Run npGSEA on the collection to obtain a npGSEAResultNormCollection
+        # --- Run npGSEA on the collection to obtain a ---
         resgsc_norm <- npGSEA(x = ALL, y = yFactor, set = gsc)  
         
-        # 4. Extract statistics and p-values across all sets using unlisted accessors
+        # --- Extract statistics and p-values across all sets using ---
         p_left_vals <- unlist( pLeft(resgsc_norm) )
         stat_vals   <- unlist( stat (resgsc_norm) )
         z_stat_vals <- unlist( zStat (resgsc_norm) )
@@ -111,7 +124,7 @@ process BIOC_NPGSEA_NPGSEA_MULTIPLE_SETS {
         # Save the raw collection object
         saveRDS(resgsc_norm, "npgsea_results.rds")
         
-        # 5. Adjust p-values for multiple testing and publish results to an HTML report
+        # --- Adjust p-values for multiple testing and publish results ---
         npgseaReport <- HTMLReport (shortName = "npGSEA",
                 title = "npGSEA Results", reportDirectory = "./reports")
         publish(gsc, npgseaReport,

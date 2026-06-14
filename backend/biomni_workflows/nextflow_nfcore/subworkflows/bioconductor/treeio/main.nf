@@ -34,6 +34,15 @@ process BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("treeio")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,23 +56,23 @@ process BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY {
     library(treeio)
     library(stats)
     
-    # Stage 1: Read input transcriptomics data
+    # --- Read input transcriptomics data ---
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Preprocess and compute distance matrix
+    # --- Preprocess and compute distance matrix ---
     # Log-transform counts to stabilize variance across samples
     log_counts <- log2(counts + 1)
     
     # Compute sample-to-sample Euclidean distance based on expression profiles
     sample_dist <- dist(t(log_counts))
     
-    # Stage 3: Build hierarchical clustering tree and convert to phylo
+    # --- Build hierarchical clustering tree and convert to phylo ---
     hc <- hclust(sample_dist, method = "average")
     # Convert hclust object to a phylo object using treeio's imported/exported methods
     phylo_tree <- treeio::as.phylo(hc)
     
-    # Stage 4: Prepare metadata and QC metrics to link with the tree
+    # --- Prepare metadata and QC metrics to link with the tree ---
     sample_summary <- data.frame(
       sample = colnames(counts),
       total_counts = colSums(counts),
@@ -74,7 +83,7 @@ process BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY {
     # Merge experimental design metadata with computed QC metrics
     metadata <- merge(coldata, sample_summary, by = "sample")
     
-    # Stage 5: Link metadata to the phylogenetic tree using treeio
+    # --- Link metadata to the phylogenetic tree using treeio ---
     # treeio::full_join merges the data frame with the phylo object by matching tip labels
     annotated_tree <- treeio::full_join(
       phylo_tree, 
@@ -82,7 +91,7 @@ process BIOC_TREEIO_TREEIO_TRANSCRIPTOME_PHYLOGENY {
       by = c("label" = "sample")
     )
     
-    # Stage 6: Export the annotated tree and association table
+    # --- Export the annotated tree and association table ---
     # Write the tree with its associated node/tip data in BEAST NEXUS format
     treeio::write.beast(annotated_tree, file = "annotated_tree.beast")
     

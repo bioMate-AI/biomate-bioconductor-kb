@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load nucleosome position and range datasets. 2. Assign software names as row names to the GRanges objects. 3. Define chromosome in
+//  * 1. [Input & Preparation] Load nucleosome position and range datasets
+//  * 2. [Input & Preparation] Assign software names as row names to the GRanges objects
+//  * 3. [Input & Preparation] Run findConsensusPeakRegions with custom parameters
+//  * 4. [Input & Preparation] Write named output files for the results
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +40,15 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("consensusSeekeR", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -68,7 +80,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
       stop(paste("Missing required input files in the working directory:", paste(missing_files, collapse = ", ")))
     }
     
-    # 1. Load nucleosome position and range datasets
+    # --- Load nucleosome position and range datasets ---
     message("Loading input datasets...")
     NOrMAL_nucleosome_positions <- readRDS(normal_pos_file)
     NOrMAL_nucleosome_ranges <- readRDS(normal_range_file)
@@ -78,7 +90,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     NucPosSimulator_nucleosome_ranges <- readRDS(nucpos_range_file)
     chrList <- readRDS(chr_list_file)
     
-    # 2. Assign software names as row names to the GRanges objects
+    # --- Assign software names as row names to the GRanges objects ---
     message("Assigning software names to GRanges objects...")
     names(NOrMAL_nucleosome_positions) <- rep("NOrMAL", length(NOrMAL_nucleosome_positions))
     names(NOrMAL_nucleosome_ranges) <- rep("NOrMAL", length(NOrMAL_nucleosome_ranges))
@@ -91,7 +103,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     names(NucPosSimulator_nucleosome_ranges) <- rep("NucPosSimulator", 
                                     length(NucPosSimulator_nucleosome_ranges))
     
-    # 3. Run findConsensusPeakRegions with custom parameters
+    # --- Run findConsensusPeakRegions with custom parameters ---
     message("Finding consensus peak regions...")
     results <- findConsensusPeakRegions(
                 narrowPeaks = c(NOrMAL_nucleosome_ranges, PING_nucleosome_ranges,
@@ -112,7 +124,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     message("\n--- First 3 Consensus Regions ---")
     print(head(results\$consensusRanges, n = 3))
     
-    # 4. Write named output files for the results
+    # --- Write named output files for the results ---
     message("\nSaving results...")
     
     # Save the complete results list object

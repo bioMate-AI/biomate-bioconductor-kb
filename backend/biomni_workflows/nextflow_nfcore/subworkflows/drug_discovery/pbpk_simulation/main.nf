@@ -54,6 +54,7 @@ process PBPK_SIMULATION {
     tuple val(meta), path("pk_profile.csv"),         emit: pk_profile
     tuple val(meta), path("nca_parameters.json"),    emit: nca
     tuple val(meta), path("ddi_fold_change.json"),   emit: ddi
+    tuple val(meta), path("qc_metrics.json"),        emit: qc_metrics
     path "versions.yml",                             emit: versions
 
     script:
@@ -352,6 +353,27 @@ summary = {'status':'completed', 'population': pop, **nca_params,
            'CL_hep_mL_h': round(CL_hep,1), 'CL_renal_mL_h': round(CL_ren,1)}
 with open('pbpk_results.json','w') as f:
     json.dump(summary, f, indent=2)
+
+# ── QC gate: tmax fraction (FDA 2018 PBPK Guidance, SILVER) ───────────────────
+# Tmax should not coincide with end of simulation window; flag if tmax_h > 80%
+# of sim_hours_total (IND profile) or > 90% (screening).
+sim_hours_total = float(sim_h)
+tmax_fraction = nca_params['tmax_h'] / sim_hours_total if sim_hours_total > 0 else None
+qc_metrics = {
+    'success': True,
+    'process': 'PBPK_SIMULATION',
+    'domain': 'drug_discovery',
+    'tmax_h': nca_params['tmax_h'],
+    'simulation_duration_h': sim_hours_total,
+    'pbpk_tmax_fraction': round(tmax_fraction, 3) if tmax_fraction is not None else None,
+    'cmax_ug_mL': nca_params['Cmax_ug_mL'],
+    'auc_inf_ugh_mL': nca_params['AUCinf_ugh_mL'],
+    'tmax_within_window': bool(tmax_fraction is not None and tmax_fraction <= 0.8),
+    'evidence_tier': 'SILVER',
+    'citation': 'FDA 2018 PBPK Analyses — Format and Content Guidance',
+}
+with open('qc_metrics.json','w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 report = [f"=== PBPK SIMULATION REPORT ({pop}) ===",
           f"Compound: {smi}",

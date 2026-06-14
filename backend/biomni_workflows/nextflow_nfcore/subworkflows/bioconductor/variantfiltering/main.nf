@@ -57,7 +57,7 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     library(VariantAnnotation)
     library(Rsamtools)
     
-    # 1. Create parameter object using VariantFilteringParam()
+    # --- Create parameter object using VariantFilteringParam() ---
     # Read the user input VCF file from the working directory
     CEUvcf <- "CEUtrio.vcf.bgz"
     if (!file.exists(CEUvcf)) {
@@ -66,10 +66,10 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     
     vfpar <- VariantFilteringParam(CEUvcf)
     
-    # 2. Annotate variants using unrelatedIndividuals()
+    # --- Annotate variants using unrelatedIndividuals() ---
     uind <- unrelatedIndividuals(vfpar)
     
-    # 3. Summarize annotations using summary()
+    # --- Summarize annotations using summary() ---
     sum_default <- summary(uind)
     write.csv(sum_default, "summary_default.csv", row.names=FALSE)
     
@@ -82,7 +82,7 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     all_vars <- allVariants(uind)
     saveRDS(all_vars, "all_variants.rds")
     
-    # 4. Set BAM files and plot variant support using bamFiles() and plot()
+    # --- Set BAM files and plot variant support using bamFiles() ---
     # Read the user input BAM files from the working directory
     path2bams <- paste0(samples(uind), ".subset.bam")
     
@@ -106,7 +106,7 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     samples(uind) <- c("NA12891", "NA12892")
     uind <- resetSamples(uind)
     
-    # 5. Filter variants by modifying active filters and cutoffs using filters(), cutoffs(), and change()
+    # --- Filter variants by modifying active filters and cutoffs ---
     filters(uind)
     active(filters(uind)) <- TRUE
     change(cutoffs(uind), "SOterms") <- "UTR_variant"
@@ -114,11 +114,11 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     change(cutoffs(uind)\$maxMAF, "popmask") <- FALSE
     change(cutoffs(uind)\$maxMAF, "maxvalue") <- 0.01
     
-    # 6. Retrieve filtered variants using filteredVariants()
+    # --- Retrieve filtered variants using filteredVariants() ---
     fil_vars <- filteredVariants(uind)
     saveRDS(fil_vars, "filtered_variants.rds")
     
-    # 7. Export results using reportVariants()
+    # --- Export results using reportVariants() ---
     reportVariants(uind, type="csv", file="uind.csv")
 
     writeLines(c(

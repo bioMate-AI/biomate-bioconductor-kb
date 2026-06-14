@@ -35,6 +35,15 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("girafe", "genomeIntervals", "rtracklayer", "S4Vectors", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,14 +53,14 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
           }
         }
     
-    # Stage 1: Load Required Libraries
+    # --- Load Required Libraries ---
     library(girafe)
     library(genomeIntervals)
     library(rtracklayer)
     library(S4Vectors)
     library(GenomicRanges)
     
-    # Stage 2: Import Input Data
+    # --- Import Input Data ---
     message("Stage 2: Importing input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' not found in the working directory.")
@@ -68,7 +77,7 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
       message("Optional coldata.csv not found. Proceeding with default settings.")
     }
     
-    # Stage 3: Construct AlignedGenomeIntervals Object
+    # --- Construct AlignedGenomeIntervals Object ---
     message("Stage 3: Constructing AlignedGenomeIntervals object...")
     
     # Extract fields for GenomeIntervals construction
@@ -107,12 +116,12 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
                reads = reads,
                char_id = char_id)
     
-    # Stage 4: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     message("Stage 4: Filtering low-abundance intervals...")
     min_reads <- 1
     agi_filtered <- agi[reads(agi) >= min_reads]
     
-    # Stage 5: Core Analysis - Interval Reduction & Merging
+    # --- Core Analysis - Interval Reduction & Merging ---
     message("Stage 5: Merging overlapping intervals and summing read counts...")
     agi_reduced <- reduce(agi_filtered)
     
@@ -135,7 +144,7 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
     write.csv(reduced_df, "reduced_intervals.csv", row.names = FALSE)
     message("Saved reduced intervals to 'reduced_intervals.csv'.")
     
-    # Stage 6: Coverage Calculation & Export
+    # --- Coverage Calculation & Export ---
     message("Stage 6: Calculating genome-wide coverage...")
     cov <- coverage(agi_filtered)
     
@@ -169,7 +178,7 @@ process BIOC_GIRAFE_GIRAFE_GENOME_INTERVALS_PIPELINE {
       message("No coverage detected. Created empty 'coverage.bedGraph'.")
     }
     
-    # Stage 7: Diagnostics & Visualization
+    # --- Diagnostics & Visualization ---
     message("Stage 7: Generating diagnostic plots...")
     pdf("analysis_plots.pdf", width = 8, height = 10)
     par(mfrow = c(3, 1))

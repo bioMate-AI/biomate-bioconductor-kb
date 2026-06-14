@@ -45,7 +45,7 @@ process BIOC_BANKSY_SPATIAL_INTEGRATION_WITH_HARMONY {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Banksy", "SingleCellExperiment", "SpatialExperiment", "cowplot", "ggplot2", "harmony", "scater")
+    .bm_deps <- c("Banksy", "SingleCellExperiment", "SpatialExperiment", "cowplot", "ggplot2", "harmony", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_BANKSY_SPATIAL_INTEGRATION_WITH_HARMONY {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(Banksy)
     library(SpatialExperiment)
     library(harmony)

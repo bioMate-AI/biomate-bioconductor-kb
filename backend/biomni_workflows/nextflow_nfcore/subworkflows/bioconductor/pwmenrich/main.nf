@@ -35,6 +35,15 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PWMEnrich", "Biostrings", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     
@@ -112,7 +121,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     print(sequences)
     
     # ==========================================
-    # STAGE 2: Define Custom Motifs (PFMs to PWMs)
+    # --- Define Custom Motifs (PFMs to PWMs) ---
     # ==========================================
     message("Stage 2: Defining custom Position Frequency Matrices (PFMs)...")
     
@@ -151,7 +160,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     custom_pwms <- toPWM(custom_pfms, prior = bg_frequencies)
     
     # ==========================================
-    # STAGE 3: Build Background Model
+    # --- Build Background Model ---
     # ==========================================
     message("Stage 3: Building background model from input sequences...")
     
@@ -167,7 +176,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     print(bg_model)
     
     # ==========================================
-    # STAGE 4: Perform Motif Enrichment Analysis
+    # --- Perform Motif Enrichment Analysis ---
     # ==========================================
     message("Stage 4: Running motif enrichment analysis...")
     
@@ -222,7 +231,7 @@ process BIOC_PWMENRICH_PWM_ENRICH_ANALYSIS {
     message("Individual sequence reports saved to 'motif_enrichment_sequence_reports.csv'.")
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     

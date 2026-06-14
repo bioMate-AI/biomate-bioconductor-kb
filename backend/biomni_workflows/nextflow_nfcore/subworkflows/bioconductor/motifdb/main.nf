@@ -58,7 +58,7 @@ process BIOC_MOTIFDB_MOTIF_DB_QUERY_AND_CHARACTERIZATION {
     library(MotifDb)
     
     # ==========================================
-    # Stage 1: Read and Parse Input Identifiers
+    # --- Read and Parse Input Identifiers ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -89,7 +89,7 @@ process BIOC_MOTIFDB_MOTIF_DB_QUERY_AND_CHARACTERIZATION {
     message(paste("Extracted", length(genes), "unique gene/TF identifiers from input."))
     
     # ==========================================
-    # Stage 2: Query MotifDb
+    # --- Query MotifDb ---
     # ==========================================
     # Query MotifDb using the extracted gene symbols
     motifs <- query(MotifDb, orStrings = genes)
@@ -104,7 +104,7 @@ process BIOC_MOTIFDB_MOTIF_DB_QUERY_AND_CHARACTERIZATION {
     message(paste("Successfully retrieved", length(motifs), "matching motifs from MotifDb."))
     
     # ==========================================
-    # Stage 3: Extract Metadata and Consensus
+    # --- Extract Metadata and Consensus ---
     # ==========================================
     # Parse motif names to extract metadata fields
     motif_names <- names(motifs)
@@ -136,7 +136,7 @@ process BIOC_MOTIFDB_MOTIF_DB_QUERY_AND_CHARACTERIZATION {
     write.csv(meta_df, "matched_motifs_metadata.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Advanced TF Mapping (Optional/Robust)
+    # --- Advanced TF Mapping (Optional/Robust) ---
     # ==========================================
     # Attempt to run advanced mapping functions from MotifDb
     tf_associations <- tryCatch({
@@ -161,7 +161,7 @@ process BIOC_MOTIFDB_MOTIF_DB_QUERY_AND_CHARACTERIZATION {
     write.csv(summary_df, "motif_query_summary.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Export Motifs
+    # --- Export Motifs ---
     # ==========================================
     # Attempt standard export to MEME format
     export_success <- tryCatch({
@@ -188,7 +188,7 @@ process BIOC_MOTIFDB_MOTIF_DB_QUERY_AND_CHARACTERIZATION {
     }
     
     # ==========================================
-    # Stage 6: Visualization
+    # --- Visualization ---
     # ==========================================
     if (length(motifs) > 0) {
       top_motif_name <- names(motifs)[1]

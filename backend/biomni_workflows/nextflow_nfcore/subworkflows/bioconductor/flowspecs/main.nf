@@ -57,7 +57,7 @@ process BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING {
     library(flowCore)
     
     # ==========================================
-    # 1. Read User Inputs from Working Directory
+    # --- Read User Inputs from Working Directory ---
     # ==========================================
     
     # Expecting "fullPanel.fcs" and single-stained control FCS files in the working directory.
@@ -80,32 +80,32 @@ process BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING {
     unmixCtrls <- read.flowSet(control_files)
     
     # ==========================================
-    # 2. Calculate Spectral Unmixing Matrix
+    # --- Calculate Spectral Unmixing Matrix ---
     # ==========================================
     specMat <- specMatCalc(unmixCtrls, groupNames = c("Beads_", "Dead_"), autoFluoName = "PBMC_unstained.fcs")
     saveRDS(specMat, "spectral_unmixing_matrix.rds")
     
     # ==========================================
-    # 3. Perform Spectral Unmixing
+    # --- Perform Spectral Unmixing ---
     # ==========================================
     fullPanelUnmix <- specUnmix(fullPanel, specMat)
     saveRDS(fullPanelUnmix, "fullPanel_unmixed.rds")
     
     # ==========================================
-    # 4. Arcsinh Transformation
+    # --- Arcsinh Transformation ---
     # ==========================================
     fullPanelTrans <- arcTrans(fullPanelUnmix, transNames = colnames(fullPanelUnmix)[6:18])
     saveRDS(fullPanelTrans, "fullPanel_transformed.rds")
     
     # ==========================================
-    # 5. Visualize Potential Unmixing Artifacts
+    # --- Visualize Potential Unmixing Artifacts ---
     # ==========================================
     pdf("oneVsAllPlot_transformed.pdf", width = 10, height = 8)
     oneVsAllPlot(fullPanelTrans, "AF647_IgM", saveResult = FALSE)
     dev.off()
     
     # ==========================================
-    # 6. Create Correction Matrix & Correct Artifacts
+    # --- Create Correction Matrix & Correct Artifacts ---
     # ==========================================
     corrMat <- corrMatCreate(specMat)
     corrMat["BV650_CD56", "AF647_IgM"] <- -0.03
@@ -118,7 +118,7 @@ process BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING {
     dev.off()
     
     # ==========================================
-    # 7. Convert to Long Dataframe with Metadata
+    # --- Convert to Long Dataframe with Metadata ---
     # ==========================================
     fullPanelFs <- flowSet(fullPanelTrans)
     sampleNames(fullPanelFs) <- "PBMC_full_panel_d1.fcs"

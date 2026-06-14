@@ -35,6 +35,15 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("profileplyr", "GenomicRanges", "S4Vectors", "ComplexHeatmap", "TxDb.Hsapiens.UCSC.hg19.knownGene", "org.Hs.eg.db", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,8 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
         }
     
     # Load required libraries
-    library(profileplyr)
+     library(SummarizedExperiment)
+   library(profileplyr)
     library(GenomicRanges)
     library(S4Vectors)
     library(ComplexHeatmap)
@@ -55,7 +65,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     library(org.Hs.eg.db)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     # Read the feature-by-sample matrix
@@ -109,7 +119,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     })
     
     # ==========================================
-    # STAGE 2: Construct profileplyr Object
+    # --- Construct profileplyr Object ---
     # ==========================================
     
     # Create a SummarizedExperiment object
@@ -126,7 +136,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     sampleData(pro) <- DataFrame(coldata)
     
     # ==========================================
-    # STAGE 3: Genomic Annotation
+    # --- Genomic Annotation ---
     # ==========================================
     
     # Annotate genomic intervals with gene features using ChIPseeker via profileplyr
@@ -142,7 +152,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     })
     
     # ==========================================
-    # STAGE 4: Grouping and Ordering
+    # --- Grouping and Ordering ---
     # ==========================================
     
     # Group intervals using K-means clustering on the signal matrix
@@ -164,7 +174,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     })
     
     # ==========================================
-    # STAGE 5: Visualization and Export
+    # --- Visualization and Export ---
     # ==========================================
     
     # Generate and save the heatmap

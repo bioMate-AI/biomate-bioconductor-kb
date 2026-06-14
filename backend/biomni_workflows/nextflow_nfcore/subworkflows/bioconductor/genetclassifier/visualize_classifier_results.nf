@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Plot the posterior probabilities of ranked genes to visualize the significance threshold. 2. Plot gene expression profiles across 
+//  * 1. [Visualization & Output] Plot Ranked Significant Genes
+//  * 2. [Visualization & Output] Plot Gene Expression Profiles
+//  * 3. [Visualization & Output] Plot Genes Discriminant Power
+//  * 4. [Visualization & Output] Plot Gene Networks
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +42,15 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("geNetClassifier", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -123,13 +135,13 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     pdf("geNetClassifier_diagnostic_plots.pdf", width = 10, height = 8)
     
     # ==========================================
-    # STAGE 1: Plot Ranked Significant Genes
+    # --- Plot Ranked Significant Genes ---
     # ==========================================
     plot(leukemiasClassifier@genesRanking)
     plot(leukemiasClassifier@genesRanking, numGenesPlot=3000, lpThreshold=0.80)
     
     # ==========================================
-    # STAGE 2: Plot Gene Expression Profiles
+    # --- Plot Gene Expression Profiles ---
     # ==========================================
     topGenes <- getRanking(getTopRanking(leukemiasClassifier@classificationGenes,numGenesClass=1), showGeneID=TRUE)\$geneID
     
@@ -142,7 +154,7 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     plotExpressionProfiles(leukemiasEset[,trainSamples], leukemiasClassifier, sampleLabels=sample_labels_col, fileName="leukExprs_trainSamples.pdf")
     
     # ==========================================
-    # STAGE 3: Plot Genes Discriminant Power
+    # --- Plot Genes Discriminant Power ---
     # ==========================================
     # Dynamically select the first classification gene
     all_class_genes <- getRanking(leukemiasClassifier@classificationGenes, showGeneID=TRUE)\$geneID
@@ -161,7 +173,7 @@ process BIOC_GENETCLASSIFIER_VISUALIZE_CLASSIFIER_RESULTS {
     write.csv(discPowerTable, "discriminant_power_table.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Plot Gene Networks
+    # --- Plot Gene Networks ---
     # ==========================================
     clGenesSubNet <- getSubNetwork(leukemiasClassifier@genesNetwork, leukemiasClassifier@classificationGenes)
     clGenesInfo <- genesDetails(leukemiasClassifier@classificationGenes)

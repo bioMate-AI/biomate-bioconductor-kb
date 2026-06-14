@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the dataset with p-values grouped into sequential batches. 2. Run the BatchPRDS algorithm to control FDR for positively dep
+//  * 1. [Input & Preparation] Define the dataset with p-values grouped into sequential
+//  * 2. [Input & Preparation] Run the BatchPRDS algorithm to control FDR for positively
+//  * 3. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_ONLINEFDR_BATCH_FDR_CONTROL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("onlineFDR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +61,7 @@ process BIOC_ONLINEFDR_BATCH_FDR_CONTROL {
     # Load required library
     library(onlineFDR)
     
-    # 1. Define the dataset with p-values grouped into sequential batches.
+    # --- Define the dataset with p-values grouped into sequential ---
     # Read the user input file 'sample.df' from the working directory.
     # We use a robust reader that handles RDS, CSV, or tab-delimited formats.
     if (file.exists("sample.df")) {
@@ -74,11 +85,11 @@ process BIOC_ONLINEFDR_BATCH_FDR_CONTROL {
       stop(paste("Input data is missing required column(s):", paste(missing_cols, collapse = ", ")))
     }
     
-    # 2. Run the BatchPRDS algorithm to control FDR for positively dependent p-values within batches.
+    # --- Run the BatchPRDS algorithm to control FDR for positively ---
     # We reproduce the documented function call and argument names exactly.
     batchprds_results <- BatchPRDS(sample.df)
     
-    # 3. Write named output files for the meaningful results.
+    # --- Write named output files for the meaningful results ---
     # Save the full results table as a CSV file
     write.csv(batchprds_results, "batchprds_results.csv", row.names = FALSE)
     

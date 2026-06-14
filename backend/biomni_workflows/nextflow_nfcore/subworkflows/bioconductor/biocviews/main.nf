@@ -34,6 +34,15 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biocViews", "GenomicRanges", "graph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     library(graph)
     
     # ==========================================
-    # STAGE 1: Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     message("Stage 1: Reading input files...")
@@ -82,7 +91,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     }
     
     # ==========================================
-    # STAGE 2: Create Mock Packages based on Input
+    # --- Create Mock Packages based on Input ---
     # ==========================================
     
     message("Stage 2: Creating mock packages based on input data...")
@@ -149,7 +158,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     )
     
     # ==========================================
-    # STAGE 3: Generate Repository Control Files
+    # --- Generate Repository Control Files ---
     # ==========================================
     
     message("Stage 3: Generating repository control files (PACKAGES and VIEWS)...")
@@ -163,7 +172,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     }
     
     # ==========================================
-    # STAGE 4: Generate Repository HTML Pages
+    # --- Generate Repository HTML Pages ---
     # ==========================================
     
     message("Stage 4: Generating repository HTML detail pages...")
@@ -172,7 +181,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     writeRepositoryHtml(reposRoot, title="Custom Genomic Analysis Repository")
     
     # ==========================================
-    # STAGE 5: Query Repository and Build biocViews
+    # --- Query Repository and Build biocViews ---
     # ==========================================
     
     message("Stage 5: Querying repository and building biocViews HTML...")
@@ -197,7 +206,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     writeBiocViews(bioc_views_objs, dir=views_html_dir)
     
     # ==========================================
-    # STAGE 6: Recommend biocViews for New Package
+    # --- Recommend biocViews for New Package ---
     # ==========================================
     
     message("Stage 6: Recommending biocViews for a new package description...")
@@ -212,7 +221,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     })
     
     # ==========================================
-    # STAGE 7: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     
     message("Stage 7: Writing final outputs...")

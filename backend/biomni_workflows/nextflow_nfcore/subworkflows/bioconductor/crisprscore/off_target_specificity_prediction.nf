@@ -55,7 +55,7 @@ process BIOC_CRISPRSCORE_OFF_TARGET_SPECIFICITY_PREDICTION {
     # Load the required Bioconductor package
     library(crisprScore)
     
-    # 1. Define spacer, protospacer, and PAM sequences by reading from user input files
+    # --- Define spacer, protospacer, and PAM sequences by reading ---
     spacer <- readLines("spacers.txt", warn = FALSE)
     spacer <- trimws(spacer)
     spacer <- spacer[spacer != ""]
@@ -68,12 +68,12 @@ process BIOC_CRISPRSCORE_OFF_TARGET_SPECIFICITY_PREDICTION {
     pams <- trimws(pams)
     pams <- pams[pams != ""]
     
-    # 2. Calculate MIT scores using getMITScores
+    # --- Calculate MIT scores using getMITScores ---
     mit_results <- getMITScores(spacers=spacer,
                                 protospacers=protospacers,
                                 pams=pams)
     
-    # 3. Calculate CFD scores using getCFDScores
+    # --- Calculate CFD scores using getCFDScores ---
     cfd_results <- getCFDScores(spacers=spacer,
                                 protospacers=protospacers,
                                 pams=pams)

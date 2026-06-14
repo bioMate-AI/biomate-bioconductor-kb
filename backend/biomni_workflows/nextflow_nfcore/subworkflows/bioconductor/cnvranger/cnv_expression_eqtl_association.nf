@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare CNV calls as a GRangesList and summarize them into population-level CNV regions; 2. Prepare RNA-seq counts as a RangedSumm
+//  * 1. [Visualization & Output] Prepare CNV calls as a GRangesList and summarize them
+//  * 2. [Visualization & Output] Prepare RNA-seq counts as a RangedSummarizedExperiment
+//  * 3. [Visualization & Output] Run cnvEQTL to test for expression differences
+//  * 4. [Visualization & Output] Plot eQTL results
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CNVRanger", "GenomicRanges", "AnnotationHub", "ensembldb", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +59,8 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(CNVRanger)
     library(GenomicRanges)
     library(AnnotationHub)
@@ -57,7 +70,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     data.dir <- "."
     
     # ----------------------------------------------------------------------
-    # Stage 1: Prepare CNV calls as a GRangesList and summarize them
+    # --- Prepare CNV calls as a GRangesList and summarize them ---
     # ----------------------------------------------------------------------
     
     # Read the user-provided CNV calls
@@ -80,7 +93,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     
     
     # ----------------------------------------------------------------------
-    # Stage 2: Prepare RNA-seq counts as a RangedSummarizedExperiment
+    # --- Prepare RNA-seq counts as a RangedSummarizedExperiment ---
     # ----------------------------------------------------------------------
     
     # Retrieve Bos taurus gene annotations from AnnotationHub
@@ -121,7 +134,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     
     
     # ----------------------------------------------------------------------
-    # Stage 3: Run cnvEQTL to test for expression differences
+    # --- Run cnvEQTL to test for expression differences ---
     # ----------------------------------------------------------------------
     
     # Run the association testing exactly as documented
@@ -136,7 +149,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     
     
     # ----------------------------------------------------------------------
-    # Stage 4: Plot eQTL results
+    # --- Plot eQTL results ---
     # ----------------------------------------------------------------------
     
     # Find the first tested region with results to plot

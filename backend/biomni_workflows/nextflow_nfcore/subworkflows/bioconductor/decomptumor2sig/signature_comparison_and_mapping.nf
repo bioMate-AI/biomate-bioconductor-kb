@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the two signature sets. 2. Compute distances from a single signature to a target signature set. 3. Map one signature set to a
+//  * 1. [Input & Preparation] Load two distinct sets of Shiraishi signatures from the
+//  * 2. [Input & Preparation] Compute distances of one signature to a set
+//  * 3. [Input & Preparation] Map one signature set to another (non-unique mapping)
+//  * 4. [Input & Preparation] Convert and downgrade signatures for cross-format
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +61,7 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_COMPARISON_AND_MAPPING {
     # Load required library
     library(decompTumor2Sig)
     
-    # 1. Load two distinct sets of Shiraishi signatures from the working directory
+    # --- Load two distinct sets of Shiraishi signatures from the ---
     sigfiles <- "Nik-Zainal_PMID_22608084-pmsignature-sig1.tsv"
     sign_s4 <- readShiraishiSignatures(files=sigfiles)
     
@@ -66,19 +69,19 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_COMPARISON_AND_MAPPING {
     load(sfile)
     sign_s15 <- signatures
     
-    # 2. Compute distances of one signature to a set
+    # --- Compute distances of one signature to a set ---
     distances <- determineSignatureDistances(fromSignature=sign_s4[[1]], toSignatures=sign_s15, method="frobenius")
     
     # Save distances to a CSV file
     write.csv(as.data.frame(t(distances)), file="signature_distances.csv", row.names=TRUE)
     
-    # 3. Map one signature set to another (non-unique mapping)
+    # --- Map one signature set to another (non-unique mapping) ---
     mapping_nonunique <- mapSignatureSets(fromSignatures=sign_s4, toSignatures=sign_s15, method="frobenius", unique=FALSE)
     
     # Save non-unique mapping to a CSV file
     write.csv(as.data.frame(mapping_nonunique), file="signature_mapping_nonunique.csv", row.names=TRUE)
     
-    # 4. Convert and downgrade signatures for cross-format comparison
+    # --- Convert and downgrade signatures for cross-format ---
     sign_a <- readAlexandrovSignatures()
     sign_a2s <- convertAlexandrov2Shiraishi(sign_a)
     sign_sdown <- downgradeShiraishiSignatures(sign_s15, numBases=3, removeTrDir=TRUE)

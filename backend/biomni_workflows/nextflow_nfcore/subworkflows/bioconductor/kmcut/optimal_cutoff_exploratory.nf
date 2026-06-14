@@ -67,7 +67,7 @@ process BIOC_KMCUT_OPTIMAL_CUTOFF_EXPLORATORY {
       stop(paste("Required input file missing:", sdat))
     }
     
-    # 1. Create a SummarizedExperiment object from the input files
+    # --- Create a SummarizedExperiment object from the input files ---
     message("Creating SummarizedExperiment object...")
     se <- create_se_object(efile = fdat, sfile = sdat)
     
@@ -75,7 +75,7 @@ process BIOC_KMCUT_OPTIMAL_CUTOFF_EXPLORATORY {
     saveRDS(se, file = "se_object.rds")
     message("Saved SummarizedExperiment object to 'se_object.rds'")
     
-    # 2. Search for optimal cutoffs using the fast exploratory method (no permutation test)
+    # --- Search for optimal cutoffs using the fast exploratory ---
     message("Running exploratory optimal cutoff search...")
     km_opt_scut(obj = se, bfname = "test", wpdf = FALSE, verbose = FALSE)
     

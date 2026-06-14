@@ -70,7 +70,7 @@ process BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION {
       stop(paste("Missing required input files in the working directory:", paste(missing_files, collapse = ", ")))
     }
     
-    # Stage 1: Map features to positive and negative CRMs to build the training set matrix
+    # --- Map features to positive and negative CRMs to build the ---
     crm.feature.list <- mapFeaturesToCRMs(
       URL = 'http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php',
       positive.bed = positive.bed,
@@ -85,7 +85,7 @@ process BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION {
     )
     crm.features <- crm.feature.list\$crm.features
     
-    # Stage 2: Run the LedPred wrapper function to perform tuning, ranking, selection, and model creation in one step
+    # --- Run the LedPred wrapper function to perform tuning, ---
     cost.vector <- c(1, 3, 10)
     gamma.vector <- c(1, 3, 10)
     ledpred.obj <- LedPred(
@@ -96,7 +96,7 @@ process BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION {
       file.prefix = "vignette2"
     )
     
-    # Stage 3: Map features to unknown sequences using the selected features
+    # --- Map features to unknown sequences using the selected ---
     prediction.crm.features.obj2 <- mapFeaturesToCRMs(
       URL = 'http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php',
       positive.bed = prediction_small.bed,
@@ -112,7 +112,7 @@ process BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION {
     )
     prediction.crm.features2 <- prediction.crm.features.obj2\$crm.features
     
-    # Stage 4: Score the unknown sequences using the generated model
+    # --- Score the unknown sequences using the generated model ---
     # Assigning ledpred.obj to ledpred.list to match the documented code's variable naming
     ledpred.list <- ledpred.obj
     pred.test2 <- scoreData(

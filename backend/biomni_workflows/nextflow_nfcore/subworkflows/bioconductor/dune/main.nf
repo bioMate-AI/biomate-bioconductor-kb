@@ -36,6 +36,15 @@ process BIOC_DUNE_DUNE_CLUSTER_MERGING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Dune", "ggplot2", "dplyr", "tidyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +63,7 @@ process BIOC_DUNE_DUNE_CLUSTER_MERGING {
     })
     
     # ==========================================
-    # STAGE 1: Read Input Data & Preprocess
+    # --- Read Input Data & Preprocess ---
     # ==========================================
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
@@ -89,7 +98,7 @@ process BIOC_DUNE_DUNE_CLUSTER_MERGING {
     log_cpm <- log2(cpm + 1)
     
     # ==========================================
-    # STAGE 2: Generate Multiple Clusterings
+    # --- Generate Multiple Clusterings ---
     # ==========================================
     # Transpose to have samples as rows
     sample_features <- t(log_cpm)
@@ -130,13 +139,13 @@ process BIOC_DUNE_DUNE_CLUSTER_MERGING {
     rownames(clusMat) <- colnames(counts_mat)
     
     # ==========================================
-    # STAGE 3: Run Dune Merging Algorithm
+    # --- Run Dune Merging Algorithm ---
     # ==========================================
     message("Running Dune cluster merging...")
     merger <- Dune(clusMat = clusMat, verbose = TRUE)
     
     # ==========================================
-    # STAGE 4: Export Merged Labels & Conversions
+    # --- Export Merged Labels & Conversions ---
     # ==========================================
     # Combine initial and merged labels
     output_clusters <- data.frame(
@@ -166,7 +175,7 @@ process BIOC_DUNE_DUNE_CLUSTER_MERGING {
     sink()
     
     # ==========================================
-    # STAGE 5: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     # ==========================================
     pdf("dune_diagnostics.pdf", width = 8, height = 6)
     

@@ -60,12 +60,12 @@ process BIOC_SHORTREAD_PARSING_CUSTOM_TABULAR_SEQUENCE_FILES {
     sp <- SolexaPath(".", analysisPath=".")
     pattern <- "s_2_export.txt"
     
-    # 1. Define column classes using a list where target columns are specified as "DNAString" or "BString" and others are NULL
+    # --- Define column classes using a list where target columns ---
     colClasses <- rep(list(NULL), 21)
     colClasses[9:10] <- c("DNAString", "BString")
     names(colClasses)[9:10] <- c("read", "quality")
     
-    # 2. Read the specified columns from the file using readXStringColumns()
+    # --- Read the specified columns from the file using ---
     cols <- readXStringColumns(analysisPath(sp), pattern, colClasses)
     
     # Save the parsed objects to an RDS file

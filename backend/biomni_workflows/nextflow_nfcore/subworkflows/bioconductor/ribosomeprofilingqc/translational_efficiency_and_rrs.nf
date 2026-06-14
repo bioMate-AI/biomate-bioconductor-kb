@@ -99,22 +99,22 @@ process BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS {
     # 2. TRANSLATIONAL EFFICIENCY & RRS WORKFLOW
     # ==========================================
     
-    # Stage 1: Count reads for both RPFs and RNA-Seq using countReads
+    # --- Count reads for both RPFs and RNA-Seq using countReads ---
     message("Counting reads...")
     cnts <- countReads(RPFs, RNAs, gtf, level="tx")
     saveRDS(cnts, "counts_tx.rds")
     
-    # Stage 2: Calculate FPKM using getFPKM
+    # --- Calculate FPKM using getFPKM ---
     message("Calculating FPKM...")
     fpkm <- getFPKM(cnts)
     saveRDS(fpkm, "fpkm.rds")
     
-    # Stage 3: Calculate standard Translational Efficiency (TE) using translationalEfficiency
+    # --- Calculate standard Translational Efficiency (TE) using ---
     message("Calculating standard Translational Efficiency...")
     TE <- translationalEfficiency(fpkm)
     saveRDS(TE, "TE_standard.rds")
     
-    # Stage 4: Perform differential TE analysis using limma
+    # --- Perform differential TE analysis using limma ---
     message("Performing differential TE analysis...")
     TE.log2 <- log2(TE\$TE + 1)
     design <- model.matrix(~0+gp)
@@ -129,7 +129,7 @@ process BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS {
     plotTE(TE, sample=2, xaxis="mRNA", log2=TRUE)
     dev.off()
     
-    # Stage 5: Calculate maximum N-mer TE (TE90) using coverageDepth and translationalEfficiency
+    # --- Calculate maximum N-mer TE (TE90) using coverageDepth and ---
     message("Calculating TE90 (maximum 90-mer TE)...")
     cvgs <- coverageDepth(RPFs, RNAs, txdb)
     saveRDS(cvgs, "coverage_depth_cds.rds")
@@ -148,7 +148,7 @@ process BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS {
     TE90.utr3 <- translationalEfficiency(cvgs.utr3, window = 90)
     saveRDS(TE90.utr3, "TE90_utr3.rds")
     
-    # Stage 6: Normalize TE using normBy or normalizeTEbyLoess
+    # --- Normalize TE using normBy or normalizeTEbyLoess ---
     message("Normalizing TE using edgeR and Loess methods...")
     cnts_normByEdgeR <- normBy(cnts, method = 'edgeR')
     TE_edgeR <- translationalEfficiency(cnts_normByEdgeR)
@@ -163,12 +163,12 @@ process BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS {
     plotTE(TE.log2_norm, log2 = FALSE)
     dev.off()
     
-    # Stage 7: Calculate Ribosome Release Score (RRS) using ribosomeReleaseScore
+    # --- Calculate Ribosome Release Score (RRS) using ---
     message("Calculating Ribosome Release Score (RRS)...")
     RRS <- ribosomeReleaseScore(TE90, TE90.utr3, log2 = TRUE)
     write.csv(RRS, "ribosome_release_score.csv")
     
-    # Stage 8: Plot metagene coverage using metaPlot
+    # --- Plot metagene coverage using metaPlot ---
     message("Generating metagene coverage plots...")
     cvgs.utr5 <- coverageDepth(RPFs, RNAs, txdb, region="utr5")
     saveRDS(cvgs.utr5, "coverage_depth_utr5.rds")

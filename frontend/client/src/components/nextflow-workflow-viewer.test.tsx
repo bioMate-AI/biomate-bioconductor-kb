@@ -135,3 +135,234 @@ describe.skip("NextflowWorkflowViewer step execution controls", () => {
     expect(screen.getByTestId("button-run-step-s1")).toBeEnabled();
   });
 });
+
+// ============================================================================
+// Horizontal tabs MVP (2026-06-09) — verify the new tab bar renders all 3 tabs,
+// switches active state on click, mounts AfterRunReport on After-run, and
+// surfaces the Run-again CTA at the panel bottom on terminal status.
+// ============================================================================
+
+// Stub the v2 AfterRunReport so the test doesn't need real /api/jobs etc.
+vi.mock("@/v2/AfterRunReport", () => ({
+  AfterRunReport: (props: any) => (
+    <div data-testid="mock-after-run-report" data-run-id={props.runId} data-status={props.executionStatus} />
+  ),
+}));
+
+describe("NextflowWorkflowViewer — horizontal tabs MVP", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    // jsdom doesn't ship EventSource; the viewer opens one on mount.
+    // Stub it so the component-mount effects don't throw.
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      addEventListener = vi.fn();
+      removeEventListener = vi.fn();
+      close = vi.fn();
+      constructor(url: string) { this.url = url; }
+    };
+    vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => "",
+    } as Response));
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  const baseProps = {
+    workflowId: "wf-tabs-1",
+    workflowDefinition: {
+      id: "wf-tabs-1",
+      name: "Test Workflow",
+      steps: { s1: { name: "Step 1", tool_id: "t1" } },
+      required_params: [],
+      optional_params: [{ id: "threads", name: "threads", type: "number", default: 4 }],
+      inline_parameters: { threads: 4 },
+    },
+    invocationId: "inv-tabs-1",
+    runId: "run-tabs-1",
+    status: "completed" as const,
+    onExecute: vi.fn(),
+  };
+
+  it("renders all 3 tab buttons (Workflow settings, Phases, After run)", () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} />);
+    expect(screen.getByTestId("panel-tab-settings")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-tab-phases")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-tab-after-run")).toBeInTheDocument();
+  });
+
+  it("defaults to After-run tab when status is completed (status-aware)", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-tab-after-run")).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  it("defaults to Phases tab when status is running", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="running" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-tab-phases")).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  it("defaults to Settings tab when status is idle", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="idle" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-tab-settings")).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  it("manual tab click overrides status-aware auto-default", async () => {
+    const { rerender } = render(<NextflowWorkflowViewer {...(baseProps as any)} status="running" />);
+    await waitFor(() => expect(screen.getByTestId("panel-tab-phases")).toHaveAttribute("aria-selected", "true"));
+    fireEvent.click(screen.getByTestId("panel-tab-settings"));
+    expect(screen.getByTestId("panel-tab-settings")).toHaveAttribute("aria-selected", "true");
+    // Now status flips to completed — auto-default would normally jump to After-run,
+    // but the manual override stays put.
+    rerender(<NextflowWorkflowViewer {...(baseProps as any)} status="completed" />);
+    expect(screen.getByTestId("panel-tab-settings")).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("mounts AfterRunReport when After-run tab is active (status=completed)", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} />);
+    // status=completed auto-selects After-run, so the mock should mount on first render
+    await waitFor(() => {
+      const arr = screen.getByTestId("mock-after-run-report");
+      expect(arr).toBeInTheDocument();
+      expect(arr).toHaveAttribute("data-run-id", "run-tabs-1");
+      expect(arr).toHaveAttribute("data-status", "completed");
+    });
+  });
+
+  it("Status-aware action bar shows Run-again button on completed", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-action-bar")).toHaveAttribute("data-status", "completed");
+      expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument();
+    });
+  });
+
+  it("Action bar shows Pause + Stop buttons on running", async () => {
+    const onPause = vi.fn();
+    const onCancel = vi.fn();
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="running" onPause={onPause} onCancel={onCancel} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-action-bar")).toHaveAttribute("data-status", "running");
+    });
+    expect(screen.queryByTestId("panel-run-again-cta")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("panel-action-pause"));
+    expect(onPause).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId("panel-action-stop"));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("Action bar shows Resume + Stop on paused", async () => {
+    const onResume = vi.fn();
+    const onCancel = vi.fn();
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="paused" onResume={onResume} onCancel={onCancel} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-action-bar")).toHaveAttribute("data-status", "paused");
+    });
+    fireEvent.click(screen.getByTestId("panel-action-resume"));
+    expect(onResume).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId("panel-action-stop"));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("Action bar is HIDDEN entirely on idle (settings tab handles run-from-scratch)", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="idle" />);
+    await waitFor(() => expect(screen.getByTestId("panel-tab-settings")).toHaveAttribute("aria-selected", "true"));
+    expect(screen.queryByTestId("panel-action-bar")).not.toBeInTheDocument();
+  });
+
+  it("clicking Run-again calls onExecute with current params", async () => {
+    const onExecute = vi.fn();
+    render(<NextflowWorkflowViewer {...(baseProps as any)} onExecute={onExecute} />);
+    await waitFor(() => expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("panel-run-again-cta"));
+    expect(onExecute).toHaveBeenCalled();
+    expect(onExecute.mock.calls[0][0]).toEqual(expect.objectContaining({ threads: 4 }));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Run-button hard gate on requiredUnfilled (audit fix, 2026-06-11)
+// Idle/pending_review runs must NOT submit when any global required param is
+// still empty. Re-runs of completed/failed runs ignore the gate (they re-use
+// prior params, not the current empty inline strip).
+// ─────────────────────────────────────────────────────────────────────────────
+describe("NextflowWorkflowViewer — run-button hard gate", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      addEventListener = vi.fn();
+      removeEventListener = vi.fn();
+      close = vi.fn();
+      constructor(url: string) { this.url = url; }
+    };
+    vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => "",
+    } as Response));
+  });
+
+  const baseGated = {
+    workflowId: "wf-gate-1",
+    workflowDefinition: {
+      id: "wf-gate-1",
+      name: "Gate Test Workflow",
+      steps: { s1: { name: "Step 1", tool_id: "t1" } },
+      // One required global param + one optional with a default.
+      required_params: [
+        { id: "reads_fwd", name: "reads_fwd", required: true, type: "file" },
+      ],
+      optional_params: [
+        { id: "threads", name: "threads", type: "number", default: 4 },
+      ],
+      // Required param NOT yet populated → inline_parameters omits it on purpose.
+      inline_parameters: { threads: 4 },
+    },
+    invocationId: "inv-gate-1",
+    runId: "run-gate-1",
+    onExecute: vi.fn(),
+  };
+
+  it("disables the Run button on idle when a required global param is empty", async () => {
+    render(<NextflowWorkflowViewer {...(baseGated as any)} status="idle" />);
+    const btn = await screen.findByTestId("button-run-workflow-panel");
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("data-required-unfilled", "1");
+    expect(btn).toHaveAttribute("title", expect.stringMatching(/Fill in 1 required parameter/i));
+  });
+
+  it("ENables the Run button once the required param is filled", async () => {
+    const filled = {
+      ...baseGated,
+      workflowDefinition: {
+        ...baseGated.workflowDefinition,
+        inline_parameters: { threads: 4, reads_fwd: "/data/sample.fastq" },
+      },
+    };
+    render(<NextflowWorkflowViewer {...(filled as any)} status="idle" />);
+    const btn = await screen.findByTestId("button-run-workflow-panel");
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveAttribute("data-required-unfilled", "0");
+  });
+
+  it("does not gate re-runs on completed (uses the prior run's params)", async () => {
+    // Even with the required field empty in the inline strip, a completed run
+    // should still allow Run-again (it re-submits the params from the previous run).
+    render(<NextflowWorkflowViewer {...(baseGated as any)} status="completed" />);
+    // On completed, the primary CTA is in the action bar (Run again), not the
+    // sticky footer button. Verify the action-bar Run-again is enabled.
+    await waitFor(() => expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument());
+    expect(screen.getByTestId("panel-run-again-cta")).not.toBeDisabled();
+  });
+});

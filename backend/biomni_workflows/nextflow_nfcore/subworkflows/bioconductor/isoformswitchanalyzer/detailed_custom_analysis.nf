@@ -55,19 +55,19 @@ process BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS {
     # Load required library
     library(IsoformSwitchAnalyzeR)
     
-    # 1. Import isoform expression data
+    # --- Import isoform expression data ---
     salmonQuant <- importIsoformExpression(
         parentDir = "salmon_quant_dir",
         addIsofomIdAsColumn = TRUE
     )
     
-    # 2. Create a design matrix
+    # --- Create a design matrix ---
     myDesign <- data.frame(
         sampleID = colnames(salmonQuant\$abundance)[-1],
         condition = gsub('_.*', '', colnames(salmonQuant\$abundance)[-1])
     )
     
-    # 3. Build the switchAnalyzeRlist
+    # --- Build the switchAnalyzeRlist ---
     aSwitchList <- importRdata(
         isoformCountMatrix   = salmonQuant\$counts,
         isoformRepExpression = salmonQuant\$abundance,
@@ -77,7 +77,7 @@ process BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS {
         showProgress = FALSE
     )
     
-    # 4. Filter out lowly expressed features
+    # --- Filter out lowly expressed features ---
     exampleSwitchListFiltered <- preFilter(
         switchAnalyzeRlist = aSwitchList,
         isoCount = 10,
@@ -87,20 +87,20 @@ process BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS {
         removeSingleIsoformGenes = TRUE
     )
     
-    # 5. Test for differential transcript usage
+    # --- Test for differential transcript usage ---
     exampleSwitchListAnalyzed <- isoformSwitchTestDEXSeq(
         switchAnalyzeRlist = exampleSwitchListFiltered,
         reduceToSwitchingGenes=TRUE
     )
     
-    # 6. Extract nucleotide and amino acid sequences
+    # --- Extract nucleotide and amino acid sequences ---
     exampleSwitchListAnalyzed <- extractSequence(
         exampleSwitchListAnalyzed, 
         pathToOutput = getwd(),
         writeToFile=TRUE 
     )
     
-    # 7. Import external sequence analysis results
+    # --- Import external sequence analysis results ---
     exampleSwitchListAnalyzed <- analyzeCPAT(
         switchAnalyzeRlist   = exampleSwitchListAnalyzed,
         pathToCPATresultFile = "cpat_results.txt",
@@ -149,13 +149,13 @@ process BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS {
         showProgress=FALSE
     )
     
-    # 8. Analyze alternative splicing
+    # --- Analyze alternative splicing ---
     exampleSwitchListAnalyzed <- analyzeAlternativeSplicing(
         switchAnalyzeRlist = exampleSwitchListAnalyzed,
         quiet=TRUE
     )
     
-    # 9. Predict functional consequences
+    # --- Predict functional consequences ---
     consequencesOfInterest <- c('intron_retention','coding_potential','NMD_status','domains_identified','ORF_seq_similarity')
     exampleSwitchListAnalyzed <- analyzeSwitchConsequences(
         exampleSwitchListAnalyzed,

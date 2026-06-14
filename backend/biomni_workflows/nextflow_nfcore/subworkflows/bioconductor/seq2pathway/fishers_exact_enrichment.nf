@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run Fisher's exact test against MSigDB defined gene-sets using FisherTest_MsigDB. 2. Run Fisher's exact test against GO defined ge
+//  * 1. [Core Analysis] Read User Input Files from Working Directory
+//  * 2. [Core Analysis] Run Fisher's Exact Test against MSigDB defined gene-sets
+//  * 3. [Core Analysis] Run Fisher's Exact Test against GO defined gene-sets (BP)
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("seq2pathway", "GSA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +62,7 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     library(GSA)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Input Files from Working Directory
+    # --- Read User Input Files from Working Directory ---
     # -----------------------------------------------------------------------------
     
     # Read dat_chip (gene-level measurements to extract gene symbols)
@@ -71,7 +82,7 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Run Fisher's Exact Test against MSigDB defined gene-sets
+    # --- Run Fisher's Exact Test against MSigDB defined gene-sets ---
     # -----------------------------------------------------------------------------
     message("Running Fisher's exact test against MSigDB gene-sets...")
     
@@ -82,7 +93,7 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     saveRDS(FS_test, file = "FisherTest_MsigDB_results.rds")
     
     # -----------------------------------------------------------------------------
-    # 3. Run Fisher's Exact Test against GO defined gene-sets (BP)
+    # --- Run Fisher's Exact Test against GO defined gene-sets (BP) ---
     # -----------------------------------------------------------------------------
     message("Running Fisher's exact test against GO BP gene-sets...")
     

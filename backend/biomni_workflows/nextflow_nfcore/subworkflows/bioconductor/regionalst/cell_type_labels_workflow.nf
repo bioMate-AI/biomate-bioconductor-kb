@@ -43,7 +43,7 @@ process BIOC_REGIONALST_CELL_TYPE_LABELS_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BayesSpace", "RegionalST", "ggplot2", "gridExtra")
+    .bm_deps <- c("BayesSpace", "RegionalST", "ggplot2", "gridExtra", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,6 +61,7 @@ process BIOC_REGIONALST_CELL_TYPE_LABELS_WORKFLOW {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(RegionalST)
     library(BayesSpace)
     library(gridExtra)

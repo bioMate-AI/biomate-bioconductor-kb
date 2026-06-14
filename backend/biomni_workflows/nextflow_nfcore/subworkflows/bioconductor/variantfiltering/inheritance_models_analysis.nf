@@ -67,11 +67,11 @@ process BIOC_VARIANTFILTERING_INHERITANCE_MODELS_ANALYSIS {
       stop(paste("Required input PED file not found in working directory:", CEUped))
     }
     
-    # 1. Create parameter object with both VCF and PED files
+    # --- Create parameter object with both VCF and PED files ---
     message("Initializing VariantFilteringParam with input files...")
     param <- VariantFilteringParam(vcfFilenames=CEUvcf, pedFilename=CEUped)
     
-    # 2. Filter variants using inheritance model functions
+    # --- Filter variants using inheritance model functions ---
     # We will run the different inheritance models, generate summaries, and save the results.
     
     # Autosomal Recessive Homozygous

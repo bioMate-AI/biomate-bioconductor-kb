@@ -58,7 +58,7 @@ process BIOC_MOSAICS_ONE_SAMPLE_GENOMIC_FEATURES {
     # Define input files from the working directory as specified by the user
     fileName <- c("chip_chr21.txt", "M_chr21.txt", "GC_chr21.txt", "N_chr21.txt")
     
-    # 1. Read bin-level data with genomic features
+    # --- Read bin-level data with genomic features ---
     message("Reading bin-level data...")
     exampleBinData <- readBins( type=c("chip","M","GC","N"), fileName=fileName )
     
@@ -80,7 +80,7 @@ process BIOC_MOSAICS_ONE_SAMPLE_GENOMIC_FEATURES {
     })
     dev.off()
     
-    # 2. Fit MOSAiCS model with OS (One-Sample) analysis type
+    # --- Fit MOSAiCS model with OS (One-Sample) analysis type ---
     message("Fitting MOSAiCS model...")
     exampleFit <- mosaicsFit( exampleBinData, analysisType="OS", bgEst="automatic" )
     
@@ -97,7 +97,7 @@ process BIOC_MOSAICS_ONE_SAMPLE_GENOMIC_FEATURES {
     })
     dev.off()
     
-    # 3. Call peaks
+    # --- Call peaks ---
     message("Calling peaks...")
     examplePeak <- mosaicsPeak( exampleFit, signalModel="2S", FDR=0.05, maxgap=200, minsize=50, thres=10 )
     

@@ -52,7 +52,7 @@ process BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS {
       }
     }
     
-    # 1. Load the fCCAC package and define paths to the bigWig and peak files
+    # --- Load the fCCAC package and define paths to the bigWig and ---
     library(fCCAC)
     
     # Define input files from the working directory as specified by the user
@@ -78,7 +78,7 @@ process BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS {
     labels <- c("Dataset1", "Dataset2", "Dataset3")
     ti <- "fCCAC Covariance Analysis"
     
-    # 2. Run the functional canonical correlation analysis using fccac()
+    # --- Run the functional canonical correlation analysis using ---
     # Keeping all documented argument names exactly as specified
     fc <- fccac(
       bar = NULL, 
@@ -91,7 +91,7 @@ process BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS {
       ncan = 15
     )
     
-    # 3. Inspect the resulting correlation and F-value data frame
+    # --- Inspect the resulting correlation and F-value data frame ---
     print("Head of fCCAC results:")
     print(head(fc))
     
@@ -101,7 +101,7 @@ process BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS {
     # Save the fCCAC object as an RDS file for downstream analysis
     saveRDS(fc, file = "fccac_results.rds")
     
-    # 4. Plot a heatmap of the F-values using heatmapfCCAC() and save as PDF
+    # --- Plot a heatmap of the F-values using heatmapfCCAC() and ---
     pdf("fccac_heatmap.pdf", width = 7, height = 7)
     heatmapfCCAC(fc)
     dev.off()

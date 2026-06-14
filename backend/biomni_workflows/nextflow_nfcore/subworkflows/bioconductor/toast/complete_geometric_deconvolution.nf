@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run complete deconvolution using Tsisal() with specified or unknown cell numbers (K) and reference panels
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run Complete Geometric Deconvolution (Tsisal)
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +61,7 @@ process BIOC_TOAST_COMPLETE_GEOMETRIC_DECONVOLUTION {
     library(TOAST)
     
     # ----------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ----------------------------------------------------------------------
     
     # Read Ybeta (matrix of bulk DNA methylation beta values)
@@ -128,7 +129,7 @@ process BIOC_TOAST_COMPLETE_GEOMETRIC_DECONVOLUTION {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Run Complete Geometric Deconvolution (Tsisal)
+    # --- Run Complete Geometric Deconvolution (Tsisal) ---
     # ----------------------------------------------------------------------
     
     # Scenario A: Complete deconvolution with specified K and reference panel

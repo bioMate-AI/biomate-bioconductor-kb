@@ -96,14 +96,14 @@ process BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON {
     shared_interactions
     
     ## Write meaningful output files
-    # 1. Save the complete MergedGInteractions object as RDS
+    # --- Save the complete MergedGInteractions object as RDS ---
     saveRDS(mgi, file = "merged_interactions.rds")
     
-    # 2. Save shared interactions as a CSV table
+    # --- Save shared interactions as a CSV table ---
     shared_df <- as.data.frame(shared_interactions)
     write.csv(shared_df, file = "shared_interactions.csv", row.names = FALSE)
     
-    # 3. Save unique interactions for each source set as CSV tables
+    # --- Save unique interactions for each source set as CSV tables ---
     unique_sets <- sets(mgi)
     for (set_name in names(unique_sets)) {
         unique_df <- as.data.frame(unique_sets[[set_name]])

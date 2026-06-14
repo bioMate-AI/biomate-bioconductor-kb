@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the plot with make_escheR(), optionally specifying dimred. 2. Add a binned ground layer using add_ground_bin(). 3. Add 
+//  * 1. [Visualization & Output] Read the user input file
+//  * 2. [Visualization & Output] Ensure the SpatialExperiment object has the required
+//  * 3. [Visualization & Output] Execute the documented escheR point binning workflow
+//  * 4. [Visualization & Output] Save the resulting plot to a PDF file
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +42,15 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("escheR", "SpatialExperiment", "ggplot2", "scater", "scuttle", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,21 +60,22 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(escheR)
     library(SpatialExperiment)
     library(ggplot2)
     library(scater)
     library(scuttle)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     if (!file.exists("spe.rds")) {
       stop("Error: 'spe.rds' file not found in the working directory.")
     }
     
     spe <- readRDS("spe.rds")
     
-    # 2. Ensure the SpatialExperiment object has the required components for the workflow
+    # --- Ensure the SpatialExperiment object has the required ---
     # Ensure PCA dimensionality reduction exists
     if (!"PCA" %in% reducedDimNames(spe)) {
       message("PCA not found in reducedDimNames. Computing PCA...")
@@ -106,7 +119,7 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
       }
     }
     
-    # 3. Execute the documented escheR point binning workflow
+    # --- Execute the documented escheR point binning workflow ---
     p <- make_escheR(
       spe,
       dimred = "PCA"
@@ -122,7 +135,7 @@ process BIOC_ESCHER_BINNED_SPATIAL_VISUALIZATION {
       scale_color_discrete(name = "Spatial Domains") +
       theme_minimal()
     
-    # 4. Save the resulting plot to a PDF file
+    # --- Save the resulting plot to a PDF file ---
     output_pdf <- "escheR_binned_spatial_plot.pdf"
     ggsave(filename = output_pdf, plot = p, width = 8, height = 7)
     message(paste("Successfully saved binned spatial visualization to", output_pdf))

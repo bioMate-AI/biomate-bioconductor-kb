@@ -61,6 +61,7 @@ process BIOC_ROPLS_SUMMARIZED_EXPERIMENT_WORKFLOW {
         # Load required libraries
         library(ropls)
         
+        library(SummarizedExperiment)
         # 1. Read the user input SummarizedExperiment object
         # The pipeline expects 'summarized_experiment.rds' in the working directory.
         # This object must contain assay data and colData metadata.

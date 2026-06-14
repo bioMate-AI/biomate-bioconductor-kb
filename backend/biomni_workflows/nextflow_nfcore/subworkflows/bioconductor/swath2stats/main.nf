@@ -35,6 +35,15 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rtracklayer", "SWATH2stats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     library(SWATH2stats)
     
     # ==========================================
-    # STAGE 1: Import User Inputs & Mock SWATH Data
+    # --- Import User Inputs & Mock SWATH Data ---
     # ==========================================
     
     # Read genomic intervals from BED file
@@ -131,7 +140,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     data.annotated <- sample_annotation(data, Study_design, column_file = "align_origfilename")
     
     # ==========================================
-    # STAGE 2: Diagnostic Plotting & Signal Matrices
+    # --- Diagnostic Plotting & Signal Matrices ---
     # ==========================================
     
     # Subset non-decoy data for visualization and matrix generation
@@ -157,7 +166,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     write.csv(protein_matrix, "protein_matrix.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 3: FDR Estimation
+    # --- FDR Estimation ---
     # ==========================================
     
     # Assess overall FDR and write to CSV
@@ -173,7 +182,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
                     mscore_assay, mscore_pep, mscore_prot))
     
     # ==========================================
-    # STAGE 4: Filtering
+    # --- Filtering ---
     # ==========================================
     
     # Filter based on m-score and condition replication
@@ -189,7 +198,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     data.filtered3 <- subset(data.filtered3, decoy == FALSE)
     
     # ==========================================
-    # STAGE 5: Format Conversion for Downstream Tools
+    # --- Format Conversion for Downstream Tools ---
     # ==========================================
     
     # Disaggregate to transition-level format

@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Apply mathematical transformations (e.g., log10 with a pseudocount) to the assay data. 2. Subsample the raw counts to an equal num
+//  * 1. [Core Analysis] Load user input files
+//  * 2. [Core Analysis] Apply mathematical transformations (log10 with a
+//  * 3. [Core Analysis] Subsample the raw counts to an equal number of counts per
+//  * 4. [Core Analysis] Combine original and subsampled datasets into a
+//  * 5. [Core Analysis] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -19,7 +23,7 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -38,7 +42,7 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MultiAssayExperiment", "mia")
+    .bm_deps <- c("MultiAssayExperiment", "mia", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,11 +59,12 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
           }
         }
     
-    # Load required libraries
+    # Load required lib    library(SummarizedExperiment)
+raries
     library(mia)
     library(MultiAssayExperiment)
     
-    # 1. Load user input files
+    # --- Load user input files ---
     if (!file.exists("enterotype.RDS") || !file.exists("GlobalPatterns.RDS")) {
         stop("Required input files 'enterotype.RDS' and/or 'GlobalPatterns.RDS' not found in the working directory.")
     }
@@ -67,10 +72,10 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
     enterotype <- readRDS("enterotype.RDS")
     GlobalPatterns <- readRDS("GlobalPatterns.RDS")
     
-    # 2. Apply mathematical transformations (log10 with a pseudocount)
+    # --- Apply mathematical transformations (log10 with a ---
     anterotype <- transformAssay(enterotype, method = "log10", pseudocount = 1)
     
-    # 3. Subsample the raw counts to an equal number of counts per sample (rarefying)
+    # --- Subsample the raw counts to an equal number of counts per ---
     tse.subsampled <- rarefyAssay(
         GlobalPatterns, 
         sample = 60000, 
@@ -78,7 +83,7 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
         replace = TRUE,
         seed = 1938)
     
-    # 4. Combine original and subsampled datasets into a MultiAssayExperiment container
+    # --- Combine original and subsampled datasets into a ---
     mae <- MultiAssayExperiment(
         c("originalTreeSE" = GlobalPatterns,
         "subsampledTreeSE" = tse.subsampled))
@@ -86,7 +91,7 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
     # Extract the subsampled TreeSE from the MAE
     subsampled_extracted <- experiments(mae)\$subsampledTreeSE
     
-    # 5. Save outputs
+    # --- Save outputs ---
     saveRDS(anterotype, "anterotype.rds")
     saveRDS(tse.subsampled, "tse_subsampled.rds")
     saveRDS(mae, "mae.rds")

@@ -34,7 +34,7 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "biocmanager", "edgeR", "GenomicAlignments", "GenomicFeatures", "pasillabamsubset", "Rsamtools")
+    .bm_deps <- c("DESeq2", "biocmanager", "edgeR", "GenomicAlignments", "GenomicFeatures", "pasillabamsubset", "Rsamtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,12 +52,13 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
       }
     }
     
-    # 1. Load GenomicAlignments and downstream analysis packages
-    library(GenomicAlignments)
+    # --- Load GenomicAlignments and downstream analysis packages ---
+    lib    library(SummarizedExperiment)
+rary(GenomicAlignments)
     library(DESeq2)
     library(edgeR)
     
-    # 2. Define genomic features of interest and BAM files from user input
+    # --- Define genomic features of interest and BAM files from ---
     if (file.exists("features.rds")) {
         features <- readRDS("features.rds")
     } else if (file.exists("features")) {
@@ -74,14 +75,14 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     # Assign names to the file list to ensure the overlap object has valid sample names
     names(fls) <- tools::file_path_sans_ext(basename(fls))
     
-    # 3. Count overlaps between reads and features using summarizeOverlaps
+    # --- Count overlaps between reads and features using ---
     olap <- summarizeOverlaps(features, fls)
     
-    # 4. Convert the overlap object into a DESeqDataSet or DGEList for differential expression analysis
+    # --- Convert the overlap object into a DESeqDataSet or DGEList ---
     deseq <- DESeqDataSet(olap, design= ~ 1)
     edger <- DGEList(assay(olap), group=rownames(colData(olap)))
     
-    # 5. Save outputs to the working directory
+    # --- Save outputs to the working directory ---
     write.csv(assay(olap), file = "read_counts.csv", row.names = TRUE)
     saveRDS(olap, file = "summarized_overlaps.rds")
     saveRDS(deseq, file = "deseq_dataset.rds")

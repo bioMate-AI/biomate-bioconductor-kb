@@ -1535,6 +1535,21 @@ class NextflowQCGateHandler:
         "DART_IN_SILICO_PREDICTION": ("*", "qc_metrics.json"),  # ICH S5R3 margin ≥10× Cmax (GOLD)
         "ICH_S7A_ASSESS_CV":         ("*", "qc_metrics.json"),  # ICH S7B hERG ≥10× free Cmax (GOLD)
         "DRUGGABILITY_QC_GATE":      ("*", "qc_metrics.json"),  # fpocket druggability ≥0.5 (GOLD, Le Guilloux 2009)
+        "RETROSYNTHESIS_REPORT":     ("*", "qc_metrics.json"),  # aizynthfinder ≥1 solved route (GOLD, Genheden 2020)
+        "P0_PKPD_SEMAGLUTIDE":       ("*", "qc_metrics.json"),  # semaglutide wk30 Δweight ∈ [-6,+3] kg (GOLD, Overgaard 2019)
+        "CLINICAL_TRIAL_SIMULATION": ("*", "qc_metrics.json"),  # BOIN MTD DLT≤φ (GOLD, Liu & Yuan 2015)
+        "BOLTZ_SUMMARISE_RESULTS":   ("*", "qc_metrics.json"),  # Boltz pLDDT ≥70 / PAE ≤8Å (GOLD, Jumper 2021)
+        "LNP_FORMULATION_OPTIMIZATION": ("*", "qc_metrics.json"),  # LNP z-avg 60-120 nm (SILVER, CLT range)
+        "ANTIBODY_DEVELOPABILITY":   ("*", "qc_metrics.json"),  # TAP total CDR 43-63 (GOLD, Raybould 2019)
+        "SIRNA_OFFTARGET_ANALYSIS":  ("*", "qc_metrics.json"),  # ΔdG asymmetry ≥0.5 (GOLD, Khvorova 2003)
+        "NLMIXR2_POPULATION_PK":     ("*", "qc_metrics.json"),  # η-shrinkage <20% (GOLD, Savic & Karlsson 2007)
+        "BIOMARKER_PATIENT_ENRICHMENT": ("*", "qc_metrics.json"),  # prev 0.10-0.50 (SILVER, FDA 2019), EF≥1.5 (BRONZE)
+        "IVIVE_HEPATIC_CLEARANCE":   ("*", "qc_metrics.json"),  # ivive_fold_error ≤ 2 (GOLD, Obach 1999)
+        "PREDICT_ADMET_PROPERTIES":  ("*", "qc_metrics.json"),  # hERG ≥10μM (GOLD, Redfern 2003) / Ames neg (SILVER, Kazius 2005) / DILI
+        "DDI_RISK_ASSESSMENT":       ("*", "qc_metrics.json"),  # FDA 2020 DDI R1/R2 INVESTIGATE/CLINICAL_STUDY (GOLD)
+        "NCA_PKNCA_ANALYSIS":        ("*", "qc_metrics.json"),  # auc_extrap_pct_max ≤ 20% (GOLD, FDA 2003 BA/BE)
+        "PBPK_SIMULATION":           ("*", "qc_metrics.json"),  # tmax_fraction ≤ 0.8 (SILVER, FDA 2018 PBPK)
+        "GENOTOXICITY_AMES_PREDICTION": ("*", "qc_metrics.json"),  # Ames clean = 0 POSITIVE / 0 SUSPECT (SILVER, Kazius 2005 / ICH S2R1)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:

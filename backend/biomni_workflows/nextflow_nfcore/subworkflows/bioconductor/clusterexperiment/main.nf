@@ -65,6 +65,7 @@ process BIOC_CLUSTEREXPERIMENT_RSEC_AUTOMATED_PIPELINE {
         # Load required libraries
         library(clusterExperiment)
         
+        library(SummarizedExperiment)
         # Read user input files from the working directory
         if (file.exists("fluidigmData.rds")) {
           fluidigmData <- readRDS("fluidigmData.rds")

@@ -65,11 +65,11 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     bedDanRer10Fn <- "filter_regions.danRer10.bed"
     bedHg38Fn <- "filter_regions.hg38.bed"
     
-    # 1. Read Axt alignments
+    # --- Read Axt alignments ---
     axtHg38DanRer10 <- readAxt(axtFilesHg38DanRer10)
     axtDanRer10Hg38 <- readAxt(axtFilesDanRer10Hg38)
     
-    # 2. Read filter regions from BED files
+    # --- Read filter regions from BED files ---
     danRer10Filter <- readBed(bedDanRer10Fn)
     hg38Filter <- readBed(bedHg38Fn)
     
@@ -84,24 +84,24 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     assembly1Fn <- file.path(find.package(drerio_pkg), "extdata", "single_sequences.2bit")
     assembly2Fn <- file.path(find.package(hsapiens_pkg), "extdata", "single_sequences.2bit")
     
-    # 3. Create a CNE class object
+    # --- Create a CNE class object ---
     cneDanRer10Hg38 <- CNE(
       assembly1Fn=assembly1Fn,
       assembly2Fn=assembly2Fn,
       axt12Fn=axtFilesDanRer10Hg38, axt21Fn=axtFilesHg38DanRer10,
       cutoffs1=8L, cutoffs2=4L)
     
-    # 4. Scan alignments for conserved regions
+    # --- Scan alignments for conserved regions ---
     identities <- c(45L, 48L, 49L)
     windows <- c(50L, 50L, 50L)
     cneListDanRer10Hg38 <- ceScan(x=cneDanRer10Hg38, tFilter=danRer10Filter,
                                   qFilter=hg38Filter,
                                   window=windows, identity=identities)
     
-    # 5. Merge overlapping elements
+    # --- Merge overlapping elements ---
     cneMergedListDanRer10Hg38 <- lapply(cneListDanRer10Hg38, cneMerge)
     
-    # 6. Realign CNEs to filter out unannotated repeats (with tryCatch fallback if blat is missing)
+    # --- Realign CNEs to filter out unannotated repeats (with ---
     cneFinalListDanRer10Hg38 <- tryCatch({
       lapply(cneMergedListDanRer10Hg38, blatCNE)
     }, error = function(e) {
@@ -109,7 +109,7 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
       cneMergedListDanRer10Hg38
     })
     
-    # 7. Save CNEs to a local SQLite database
+    # --- Save CNEs to a local SQLite database ---
     dbName <- "cne_database.sqlite"
     tableNames <- paste("danRer10", "hg38", names(cneFinalListDanRer10Hg38), sep="_")
     for(i in 1:length(cneFinalListDanRer10Hg38)){
@@ -132,7 +132,7 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     }
     dbDisconnect(con)
     
-    # 8. Query CNEs from SQLite
+    # --- Query CNEs from SQLite ---
     chr <- "chr6"
     start <- 24000000L
     end <- 27000000L
@@ -151,7 +151,7 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     df_combined <- cbind(df_first, df_second)
     write.csv(df_combined, "fetched_cne_ranges.csv", row.names=FALSE)
     
-    # 9. Plot CNE width and genomic distribution
+    # --- Plot CNE width and genomic distribution ---
     cneGRangePairs <- readCNERangesFromSQLite(dbName=dbName, 
                                               tableName="danRer10_hg38_45_50",
                                               tAssemblyFn=assembly1Fn,
@@ -163,7 +163,7 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     plotCNEWidth(cneGRangePairs)
     plotCNEDistribution(first(cneGRangePairs))
     
-    # 10. Calculate CNE density
+    # --- Calculate CNE density ---
     windowSize <- 200L
     cneDanRer10Hg38_21_30 <- 
       CNEDensity(dbName=dbName, 
@@ -217,7 +217,7 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     cneDanRer10AstMex102_48_50 <- ensure_non_zero_score(cneDanRer10AstMex102_48_50)
     cneDanRer10CteIde1_75_75 <- ensure_non_zero_score(cneDanRer10CteIde1_75_75)
     
-    # 11. Visualize CNE density using Gviz horizon plots
+    # --- Visualize CNE density using Gviz horizon plots ---
     genome <- "danRer10"
     axisTrack <- GenomeAxisTrack()
     

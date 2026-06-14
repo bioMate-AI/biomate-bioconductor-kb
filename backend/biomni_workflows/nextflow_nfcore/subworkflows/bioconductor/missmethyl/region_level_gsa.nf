@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Annotate CpGs and find DMRs using DMRcate. 2. Extract genomic ranges of DMRs. 3. Perform region-level gene set testing using goreg
+//  * 1. [Core Analysis] Read User Input Files from Working Directory
+//  * 2. [Core Analysis] Annotate CpGs and find DMRs using DMRcate
+//  * 3. [Core Analysis] Extract genomic ranges of DMRs
+//  * 4. [Core Analysis] Perform region-level gene set testing using goregion and
+//  * 5. [Core Analysis] Write named output files
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +64,7 @@ process BIOC_MISSMETHYL_REGION_LEVEL_GSA {
         library(DMRcate)
         library(limma)
         
-        # 1. Read User Input Files from Working Directory
+        # --- Read User Input Files from Working Directory ---
         if (file.exists("M.rds")) {
           M <- readRDS("M.rds")
         } else if (file.exists("M.csv")) {
@@ -84,14 +88,14 @@ process BIOC_MISSMETHYL_REGION_LEVEL_GSA {
           hallmark <- readRDS(url("http://bioinf.wehi.edu.au/MSigDB/v7.1/Hs.h.all.v7.1.entrez.rds"))
         }
         
-        # 2. Annotate CpGs and find DMRs using DMRcate
+        # --- Annotate CpGs and find DMRs using DMRcate ---
         myAnnotation <- cpg.annotate(object = M, datatype = "array", what = "M", arraytype = c("450K"), analysis.type = "differential", design = design, coef = ncol(design))
         DMRs <- dmrcate(myAnnotation, lambda=1000, C=2)
         
-        # 3. Extract genomic ranges of DMRs
+        # --- Extract genomic ranges of DMRs ---
         results.ranges <- extractRanges(DMRs)
         
-        # 4. Perform region-level gene set testing using goregion and gsaregion
+        # --- Perform region-level gene set testing using goregion and ---
         # Capture the bias plot in a PDF
         pdf("region_plot_bias.pdf")
         gst.region <- goregion(results.ranges, all.cpg=rownames(M), collection="GO", array.type="450K", plot.bias=TRUE)
@@ -100,7 +104,7 @@ process BIOC_MISSMETHYL_REGION_LEVEL_GSA {
         gst.region.kegg <- goregion(results.ranges, all.cpg=rownames(M), collection="KEGG", array.type="450K")
         gsa.region <- gsaregion(results.ranges, all.cpg=rownames(M), collection=hallmark)
         
-        # 5. Write named output files
+        # --- Write named output files ---
         write.csv(gst.region, "gst_region_go.csv", row.names = TRUE)
         write.csv(gst.region.kegg, "gst_region_kegg.csv", row.names = TRUE)
         write.csv(gsa.region, "gsa_region_hallmark.csv", row.names = TRUE)

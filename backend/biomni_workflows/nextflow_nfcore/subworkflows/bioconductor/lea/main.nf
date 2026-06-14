@@ -67,7 +67,7 @@ process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {
     my.colors <- c("tomato", "lightblue", "olivedrab", "gold")
     
     # ==========================================
-    # Stage 1: Principal Component Analysis (PCA)
+    # --- Principal Component Analysis (PCA) ---
     # ==========================================
     message("Running PCA...")
     pc = pca("genotypes.lfmm", scale = TRUE)
@@ -97,7 +97,7 @@ process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {
     dev.off()
     
     # ==========================================
-    # Stage 4: Visualize Ancestry Proportions (Q-matrix)
+    # --- Visualize Ancestry Proportions (Q-matrix) ---
     # ==========================================
     message("Visualizing ancestry proportions for K = 4...")
     best = which.min(cross.entropy(project, K = 4))
@@ -112,7 +112,7 @@ process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {
     write.csv(q_matrix, "ancestry_proportions_K4.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Population Differentiation Tests
+    # --- Population Differentiation Tests ---
     # ==========================================
     message("Conducting population differentiation tests...")
     p = snmf.pvalues(project, entropy = TRUE, ploidy = 2, K = 4)
@@ -129,7 +129,7 @@ process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {
     dev.off()
     
     # ==========================================
-    # Stage 6: Missing Genotype Imputation
+    # --- Missing Genotype Imputation ---
     # ==========================================
     message("Running sNMF on dataset with missing values...")
     project.missing = snmf("genoM.lfmm", K = 4, entropy = TRUE, repetitions = 10, project = "new")

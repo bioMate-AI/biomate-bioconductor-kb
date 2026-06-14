@@ -55,11 +55,11 @@ process BIOC_OPOSSOM_EXPRESSIONSET_INPUT_WORKFLOW {
     library(oposSOM)
     library(Biobase)
     
-    # 1. Initialize environment with opossom.new
+    # --- Initialize environment with opossom.new ---
     env <- opossom.new(list(dataset.name="Tissues",
                             dim.1stLvlSom=20))
     
-    # 2. Load ExpressionSet from the user input file
+    # --- Load ExpressionSet from the user input file ---
     local_env <- new.env()
     load("expression_set.RData", envir = local_env)
     
@@ -75,10 +75,10 @@ process BIOC_OPOSSOM_EXPRESSIONSET_INPUT_WORKFLOW {
       stop("Error: No ExpressionSet object found in expression_set.RData")
     }
     
-    # 3. Assign ExpressionSet to env\$indata
+    # --- Assign ExpressionSet to env\$indata ---
     env\$indata <- eset_obj
     
-    # 4. Define pairwise comparison groups
+    # --- Define pairwise comparison groups ---
     # We use the documented pairwise comparison list if the expected samples exist.
     # Otherwise, we dynamically adapt it to the available samples to prevent pipeline failure.
     sample_names <- colnames(eset_obj)
@@ -100,7 +100,7 @@ process BIOC_OPOSSOM_EXPRESSIONSET_INPUT_WORKFLOW {
       }
     }
     
-    # 5. Run the pipeline with opossom.run
+    # --- Run the pipeline with opossom.run ---
     opossom.run(env)
     
     # Save the final environment object containing all results

@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the snm function with rm.adj=TRUE to remove probe-specific adjustment variables from the preprocessed data without fitting int
+//  * 1. [Core Analysis] Run the snm function with rm.adj=TRUE to remove
+//  * 2. [Core Analysis] Perform the Kolmogorov-Smirnov test on the null p-values
 
 nextflow.enable.dsl = 2
 
@@ -101,13 +102,13 @@ process BIOC_SNM_PREPROCESSED_NORMALIZATION {
       seq_len(nrow(preProcessed\$raw.data))
     })
     
-    # 1. Run the snm function with rm.adj=TRUE to remove probe-specific adjustment variables
+    # --- Run the snm function with rm.adj=TRUE to remove ---
     # from the preprocessed data without fitting intensity-dependent effects
     snm.obj5 <- snm(preProcessed\$raw.data,
                                 preProcessed\$bio.var,
                                 preProcessed\$adj.var, rm.adj=TRUE)
     
-    # 2. Perform the Kolmogorov-Smirnov test on the null p-values
+    # --- Perform the Kolmogorov-Smirnov test on the null p-values ---
     ks_res <- ks.test(snm.obj5\$pval[preProcessed\$true.nulls],"punif")
     
     # Write meaningful results to output files

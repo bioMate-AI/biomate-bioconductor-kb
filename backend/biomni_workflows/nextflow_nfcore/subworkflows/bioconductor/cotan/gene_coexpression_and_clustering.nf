@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calibrate the COTAN model and calculate the full gene-pair COEX matrix. 2. Retrieve contingency tables and specific COEX values fo
+//  * 1. [Visualization & Output] Calibrate the COTAN model and calculate the full
+//  * 2. [Visualization & Output] Retrieve contingency tables and specific COEX values for
+//  * 3. [Visualization & Output] Calculate and store the Global Differentiation Index (GDI)
+//  * 4. [Visualization & Output] Plot GDI to identify highly differentiated genes
+//  * 5. [Visualization & Output] Generate COEX heatmaps for gene sets
+//  * 6. [Visualization & Output] Establish gene clusters based on marker lists
+//  * 7. [Visualization & Output] Visualize gene clusters using UMAP
 
 nextflow.enable.dsl = 2
 
@@ -139,11 +145,11 @@ process BIOC_COTAN_GENE_COEXPRESSION_AND_CLUSTERING {
     # 3. Execute Documented Workflow Steps
     # -------------------------------------------------------------------------
     
-    # Step 1: Calibrate the COTAN model and calculate the full gene-pair COEX matrix.
+    # --- Calibrate the COTAN model and calculate the full ---
     message("Proceeding to COEX estimation...")
     obj <- proceedToCoex( obj, calcCoex = TRUE, optimizeForSpeed = TRUE, cores = 3L, deviceStr = "cuda" )
     
-    # Step 2: Retrieve contingency tables and specific COEX values for gene pairs.
+    # --- Retrieve contingency tables and specific COEX values for ---
     message("Retrieving contingency tables and COEX values...")
     g1 <- if ("Satb2" %in% all_genes) "Satb2" else all_genes[1]
     g2 <- if ("Bcl11b" %in% all_genes) "Bcl11b" else all_genes[2]
@@ -154,7 +160,7 @@ process BIOC_COTAN_GENE_COEXPRESSION_AND_CLUSTERING {
     coex <- getGenesCoex(obj, zeroDiagonal = FALSE)
     saveRDS(coex, file = "genes_coex_matrix.rds")
     
-    # Step 3: Calculate and store the Global Differentiation Index (GDI).
+    # --- Calculate and store the Global Differentiation Index (GDI) ---
     message("Calculating and storing GDI...")
     gdiDF <- calculateGDI(obj, cores = 3L)
     write.csv(gdiDF, file = "genes_GDI_table.csv", row.names = TRUE)
@@ -162,13 +168,13 @@ process BIOC_COTAN_GENE_COEXPRESSION_AND_CLUSTERING {
     obj <- storeGDI(obj, genesGDI = gdiDF)
     saveRDS(obj, file = "cotan_obj_with_gdi.rds")
     
-    # Step 4: Plot GDI to identify highly differentiated genes.
+    # --- Plot GDI to identify highly differentiated genes ---
     message("Generating GDI Plot...")
     pdf("GDI_plot.pdf", width = 8, height = 6)
     print(GDIPlot(obj, genes = genesLists, GDIThreshold = 1.40))
     dev.off()
     
-    # Step 5: Generate COEX heatmaps for gene sets.
+    # --- Generate COEX heatmaps for gene sets ---
     message("Generating COEX Heatmaps...")
     pdf("COEX_heatmaps.pdf", width = 10, height = 8)
     sets_to_plot <- 1L:min(3L, length(genesLists))
@@ -177,7 +183,7 @@ process BIOC_COTAN_GENE_COEXPRESSION_AND_CLUSTERING {
     genesHeatmapPlot( obj, primaryMarkers = layersMarkers, pValueThreshold = 0.0001, symmetric = TRUE, cores = 3L )
     dev.off()
     
-    # Step 6: Establish gene clusters based on marker lists.
+    # --- Establish gene clusters based on marker lists ---
     message("Establishing gene clusters...")
     c(gSpace, eigPlot, pcaGenesClDF, treePlot) %<-% establishGenesClusters( obj, groupMarkers = layersGenes, numGenesPerMarker = 25L, kCuts = 5L )
     
@@ -188,7 +194,7 @@ process BIOC_COTAN_GENE_COEXPRESSION_AND_CLUSTERING {
     plot(treePlot)
     dev.off()
     
-    # Step 7: Visualize gene clusters using UMAP.
+    # --- Visualize gene clusters using UMAP ---
     message("Generating UMAP Plot of gene clusters...")
     colSelection <- vapply(pcaGenesClDF, is.numeric, logical(1L))
     genesUmapPl <- UMAPPlot( pcaGenesClDF[, colSelection, drop = FALSE], clusters = getColumnFromDF(pcaGenesClDF, "hclust"), elements = layersGenes, title = "Genes' clusters UMAP Plot", numNeighbors = 32L, minPointsDist = 0.25 )

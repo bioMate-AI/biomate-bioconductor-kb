@@ -35,6 +35,15 @@ process BIOC_GRANULATOR_GRANULATOR_DECONVOLUTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("granulator", "ggplot2", "tidyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_GRANULATOR_GRANULATOR_DECONVOLUTION {
     library(granulator)
     library(ggplot2)
     
-    # Stage 1: Read input files
+    # --- Read input files ---
     message("Reading input files...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' or 'coldata.csv' are missing.")
@@ -64,13 +73,13 @@ process BIOC_GRANULATOR_GRANULATOR_DECONVOLUTION {
     
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Preprocessing and Normalization
+    # --- Preprocessing and Normalization ---
     message("Normalizing bulk RNA-seq counts (CPM)...")
     lib_sizes <- colSums(bulk_matrix)
     lib_sizes[lib_sizes == 0] <- 1 # Avoid division by zero
     bulk_cpm <- sweep(bulk_matrix, 2, lib_sizes, "/") * 1e6
     
-    # Stage 3: Construct a matching signature matrix
+    # --- Construct a matching signature matrix ---
     # Since we cannot use external/demo datasets, we construct a mock signature matrix
     # using the same genes present in our bulk data to ensure compatibility.
     message("Constructing signature matrix...")
@@ -84,7 +93,7 @@ process BIOC_GRANULATOR_GRANULATOR_DECONVOLUTION {
       dimnames = list(genes, cell_types)
     )
     
-    # Stage 4: Run Deconvolution
+    # --- Run Deconvolution ---
     message("Running deconvolution with granulator...")
     # We use standard robust methods: nnls (Non-Negative Least Squares) and svr (Support Vector Regression)
     decon_results <- granulator::deconvolute(
@@ -93,7 +102,7 @@ process BIOC_GRANULATOR_GRANULATOR_DECONVOLUTION {
       methods = c("nnls", "svr")
     )
     
-    # Stage 5: Extract and Merge Results
+    # --- Extract and Merge Results ---
     message("Processing and saving results...")
     props <- decon_results\$proportions
     
@@ -123,7 +132,7 @@ process BIOC_GRANULATOR_GRANULATOR_DECONVOLUTION {
       write.csv(coldata, "deconvolution_proportions_merged.csv", row.names = FALSE)
     }
     
-    # Stage 6: Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     pdf("proportions_plot.pdf", width = 10, height = 7)
     tryCatch({

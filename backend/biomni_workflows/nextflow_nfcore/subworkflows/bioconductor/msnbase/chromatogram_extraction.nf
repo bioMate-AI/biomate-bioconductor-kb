@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Import SRM/MRM chromatographic data using readSRMData. 2. Extract precursor and product m/z values using precursorMz and productMz
+//  * 1. [Input & Preparation] Import SRM/MRM chromatographic data using readSRMData
+//  * 2. [Input & Preparation] Extract precursor and product m/z values using
+//  * 3. [Input & Preparation] Extract total ion chromatograms (TIC) or base peak
 
 nextflow.enable.dsl = 2
 
@@ -63,11 +65,11 @@ process BIOC_MSNBASE_CHROMATOGRAM_EXTRACTION {
     fl <- "srm_data.mzML"
     f <- "srm_data.mzML"
     
-    # 1. Import SRM/MRM chromatographic data using readSRMData
+    # --- Import SRM/MRM chromatographic data using readSRMData ---
     message("Reading SRM data...")
     srm <- readSRMData(fl)
     
-    # 2. Extract precursor and product m/z values using precursorMz and productMz
+    # --- Extract precursor and product m/z values using ---
     message("Extracting precursor and product m/z values...")
     prec_mz <- precursorMz(srm)
     prod_mz <- productMz(srm)
@@ -80,7 +82,7 @@ process BIOC_MSNBASE_CHROMATOGRAM_EXTRACTION {
     write.csv(srm_mz_df, "srm_mz_metadata.csv", row.names = FALSE)
     message("Saved SRM m/z metadata to 'srm_mz_metadata.csv'")
     
-    # 3. Extract total ion chromatograms (TIC) or base peak chromatograms (BPC) using chromatogram
+    # --- Extract total ion chromatograms (TIC) or base peak ---
     message("Reading MS data on-disk...")
     mtof <- readMSData(f, mode = "onDisk")
     

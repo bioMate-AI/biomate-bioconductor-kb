@@ -113,7 +113,7 @@ process BIOC_SNPSTATS_IMPUTATION_AND_ASSOCIATION {
     # 3. IMPUTATION AND ASSOCIATION WORKFLOW
     # ==========================================
     
-    # Stage 1: Generate imputation rules using snp.imputation
+    # --- Generate imputation rules using snp.imputation ---
     rules <- snp.imputation(present, missing, pos.pres, pos.miss)
     summary(rules)
     
@@ -121,17 +121,17 @@ process BIOC_SNPSTATS_IMPUTATION_AND_ASSOCIATION {
     plot(rules)
     dev.off()
     
-    # Stage 2: Perform single-SNP association tests on imputed data using single.snp.tests
+    # --- Perform single-SNP association tests on imputed data ---
     imp <- single.snp.tests(cc, stratum, data=subject.support, snp.data=target, rules=rules)
     obs <- single.snp.tests(cc, stratum, data=subject.support, snp.data=lost)
     logP.imp <- -log10(p.value(imp, df=1))
     logP.obs <- -log10(p.value(obs, df=1))
     use <- imputation.r2(rules)>0.9
     
-    # Stage 3: Perform right-hand side regression tests using snp.rhs.tests
+    # --- Perform right-hand side regression tests using ---
     imp2 <- snp.rhs.tests(cc~strata(stratum), family="binomial", data=subject.support, snp.data=target, rules=rules)
     
-    # Stage 4: Impute genotypes using impute.snps and plot uncertainty using plotUncertainty
+    # --- Impute genotypes using impute.snps and plot uncertainty ---
     imputed <- impute.snps(rules, target, as.numeric=FALSE)
     
     # Ensure "rs4880568" exists in imputed to prevent plotting failure
@@ -145,13 +145,13 @@ process BIOC_SNPSTATS_IMPUTATION_AND_ASSOCIATION {
     
     imp3 <- single.snp.tests(cc, stratum, data=subject.support, snp.data=imputed, uncertain=TRUE)
     
-    # Stage 5: Pool association test scores using pool
+    # --- Pool association test scores using pool ---
     obs <- single.snp.tests(cc, stratum, data=subject.support, snp.data=missing, score=TRUE)
     imp <- single.snp.tests(cc, stratum, data=subject.support, snp.data=target, rules=rules, score=TRUE)
     both <- pool(obs, imp)
     both <- pool(obs, imp, score=TRUE)
     
-    # Stage 6: Switch alleles using switch.alleles
+    # --- Switch alleles using switch.alleles ---
     sw.obs <- switch.alleles(obs, 1:3)
     
     # ==========================================

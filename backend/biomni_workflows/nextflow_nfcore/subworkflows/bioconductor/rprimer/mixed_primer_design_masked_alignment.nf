@@ -56,7 +56,7 @@ process BIOC_RPRIMER_MIXED_PRIMER_DESIGN_MASKED_ALIGNMENT {
     library(rprimer)
     library(Biostrings)
     
-    # 1. Import alignment using readDNAMultipleAlignment()
+    # --- Import alignment using readDNAMultipleAlignment() ---
     filepath <- "example_alignment.txt"
     if (!file.exists(filepath)) {
       stop("Required input file 'example_alignment.txt' not found in the working directory.")
@@ -64,18 +64,18 @@ process BIOC_RPRIMER_MIXED_PRIMER_DESIGN_MASKED_ALIGNMENT {
     
     myAlignment <- readDNAMultipleAlignment(filepath, format = "fasta")
     
-    # 2. Mask non-target regions using colmask()
+    # --- Mask non-target regions using colmask() ---
     myMaskedAlignment <- myAlignment
     colmask(myMaskedAlignment, invert = TRUE) <- c(3000:4000, 5000:6000)
     
-    # 3. Generate consensus profile of the masked alignment using consensusProfile()
+    # --- Generate consensus profile of the masked alignment using ---
     myMaskedConsensusProfile <- consensusProfile(myMaskedAlignment, ambiguityThreshold = 0.05)
     
     # Save consensus profile results
     write.csv(as.data.frame(myMaskedConsensusProfile), file = "myMaskedConsensusProfile.csv", row.names = FALSE)
     saveRDS(myMaskedConsensusProfile, file = "myMaskedConsensusProfile.rds")
     
-    # 4. Design mixed primers (without probes) using designOligos() with modified settings
+    # --- Design mixed primers (without probes) using ---
     myMaskedMixedPrimers <- designOligos(myMaskedConsensusProfile,
                                          maxDegeneracyPrimer = 8,
                                          lengthPrimer = c(24:28),
@@ -87,7 +87,7 @@ process BIOC_RPRIMER_MIXED_PRIMER_DESIGN_MASKED_ALIGNMENT {
     write.csv(as.data.frame(myMaskedMixedPrimers), file = "myMaskedMixedPrimers.csv", row.names = FALSE)
     saveRDS(myMaskedMixedPrimers, file = "myMaskedMixedPrimers.rds")
     
-    # 5. Visualize the designed mixed primers using plotData()
+    # --- Visualize the designed mixed primers using plotData() ---
     pdf("myMaskedMixedPrimers_plot.pdf", width = 12, height = 8)
     plotData(myMaskedMixedPrimers)
     dev.off()

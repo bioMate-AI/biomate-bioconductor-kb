@@ -34,6 +34,15 @@ process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("discordant")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,7 +55,7 @@ process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
     # Load required libraries
     library(discordant)
     
-    # 1. Read input files
+    # --- Read input files ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -54,7 +63,7 @@ process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # 2. Align samples between expression matrix and metadata
+    # --- Align samples between expression matrix and metadata ---
     common_samples <- intersect(colnames(counts_df), coldata\$sample)
     if (length(common_samples) == 0) {
       stop("No matching samples found between counts.csv and coldata.csv.")
@@ -63,14 +72,14 @@ process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
     counts_matrix <- as.matrix(counts_df[, common_samples])
     coldata <- coldata[match(common_samples, coldata\$sample), ]
     
-    # 3. Prepare group vector (must contain 1s and 2s for the two phenotypic groups)
+    # --- Prepare group vector (must contain 1s and 2s for the two ---
     cond_factor <- as.factor(coldata\$condition)
     if (length(levels(cond_factor)) != 2) {
       stop("Discordant analysis requires exactly two phenotypic groups in the 'condition' column.")
     }
     groups <- as.numeric(cond_factor)
     
-    # 4. Filter outliers using the split MAD approach
+    # --- Filter outliers using the split MAD approach ---
     message("Filtering outliers using split MAD...")
     filtered_res <- splitMADOutlier(counts_matrix, filter0 = TRUE, threshold = 4)
     counts_filtered <- filtered_res\$mat.filtered
@@ -81,11 +90,11 @@ process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
       counts_filtered <- counts_matrix
     }
     
-    # 5. Create correlation vectors for both groups
+    # --- Create correlation vectors for both groups ---
     message("Generating correlation vectors...")
     vectors <- createVectors(x = counts_filtered, groups = groups, cor.method = "spearman")
     
-    # 6. Run the Discordant mixture model algorithm
+    # --- Run the Discordant mixture model algorithm ---
     message("Running Discordant algorithm...")
     result <- tryCatch({
       discordantRun(v1 = vectors\$v1, v2 = vectors\$v2, x = counts_filtered, components = 3)
@@ -94,7 +103,7 @@ process BIOC_DISCORDANT_WITHIN_OMICS_DISCORDANT {
       return(NULL)
     })
     
-    # 7. Process and save outputs
+    # --- Process and save outputs ---
     if (!is.null(result)) {
       # Create a tidy table of gene pairs and their posterior probabilities
       pp_vector <- result\$discordPPVector

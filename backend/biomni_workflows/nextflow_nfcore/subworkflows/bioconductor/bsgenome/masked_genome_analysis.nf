@@ -52,7 +52,7 @@ process BIOC_BSGENOME_MASKED_GENOME_ANALYSIS {
       }
     }
     
-    # 1. Load the masked genome package (handling local user input if present in the working directory)
+    # --- Load the masked genome package (handling local user input ---
     pkg_path <- "BSgenome.Hsapiens.UCSC.hg38.masked"
     if (dir.exists(pkg_path)) {
       install.packages(pkg_path, repos = NULL, type = "source")
@@ -62,11 +62,11 @@ process BIOC_BSGENOME_MASKED_GENOME_ANALYSIS {
     
     library(BSgenome.Hsapiens.UCSC.hg38.masked)
     
-    # 2. Access a specific chromosome (returns a MaskedDNAString)
+    # --- Access a specific chromosome (returns a MaskedDNAString) ---
     genome <- BSgenome.Hsapiens.UCSC.hg38.masked
     chrY <- genome\$chrY
     
-    # 3. Activate or deactivate specific built-in masks
+    # --- Activate or deactivate specific built-in masks ---
     active(masks(chrY))["RM"] <- TRUE
     active(masks(chrY)) <- FALSE
     active(masks(chrY))["AGAPS"] <- TRUE
@@ -75,7 +75,7 @@ process BIOC_BSGENOME_MASKED_GENOME_ANALYSIS {
     
     active(masks(chrY))[c("AGAPS", "AMB")] <- TRUE
     
-    # 4. Count pattern occurrences using countPattern with mask awareness
+    # --- Count pattern occurrences using countPattern with mask ---
     final_count <- countPattern(Ebox, chrY, fixed=FALSE)
     
     # Write the meaningful results to output files

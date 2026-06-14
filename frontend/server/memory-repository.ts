@@ -278,6 +278,33 @@ export class ProjectMemoryRepository {
   }
 
   /**
+   * Archive a project (soft-delete via status='archived').
+   * Keeps history + episodes intact for audit; just hides it from active lists.
+   */
+  async archiveProject(projectId: string): Promise<Project | null> {
+    const [updated] = await db.update(ltmSchema.projects)
+      .set({ status: 'archived', updatedAt: new Date() })
+      .where(eq(ltmSchema.projects.id, projectId))
+      .returning();
+    return updated || null;
+  }
+
+  /**
+   * Hard-delete a project. CASCADEs to episodes, procedures, project_knowledge
+   * (per the FK definitions in 0012_ltm_schema.sql). chat_sessions.project_id
+   * is set to NULL (ON DELETE SET NULL) so the conversation rows survive
+   * but become project-less.
+   *
+   * Returns true if a row was deleted, false otherwise.
+   */
+  async deleteProject(projectId: string): Promise<boolean> {
+    const result = await db.delete(ltmSchema.projects)
+      .where(eq(ltmSchema.projects.id, projectId))
+      .returning({ id: ltmSchema.projects.id });
+    return result.length > 0;
+  }
+
+  /**
    * Add knowledge to project
    */
   async addProjectKnowledge(data: InsertProjectKnowledge): Promise<ProjectKnowledgeEntry> {
@@ -1030,6 +1057,159 @@ export class MemoryService {
     keyDecisions?: Array<{ decision: string; reason: string }>
   ): Promise<Session> {
     return this.sessions.endSession(sessionId, summary, keyDecisions);
+  }
+
+  /**
+   * Cold-refresh dataset recovery within a project.
+   *
+   * When a user opens a fresh chat session in a project where they have
+   * prior sessions with attached datasets, surface those datasets so
+   * the LLM can pick up where they left off — without the user having
+   * to re-attach files. Policy (docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md):
+   *
+   *   - Only within the same project — never cross-project, never
+   *     user-scoped fallback.
+   *   - Excludes the current session (datasets attached this turn are
+   *     handled by the normal session path).
+   *   - Last 14 days only — older work is presumed archived intent.
+   *   - Capped at 20 datasets; DISTINCT by id (dedupes when a dataset
+   *     was attached to multiple sister sessions).
+   *
+   * The returned entries carry `recovered: true` so the prompt block
+   * can label them distinctly ("from earlier sessions in this project")
+   * — the LLM should not claim the user just attached them in the
+   * current conversation.
+   *
+   * Returns [] on any DB error (chat must not break).
+   */
+  async recoverProjectDatasets(
+    projectId: string,
+    currentChatSessionId: string,
+  ): Promise<Array<{ id: string; name: string; type: string; recovered: true; sourceSessionId: string; lastActivity: string }>> {
+    if (!projectId || !currentChatSessionId) return [];
+    try {
+      const { pool } = await import('./db');
+      const rows = await pool.query(
+        `SELECT DISTINCT ON (d->>'id')
+           d->>'id'   AS id,
+           d->>'name' AS name,
+           COALESCE(d->>'type', 'unknown') AS type,
+           cs.session_id AS source_session_id,
+           cs.last_activity
+         FROM chat_sessions cs,
+              jsonb_array_elements(cs.datasets) d
+         WHERE cs.project_id = $1
+           AND cs.session_id != $2
+           AND cs.last_activity > NOW() - INTERVAL '14 days'
+           AND jsonb_array_length(cs.datasets) > 0
+         ORDER BY d->>'id', cs.last_activity DESC
+         LIMIT 20`,
+        [projectId, currentChatSessionId],
+      );
+      return (rows.rows || [])
+        .filter((r: any) => r.id && r.name)
+        .map((r: any) => ({
+          id: String(r.id),
+          name: String(r.name),
+          type: String(r.type || 'unknown'),
+          recovered: true as const,
+          sourceSessionId: String(r.source_session_id),
+          lastActivity: r.last_activity ? new Date(r.last_activity).toISOString() : '',
+        }));
+    } catch (e: any) {
+      console.warn('[MemoryService] recoverProjectDatasets failed:', e?.message ?? e);
+      return [];
+    }
+  }
+
+  /**
+   * Bridge the chat-stream sessionId (text, e.g. "memw-1781314…") to
+   * an LTM sessions row (uuid id). Idempotent: find-or-create by
+   * chat_session_id (UNIQUE, added in 0016_ltm_sessions_chat_link.sql).
+   *
+   * Why this exists: memory-integration's recordEpisode writes
+   * project_episodes.session_id which is uuid, FK → sessions.id. If we
+   * pass the text chat-stream sessionId straight through, the insert
+   * fails (silently, since it's wrapped in try/catch) and episodes get
+   * dropped. See 2026-06-13 audit.
+   *
+   * Returns the LTM session UUID for the caller to use as
+   * context.memorySessionId. Returns null on any DB error so chat
+   * degrades gracefully (no episodes, but chat works).
+   */
+  async ensureChatLtmSession(
+    userId: string,
+    chatSessionId: string,
+    projectId?: string | null,
+  ): Promise<string | null> {
+    if (!userId || !chatSessionId) return null;
+    try {
+      const existing = await db.query.sessions.findFirst({
+        where: eq((ltmSchema.sessions as any).chatSessionId, chatSessionId),
+      });
+      if (existing) return existing.id;
+      const [created] = await db.insert(ltmSchema.sessions)
+        .values({
+          userId,
+          projectId: projectId ?? undefined,
+          // @ts-ignore — chat_session_id added by migration 0016; drizzle
+          // schema in ltm-schema.ts may not declare it yet, but the DB
+          // column is real. Falls back gracefully via the returning() id.
+          chatSessionId,
+        } as any)
+        .returning();
+      return created?.id ?? null;
+    } catch (e: any) {
+      console.warn('[MemoryService] ensureChatLtmSession failed:', e?.message ?? e);
+      return null;
+    }
+  }
+
+  /**
+   * Idempotently ensure the ltm_users row for this auth user exists.
+   * User-scoped memory (preferences, corrections, episodes) needs this
+   * row to exist regardless of whether the chat is project-scoped, so
+   * it's called on every chat-stream request and from project CRUD
+   * endpoints. Safe and cheap (UPSERT with ON CONFLICT DO NOTHING).
+   */
+  async ensureLtmUser(userId: string, email?: string, name?: string): Promise<void> {
+    if (!userId) return;
+    try {
+      await this.users.ensureLtmUser(userId, email, name);
+    } catch (e: any) {
+      console.warn('[MemoryService] ensureLtmUser failed:', e?.message ?? e);
+    }
+  }
+
+  /**
+   * Resolve the project this chat should be associated with, OR null
+   * if it shouldn't be associated with any project.
+   *
+   * Policy (docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md):
+   * NOT every chat lives in a project. We do NOT auto-create. The
+   * client either explicitly sends a projectId or the chat is
+   * project-less. Memory-integration's project-scoped paths gate on
+   * context.projectId and correctly no-op when null.
+   */
+  async resolveProjectForChat(clientProjectId?: string | null): Promise<string | null> {
+    return clientProjectId || null;
+  }
+
+  /**
+   * @deprecated Renamed and split.
+   * Kept as a thin wrapper for any internal call site we missed —
+   * NEVER call from chat-stream. Per policy, chats can have no project.
+   */
+  async ensureDefaultProject(userId: string, email?: string, name?: string): Promise<string | null> {
+    await this.ensureLtmUser(userId, email, name);
+    if (!userId) return null;
+    try {
+      const existing = await this.projects.getUserProjects(userId, 'active');
+      return existing.length > 0 ? existing[0].id : null;
+    } catch (e: any) {
+      console.warn('[MemoryService] ensureDefaultProject (legacy) failed:', e?.message ?? e);
+      return null;
+    }
   }
 }
 

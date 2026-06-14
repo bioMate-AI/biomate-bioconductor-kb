@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Preprocess continuous data and create an OpenStatsList object using OpenStatsList. 2. Run the Linear Mixed Model analysis using Op
+//  * 1. [Visualization & Output] Preprocess continuous data and create an OpenStatsList
+//  * 2. [Visualization & Output] Run the Linear Mixed Model analysis using
+//  * 3. [Visualization & Output] Estimate split effects with respect to variables (e.g.,
+//  * 4. [Visualization & Output] Generate a summary table of the analysis and save to a
+//  * 5. [Visualization & Output] Export detailed reports in JSON format and save to a file
+//  * 6. [Visualization & Output] Plot model diagnostics and save to a PDF file
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("OpenStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +64,7 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     # Load the required package
     library(OpenStats)
     
-    # 1. Preprocess continuous data and create an OpenStatsList object
+    # --- Preprocess continuous data and create an OpenStatsList ---
     # Read the user input file from the working directory
     input_file <- "test_continuous.csv"
     if (!file.exists(input_file)) {
@@ -74,7 +88,7 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     # Save the preprocessed OpenStatsList object
     saveRDS(test_Cont, "test_Cont_List.rds")
     
-    # 2. Run the Linear Mixed Model analysis using OpenStatsAnalysis
+    # --- Run the Linear Mixed Model analysis using ---
     MM_result <- OpenStatsAnalysis(
       OpenStatsList = test_Cont,
       method = "MM",
@@ -85,7 +99,7 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     # Save the analysis result object
     saveRDS(MM_result, "MM_result.rds")
     
-    # 3. Estimate split effects with respect to variables (e.g., Sex)
+    # --- Estimate split effects with respect to variables (e.g., ---
     Spliteffect <- OpenStatsComplementarySplit(
       object = MM_result,
       variables = "Sex"
@@ -94,7 +108,7 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     # Save the split effects object
     saveRDS(Spliteffect, "Spliteffect.rds")
     
-    # 4. Generate a summary table of the analysis and save to a text file
+    # --- Generate a summary table of the analysis and save to a ---
     sink("MM_result_summary.txt")
     summary(MM_result)
     sink()
@@ -104,7 +118,7 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     summary(Spliteffect)
     sink()
     
-    # 5. Export detailed reports in JSON format and save to a file
+    # --- Export detailed reports in JSON format and save to a file ---
     json_report <- OpenStatsReport(
       object = MM_result,
       JSON = TRUE,
@@ -113,7 +127,7 @@ process BIOC_OPENSTATS_LINEAR_MIXED_MODEL_WORKFLOW {
     )
     writeLines(json_report, "MM_result_report.json")
     
-    # 6. Plot model diagnostics and save to a PDF file
+    # --- Plot model diagnostics and save to a PDF file ---
     pdf("MM_result_plots.pdf", width = 8, height = 8)
     plot(MM_result, col = 2)
     dev.off()

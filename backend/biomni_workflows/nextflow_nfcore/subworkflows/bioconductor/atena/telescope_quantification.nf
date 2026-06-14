@@ -60,6 +60,7 @@ process BIOC_ATENA_TELESCOPE_QUANTIFICATION {
     
     # Load required libraries
     library(atena)
+    library(SummarizedExperiment)
     library(BiocParallel)
     
     # Stage 1: Retrieve and parse TE annotations

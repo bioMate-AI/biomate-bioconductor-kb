@@ -58,6 +58,7 @@ process BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS {
     
     # Load required libraries
     library(GeoTcgaData)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # 1. Prepare the count matrix and group vector

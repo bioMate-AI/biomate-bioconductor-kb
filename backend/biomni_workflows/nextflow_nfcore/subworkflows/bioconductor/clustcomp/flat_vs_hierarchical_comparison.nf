@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Compare hierarchical and flat clusterings using an aesthetics-based scoring function with no look-ahead. 2. Generate an expanded v
+//  * 1. [Visualization & Output] Compare hierarchical and flat clusterings using an
+//  * 2. [Visualization & Output] Generate an expanded visualization showing the full
+//  * 3. [Visualization & Output] Compare clusterings using an information theory-based
+//  * 4. [Visualization & Output] Generate an expanded visualization of the comparison
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_CLUSTCOMP_FLAT_VS_HIERARCHICAL_COMPARISON {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("clustComp")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -107,19 +119,19 @@ process BIOC_CLUSTCOMP_FLAT_VS_HIERARCHICAL_COMPARISON {
     
     # 2. Execute Workflow Stages and Save Outputs
     
-    # Stage 1: Compare hierarchical and flat clusterings using an aesthetics-based scoring function with no look-ahead.
+    # --- Compare hierarchical and flat clusterings using an ---
     pdf("plot_flatVShier_1.pdf", width = 8, height = 6)
     comparison.flatVShier.1<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, score.function="crossing", greedy.colours=1:4, look.ahead=0)
     dev.off()
     saveRDS(comparison.flatVShier.1, "comparison_flatVShier_1.rds")
     
-    # Stage 2: Generate an expanded visualization showing the full dendrogram.
+    # --- Generate an expanded visualization showing the full ---
     pdf("plot_flatVShier_1_expanded.pdf", width = 8, height = 14)
     comparison.flatVShier.1<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, score.function="crossing", greedy.colours=1:4, look.ahead=0, expanded=TRUE)
     dev.off()
     saveRDS(comparison.flatVShier.1, "comparison_flatVShier_1_expanded.rds")
     
-    # Stage 3: Compare clusterings using an information theory-based scoring function with look-ahead (1 or 2 steps).
+    # --- Compare clusterings using an information theory-based ---
     pdf("plot_flatVShier_2.pdf", width = 8, height = 6)
     comparison.flatVShier.2<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, h.min=0.2, score.function="it", greedy.colours=1:4, look.ahead=1)
     dev.off()
@@ -135,7 +147,7 @@ process BIOC_CLUSTCOMP_FLAT_VS_HIERARCHICAL_COMPARISON {
     dev.off()
     saveRDS(comparison.flatVShier.4, "comparison_flatVShier_4.rds")
     
-    # Stage 4: Generate an expanded visualization of the comparison including a gene expression heatmap.
+    # --- Generate an expanded visualization of the comparison ---
     pdf("plot_flatVShier_5.pdf", width = 8, height = 14)
     comparison.flatVShier.5<-flatVShier(hierar2, flat1, verbose=FALSE, pausing=FALSE, h.min=0.2, score.function="it", greedy.colours=1:4, look.ahead=2, expanded=TRUE, expression=expression_matrix)
     dev.off()

@@ -17,7 +17,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MetMashR", "struct", "ggplot2", "cowplot")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     library(cowplot)
     
     # ==========================================
-    # STAGE 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     # ==========================================
     message("Loading input files...")
     intensity <- read.csv("intensity.csv", check.names = FALSE)
@@ -88,7 +97,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     AT <- annotation_table(data = df_ann, id_column = "feature_id")
     
     # ==========================================
-    # STAGE 2: Build and Run MetMashR Workflow
+    # --- Build and Run MetMashR Workflow ---
     # ==========================================
     message("Building MetMashR workflow...")
     
@@ -127,7 +136,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     W_applied <- model_apply(W, AT)
     
     # ==========================================
-    # STAGE 3: Merge Annotations with Intensities
+    # --- Merge Annotations with Intensities ---
     # ==========================================
     message("Merging annotations back with intensity data...")
     
@@ -142,7 +151,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     message("Saved annotated intensity matrix to 'annotated_intensity.csv'")
     
     # ==========================================
-    # STAGE 4: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     

@@ -44,7 +44,7 @@ process BIOC_SCMERGE_SC_MERGE_V1 {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "DelayedArray", "HDF5Array", "Matrix", "BiocSingular", "ggplot2", "scater", "scMerge", "SingleCellExperiment")
+    .bm_deps <- c("BiocParallel", "DelayedArray", "HDF5Array", "Matrix", "BiocSingular", "ggplot2", "scater", "scMerge", "SingleCellExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_SCMERGE_SC_MERGE_V1 {
           }
         }
             
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(scMerge)
     library(scater)
     library(BiocSingular)

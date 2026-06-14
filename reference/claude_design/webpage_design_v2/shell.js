@@ -44,6 +44,7 @@
             ${dropdown('newsroom', 'Newsroom', 'blog.html', [
               { label: 'Scientific Articles', href: 'blog.html?cat=science' },
               { label: 'Company News',        href: 'blog.html?cat=news' },
+              { label: 'Publications',        href: 'publications.html' },
               { divider: true },
               { label: 'All Posts &rarr;',    href: 'blog.html', bold: true }
             ])}

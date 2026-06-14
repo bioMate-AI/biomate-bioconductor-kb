@@ -39,9 +39,18 @@ interface CallGeminiFlashOpts {
 export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string> {
   const genAI = getClient();
 
+  // Flash is the lightweight path — disable thinking so the entire token
+  // budget goes to output. Without this, Flash's default dynamic-thinking
+  // ate ~900/1024 tokens internally and truncated the actual content
+  // (finishReason=MAX_TOKENS, candidatesTokenCount≈113). Flash supports
+  // thinkingBudget=0; Pro does NOT (HTTP 400) — Pro callers should use
+  // llmGenerate / llm_client.py instead.
   const generationConfig: GenerationConfig = {
-    maxOutputTokens: opts.maxTokens ?? 1024,
+    maxOutputTokens: opts.maxTokens ?? 4096,
     temperature: opts.temperature ?? 0,
+    // @ts-expect-error — thinkingConfig is supported by gemini-3.5-flash but
+    // not yet in @google/generative-ai types
+    thinkingConfig: { thinkingBudget: 0 },
     ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),
   };
 
@@ -75,11 +84,19 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
     return result.response.text();
   }
 
-  // Multi-turn: build history from all but the last message
-  const history = messages.slice(0, -1).map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
+  // Multi-turn: build history from all but the last message.
+  // Gemini requires the first history entry to have role='user' — drop
+  // leading model-role entries (e.g. greeting from assistant) or it errors
+  // with "First content should be with role 'user', got model".
+  const mappedHistory = messages.slice(0, -1).map(m => ({
+    role: (m.role === 'assistant' ? 'model' : 'user') as 'user' | 'model',
     parts: [{ text: m.content }],
   }));
+  let firstUserIdx = 0;
+  while (firstUserIdx < mappedHistory.length && mappedHistory[firstUserIdx].role !== 'user') {
+    firstUserIdx++;
+  }
+  const history = mappedHistory.slice(firstUserIdx);
   const lastMessage = messages[messages.length - 1].content;
   const chat = model.startChat({ history });
   const result = await chat.sendMessage(lastMessage);

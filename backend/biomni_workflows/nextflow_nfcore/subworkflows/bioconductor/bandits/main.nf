@@ -36,6 +36,15 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BANDITS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     set.seed(61217)
     
     # ==========================================
-    # STAGE 1: Read Input Data
+    # --- Read Input Data ---
     # ==========================================
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and 'coldata.csv' do not exist.")
@@ -73,7 +82,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     counts <- counts[rowSums(counts) > 0, , drop = FALSE]
     
     # ==========================================
-    # STAGE 2: Simulate Transcript-level Counts & Mapping
+    # --- Simulate Transcript-level Counts & Mapping ---
     # ==========================================
     # Since BANDITS is a transcript-level DTU method requiring equivalence classes,
     # we project the gene counts into 2 transcripts per gene with simulated DTU
@@ -117,7 +126,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     eff_len <- eff_len_compute(tx_lengths)
     
     # ==========================================
-    # STAGE 3: Generate Mock Salmon Equivalence Classes
+    # --- Generate Mock Salmon Equivalence Classes ---
     # ==========================================
     # BANDITS ingests equivalence classes. We write 1-to-1 equivalence class files
     # for each sample to satisfy the input parser of create_data().
@@ -146,7 +155,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Pre-filtering Transcripts and Genes
+    # --- Pre-filtering Transcripts and Genes ---
     # ==========================================
     # Filter lowly abundant transcripts to simplify the inferential problem
     transcripts_to_keep <- filter_transcripts(
@@ -171,7 +180,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     input_data <- filter_genes(input_data, min_counts_per_gene = 10)
     
     # ==========================================
-    # STAGE 5: Infer Informative Prior for Precision
+    # --- Infer Informative Prior for Precision ---
     # ==========================================
     precision <- prior_precision(
       gene_to_transcript = gene_tr_id,
@@ -186,7 +195,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Test for Differential Transcript Usage (DTU)
+    # --- Test for Differential Transcript Usage (DTU) ---
     # ==========================================
     samples_design <- data.frame(
       sample_id = coldata\$sample,
@@ -206,7 +215,7 @@ process BIOC_BANDITS_BANDITS_DTU_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 7: Export Results and Diagnostics
+    # --- Export Results and Diagnostics ---
     # ==========================================
     # Extract and save gene-level results
     gene_results <- top_genes(results, n = Inf)

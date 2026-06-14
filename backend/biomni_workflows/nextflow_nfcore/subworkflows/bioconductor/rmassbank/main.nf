@@ -55,7 +55,7 @@ process BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING {
     # Load required libraries
     library(RMassBank)
     
-    # 1. Generate and load settings
+    # --- Generate and load settings ---
     # If mysettings.ini exists, we back it up, run the template generator as documented,
     # then restore it to use the user's settings.
     user_settings_exist <- file.exists("mysettings.ini")
@@ -72,7 +72,7 @@ process BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING {
     
     loadRmbSettings("mysettings.ini")
     
-    # 2. Initialize workspace and load compound list
+    # --- Initialize workspace and load compound list ---
     w <- newMsmsWorkspace()
     
     # Read the user's raw_spectra.mzML file from the working directory
@@ -90,11 +90,11 @@ process BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING {
     
     loadList("./Compoundlist.csv")
     
-    # 3. Run msmsWorkflow steps 1 to 4
+    # --- Run msmsWorkflow steps 1 to 4 ---
     w <- msmsWorkflow(w, mode="pH", steps=c(1:4), archivename = 
     				"pH_narcotics")
     
-    # 4. Plot and inspect the recalibration curve
+    # --- Plot and inspect the recalibration curve ---
     pdf("recalibration_curve.pdf")
     plotRecalibration(w)
     dev.off()
@@ -113,7 +113,7 @@ process BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING {
     w <- msmsWorkflow(w, mode="pH", steps=4, archivename = 
     	"pH_narcotics", newRecalibration = FALSE)
     
-    # 5. Run msmsWorkflow steps 5 to 8
+    # --- Run msmsWorkflow steps 5 to 8 ---
     w <- msmsWorkflow(w, mode="pH", steps=c(5:8), archivename = 
     		"pH_narcotics")
     

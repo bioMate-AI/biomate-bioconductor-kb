@@ -35,6 +35,15 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("affyILM", "hgfocusprobe")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
           }
         }
     
-    # Stage 1: Load libraries and install dependencies if necessary
+    # --- Load libraries and install dependencies if necessary ---
     message("Loading required packages...")
     if (!requireNamespace("BiocManager", quietly = TRUE)) {
       install.packages("BiocManager", repos = "https://cloud.r-project.org")
@@ -60,7 +69,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
     library(affyILM)
     library(hgfocusprobe)
     
-    # Stage 2: Read and preprocess user input
+    # --- Read and preprocess user input ---
     message("Reading user input files...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
@@ -99,7 +108,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
       common_probesets <- mapped_names
     }
     
-    # Stage 3: Generate mock CEL files in text format (v3)
+    # --- Generate mock CEL files in text format (v3) ---
     message("Generating mock CEL files...")
     cel_files <- c()
     
@@ -153,12 +162,12 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
       close(con)
     }
     
-    # Stage 4: Run affyILM analysis
+    # --- Run affyILM analysis ---
     message("Running affyILM Langmuir model estimation...")
     # Run ilm on the generated CEL files
     ilm_results <- ilm(cel_files, satLim = 12000)
     
-    # Stage 5: Extract results
+    # --- Extract results ---
     message("Extracting expression summaries and probe concentrations...")
     expr_summary <- getExprSummary(ilm_results)
     sd_summary <- getSDSummary(ilm_results)
@@ -176,7 +185,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
     write.csv(probe_concs, "probe_concentrations.csv", row.names = TRUE)
     write.csv(probe_intens, "probe_intensities.csv", row.names = TRUE)
     
-    # Stage 6: Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     pdf("affyILM_diagnostics.pdf", width = 8, height = 6)
     

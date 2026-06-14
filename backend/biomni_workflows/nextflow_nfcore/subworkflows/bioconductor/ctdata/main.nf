@@ -35,6 +35,15 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CTdata", "S4Vectors", "GenomicRanges", "BiocGenerics", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,14 +53,15 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
           }
         }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(CTdata)
     library(S4Vectors)
     library(GenomicRanges)
     library(BiocGenerics)
     
     # ==========================================
-    # Stage 1: Load and Process User Expression Data
+    # --- Load and Process User Expression Data ---
     # ==========================================
     
     message("Loading user expression data...")
@@ -109,7 +119,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     }
     
     # ==========================================
-    # Stage 2: Integrate with CTdata Reference
+    # --- Integrate with CTdata Reference ---
     # ==========================================
     
     message("Loading CTdata reference datasets...")
@@ -127,7 +137,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     }
     
     # ==========================================
-    # Stage 3: Annotate with Promoter Methylation
+    # --- Annotate with Promoter Methylation ---
     # ==========================================
     
     message("Integrating promoter methylation data...")
@@ -155,7 +165,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     })
     
     # ==========================================
-    # Stage 4: Annotate with Demethylation Induction
+    # --- Annotate with Demethylation Induction ---
     # ==========================================
     
     message("Integrating DAC (demethylating agent) treatment data...")
@@ -174,7 +184,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     })
     
     # ==========================================
-    # Stage 5: Annotate with CCLE CT Correlation
+    # --- Annotate with CCLE CT Correlation ---
     # ==========================================
     
     message("Integrating CCLE CT-gene correlation matrix...")
@@ -202,7 +212,7 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
     message("Saved annotated gene table to 'ct_annotated_genes.csv'")
     
     # ==========================================
-    # Stage 6: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic plots...")

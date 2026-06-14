@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Generate all possible expression patterns across conditions using GetPatterns. 2. Calculate sample normalization factors using Med
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run the EBSeq Multi-Condition Workflow
+//  * 3. [Core Analysis] Perform diagnostics and save plots to PDF
+//  * 4. [Core Analysis] Save meaningful results to files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EBSeq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +62,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         # Load required library
         library(EBSeq)
         
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         if (!file.exists("multi_condition_gene_counts.csv")) {
           stop("Error: 'multi_condition_gene_counts.csv' not found in the working directory.")
         }
@@ -62,7 +74,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         cond_data <- read.csv("multi_conditions.csv", stringsAsFactors = FALSE, header = TRUE)
         Conditions <- cond_data[[1]]
         
-        # 2. Run the EBSeq Multi-Condition Workflow
+        # --- Run the EBSeq Multi-Condition Workflow ---
         # Generate all possible expression patterns across conditions
         PosParti=GetPatterns(Conditions)
         
@@ -78,7 +90,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         # Calculate fold changes across conditions
         MultiFC=GetMultiFC(MultiOut)
         
-        # 3. Perform diagnostics and save plots to PDF
+        # --- Perform diagnostics and save plots to PDF ---
         pdf("diagnostic_plots.pdf", width = 8, height = 8)
         par(mfrow=c(2,2))
         tryCatch({
@@ -93,7 +105,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         })
         dev.off()
         
-        # 4. Save meaningful results to files
+        # --- Save meaningful results to files ---
         # Save the main output objects as RDS for downstream analysis
         saveRDS(MultiOut, "MultiOut.rds")
         saveRDS(MultiPP, "MultiPP.rds")

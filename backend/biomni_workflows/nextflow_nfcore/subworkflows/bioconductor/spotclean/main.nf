@@ -61,20 +61,20 @@ process BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW {
     # Define spatial directory as the current working directory where the user files are located
     spatial_dir <- "."
     
-    # 1. Load raw count matrix
+    # --- Load raw count matrix ---
     mbrain_raw <- read10xRaw("raw_feature_bc_matrix")
     
-    # 2. Load slide metadata
+    # --- Load slide metadata ---
     mbrain_slide_info <- read10xSlide(
       tissue_csv_file = file.path(spatial_dir, "tissue_positions_list.csv"),
       tissue_img_file = file.path(spatial_dir, "tissue_lowres_image.png"),
       scale_factor_file = file.path(spatial_dir, "scalefactors_json.json")
     )
     
-    # 3. Create slide object
+    # --- Create slide object ---
     slide_obj <- createSlide(mbrain_raw, mbrain_slide_info)
     
-    # 4. Visualize raw slide, labels, and heatmaps
+    # --- Visualize raw slide, labels, and heatmaps ---
     p_slide <- visualizeSlide(slide_obj)
     ggplot2::ggsave("slide_visualization.pdf", plot = p_slide, width = 7, height = 7)
     
@@ -88,21 +88,21 @@ process BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW {
     p_heatmap_mbp_raw <- visualizeHeatmap(slide_obj, "Mbp")
     ggplot2::ggsave("heatmap_Mbp_raw.pdf", plot = p_heatmap_mbp_raw, width = 7, height = 6)
     
-    # 5. Decontaminate data
+    # --- Decontaminate data ---
     decont_obj <- spotclean(slide_obj, maxit = 10, candidate_radius = 20)
     
-    # 6. Visualize decontaminated expression and contamination rates
+    # --- Visualize decontaminated expression and contamination ---
     p_heatmap_mbp_decont <- visualizeHeatmap(decont_obj, "Mbp")
     ggplot2::ggsave("heatmap_Mbp_decont.pdf", plot = p_heatmap_mbp_decont, width = 7, height = 6)
     
     cont_summary <- summary(metadata(decont_obj)\$contamination_rate)
     write.csv(as.data.frame(t(as.matrix(cont_summary))), "contamination_rate_summary.csv", row.names = FALSE)
     
-    # 7. Calculate ambient RNA contamination score
+    # --- Calculate ambient RNA contamination score ---
     arc_val <- arcScore(slide_obj)
     writeLines(as.character(arc_val), "arc_score.txt")
     
-    # 8. Convert to Seurat object and save outputs
+    # --- Convert to Seurat object and save outputs ---
     seurat_obj <- convertToSeurat(decont_obj, image_dir = spatial_dir)
     
     saveRDS(decont_obj, "decont_obj.rds")

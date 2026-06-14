@@ -36,6 +36,15 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("progeny", "ggplot2", "dplyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     library(dplyr)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Loading input datasets...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -73,7 +82,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     expr_matrix <- as.matrix(log_cpm)
     
     # ==========================================
-    # STAGE 2: Retrieve PROGENy Model & Compute Activities
+    # --- Retrieve PROGENy Model & Compute Activities ---
     # ==========================================
     message("Retrieving PROGENy model...")
     model_top <- getModel(organism = "Human", top = 100)
@@ -89,7 +98,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     write.csv(pathway_activities, "pathway_activities.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 3: Permutation Testing
+    # --- Permutation Testing ---
     # ==========================================
     message("Running permutation testing for pathway significance...")
     perm_results <- tryCatch({
@@ -112,7 +121,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Differential Expression & Scatter Plots
+    # --- Differential Expression & Scatter Plots ---
     # ==========================================
     message("Calculating differential expression for diagnostic plots...")
     conditions <- unique(coldata\$condition)
@@ -153,7 +162,7 @@ process BIOC_PROGENY_PROGENY_PATHWAY_ACTIVITY_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Visualization of Pathway Activities
+    # --- Visualization of Pathway Activities ---
     # ==========================================
     message("Generating pathway activity heatmap...")
     activity_df <- as.data.frame(pathway_activities)

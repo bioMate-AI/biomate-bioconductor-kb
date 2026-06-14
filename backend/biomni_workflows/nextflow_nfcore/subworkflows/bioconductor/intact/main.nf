@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Integrate TWAS and colocalization results using INTACT::intact. 2. Perform Bayesian FDR control on the posterior probabilities usi
+//  * 1. [Core Analysis] Integrate TWAS and colocalization results using
+//  * 2. [Core Analysis] Integrate TWAS and colocalization results using
+//  * 3. [Core Analysis] Perform Bayesian FDR control on the posterior
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_INTACT_INTACT_INTEGRATION_AND_FDR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("INTACT")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -94,13 +105,13 @@ process BIOC_INTACT_INTACT_INTEGRATION_AND_FDR {
     GLCP_vec <- as.numeric(GLCP_vec)
     z_vec <- as.numeric(z_vec)
     
-    # 1. Integrate TWAS and colocalization results using INTACT::intact (Default Prior)
+    # --- Integrate TWAS and colocalization results using ---
     rst <- INTACT::intact(GLCP_vec=GLCP_vec, z_vec=z_vec)
     
-    # 2. Integrate TWAS and colocalization results using INTACT::intact (Expit Prior)
+    # --- Integrate TWAS and colocalization results using ---
     rst1 <- INTACT::intact(GLCP_vec=GLCP_vec, prior_fun=INTACT::expit, z_vec = z_vec, t = 0.02, D = 0.09)
     
-    # 3. Perform Bayesian FDR control on the posterior probabilities using fdr_rst
+    # --- Perform Bayesian FDR control on the posterior ---
     fdr_example <- fdr_rst(rst1, alpha = 0.05)
     
     # Write outputs to the working directory

@@ -35,6 +35,15 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("made4", "ade4", "scatterplot3d")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     library(scatterplot3d)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Data
+    # --- Load and Preprocess Data ---
     # ---------------------------------------------------------
     # Read expression matrix (probe/gene-by-sample) and sample metadata
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -79,7 +88,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     message(paste("Using ordination type:", ord_type))
     
     # ---------------------------------------------------------
-    # Stage 2: Diagnostic Overview (QC)
+    # --- Diagnostic Overview (QC) ---
     # ---------------------------------------------------------
     pdf("overview_plot.pdf", width = 8, height = 6)
     tryCatch({
@@ -92,7 +101,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 3: Unsupervised Ordination
+    # --- Unsupervised Ordination ---
     # ---------------------------------------------------------
     k.coa <- made4::ord(counts_df, type = ord_type)
     
@@ -117,7 +126,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     write.csv(top_df, "top_genes.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 4: Supervised Between Group Analysis (BGA)
+    # --- Supervised Between Group Analysis (BGA) ---
     # ---------------------------------------------------------
     k.bga <- made4::bga(counts_df, type = ord_type, classvec = classvec)
     
@@ -153,7 +162,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     }
     
     # ---------------------------------------------------------
-    # Stage 5: Heatmap and 3D Visualizations
+    # --- Heatmap and 3D Visualizations ---
     # ---------------------------------------------------------
     pdf("heatplot.pdf", width = 8, height = 8)
     tryCatch({

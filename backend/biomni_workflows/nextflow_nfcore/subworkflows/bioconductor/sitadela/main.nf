@@ -35,6 +35,15 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("sitadela", "GenomicRanges", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     message("Loading input counts and coldata...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
@@ -64,7 +73,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     message(sprintf("Loaded %d genes and %d samples.", length(gene_ids), ncol(counts)))
     
     # ==========================================
-    # STAGE 2: Dynamically Generate Custom GTF
+    # --- Dynamically Generate Custom GTF ---
     # ==========================================
     # To ensure perfect mapping and avoid external internet dependencies,
     # we dynamically build a custom GTF file matching the input gene IDs.
@@ -115,7 +124,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     )
     
     # ==========================================
-    # STAGE 3: Build sitadela Database
+    # --- Build sitadela Database ---
     # ==========================================
     message("Building sitadela SQLite database...")
     db_path <- tempfile(fileext = ".sqlite")
@@ -128,7 +137,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     )
     
     # ==========================================
-    # STAGE 4: Retrieve Annotations
+    # --- Retrieve Annotations ---
     # ==========================================
     message("Retrieving annotations from sitadela database...")
     
@@ -150,7 +159,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     )
     
     # ==========================================
-    # STAGE 5: Calculate Gene Lengths & TPM
+    # --- Calculate Gene Lengths & TPM ---
     # ==========================================
     message("Calculating gene lengths and performing TPM normalization...")
     
@@ -170,7 +179,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     tpm <- sweep(rpk, 2, scaling_factors, "/")
     
     # ==========================================
-    # STAGE 6: Merge Annotations with Expression
+    # --- Merge Annotations with Expression ---
     # ==========================================
     message("Merging annotations with expression data...")
     annot_df <- data.frame(
@@ -195,7 +204,7 @@ process BIOC_SITADELA_SITADELA_CUSTOM_ANNOTATION_TPM {
     message("Saved annotated TPM matrix to 'annotated_tpm.csv'.")
     
     # ==========================================
-    # STAGE 7: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("expression_diagnostics.pdf", width = 10, height = 5)

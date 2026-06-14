@@ -55,7 +55,7 @@ process BIOC_BRENDADB_BRENDA_ENZYME_ANNOTATION {
     # Load required libraries
     library(brendaDb)
     
-    # Stage 1: Read and parse input identifiers defensively
+    # --- Read and parse input identifiers defensively ---
     message("Reading input.csv...")
     if (!file.exists("input.csv")) {
       stop("Staged input file 'input.csv' not found.")
@@ -81,7 +81,7 @@ process BIOC_BRENDADB_BRENDA_ENZYME_ANNOTATION {
     }
     message(paste("Found", length(ids), "unique identifiers to process."))
     
-    # Stage 2: Download and load the BRENDA database
+    # --- Download and load the BRENDA database ---
     message("Downloading and loading BRENDA database...")
     brenda_file <- tryCatch({
       DownloadBrenda()
@@ -106,7 +106,7 @@ process BIOC_BRENDADB_BRENDA_ENZYME_ANNOTATION {
       stop("Failed to parse BRENDA database file: ", e\$message)
     })
     
-    # Stage 3: Map identifiers to EC numbers
+    # --- Map identifiers to EC numbers ---
     message("Mapping input identifiers to EC numbers...")
     is_ec <- grepl("^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+\$", ids)
     ec_numbers <- ids[is_ec]
@@ -134,7 +134,7 @@ process BIOC_BRENDADB_BRENDA_ENZYME_ANNOTATION {
     write.csv(mapping_df, "mapped_enzymes.csv", row.names = FALSE)
     message(paste("Total EC numbers to query:", length(ec_numbers)))
     
-    # Stage 4: Query BRENDA and extract functional parameters
+    # --- Query BRENDA and extract functional parameters ---
     if (length(ec_numbers) > 0) {
       message("Querying BRENDA database for EC numbers...")
       res <- tryCatch({

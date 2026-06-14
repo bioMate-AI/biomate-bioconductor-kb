@@ -66,10 +66,10 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     # Start PDF device to capture all visual plots
     pdf("rprimer_workflow_plots.pdf", width = 11, height = 8.5)
     
-    # 1. Import alignment using readDNAMultipleAlignment()
+    # --- Import alignment using readDNAMultipleAlignment() ---
     myAlignment <- readDNAMultipleAlignment(filepath, format = "fasta")
     
-    # 2. Generate consensus profile using consensusProfile()
+    # --- Generate consensus profile using consensusProfile() ---
     myConsensusProfile <- consensusProfile(myAlignment, ambiguityThreshold = 0.05)
     saveRDS(myConsensusProfile, "myConsensusProfile.rds")
     
@@ -82,7 +82,7 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     ]
     plotData(selection)
     
-    # 3. Design oligos using designOligos()
+    # --- Design oligos using designOligos() ---
     myOligos <- designOligos(myConsensusProfile)
     saveRDS(myOligos, "myOligos.rds")
     
@@ -105,7 +105,7 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     ]
     plotData(bindingRegion, type = "nucleotide")
     
-    # 4. Design assays using designAssays()
+    # --- Design assays using designAssays() ---
     myAssays <- designAssays(myOligos)
     saveRDS(myAssays, "myAssays.rds")
     
@@ -131,7 +131,7 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     # Retrieve the consensus amplicon sequence
     consensus_sequence <- paste(myAssayRegion\$iupac, collapse = "")
     
-    # 5. Check matches against target sequences using checkMatch()
+    # --- Check matches against target sequences using checkMatch() ---
     oligoSelectionMatch <- checkMatch(oligoSelection[1:3, ], target = myAlignment)
     saveRDS(oligoSelectionMatch, "oligoSelectionMatch.rds")
     
@@ -145,7 +145,7 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     as(myOligos[1:2, ], "DNAStringSet")
     as(myAssays[1:2, ], "DNAStringSet")
     
-    # 6. Export results to CSV, TXT, and FASTA formats
+    # --- Export results to CSV, TXT, and FASTA formats ---
     write.csv(myAssays, file = "myAssays.csv", quote = FALSE, row.names = FALSE)
     write.table(myAssays, file = "myAssays.txt", quote = FALSE, row.names = FALSE)
     

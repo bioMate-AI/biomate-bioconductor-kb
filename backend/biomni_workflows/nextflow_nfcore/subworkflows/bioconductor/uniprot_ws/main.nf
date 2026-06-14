@@ -35,6 +35,15 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("UniProt.ws")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
           }
         }
     
-    # Stage 1: Parameter Setup & Input Reading
+    # --- Parameter Setup & Input Reading ---
     library(UniProt.ws)
     
     # Define parameters
@@ -78,7 +87,7 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
     }
     message(sprintf("Found %d unique identifiers to query.", length(ids)))
     
-    # Stage 2: Initialize UniProt.ws Client
+    # --- Initialize UniProt.ws Client ---
     message(sprintf("Initializing UniProt.ws client for Taxonomy ID: %d...", tax_id))
     up <- tryCatch({
       UniProt.ws(taxId = tax_id)
@@ -86,7 +95,7 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
       stop("Failed to initialize UniProt.ws client. Please check your internet connection and Taxonomy ID: ", e\$message)
     })
     
-    # Stage 3: Keytype & Column Selection
+    # --- Keytype & Column Selection ---
     available_keytypes <- keytypes(up)
     available_cols <- columns(up)
     
@@ -128,7 +137,7 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
     message("Querying UniProt with keytype: ", kt)
     message("Selected columns: ", paste(selected_cols, collapse = ", "))
     
-    # Stage 4: Query UniProt Database
+    # --- Query UniProt Database ---
     results <- tryCatch({
       select(up, keys = ids, columns = selected_cols, keytype = kt)
     }, error = function(e) {
@@ -153,7 +162,7 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 5: Merge Annotations with Input Data
+    # --- Merge Annotations with Input Data ---
     if (!is.null(results) && nrow(results) > 0) {
       # Find the column in results that matches the input keys
       overlap_counts <- sapply(results, function(col) sum(as.character(col) %in% ids, na.rm = TRUE))
@@ -181,7 +190,7 @@ process BIOC_UNIPROT_WS_UNIPROT_ANNOTATION_PIPELINE {
     write.csv(merged_df, "annotated_features.csv", row.names = FALSE)
     message("Saved annotated features to 'annotated_features.csv'")
     
-    # Stage 6: Diagnostic Visualizations & Output Generation
+    # --- Diagnostic Visualizations & Output Generation ---
     message("Generating diagnostic PDF report...")
     pdf("uniprot_annotation_report.pdf", width = 8, height = 8)
     

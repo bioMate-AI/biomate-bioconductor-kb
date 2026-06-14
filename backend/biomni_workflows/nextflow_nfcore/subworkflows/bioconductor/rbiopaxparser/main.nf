@@ -63,11 +63,11 @@ process BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX {
       stop("Error: 'file.owl' not found in the working directory. Please provide a valid BioPAX OWL file.")
     }
     
-    # 1. Parse the BioPAX file into R
+    # --- Parse the BioPAX file into R ---
     biopax = readBiopax(file)
     print(biopax)
     
-    # 2. List and select pathway instances
+    # --- List and select pathway instances ---
     pw_list = listInstances(biopax, class="pathway")
     pw_complete = selectInstances(biopax, class="pathway")
     
@@ -91,11 +91,11 @@ process BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX {
     pw_1_component_list = listPathwayComponents(biopax,pwid1)
     pw_1_components = selectInstances(biopax,id=pw_1_component_list\$id)
     
-    # 3. Convert the selected pathway to a regulatory graph and adjacency matrix
+    # --- Convert the selected pathway to a regulatory graph and ---
     pw_1_adj = pathway2AdjacancyMatrix(biopax, pwid1, expandSubpathways=TRUE, splitComplexMolecules=TRUE, verbose=TRUE)
     pw_1_graph = pathway2RegulatoryGraph(biopax, pwid1, splitComplexMolecules=TRUE, verbose=TRUE)
     
-    # 4. Layout and plot the regulatory graph
+    # --- Layout and plot the regulatory graph ---
     pw_1_graph_laidout = layoutRegulatoryGraph(pw_1_graph)
     
     # Save the visualization to a PDF file

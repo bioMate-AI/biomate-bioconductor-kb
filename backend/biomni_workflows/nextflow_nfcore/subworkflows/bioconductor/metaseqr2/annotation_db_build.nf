@@ -61,15 +61,15 @@ process BIOC_METASEQR2_ANNOTATION_DB_BUILD {
     }
     myDb <- file.path(buildDir, "testann.sqlite")
     
-    # Stage 1: Define organisms and sources
+    # --- Define organisms and sources ---
     organisms <- list(mm39=115)
     sources <- ifelse(.Platform\$OS.type=="unix", c("ensembl","refseq"), "ensembl")
     
-    # Stage 2: Build standard annotation database using buildAnnotationDatabase
+    # --- Build standard annotation database using ---
     message("Building standard annotation database...")
     buildAnnotationDatabase(organisms, sources, forceDownload=FALSE, db=myDb, rc=0.5)
     
-    # Stage 3: Build custom annotation database from GTF using buildCustomAnnotation
+    # --- Build custom annotation database from GTF using ---
     # Read user input files from the working directory
     gtfFile_input <- "Dasypus_novemcinctus.Dasnov3.0.98.gtf.gz"
     bamFile_input <- "Dasnov3.broad.Ascending_Colon_5.1.bam"
@@ -96,7 +96,7 @@ process BIOC_METASEQR2_ANNOTATION_DB_BUILD {
         db=myDb
     )
     
-    # Stage 4: Load and verify annotations using loadAnnotation
+    # --- Load and verify annotations using loadAnnotation ---
     message("Loading and verifying custom annotation...")
     dasGenes <- loadAnnotation(
         genome="dasNov3_test",

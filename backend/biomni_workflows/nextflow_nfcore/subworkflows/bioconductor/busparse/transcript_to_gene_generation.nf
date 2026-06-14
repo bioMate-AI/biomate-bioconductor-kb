@@ -58,7 +58,7 @@ process BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION {
     library(TxDb.Hsapiens.UCSC.hg38.knownGene)
     library(EnsDb.Hsapiens.v86)
     
-    # 1. Download and filter transcriptome using dl_transcriptome
+    # --- Download and filter transcriptome using dl_transcriptome ---
     # Drosophila melanogaster
     tryCatch({
       dl_transcriptome("Drosophila melanogaster", out_path = "fly", 
@@ -87,7 +87,7 @@ process BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION {
       message("Skipping Saccharomyces cerevisiae download due to error: ", e\$message)
     })
     
-    # 2. Generate tr2g mapping from Ensembl using tr2g_ensembl
+    # --- Generate tr2g mapping from Ensembl using tr2g_ensembl ---
     # Mus musculus
     tryCatch({
       tr2g_mm <- tr2g_ensembl("Mus musculus", ensembl_version = 115, 
@@ -108,14 +108,14 @@ process BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION {
       message("Skipping Arabidopsis thaliana Ensembl query due to error: ", e\$message)
     })
     
-    # 3. Extract tr2g mapping from a FASTA file using tr2g_fasta
+    # --- Extract tr2g mapping from a FASTA file using tr2g_fasta ---
     # User input: transcriptome.fasta
     toy_fasta <- "transcriptome.fasta"
     tr2g_fa <- tr2g_fasta(file = toy_fasta, write_tr2g = FALSE, save_filtered = FALSE)
     print(head(tr2g_fa))
     write.csv(tr2g_fa, "tr2g_fa.csv", row.names = FALSE)
     
-    # 4. Extract tr2g mapping and transcriptome from a GTF file and genome using tr2g_gtf
+    # --- Extract tr2g mapping and transcriptome from a GTF file ---
     # User input: annotation.gtf
     toy_gtf <- "annotation.gtf"
     tr2g_tg <- tr2g_gtf(toy_gtf, Genome = BSgenome.Hsapiens.UCSC.hg38,
@@ -125,13 +125,13 @@ process BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION {
     print(list.files("gtf"))
     write.csv(tr2g_tg, "tr2g_tg.csv", row.names = FALSE)
     
-    # 5. Extract tr2g mapping from a TxDb object using tr2g_TxDb
+    # --- Extract tr2g mapping from a TxDb object using tr2g_TxDb ---
     tr2g_hs <- tr2g_TxDb(TxDb.Hsapiens.UCSC.hg38.knownGene, get_transcriptome = FALSE,
                          write_tr2g = FALSE)
     print(head(tr2g_hs))
     write.csv(tr2g_hs, "tr2g_hs.csv", row.names = FALSE)
     
-    # 6. Extract tr2g mapping from an EnsDb object using tr2g_EnsDb
+    # --- Extract tr2g mapping from an EnsDb object using tr2g_EnsDb ---
     tr2g_hs86 <- tr2g_EnsDb(EnsDb.Hsapiens.v86, get_transcriptome = FALSE, 
                             write_tr2g = FALSE, gene_biotype_use = "cellranger",
                             use_gene_version = FALSE, use_transcript_version = FALSE)

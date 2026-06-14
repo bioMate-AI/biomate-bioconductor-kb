@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map candidate gene to its associated HPO terms. 2. Compute Information Content (IC) for all HPO terms using computeHpIC. 3. Comput
+//  * 1. [Visualization & Output] READ USER INPUT FILES
+//  * 2. [Visualization & Output] RUN WORKFLOW (DIRECT PHENOTYPE COMPARISON)
+//  * 3. [Visualization & Output] WRITE OUTPUTS
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PCAN", "BiocParallel")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -58,7 +69,7 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     hp_ancestors <- PCAN::hp_ancestors
     
     # ==========================================
-    # 1. READ USER INPUT FILES
+    # --- READ USER INPUT FILES ---
     # ==========================================
     
     # Read hpOfInterest
@@ -113,7 +124,7 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     }
     
     # ==========================================
-    # 2. RUN WORKFLOW (DIRECT PHENOTYPE COMPARISON)
+    # --- RUN WORKFLOW (DIRECT PHENOTYPE COMPARISON) ---
     # ==========================================
     
     # Filter out the known association to simulate discovery
@@ -190,7 +201,7 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     candRelRank <- candRank/length(resnSss)
     
     # ==========================================
-    # 3. WRITE OUTPUTS
+    # --- WRITE OUTPUTS ---
     # ==========================================
     
     # Save similarity matrix

@@ -81,7 +81,7 @@ process BIOC_RNITS_DATA_MATRIX_WORKFLOW {
       stop(paste("Error: File", filename, "not found in the working directory."))
     }
     
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     message("Reading input files...")
     datdf <- read_input_file("expression_matrix")
     probedata <- read_input_file("probedata_df")
@@ -109,18 +109,18 @@ process BIOC_RNITS_DATA_MATRIX_WORKFLOW {
       }
     }
     
-    # 2. Build Rnits object
+    # --- Build Rnits object ---
     message("Building Rnits object...")
     rnitsobj0 = build.Rnits(datdf, probedata = probedata, phenodata = phenodata, logscale = TRUE, normmethod = 'Between')
     
-    # 3. Fit B-spline models
+    # --- Fit B-spline models ---
     message("Fitting B-spline models...")
     rnitsobj <- fit(rnitsobj0, gene.level = TRUE, clusterallsamples = TRUE)
     
     # Save the fitted object
     saveRDS(rnitsobj, "rnitsobj.rds")
     
-    # 4. Extract p-values and statistics
+    # --- Extract p-values and statistics ---
     message("Extracting statistics...")
     pval <- getPval(rnitsobj)
     write.csv(as.data.frame(pval), "pvalues.csv", row.names = TRUE)
@@ -134,7 +134,7 @@ process BIOC_RNITS_DATA_MATRIX_WORKFLOW {
     fitdata <- getFitModel(rnitsobj)
     write.csv(fitdata, "fit_model_data.csv", row.names = TRUE)
     
-    # 5. Summarize top genes
+    # --- Summarize top genes ---
     message("Summarizing top genes...")
     sum_df <- summary(rnitsobj, top = 10)
     write.csv(sum_df, "summary_top10.csv", row.names = TRUE)
@@ -142,7 +142,7 @@ process BIOC_RNITS_DATA_MATRIX_WORKFLOW {
     td <- topData(rnitsobj, fdr = 5)
     write.csv(td, "top_genes_data.csv", row.names = TRUE)
     
-    # 6. Plot gene trajectories
+    # --- Plot gene trajectories ---
     message("Plotting gene trajectories...")
     pdf("top_genes_trajectories.pdf", width = 10, height = 8)
     plotResults(rnitsobj, top = 16)

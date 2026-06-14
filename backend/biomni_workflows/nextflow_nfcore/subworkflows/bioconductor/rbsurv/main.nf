@@ -35,6 +35,15 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rbsurv")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
           }
         }
     
-    # Stage 1: Load libraries and read input data defensively
+    # --- Load libraries and read input data defensively ---
     library(rbsurv)
     
     input_file <- "input.csv"
@@ -110,7 +119,7 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
       x <- log2(x + 1)
     }
     
-    # Stage 2: Run Robust Likelihood-Based Survival Modeling
+    # --- Run Robust Likelihood-Based Survival Modeling ---
     message("Running rbsurv gene selection...")
     gene_ids <- rownames(x)
     if (is.null(gene_ids)) {
@@ -140,7 +149,7 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
       NULL
     })
     
-    # Stage 3: Export Results and Generate Diagnostics
+    # --- Export Results and Generate Diagnostics ---
     if (!is.null(fit) && !is.null(fit\$model)) {
       model_results <- fit\$model
       write.csv(model_results, "selected_genes_model.csv", row.names = FALSE)

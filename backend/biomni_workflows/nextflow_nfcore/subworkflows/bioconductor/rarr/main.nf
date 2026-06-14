@@ -35,6 +35,15 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rarr", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,12 +53,13 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required libr    library(SummarizedExperiment)
+aries
     library(Rarr)
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     message("Stage 1: Loading input CSV files...")
     counts_df <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
@@ -64,7 +74,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     message(sprintf("Loaded dataset with %d genes and %d samples.", n_genes, n_samples))
     
     # ==========================================
-    # STAGE 2: Write Raw Counts to Zarr Array
+    # --- Write Raw Counts to Zarr Array ---
     # ==========================================
     message("Stage 2: Writing raw counts to a chunked Zarr array...")
     raw_zarr_path <- "raw_counts.zarr"
@@ -88,7 +98,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     zarr_overview(raw_zarr_path)
     
     # ==========================================
-    # STAGE 3: Out-of-Core Normalization (CPM)
+    # --- Out-of-Core Normalization (CPM) ---
     # ==========================================
     message("Stage 3: Performing chunk-wise CPM normalization...")
     
@@ -140,7 +150,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Feature Selection (Highly Variable Genes)
+    # --- Feature Selection (Highly Variable Genes) ---
     # ==========================================
     message("Stage 4: Identifying highly variable genes chunk-by-chunk...")
     gene_vars <- numeric(n_genes)
@@ -163,7 +173,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     colnames(top_norm_counts) <- colnames(count_matrix)
     
     # ==========================================
-    # STAGE 5: Downstream Analysis & Visualization
+    # --- Downstream Analysis & Visualization ---
     # ==========================================
     message("Stage 5: Constructing SummarizedExperiment and performing PCA...")
     
@@ -200,7 +210,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Export Full Normalized Matrix
+    # --- Export Full Normalized Matrix ---
     # ==========================================
     message("Stage 6: Exporting full normalized counts...")
     full_norm_matrix <- read_zarr_array(norm_zarr_path)

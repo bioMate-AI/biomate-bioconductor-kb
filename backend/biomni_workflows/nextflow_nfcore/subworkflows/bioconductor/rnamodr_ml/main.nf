@@ -52,7 +52,7 @@ process BIOC_RNAMODR_ML_DETECT_2_O_METHYLATIONS_ML {
       }
     }
     
-    # 1. Load the package and define input file paths
+    # --- Load the package and define input file paths ---
     library(rnamodr.ml)
     
     # User-specified input files
@@ -71,13 +71,13 @@ process BIOC_RNAMODR_ML_DETECT_2_O_METHYLATIONS_ML {
       })
     }
     
-    # 2. Initialize the ModMLRiboMethSeq modifier object
+    # --- Initialize the ModMLRiboMethSeq modifier object ---
     mod <- ModMLRiboMethSeq(bamfiles, fasta = fasta, gff = gff)
     
-    # 3. Extract predicted 2'-O-methylations using the modifications function
+    # --- Extract predicted 2'-O-methylations using the ---
     mods <- modifications(mod)
     
-    # 4. Write named output files for the results
+    # --- Write named output files for the results ---
     saveRDS(mod, "rnamodr_modifier_object.rds")
     saveRDS(mods, "predicted_modifications.rds")
     

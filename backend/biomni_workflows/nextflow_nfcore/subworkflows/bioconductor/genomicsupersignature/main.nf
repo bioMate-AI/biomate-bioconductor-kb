@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the GenomicSuperSignature package and download/load the pre-built RAVmodel using getModel. 2. Load the user's transcriptomic 
+//  * 1. [Visualization & Output] Load the GenomicSuperSignature package and download/load
+//  * 2. [Visualization & Output] Load the user's transcriptomic dataset (ensuring gene
+//  * 3. [Visualization & Output] Validate the dataset against the RAVmodel
+//  * 4. [Visualization & Output] Visualize the validation results
+//  * 5. [Visualization & Output] Extract the indices of the top validated RAVs
+//  * 6. [Visualization & Output] Interpret the validated RAVs
+//  * 7. [Visualization & Output] Search for specific biological themes using keyword-based
 
 nextflow.enable.dsl = 2
 
@@ -56,24 +62,24 @@ process BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION {
           }
         }
     
-    # 1. Load the GenomicSuperSignature package and download/load the pre-built RAVmodel
+    # --- Load the GenomicSuperSignature package and download/load ---
     library(GenomicSuperSignature)
     
     # Download/load the pre-built RAVmodel
     RAVmodel <- getModel("PLIERpriors", load = TRUE)
     
-    # 2. Load the user's transcriptomic dataset (ensuring gene symbols are used)
+    # --- Load the user's transcriptomic dataset (ensuring gene ---
     # The user input file is exactly "dataset.rds"
     dset <- readRDS("dataset.rds")
     
-    # 3. Validate the dataset against the RAVmodel
+    # --- Validate the dataset against the RAVmodel ---
     val_all <- validate(dset, RAVmodel)
     write.csv(as.data.frame(val_all), "validation_scores.csv", row.names = TRUE)
     
     # Print head of validation results
     print(head(val_all))
     
-    # 4. Visualize the validation results
+    # --- Visualize the validation results ---
     # Save heatmapTable to PDF
     pdf("heatmap_table.pdf", width = 10, height = 8)
     tryCatch({
@@ -92,12 +98,12 @@ process BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION {
     })
     dev.off()
     
-    # 5. Extract the indices of the top validated RAVs
+    # --- Extract the indices of the top validated RAVs ---
     validated_ind <- validatedSignatures(val_all, RAVmodel, num.out = 3, swCutoff = 0, indexOnly = TRUE)
     saveRDS(validated_ind, "validated_indices.rds")
     print(validated_ind)
     
-    # 6. Interpret the validated RAVs
+    # --- Interpret the validated RAVs ---
     # Draw word clouds of MeSH terms
     pdf("wordclouds.pdf", width = 7, height = 7)
     set.seed(1)
@@ -142,7 +148,7 @@ process BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION {
       message("Error subsetting enriched pathways for all validated indices: ", e\$message)
     })
     
-    # 7. Search for specific biological themes using keyword-based queries
+    # --- Search for specific biological themes using keyword-based ---
     sig_bcell <- findSignature(RAVmodel, "Bcell")
     write.csv(as.data.frame(sig_bcell), "signature_search_bcell.csv", row.names = TRUE)
     

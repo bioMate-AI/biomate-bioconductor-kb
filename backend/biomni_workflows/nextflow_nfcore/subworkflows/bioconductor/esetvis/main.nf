@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the dataset and format metadata. 2. (Optional) Retrieve gene sets using getGeneSetsForPlot. 3. Generate the spectral map usin
+//  * 1. [Input & Preparation] Load the dataset and format metadata
+//  * 2. [Input & Preparation] Generate the spectral maps using esetSpectralMap (Static
+//  * 3. [Input & Preparation] Retrieve gene sets using getGeneSetsForPlot (with robust
+//  * 4. [Input & Preparation] Generate spectral map with gene set annotation
+//  * 5. [Input & Preparation] Generate and save the interactive spectral map (Plotly)
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("esetVis", "Biobase", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,11 +60,12 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(esetVis)
     library(Biobase)
     
-    # 1. Load the dataset and format metadata
+    # --- Load the dataset and format metadata ---
     if (!file.exists("expression_data.RData")) {
       stop("Input file 'expression_data.RData' not found in the working directory.")
     }
@@ -122,7 +136,7 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
     # Open PDF device to save static plots
     pdf("spectral_map_plots.pdf", width = 10, height = 8)
     
-    # 2. Generate the spectral maps using esetSpectralMap (Static Plots)
+    # --- Generate the spectral maps using esetSpectralMap (Static ---
     print(esetSpectralMap(eset = eset_obj))
     
     args_plot1 <- list(
@@ -140,7 +154,7 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
     
     print(do.call(esetSpectralMap, args_plot1))
     
-    # 3. Retrieve gene sets using getGeneSetsForPlot (with robust fallback)
+    # --- Retrieve gene sets using getGeneSetsForPlot (with robust ---
     geneSets <- tryCatch({
       getGeneSetsForPlot(
         entrezIdentifiers = fData(eset_obj)\$ENTREZID, 
@@ -160,7 +174,7 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
       )
     })
     
-    # 4. Generate spectral map with gene set annotation
+    # --- Generate spectral map with gene set annotation ---
     args_plot2 <- list(
       eset = eset_obj, 
       title = "Spectral map \n Gene set annotation", 
@@ -183,7 +197,7 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
     # Close PDF device
     dev.off()
     
-    # 5. Generate and save the interactive spectral map (Plotly)
+    # --- Generate and save the interactive spectral map (Plotly) ---
     args_plot3 <- list(
       eset = eset_obj,
       title = "Dataset - spectral map",

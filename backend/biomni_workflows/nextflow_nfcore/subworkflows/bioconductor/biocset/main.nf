@@ -34,6 +34,15 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocSet", "DESeq2", "org.Hs.eg.db", "GO.db", "limma", "dplyr", "tibble")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     library(tibble)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Load Input Data
+    # --- Load Input Data ---
     # ----------------------------------------------------------------------
     message("Loading input expression data...")
     counts_df <- read.csv("counts.csv", check.names = FALSE)
@@ -84,7 +93,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     coldata\$condition <- as.factor(coldata\$condition)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ----------------------------------------------------------------------
     message("Running DESeq2 differential expression analysis...")
     dds <- DESeqDataSetFromMatrix(countData = counts_matrix,
@@ -98,7 +107,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
         as_tibble()
     
     # ----------------------------------------------------------------------
-    # Stage 3: ID Mapping and GSEA Preparation
+    # --- ID Mapping and GSEA Preparation ---
     # ----------------------------------------------------------------------
     message("Mapping Ensembl IDs to Entrez IDs...")
     res_tbl <- res_tbl %>%
@@ -121,7 +130,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     }
     
     # ----------------------------------------------------------------------
-    # Stage 4: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ----------------------------------------------------------------------
     message("Performing Gene Ontology enrichment analysis...")
     go_results <- goana(de = sig_genes, universe = all_genes, species = "Hs") %>%
@@ -142,7 +151,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
         dplyr::select(-ONTOLOGYALL)
     
     # ----------------------------------------------------------------------
-    # Stage 5: Construct and Manipulate BiocSet
+    # --- Construct and Manipulate BiocSet ---
     # ----------------------------------------------------------------------
     message("Constructing BiocSet object...")
     # Rename columns to match BiocSet requirements (element, set)
@@ -166,7 +175,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     es_final <- url_ref(es_annotated)
     
     # ----------------------------------------------------------------------
-    # Stage 6: Export Results
+    # --- Export Results ---
     # ----------------------------------------------------------------------
     message("Exporting final tables...")
     # Export flat elementset table

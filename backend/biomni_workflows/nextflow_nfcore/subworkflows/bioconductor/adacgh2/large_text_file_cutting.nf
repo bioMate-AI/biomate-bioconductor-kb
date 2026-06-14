@@ -73,19 +73,19 @@ process BIOC_ADACGH2_LARGE_TEXT_FILE_CUTTING {
     }
     dir.create("cuttedFile")
     
-    # Step 1: Cut the large text file into single-column files
+    # --- Cut the large text file into single-column files ---
     setwd("cuttedFile")
     cutFile(fnametxt, 1, 2, 3, sep = "\t", mc.cores = 2)
     cuttedFile.dir <- getwd()
     setwd("../")
     
-    # Step 2: Read the directory of cut files in parallel to ff objects
+    # --- Read the directory of cut files in parallel to ff objects ---
     inputToADaCGH(ff.or.RAM = "ff",
                   path = cuttedFile.dir,
                   verbose = TRUE,
                   mc.cores = 2)
     
-    # Step 3: Run parallelized segmentation
+    # --- Run parallelized segmentation ---
     haar.ff.fork <- pSegmentHaarSeg("cghData.RData",
                                     "chromData.RData",
                                      merging = "MAD",
@@ -95,7 +95,7 @@ process BIOC_ADACGH2_LARGE_TEXT_FILE_CUTTING {
     # Save the segmentation output object
     save(haar.ff.fork, file = "haar.ff.fork.RData", compress = FALSE)
     
-    # Step 4: Plot results
+    # --- Plot results ---
     pChromPlot(outRDataName = "haar.ff.fork.RData",
                cghRDataName = "cghData.RData",
                chromRDataName = "chromData.RData",

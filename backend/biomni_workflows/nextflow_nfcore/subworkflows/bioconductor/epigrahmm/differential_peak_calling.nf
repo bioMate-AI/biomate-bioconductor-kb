@@ -66,6 +66,7 @@ process BIOC_EPIGRAHMM_DIFFERENTIAL_PEAK_CALLING {
     
     # Load required libraries
     library(GenomicRanges)
+    library(SummarizedExperiment)
     library(epigraHMM)
     library(rtracklayer)
     library(Seqinfo)

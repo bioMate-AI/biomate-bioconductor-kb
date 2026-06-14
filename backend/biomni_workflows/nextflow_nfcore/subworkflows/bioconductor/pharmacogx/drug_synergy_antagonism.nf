@@ -12,7 +12,15 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define experimental design mapping and handle technical replicates. 2. Create a TREDataMapper and construct a TreatmentResponseExp
+//  * 1. [Visualization & Output] Read raw drug combination screening data from the working
+//  * 2. [Visualization & Output] Define experimental design mapping and handle technical
+//  * 3. [Visualization & Output] Create a TREDataMapper and construct a
+//  * 4. [Visualization & Output] Normalize viability data against untreated controls
+//  * 5. [Visualization & Output] Fit monotherapy dose-response curves using
+//  * 6. [Visualization & Output] Merge monotherapy fits and compute expected responses
+//  * 7. [Visualization & Output] Compute synergy scores and ZIP delta
+//  * 8. [Visualization & Output] Filter for high-quality curve fits and visualize synergy
+//  * 9. [Visualization & Output] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -63,14 +71,14 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
     library(ggplot2)
     library(scales)
     
-    # 1. Read raw drug combination screening data from the working directory
+    # --- Read raw drug combination screening data from the working ---
     input_file <- "mathews_griner.csv.tar.gz"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing in the working directory:", input_file))
     }
     mathews_griner <- fread(input_file)
     
-    # 2. Define experimental design mapping and handle technical replicates
+    # --- Define experimental design mapping and handle technical ---
     groups <- list(
       rowDataMap=c(
         treatment1id="RowName",
@@ -91,7 +99,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
       mathews_griner[["tech_reps"]] <- NULL
     }
     
-    # 3. Create a TREDataMapper and construct a TreatmentResponseExperiment using metaConstruct
+    # --- Create a TREDataMapper and construct a ---
     treMapper <- TREDataMapper(rawdata=mathews_griner)
     guess <- guessMapping(treMapper, groups, subset=TRUE)
     metadataMap(treMapper) <- list(experiment_metadata=guess\$metadata\$mapped_columns)
@@ -100,7 +108,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
     assayMap(treMapper) <- list(raw=guess\$assayMap)
     tre <- metaConstruct(treMapper)
     
-    # 4. Normalize viability data against untreated controls
+    # --- Normalize viability data against untreated controls ---
     raw <- tre[["raw"]]
     raw[, viability := viability / .SD[treatment1dose == 0 & treatment2dose == 0, viability],
         by=c("treatment1id", "treatment2id", "sampleid", "tech_rep") ]
@@ -110,7 +118,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
     bad_treatments <- tre[["raw"]][viability > 2, unique(treatment1id)]
     tre <- subset(tre, !(treatment1id %in% bad_treatments))
     
-    # 5. Fit monotherapy dose-response curves using logLogisticRegression via endoaggregate
+    # --- Fit monotherapy dose-response curves using ---
     tre_qc <- tre |> endoaggregate(
       subset=treatment2dose == 0,
       assay="raw",
@@ -140,7 +148,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
       nthread=2
     )
     
-    # 6. Merge monotherapy fits and compute expected responses under HSA, Bliss, Loewe, and ZIP models
+    # --- Merge monotherapy fits and compute expected responses ---
     tre_combo <- tre_fit |> endoaggregate(
       assay="raw",
       target="combo_viability",
@@ -172,7 +180,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
       nthread=2
     )
     
-    # 7. Compute synergy scores and ZIP delta
+    # --- Compute synergy scores and ZIP delta ---
     tre_synergy <- tre_synergy |> endoaggregate(
       assay="combo_viability",
       HSA_score=HSA_ref - mean_viability,
@@ -235,7 +243,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
       by=assayKeys(tre_zip, "combo_viability")
     )
     
-    # 8. Filter for high-quality curve fits and visualize synergy landscapes using ggplot2
+    # --- Filter for high-quality curve fits and visualize synergy ---
     combo_viab <- tre_zip[["combo_viability"]]
     
     top_15_combo <- combo_viab[
@@ -252,7 +260,7 @@ process BIOC_PHARMACOGX_DRUG_SYNERGY_ANTAGONISM {
     top_15_combo_df <- combo_viab[top_15_combo, on=c('treatment1id', 'treatment2id', 'sampleid')]
     setnafill(top_15_combo_df, type="locf", cols="ZIP_delta")
     
-    # 9. Save outputs
+    # --- Save outputs ---
     # Save the TreatmentResponseExperiment object
     saveRDS(tre_zip, "tre_synergy_results.rds")
     

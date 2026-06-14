@@ -12,9 +12,9 @@ import { test, expect, APIRequestContext } from "@playwright/test";
 import * as fs from "node:fs";
 
 const BASE_URL = process.env.BIOMATE_URL || "https://dev-public.biomate.ai";
-const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "e2e-biomate-test";
-const FIXTURE_EMAIL = "e2e-admet-fixture@biomate.test";
-const FIXTURE_PASSWORD = "AdmetE2ETest!2026";
+const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
+const FIXTURE_EMAIL = "lifeifei163361@163.com";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 
 async function login(request: APIRequestContext): Promise<string> {
   await request.post(`${BASE_URL}/api/auth/register`, {

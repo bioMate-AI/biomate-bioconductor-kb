@@ -57,7 +57,7 @@ process BIOC_EDASEQ_READ_LEVEL_QC {
     library(ShortRead)
     library(Rsamtools)
     
-    # 1. Identify and list raw FASTQ or aligned BAM files.
+    # --- Identify and list raw FASTQ or aligned BAM files ---
     # The pipeline reads exactly "file1.fastq" and "file2.bam" from the working directory.
     fastq_file <- "file1.fastq"
     bam_file <- "file2.bam"
@@ -69,7 +69,7 @@ process BIOC_EDASEQ_READ_LEVEL_QC {
       stop("Required input file 'file2.bam' not found in the working directory.")
     }
     
-    # 2. Construct FastqFileList or BamFileList objects and attach sample metadata.
+    # --- Construct FastqFileList or BamFileList objects and attach ---
     # FASTQ File List Setup
     files_fastq <- fastq_file
     names(files_fastq) <- gsub("\\\\.fastq.*", "", basename(files_fastq))
@@ -102,17 +102,17 @@ process BIOC_EDASEQ_READ_LEVEL_QC {
     # Open PDF device to save the plots
     pdf("read_level_qc_plots.pdf", width = 8, height = 6)
     
-    # 3. Generate barplots of total or mapped read counts per lane.
+    # --- Generate barplots of total or mapped read counts per lane ---
     barplot(bfs,las=2,col=colors)
     
-    # 4. Plot mean per-base quality scores across sequencing cycles.
+    # --- Plot mean per-base quality scores across sequencing cycles ---
     plotQuality(bfs,col=colors,lty=1)
     legend("topright",unique(elementMetadata(bfs)[,1]), fill=unique(colors))
     
     plotQuality(bfs[[1]],cex.axis=.8)
     barplot(bfs[[1]],las=2)
     
-    # 5. Plot per-base nucleotide frequencies to check for sequence composition bias.
+    # --- Plot per-base nucleotide frequencies to check for ---
     plotNtFrequency(bfs[[1]])
     
     # Close the PDF device

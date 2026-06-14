@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Harmonize genomic coordinates and filter assays to intersecting samples; 2. Convert segmented log2 copy number ratios to integer c
+//  * 1. [Visualization & Output] Read the user-provided MultiAssayExperiment from the
+//  * 2. [Visualization & Output] Harmonize genomic coordinates and filter assays to
+//  * 3. [Visualization & Output] Convert segmented log2 copy number ratios to integer copy
+//  * 4. [Visualization & Output] Run cnvEQTL on the MultiAssayExperiment
+//  * 5. [Visualization & Output] Save results to disk
+//  * 6. [Visualization & Output] Plot eQTL results if sufficient regions are found
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CNVRanger", "MultiAssayExperiment", "TCGAutils", "GenomeInfoDb", "GenomicRanges", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,14 +61,15 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(CNVRanger)
     library(MultiAssayExperiment)
     library(TCGAutils)
     library(GenomeInfoDb)
     library(GenomicRanges)
     
-    # 1. Read the user-provided MultiAssayExperiment from the working directory
+    # --- Read the user-provided MultiAssayExperiment from the ---
     mae_file <- "MultiAssayExperiment.rds"
     if (!file.exists(mae_file)) {
         stop("Error: Required input file 'MultiAssayExperiment.rds' not found in the working directory.")
@@ -75,7 +90,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
         }
     }
     
-    # 2. Harmonize genomic coordinates and filter assays to intersecting samples
+    # --- Harmonize genomic coordinates and filter assays to ---
     gbm <- TCGAutils::symbolsToRanges(gbm, unmapped=FALSE)
     
     for(i in 1:3) 
@@ -91,7 +106,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
     gbm <- MultiAssayExperiment::intersectColumns(gbm)
     gbm <- TCGAutils::TCGAsplitAssays(gbm, sampleCodes="01")
     
-    # 3. Convert segmented log2 copy number ratios to integer copy number states
+    # --- Convert segmented log2 copy number ratios to integer copy ---
     ind <- grep("CNVSNP", names(gbm))
     smean <- mcols(gbm[[ind]])\$Segment_Mean
     state <- round(2^smean * 2)
@@ -100,15 +115,15 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
     gbm[[ind]] <- gbm[[ind]][state != 2,]
     mcols(gbm[[ind]]) <- mcols(gbm[[ind]])[,3:1]
     
-    # 4. Run cnvEQTL on the MultiAssayExperiment
+    # --- Run cnvEQTL on the MultiAssayExperiment ---
     res <- cnvEQTL(cnvrs="01_GBM_GISTIC_Peaks-20160128", calls="01_GBM_CNVSNP-20160128", rcounts="01_GBM_RNASeq2GeneNorm-20160128_ranged", data=gbm, window="1Mbp", verbose=TRUE)
     
-    # 5. Save results to disk
+    # --- Save results to disk ---
     saveRDS(res, "cnv_eqtl_results.rds")
     res_df <- as.data.frame(res)
     write.csv(res_df, "cnv_eqtl_results.csv", row.names=FALSE)
     
-    # 6. Plot eQTL results if sufficient regions are found
+    # --- Plot eQTL results if sufficient regions are found ---
     if (length(res) >= 2) {
         pdf("cnv_eqtl_plot.pdf", width=10, height=8)
         r <- GRanges(names(res)[2])

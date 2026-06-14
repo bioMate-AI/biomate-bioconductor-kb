@@ -61,7 +61,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
     # Load required library
     library(DNAfusion)
     
-    # 1. Detect EML4-ALK mate pair reads
+    # --- Detect EML4-ALK mate pair reads ---
     message("Running EML4_ALK_detection...")
     H3122_result <- EML4_ALK_detection(
       file = input_bam, 
@@ -70,7 +70,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
     )
     saveRDS(H3122_result, file = "EML4_ALK_detection_result.rds")
     
-    # 2. Identify EML4 sequence leading to the breakpoint
+    # --- Identify EML4 sequence leading to the breakpoint ---
     message("Running EML4_sequence...")
     eml4_seq <- EML4_sequence(
       H3122_result, 
@@ -84,7 +84,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
       write.csv(as.data.frame(eml4_seq), file = "EML4_sequence.csv", row.names = TRUE)
     }
     
-    # 3. Identify ALK sequence following the breakpoint
+    # --- Identify ALK sequence following the breakpoint ---
     message("Running ALK_sequence...")
     alk_seq <- ALK_sequence(
       H3122_result, 
@@ -98,7 +98,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
       write.csv(as.data.frame(alk_seq), file = "ALK_sequence.csv", row.names = TRUE)
     }
     
-    # 4. Identify genomic breakpoint positions
+    # --- Identify genomic breakpoint positions ---
     message("Running break_position...")
     eml4_break_pos <- break_position(
       H3122_result, 
@@ -112,7 +112,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
       write.csv(as.data.frame(eml4_break_pos), file = "break_position_EML4.csv", row.names = TRUE)
     }
     
-    # 5. Calculate read depth at the breakpoint
+    # --- Calculate read depth at the breakpoint ---
     message("Running break_position_depth...")
     eml4_break_depth <- break_position_depth(
       input_bam, 
@@ -123,7 +123,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
     saveRDS(eml4_break_depth, file = "break_position_depth_EML4_result.rds")
     writeLines(as.character(eml4_break_depth), con = "break_position_depth_EML4.txt")
     
-    # 6. Perform a combined analysis
+    # --- Perform a combined analysis ---
     message("Running EML4_ALK_analysis...")
     H3122_results <- EML4_ALK_analysis(
       file = input_bam, 
@@ -133,7 +133,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
     )
     saveRDS(H3122_results, file = "EML4_ALK_analysis_results.rds")
     
-    # 7. Identify introns containing the breakpoint
+    # --- Identify introns containing the breakpoint ---
     message("Running introns_ALK_EML4...")
     introns_res <- introns_ALK_EML4(
       file = input_bam, 
@@ -146,7 +146,7 @@ process BIOC_DNAFUSION_EML4_ALK_FUSION_ANALYSIS {
       writeLines(as.character(introns_res), con = "introns_ALK_EML4.txt")
     }
     
-    # 8. Identify the specific EML4-ALK variant
+    # --- Identify the specific EML4-ALK variant ---
     message("Running find_variants...")
     variants_res <- find_variants(
       file = input_bam, 

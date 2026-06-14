@@ -49,7 +49,7 @@ process BIOC_HOODSCANR_CELLULAR_NEIGHBORHOOD_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SpatialExperiment", "ggplot2", "hoodscanR", "scico")
+    .bm_deps <- c("SpatialExperiment", "ggplot2", "hoodscanR", "scico", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -67,7 +67,8 @@ process BIOC_HOODSCANR_CELLULAR_NEIGHBORHOOD_ANALYSIS {
         }
         
         # Load required libraries
-        library(hoodscanR)
+           library(SummarizedExperiment)
+     library(hoodscanR)
         library(SpatialExperiment)
         library(scico)
         library(ggplot2)

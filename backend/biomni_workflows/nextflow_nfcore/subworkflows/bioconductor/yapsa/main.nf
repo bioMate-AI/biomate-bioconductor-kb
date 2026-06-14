@@ -60,7 +60,7 @@ process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {
     # Define parameters
     word_length <- 3
     
-    # 1. Read User Input Files from the Working Directory
+    # --- Read User Input Files from the Working Directory ---
     if (file.exists("lymphoma_Nature2013_df.rds")) {
       lymphoma_Nature2013_df <- readRDS("lymphoma_Nature2013_df.rds")
     } else if (file.exists("lymphoma_Nature2013_df.csv")) {
@@ -88,14 +88,14 @@ process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {
     lymphoma_PID_df <- data.frame(SUBGROUP = lymphoma_PID_df\$SUBGROUP, row.names = lymphoma_PID_df\$PID)
     lymphoma_PID_df\$PID <- rownames(lymphoma_PID_df)
     
-    # 2. Load Known Signatures and Optimal Cutoffs directly from package namespace (avoiding data() calls)
+    # --- Load Known Signatures and Optimal Cutoffs directly from ---
     current_sig_df <- YAPSA::AlexCosmicValid_sig_df
     current_sigInd_df <- YAPSA::AlexCosmicValid_sigInd_df
     current_cutoff_df <- YAPSA::cutoffCosmicValid_abs_df
     current_cost_factor <- 6
     current_cutoff_vector <- current_cutoff_df[current_cost_factor,]
     
-    # 3. Build the Mutational Catalogue
+    # --- Build the Mutational Catalogue ---
     lymphomaNature2013_mutCat_list <- create_mutation_catalogue_from_df(
       lymphoma_Nature2013_df, this_seqnames.field = "CHROM",
       this_start.field = "POS", this_end.field = "POS",
@@ -104,21 +104,21 @@ process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {
     lymphomaNature2013_mutCat_df <- as.data.frame(
       lymphomaNature2013_mutCat_list\$matrix)
     
-    # 4. Run Supervised Linear Combination Decomposition (LCD) with Signature-Specific Cutoffs
+    # --- Run Supervised Linear Combination Decomposition (LCD) ---
     lymphoma_COSMIC_listsList <- LCD_complex_cutoff_combined(
       in_mutation_catalogue_df = lymphomaNature2013_mutCat_df,
       in_cutoff_vector = current_cutoff_vector,
       in_signatures_df = current_sig_df,
       in_sig_ind_df = current_sigInd_df)
     
-    # 5. Annotate Sample Subgroups
+    # --- Annotate Sample Subgroups ---
     COSMIC_subgroups_df <- make_subgroups_df(lymphoma_PID_df, lymphoma_COSMIC_listsList\$cohort\$exposures)
     result_cohort <- lymphoma_COSMIC_listsList\$cohort
     
     # Map cohort results to the variable name expected by the documented heatmap call
     CosmicValid_cutoffGen_LCDlist <- lymphoma_COSMIC_listsList\$cohort
     
-    # 6. Visualization and Clustering
+    # --- Visualization and Clustering ---
     # Save absolute and relative signature exposures barplot
     pdf("exposures_barplot.pdf", width = 12, height = 8)
     exposures_barplot(
@@ -139,7 +139,7 @@ process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {
       in_subgroup_column="subgroup")
     dev.off()
     
-    # 7. Write Output Tables and Objects
+    # --- Write Output Tables and Objects ---
     write.csv(lymphomaNature2013_mutCat_df, "lymphomaNature2013_mutCat_df.csv", row.names = TRUE)
     write.csv(result_cohort\$exposures, "COSMIC_absolute_exposures.csv", row.names = TRUE)
     write.csv(result_cohort\$norm_exposures, "COSMIC_relative_exposures.csv", row.names = TRUE)

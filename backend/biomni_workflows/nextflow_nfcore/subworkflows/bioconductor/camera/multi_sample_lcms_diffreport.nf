@@ -57,7 +57,7 @@ process BIOC_CAMERA_MULTI_SAMPLE_LCMS_DIFFREPORT {
     library(CAMERA)
     
     # ---------------------------------------------------------
-    # Stage 0: Read User Input (faahko as RDS or raw CDF files)
+    # --- Read User Input (faahko as RDS or raw CDF files) ---
     # ---------------------------------------------------------
     if (file.exists("faahko.rds")) {
       faahko <- readRDS("faahko.rds")
@@ -75,40 +75,40 @@ process BIOC_CAMERA_MULTI_SAMPLE_LCMS_DIFFREPORT {
     saveRDS(faahko, file = "faahko_init.rds")
     
     # ---------------------------------------------------------
-    # Stage 1: Preprocess multiple samples with xcms grouping and peak filling
+    # --- Preprocess multiple samples with xcms grouping and peak ---
     # ---------------------------------------------------------
     xsg <- group(faahko)
     xsg <- fillPeaks(xsg)
     
     # ---------------------------------------------------------
-    # Stage 2: Initialize CAMERA annotation object
+    # --- Initialize CAMERA annotation object ---
     # ---------------------------------------------------------
     xsa <- xsAnnotate(xsg)
     
     # ---------------------------------------------------------
-    # Stage 3: Group peaks by retention time
+    # --- Group peaks by retention time ---
     # ---------------------------------------------------------
     xsaF <- groupFWHM(xsa, perfwhm=0.6)
     
     # ---------------------------------------------------------
-    # Stage 4: Verify grouping with peak shape correlation
+    # --- Verify grouping with peak shape correlation ---
     # ---------------------------------------------------------
     xsaC <- groupCorr(xsaF)
     
     # ---------------------------------------------------------
-    # Stage 5: Annotate isotopes
+    # --- Annotate isotopes ---
     # ---------------------------------------------------------
     xsaFI <- findIsotopes(xsaC)
     
     # ---------------------------------------------------------
-    # Stage 6: Annotate adducts
+    # --- Annotate adducts ---
     # ---------------------------------------------------------
     xsaFA <- findAdducts(xsaFI, polarity="positive")
     write.csv(getPeaklist(xsaFA), file="result_CAMERA.csv")
     saveRDS(xsaFA, file="xsaFA.rds")
     
     # ---------------------------------------------------------
-    # Stage 7: Generate and export combined differential report
+    # --- Generate and export combined differential report ---
     # ---------------------------------------------------------
     xsg.fill <- fillPeaks(xsg)
     diffreport <- annotateDiffreport(xsg.fill)

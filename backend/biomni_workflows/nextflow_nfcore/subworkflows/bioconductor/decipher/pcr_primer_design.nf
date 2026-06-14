@@ -74,7 +74,7 @@ process BIOC_DECIPHER_PCR_PRIMER_DESIGN {
       dbRemoveTable(dbConn, "Tiles")
     }
     
-    # 1. Import sequences into the SQLite database
+    # --- Import sequences into the SQLite database ---
     Seqs2DB(fas, "FASTA", dbConn, "Streptomyces")
     
     # Retrieve descriptions to construct taxonomic identifiers
@@ -100,13 +100,13 @@ process BIOC_DECIPHER_PCR_PRIMER_DESIGN {
       desc <- "avermitilis"
     }
     
-    # 2. Add taxonomic identifiers to the database
+    # --- Add taxonomic identifiers to the database ---
     Add2DB(data.frame(identifier=desc, stringsAsFactors=FALSE), dbConn)
     
-    # 3. Generate sequence tiles
+    # --- Generate sequence tiles ---
     tiles <- TileSeqs(dbConn, add2tbl="Tiles", minCoverage=1)
     
-    # 4. Design primers targeting the specific group "avermitilis"
+    # --- Design primers targeting the specific group "avermitilis" ---
     primers <- DesignPrimers(tiles, identifier="avermitilis",
                              minCoverage=1, minGroupCoverage=1)
     
@@ -121,7 +121,7 @@ process BIOC_DECIPHER_PCR_PRIMER_DESIGN {
       }
     }
     
-    # 5. Evaluate PCR efficiency
+    # --- Evaluate PCR efficiency ---
     efficiency <- CalculateEfficiencyPCR(ps, reverseComplement(DNAStringSet(ps)),
                                          temp, P=4e-7, ions=.225)
     

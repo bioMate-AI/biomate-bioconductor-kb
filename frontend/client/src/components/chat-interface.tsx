@@ -665,9 +665,35 @@ export function ChatInterface({
   const chatMutation = useMutation({
     mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
       const session = chatHistoryService.getSession(sessionId)
-      const previousMessages = (session?.messages || [])
+      // Thread the active project id (if any) into chat-stream context.
+      // Server policy: null/missing → chat stays project-less; non-null
+      // → chat becomes project-scoped and cross-session recovery
+      // (within the same project) is in scope. See
+      // docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const _activeProjectId = (() => {
+        try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
+        catch { return null }
+      })()
+      // Build the history payload. See:
+      //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
+      //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md
+      // Previously `.slice(-4)` — dropped early `[Galaxy dataset: ...]`
+      // attachment lines after 2 turns, so the LLM kept asking for files
+      // the user had already attached. Now: include the last 8 turns plus
+      // any earlier message carrying a dataset/attachment block. The
+      // server then runs selectChatHistoryUnderBudget over this payload
+      // (≤16 KB cap, dataset blocks verbatim, long assistant replies
+      // head/tail-clipped) — that's the authoritative budget. Keep the
+      // client payload modest so we don't pay for redundant network
+      // transfer of content the server will discard anyway.
+      const _DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:/i
+      const _allMsgs = (session?.messages || [])
         .filter((m) => (m.role === "user" || m.role === "assistant") && !!m.content?.trim())
-        .slice(-4)
+      const _recent = _allMsgs.slice(-8)
+      const _earlierAttachments = _allMsgs
+        .slice(0, Math.max(0, _allMsgs.length - 8))
+        .filter((m) => _DATASET_BLOCK_RE.test(m.content || ""))
+      const previousMessages = [..._earlierAttachments, ..._recent]
         .map((m) => ({ role: m.role, content: m.content }))
       abortControllerRef.current = new AbortController()
       const response = await fetch('/api/chat/stream', {
@@ -686,6 +712,7 @@ export function ChatInterface({
             // The server UPSERTs by assistantMessageId so client + server writes
             // are idempotent (no duplicate messages).
             ...(sessionId && { memorySessionId: sessionId, sessionId }),
+            ...(_activeProjectId && { projectId: _activeProjectId }),
             assistantMessageId: placeholderId,
           }
         })
@@ -1999,6 +2026,11 @@ export function ChatInterface({
         isCompressing={isCompressing}
         onCompress={handleCompress}
         onCancel={handleCancelCompression}
+        onStartNewChat={() => {
+          setShowCompressionDialog(false)
+          const newSession = chatHistoryService.createNewSession()
+          if (newSession && onChatUpdated) onChatUpdated(newSession)
+        }}
       />
     </div>
   )

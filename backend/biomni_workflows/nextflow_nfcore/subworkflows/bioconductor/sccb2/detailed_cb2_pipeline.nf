@@ -64,14 +64,14 @@ process BIOC_SCCB2_DETAILED_CB2_PIPELINE {
       stop(paste("Error: Input directory '", data.dir, "' does not exist in the current working directory.", sep = ""))
     }
     
-    # 1. Read raw 10x data into R
+    # --- Read raw 10x data into R ---
     message("Reading raw 10x data...")
     mbrainSub_2 <- Read10xRaw(data.dir)
     
     # Assign to mbrainSub to match the documented workflow variables
     mbrainSub <- mbrainSub_2
     
-    # 2. Evaluate and choose an appropriate background cutoff
+    # --- Evaluate and choose an appropriate background cutoff ---
     message("Evaluating background cutoff...")
     check_cutoff <- CheckBackgroundCutoff(mbrainSub)
     
@@ -83,14 +83,14 @@ process BIOC_SCCB2_DETAILED_CB2_PIPELINE {
     write.csv(check_cutoff\$summary_table, file = "background_cutoff_summary.csv", row.names = FALSE)
     writeLines(as.character(check_cutoff\$recommended_cutoff), con = "recommended_cutoff.txt")
     
-    # 3. Run CB2 to distinguish real cells from empty droplets
+    # --- Run CB2 to distinguish real cells from empty droplets ---
     message("Running CB2 to identify real cells...")
     CBOut <- CB2FindCell(mbrainSub, FDR_threshold = 0.01, lower = 100, Ncores = 2)
     
     # Save the full CB2 output object
     saveRDS(CBOut, file = "CBOut.rds")
     
-    # 4. Extract the real cell matrix and filter out damaged cells based on mitochondrial gene expression
+    # --- Extract the real cell matrix and filter out damaged cells ---
     message("Extracting real cell matrix and filtering mitochondrial genes...")
     RealCell <- GetCellMat(CBOut, MTfilter = 0.25)
     

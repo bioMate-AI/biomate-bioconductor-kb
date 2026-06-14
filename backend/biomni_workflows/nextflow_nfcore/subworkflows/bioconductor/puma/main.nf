@@ -56,7 +56,7 @@ process BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS {
     library(oligo)
     library(puma)
     
-    # 1. Read CEL files and define phenotype data
+    # --- Read CEL files and define phenotype data ---
     # The pipeline reads raw Affymetrix 3' array CEL files from the working directory
     celFiles <- list.celfiles()
     
@@ -74,11 +74,11 @@ process BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS {
     ,   row.names=rownames(pData(oligo.estrogen))
     )
     
-    # 2. Summarise probe-level data using mmgmos
+    # --- Summarise probe-level data using mmgmos ---
     eset_estrogen_mmgmos<-mmgmos(oligo.estrogen,gsnorm="none")
     saveRDS(eset_estrogen_mmgmos, file="eset_estrogen_mmgmos.rds")
     
-    # 3. Perform uncertainty-aware PCA
+    # --- Perform uncertainty-aware PCA ---
     pumapca_estrogen <- pumaPCA(eset_estrogen_mmgmos)
     saveRDS(pumapca_estrogen, file="pumapca_estrogen.rds")
     
@@ -87,22 +87,22 @@ process BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS {
     plot(pumapca_estrogen,legend1pos="right",legend2pos="top",main="pumaPCA")
     dev.off()
     
-    # 4. Normalize expression levels
+    # --- Normalize expression levels ---
     eset_estrogen_mmgmos_normd <- pumaNormalize(eset_estrogen_mmgmos)
     saveRDS(eset_estrogen_mmgmos_normd, file="eset_estrogen_mmgmos_normd.rds")
     
-    # 5. Combine replicate arrays
+    # --- Combine replicate arrays ---
     eset_estrogen_comb <- pumaComb(eset_estrogen_mmgmos_normd)
     saveRDS(eset_estrogen_comb, file="eset_estrogen_comb.rds")
     
-    # 6. Identify differentially expressed genes using PPLR
+    # --- Identify differentially expressed genes using PPLR ---
     pumaDERes <- pumaDE(eset_estrogen_comb)
     saveRDS(pumaDERes, file="pumaDERes.rds")
     
     # Write out the statistics and fold change results to CSV files
     write.reslts(pumaDERes, file="pumaDERes")
     
-    # 7. Plot expression levels with error bars
+    # --- Plot expression levels with error bars ---
     toppumaDEIntGene <- topGenes(pumaDERes, contrast=7)
     write.csv(toppumaDEIntGene, file="toppumaDEIntGene.csv", row.names=TRUE)
     

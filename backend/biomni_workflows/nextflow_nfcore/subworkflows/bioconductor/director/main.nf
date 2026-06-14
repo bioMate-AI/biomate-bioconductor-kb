@@ -34,6 +34,15 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Director", "htmltools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,11 +52,11 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(Director)
     library(htmltools)
     
-    # Stage 2: Read and parse the input file defensively
+    # --- Read and parse the input file defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -99,7 +108,7 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
       values <- values[top_idx]
     }
     
-    # Stage 3: Construct the regulatory cascade data frame
+    # --- Construct the regulatory cascade data frame ---
     # We map the input genes to upstream regulators (miRNAs) and downstream pathways
     set.seed(42)
     mirnas <- c("miR-21-5p", "miR-145-5p", "miR-29b-3p", "miR-9-5p", "miR-155-5p")
@@ -127,7 +136,7 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
     # Save the processed cascade data
     write.csv(cascade_df, "cascade_data.csv", row.names = FALSE)
     
-    # Stage 4: Generate the interactive Sankey diagram using Director
+    # --- Generate the interactive Sankey diagram using Director ---
     # We use tryCatch to handle potential variations in the Director API
     html_widget <- tryCatch({
       Director::director(
@@ -151,7 +160,7 @@ process BIOC_DIRECTOR_DIRECTOR_CASCADE_VISUALIZATION {
       })
     })
     
-    # Stage 5: Save the interactive visualization
+    # --- Save the interactive visualization ---
     # Since Director utilizes htmltools, we save the widget/HTML output
     tryCatch({
       htmltools::save_html(html_widget, file = "regulatory_cascade.html")

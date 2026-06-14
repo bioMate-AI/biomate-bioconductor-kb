@@ -56,19 +56,19 @@ process BIOC_RBLAST_CREATE_CUSTOM_BLAST_DB {
     library(rBLAST)
     library(Biostrings)
     
-    # 1. Read sequences using readRNAStringSet from the user-provided FASTA file
+    # --- Read sequences using readRNAStringSet from the ---
     seq <- readRNAStringSet("RNA_example.fasta")
     
-    # 2. Write sequences to a FASTA file using writeXStringSet
+    # --- Write sequences to a FASTA file using writeXStringSet ---
     writeXStringSet(seq, filepath = "seqs.fasta")
     
-    # 3. Build the BLAST database using makeblastdb
+    # --- Build the BLAST database using makeblastdb ---
     makeblastdb("seqs.fasta", db_name = "db/small", dbtype = "nucl")
     
-    # 4. Load the custom database using blast
+    # --- Load the custom database using blast ---
     db <- blast("db/small")
     
-    # 5. Extract a query fragment using subseq (documented stage)
+    # --- Extract a query fragment using subseq (documented stage) ---
     fragment <- subseq(seq[1], start = 101, end = 200)
     
     # Read the user-provided query sequence from the "fragment" file
@@ -77,7 +77,7 @@ process BIOC_RBLAST_CREATE_CUSTOM_BLAST_DB {
       fragment <- readRNAStringSet("fragment")
     }
     
-    # 6. Query the custom database using predict
+    # --- Query the custom database using predict ---
     results <- predict(db, fragment)
     
     # Write named output files for the meaningful results

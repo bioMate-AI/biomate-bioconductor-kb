@@ -57,7 +57,7 @@ process BIOC_ICETEA_END_TO_END_TSS_ANALYSIS {
     library(Rsubread)
     library(rtracklayer)
     
-    # 1. Create a CapSet object with raw FASTQ files and sample barcodes using newCapSet
+    # --- Create a CapSet object with raw FASTQ files and sample ---
     idxlist <- c("CAAGTG", "TTAGCC", "GTGGAA", "TGTGAG")
     fnames <- c("embryo1", "embryo2", "embryo3", "embryo4")
     
@@ -67,30 +67,30 @@ process BIOC_ICETEA_END_TO_END_TSS_ANALYSIS {
                     idxList = idxlist,
                     sampleNames = fnames)
     
-    # 2. De-multiplex the FASTQ files using demultiplexFASTQ
+    # --- De-multiplex the FASTQ files using demultiplexFASTQ ---
     dir.create("splitting", showWarnings = FALSE)
     cs <- demultiplexFASTQ(cs, max_mismatch = 1, outdir = "splitting", ncores = 10)
     
-    # 3. Build a subread index using Rsubread::buildindex
+    # --- Build a subread index using Rsubread::buildindex ---
     dir.create("genome_index", showWarnings = FALSE)
     buildindex(basename = "genome_index/dm6", reference = "reference_genome.fa")
     subread_idx <- "genome_index/dm6"
     
-    # 4. Map the de-multiplexed FASTQ files using mapCaps
+    # --- Map the de-multiplexed FASTQ files using mapCaps ---
     dir.create("mapping", showWarnings = FALSE)
     cs <- mapCaps(cs, subread_idx, outdir = "mapping", ncores = 20, logfile = "mapping/subread_mapping.log")
     
-    # 5. Filter PCR duplicates using filterDuplicates
+    # --- Filter PCR duplicates using filterDuplicates ---
     dir.create("removedup", showWarnings = FALSE)
     cs <- filterDuplicates(cs, outdir = "removedup")
     
-    # 6. Detect TSSs using detectTSS and export them using exportTSS
+    # --- Detect TSSs using detectTSS and export them using ---
     dir.create("tssCalling", showWarnings = FALSE)
     cs <- detectTSS(cs, groups = c("wt", "wt", "mut", "mut"),
                      outfile_prefix = "tssCalling/testTSS", restrictChr = "X", ncores = 1)
     exportTSS(cs, merged = TRUE, outfile_prefix = "tssCalling/testTSS")
     
-    # 7. Perform differential TSS expression analysis using fitDiffTSS and detectDiffTSS
+    # --- Perform differential TSS expression analysis using ---
     csfit <- fitDiffTSS(cs, groups = rep(c("wt","mut"), each = 2), normalization = "windowTMM",
                          outplots = NULL, plotref = "embryo1")
     

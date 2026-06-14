@@ -57,7 +57,7 @@ process BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION {
     library(SummarizedExperiment)
     library(S4Vectors)
     
-    # 1. Locate input files from the working directory
+    # --- Locate input files from the working directory ---
     gtfFile <- "test.gtf"
     bamFile <- "test.bam"
     
@@ -69,16 +69,16 @@ process BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION {
       stop(paste("Required BAM file not found in the working directory:", bamFile))
     }
     
-    # 2. Run quantification using RmmquantRun
+    # --- Run quantification using RmmquantRun ---
     output <- RmmquantRun(gtfFile, bamFile)
     
-    # 3. Extract count matrix
+    # --- Extract count matrix ---
     counts_matrix <- assays(output)\$counts
     
-    # 4. Extract mapping statistics
+    # --- Extract mapping statistics ---
     mapping_stats <- colData(output)
     
-    # 5. Write named output files for the results
+    # --- Write named output files for the results ---
     # Save the count matrix as a CSV file
     write.csv(as.matrix(counts_matrix), "gene_counts.csv", row.names = TRUE)
     

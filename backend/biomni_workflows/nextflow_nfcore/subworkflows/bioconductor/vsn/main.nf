@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run one-step normalization with justvsn 2. Alternatively, run two-step normalization by fitting parameters with vsn2 and applying 
+//  * 1. [Core Analysis] Run one-step normalization with justvsn
+//  * 2. [Core Analysis] Alternatively, run two-step normalization by fitting
+//  * 3. [Core Analysis] Assess variance stabilization using meanSdPlot
+//  * 4. [Core Analysis] Perform spike-in normalization or normalization without
 
 nextflow.enable.dsl = 2
 
@@ -79,7 +82,7 @@ process BIOC_VSN_STANDARD_MICROARRAY_NORMALIZATION {
       stop("Error: 'lymphoma' input file not found in the working directory.")
     }
     
-    # 1. Run one-step normalization with justvsn
+    # --- Run one-step normalization with justvsn ---
     xnorm = justvsn(kidney)
     saveRDS(xnorm, "xnorm.rds")
     
@@ -87,14 +90,14 @@ process BIOC_VSN_STANDARD_MICROARRAY_NORMALIZATION {
     M = exprs(xnorm)[,1] - exprs(xnorm)[,2]
     write.csv(data.frame(M = M), "M_log_ratios.csv", row.names = TRUE)
     
-    # 2. Alternatively, run two-step normalization by fitting parameters with vsn2 and applying them with predict
+    # --- Alternatively, run two-step normalization by fitting ---
     fit = vsn2(kidney)
     saveRDS(fit, "fit.rds")
     
     ynorm = predict(fit, kidney)
     saveRDS(ynorm, "ynorm.rds")
     
-    # 3. Assess variance stabilization using meanSdPlot
+    # --- Assess variance stabilization using meanSdPlot ---
     pdf("meanSdPlot_ranks_true.pdf")
     p1 = meanSdPlot(xnorm, ranks = TRUE)
     if (inherits(p1, "gg") || inherits(p1, "ggplot")) {
@@ -109,7 +112,7 @@ process BIOC_VSN_STANDARD_MICROARRAY_NORMALIZATION {
     }
     dev.off()
     
-    # 4. Perform spike-in normalization or normalization without calibration if required
+    # --- Perform spike-in normalization or normalization without ---
     # Define spike-in indices (features 100 to 200 as documented in the vignette)
     # We ensure the indices do not exceed the number of rows in the kidney dataset
     max_spike <- min(200, nrow(kidney))

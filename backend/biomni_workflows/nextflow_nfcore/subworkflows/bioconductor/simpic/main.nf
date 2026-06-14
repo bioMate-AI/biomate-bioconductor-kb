@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run PIC counting to generate the PIC matrix using PIC_counting
+//  * 1. [Core Analysis] Read cell barcodes and metadata
+//  * 2. [Core Analysis] Read peak regions and convert to a GRanges object
+//  * 3. [Core Analysis] Run PIC counting to generate the PIC matrix
+//  * 4. [Core Analysis] Save the resulting PIC matrix and write outputs
 
 nextflow.enable.dsl = 2
 
@@ -75,12 +78,12 @@ process BIOC_SIMPIC_PIC_MATRIX_GENERATION {
         stop(paste("Required input file missing:", fragment_tsv_gz_file_location))
     }
     
-    # 1. Read cell barcodes and metadata
+    # --- Read cell barcodes and metadata ---
     # Typically, cells can be represented as a data frame or a vector of barcodes.
     # We read the CSV file directly.
     cells <- read.csv(cells_file, stringsAsFactors = FALSE)
     
-    # 2. Read peak regions and convert to a GRanges object
+    # --- Read peak regions and convert to a GRanges object ---
     # BED files are tab-separated with chromosome, start, and end in the first three columns.
     peaks_df <- read.table(peaks_file, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
     colnames(peaks_df)[1:3] <- c("chrom", "start", "end")
@@ -90,7 +93,7 @@ process BIOC_SIMPIC_PIC_MATRIX_GENERATION {
         ranges = IRanges::IRanges(start = peaks_df\$start, end = peaks_df\$end)
     )
     
-    # 3. Run PIC counting to generate the PIC matrix
+    # --- Run PIC counting to generate the PIC matrix ---
     message("Running PIC_counting to generate the Paired-Insertion Count (PIC) matrix...")
     pic_mat <- PIC_counting(
         cells = cells,
@@ -98,7 +101,7 @@ process BIOC_SIMPIC_PIC_MATRIX_GENERATION {
         peak_sets = peak_sets
     )
     
-    # 4. Save the resulting PIC matrix and write outputs
+    # --- Save the resulting PIC matrix and write outputs ---
     output_rds <- "pic_matrix.rds"
     saveRDS(pic_mat, file = output_rds)
     message(paste("Successfully saved PIC matrix to", output_rds))

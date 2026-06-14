@@ -60,6 +60,7 @@ process BIOC_MBASED_TWO_SAMPLE_ASE {
     
     # Load required libraries
     library(MBASED)
+    library(SummarizedExperiment)
     library(BiocParallel)
     
     # Set seed for reproducibility

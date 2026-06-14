@@ -96,22 +96,22 @@ process BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF {
     samplesheet <- "exampleChIP1.tsv"
     hets <- c("MCF7" = "MCF7_hetSNP.txt", "GM12891" = "GM12891_hetSNP.txt")
     
-    # Step 1: Construct BaalChIP object
+    # --- Construct BaalChIP object ---
     message("Constructing BaalChIP object...")
     res <- BaalChIP(samplesheet=samplesheet, hets=hets)
     
-    # Step 2: Compute allele counts
+    # --- Compute allele counts ---
     message("Computing allele counts...")
     res <- alleleCounts(res, min_base_quality=10, min_mapq=15, verbose=FALSE)
     
-    # Step 3: Filter problematic regions
+    # --- Filter problematic regions ---
     message("Filtering problematic regions (QCfilter)...")
     res <- QCfilter(res, 
                     RegionsToFilter=list("blacklist"=blacklist_hg19, "highcoverage"=pickrell2011cov1_hg19), 
                     RegionsToKeep=list("UniqueMappability"=UniqueMappability50bp_hg19), 
                     verbose=FALSE)
     
-    # Step 4: Filter intrinsic bias
+    # --- Filter intrinsic bias ---
     message("Filtering intrinsic bias...")
     res <- filterIntbias(res, 
                          simul_output=preComputed_output, 
@@ -119,15 +119,15 @@ process BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF {
                          skipScriptRun=TRUE, 
                          verbose=FALSE)
     
-    # Step 5: Merge replicates
+    # --- Merge replicates ---
     message("Merging replicates per group...")
     res <- mergePerGroup(res)
     
-    # Step 6: Filter out homozygous SNPs
+    # --- Filter out homozygous SNPs ---
     message("Filtering out homozygous SNPs...")
     res <- filter1allele(res)
     
-    # Step 7: Run Bayesian ASB detection
+    # --- Run Bayesian ASB detection ---
     message("Running Bayesian ASB detection...")
     res <- getASB(res, 
                   Iter=5000, 
@@ -136,7 +136,7 @@ process BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF {
                   RMcorrection=TRUE, 
                   RAFcorrection=TRUE)
     
-    # Step 8: Generate final report
+    # --- Generate final report ---
     message("Generating final report...")
     result <- BaalChIP.report(res)
     

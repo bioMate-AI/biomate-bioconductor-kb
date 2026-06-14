@@ -13,7 +13,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Fit the zero-inflated mixture model and generate deinflated counts and weights using `ziMain`. 2. Calculate basic statistics and v
+//  * 1. [Visualization & Output] Read User Input
+//  * 2. [Visualization & Output] Fit Zero-Inflated Mixture Model
+//  * 3. [Visualization & Output] Visualizations & Resampling
+//  * 4. [Visualization & Output] Differential Abundance Analysis with DESeq2
+//  * 5. [Visualization & Output] Missing Value Heatmap
+//  * 6. [Visualization & Output] Principal Component Analysis (PCA)
+//  * 7. [Visualization & Output] Downstream Phyloseq Analysis
 
 nextflow.enable.dsl = 2
 
@@ -21,7 +27,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -39,6 +45,15 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("zitools", "phyloseq", "DESeq2", "tidyverse", "microbiome", "matrixStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -57,7 +72,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     library(matrixStats)
     
     # ----------------------------------------------------------------------
-    # 1. Read User Input
+    # --- Read User Input ---
     # ----------------------------------------------------------------------
     if (file.exists("phyloseq")) {
         phyloseq <- readRDS("phyloseq")
@@ -75,7 +90,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Fit Zero-Inflated Mixture Model
+    # --- Fit Zero-Inflated Mixture Model ---
     # ----------------------------------------------------------------------
     Zi <- ziMain(phyloseq)
     print(Zi)
@@ -95,7 +110,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     sink()
     
     # ----------------------------------------------------------------------
-    # 3. Visualizations & Resampling
+    # --- Visualizations & Resampling ---
     # ----------------------------------------------------------------------
     pdf("diagnostic_plots.pdf", width = 10, height = 8)
     
@@ -118,7 +133,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     } 
     
     # ----------------------------------------------------------------------
-    # 4. Differential Abundance Analysis with DESeq2
+    # --- Differential Abundance Analysis with DESeq2 ---
     # ----------------------------------------------------------------------
     DDS <- zi2deseq2(Zi, ~time)
     
@@ -177,7 +192,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 5. Missing Value Heatmap
+    # --- Missing Value Heatmap ---
     # ----------------------------------------------------------------------
     Zi2 <- Zi
     mat <- deinflatedcounts(Zi2)
@@ -187,7 +202,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     MissingValueHeatmap(Zi2, xlab = "Sample")
     
     # ----------------------------------------------------------------------
-    # 6. Principal Component Analysis (PCA)
+    # --- Principal Component Analysis (PCA) ---
     # ----------------------------------------------------------------------
     PCA <- princomp(covmat = cor(t(Zi)), cor = FALSE)
     centered_data <- (inputcounts(t(Zi))-colMeans2(t(Zi)))/sqrt(colVars(t(Zi)))
@@ -207,7 +222,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
         ylab(paste0("PC2 ", pc2_var, "%")))
     
     # ----------------------------------------------------------------------
-    # 7. Downstream Phyloseq Analysis
+    # --- Downstream Phyloseq Analysis ---
     # ----------------------------------------------------------------------
     new_phyloseq <- zi2phyloseq(Zi)
     saveRDS(new_phyloseq, "new_phyloseq.rds")

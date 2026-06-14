@@ -61,24 +61,24 @@ process BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION {
     # Set random seed for reproducibility
     set.seed(123)
     
-    # 1. Load reference genome sequence lengths
+    # --- Load reference genome sequence lengths ---
     sLengths <- seqlengths(Hsapiens)
     
-    # 2. Import methylation data from the working directory
+    # --- Import methylation data from the working directory ---
     methFname <- "Lister2009_imr90_hg38_chr22.tab"
     meth.gr <- readMethylome(FileName=methFname, seqLengths=sLengths)
     
-    # 3. Import SNP table and filter out SNP-overlapping CpGs
+    # --- Import SNP table and filter out SNP-overlapping CpGs ---
     snpFname <- "SNVs_hg38_chr22.tab"
     snps.gr <- readSNPTable(FileName=snpFname, seqLengths=sLengths)
     meth.gr <- removeSNPs(meth.gr, snps.gr)
     
-    # 4. Assess PMD presence by plotting alpha distribution
+    # --- Assess PMD presence by plotting alpha distribution ---
     pdf("alpha_distribution_initial.pdf")
     plotAlphaDistributionOneChr(m=meth.gr, chr.sel="chr22", num.cores=1)
     dev.off()
     
-    # 5. Segment PMDs
+    # --- Segment PMDs ---
     PMDsegments.gr <- segmentPMDs(m=meth.gr, chr.sel="chr22", seqLengths=sLengths, num.cores=1)
     
     # Plot alpha distribution after PMD removal
@@ -97,7 +97,7 @@ process BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION {
     savePMDSegments(PMDs=PMDsegments.gr, 
                     GRangesFilename="PMDs.gr.rds", TableFilename="PMDs.tab")
     
-    # 6. Fetch CpG Islands (with robust fallback in case of network issues)
+    # --- Fetch CpG Islands (with robust fallback in case of ---
     CpGislands.gr <- tryCatch({
       session <- browserSession()
       genome(session) <- "hg38"
@@ -135,7 +135,7 @@ process BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION {
       3
     })
     
-    # 7. Segment UMRs and LMRs
+    # --- Segment UMRs and LMRs ---
     UMRLMRsegments.gr <- segmentUMRsLMRs(m=meth.gr, meth.cutoff=m.sel,
     nCpG.cutoff=n.sel, PMDs=PMDsegments.gr, 
     num.cores=1, myGenomeSeq=Hsapiens, 

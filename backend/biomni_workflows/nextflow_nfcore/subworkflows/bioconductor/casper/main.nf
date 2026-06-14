@@ -35,6 +35,15 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "casper")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     library(Biobase)
     library(casper)
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     counts_file <- "counts.csv"
     coldata_file <- "coldata.csv"
     
@@ -87,7 +96,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
         exprs_vals <- counts_matrix
     }
     
-    # Stage 2: Construct ExpressionSet and Normalize
+    # --- Construct ExpressionSet and Normalize ---
     pheno_data <- new("AnnotatedDataFrame", data = coldata)
     feature_data <- new("AnnotatedDataFrame", data = data.frame(
         readCount = rowSums(counts_matrix),
@@ -106,7 +115,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     # Ensure condition is a factor for group comparison
     pData(eset_norm)\$condition <- as.factor(pData(eset_norm)\$condition)
     
-    # Stage 3: Equivalence Testing
+    # --- Equivalence Testing ---
     logfc_threshold <- log(1.5)
     
     # 3.1 Empirical Bayes Equivalence Testing (probNonEquiv)
@@ -133,7 +142,7 @@ process BIOC_CASPER_CASPER_EQUIVALENCE_TESTING {
     write.csv(prob_ne_df, "equivalence_probabilities.csv", row.names = FALSE)
     write.csv(treat_p_df, "treat_pvalues.csv", row.names = FALSE)
     
-    # Stage 4: Model Diagnostics and Visualization
+    # --- Model Diagnostics and Visualization ---
     message("Generating diagnostic plots...")
     pdf("diagnostics.pdf", width = 10, height = 8)
     par(mfrow = c(2, 2))

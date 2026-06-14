@@ -35,6 +35,15 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MEDME", "BSgenome.Hsapiens.UCSC.hg18")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     library(BSgenome.Hsapiens.UCSC.hg18)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input data...")
@@ -88,7 +97,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     }
     
     # ==========================================
-    # Stage 2: Parse and Validate Genomic Coordinates
+    # --- Parse and Validate Genomic Coordinates ---
     # ==========================================
     
     message("Parsing genomic coordinates...")
@@ -124,7 +133,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     }
     
     # ==========================================
-    # Stage 3: Create MEDMEset and Run Pipeline
+    # --- Create MEDMEset and Run Pipeline ---
     # ==========================================
     
     message("Initializing MEDMEset object...")
@@ -154,7 +163,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
                                wFunction = "linear")
     
     # ==========================================
-    # Stage 4: Export Results
+    # --- Export Results ---
     # ==========================================
     
     message("Exporting results...")

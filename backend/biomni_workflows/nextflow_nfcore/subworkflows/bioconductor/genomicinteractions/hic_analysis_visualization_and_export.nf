@@ -59,7 +59,7 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     library(InteractionSet)
     
     # ==========================================
-    # 1. Load Hi-C data and User Inputs
+    # --- Load Hi-C data and User Inputs ---
     # ==========================================
     
     # Define input file paths in the working directory
@@ -100,12 +100,12 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
                                                 description = "HiC 100kb resolution")
     
     # ==========================================
-    # 2. Set Chromosome Lengths
+    # --- Set Chromosome Lengths ---
     # ==========================================
     seqlengths(hic_data) <- c(chr15 = 103494974, chr14 = 125194864)
     
     # ==========================================
-    # 3. Calculate P-values and Filter by FDR
+    # --- Calculate P-values and Filter by FDR ---
     # ==========================================
     hic_data\$p.value <- exp(hic_data\$LogP)
     
@@ -136,7 +136,7 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     hic_data_subset <- hic_data[hic_data\$fdr < 0.1]
     
     # ==========================================
-    # 4. Plot Summary Statistics
+    # --- Plot Summary Statistics ---
     # ==========================================
     pdf("cis_trans_plots.pdf", width = 8, height = 6)
     plotCisTrans(hic_data)
@@ -149,7 +149,7 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     dev.off()
     
     # ==========================================
-    # 5. Annotate Interactions
+    # --- Annotate Interactions ---
     # ==========================================
     annotation.features <- list(promoter = mm9_refseq_promoters, enhancer = thymus_enh)
     annotateInteractions(hic_data_subset, annotation.features)
@@ -163,7 +163,7 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     dev.off()
     
     # ==========================================
-    # 6. Subset Specific Interaction Types
+    # --- Subset Specific Interaction Types ---
     # ==========================================
     length(hic_data_subset[isInteractionType(hic_data_subset, "promoter", "distal")])
     length(hic_data_subset[is.pd(hic_data_subset)])
@@ -185,7 +185,7 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     anchorTwo(most_counts)\$enhancer.id
     
     # ==========================================
-    # 7. Visualize Interactions using Gviz
+    # --- Visualize Interactions using Gviz ---
     # ==========================================
     Trib1_region <- resize(mm9_refseq_promoters["Trib1"], fix = "center", width = 1000000)
     interaction_track <- InteractionTrack(hic_data_subset, name = "HiC", chromosome = "chr15")
@@ -204,7 +204,7 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     dev.off()
     
     # ==========================================
-    # 8. Export Filtered Interactions to BED12
+    # --- Export Filtered Interactions to BED12 ---
     # ==========================================
     export.bed12(hic_data_subset, fn="hic_data_FDR0.1.bed", drop.trans = TRUE)
     

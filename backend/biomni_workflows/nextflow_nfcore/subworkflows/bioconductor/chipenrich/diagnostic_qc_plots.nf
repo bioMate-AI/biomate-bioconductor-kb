@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Plot peak distance to TSS distribution using plot_dist_to_tss(). 2. Plot presence of peak versus locus length spline using plot_ch
+//  * 1. [Visualization & Output] Plot peak distance to TSS distribution
+//  * 2. [Visualization & Output] Plot presence of peak versus locus length spline
+//  * 3. [Visualization & Output] Plot number of peaks versus locus length spline
+//  * 4. [Visualization & Output] Plot gene coverage versus locus length
 
 nextflow.enable.dsl = 2
 
@@ -91,25 +94,25 @@ process BIOC_CHIPENRICH_DIAGNOSTIC_QC_PLOTS {
     peaks_E2F4 <- read_peaks(peaks_E2F4_file)
     peaks_H3K4me3_GM12878 <- read_peaks(peaks_H3K4me3_GM12878_file)
     
-    # 1. Plot peak distance to TSS distribution
+    # --- Plot peak distance to TSS distribution ---
     pdf("plot_dist_to_tss.pdf", width = 6, height = 6)
     p1 <- plot_dist_to_tss(peaks = peaks_E2F4, genome = 'hg19')
     if (!is.null(p1)) print(p1)
     dev.off()
     
-    # 2. Plot presence of peak versus locus length spline
+    # --- Plot presence of peak versus locus length spline ---
     pdf("plot_chipenrich_spline.pdf", width = 6, height = 6)
     p2 <- plot_chipenrich_spline(peaks = peaks_E2F4, locusdef = 'nearest_tss', genome = 'hg19')
     if (!is.null(p2)) print(p2)
     dev.off()
     
-    # 3. Plot number of peaks versus locus length spline
+    # --- Plot number of peaks versus locus length spline ---
     pdf("plot_polyenrich_spline.pdf", width = 6, height = 6)
     p3 <- plot_polyenrich_spline(peaks = peaks_E2F4, locusdef = 'nearest_tss', genome = 'hg19')
     if (!is.null(p3)) print(p3)
     dev.off()
     
-    # 4. Plot gene coverage versus locus length
+    # --- Plot gene coverage versus locus length ---
     pdf("plot_gene_coverage.pdf", width = 6, height = 6)
     p4 <- plot_gene_coverage(peaks = peaks_H3K4me3_GM12878, locusdef = 'nearest_tss',  genome = 'hg19')
     if (!is.null(p4)) print(p4)

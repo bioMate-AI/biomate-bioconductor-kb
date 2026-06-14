@@ -82,12 +82,12 @@ process BIOC_QUASR_RNA_SEQ_WORKFLOW {
         organism = "Homo sapiens"
     )
     
-    # 1. Align paired-end reads with spliced alignment enabled using qAlign
+    # --- Align paired-end reads with spliced alignment enabled ---
     proj2 <- qAlign(sampleFile, genome = genomeFile,
                     splicedAlignment = TRUE, aligner = "Rhisat2")
     proj2
     
-    # 2. Quantify gene and exon expression levels using qCount
+    # --- Quantify gene and exon expression levels using qCount ---
     geneLevels <- qCount(proj2, txdb, reportLevel = "gene")
     exonLevels <- qCount(proj2, txdb, reportLevel = "exon")
     
@@ -95,10 +95,10 @@ process BIOC_QUASR_RNA_SEQ_WORKFLOW {
     geneRPKM <- t(t(geneLevels[,-1] / geneLevels[,1] * 1000)
                   / colSums(geneLevels[,-1]) * 1e6)
     
-    # 3. Quantify exon-exon junctions using qCount with reportLevel="junction"
+    # --- Quantify exon-exon junctions using qCount with ---
     exonJunctions <- qCount(proj2, NULL, reportLevel = "junction")
     
-    # 4. Quantify exon body levels excluding spliced alignments using qCount with includeSpliced=FALSE
+    # --- Quantify exon body levels excluding spliced alignments ---
     exonBodyLevels <- qCount(proj2, txdb, reportLevel = "exon",
                              includeSpliced = FALSE)
     

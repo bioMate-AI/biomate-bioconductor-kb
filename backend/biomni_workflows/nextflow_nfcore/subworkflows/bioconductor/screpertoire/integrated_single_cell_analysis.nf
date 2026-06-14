@@ -12,7 +12,17 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Exclude VDJ genes from highly variable features using quietTCRgenes(), quietBCRgenes(), or quietVDJgenes(). 2. Merge clonal data i
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Exclude VDJ genes from highly variable features
+//  * 3. [Visualization & Output] Merge clonal data into the single-cell objects
+//  * 4. [Visualization & Output] Visualize clonal expansion on UMAP/tSNE
+//  * 5. [Visualization & Output] Map clonal sharing between clusters
+//  * 6. [Visualization & Output] Highlight specific clones
+//  * 7. [Visualization & Output] Analyze cluster occupancy
+//  * 8. [Visualization & Output] Track clones across categorical variables
+//  * 9. [Visualization & Output] Generate chord diagrams of clonal sharing
+//  * 10. [Visualization & Output] Calculate STARTRAC diversity indices
+//  * 11. [Visualization & Output] Calculate clonal bias
 
 nextflow.enable.dsl = 2
 
@@ -67,7 +77,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     })
                     
                     # -------------------------------------------------------------------------
-                    # Stage 0: Load User Input Files
+                    # --- Load User Input Files ---
                     # -------------------------------------------------------------------------
                     message("Loading input files from the working directory...")
                     
@@ -97,13 +107,13 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     scRep_example\$Type <- substr(scRep_example\$orig.ident, 4, 4)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 1: Exclude VDJ genes from highly variable features
+                    # --- Exclude VDJ genes from highly variable features ---
                     # -------------------------------------------------------------------------
                     message("Excluding VDJ genes using quietTCRgenes...")
                     scRep_example <- quietTCRgenes(scRep_example)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 2: Merge clonal data into the single-cell objects
+                    # --- Merge clonal data into the single-cell objects ---
                     # -------------------------------------------------------------------------
                     message("Merging clonal data using combineExpression...")
                     sce <- combineExpression(combined.TCR, 
@@ -124,7 +134,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     saveRDS(scRep_example, "seurat_integrated.rds")
                     
                     # -------------------------------------------------------------------------
-                    # Stage 3: Visualize clonal expansion on UMAP/tSNE
+                    # --- Visualize clonal expansion on UMAP/tSNE ---
                     # -------------------------------------------------------------------------
                     message("Generating clonalOverlay plot...")
                     p_overlay <- clonalOverlay(scRep_example, 
@@ -136,7 +146,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     ggsave("clonal_overlay.pdf", plot = p_overlay, width = 10, height = 8)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 4: Map clonal sharing between clusters
+                    # --- Map clonal sharing between clusters ---
                     # -------------------------------------------------------------------------
                     message("Generating clonalNetwork plot...")
                     p_network <- clonalNetwork(scRep_example, 
@@ -148,7 +158,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     ggsave("clonal_network.pdf", plot = p_network, width = 10, height = 8)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 5: Highlight specific clones
+                    # --- Highlight specific clones ---
                     # -------------------------------------------------------------------------
                     message("Highlighting specific clones...")
                     clone_counts <- table(scRep_example\$CTaa)
@@ -161,7 +171,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     ggsave("highlight_clones.pdf", plot = p_highlight, width = 10, height = 8)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 6: Analyze cluster occupancy
+                    # --- Analyze cluster occupancy ---
                     # -------------------------------------------------------------------------
                     message("Generating clonalOccupy plot...")
                     p_occupy <- clonalOccupy(scRep_example, 
@@ -169,7 +179,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     ggsave("clonal_occupy.pdf", plot = p_occupy, width = 10, height = 8)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 7: Track clones across categorical variables
+                    # --- Track clones across categorical variables ---
                     # -------------------------------------------------------------------------
                     message("Generating alluvialClones plot...")
                     p_alluvial <- alluvialClones(scRep_example,
@@ -179,7 +189,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     ggsave("alluvial_clones.pdf", plot = p_alluvial, width = 12, height = 8)
                     
                     # -------------------------------------------------------------------------
-                    # Stage 8: Generate chord diagrams of clonal sharing
+                    # --- Generate chord diagrams of clonal sharing ---
                     # -------------------------------------------------------------------------
                     message("Generating vizCirclize plot...")
                     pdf("viz_circlize.pdf", width = 8, height = 8)
@@ -190,7 +200,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     dev.off()
                     
                     # -------------------------------------------------------------------------
-                    # Stage 9: Calculate STARTRAC diversity indices
+                    # --- Calculate STARTRAC diversity indices ---
                     # -------------------------------------------------------------------------
                     message("Calculating StartracDiversity...")
                     startrac_res <- StartracDiversity(scRep_example, 
@@ -199,7 +209,7 @@ process BIOC_SCREPERTOIRE_INTEGRATED_SINGLE_CELL_ANALYSIS {
                     saveRDS(startrac_res, "startrac_diversity.rds")
                     
                     # -------------------------------------------------------------------------
-                    # Stage 10: Calculate clonal bias
+                    # --- Calculate clonal bias ---
                     # -------------------------------------------------------------------------
                     message("Calculating clonalBias...")
                     p_bias <- clonalBias(scRep_example, 

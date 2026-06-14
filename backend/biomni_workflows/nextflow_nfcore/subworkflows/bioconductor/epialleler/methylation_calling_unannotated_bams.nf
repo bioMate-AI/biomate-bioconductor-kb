@@ -64,18 +64,18 @@ process BIOC_EPIALLELER_METHYLATION_CALLING_UNANNOTATED_BAMS {
     stats_file <- "calling_statistics.rds"
     report_file <- "methylation_report.csv"
     
-    # 1. Preprocess reference genome using preprocessGenome
+    # --- Preprocess reference genome using preprocessGenome ---
     message("Preprocessing reference genome...")
     genome <- preprocessGenome(reference_file)
     
-    # 2. Call methylation and write to a new BAM file using callMethylation
+    # --- Call methylation and write to a new BAM file using ---
     message("Calling methylation and writing to output BAM...")
     calling_stats <- callMethylation(input_file, output_file, genome)
     
     # Save the calling statistics
     saveRDS(calling_stats, file = stats_file)
     
-    # 3. Generate a downstream cytosine report to produce meaningful tabular output
+    # --- Generate a downstream cytosine report to produce ---
     message("Generating cytosine methylation report...")
     bam_data <- preprocessBam(output_file)
     report <- generateCytosineReport(bam_data, threshold.reads = FALSE)

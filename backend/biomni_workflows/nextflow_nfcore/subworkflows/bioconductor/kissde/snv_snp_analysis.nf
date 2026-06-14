@@ -63,24 +63,24 @@ process BIOC_KISSDE_SNV_SNP_ANALYSIS {
       stop(paste("Error: Required input file '", fileInSNV, "' not found in the working directory.", sep = ""))
     }
     
-    # 1. Convert KisSplice fasta output to counts using kissplice2counts
+    # --- Convert KisSplice fasta output to counts using ---
     myCounts_SNV <- kissplice2counts(fileInSNV, counts = 0, pairedEnd = TRUE)
     
-    # 2. Define condition vector
+    # --- Define condition vector ---
     myConditions_SNV <- c(rep("TSC", 2), rep("CEU", 2))
     
-    # 3. Perform quality control and save the generated plots to a PDF file
+    # --- Perform quality control and save the generated plots to a ---
     pdf("quality_control_plots.pdf")
     qualityControl(myCounts_SNV, myConditions_SNV)
     dev.off()
     
-    # 4. Run differential analysis using diffExpressedVariants
+    # --- Run differential analysis using diffExpressedVariants ---
     myResult_SNV <- diffExpressedVariants(myCounts_SNV, myConditions_SNV)
     
-    # 5. Export results using writeOutputKissDE
+    # --- Export results using writeOutputKissDE ---
     writeOutputKissDE(myResult_SNV, output = "final_table_significants.tab", adjPvalMax = 0.05)
     
-    # 6. Explore results interactively using exploreResults
+    # --- Explore results interactively using exploreResults ---
     # Wrapped in a tryCatch block to prevent pipeline failure in non-interactive environments
     tryCatch({
       exploreResults(rdsFile = "final_table_significants.tab.rds")

@@ -56,7 +56,7 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     library(QDNAseq)
     library(Rsamtools)
     
-    # 1. Load bin annotations
+    # --- Load bin annotations ---
     # Read from the user-provided 'bins' file if it exists, otherwise retrieve default annotations
     if (file.exists("bins")) {
       bins <- tryCatch({
@@ -77,7 +77,7 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
       indexBam("tumor.bam")
     }
     
-    # 2. Bin read counts from BAM files
+    # --- Bin read counts from BAM files ---
     readCounts <- binReadCounts(bins, bamfiles="tumor.bam")
     
     # Plot raw copy number profile
@@ -86,7 +86,7 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     highlightFilters(readCounts, logTransform=FALSE, residual=TRUE, blacklist=TRUE)
     dev.off()
     
-    # 3. Filter bins
+    # --- Filter bins ---
     readCountsFiltered <- applyFilters(readCounts, residual=TRUE, blacklist=TRUE)
     
     # Plot isobar
@@ -94,7 +94,7 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     isobarPlot(readCountsFiltered)
     dev.off()
     
-    # 4. Estimate GC and mappability correction
+    # --- Estimate GC and mappability correction ---
     readCountsFiltered <- estimateCorrection(readCountsFiltered)
     
     # Plot noise
@@ -102,13 +102,13 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     noisePlot(readCountsFiltered)
     dev.off()
     
-    # 5. Apply correction
+    # --- Apply correction ---
     copyNumbers <- correctBins(readCountsFiltered)
     
-    # 6. Normalize copy numbers
+    # --- Normalize copy numbers ---
     copyNumbersNormalized <- normalizeBins(copyNumbers)
     
-    # 7. Smooth outliers
+    # --- Smooth outliers ---
     copyNumbersSmooth <- smoothOutlierBins(copyNumbersNormalized)
     
     # Plot smoothed profile
@@ -121,10 +121,10 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     exportBins(copyNumbersSmooth, file="LGG150.igv", format="igv")
     exportBins(copyNumbersSmooth, file="LGG150.bed", format="bed")
     
-    # 8. Segment bins
+    # --- Segment bins ---
     copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="sqrt")
     
-    # 9. Normalize segmented bins
+    # --- Normalize segmented bins ---
     copyNumbersSegmented <- normalizeSegmentedBins(copyNumbersSegmented)
     
     # Plot segmented profile
@@ -132,7 +132,7 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     plot(copyNumbersSegmented)
     dev.off()
     
-    # 10. Call copy number aberrations
+    # --- Call copy number aberrations ---
     # Fallback to cutoff method if default CGHcall fails (common for single samples)
     copyNumbersCalled <- tryCatch({
       callBins(copyNumbersSegmented)
@@ -150,7 +150,7 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     exportBins(copyNumbersCalled, format="vcf")
     exportBins(copyNumbersCalled, format="seg")
     
-    # 11. Convert to CGH object
+    # --- Convert to CGH object ---
     cgh <- makeCgh(copyNumbersCalled)
     
     # Save final R objects for downstream analysis

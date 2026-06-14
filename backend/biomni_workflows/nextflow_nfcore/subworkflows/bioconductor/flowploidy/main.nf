@@ -35,6 +35,15 @@ process BIOC_FLOWPLOIDY_FLOW_PLOIDY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("flowPloidy", "flowCore")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,14 +58,14 @@ process BIOC_FLOWPLOIDY_FLOW_PLOIDY_ANALYSIS {
     library(flowCore)
     
     # ==========================================
-    # STAGE 1: Read Input Data
+    # --- Read Input Data ---
     # ==========================================
     # Read the staged input files
     counts <- read.csv("counts.csv", row.names = 1)
     coldata <- read.csv("coldata.csv")
     
     # ==========================================
-    # STAGE 2: Generate Mock FCS Files
+    # --- Generate Mock FCS Files ---
     # ==========================================
     # flowPloidy requires Flow Cytometry Standard (FCS) files.
     # We map the gene-by-sample count matrix to simulated flow cytometry events.
@@ -105,7 +114,7 @@ process BIOC_FLOWPLOIDY_FLOW_PLOIDY_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 3: Batch Flow Cytometry Analysis
+    # --- Batch Flow Cytometry Analysis ---
     # ==========================================
     # View channels of the first file to verify structure
     message("Flow channels detected:")
@@ -116,7 +125,7 @@ process BIOC_FLOWPLOIDY_FLOW_PLOIDY_ANALYSIS {
     batch <- batchFlowHist(fcs_files, channel = "FL3.INT.LIN", standards = 1.11)
     
     # ==========================================
-    # STAGE 4: Programmatic Annotation & Standards
+    # --- Programmatic Annotation & Standards ---
     # ==========================================
     # Programmatically assign the standard peak for each analyzed sample.
     # In our simulated data, the standard peak is the highest intensity peak (Peak B).
@@ -129,7 +138,7 @@ process BIOC_FLOWPLOIDY_FLOW_PLOIDY_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 5: Export Results and Diagnostic Plots
+    # --- Export Results and Diagnostic Plots ---
     # ==========================================
     # Tabulate the analysis results
     results_df <- tabulateFlowHist(batch)

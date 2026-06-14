@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize separate metagene2 objects; 2. Extract and add metadata; 3. Combine data frames with rbind; 4. Plot combined data
+//  * 1. [Visualization & Output] Read User Input Files from the Working Directory
+//  * 2. [Visualization & Output] Initialize Separate metagene2 Objects
+//  * 3. [Visualization & Output] Extract, Add Metadata, and Combine Data Frames
+//  * 4. [Visualization & Output] Plot Combined Data
+//  * 5. [Visualization & Output] Write Named Output Files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_METAGENE2_LARGE_DATASET_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("metagene2", "GenomicRanges", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +66,7 @@ process BIOC_METAGENE2_LARGE_DATASET_ANALYSIS {
     library(ggplot2)
     
     # -----------------------------------------------------------------
-    # 1. Read User Input Files from the Working Directory
+    # --- Read User Input Files from the Working Directory ---
     # -----------------------------------------------------------------
     
     # Identify indexed BAM files in the working directory
@@ -96,7 +109,7 @@ process BIOC_METAGENE2_LARGE_DATASET_ANALYSIS {
     }
     
     # -----------------------------------------------------------------
-    # 2. Initialize Separate metagene2 Objects
+    # --- Initialize Separate metagene2 Objects ---
     # -----------------------------------------------------------------
     mg1 <- metagene2\$new(bam_files = bam_files, 
                          regions = regions[1])
@@ -105,18 +118,18 @@ process BIOC_METAGENE2_LARGE_DATASET_ANALYSIS {
                          regions = regions[2])
     
     # -----------------------------------------------------------------
-    # 3. Extract, Add Metadata, and Combine Data Frames
+    # --- Extract, Add Metadata, and Combine Data Frames ---
     # -----------------------------------------------------------------
     combined_df <- rbind(mg1\$add_metadata(), mg2\$add_metadata())
     
     # -----------------------------------------------------------------
-    # 4. Plot Combined Data
+    # --- Plot Combined Data ---
     # -----------------------------------------------------------------
     p <- plot_metagene(combined_df,
                        facet_by=.~region_name)
     
     # -----------------------------------------------------------------
-    # 5. Write Named Output Files
+    # --- Write Named Output Files ---
     # -----------------------------------------------------------------
     # Save the combined data frame as CSV and RDS
     write.csv(combined_df, "metagene_combined_metadata.csv", row.names = FALSE)

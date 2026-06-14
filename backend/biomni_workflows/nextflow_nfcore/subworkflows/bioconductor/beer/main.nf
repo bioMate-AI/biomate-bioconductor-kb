@@ -62,6 +62,7 @@ process BIOC_BEER_PHIP_SEQ_ENRICHMENT {
         
         # Load required libraries
         library(beer)
+        library(SummarizedExperiment)
         library(ggplot2)
         library(dplyr)
         

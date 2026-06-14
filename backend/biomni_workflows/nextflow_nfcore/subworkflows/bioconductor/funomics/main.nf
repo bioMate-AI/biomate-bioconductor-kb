@@ -36,6 +36,15 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("funOmics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,7 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
           }
         }
     
-    # Stage 1: Load libraries and input data
+    # --- Load libraries and input data ---
     library(funOmics)
     
     message("Loading input datasets...")
@@ -67,7 +76,7 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
     intensity_matrix <- intensity_matrix[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # Stage 2: Determine identifier type and retrieve KEGG pathway sets
+    # --- Determine identifier type and retrieve KEGG pathway sets ---
     # Check if IDs look like Ensembl (e.g., ENSG...) or Gene Symbols
     first_ids <- head(rownames(intensity_matrix), 50)
     is_ensembl <- any(grepl("^ENSG", first_ids))
@@ -76,13 +85,13 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
     message(paste("Detected identifier type:", detected_id_type))
     kegg_sets <- get_kegg_sets(organism = "hsa", geneid_type = detected_id_type)
     
-    # Stage 3: Filter and clean the intensity matrix
+    # --- Filter and clean the intensity matrix ---
     # NMF and PCA require non-negative values and no completely null rows
     intensity_matrix[is.na(intensity_matrix)] <- 0
     intensity_matrix[intensity_matrix < 0] <- 0
     intensity_matrix <- intensity_matrix[rowSums(intensity_matrix) > 0, , drop = FALSE]
     
-    # Stage 4: Perform pathway-level aggregation
+    # --- Perform pathway-level aggregation ---
     message("Aggregating pathway-level activity scores...")
     minsize_threshold <- 10
     
@@ -121,7 +130,7 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
       write.csv(as.data.frame(pathway_nmf), "pathway_activity_nmf.csv", row.names = TRUE)
     }
     
-    # Stage 5: Identify and document short pathways
+    # --- Identify and document short pathways ---
     message("Identifying short pathways excluded from aggregation...")
     short_sets <- short_sets_detail(kegg_sets, minsize = minsize_threshold)
     short_sets_df <- data.frame(
@@ -131,7 +140,7 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
     )
     write.csv(short_sets_df, "short_pathways_detail.csv", row.names = FALSE)
     
-    # Stage 6: Differential pathway activity analysis
+    # --- Differential pathway activity analysis ---
     message("Performing differential pathway activity analysis...")
     if (!is.null(pathway_mean) && "condition" %in% colnames(coldata)) {
       conditions <- unique(coldata\$condition)
@@ -167,7 +176,7 @@ process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
                 "differential_pathway_activity.csv", row.names = FALSE)
     }
     
-    # Stage 7: Visualization
+    # --- Visualization ---
     message("Generating pathway activity heatmap...")
     pdf("pathway_activity_heatmap.pdf", width = 10, height = 8)
     if (!is.null(pathway_mean) && nrow(pathway_mean) > 1) {

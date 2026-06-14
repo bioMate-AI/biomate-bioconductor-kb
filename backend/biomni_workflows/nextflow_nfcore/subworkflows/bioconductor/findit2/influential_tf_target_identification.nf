@@ -35,6 +35,15 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("FindIT2", "TxDb.Athaliana.BioMart.plantsmart28", "GenomicRanges", "S4Vectors", "BiocGenerics", "dplyr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -56,7 +65,7 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
     # Set seed for reproducibility
     set.seed(20160806)
     
-    # 1. Read input files
+    # --- Read input files ---
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", check.names = FALSE)
     
@@ -65,7 +74,7 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
     counts <- counts[, common_samples, drop = FALSE]
     coldata <- coldata[coldata\$sample %in% common_samples, , drop = FALSE]
     
-    # 2. Load and prepare TxDb
+    # --- Load and prepare TxDb ---
     Txdb <- TxDb.Athaliana.BioMart.plantsmart28
     seqlevels(Txdb) <- c(paste0("Chr", 1:5), "M", "C")
     all_genes <- GenomicFeatures::genes(Txdb)
@@ -81,7 +90,7 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
         user_genes <- rownames(counts)
     }
     
-    # 3. Perform differential expression analysis (mocked realistically using t-test)
+    # --- Perform differential expression analysis (mocked ---
     conds <- unique(coldata\$condition)
     if (length(conds) >= 2) {
         samples_A <- coldata\$sample[coldata\$condition == conds[1]]
@@ -104,7 +113,7 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
         padj = padj
     )
     
-    # 4. Generate synthetic peaks and calculate TF-specific Regulation Potential (RP)
+    # --- Generate synthetic peaks and calculate TF-specific ---
     matched_genes <- all_genes[names(all_genes) %in% user_genes]
     peaks_list <- list()
     for (i in seq_along(matched_genes)) {
@@ -125,13 +134,13 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
     fullRP_hit <- calcRP_TFHit(mmAnno = mmAnno_geneScan, Txdb = Txdb, decay_dist = 1000, report_fullInfo = TRUE)
     peakRP_gene <- metadata(fullRP_hit)\$peakRP_gene
     
-    # 5. Integrate ChIP-seq RP with RNA-seq differential expression
+    # --- Integrate ChIP-seq RP with RNA-seq differential expression ---
     message("Integrating ChIP-seq and RNA-seq data...")
     merge_result <- integrate_ChIP_RNA(result_geneRP = peakRP_gene, result_geneDiff = result_geneDiff)
     target_result <- merge_result\$data
     write.csv(target_result, "influential_targets.csv", row.names = FALSE)
     
-    # 6. Generate synthetic TF binding database (GRanges with TF_id)
+    # --- Generate synthetic TF binding database (GRanges with ---
     # Define 3 TFs: TF_A (enriched in top targets), TF_B (random), TF_C (enriched in bottom targets)
     top_genes <- target_result\$gene_id[1:floor(nrow(target_result) * 0.2)]
     tf_list <- list()
@@ -152,7 +161,7 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
     }
     TF_GR_database <- do.call(c, tf_list)
     
-    # 7. Find influential TFs using findIT_TFHit and findIT_enrichFisher
+    # --- Find influential TFs using findIT_TFHit and ---
     message("Identifying influential TFs...")
     input_genes <- target_result\$gene_id[1:min(50, nrow(target_result))]
     chrs <- unique(as.character(seqnames(peaks_gr)))
@@ -172,7 +181,7 @@ process BIOC_FINDIT2_INFLUENTIAL_TF_TARGET_IDENTIFICATION {
                                                TF_GR_database = TF_GR_database)
     write.csv(result_enrichFisher, "influential_tfs_fisher.csv", row.names = FALSE)
     
-    # 8. Generate diagnostic plot
+    # --- Generate diagnostic plot ---
     message("Generating diagnostic plots...")
     tryCatch({
         pdf("target_integration_plot.pdf", width = 8, height = 6)

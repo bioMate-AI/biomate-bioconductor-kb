@@ -54,13 +54,13 @@ process BIOC_ADACGH2_FF_OBJECTS_CLUSTER {
     
     library(ADaCGH2)
     
-    # 1. Convert input data to disk-backed ff objects
+    # --- Convert input data to disk-backed ff objects ---
     fnameRdata <- file.path(getwd(), "inputEx.RData")
     
     inputToADaCGH(ff.or.RAM = "ff",
                   RDatafilename = fnameRdata)
     
-    # 2. Initialize socket cluster
+    # --- Initialize socket cluster ---
     number.of.nodes <- 2
     cl2 <- parallel::makeCluster(number.of.nodes, "PSOCK")
     parallel::clusterSetRNGStream(cl2)
@@ -70,13 +70,13 @@ process BIOC_ADACGH2_FF_OBJECTS_CLUSTER {
     parallel::clusterExport(NULL, "wdir")
     parallel::clusterEvalQ(NULL, setwd(wdir))
     
-    # 3. Run parallelized segmentation using cluster
+    # --- Run parallelized segmentation using cluster ---
     haar.ff.cluster <- pSegmentHaarSeg("cghData.RData",
                                    "chromData.RData",
                                    merging = "MAD",
                                    typeParall = "cluster")
     
-    # 4. Save and plot results
+    # --- Save and plot results ---
     save(haar.ff.cluster, file = "hs_mad.out.RData", compress = FALSE)
     
     pChromPlot(outRDataName = "hs_mad.out.RData",
@@ -87,10 +87,10 @@ process BIOC_ADACGH2_FF_OBJECTS_CLUSTER {
                imgheight = 350,
                typeParall = "cluster")
     
-    # 5. Stop cluster
+    # --- Stop cluster ---
     parallel::stopCluster(cl2)
     
-    # 6. Export meaningful results to CSV
+    # --- Export meaningful results to CSV ---
     lapply(haar.ff.cluster, open)
     smoothed_df <- as.data.frame(haar.ff.cluster\$outSmoothed[,])
     state_df <- as.data.frame(haar.ff.cluster\$outState[,])

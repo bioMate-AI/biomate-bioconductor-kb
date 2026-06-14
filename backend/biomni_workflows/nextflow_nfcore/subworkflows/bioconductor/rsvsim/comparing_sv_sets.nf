@@ -55,11 +55,11 @@ process BIOC_RSVSIM_COMPARING_SV_SETS {
     # Load required libraries
     library(RSVSim)
     
-    # 1. Load the simulated ground-truth SVs (simSVs)
+    # --- Load the simulated ground-truth SVs (simSVs) ---
     # The user input simulated_svs.csv contains the ground-truth SVs
     simSVs <- read.csv("simulated_svs.csv", stringsAsFactors = FALSE)
     
-    # 2. Load and format the query SVs (querySVs) from the BED file
+    # --- Load and format the query SVs (querySVs) from the BED file ---
     # Standard BED files are tab-separated and do not have a header.
     # We map the first three columns to 'chr', 'start', and 'end'.
     # If a fourth column exists (e.g., containing the breakpoint sequence), we map it to 'bpSeq'.
@@ -76,11 +76,11 @@ process BIOC_RSVSIM_COMPARING_SV_SETS {
       querySVs\$bpSeq <- as.character(querySVs_raw[[4]])
     }
     
-    # 3. Run compareSV with specified tolerances as documented
+    # --- Run compareSV with specified tolerances as documented ---
     comparison_tol0 <- compareSV(querySVs, simSVs, tol=0)
     comparison_tol3 <- compareSV(querySVs, simSVs, tol=3)
     
-    # 4. Write the meaningful results to output files
+    # --- Write the meaningful results to output files ---
     write.csv(comparison_tol0, "comparison_results_tol0.csv", row.names = FALSE)
     write.csv(comparison_tol3, "comparison_results_tol3.csv", row.names = FALSE)
     

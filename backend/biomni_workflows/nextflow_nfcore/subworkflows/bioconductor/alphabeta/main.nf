@@ -64,7 +64,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
     out.dir <- getwd()
     output.data.dir <- getwd()
     
-    # 1. Build the pedigree and calculate pairwise divergence values
+    # --- Build the pedigree and calculate pairwise divergence ---
     output <- buildPedigree(
       nodelist = sampleFile,
       edgelist = edgesFile,
@@ -72,7 +72,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
       posteriorMaxFilter = 0.99
     )
     
-    # 2. Generate diagnostic pedigree plots
+    # --- Generate diagnostic pedigree plots ---
     plotPedigree(
       nodelist = sampleFile,
       edgelist = edgesFile,
@@ -86,7 +86,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
       out.pdf = "MA1_1"
     )
     
-    # 3. Plot divergence values against delta.t to inspect for outliers
+    # --- Plot divergence values against delta.t to inspect for ---
     pedigree <- output\$Pdata
     dt <- pedigree[, 2] + pedigree[, 3] - 2 * pedigree[, 1]
     
@@ -94,7 +94,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
     plot(dt, pedigree[, "D.value"], ylab = "Divergence value", xlab = expression(paste(Delta, " t")))
     dev.off()
     
-    # 4. Fit the neutral epimutation model
+    # --- Fit the neutral epimutation model ---
     p0uu_in <- output\$tmpp0
     output_neutral <- ABneutral(
       pedigree.data = pedigree,
@@ -106,7 +106,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
       out.name = "ABneutral_CG_global_estimates"
     )
     
-    # 5. Fit selection models (against gains or losses)
+    # --- Fit selection models (against gains or losses) ---
     outputABselectMM <- ABselectMM(
       pedigree.data = pedigree,
       p0uu = p0uu_in,
@@ -127,14 +127,14 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
       out.name = "ABselectUU_CG_global_estimates"
     )
     
-    # 6. Fit the null model (no epimutation accumulation)
+    # --- Fit the null model (no epimutation accumulation) ---
     outputABnull <- ABnull(
       pedigree.data = pedigree,
       out.dir = output.data.dir,
       out.name = "ABnull_CG_global_estimates"
     )
     
-    # 7. Compare models using FtestRSS to select the best-fitting model
+    # --- Compare models using FtestRSS to select the best-fitting ---
     file_neutral <- file.path(output.data.dir, "ABneutral_CG_global_estimates.Rdata")
     file_selectMM <- file.path(output.data.dir, "ABselectMM_CG_global_estimates.Rdata")
     file_selectUU <- file.path(output.data.dir, "ABselectUU_CG_global_estimates.Rdata")
@@ -156,7 +156,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
     )
     write.csv(ftest_df, "Ftest_results.csv", row.names = FALSE)
     
-    # 8. Perform bootstrap analysis on the best-fitting model (using Neutral as baseline)
+    # --- Perform bootstrap analysis on the best-fitting model ---
     inputModel <- file_neutral
     Boutput <- BOOTmodel(
       pedigree.data = inputModel,
@@ -168,7 +168,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
     # Save bootstrap standard errors
     write.csv(as.data.frame(Boutput\$standard.errors), "bootstrap_standard_errors.csv")
     
-    # 9. Plot the final model fit
+    # --- Plot the final model fit ---
     ABfile <- file_neutral
     ABplot(
       pedigree.names = ABfile,

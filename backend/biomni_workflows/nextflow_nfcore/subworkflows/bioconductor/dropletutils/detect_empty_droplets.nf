@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Compute barcode ranks and identify knee/inflection points using barcodeRanks. 2. Test each barcode's expression profile against th
+//  * 1. [Core Analysis] Compute barcode ranks and identify knee/inflection points
+//  * 2. [Core Analysis] Test each barcode's expression profile against the
+//  * 3. [Core Analysis] Filter for significant cell-containing droplets based on
 
 nextflow.enable.dsl = 2
 
@@ -71,7 +73,7 @@ process BIOC_DROPLETUTILS_DETECT_EMPTY_DROPLETS {
       stop("Error: Input file 'my.counts' (RDS format) not found in the working directory.")
     }
     
-    # 1. Compute barcode ranks and identify knee/inflection points using barcodeRanks
+    # --- Compute barcode ranks and identify knee/inflection points ---
     br.out <- barcodeRanks(my.counts)
     
     # Save barcode ranks plot
@@ -88,7 +90,7 @@ process BIOC_DROPLETUTILS_DETECT_EMPTY_DROPLETS {
     # Save barcode ranks object
     saveRDS(br.out, file="barcode_ranks.rds")
     
-    # 2. Test each barcode's expression profile against the ambient profile using emptyDrops
+    # --- Test each barcode's expression profile against the ---
     # Set seed for reproducibility as emptyDrops uses permutation testing
     set.seed(100)
     e.out <- emptyDrops(my.counts)
@@ -96,7 +98,7 @@ process BIOC_DROPLETUTILS_DETECT_EMPTY_DROPLETS {
     # Save emptyDrops results table
     write.csv(as.data.frame(e.out), file="empty_drops_results.csv", row.names=TRUE)
     
-    # 3. Filter for significant cell-containing droplets based on FDR
+    # --- Filter for significant cell-containing droplets based on ---
     is.cell <- e.out\$FDR <= 0.01
     
     # Save diagnostic plot of total count vs negative log probability

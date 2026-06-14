@@ -73,11 +73,11 @@ process BIOC_CFDNAKIT_CREATE_PANEL_OF_NORMALS {
                  paste(missing_files, collapse = "\n"), sep = ""))
     }
     
-    # Stage 1: Generate PoN profile using create_PoN
+    # --- Generate PoN profile using create_PoN ---
     # Documented call: PoN.profiles <- create_PoN("Path.to/Pon-list.txt")
     PoN.profiles <- create_PoN(input_file)
     
-    # Stage 2: Save the PoN profile to an RDS file
+    # --- Save the PoN profile to an RDS file ---
     # Documented call: saveRDS(PoN.profiles, "PoN.rds")
     saveRDS(PoN.profiles, "PoN.rds")
     

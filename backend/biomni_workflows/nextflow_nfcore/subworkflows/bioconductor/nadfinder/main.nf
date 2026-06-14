@@ -78,7 +78,7 @@ process BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ {
     step <- 5000
     backgroundPercentage <- 0.25
     
-    # 1. Calculate read coverage in sliding windows using tileCount
+    # --- Calculate read coverage in sliding windows using tileCount ---
     se <- tileCount(reads=file.path(path, bamFiles), 
                     genome=Mmusculus, 
                     windowSize=ws, 
@@ -86,7 +86,7 @@ process BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ {
                     mode = IntersectionNotStrict, 
                     dataOverSamples = FALSE)
     
-    # 2. Compute log2 ratios of nucleolus vs genomic DNA using log2se
+    # --- Compute log2 ratios of nucleolus vs genomic DNA using ---
     # Dynamically retrieve column names to avoid path mismatch issues
     nucleolus_col <- colnames(se)[1]
     genomic_col <- colnames(se)[2]
@@ -96,7 +96,7 @@ process BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ {
                   genomeCols = genomic_col, 
                   transformation = "log2CPMRatio")
     
-    # 3. Smooth ratios per chromosome using smoothRatiosByChromosome
+    # --- Smooth ratios per chromosome using ---
     # Ensure we only use chromosomes present in the dataset
     target_chrs <- intersect(c("chr18", "chr19"), seqlevels(se))
     if (length(target_chrs) == 0) {
@@ -105,19 +105,19 @@ process BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ {
     
     datList <- smoothRatiosByChromosome(dat, chr = target_chrs, N = 100)
     
-    # 4. Assess quality using cumulativePercentage
+    # --- Assess quality using cumulativePercentage ---
     pdf("cumulative_percentage.pdf")
     cumulativePercentage(datList[[target_chrs[1]]])
     dev.off()
     
-    # 5. Call and trim peaks using trimPeaks
+    # --- Call and trim peaks using trimPeaks ---
     peaks <- lapply(datList, 
                     trimPeaks, 
                     backgroundPercentage=backgroundPercentage, 
                     cutoffAdjPvalue=0.05, 
                     countFilter=1000)
     
-    # 6. Export peaks to CSV format
+    # --- Export peaks to CSV format ---
     peaks.gr <- unlist(GRangesList(peaks))
     write.csv(as.data.frame(unname(peaks.gr)), "peaklist.csv", row.names=FALSE)
     

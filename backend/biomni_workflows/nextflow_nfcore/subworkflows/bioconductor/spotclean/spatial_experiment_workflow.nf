@@ -34,7 +34,7 @@ process BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("S4Vectors", "SpatialExperiment", "SpotClean")
+    .bm_deps <- c("S4Vectors", "SpatialExperiment", "SpotClean", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,24 +53,25 @@ process BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW {
     }
     
     # Load required libraries
-    library(SpatialExperiment)
+    lib    library(SummarizedExperiment)
+rary(SpatialExperiment)
     library(SpotClean)
     library(S4Vectors)
     
-    # 1. Load raw data into a SpatialExperiment object
+    # --- Load raw data into a SpatialExperiment object ---
     # Reading raw data from the specified Space Ranger output directory
     message("Loading raw 10x Visium data...")
     slide_obj <- read10xVisium(samples = "/path/to/spaceranger/output/", data = "raw")
     
-    # 2. Run decontamination
+    # --- Run decontamination ---
     message("Running SpotClean decontamination...")
     decont_obj <- spotclean(slide_obj)
     
-    # 3. Inspect decontaminated assays
+    # --- Inspect decontaminated assays ---
     message("Inspecting decontaminated assays...")
     str(assays(decont_obj)\$decont)
     
-    # 4. Save meaningful pipeline outputs
+    # --- Save meaningful pipeline outputs ---
     message("Saving results...")
     
     # Save the complete decontaminated SpatialExperiment object
