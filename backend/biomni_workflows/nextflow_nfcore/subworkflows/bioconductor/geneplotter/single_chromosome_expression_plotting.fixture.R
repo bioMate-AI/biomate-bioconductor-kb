@@ -47,5 +47,21 @@ eset <- ExpressionSet(assayData = mat,
                       annotation = "hgu95av2")
 saveRDS(eset, "sample.ExpressionSet")
 
-chrObj <- buildChromLocation("hgu95av2")
-saveRDS(chrObj, "chrObj")
+# buildChromLocation() traverses the full hgu95av2 annotation via deep S4
+# dispatch; when many namespaces are already attached this can overflow the C
+# protection stack ("C stack usage is too close to the limit"). Build it in a
+# fresh, minimal child R process (only annotate + the annotation package loaded)
+# so the dispatch depth stays well under the limit, then serialize it for the
+# workflow to read.
+child <- c(
+    'suppressPackageStartupMessages({ library(annotate); library(hgu95av2.db) })',
+    'saveRDS(buildChromLocation("hgu95av2"), "chrObj")'
+)
+writeLines(child, "_build_chrobj.R")
+status <- system2("Rscript", c("--vanilla", "_build_chrobj.R"))
+if (status != 0 || !file.exists("chrObj")) {
+    # Fallback: build in-process (works when the C stack is not yet deep).
+    suppressPackageStartupMessages(library(annotate))
+    saveRDS(buildChromLocation("hgu95av2"), "chrObj")
+}
+stopifnot(file.exists("chrObj"))
