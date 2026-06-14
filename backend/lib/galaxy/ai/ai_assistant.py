@@ -2146,6 +2146,12 @@ Respond with a single JSON object — no other text:
             backend_root / "biomni_workflows" / "nextflow_nfcore" / filename,
             backend_root / "biomni_workflows" / "subworkflows" / filename,
             backend_root / "biomni_workflows" / filename,
+            # biomate-ai-tools modules live under nf-core-workflows/modules/, not
+            # biomni_workflows/. Without this the workflow_ga.required_params
+            # ships empty for in_vivo_cart_codesign / glp1_modality_bakeoff /
+            # modality_triage / etc, forcing the frontend's schema-grounded
+            # extractor to fall back to the legacy WORKFLOW_PARAM_ALIASES table.
+            backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools" / filename,
         ]
         # Add nf-core-workflows/ candidates when it looks like an nf-core workflow
         if _nfcore_suffix:

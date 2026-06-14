@@ -5325,6 +5325,7 @@ ${paramLines || '(none recorded)'}`;
         metadata: {
           intentType: assistantResponse.intentType,
           inlineParameters: assistantResponse.inlineParameters,
+          paramClarifications: assistantResponse.paramClarifications,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: false,
