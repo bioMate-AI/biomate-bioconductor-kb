@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
+import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 import { ChatInput } from "./chat-input"
@@ -1800,67 +1801,89 @@ export function ChatInterface({
           <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
         )}
         <div className="space-y-4">
-          {displayMessages
-            .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
-            .map((message) => (
-            <div key={message.id}>
-              <ChatMessage
-                message={message}
-                sessionId={chatSession?.id}
-                onToolClick={handleToolClick}
-                onDatasetClick={handleDatasetClick}
-                onCreateWorkflow={() => {
-                  if (message.metadata?.workflow) {
-                    onWorkflowGenerated(message.metadata.workflow);
+          {(() => {
+            const visible = displayMessages.filter(
+              msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal))
+            )
+            // Render a single message exactly as before (used for un-folded
+            // singles AND for the "latest" line of a folded group AND inside
+            // the expanded hidden block).
+            const renderOne = (message: Message) => (
+              <div key={message.id}>
+                <ChatMessage
+                  message={message}
+                  sessionId={chatSession?.id}
+                  onToolClick={handleToolClick}
+                  onDatasetClick={handleDatasetClick}
+                  onCreateWorkflow={() => {
+                    if (message.metadata?.workflow) {
+                      onWorkflowGenerated(message.metadata.workflow);
+                    }
+                  }}
+                  // Workflow execution props for inline artifacts
+                  onRunWorkflow={onRunWorkflow}
+                  onRunChain={onRunChain}
+                  onRunPipeline={onRunPipeline}
+                  onApprovePipelineStep={onApprovePipelineStep}
+                  onStopWorkflow={onStopWorkflow}
+                  onPauseWorkflow={onPauseWorkflow}
+                  onResumeWorkflow={onResumeWorkflow}
+                  onParameterChange={onParameterChange}
+                  onSuggestionClick={handleSuggestionClick}
+                  onWorkflowProgress={handleWorkflowProgress}
+                  isWorkflowRunning={isWorkflowRunning}
+                  workflowProgress={workflowProgress}
+                  currentExecutionRun={currentExecutionRun}
+                  isLatestAssistantMessage={message.id === latestAssistantMessageId}
+                  isRunAnchorFocused={focusedAnchorMessageId === message.id}
+                  isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
+                  isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+                  onOpenInPanel={
+                    message.metadata?.type === 'workflow' && message.metadata?.workflow
+                      ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
+                      : undefined
                   }
-                }}
-                // Workflow execution props for inline artifacts
-                onRunWorkflow={onRunWorkflow}
-                onRunChain={onRunChain}
-                onRunPipeline={onRunPipeline}
-                onApprovePipelineStep={onApprovePipelineStep}
-                onStopWorkflow={onStopWorkflow}
-                onPauseWorkflow={onPauseWorkflow}
-                onResumeWorkflow={onResumeWorkflow}
-                onParameterChange={onParameterChange}
-                onSuggestionClick={handleSuggestionClick}
-                onWorkflowProgress={handleWorkflowProgress}
-                isWorkflowRunning={isWorkflowRunning}
-                workflowProgress={workflowProgress}
-                currentExecutionRun={currentExecutionRun}
-                isLatestAssistantMessage={message.id === latestAssistantMessageId}
-                isRunAnchorFocused={focusedAnchorMessageId === message.id}
-                isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-                isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
-                onOpenInPanel={
-                  message.metadata?.type === 'workflow' && message.metadata?.workflow
-                    ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
-                    : undefined
-                }
-              />
-              {/* Inline file analysis cards — shown below user messages after async analysis */}
-              {message.role === 'user' && fileAnalysisMap[message.id] && (
-                <div className="ml-10 mt-1 space-y-1">
-                  {fileAnalysisMap[message.id].map((result, i) => (
-                    <DataAnalysisCard key={i} result={result} />
-                  ))}
-                </div>
-              )}
-              {/* FindingsCard — shown below completed workflow messages */}
-              {message.role === 'assistant' &&
-                message.metadata?.type === 'workflow' &&
-                currentExecutionRun?.id &&
-                (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
-                message.id === latestAssistantMessageId && (
-                <div className="ml-10 mt-1">
-                  <FindingsCard
-                    runId={currentExecutionRun.id}
-                    onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                />
+                {/* Inline file analysis cards — shown below user messages after async analysis */}
+                {message.role === 'user' && fileAnalysisMap[message.id] && (
+                  <div className="ml-10 mt-1 space-y-1">
+                    {fileAnalysisMap[message.id].map((result, i) => (
+                      <DataAnalysisCard key={i} result={result} />
+                    ))}
+                  </div>
+                )}
+                {/* FindingsCard — shown below completed workflow messages */}
+                {message.role === 'assistant' &&
+                  message.metadata?.type === 'workflow' &&
+                  currentExecutionRun?.id &&
+                  (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
+                  message.id === latestAssistantMessageId && (
+                  <div className="ml-10 mt-1">
+                    <FindingsCard
+                      runId={currentExecutionRun.id}
+                      onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+            // Collapse consecutive same-speaker progress runs (wf/qc/loop/plan)
+            // into a caret-able "WF — N updates" summary; agent/find never fold.
+            const groups = groupProgressMessages(visible, 2)
+            return groups.map((g) => {
+              if (g.kind === 'single') return renderOne(g.message)
+              return (
+                <div key={g.key}>
+                  <FoldedProgressGroup
+                    speaker={g.speaker}
+                    hidden={g.hidden}
+                    renderMessage={renderOne}
                   />
+                  {renderOne(g.latest)}
                 </div>
-              )}
-            </div>
-          ))}
+              )
+            })
+          })()}
           {displayTyping && <TypingIndicator phase={showWorkflowCue ? 'workflow' : workflowGeneratingPhase} />}
           {/* Auto-scroll anchor */}
           <div ref={messagesEndRef} />
