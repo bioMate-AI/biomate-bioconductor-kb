@@ -31,7 +31,7 @@ eset <- ExpressionSet(assayData = mat,
                       phenoData = AnnotatedDataFrame(
                           data.frame(group = groups, row.names = colnames(mat))))
 
-design <- model.matrix(~ 0 + group)
+design <- model.matrix(~ 0 + groups)
 colnames(design) <- levels(groups)
 
 contrast <- makeContrasts(
