@@ -75,11 +75,17 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
     return result.response.text();
   }
 
-  // Multi-turn: build history from all but the last message
-  const history = messages.slice(0, -1).map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
+  // Multi-turn: build history from all but the last message. Gemini requires
+  // the conversation history to start with a `user` turn — if the upstream
+  // caller supplied a leading assistant/welcome message, drop everything up
+  // to the first user turn (otherwise the API errors with
+  // "First content should be with role 'user', got model").
+  const rawHistory = messages.slice(0, -1).map(m => ({
+    role: (m.role === 'assistant' ? 'model' : 'user') as 'user' | 'model',
     parts: [{ text: m.content }],
   }));
+  const firstUserIdx = rawHistory.findIndex(h => h.role === 'user');
+  const history = firstUserIdx < 0 ? [] : rawHistory.slice(firstUserIdx);
   const lastMessage = messages[messages.length - 1].content;
   const chat = model.startChat({ history });
   const result = await chat.sendMessage(lastMessage);
