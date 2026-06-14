@@ -772,6 +772,14 @@ export function ChatInterface({
               updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
             } else if (eventName === 'tool_event') {
               const event = payload as AgentToolEvent
+              // 'status' events are observability-only (e.g. schema-grounded
+              // extraction stage progress) — they share the SSE 'tool_event'
+              // channel but should NOT render as tool calls in the chat UI.
+              // Skip without registering a tool block.
+              if (event.type === 'status') {
+                // Future: surface in a dedicated status strip / timeline.
+                break
+              }
               const id = event.tool_use_id
               if (!toolBlocksMap.has(id)) {
                 toolBlocksMap.set(id, { tool_use_id: id, name: event.name })
