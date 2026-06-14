@@ -127,6 +127,17 @@ RUN Rscript -e "install.packages('rxode2', dependencies = c('Depends', 'Imports'
 RUN test -d /usr/local/lib/R/site-library/rxode2 \
     || (echo "FATAL: rxode2 missing from site-library" && exit 1)
 
+# ── symengine system deps (libmpfr + libgmp) ────────────────────────────────
+# nlmixr2 → nlmixr2est → symengine, and symengine's CMake configure needs
+# MPFR + GMP system headers. Install these in their own layer right before
+# the nlmixr2 install so the prior ~3 hours of cached R compilation stays
+# valid. Surfaced 2026-06-14 in build #5 when symengine's CMake call
+# failed with "Could NOT find MPFR (missing: MPFR_LIBRARIES MPFR_INCLUDE_DIRS)".
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libmpfr-dev \
+    libgmp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── nlmixr2 (PopPK/PD — primary reason for this container) ───────────────────
 RUN Rscript -e "install.packages('nlmixr2', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('nlmixr2 install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/nlmixr2 \
