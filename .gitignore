@@ -1,182 +1,154 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-*.manifest
-!deploy/biomate.env.manifest
-*.spec
-pip-log.txt
-pip-delete-this-directory.txt
-.venv
-venv/
-ENV/
-env/
-.env
 
-# Production secrets and sensitive data (DO NOT COMMIT)
-.env.production
-secrets-aws.json
-.secrets-temp/
-# Collected real env files for shared secret management — NEVER commit
-env-files/
-.fix-*.sh
-*.pem
-*.key
-*.crt
-
-# Node/TypeScript
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnp
-.pnp.js
-coverage/
-.next/
-out/
-build/
-dist/
-.cache/
-.parcel-cache/
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
 *~
-.DS_Store
-
-# Logs
-*.log
-logs/
-*.sqlite-journal
-
-# Large data files (keep metadata but not actual large datasets)
-*.parquet
-*.pkl
-*.db
-*.sqlite
-*.db.bak*
-*.db.bak
-
-# Large binary / media files — use external storage, not git
-*.webm
-*.mp4
-*.mov
-*.avi
-*.mkv
-*.zip
-*.tar.gz
-*.tar.bz2
-*.deb
-*.rpm
-*.dmg
+<*>
+*$py.class
+[0-9]*.[0-9]*.[0-9]*.[0-9]*
+# 2026-05-28 — runtime/test artifacts that clutter `git status` from various sessions
 *.a
-*.so.*
-*.dylib
-
-# Virtual environments (all variants)
-.venv_*/
-.venv*/
-venv*/
-*_env/
-*.venv/
-
-# R library cache and compiled R artifacts
-.r_lib_cache/
-*.rda
-*.RData
-
-# Recording output (top-level only — not scripts/recording/)
-/recording/
-scripts/recording/__pycache__/
-
-# Demo videos committed by mistake
-frontend/e2e/demo-videos/
-frontend/e2e/demo-videos-v2/
-frontend/demo_videos/
-
-# Pandoc installer
-pandoc-*.deb
-
+aligned_sorted.bam
+# Alignment outputs from ad-hoc smoke runs
+all_hmms.hmm
 # AlphaFold venv
-.venv_alphafold/
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Conda dependencies and cache
+auto_update/mcp_servers/AlphaFold-MCP-Server
+*.avi
+backend/<*>
 backend/dependencies/
-backend/**/pkgs/cache/
-*.solv
-biomni_data_lake/
+backend/instrument_parsers/
 backend/nf-core-modules/
 backend/nf-core-workflows/
-backend/instrument_parsers/
+backend/**/pkgs/cache/
 backend/tests/e2e_ui/test_videos/
-auto_update/mcp_servers/AlphaFold-MCP-Server
-
-# Clawdbot cloned repository (external dependency)
-reference/clawdbot/
-
+# Bare-IP-named curl debug files (e.g. "34.217.29.4")
 # BioDSA repository (external dependency)
-reference/BioDSA/
-.r_lib_cache/
-models/
-
+biomni_data_lake/
+build/
+.cache/
+.claude/
+# Clawdbot cloned repository (external dependency)
+# Collected real env files for shared secret management — NEVER commit
+# Conda dependencies and cache
+coverage/
+*.crt
+*.db
+*.db.bak
+*.db.bak*
+*.deb
+# Demo videos committed by mistake
+!deploy/biomate.env.manifest
+develop-eggs/
+dist/
+*.dmg
+docs/e2e_runs/
+docs/post_sync_logs/
+docs/pre_sync_logs/
+downloads/
+.DS_Store
+*.dylib
 # E2E fixture credentials (do not commit)
+*.egg
+*.egg-info/
+.eggs/
+eggs/
+*_env/
+.env
+env/
+ENV/
+env-files/
+.env.production
 .env.test.local
+.fix-*.sh
+frontend/demo_videos/
+frontend/e2e/demo-videos/
+frontend/e2e/demo-videos-v2/
 frontend/.env.test.local
-
-# 2026-05-28 — runtime/test artifacts that clutter `git status` from various sessions
-# Nextflow scratch (per-run hidden dirs)
-.nextflow/
-.nextflow.log*
-
-# Reference genome downloads (regenerated on demand from NCBI)
 GCF_*.fna
 GCF_*.fna.*
-
-# Alignment outputs from ad-hoc smoke runs
-*_sorted.bam
-aligned_sorted.bam
-SRR*.bam
-
 # HMM scans
-all_hmms.hmm
-
-# Bare-IP-named curl debug files (e.g. "34.217.29.4")
-[0-9]*.[0-9]*.[0-9]*.[0-9]*
-
-# Stray Python repr() filenames (e.g. "<ai.config.AIConfig object at 0x…>")
-backend/<*>
-<*>
-
+.idea/
+# IDEs
+.installed.cfg
+*.key
+# Large binary / media files — use external storage, not git
+# Large data files (keep metadata but not actual large datasets)
+lib64/
 # Local .claude/ workspace (project-scoped agent state — not source)
-.claude/
-docs/pre_sync_logs/
-docs/post_sync_logs/
+*.log
+logs/
+# Logs
+*.manifest
+MANIFEST
+*.mkv
+models/
+*.mov
+*.mp4
+.next/
+.nextflow/
+.nextflow.log*
+# Nextflow scratch (per-run hidden dirs)
+node_modules/
+# Node/TypeScript
+npm-debug.log*
+# OS
+out/
+pandoc-*.deb
+# Pandoc installer
+.parcel-cache/
+*.parquet
+parts/
+*.pem
+pip-delete-this-directory.txt
+pip-log.txt
+*.pkl
+.pnp
+.pnp.js
+# Production secrets and sensitive data (DO NOT COMMIT)
+__pycache__/
+*.py[cod]
+# Python
+.Python
+*.rda
+*.RData
+/recording/
+# Recording output (top-level only — not scripts/recording/)
+reference/BioDSA/
+reference/clawdbot/
+# Reference genome downloads (regenerated on demand from NCBI)
+.r_lib_cache/
+# R library cache and compiled R artifacts
+*.rpm
+scripts/recording/__pycache__/
+sdist/
+secrets-aws.json
+.secrets-temp/
+*.so
+*.so.*
+*.solv
+*_sorted.bam
+*.spec
+*.sqlite
+*.sqlite-journal
+SRR*.bam
+# Stray Python repr() filenames (e.g. "<ai.config.AIConfig object at 0x…>")
+*.swo
+*.swp
+*.tar.bz2
+*.tar.gz
+*.temp
+# Temporary files
+Thumbs.db
+*.tmp
+var/
+*.venv/
+.venv
+.venv*/
+.venv_*/
+venv*/
+venv/
+.venv_alphafold/
+# Virtual environments (all variants)
+.vscode/
+*.webm
+wheels/
+yarn-debug.log*
+yarn-error.log*
+*.zip
