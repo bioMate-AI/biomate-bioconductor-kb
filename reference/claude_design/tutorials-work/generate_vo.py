@@ -508,104 +508,118 @@ TUTORIALS = {
   "bioc_kb": {
     "label": "Bioconductor · DESeq2 chain",
     "steps": [
-      # 1 — center welcome (~3min target → ~10s)
-      ("End-to-end Bioconductor differential expression. "
-       "Match a curated workflow, route, run, report.",
+      # 1 — center welcome
+      ("In this tutorial we compare gene expression between a control and a "
+       "treated group, using the standard Bioconductor toolkit: DESeq2, "
+       "apeglm, and clusterProfiler. No R experience needed — BioMate picks "
+       "the right workflow, runs it, and hands back a paste-ready report.",
        True, CLOSING_SPEED),
 
-      # 2 — empty panel
-      ("Knowledge-base match in progress. "
-       "Panel stays empty until a pipeline is committed.",
+      # 2 — empty panel · understanding the request
+      ("BioMate embeds your request against the Bioconductor knowledge base. "
+       "The panel stays empty until a pipeline is committed.",
        False, None),
 
       # 3 — disambig card
-      ("Two close matches — count matrix DeSeq2 at zero point seven one, "
-       "raw FASTQ pipeline at zero point six six. Top match auto-selected.",
+      ("Two curated chains scored close: a count-matrix DESeq2 path at "
+       "seventy-one percent, and a fuller FASTQ pipeline at sixty-six "
+       "percent. BioMate surfaces both with their scores and pre-selects the "
+       "top match.",
        False, None),
 
-      # 4 — phase list
-      ("Six phases populate: QC, normalise, DE test, shrink, enrich, visualise.",
+      # 4 — phase list populates
+      ("The panel now shows the six phases that will run: QC, normalise, "
+       "differential expression, shrinkage, enrichment, and visualisation. "
+       "The chat on the left and the panel on the right are now tracking "
+       "the same run.",
        False, None),
 
       # 5 — routing reasoning
-      ("Routing chooses DeSeq2 — negative-binomial on integer counts, "
-       "not limma-voom on log intensities.",
+      ("Why DESeq2 and not limma-voom? An integer count matrix calls for a "
+       "negative-binomial model, which is what DESeq2 fits. Limma-voom is "
+       "for continuous log-two intensities, which is a different kind of "
+       "input.",
        False, None),
 
-      # 6 — Phase A QC
-      ("Phase A runs filterByExpr. "
-       "Low-count genes dropped; outputs land inline.",
+      # 6 — Phase A · QC filtering
+      ("Phase A starts and the active phase expands automatically. edgeR's "
+       "filterByExpr drops genes under ten counts. Parameters and output "
+       "files appear inline as each step finishes.",
        False, None),
 
       # 7 — DESeqDataSet handoff
-      ("Counts, metadata, and size factors fold into one DeSeq Data Set — "
-       "the typed contract for every step below.",
+      ("After normalisation, the counts, sample metadata, and size factors "
+       "fold into a single DESeqDataSet object. Every downstream DESeq2 step "
+       "reads from that one object.",
        False, None),
 
-      # 8 — Phase C DE testing
-      ("Wald test on design tilde condition. "
-       "Two thousand eight hundred and forty-one genes at FDR under five percent.",
+      # 8 — Phase C · DE testing
+      ("Phase C runs the Wald test, using condition as the design. The "
+       "result is two thousand eight hundred and forty-one differentially "
+       "expressed genes at false discovery rate under five percent.",
        False, None),
 
       # 9 — apeglm shrinkage
-      ("apeglm shrinks low-count fold changes — "
-       "enrichment isn't dominated by noisy extremes.",
+      ("Before ranking, apeglm pulls low-count fold changes toward zero. "
+       "That keeps noisy extremes from dominating the enrichment that "
+       "follows.",
        False, None),
 
-      # 10 — Phase E enrichment
-      ("clusterProfiler's gseGO ranks. "
-       "Top term: regulation of apoptotic process.",
+      # 10 — Phase E · enrichment
+      ("Phase E runs clusterProfiler's gseGO on the shrunk ranked list. The "
+       "top biological-process term is regulation of apoptotic process. "
+       "Phase F then renders the volcano plot, dot plot, and heatmap.",
        False, None),
 
-      # 11 — center: chain complete
-      ("Six phases done. Findings card drops; the After-run report opens.",
+      # 11 — center: chain complete · transition
+      ("All six phases are done. A findings card lands in the chat, and the "
+       "After-run report opens in the panel.",
        True, None),
 
       # 12 — tabs overview
-      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, "
-       "Citations, QC audit.",
+      ("The After-run report has seven tabs: results first, methods and "
+       "reproducibility next, audit last.",
        False, None),
 
       # 13 — Findings tab
-      ("Findings. Headline plus figures read from the manifest — "
-       "top GO terms, DE direction, gene-filtering retention.",
+      ("Findings: the headline numbers and figures, read straight from the "
+       "run.",
        False, None),
 
       # 14 — Outputs tab
-      ("Outputs. One row per file. View previews inline; "
-       "Download all bundles every output as a ZIP.",
+      ("Outputs: one row per file. View opens a file in place; Download all "
+       "packages everything as a single ZIP.",
        False, None),
 
-      # 15 — inline volcano preview
-      ("Clicking view on the volcano renders it inline — "
-       "log-two fold change versus negative log-ten p.",
+      # 15 — Methods tab
+      ("Methods: paste-ready prose for a manuscript, with every tool and the "
+       "parameters used.",
        False, None),
 
-      # 16 — Methods tab
-      ("Methods. Paste-ready prose with tools, versions, and exact parameters.",
+      # 16 — Parameters tab
+      ("Parameters: a table of every value the run touched, by phase and "
+       "step.",
        False, None),
 
-      # 17 — Parameters tab
-      ("Parameters. Phase, step, parameter, value — every knob the run touched.",
+      # 17 — Software tab
+      ("Software: every package with its pinned version, so the run is "
+       "reproducible.",
        False, None),
 
-      # 18 — Software tab
-      ("Software. Exact pinned versions — DeSeq2, apeglm, edgeR, clusterProfiler.",
+      # 18 — Citations tab
+      ("Citations: an auto-generated reference list for the methods used.",
        False, None),
 
-      # 19 — Citations tab
-      ("Citations. Love twenty-fourteen, Zhu twenty-nineteen, Wu twenty twenty-one. "
-       "Bundled in the download report.",
+      # 19 — QC audit tab
+      ("QC audit: every quality gate that fired, with the threshold, the "
+       "observed value, the result, and the action taken. The audit trail "
+       "is compatible with twenty-one CFR Part Eleven.",
        False, None),
 
-      # 20 — QC audit tab
-      ("QC audit. Every gate with threshold, observed, result, and action. "
-       "Twenty-one CFR Part Eleven friendly.",
-       False, None),
-
-      # 21 — center wrap-up
-      ("Match, route, run, report — one request. "
-       "Try the scRNA-seq and methylation tutorials next.",
+      # 20 — center wrap-up
+      ("And that's the full Bioconductor DESeq2 thread — from a "
+       "natural-language request, through six analysis phases, to a "
+       "complete, paste-ready report.",
        True, CLOSING_SPEED),
     ],
   },
