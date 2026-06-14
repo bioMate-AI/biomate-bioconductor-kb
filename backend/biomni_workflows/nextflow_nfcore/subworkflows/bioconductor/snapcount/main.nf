@@ -53,9 +53,9 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(snapcount)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(S4Vectors)
     library(BiocGenerics)

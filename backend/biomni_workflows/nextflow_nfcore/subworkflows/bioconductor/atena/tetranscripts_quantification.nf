@@ -59,9 +59,9 @@ process BIOC_ATENA_TETRANSCRIPTS_QUANTIFICATION {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(atena)
+    library(SummarizedExperiment)
     library(BiocParallel)
     
     # Stage 1: Retrieve and parse TE annotations using annotaTEs() and getLTRs()

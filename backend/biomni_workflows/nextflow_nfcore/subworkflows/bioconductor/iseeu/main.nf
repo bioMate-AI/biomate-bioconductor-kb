@@ -52,9 +52,9 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
           }
         }
     
-    # --- Load required libraries    library(SummarizedExperiment)
- ---
+    # --- Load required libraries ---
     library(iSEEu)
+    library(SummarizedExperiment)
     library(iSEE)
     library(limma)
     

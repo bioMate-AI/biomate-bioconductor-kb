@@ -21,5 +21,6 @@ mae <- MultiAssayExperiment(
     colData = sacurine$sampleMetadata
 )
 
-# Serialize the MultiAssayExperiment object to an RDS file
-saveRDS(mae, "input.rds")
+# Serialize the MultiAssayExperiment object to the exact filename the workflow reads
+# (input_file <- "nci_mae.rds"). Emitting "input.rds" left the workflow unable to find it.
+saveRDS(mae, "nci_mae.rds")

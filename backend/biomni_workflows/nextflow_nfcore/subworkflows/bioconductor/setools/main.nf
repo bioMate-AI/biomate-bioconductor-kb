@@ -54,9 +54,9 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({      library(SummarizedExperiment)
-
+    suppressPackageStartupMessages({
       library(SEtools)
+      library(SummarizedExperiment)
     })
     
     # ==========================================

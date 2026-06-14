@@ -52,9 +52,9 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
       }
     }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(imcRtools)
+    library(SummarizedExperiment)
     library(CATALYST)
     library(SingleCellExperiment)
     

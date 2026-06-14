@@ -52,9 +52,9 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
       }
     }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(imcRtools)
+    library(SummarizedExperiment)
     library(SingleCellExperiment)
     library(SpatialExperiment)
     library(data.table)

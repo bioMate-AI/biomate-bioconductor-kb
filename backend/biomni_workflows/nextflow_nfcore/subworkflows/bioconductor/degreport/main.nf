@@ -59,9 +59,9 @@ process BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS {
           }
         }
             
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(DESeq2)
+    library(SummarizedExperiment)
     library(DEGreport)
     
     # Read user input files from the working directory

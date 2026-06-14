@@ -58,9 +58,9 @@ process BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(scRecover)
+    library(SummarizedExperiment)
     library(BiocParallel)
     suppressMessages(library(SingleCellExperiment))
     

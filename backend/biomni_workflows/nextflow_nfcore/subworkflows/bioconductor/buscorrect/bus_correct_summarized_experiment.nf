@@ -59,8 +59,8 @@ process BIOC_BUSCORRECT_BUS_CORRECT_SUMMARIZED_EXPERIMENT {
         }
     
     # Load required libraries
-    l    library(SummarizedExperiment)
-ibrary(BUScorrect)
+    library(BUScorrect)
+    library(SummarizedExperiment)
     
     # 1. Load SummarizedExperiment and prepare the object
     # Read the user-provided SummarizedExperiment object

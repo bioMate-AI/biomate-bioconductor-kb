@@ -58,9 +58,9 @@ process BIOC_SCDD_SINGLE_CELL_SIMULATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(scDD)
+    library(SummarizedExperiment)
     
     # 1. Load the pilot SingleCellExperiment dataset
     # The pipeline reads pilot_data.rds from the working directory

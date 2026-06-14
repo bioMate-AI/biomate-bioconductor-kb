@@ -58,9 +58,9 @@ process BIOC_WPM_SUMMARIZED_EXPERIMENT_TO_PLATE_MAP {
           }
         }
         
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(wpm)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # Read the user input file 'se' from the working directory

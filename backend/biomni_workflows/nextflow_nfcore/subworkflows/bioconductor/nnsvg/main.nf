@@ -55,8 +55,8 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
         }
     
     # Load required libraries
-    lib    library(SummarizedExperiment)
-rary(SpatialExperiment)
+    library(SpatialExperiment)
+    library(SummarizedExperiment)
     library(nnSVG)
     library(scran)
     library(ggplot2)

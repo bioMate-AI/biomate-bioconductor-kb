@@ -52,9 +52,9 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
       }
     }
     
-    # Load required packages    library(SummarizedExperiment)
-
+    # Load required packages
     library(simpleSeg)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(EBImage)
     library(cytomapper)

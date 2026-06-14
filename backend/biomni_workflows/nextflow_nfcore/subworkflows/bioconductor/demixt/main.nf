@@ -62,8 +62,8 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         }
         
         # Load required libraries
-        l        library(SummarizedExperiment)
-ibrary(DeMixT)
+        library(DeMixT)
+        library(SummarizedExperiment)
         
         # Helper function to load user input files robustly
         load_input <- function(name) {

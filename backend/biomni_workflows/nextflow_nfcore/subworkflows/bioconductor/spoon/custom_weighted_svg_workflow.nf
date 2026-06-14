@@ -58,8 +58,8 @@ process BIOC_SPOON_CUSTOM_WEIGHTED_SVG_WORKFLOW {
         }
         
         # Load required libraries
-        lib        library(SummarizedExperiment)
-rary(SpatialExperiment)
+        library(SpatialExperiment)
+        library(SummarizedExperiment)
         library(spoon)
         library(BiocParallel)
         library(Matrix)

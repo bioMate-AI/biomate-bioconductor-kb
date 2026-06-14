@@ -61,9 +61,9 @@ process BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages      library(SummarizedExperiment)
-({
+    suppressPackageStartupMessages({
       library(POWSC)
+      library(SummarizedExperiment)
       library(MAST)
     })
     

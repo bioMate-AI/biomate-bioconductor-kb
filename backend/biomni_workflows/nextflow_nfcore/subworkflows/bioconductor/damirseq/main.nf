@@ -63,8 +63,8 @@ process BIOC_DAMIRSEQ_STANDARD_PIPELINE_AND_CLASSIFICATION {
         }
         
         # Load required libraries
-        lib        library(SummarizedExperiment)
-rary(DaMiRseq)
+        library(DaMiRseq)
+        library(SummarizedExperiment)
         
         # 1. Import data and create a SummarizedExperiment object
         count_data <- read.delim("count_data.txt", header = TRUE, row.names = 1)

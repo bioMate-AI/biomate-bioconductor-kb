@@ -53,9 +53,9 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(recount)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     
     # --- Read and align input files ---

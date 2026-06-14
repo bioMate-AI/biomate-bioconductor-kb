@@ -46,8 +46,8 @@ process BIOC_SPATIALEXPERIMENT {
       .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
       suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    lib    library(SummarizedExperiment)
-rary(SpatialExperiment)
+    library(SpatialExperiment)
+    library(SummarizedExperiment)
     library(jsonlite)
 
     # --- Import 10x Visium Data [] ---

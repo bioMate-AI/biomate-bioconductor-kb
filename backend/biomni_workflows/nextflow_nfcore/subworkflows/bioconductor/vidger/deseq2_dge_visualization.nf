@@ -61,9 +61,9 @@ process BIOC_VIDGER_DESEQ2_DGE_VISUALIZATION {
           }
         }
             
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(vidger)
+    library(SummarizedExperiment)
     library(DESeq2)
     
     # Read user input from the working directory

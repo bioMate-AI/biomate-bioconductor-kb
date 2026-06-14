@@ -58,9 +58,9 @@ process BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_PRECALCULATED_COUNTS {
           }
         }
         
-        # Load required librarie        library(SummarizedExperiment)
-s
+        # Load required libraries
         library(CSSQ)
+        library(SummarizedExperiment)
         library(GenomicRanges)
         
         # Define input file paths (expected in the working directory)

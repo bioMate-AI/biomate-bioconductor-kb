@@ -45,9 +45,9 @@ process BIOC_QTLEXPERIMENT {
       .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
       .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
       suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
-    }    library(SummarizedExperiment)
-
+    }
     library(S4Vectors)
+    library(SummarizedExperiment)
     library(QTLExperiment)
     library(jsonlite)
 

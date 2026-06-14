@@ -61,9 +61,9 @@ process BIOC_MIA_COMMUNITY_DIVERSITY_AND_ORDINATION {
           }
         }
     
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(mia)
+    library(SummarizedExperiment)
     library(scater)
     library(ggplot2)
     

@@ -60,9 +60,9 @@ process BIOC_SCDATAVIZ_IMPORT_FROM_SEURAT {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(scDataviz)
+    library(SummarizedExperiment)
     library(Seurat)
     library(ggplot2)
     

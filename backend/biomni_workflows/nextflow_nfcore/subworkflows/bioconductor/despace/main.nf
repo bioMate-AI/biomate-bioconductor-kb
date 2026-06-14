@@ -63,9 +63,9 @@ process BIOC_DESPACE_SPATIAL_VARIABLE_GENES {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({      library(SummarizedExperiment)
-
+    suppressPackageStartupMessages({
       library(DESpace)
+      library(SummarizedExperiment)
       library(ggplot2)
       library(ggforce)
       library(SpatialExperiment)
