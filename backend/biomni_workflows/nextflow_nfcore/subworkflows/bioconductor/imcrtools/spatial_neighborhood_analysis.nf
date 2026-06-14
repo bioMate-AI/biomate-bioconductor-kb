@@ -53,8 +53,8 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     }
     
     # Load required libraries
-    librar    library(SummarizedExperiment)
-y(SingleCellExperiment)
+    library(SingleCellExperiment)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(imcRtools)
     library(cytomapper)

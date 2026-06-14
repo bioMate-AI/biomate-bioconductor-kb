@@ -65,9 +65,9 @@ process BIOC_MILOR_STANDARD_DA_GLM {
           }
         }
         
-        # Load required libraries        library(SummarizedExperiment)
-
+        # Load required libraries
         library(miloR)
+        library(SummarizedExperiment)
         library(scater)
         library(scran)
         library(dplyr)

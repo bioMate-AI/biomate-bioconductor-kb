@@ -61,9 +61,9 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(CNVRanger)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     library(TCGAutils)
     library(GenomeInfoDb)

@@ -60,8 +60,8 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         }
         
         # Load required library
-        library(Vari        library(SummarizedExperiment)
-antAnnotation)
+        library(VariantAnnotation)
+        library(SummarizedExperiment)
         
         # --- Define prefilter functions using fast string matching ---
         isGermlinePrefilter <- function(x) {

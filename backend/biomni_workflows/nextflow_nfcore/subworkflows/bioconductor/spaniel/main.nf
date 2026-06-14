@@ -63,9 +63,9 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
           }
         }
         
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(Spaniel)
+    library(SummarizedExperiment)
     library(DropletUtils)
     library(scater)
     library(scran)

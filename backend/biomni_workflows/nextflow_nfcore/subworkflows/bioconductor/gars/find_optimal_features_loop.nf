@@ -59,9 +59,9 @@ process BIOC_GARS_FIND_OPTIMAL_FEATURES_LOOP {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(GARS)
+    library(SummarizedExperiment)
     
     # Read input file from the working directory
     if (file.exists("datanorm.rds")) {

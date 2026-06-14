@@ -62,9 +62,9 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
       stop("Error: Missing required input files ('countFile', 'sampleAnnoFile', 'featureAnnoFile') in the working directory.")
     }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(standR)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(limma)
     library(ggalluvial)

@@ -60,8 +60,8 @@ process BIOC_FUSESOM_SCE_OR_SPE_INPUT {
         }
             
             # Load required libraries
-            librar            library(SummarizedExperiment)
-y(FuseSOM)
+            library(FuseSOM)
+            library(SummarizedExperiment)
             
             # Read the user input SCE/SPE object from the working directory
             if (file.exists("sce")) {

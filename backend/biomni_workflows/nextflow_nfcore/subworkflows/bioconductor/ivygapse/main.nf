@@ -53,9 +53,9 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(ivygapSE)
+    library(SummarizedExperiment)
     library(limma)
     library(randomForest)
     

@@ -52,9 +52,9 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(GEOquery)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # ==========================================

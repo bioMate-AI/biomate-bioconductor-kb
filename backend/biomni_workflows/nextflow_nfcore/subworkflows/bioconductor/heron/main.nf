@@ -64,9 +64,9 @@ process BIOC_HERON_STANDARD_EPITOPE_PROTEIN_BINDING_ANALYSIS {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages      library(SummarizedExperiment)
-({
+    suppressPackageStartupMessages({
       library(HERON)
+      library(SummarizedExperiment)
       library(S4Vectors)
     })
     

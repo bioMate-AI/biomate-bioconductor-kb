@@ -61,9 +61,9 @@ process BIOC_SCHEX_HEXBIN_PLOTTING_WORKFLOW {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(schex)
+    library(SummarizedExperiment)
     library(dplyr)
     library(Seurat)
     library(ggplot2)

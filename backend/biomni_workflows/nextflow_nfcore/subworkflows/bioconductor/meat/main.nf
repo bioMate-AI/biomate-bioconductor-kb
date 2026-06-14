@@ -52,9 +52,9 @@ process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(MEAT)
+    library(SummarizedExperiment)
     
     # --- Read and align input data ---
     message("Stage 1: Loading and aligning input data...")

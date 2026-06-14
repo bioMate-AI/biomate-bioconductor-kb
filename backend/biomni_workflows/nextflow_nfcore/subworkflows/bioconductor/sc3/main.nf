@@ -59,9 +59,9 @@ process BIOC_SC3_STANDARD_SC3_CLUSTERING {
           }
         }
             
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(SC3)
+    library(SummarizedExperiment)
     
     # Read user input files
     yan <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)

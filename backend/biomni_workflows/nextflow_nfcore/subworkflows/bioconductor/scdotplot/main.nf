@@ -59,9 +59,9 @@ process BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(scuttle)
+    library(SummarizedExperiment)
     library(scran)
     library(purrr)
     library(dplyr)

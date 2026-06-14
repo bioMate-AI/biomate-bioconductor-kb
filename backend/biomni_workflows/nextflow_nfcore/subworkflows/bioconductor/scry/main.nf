@@ -60,9 +60,9 @@ process BIOC_SCRY_SCE_DEVIANCE_GLMPCA {
         }
     
     # Load required libraries
-    suppressPackageStartupMessage      library(SummarizedExperiment)
-s({
+    suppressPackageStartupMessages({
       library(scry)
+      library(SummarizedExperiment)
       library(ggplot2)
     })
     

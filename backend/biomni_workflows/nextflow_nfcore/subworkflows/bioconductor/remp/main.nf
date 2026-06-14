@@ -63,9 +63,9 @@ process BIOC_REMP_REPETITIVE_ELEMENT_METHYLATION_PREDICTION {
           }
         }
         
-        # Load required librarie        library(SummarizedExperiment)
-s
+        # Load required libraries
         library(REMP)
+        library(SummarizedExperiment)
         library(GenomicRanges)
         
         # Helper function to safely load RData files

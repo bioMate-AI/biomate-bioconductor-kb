@@ -64,9 +64,9 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(zinbwave)
+    library(SummarizedExperiment)
     library(matrixStats)
     library(sparseMatrixStats)
     library(magrittr)

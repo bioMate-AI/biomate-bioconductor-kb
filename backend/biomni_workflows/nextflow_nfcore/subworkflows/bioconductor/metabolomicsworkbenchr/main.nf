@@ -53,8 +53,8 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
         }
     
     # Load required libraries
-    library(metab    library(SummarizedExperiment)
-olomicsWorkbenchR)
+    library(metabolomicsWorkbenchR)
+    library(SummarizedExperiment)
     
     # --- Load local data ---
     message("Stage 1: Loading local data...")

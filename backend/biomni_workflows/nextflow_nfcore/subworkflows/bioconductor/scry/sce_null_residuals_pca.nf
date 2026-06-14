@@ -59,9 +59,9 @@ process BIOC_SCRY_SCE_NULL_RESIDUALS_PCA {
         }
     
     # Load required libraries
-    suppressPackageStartupMessage      library(SummarizedExperiment)
-s({
+    suppressPackageStartupMessages({
       library(scry)
+      library(SummarizedExperiment)
       library(ggplot2)
     })
     

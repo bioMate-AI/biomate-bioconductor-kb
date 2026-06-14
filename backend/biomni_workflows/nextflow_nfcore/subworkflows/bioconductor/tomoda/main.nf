@@ -53,9 +53,9 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(tomoda)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # Define parameters

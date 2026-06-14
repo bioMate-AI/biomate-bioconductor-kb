@@ -61,9 +61,9 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(scuttle)
+    library(SummarizedExperiment)
     library(scran)
     library(batchelor)
     library(scater)

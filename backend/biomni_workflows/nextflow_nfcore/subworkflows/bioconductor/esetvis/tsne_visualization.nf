@@ -60,9 +60,9 @@ process BIOC_ESETVIS_TSNE_VISUALIZATION {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(esetVis)
+    library(SummarizedExperiment)
     library(Biobase)
     library(ggplot2)
     

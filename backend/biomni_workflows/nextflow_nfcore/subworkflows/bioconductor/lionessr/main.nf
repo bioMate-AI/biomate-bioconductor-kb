@@ -61,9 +61,9 @@ process BIOC_LIONESSR_SINGLE_SAMPLE_NETWORK_RECONSTRUCTION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(lionessR)
+    library(SummarizedExperiment)
     library(igraph)
     library(reshape2)
     library(limma)

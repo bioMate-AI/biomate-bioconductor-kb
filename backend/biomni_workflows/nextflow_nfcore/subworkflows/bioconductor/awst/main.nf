@@ -53,9 +53,9 @@ process BIOC_AWST_AWST_NORMALIZATION_PIPELINE {
           }
         }
     
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(awst)
+    library(SummarizedExperiment)
     library(EDASeq)
     library(ggplot2)
     

@@ -57,9 +57,9 @@ process BIOC_TPSVG_POISSON_COUNT_MODEL {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(tpSVG)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     
     # 1. Read the input SpatialExperiment object from the working directory

@@ -52,9 +52,9 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
       }
     }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(scruff)
+    library(SummarizedExperiment)
     library(patchwork)
     library(Rsubread)
     library(SingleCellExperiment)

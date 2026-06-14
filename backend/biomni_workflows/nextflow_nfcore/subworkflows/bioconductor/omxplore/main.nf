@@ -53,9 +53,9 @@ process BIOC_OMXPLORE_OMXPLORE_OMICS_EXPLORATION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(omXplore)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     
     # ==========================================
