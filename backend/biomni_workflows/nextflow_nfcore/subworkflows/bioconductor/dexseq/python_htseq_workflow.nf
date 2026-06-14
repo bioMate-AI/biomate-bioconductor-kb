@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: MA plot, dispersion plot
+// QC: dispersion QC plot, diagnostic MA/PCA QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW {

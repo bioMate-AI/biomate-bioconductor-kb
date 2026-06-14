@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: survival plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {

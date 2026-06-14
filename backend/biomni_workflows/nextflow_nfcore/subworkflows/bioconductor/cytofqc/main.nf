@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: density plot
+// QC: doublet detection QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {

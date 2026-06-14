@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+// QC: filter low-expression genes, low-count filtering
+
 nextflow.enable.dsl = 2
 
 process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {

@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: alpha diversity plot, ordination plot, taxa bar plot
+// QC: prevalence/abundance filtering
+
 nextflow.enable.dsl = 2
 
 process BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION {

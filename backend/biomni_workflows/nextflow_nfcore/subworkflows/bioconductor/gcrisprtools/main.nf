@@ -8,6 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, gCrisprTools, limma, sparrow
 // Visualizations: plot (ggplot/base)
+// QC: voom mean-variance modelling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

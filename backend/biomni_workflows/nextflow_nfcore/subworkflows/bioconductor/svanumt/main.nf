@@ -7,7 +7,7 @@
 // R packages: GenomeInfoDb, S4Vectors, circlize, readr, StructuralVariantAnnotation, svaNUMT, VariantAnnotation
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomeInfoDb, S4Vectors, StructuralVariantAnnotation, VariantAnnotation, circlize, readr, svaNUMT
-// Visualizations: plot (ggplot/base)
+// Visualizations: circos plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

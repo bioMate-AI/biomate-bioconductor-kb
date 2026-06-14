@@ -7,7 +7,7 @@
 // R packages: Biobase, ComplexHeatmap, gCrisprTools, limma, sparrow
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, ComplexHeatmap, gCrisprTools, limma, sparrow
-// Visualizations: scatter plot
+// Visualizations: scatter plot, UpSet plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: UMAP plot, PCA plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS {

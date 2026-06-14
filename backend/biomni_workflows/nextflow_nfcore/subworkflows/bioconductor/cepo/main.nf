@@ -7,7 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Cepo, SingleCellExperiment, UpSetR
-// Visualizations: plot (ggplot/base)
+// Visualizations: density plot, UpSet plot
+// QC: normalization diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

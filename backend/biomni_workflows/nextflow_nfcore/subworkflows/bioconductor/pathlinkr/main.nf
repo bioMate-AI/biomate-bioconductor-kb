@@ -7,7 +7,7 @@
 // R packages: dplyr, pathlinkR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: dplyr, pathlinkR
-// Visualizations: volcano plot, heatmap, enrichment plot
+// Visualizations: volcano plot, heatmap, enrichment plot, pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

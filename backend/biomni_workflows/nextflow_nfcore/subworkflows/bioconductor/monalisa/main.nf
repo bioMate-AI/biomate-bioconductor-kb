@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: heatmap, cluster plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {

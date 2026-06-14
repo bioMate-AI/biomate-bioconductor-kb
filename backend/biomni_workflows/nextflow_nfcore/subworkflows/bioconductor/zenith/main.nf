@@ -8,7 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: edgeR, kableExtra, tweeDEseqCountData, variancePartition, zenith
 // Visualizations: plot (ggplot/base)
-// QC: filter low-expression genes, TMM normalization
+// QC: filter low-expression genes, TMM normalization, voom mean-variance modelling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

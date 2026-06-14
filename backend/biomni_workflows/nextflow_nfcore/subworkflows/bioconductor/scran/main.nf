@@ -7,7 +7,7 @@
 // R packages: SingleCellExperiment, bluster, knitr, pheatmap, scater, scran, scRNAseq, scuttle
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, scran, scuttle
-// QC: clustering QC
+// QC: cell QC metrics, clustering QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

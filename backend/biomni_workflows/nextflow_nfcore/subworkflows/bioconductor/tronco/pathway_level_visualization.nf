@@ -7,7 +7,7 @@
 // R packages: TRONCO
 // Bioconductor: 3.20 | R: 4.4
 // Requires: TRONCO
-// Visualizations: plot (ggplot/base)
+// Visualizations: pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

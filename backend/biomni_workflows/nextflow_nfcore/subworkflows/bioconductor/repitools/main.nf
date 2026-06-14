@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, Repitools
-// Visualizations: plot (ggplot/base)
+// Visualizations: MDS plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

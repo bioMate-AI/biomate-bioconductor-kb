@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, HelloRanges, rtracklayer
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

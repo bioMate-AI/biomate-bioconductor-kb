@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: image plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION {

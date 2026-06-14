@@ -7,7 +7,7 @@
 // R packages: chipenrich
 // Bioconductor: 3.20 | R: 4.4
 // Requires: chipenrich
-// Visualizations: enrichment plot
+// Visualizations: enrichment plot, coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

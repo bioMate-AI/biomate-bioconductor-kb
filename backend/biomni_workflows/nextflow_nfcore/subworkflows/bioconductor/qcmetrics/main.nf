@@ -7,7 +7,7 @@
 // R packages: ggplot2, MSnbase, mzR, qcmetrics, rforproteomics
 // Bioconductor: 3.20 | R: 4.4
 // Requires: qcmetrics
-// Visualizations: box plot
+// Visualizations: box plot, array QC report
 // QC: array detection QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

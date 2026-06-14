@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: density plot
+// QC: count normalization, clustering QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_NEBULOSA_SEURAT_DENSITY {

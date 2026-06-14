@@ -7,7 +7,8 @@
 // R packages: TreeSummarizedExperiment, mia, MultiAssayExperiment, phyloseq, scater
 // Bioconductor: 3.20 | R: 4.4
 // Requires: TreeSummarizedExperiment, mia, phyloseq
-// Visualizations: plot (ggplot/base)
+// Visualizations: phylogenetic tree
+// QC: cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: phylogenetic tree, circos plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS {

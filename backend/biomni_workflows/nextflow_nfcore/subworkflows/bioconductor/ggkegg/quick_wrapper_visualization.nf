@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: pathway diagram, network plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_GGKEGG_QUICK_WRAPPER_VISUALIZATION {

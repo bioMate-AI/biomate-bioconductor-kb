@@ -7,7 +7,8 @@
 // R packages: SummarizedExperiment, clusterExperiment, igraph, phylobase, scran
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SummarizedExperiment, clusterExperiment, limma
-// Visualizations: cluster plot, heatmap
+// Visualizations: heatmap, cluster plot
+// QC: between-array normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

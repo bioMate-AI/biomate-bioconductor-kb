@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// QC: missing-value handling
+
 nextflow.enable.dsl = 2
 
 process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {

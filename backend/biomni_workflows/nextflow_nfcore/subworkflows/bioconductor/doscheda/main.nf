@@ -7,7 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Doscheda
-// Visualizations: box plot
+// Visualizations: box plot, mean-SD plot, density plot
+// QC: normalization diagnostic plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

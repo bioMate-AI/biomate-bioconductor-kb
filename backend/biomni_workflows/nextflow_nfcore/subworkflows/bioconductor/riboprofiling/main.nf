@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biostrings, GenomicRanges, IRanges, RiboProfiling, S4Vectors, ggplot2, rtracklayer
-// Visualizations: PCA plot
+// Visualizations: PCA plot, coverage plot
 // QC: diagnostic MA/PCA QC
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

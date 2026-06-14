@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+// QC: input validation
+
 nextflow.enable.dsl = 2
 
 process BIOC_KEGGGRAPH_CHEMICAL_REACTION_NETWORK_PARSING {

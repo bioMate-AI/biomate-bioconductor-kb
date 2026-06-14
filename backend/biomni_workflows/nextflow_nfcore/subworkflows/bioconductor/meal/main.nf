@@ -7,7 +7,7 @@
 // R packages: brgedata, GenomicRanges, ggplot2, MEAL, minfi, MultiDataSet
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, MEAL, ggplot2
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic region plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

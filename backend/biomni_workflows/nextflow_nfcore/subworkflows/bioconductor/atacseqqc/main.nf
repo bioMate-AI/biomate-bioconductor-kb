@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: matrix plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING {

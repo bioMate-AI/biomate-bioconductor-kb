@@ -7,7 +7,7 @@
 // R packages: SummarizedExperiment, clusterExperiment
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SummarizedExperiment, clusterExperiment
-// Visualizations: cluster plot
+// Visualizations: dendrogram, cluster plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

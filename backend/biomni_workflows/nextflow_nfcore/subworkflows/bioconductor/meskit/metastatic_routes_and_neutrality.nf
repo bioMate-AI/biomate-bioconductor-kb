@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MesKit, RColorBrewer, ggplot2
-// Visualizations: scatter plot
+// Visualizations: smooth scatter, scatter plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

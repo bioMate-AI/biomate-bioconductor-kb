@@ -7,8 +7,8 @@
 // R packages: DESeq2, RColorBrewer, pheatmap, vsn
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DESeq2, RColorBrewer, pheatmap, vsn
-// Visualizations: PCA plot, heatmap
-// QC: dispersion/size-factor estimation, diagnostic MA/PCA QC, count normalization
+// Visualizations: PCA plot, heatmap, mean-SD plot
+// QC: dispersion/size-factor estimation, diagnostic MA/PCA QC, count normalization, variance-stabilizing normalization, normalization diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+// QC: cell QC metrics
+
 nextflow.enable.dsl = 2
 
 process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {

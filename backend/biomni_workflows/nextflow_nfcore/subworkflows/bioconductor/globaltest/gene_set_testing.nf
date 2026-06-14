@@ -8,6 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: globaltest, hu6800.db, vsn
 // Visualizations: plot (ggplot/base)
+// QC: variance-stabilizing normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

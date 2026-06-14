@@ -7,7 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GSEABase, SingleCellExperiment, dreamlet, ggplot2, zenith
-// Visualizations: heatmap (ComplexHeatmap)
+// Visualizations: heatmap (ComplexHeatmap), volcano plot
+// QC: voom mean-variance modelling
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

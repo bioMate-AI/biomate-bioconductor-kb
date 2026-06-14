@@ -7,7 +7,7 @@
 // R packages: ggplot2, mia, scater
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ggplot2, mia, scater
-// Visualizations: ordination plot
+// Visualizations: ordination plot, MDS plot
 // QC: cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

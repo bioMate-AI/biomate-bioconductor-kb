@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: heatmap, phylogenetic tree
+
 nextflow.enable.dsl = 2
 
 process BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION {

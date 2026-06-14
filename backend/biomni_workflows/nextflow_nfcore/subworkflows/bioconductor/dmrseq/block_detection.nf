@@ -7,7 +7,7 @@
 // R packages: bsseq, dmrseq
 // Bioconductor: 3.20 | R: 4.4
 // Requires: bsseq, dmrseq
-// Visualizations: plot (ggplot/base)
+// Visualizations: DMR plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

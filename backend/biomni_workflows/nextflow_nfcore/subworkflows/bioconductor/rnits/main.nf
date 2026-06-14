@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+
 nextflow.enable.dsl = 2
 
 process BIOC_RNITS_EXPRESSIONSET_WORKFLOW {

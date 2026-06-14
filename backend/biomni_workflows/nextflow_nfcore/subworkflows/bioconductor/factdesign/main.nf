@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, factDesign
-// Visualizations: plot (ggplot/base)
+// Visualizations: heatmap
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

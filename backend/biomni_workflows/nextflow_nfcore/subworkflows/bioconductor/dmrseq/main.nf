@@ -7,7 +7,7 @@
 // R packages: DelayedMatrixStats, GenomicRanges, annotatr, BiocParallel, bsseq, dmrseq
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DelayedMatrixStats, GenomicRanges, annotatr, bsseq, dmrseq
-// Visualizations: plot (ggplot/base)
+// Visualizations: DMR plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

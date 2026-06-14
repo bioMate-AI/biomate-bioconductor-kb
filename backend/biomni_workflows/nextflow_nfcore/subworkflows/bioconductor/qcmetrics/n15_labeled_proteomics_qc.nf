@@ -7,7 +7,7 @@
 // R packages: MSnbase, ggplot2, qcmetrics
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MSnbase, ggplot2, qcmetrics
-// Visualizations: bar plot
+// Visualizations: bar plot, array QC report
 // QC: array detection QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

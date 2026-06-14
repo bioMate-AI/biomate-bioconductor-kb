@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: heatmap (ComplexHeatmap), heatmap
+
 nextflow.enable.dsl = 2
 
 process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {

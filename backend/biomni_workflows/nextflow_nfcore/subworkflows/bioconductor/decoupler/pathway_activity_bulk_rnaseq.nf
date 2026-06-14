@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: decoupleR, dplyr, ggplot2, ggrepel, pheatmap, tibble, tidyr
-// Visualizations: heatmap, bar plot, scatter plot
+// Visualizations: heatmap, pathway diagram, bar plot, scatter plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+
 nextflow.enable.dsl = 2
 
 process BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA {

@@ -8,7 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DESeq2, MLSeq, caret, edgeR
 // Visualizations: plot (ggplot/base)
-// QC: count normalization
+// QC: count normalization, voom mean-variance modelling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

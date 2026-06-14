@@ -7,7 +7,7 @@
 // R packages: cowplot, flowCore, kableExtra, knitr, PCAtools, scDataviz
 // Bioconductor: 3.20 | R: 4.4
 // Requires: PCAtools, cowplot, flowCore, scDataviz
-// Visualizations: PCA plot, UMAP plot, cluster plot
+// Visualizations: biplot, PCA plot, UMAP plot, cluster plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

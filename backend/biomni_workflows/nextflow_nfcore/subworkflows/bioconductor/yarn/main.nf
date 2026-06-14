@@ -7,7 +7,7 @@
 // R packages: Biobase, RColorBrewer, yarn
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, RColorBrewer, yarn
-// Visualizations: density plot, heatmap
+// Visualizations: heatmap, density plot, MDS plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: heatmap
+
 nextflow.enable.dsl = 2
 
 process BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW {

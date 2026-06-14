@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: magrittr, multiGSEA, org.Hs.eg.db
-// Visualizations: bar plot, enrichment plot
+// Visualizations: bar plot, enrichment plot, pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

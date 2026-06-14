@@ -7,7 +7,7 @@
 // R packages: AnnotationFilter, GenomeInfoDb, GenomicAlignments, GenomicRanges, VariantAnnotation, biovizBase, bsgenome_pkg, ensembldb, ggbio, txdb_pkg
 // Bioconductor: 3.20 | R: 4.4
 // Requires: AnnotationFilter, GenomeInfoDb, GenomicAlignments, GenomicRanges, VariantAnnotation, biovizBase, ensembldb, ggbio
-// Visualizations: autoplot
+// Visualizations: autoplot, karyotype plot, genomic tracks
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

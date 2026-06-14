@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: AnnotationDbi, GeDi, igraph, mosdef, org.Hs.eg.db, topGO
-// Visualizations: plot (ggplot/base)
+// Visualizations: heatmap
 // QC: missing-value handling
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

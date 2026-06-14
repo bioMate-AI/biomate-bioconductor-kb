@@ -7,7 +7,7 @@
 // R packages: Biobase, viper
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, viper
-// Visualizations: heatmap
+// Visualizations: heatmap, dendrogram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

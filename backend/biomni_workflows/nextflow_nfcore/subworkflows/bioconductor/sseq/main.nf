@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: matrixStats, sSeq
-// Visualizations: dispersion plot, volcano plot
+// Visualizations: smooth scatter, dispersion plot, volcano plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

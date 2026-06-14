@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: regsplice
-// QC: low-count filtering
+// QC: low-count filtering, voom mean-variance modelling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

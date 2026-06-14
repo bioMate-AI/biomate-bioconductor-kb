@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: StabMap, magrittr
-// Visualizations: plot (ggplot/base)
+// Visualizations: mosaic plot
 // QC: missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

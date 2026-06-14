@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DescTools, RColorBrewer, Rtsne, SummarizedExperiment, corrplot, iasva, irlba, pheatmap, sva
-// Visualizations: heatmap, bar plot, t-SNE plot
+// Visualizations: heatmap, bar plot, correlation plot, t-SNE plot
 // QC: batch-effect correction
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

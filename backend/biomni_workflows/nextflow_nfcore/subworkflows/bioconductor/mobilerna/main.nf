@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: bioseq, dplyr, mobileRNA
-// Visualizations: PCA plot, heatmap
+// Visualizations: heatmap, PCA plot
 // QC: missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

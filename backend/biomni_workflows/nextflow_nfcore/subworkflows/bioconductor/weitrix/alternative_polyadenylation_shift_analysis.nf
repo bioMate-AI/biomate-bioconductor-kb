@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, dplyr, ggplot2, weitrix
-// Visualizations: plot (ggplot/base)
+// Visualizations: scree plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

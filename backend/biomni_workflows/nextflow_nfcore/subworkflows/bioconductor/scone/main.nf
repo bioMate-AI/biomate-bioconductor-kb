@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, SingleCellExperiment, scone
-// Visualizations: plot (ggplot/base)
+// Visualizations: biplot
 // QC: low-count filtering, missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

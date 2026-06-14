@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: cluster plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_OTUBASE_OTU_BASED_ANALYSIS {

@@ -7,7 +7,7 @@
 // R packages: BiocParallel, DepInfeR, dplyr, ggbeeswarm, ggplot2, ggrepel, missForest, pheatmap, RColorBrewer, tibble, tidyr
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, DepInfeR, RColorBrewer, dplyr, ggbeeswarm, ggplot2, ggrepel, missForest, pheatmap, tibble, tidyr
-// Visualizations: heatmap, dot plot, box plot
+// Visualizations: heatmap, beeswarm plot, dot plot, box plot
 // QC: low-count filtering, missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

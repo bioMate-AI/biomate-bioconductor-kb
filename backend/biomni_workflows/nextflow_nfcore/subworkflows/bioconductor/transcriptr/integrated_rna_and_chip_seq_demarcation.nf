@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: ROC curve, enrichment plot, box plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {

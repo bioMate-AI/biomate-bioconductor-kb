@@ -7,6 +7,7 @@
 // R packages: ExiMiR, affy, limma
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ExiMiR, affy, limma
+// QC: between-array normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

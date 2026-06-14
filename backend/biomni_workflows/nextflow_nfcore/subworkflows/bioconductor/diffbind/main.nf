@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: MA plot, PCA plot, volcano plot
+// QC: diagnostic MA/PCA QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING {

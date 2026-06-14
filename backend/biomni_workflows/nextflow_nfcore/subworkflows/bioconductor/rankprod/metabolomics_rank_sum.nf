@@ -8,6 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: RankProd, vsn
 // Visualizations: plot (ggplot/base)
+// QC: variance-stabilizing normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

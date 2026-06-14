@@ -7,7 +7,7 @@
 // R packages: tweeDEseq, xtable
 // Bioconductor: 3.20 | R: 4.4
 // Requires: tweeDEseq
-// Visualizations: plot (ggplot/base)
+// Visualizations: MA plot
 // QC: count normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

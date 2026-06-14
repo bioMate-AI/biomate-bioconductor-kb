@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DESeq2, RColorBrewer, RUVSeq, edgeR
-// Visualizations: PCA plot
+// Visualizations: PCA plot, RLE plot
 // QC: TMM normalization, diagnostic MA/PCA QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

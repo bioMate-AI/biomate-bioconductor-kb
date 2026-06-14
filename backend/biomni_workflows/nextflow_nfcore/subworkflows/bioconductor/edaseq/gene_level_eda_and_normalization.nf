@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: box plot
+// QC: dispersion/size-factor estimation, low-count filtering
+
 nextflow.enable.dsl = 2
 
 process BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION {

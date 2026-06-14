@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: diversity plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS {

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: coverage plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS {

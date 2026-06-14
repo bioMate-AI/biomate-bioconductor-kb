@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Dmelanogaster.UCSC.dm6, Damsel, GenomicRanges, IRanges, TxDb.Dmelanogaster.UCSC.dm6.ensGene, dplyr, org.Dm.eg.db, stringr
-// Visualizations: gene count plot, heatmap
+// Visualizations: gene count plot, heatmap, coverage plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

@@ -7,7 +7,7 @@
 // R packages: GSAR, edgeR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GSAR, edgeR
-// Visualizations: plot (ggplot/base)
+// Visualizations: pathway diagram
 // QC: count normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

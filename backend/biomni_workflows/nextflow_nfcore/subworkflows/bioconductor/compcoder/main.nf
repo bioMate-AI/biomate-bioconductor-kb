@@ -7,6 +7,7 @@
 // R packages: ape, compcodeR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: compcodeR
+// QC: voom mean-variance modelling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

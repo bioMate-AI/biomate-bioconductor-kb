@@ -7,7 +7,8 @@
 // R packages: limma
 // Bioconductor: 3.20 | R: 4.4
 // Requires: limma
-// Visualizations: plot (ggplot/base)
+// Visualizations: SA diagnostic
+// QC: normalization diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
