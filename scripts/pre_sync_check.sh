@@ -64,11 +64,16 @@ HEAD "W1 — TypeScript (tsc --noEmit)"
 W1_LOG="$LOG_DIR/${TS}_w1_tsc.log"
 ( cd "$REPO/frontend" && npx --no-install tsc --noEmit -p . ) 2>&1 \
   | tee "$W1_LOG" | tail -40
-W1_FAIL_COUNT="$(grep -cE '^[^[:space:]]+\.(ts|tsx)\(' "$W1_LOG" || echo 0)"
+# `grep -c` always prints a single integer to stdout; suppress its
+# non-zero exit on no-match with `|| true`. The `|| echo 0` form we
+# had before produced two lines on no-match and broke arithmetic.
+W1_FAIL_COUNT="$(grep -cE '^[^[:space:]]+\.(ts|tsx)\(' "$W1_LOG" 2>/dev/null || true)"
+W1_FAIL_COUNT="${W1_FAIL_COUNT:-0}"
 
 # Allow only the two long-standing parse errors in server/routes.ts.
 # Anything else is a real failure.
-W1_ALLOWED="$(grep -cE 'server/routes\.ts\(6686|server/routes\.ts\(13558' "$W1_LOG" || echo 0)"
+W1_ALLOWED="$(grep -cE 'server/routes\.ts\(6686|server/routes\.ts\(13558' "$W1_LOG" 2>/dev/null || true)"
+W1_ALLOWED="${W1_ALLOWED:-0}"
 W1_NEW=$(( W1_FAIL_COUNT - W1_ALLOWED ))
 if [[ "$W1_NEW" -gt 0 ]]; then
   FAIL "W1 NEW tsc errors detected ($W1_NEW outside the allowed long-standing set)"
@@ -89,8 +94,10 @@ if ! ( cd "$REPO/frontend" && npx --no-install vitest run ) 2>&1 \
 fi
 W2_SUMMARY="$(grep -E 'Tests +[0-9]+ (passed|failed)' "$W2_LOG" | tail -1)"
 NOTE "summary: ${W2_SUMMARY:-no summary line found}"
-W2_FAILED="$(grep -E 'Tests +[0-9]+ failed' "$W2_LOG" | grep -oE '[0-9]+ failed' | head -1 | grep -oE '[0-9]+' || echo 0)"
-W2_FILE_FAILED="$(grep -E 'Test Files +[0-9]+ failed' "$W2_LOG" | grep -oE '[0-9]+ failed' | head -1 | grep -oE '[0-9]+' || echo 0)"
+W2_FAILED="$(grep -E 'Tests +[0-9]+ failed' "$W2_LOG" 2>/dev/null | grep -oE '[0-9]+ failed' | head -1 | grep -oE '[0-9]+' 2>/dev/null || true)"
+W2_FAILED="${W2_FAILED:-0}"
+W2_FILE_FAILED="$(grep -E 'Test Files +[0-9]+ failed' "$W2_LOG" 2>/dev/null | grep -oE '[0-9]+ failed' | head -1 | grep -oE '[0-9]+' 2>/dev/null || true)"
+W2_FILE_FAILED="${W2_FILE_FAILED:-0}"
 # Allow exactly the 2 pre-existing DATABASE_URL env failures at the file level
 # (galaxy-assistant-history-block.test.ts + galaxy-assistant-history-edge-cases.test.ts);
 # they show as failed FILES (not failed tests).

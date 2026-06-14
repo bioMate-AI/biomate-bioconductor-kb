@@ -111,8 +111,9 @@ else
     exit 3
   fi
   # The driver prints "PASS=N  FAIL=M" at the end. Treat any FAIL>0 as a fail.
-  fail_count="$(grep -oE 'FAIL=[0-9]+' "$S2_LOG" | tail -1 | cut -d= -f2 || echo 0)"
-  if [[ "${fail_count:-0}" -gt 0 ]]; then
+  fail_count="$(grep -oE 'FAIL=[0-9]+' "$S2_LOG" 2>/dev/null | tail -1 | cut -d= -f2 || true)"
+  fail_count="${fail_count:-0}"
+  if [[ "$fail_count" -gt 0 ]]; then
     FAIL "S2 — $fail_count audit assertions failed"
     exit 3
   fi
@@ -131,7 +132,8 @@ then
   FAIL "S3 — ssh failed; cannot read dev container logs"
   exit 4
 fi
-errs="$(grep -cE '.' "$S3_LOG" || echo 0)"
+errs="$(grep -cE '.' "$S3_LOG" 2>/dev/null || true)"
+errs="${errs:-0}"
 if [[ "$errs" -gt 0 ]]; then
   FAIL "S3 — $errs lines matched the error pattern. Excerpt:"
   head -8 "$S3_LOG" | tee -a "$RUN_LOG"
