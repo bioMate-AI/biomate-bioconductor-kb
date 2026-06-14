@@ -46,13 +46,17 @@ import type {
 
 /** Emitted for each tool invocation during an agent loop turn. */
 export interface AgentToolEvent {
-  type: 'tool_call' | 'tool_result';
+  type: 'tool_call' | 'tool_result' | 'status';
   tool_use_id: string;
   name: string;
   input?: Record<string, unknown>;  // populated on tool_call
   output?: unknown;                 // populated on tool_result
   error?: string;                   // populated on tool_result when execution failed
   duration_ms?: number;             // populated on tool_result
+  // status events carry a user-visible message + optional structured payload
+  // (e.g. { stage: 'extracting', confidence: 0.92 }).
+  message?: string;
+  payload?: Record<string, unknown>;
 }
 
 /** Anthropic tool definitions registered with the agent. */
@@ -823,6 +827,143 @@ export function remapInlineParametersForWorkflow(
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Schema-grounded extraction wrapper (feature-flagged).
+//
+// When SCHEMA_GROUNDED_EXTRACTION=1, runs Stage 3:
+//   3a rule pass + 3b LLM resolver + 3c validation
+// Schema is read from workflow_ga.required_params / optional_params (which the
+// backend already populates from nextflow_schema.json or .nf parsing via
+// backend/lib/galaxy/ai/ai_assistant.py:_get_workflow_params). The frontend
+// never re-parses any schema file — that would duplicate backend logic.
+//
+// Falls back to the legacy WORKFLOW_PARAM_ALIASES table when the flag is off,
+// when workflow_ga ships no schema metadata (older annotation rows), or when
+// the new pipeline throws — so default behavior is unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import {
+  buildSchemaFromWorkflowGa,
+  type BackendParamEntry,
+} from './lib/paramSchema.js';
+import {
+  extractParameters,
+  buildLlmGenerateAdapter,
+  type ExtractorResult,
+} from './lib/schemaGroundedExtractor.js';
+import { llmGenerate } from './llm-client.js';
+
+const SCHEMA_GROUNDED_FLAG = () =>
+  process.env.SCHEMA_GROUNDED_EXTRACTION === '1';
+
+/**
+ * Async wrapper used at chat-stream call sites. Returns the canonical-keyed
+ * dict and (optionally) an ExtractorResult for the caller to surface in the
+ * chat response.
+ *
+ * Drop-in: if flag is off OR workflow_ga has no rich schema OR an error fires
+ * inside the new pipeline, falls back to the legacy alias table — no behavior
+ * regression on the default path.
+ */
+export async function groundInlineParameters(args: {
+  workflowName: string | undefined | null;
+  rawParams: Record<string, unknown> | undefined | null;
+  userQuery: string;
+  /** Backend's required_params from workflow_ga; either rich entries or bare names. */
+  requiredParams?: Array<BackendParamEntry | string>;
+  optionalParams?: Array<BackendParamEntry | string>;
+  userOverriddenKeys?: Set<string>;
+  /** Optional callback: emit user-visible progress to the SSE stream. */
+  onStatus?: (message: string, payload?: Record<string, unknown>) => void;
+}): Promise<{
+  params: Record<string, string | string[]>;
+  details?: ExtractorResult;
+  path: 'schema-grounded' | 'legacy-alias' | 'noop';
+}> {
+  const { workflowName, rawParams, userQuery, requiredParams, optionalParams, onStatus } = args;
+  if (!workflowName) {
+    return { params: (rawParams as any) || {}, path: 'noop' };
+  }
+  if (!SCHEMA_GROUNDED_FLAG()) {
+    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    return { params: remapped, path: 'legacy-alias' };
+  }
+  try {
+    onStatus?.('Reading parameter schema for ' + workflowName + '…', { stage: 'schema' });
+    const schema = buildSchemaFromWorkflowGa({
+      workflowName,
+      requiredParams,
+      optionalParams,
+    });
+    if (schema.params.length === 0) {
+      // Diagnostic: surface the shape we received so we can tell whether the
+      // caller passed nothing, bare strings, or rich entries.
+      console.warn(
+        '[groundInlineParameters] schema empty for', workflowName,
+        '— required:', Array.isArray(requiredParams)
+          ? `${requiredParams.length} items, first=${JSON.stringify(requiredParams[0])}`
+          : typeof requiredParams,
+        'optional:', Array.isArray(optionalParams)
+          ? `${optionalParams.length} items, first=${JSON.stringify(optionalParams[0])}`
+          : typeof optionalParams,
+      );
+      onStatus?.('No schema metadata; using legacy parameter mapping', { stage: 'fallback' });
+      const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+      return { params: remapped, path: 'legacy-alias' };
+    }
+    const llmCall = buildLlmGenerateAdapter(llmGenerate);
+    onStatus?.('Extracting parameters from your message…', { stage: 'extract', paramCount: schema.params.length });
+    const result = await extractParameters({
+      schema,
+      userQuery,
+      rawParams: rawParams || {},
+      userOverriddenKeys: args.userOverriddenKeys,
+      llmCall,
+    });
+    const fillCount = Object.keys(result.params).length;
+    if (result.clarifications.length > 0) {
+      onStatus?.(
+        `Extracted ${fillCount} parameter${fillCount === 1 ? '' : 's'} — ${result.clarifications.length} need your input`,
+        {
+          stage: 'extracted',
+          confidence: result.confidence,
+          clarifications: result.clarifications.length,
+          missingRequired: result.validation.missingRequired,
+          enumViolations: result.validation.enumViolations.map((v) => v.key),
+        },
+      );
+    } else {
+      onStatus?.(
+        `Extracted ${fillCount} parameter${fillCount === 1 ? '' : 's'} from your message`,
+        { stage: 'extracted', confidence: result.confidence },
+      );
+    }
+    return { params: result.params, details: result, path: 'schema-grounded' };
+  } catch (e) {
+    console.warn(
+      `[groundInlineParameters] schema-grounded path failed for "${workflowName}" (${(e as Error).message}); falling back to legacy alias`,
+    );
+    onStatus?.('Parameter extraction failed; using legacy mapping', { stage: 'error', error: (e as Error).message });
+    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    return { params: remapped, path: 'legacy-alias' };
+  }
+}
+
+/**
+ * Coerce array values to comma-joined strings so the legacy
+ * `Record<string, string>` consumer (workflow form pre-fill) accepts them.
+ * The form's multi-value renderer splits on comma for list-typed params.
+ */
+function stringifyParamValues(
+  params: Record<string, string | string[]>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) {
+    out[k] = Array.isArray(v) ? v.join(',') : String(v);
+  }
+  return out;
+}
+
 export function buildWorkflowRoutingBlock(preferredDomains: string[]): string {
   if (!preferredDomains || preferredDomains.length === 0) {
     return Object.values(DOMAIN_ROUTING_RULES).join('\n');
@@ -987,6 +1128,14 @@ export interface GalaxyAssistantResponse {
 
   // Extracted inline parameters from user message
   inlineParameters?: Record<string, string>;
+
+  // Schema-grounded extraction clarifications — shown to the user as
+  // a ParamClarificationCard. Only populated when SCHEMA_GROUNDED_EXTRACTION
+  // is on AND the workflow's schema flagged missing-required or enum violations.
+  paramClarifications?: Array<
+    | { kind: 'missing_required'; paramName: string; hint?: string; examples?: string[] }
+    | { kind: 'enum_violation'; paramName: string; userValue: string; allowed: string[] }
+  >;
 
   // Extracted typed facts from user message (for ConversationState)
   extractedFacts?: ExtractedFact[];
@@ -2734,21 +2883,48 @@ Rules:
       finalMessage += '\n\n→ Open your [CRO Compliance workspace](/drug-discovery-cro) to manage campaigns, view the audit chain, and generate IND packages.';
     }
 
-    // Remap LLM-extracted keys → workflow-required keys so the workflow panel
-    // form actually populates. Without this, the form stays empty and Run
-    // dispatches with `params.X='null'` defaults (see audit doc).
+    // Ground LLM-extracted keys against the workflow schema so the panel
+    // form actually populates. When SCHEMA_GROUNDED_EXTRACTION=1, runs the
+    // rule+LLM+validate pipeline; otherwise falls back to the legacy
+    // WORKFLOW_PARAM_ALIASES table.
     const _workflowNameForRemap =
       generatedWorkflow?.workflow_ga?.name || generatedWorkflow?.workflow_name;
-    const _remappedInlineParams = remapInlineParametersForWorkflow(
-      _workflowNameForRemap,
-      intent.inlineParameters,
-    );
+    const _groundResult = await groundInlineParameters({
+      workflowName: _workflowNameForRemap,
+      rawParams: intent.inlineParameters,
+      userQuery: message,
+      requiredParams: generatedWorkflow?.workflow_ga?.required_params,
+      optionalParams: generatedWorkflow?.workflow_ga?.optional_params,
+      onStatus: onToolEvent
+        ? (msg, payload) =>
+            onToolEvent({
+              type: 'status',
+              tool_use_id: 'param_ground_' + (_workflowNameForRemap || 'wf'),
+              name: 'parameter_extraction',
+              message: msg,
+              payload,
+            })
+        : undefined,
+    });
+    const _remappedInlineParams = stringifyParamValues(_groundResult.params);
+    if (_groundResult.path !== 'noop') {
+      console.log(
+        '[InlineParam Ground]',
+        _workflowNameForRemap,
+        'path:', _groundResult.path,
+        'confidence:', _groundResult.details?.confidence?.toFixed(2),
+        'clarifications:', _groundResult.details?.clarifications?.length || 0,
+      );
+    }
 
     const finalResult: GalaxyAssistantResponse = {
       message: finalMessage,
       intentType: intent.type,
       intentConfidence: intent.confidence,
       inlineParameters: Object.keys(_remappedInlineParams).length > 0 ? _remappedInlineParams : undefined,
+      paramClarifications: (_groundResult.details?.clarifications?.length || 0) > 0
+        ? _groundResult.details!.clarifications
+        : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
@@ -3436,16 +3612,33 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const _multiWorkflowName: string | undefined =
       _multiGeneratedWorkflow?.workflow_ga?.name ||
       _multiGeneratedWorkflow?.workflow_name;
-    const _multiRemappedInlineParams = remapInlineParametersForWorkflow(
-      _multiWorkflowName,
-      primaryIntent.inlineParameters,
-    );
+    const _multiGroundResult = await groundInlineParameters({
+      workflowName: _multiWorkflowName,
+      rawParams: primaryIntent.inlineParameters,
+      userQuery: primaryIntent.subQuery || message,
+      requiredParams: _multiGeneratedWorkflow?.workflow_ga?.required_params,
+      optionalParams: _multiGeneratedWorkflow?.workflow_ga?.optional_params,
+      onStatus: onToolEvent
+        ? (msg, payload) =>
+            onToolEvent({
+              type: 'status',
+              tool_use_id: 'param_ground_' + (_multiWorkflowName || 'wf'),
+              name: 'parameter_extraction',
+              message: msg,
+              payload,
+            })
+        : undefined,
+    });
+    const _multiRemappedInlineParams = stringifyParamValues(_multiGroundResult.params);
 
     const multiIntentResult: GalaxyAssistantResponse = {
       message: response.message,
       intentType: primaryIntent.type,
       intentConfidence: primaryIntent.confidence,
       inlineParameters: Object.keys(_multiRemappedInlineParams).length > 0 ? _multiRemappedInlineParams : undefined,
+      paramClarifications: (_multiGroundResult.details?.clarifications?.length || 0) > 0
+        ? _multiGroundResult.details!.clarifications
+        : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
