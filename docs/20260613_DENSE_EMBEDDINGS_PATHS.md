@@ -13,7 +13,7 @@ what regenerates them and what does not.
 | What builds them? | `_ensure_workflow_embeddings()` in `backend/lib/galaxy/ai/unified_workflow_search.py` — lazy on first use **only when the `.npz` file is absent**, CPU-only (BGE via SentenceTransformer). Staleness (DB-newer-than-npz, row-count drift, in-place edits) is **NOT** detected — see §6. |
 | What consumes them? | `unified_workflow_search.py` (workflow ranking) + `vector_search.py` (tool ranking) — additive bonus on top of FTS + keyword + named-anchor scoring |
 | How do they get to dev EC2? | They DON'T travel through `scripts/sync_to_dev.sh`. They live in the `dev_db_bundle` tarball or are rebuilt by the container on first search. |
-| If stale, who rebuilds? | **No one automatically.** The lazy path in `_ensure_workflow_embeddings()` only checks `.npz.exists()` — it never compares mtime against the `.db`, never checks row-count parity, never re-encodes when descriptions change. Staleness is a manual responsibility today. See §6 / §7 for the freshness contract and the explicit rebuild + push commands. |
+| If stale, who rebuilds? | **Auto-detected on load as of 2026-06-14.** Both workflows (`unified_workflow_search.py`) and tools (`vector_search.py`) compare a SHA-256 content signature of live DB rows against one stamped into the `.npz`. Mismatch → rebuild during the next `_ensure_*()` call. Manual procedure in §7 still applies for getting the rebuilt `.npz` from workstation to dev container. |
 
 ---
 
@@ -174,7 +174,14 @@ ssh -i "$KEY_FILE" "${EC2_USER}@${EC2_HOST}" \
 
 ---
 
-## 6. Known bug — embeddings staleness is not detected automatically
+## 6. Staleness detection — auto-rebuild on drift
+
+**Patched 2026-06-14** (commit on `bioc/v2-qc-audit-panel`). Both
+sides — `unified_workflow_search.py` and `vector_search.py` — now
+detect a stale `.npz` against the live `.db` and auto-rebuild on
+load. The original gap is documented below for context.
+
+### Original gap (pre-patch)
 
 `backend/lib/galaxy/ai/unified_workflow_search.py:1296+`:
 
@@ -216,6 +223,41 @@ overhead per process start.
 
 Until the fix lands, follow §7 manually after every meaningful `.db`
 change.
+
+### What the patch actually does
+
+Both `_ensure_workflow_embeddings()` (workflows) and `initialize()`
+(tools) now run `_workflow_embeddings_stale()` / `_embeddings_stale()`
+right after `_load_*()`. The check is a two-tier compare:
+
+1. **Row count** — `SELECT COUNT(*) FROM workflows` (or `tools`)
+   compared to the loaded `_WF_EMBED_IDS` / `self.tool_ids`. Catches
+   workflows added/removed since the last build. ~1 ms.
+2. **Content signature** — SHA-256 over the same
+   `(id, name, description, …, annotation)` tuples the build encodes.
+   Stamped into the `.npz` at build time as `workflow_signature` /
+   `tools_signature`. ~5-10 ms (hash pass over a few thousand
+   strings). Catches in-place description edits, domain
+   reclassification, tag changes — anything that would affect the
+   encoded text.
+
+Pre-existing `.npz` files have no signature metadata — the check
+falls back to row-count parity only. The first opportunity to land a
+rebuild also lands the signature, so subsequent loads on the same
+container get the full check for free.
+
+Verified round-trip on both sides (2026-06-14):
+
+| Step | Workflows | Tools |
+|---|---|---|
+| Fresh build → stamped signature | 73 s, 4,005 vectors, sig `18ce3e5b…` | 390 s, 12,283 vectors, sig `92c3e8fb…` |
+| Warm reload (no drift) | 0.0 s | 0.2 s |
+| Drift detection (description edit) | 73 s rebuild | 346 s rebuild |
+| Final rebuild after revert | 72 s, same `18ce3e5b…` | 369 s, same `92c3e8fb…` |
+
+Signatures are deterministic — identical content always produces the
+same hash, so two machines comparing `.npz` files can confirm
+freshness without re-running the whole encode.
 
 ---
 
