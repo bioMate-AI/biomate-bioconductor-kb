@@ -13857,10 +13857,17 @@ function validateDatasets(datasets: any): { valid: boolean; error?: string } {
 function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'binary' | 'interactive' | 'structure' | 'density_map' {
   const ext = extension.toLowerCase();
 
-  const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'tiff', 'bmp'];
+  // PDF is the dominant bioconductor figure output (~85% of figure ext occurrences
+  // per docs/20260614_BIOC_VIZ_COVERAGE_AUDIT.md). It is NOT a raster image —
+  // browsers can't render application/pdf inside <img>. Route it to 'interactive'
+  // so the iframe / <embed> path picks it up, matching step-output-preview.tsx's
+  // already-correct PDF viewer.
+  // tiff/bmp also can't render natively in <img>; demoted to 'binary' (download
+  // link) until a server-side PNG conversion route is added.
+  const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif'];
   // json renders as a sortable table via CsvTableViewer; csv/tsv are canonical tables
   const tableExts = ['tsv', 'csv', 'tabular', 'json', 'bed', 'gtf', 'gff', 'vcf'];
-  const interactiveExts = ['html', 'htm'];
+  const interactiveExts = ['html', 'htm', 'pdf'];
   const textExts = ['txt', 'log', 'md', 'xml', 'yaml', 'yml', 'nf', 'config'];
   // Molecular structure files — rendered by StructureViewer (3Dmol.js)
   const structureExts = ['pdb', 'cif', 'mmcif', 'ent'];
