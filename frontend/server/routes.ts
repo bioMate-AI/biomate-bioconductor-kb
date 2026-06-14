@@ -1234,6 +1234,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await parameterRepository.initialize();
   await workflowRepository.initialize();
 
+  // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
+  // a missing module doesn't crash the rest of the app at boot. The route
+  // file ships from this same topic branch alongside this registration.
+  try {
+    const { registerRegulatoryTrainingRoutes } = await import(
+      "./regulatory-training-routes.js"
+    );
+    registerRegulatoryTrainingRoutes(app);
+  } catch (e: any) {
+    console.warn(
+      "[routes] regulatory-training-routes not loaded:",
+      e?.message ?? e
+    );
+  }
+
   // ─── /api/contact — public contact form submission ───────────────────────
   // Sends to CONTACT_INBOX (default: yaoyun.zhang@biomate.ai) via AWS SES through
   // existing email-service.ts. Falls back to logging if email service is not
