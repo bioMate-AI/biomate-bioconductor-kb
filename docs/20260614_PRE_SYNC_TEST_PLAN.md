@@ -31,6 +31,25 @@ P0 must be green before sync.
 Run these before scenarios. They take < 5 minutes total and protect
 against catastrophic regressions that would brick dev on first request.
 
+**One-liner that runs all four**: `bash scripts/pre_sync_check.sh`
+
+The wrapper also:
+  - validates you're actually on `integration/next-phase` (per the
+    CLAUDE.md sync rule) before doing anything;
+  - allows the two long-standing tsc parse errors at
+    `server/routes.ts(6686 + 13558)` to pass;
+  - allows the two long-standing `DATABASE_URL` env failures at the
+    test-file level (galaxy-assistant-history-*) to pass;
+  - exits non-zero on the first real failure with a specific code so
+    a CI step can fail loudly;
+  - writes per-run timestamped logs to `docs/pre_sync_logs/`.
+
+Pass `SKIP_W4=1` (or `QUICK=1`) to skip the slower boot-smoke step
+when iterating, but **never** skip W4 in a real pre-sync gate.
+
+Manual invocation of each step is below for diagnosis or when the
+wrapper itself misbehaves.
+
 ### W1 — Type check (P0)
 
 ```bash
