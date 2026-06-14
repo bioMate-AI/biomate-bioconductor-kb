@@ -199,6 +199,66 @@ Unit tests may use mocks only for external third-party services (e.g. AWS, Strip
 
 If you write a new e2e test that uses any other email, that's a regression — fix it before merging.
 
+### E2E plan discipline — consolidate, don't multiply
+
+Hard rules for e2e harnesses that hit the live dev stack. Failure to
+follow these wastes LLM tokens, rate-limit budget, and hours of
+flaky-test debugging:
+
+1. **Login once per harness, not once per test case.** A POST
+   `/api/auth/login` is a real DB hit. Logging in 9 times to run 9
+   independent test cases is 9× the budget for zero added confidence.
+   Cache the JWT at the top of the run; re-use it everywhere below.
+
+2. **Create one project per harness, not one per test.** Same logic.
+   Set the project up at the top of the canonical flow, tear it down
+   in an `EXIT` trap (so partial runs don't leak rows). Sub-tests
+   that need a project just use the one already created.
+
+3. **NEVER call `/api/auth/register` from an e2e harness.** The
+   canonical fixture is already registered. Calling register on it
+   is at best a no-op that costs rate-limit credit, at worst a 4xx
+   that makes the harness look broken. **Registration round-trip
+   testing belongs in a server-side unit test** (
+   `server/auth-fixes-20260612.test.ts`), not in an e2e harness.
+
+4. **One canonical fixture only.** Do NOT create timestamped
+   `e2e-secondary-$(date +%s)@example.com` accounts to test
+   "cross-user isolation." Those rules are already enforced by
+   `server/project-routes.test.ts` (ownership check, 404-not-403)
+   and `scripts/audit_project_framework.sh` (S3 — runs 7
+   cross-user assertions with the dev `users` table seeded
+   appropriately). An e2e harness with one fixture can still cover
+   the auth-gate surface (`STATUS GET /api/projects` → 401,
+   `STATUS GET /api/projects/<fake uuid>` → 404).
+
+5. **Consolidate test cases into 1–2 flows, not 9–13.** A real user
+   journey IS a chain: login → create context → exercise feature A
+   → exercise feature B → exercise feature C. Test the chain that
+   way. The "Flow A + Flow B" pattern in `scripts/e2e_use_cases.sh`
+   is the canonical example: A is the long sequential journey, B is
+   the cheap auth-gate probe.
+
+6. **Generous per-call timeouts for LLM paths.** A workflow-
+   generation call can spend 30–90 s on the LLM. A 45 s timeout
+   catches it mid-thinking and returns `workflow_failed` for
+   timing, not behaviour. Default to **90 s** for any chat-stream
+   call that needs a workflow card. Bake the budget into the
+   harness; document it next to the call.
+
+7. **Coverage map > coverage maximalism.** Before adding a new e2e
+   assertion, ask: "is this already covered by a faster unit /
+   integration test?" If yes, document the pointer in the e2e
+   harness as a `note`. The harness is not the place to
+   re-implement coverage that the vitest suite already gives you.
+
+The canonical implementation of all seven points lives in
+`scripts/e2e_use_cases.sh` (Flow A + Flow B, single fixture, single
+project, 90 s LLM timeouts, coverage notes pointing at
+`audit_project_framework.sh` / `project-routes.test.ts` /
+`chat-audit-followups.test.ts` for things the harness intentionally
+does NOT re-verify).
+
 ---
 
 ## UX E2E Completeness Standard
