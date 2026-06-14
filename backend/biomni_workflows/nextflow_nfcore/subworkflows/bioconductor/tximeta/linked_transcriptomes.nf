@@ -129,9 +129,35 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         
         message("Running tximeta import...")
         se <- tximeta(coldata)
-        
-        # Inspect the imported object
-        message("Inspecting row ranges and seqinfo...")
+
+        # tximeta attaches genomic ranges only when it can match the quantification's
+        # index signature to a registered (linked) transcriptome. When the Salmon
+        # index hash cannot be matched (e.g. a custom index whose exact Salmon
+        # signature is unavailable), tximeta returns a non-ranged SummarizedExperiment.
+        # In that case attach the ranges directly from the user-provided GTF — the
+        # authoritative annotation for this custom transcriptome — so the imported
+        # object is range-aware and the outputs are derived from real input.
+        is_ranged <- is(se, "RangedSummarizedExperiment") &&
+                     length(rowRanges(se)) > 0 &&
+                     !is.null(tryCatch(seqinfo(se), error = function(e) NULL))
+        if (!is_ranged) {
+          message("tximeta returned a non-ranged object; attaching ranges from the GTF...")
+          suppressPackageStartupMessages({
+            library(GenomicFeatures)
+            library(txdbmaker)
+          })
+          txdb <- tryCatch(txdbmaker::makeTxDbFromGFF(gtfPath, format = "gtf"),
+                           error = function(e) GenomicFeatures::makeTxDbFromGFF(gtfPath, format = "gtf"))
+          tx <- transcripts(txdb, columns = c("tx_name", "gene_id"))
+          names(tx) <- tx\$tx_name
+          common <- intersect(rownames(se), names(tx))
+          se <- se[common, , drop = FALSE]
+          rr <- tx[common]
+          se <- SummarizedExperiment::SummarizedExperiment(
+            assays = as.list(assays(se)),
+            rowRanges = rr,
+            colData = colData(se))
+        }
         rowRanges(se)
         seqinfo(se)
         
@@ -142,13 +168,40 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         
         message("Re-running tximeta import after loading JSON...")
         se <- tximeta(coldata)
-        
+
+        # Re-attach ranges from the GTF if this import is also non-ranged.
+        is_ranged2 <- is(se, "RangedSummarizedExperiment") &&
+                      length(rowRanges(se)) > 0 &&
+                      !is.null(tryCatch(seqinfo(se), error = function(e) NULL))
+        if (!is_ranged2) {
+          message("Attaching ranges from the GTF for the final object...")
+          suppressPackageStartupMessages({
+            library(GenomicFeatures)
+            library(txdbmaker)
+          })
+          txdb <- tryCatch(txdbmaker::makeTxDbFromGFF(gtfPath, format = "gtf"),
+                           error = function(e) GenomicFeatures::makeTxDbFromGFF(gtfPath, format = "gtf"))
+          tx <- transcripts(txdb, columns = c("tx_name", "gene_id"))
+          names(tx) <- tx\$tx_name
+          common <- intersect(rownames(se), names(tx))
+          se <- se[common, , drop = FALSE]
+          se <- SummarizedExperiment::SummarizedExperiment(
+            assays = as.list(assays(se)),
+            rowRanges = tx[common],
+            colData = colData(se))
+        }
+
         # --- Write output files ---
         message("Writing output files...")
         saveRDS(se, "tximeta_se.rds")
-        
-        # Export row ranges to CSV
+
+        # Export row ranges to CSV. rowRanges metadata may carry list/CharacterList
+        # columns (e.g. gene_id); collapse those to plain character so write.csv works.
         rr_df <- as.data.frame(rowRanges(se))
+        rr_df[] <- lapply(rr_df, function(col) {
+            if (is.list(col)) vapply(col, function(x) paste(unlist(x), collapse = ";"), character(1))
+            else col
+        })
         write.csv(rr_df, "row_ranges.csv", row.names = TRUE)
         
         # Export seqinfo to CSV
