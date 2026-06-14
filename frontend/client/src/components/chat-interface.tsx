@@ -2006,6 +2006,10 @@ export function ChatInterface({
           isStreaming={displayTyping}
           onStop={stopStreaming}
           onRegisterSetDraft={onRegisterSetDraft}
+          /* Surface session-wide attached-dataset count so the
+             X / MAX_DATASET_REFS indicator in the input strip reflects
+             the server-side cap (frontend/server/dataset-cap.ts). */
+          sessionDatasetCount={chatSession?.datasets?.length ?? 0}
         />
       </div>
       {/* chat-analysis-status kept for E2E selectors but visually hidden — TypingIndicator in message list handles the visual */}
