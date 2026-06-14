@@ -57,7 +57,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     library("ggplot2")
     library("MSnbase")
     
-    # 1. Initialize MSnID object and load PSM data
+    # --- Initialize MSnID object and load PSM data ---
     msnid <- MSnID(".")
     
     # Read user input files from the working directory
@@ -72,7 +72,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     # Start PDF for diagnostic plots
     pdf("msnid_diagnostic_plots.pdf", width=8, height=6)
     
-    # 2. Assess cleavage termini and missed cleavages
+    # --- Assess cleavage termini and missed cleavages ---
     msnid <- assess_termini(msnid, validCleavagePattern="[KR]\\\\.[^P]")
     msnid <- assess_missed_cleavages(msnid, missedCleavagePattern="[KR](?=[^P\$])")
     
@@ -84,7 +84,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
         ggtitle("Number of Missed Cleavages")
     print(p1)
     
-    # 3. Calculate peptide length and other sequence properties
+    # --- Calculate peptide length and other sequence properties ---
     msnid\$numCys <- sapply(lapply(strsplit(msnid\$peptide,''),'==','C'),sum)
     msnid\$PepLength <- nchar(msnid\$peptide) - 4
     
@@ -120,7 +120,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
         ggtitle("Delta Mass Distribution")
     print(p4)
     
-    # 4. Correct parent ion mass measurement errors and recalibrate
+    # --- Correct parent ion mass measurement errors and recalibrate ---
     msnid.fixed <- correct_peak_selection(msnid)
     ppm <- mass_measurement_error(msnid.fixed)
     p5 <- ggplot(as.data.frame(ppm), aes(x=ppm)) +
@@ -157,7 +157,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
         ggtitle("Absolute Parent Mass Error Distribution")
     print(p9)
     
-    # 5. Define filtering criteria and optimize thresholds using Grid and Nelder-Mead methods
+    # --- Define filtering criteria and optimize thresholds using ---
     filtObj <- MSnIDFilter(msnid)
     filtObj\$absParentMassErrorPPM <- list(comparison="<", threshold=10.0)
     filtObj\$msmsScore <- list(comparison=">", threshold=10.0)
@@ -185,7 +185,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     # Close PDF device
     dev.off()
     
-    # 6. Apply optimized filters and remove decoy/contaminant matches
+    # --- Apply optimized filters and remove decoy/contaminant ---
     msnid <- apply_filter(msnid, filtObj.nm)
     show(msnid)
     
@@ -213,7 +213,7 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     writeLines(peps, "peptides_filtered.txt")
     writeLines(prots, "proteins_filtered.txt")
     
-    # 7. Export to MSnSet for downstream spectral counting
+    # --- Export to MSnSet for downstream spectral counting ---
     msnset <- as(msnid, "MSnSet")
     head(fData(msnset))
     head(exprs(msnset))

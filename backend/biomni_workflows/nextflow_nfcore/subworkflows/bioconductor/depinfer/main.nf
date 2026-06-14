@@ -13,7 +13,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Preprocess the drug-protein affinity matrix using processTarget to transform values and filter correlated targets. 2. Handle missi
+//  * 1. [Core Analysis] Read declared user inputs
+//  * 2. [Core Analysis] Downstream Analysis and Visualization
 
 nextflow.enable.dsl = 2
 
@@ -78,7 +79,7 @@ process BIOC_DEPINFER_PROTEIN_DEPENDENCY_INFERENCE {
       }
     }
     
-    # 1. Read declared user inputs
+    # --- Read declared user inputs ---
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -159,7 +160,7 @@ process BIOC_DEPINFER_PROTEIN_DEPENDENCY_INFERENCE {
     write.csv(result\$coefMat, "protein_dependence_matrix.csv", row.names = TRUE)
     saveRDS(result, "regression_results.rds")
     
-    # 2. Downstream Analysis and Visualization
+    # --- Downstream Analysis and Visualization ---
     # Try to read mutation_GDSC from working directory if available, otherwise construct from drug_response_GDSC
     mutation_GDSC <- NULL
     if (file.exists("mutation_GDSC.rds") || file.exists("mutation_GDSC.csv") || file.exists("mutation_GDSC.tsv")) {

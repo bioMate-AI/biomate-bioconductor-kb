@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data and phenotype information. 2. Import multiple gene sets from a GMT file using getGmt(). 3. Run the GSRI analy
+//  * 1. [Visualization & Output] Load expression data and phenotype information
+//  * 2. [Visualization & Output] Import multiple gene sets from a GMT file using getGmt()
+//  * 3. [Visualization & Output] Run the GSRI analysis across all gene sets using gsri()
+//  * 4. [Visualization & Output] Sort the results based on the estimated number or
+//  * 5. [Visualization & Output] Display a summary of the sorted results using summary()
+//  * 6. [Visualization & Output] Export the results to a file using export()
+//  * 7. [Visualization & Output] Generate customized plots of the results using plot()
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_GSRI_MULTIPLE_GENE_SETS_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GSRI", "GSEABase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +66,7 @@ process BIOC_GSRI_MULTIPLE_GENE_SETS_ANALYSIS {
     library(GSRI)
     library(GSEABase)
     
-    # 1. Load expression data and phenotype information
+    # --- Load expression data and phenotype information ---
     env <- new.env()
     load("expression_data.RData", envir = env)
     
@@ -127,16 +142,16 @@ process BIOC_GSRI_MULTIPLE_GENE_SETS_ANALYSIS {
     # Re-extract phenotypes from eset to match documented code structure
     phenotypes <- pData(phenoData(eset))
     
-    # 2. Import multiple gene sets from a GMT file using getGmt()
+    # --- Import multiple gene sets from a GMT file using getGmt() ---
     gmt <- getGmt("gene_sets.gmt")
     
-    # 3. Run the GSRI analysis across all gene sets using gsri()
+    # --- Run the GSRI analysis across all gene sets using gsri() ---
     gCol5 <- gsri(eset, phenotypes\$type, gmt)
     
-    # 4. Sort the results based on the estimated number or fraction of regulated genes using sortGsri()
+    # --- Sort the results based on the estimated number or ---
     gCol5Sort <- sortGsri(gCol5, c("nRegGenes", "pRegGenes"))
     
-    # 5. Display a summary of the sorted results using summary()
+    # --- Display a summary of the sorted results using summary() ---
     summary(gCol5Sort)
     
     # Save summary output to a text file
@@ -144,14 +159,14 @@ process BIOC_GSRI_MULTIPLE_GENE_SETS_ANALYSIS {
     summary(gCol5Sort)
     sink()
     
-    # 6. Export the results to a file using export()
+    # --- Export the results to a file using export() ---
     exportFile <- "gsri_results_exported.txt"
     export(gCol5Sort, exportFile)
     
     # Save the sorted GSRI object as an RDS file for downstream R analysis
     saveRDS(gCol5Sort, "gsri_results.rds")
     
-    # 7. Generate customized plots of the results using plot()
+    # --- Generate customized plots of the results using plot() ---
     pdf("gsri_plot.pdf")
     tryCatch({
       # Attempt to plot the 5th gene set as documented

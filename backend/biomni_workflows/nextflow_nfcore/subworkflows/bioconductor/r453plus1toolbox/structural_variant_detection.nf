@@ -58,13 +58,13 @@ process BIOC_R453PLUS1TOOLBOX_STRUCTURAL_VARIANT_DETECTION {
     library(Rsamtools)
     library(rtracklayer)
     
-    # 1. Demultiplex raw reads using multiplex identifiers (MIDs)
+    # --- Demultiplex raw reads using multiplex identifiers (MIDs) ---
     fnaFile = "1.TCA.454Reads.fna"
     seqs = readDNAStringSet(fnaFile, format="fasta")
     MIDSeqs = genomeSequencerMIDs(c("MID1", "MID2", "MID3"))
     dmReads = demultiplexReads(seqs, MIDSeqs, numMismatches=2, trim=TRUE)
     
-    # 2. Remove sequencing linkers and filter by minimum read length
+    # --- Remove sequencing linkers and filter by minimum read ---
     minReadLength = 15
     gSel3 = sequenceCaptureLinkers("gSel3")[[1]]
     trimReads = lapply(dmReads, function (reads) {
@@ -81,7 +81,7 @@ process BIOC_R453PLUS1TOOLBOX_STRUCTURAL_VARIANT_DETECTION {
     # Save preprocessed reads for MID1
     write.XStringSet(trimReads[["MID1"]], file="N01.fasta", format="fasta")
     
-    # 3. Filter chimeric reads using target regions and linker sequences
+    # --- Filter chimeric reads using target regions and linker ---
     bamFile = "N01.bam"
     parameters = ScanBamParam(what=scanBamWhat())
     bam = scanBam(bamFile, param=parameters)
@@ -97,11 +97,11 @@ process BIOC_R453PLUS1TOOLBOX_STRUCTURAL_VARIANT_DETECTION {
     # Save filtering log
     write.csv(filterReads\$log, file="filter_chimeric_reads_log.csv", row.names=FALSE)
     
-    # 4. Cluster chimeric reads to detect putative breakpoints
+    # --- Cluster chimeric reads to detect putative breakpoints ---
     bp = detectBreakpoints(filterReads, minClusterSize=1)
     saveRDS(bp, file="detected_breakpoints.rds")
     
-    # 5. Merge related pathogenic and reciprocal breakpoints
+    # --- Merge related pathogenic and reciprocal breakpoints ---
     mbp = mergeBreakpoints(bp)
     saveRDS(mbp, file="merged_breakpoints.rds")
     
@@ -110,7 +110,7 @@ process BIOC_R453PLUS1TOOLBOX_STRUCTURAL_VARIANT_DETECTION {
     print(summary(mbp))
     sink()
     
-    # 6. Visualize breakpoint regions and aligned reads
+    # --- Visualize breakpoint regions and aligned reads ---
     pdf("chimeric_reads_plot.pdf", width=11, height=8.5)
     plotChimericReads(mbp[1], legend=TRUE)
     dev.off()

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit Gaussian mixture models to elution profiles using build_gaussians. 2. Calculate pairwise features using calculate_features. 3.
+//  * 1. [Core Analysis] Load User Input Files
+//  * 2. [Core Analysis] Fit Gaussian Mixture Models
+//  * 3. [Core Analysis] Calculate Pairwise Features
+//  * 4. [Core Analysis] Predict Interactions
+//  * 5. [Core Analysis] Plot and Save Precision Curve
+//  * 6. [Core Analysis] Threshold Network at User-Defined Precision
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PrInCE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +65,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         library(PrInCE)
         
         # ==========================================
-        # 1. Load User Input Files
+        # --- Load User Input Files ---
         # ==========================================
         # Read the co-elution matrix (CSV format, first column as row names/protein IDs)
         co_elution_file <- "co_elution_matrix.csv"
@@ -69,7 +83,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         gold_standard <- readRDS(gold_standard_file)
         
         # ==========================================
-        # 2. Fit Gaussian Mixture Models
+        # --- Fit Gaussian Mixture Models ---
         # ==========================================
         # Set seed to ensure reproducible output
         set.seed(0)
@@ -85,7 +99,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         profiles_filtered <- profiles[names(gauss), ]
         
         # ==========================================
-        # 3. Calculate Pairwise Features
+        # --- Calculate Pairwise Features ---
         # ==========================================
         message("Calculating pairwise features...")
         # Calculate features
@@ -95,7 +109,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         write.csv(feat, "calculated_features.csv", row.names = FALSE)
         
         # ==========================================
-        # 4. Predict Interactions
+        # --- Predict Interactions ---
         # ==========================================
         message("Predicting protein-protein interactions...")
         # Convert gold standard list to an adjacency matrix
@@ -115,7 +129,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         write.csv(ppi, "predicted_interactions.csv", row.names = FALSE)
         
         # ==========================================
-        # 5. Plot and Save Precision Curve
+        # --- Plot and Save Precision Curve ---
         # ==========================================
         message("Plotting precision curve...")
         pdf("precision_curve.pdf", width = 6, height = 6)
@@ -128,7 +142,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 6. Threshold Network at User-Defined Precision
+        # --- Threshold Network at User-Defined Precision ---
         # ==========================================
         message("Filtering predicted interactions at precision threshold...")
         # Threshold the network at 70% precision as documented

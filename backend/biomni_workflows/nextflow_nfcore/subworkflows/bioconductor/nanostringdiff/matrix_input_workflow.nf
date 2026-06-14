@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define or load matrices for endogenous, positive, negative, and housekeeping genes, and the design data frame. 2. Create a NanoStr
+//  * 1. [Input & Preparation] Load matrices and design data frame from the working
+//  * 2. [Input & Preparation] Create a NanoStringSet object using createNanoStringSet
+//  * 3. [Input & Preparation] Create the design matrix using model.matrix
+//  * 4. [Input & Preparation] Estimate normalization factors using
+//  * 5. [Input & Preparation] Perform differential expression analysis using glm.LRT
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_NANOSTRINGDIFF_MATRIX_INPUT_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "NanoStringDiff")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -89,18 +102,18 @@ process BIOC_NANOSTRINGDIFF_MATRIX_INPUT_WORKFLOW {
       }
     }
     
-    # 1. Load matrices and design data frame from the working directory
+    # --- Load matrices and design data frame from the working ---
     endogenous <- read_input_matrix("endogenous")
     positive <- read_input_matrix("positive")
     negative <- read_input_matrix("negative")
     housekeeping <- read_input_matrix("housekeeping")
     designs <- read_input_df("designs")
     
-    # 2. Create a NanoStringSet object using createNanoStringSet
+    # --- Create a NanoStringSet object using createNanoStringSet ---
     NanoStringData1=createNanoStringSet(endogenous,positive,
                                      negative,housekeeping,designs)
     
-    # 3. Create the design matrix using model.matrix
+    # --- Create the design matrix using model.matrix ---
     pheno=pData(NanoStringData1)
     group=pheno\$group
     design.full=model.matrix(~0+group)
@@ -108,10 +121,10 @@ process BIOC_NANOSTRINGDIFF_MATRIX_INPUT_WORKFLOW {
     # Define contrast vector (comparing the two groups)
     contrast=c(-1,1)
     
-    # 4. Estimate normalization factors using estNormalizationFactors
+    # --- Estimate normalization factors using ---
     NanoStringData1=estNormalizationFactors(NanoStringData1)
     
-    # 5. Perform differential expression analysis using glm.LRT
+    # --- Perform differential expression analysis using glm.LRT ---
     result=glm.LRT(NanoStringData1,design.full,contrast=contrast)
     
     # Write outputs

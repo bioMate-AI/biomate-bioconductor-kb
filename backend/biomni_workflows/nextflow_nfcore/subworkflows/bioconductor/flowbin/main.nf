@@ -65,7 +65,7 @@ process BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION {
       stop("Error: Input file 'fs1' or 'fs1.rds' not found in the working directory.")
     }
     
-    # 1. Create a FlowSample object defining binning and measurement parameters
+    # --- Create a FlowSample object defining binning and ---
     aml.sample <- new('FlowSample',
                       name='Example flowSample', 
                       tube.set=as.list(fs1@frames), 
@@ -73,10 +73,10 @@ process BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION {
                       bin.pars=c(1,2,5), 
                       measure.pars=list(c(3,4,6,7)))
     
-    # 2. Perform quantile normalization on the binning markers across tubes
+    # --- Perform quantile normalization on the binning markers ---
     normed.sample <- quantileNormalise(aml.sample)
     
-    # 3. Verify normalization quality using standard deviation of bin densities
+    # --- Verify normalization quality using standard deviation of ---
     qnorm.check <- checkQNorm(aml.sample, normed.sample, do.plot=F)
     
     # Save QNorm check plot
@@ -90,14 +90,14 @@ process BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION {
     legend(x=5.5, y=0.35, legend=c('Before', 'After'), lwd=2, col=c('black', 'blue'))
     dev.off()
     
-    # 4. Run flowBin to combine tubes into an expression matrix using 'medianFIDist'
+    # --- Run flowBin to combine tubes into an expression matrix ---
     tube.combined <- flowBin(tube.list=aml.sample@tube.set, 
                              bin.pars=aml.sample@bin.pars, 
                              control.tubes=aml.sample@control.tubes, 
                              expr.method='medianFIDist', 
                              scale.expr=T)
     
-    # 5. Visualize the integrated expression matrix using a heatmap
+    # --- Visualize the integrated expression matrix using a heatmap ---
     pdf("heatmap_medianFIDist.pdf")
     heatmap(tube.combined, scale='none')
     dev.off()

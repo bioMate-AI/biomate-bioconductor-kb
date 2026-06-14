@@ -61,18 +61,18 @@ process BIOC_SNPSTATS_LD_ANALYSIS {
     ceph.1mb <- readRDS("ceph.1mb")
     support.ld <- readRDS("support.ld")
     
-    # 1. Calculate LD statistics using ld
+    # --- Calculate LD statistics using ld ---
     ld.ceph <- ld(ceph.1mb, stats=c("D.prime", "R.squared"), depth=100)
     
     # Open PDF device to save visualizations
     pdf("ld_analysis_plots.pdf", width=10, height=8)
     
-    # 2. Plot LD matrix using image
+    # --- Plot LD matrix using image ---
     print(image(ld.ceph\$D.prime, lwd=0))
     spectrum <- rainbow(10, start=0, end=1/6)[10:1]
     print(image(ld.ceph\$D.prime, lwd=0, cuts=9, col.regions=spectrum, colorkey=TRUE))
     
-    # 3. Calculate physical distance between SNPs using bandSparse
+    # --- Calculate physical distance between SNPs using bandSparse ---
     pos <- support.ld\$Position
     diags <- vector("list", 100)
     for (i in 1:100) diags[[i]] <- pos[(i+1):603] - pos[1:(603-i)]
@@ -81,13 +81,13 @@ process BIOC_SNPSTATS_LD_ANALYSIS {
     D.prime <- ld.ceph\$D.prime@x
     R.squared <- ld.ceph\$R.squared@x
     
-    # 4. Plot LD statistics against physical distance using hexbin
+    # --- Plot LD statistics against physical distance using hexbin ---
     plot(hexbin(D.prime^2, R.squared))
     
     # Calculate Odds Ratio (OR) for specific SNPs
     OR <- ld(ceph.1mb[,1], ceph.1mb[,5], stats="OR")
     
-    # 5. Perform hierarchical clustering on LD-derived distances using hclust
+    # --- Perform hierarchical clustering on LD-derived distances ---
     use <- pos>=1.579e7 & pos<=1.587e7
     r2 <- forceSymmetric(ld.ceph\$R.squared[use, use])
     D <- as.dist(1-r2)

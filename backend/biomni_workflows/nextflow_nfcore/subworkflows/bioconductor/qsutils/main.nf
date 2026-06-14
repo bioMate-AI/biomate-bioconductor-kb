@@ -64,20 +64,20 @@ process BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS {
       stop(paste("Error: Input file", filepath, "not found in the working directory."))
     }
     
-    # 1. Read raw sequences using readDNAStringSet
+    # --- Read raw sequences using readDNAStringSet ---
     reads <- readDNAStringSet(filepath)
     
-    # 2. Collapse reads to unique haplotypes and frequencies using Collapse
+    # --- Collapse reads to unique haplotypes and frequencies using ---
     lstCollapsed <- Collapse(reads)
     
-    # 3. Correct gaps and Ns against a reference sequence (dominant haplotype) using CorrectGapsAndNs
+    # --- Correct gaps and Ns against a reference sequence ---
     lstCorrected <- CorrectGapsAndNs(lstCollapsed\$hseqs[2:length(lstCollapsed\$hseqs)],
                                       lstCollapsed\$hseqs[[1]])
     
     # Add again the most abundant haplotype
     lstCorrected <- c(lstCollapsed\$hseqs[1], lstCorrected)
     
-    # 4. Recollapse the corrected sequences to update frequencies using Recollapse
+    # --- Recollapse the corrected sequences to update frequencies ---
     lstRecollapsed <- Recollapse(lstCorrected, lstCollapsed\$nr)
     
     # Save meaningful results to output files

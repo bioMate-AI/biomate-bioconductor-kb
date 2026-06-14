@@ -77,35 +77,35 @@ process BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION {
     ), nrow = 4, byrow = TRUE)
     rownames(impurities) <- colnames(impurities) <- c("114", "115", "116", "117")
     
-    # 1. Import raw MS data
+    # --- Import raw MS data ---
     msexp <- readMSData(quantFile, verbose = FALSE)
     
-    # 2. Integrate peptide identification data
+    # --- Integrate peptide identification data ---
     msexp <- addIdentificationData(msexp, id = identFile)
     
-    # 3. Filter out unidentified spectra
+    # --- Filter out unidentified spectra ---
     msexp <- removeNoId(msexp)
     
-    # 4. Clean low-intensity peaks and remove empty data points
+    # --- Clean low-intensity peaks and remove empty data points ---
     experiment <- removePeaks(msexp, t = 400, verbose = FALSE)
     experiment <- clean(experiment, verbose = FALSE)
     
-    # 5. Focus on the reporter ion m/z range
+    # --- Focus on the reporter ion m/z range ---
     experiment <- filterMz(experiment, mzlim = c(112,120))
     
-    # 6. Quantify reporter ions
+    # --- Quantify reporter ions ---
     qnt <- quantify(experiment, method = "trap", reporters = iTRAQ4, strict = FALSE, verbose = FALSE)
     
-    # 7. Filter out features with missing values
+    # --- Filter out features with missing values ---
     qnt <- filterNA(qnt, pNA = 0)
     
-    # 8. Correct for isotopic impurities
+    # --- Correct for isotopic impurities ---
     qnt.crct <- purityCorrect(qnt, impurities)
     
-    # 9. Normalize reporter intensities
+    # --- Normalize reporter intensities ---
     qnt.max <- normalise(qnt, "max")
     
-    # 10. Aggregate spectrum-level quantitation to protein-level abundances
+    # --- Aggregate spectrum-level quantitation to protein-level ---
     gb <- fData(qnt)\$ProteinAccession
     qnt2 <- combineFeatures(qnt, groupBy = gb, method = "median")
     

@@ -42,7 +42,7 @@ process BIOC_VSCLUST_BIOCONDUCTOR_OBJECT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("clusterProfiler", "matrixStats", "MultiAssayExperiment", "vsclust")
+    .bm_deps <- c("clusterProfiler", "matrixStats", "MultiAssayExperiment", "vsclust", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,6 +61,7 @@ process BIOC_VSCLUST_BIOCONDUCTOR_OBJECT_WORKFLOW {
     
     # Load required libraries
     library(MultiAssayExperiment)
+    library(SummarizedExperiment)
     library(vsclust)
     library(matrixStats)
     

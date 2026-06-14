@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Plot cumulative percentage of tag allocation using cumulativePercentage. 2. Estimate library size using estLibSize. 3. Calculate s
+//  * 1. [Visualization & Output] Plot cumulative percentage of tag allocation
+//  * 2. [Visualization & Output] Estimate library size
+//  * 3. [Visualization & Output] Calculate signals around TSSs
+//  * 4. [Visualization & Output] Plot heatmap of signals
+//  * 5. [Visualization & Output] Plot averaged coverage
+//  * 6. [Visualization & Output] Calculate and plot transcription factor footprints
+//  * 7. [Visualization & Output] Generate V-plot and distance dyad
+//  * 8. [Visualization & Output] Plot correlation for multiple samples
 
 nextflow.enable.dsl = 2
 
@@ -100,18 +107,18 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
       trinucleosome = readBamFile("trinucleosome.bam", tag=character(0), which=which_gr, asMates=TRUE)
     )
     
-    # 1. Plot cumulative percentage of tag allocation
+    # --- Plot cumulative percentage of tag allocation ---
     message("Plotting cumulative percentage...")
     pdf("cumulative_percentage.pdf")
     cumulativePercentage(bamfiles[1:2], as(seqinformation["chr1"], "GRanges"))
     dev.off()
     
-    # 2. Estimate library size
+    # --- Estimate library size ---
     message("Estimating library size...")
     librarySize <- estLibSize(bamfiles)
     write.csv(as.data.frame(as.list(librarySize)), "library_size.csv", row.names=FALSE)
     
-    # 3. Calculate signals around TSSs
+    # --- Calculate signals around TSSs ---
     message("Calculating enriched fragments around TSSs...")
     TSS <- promoters(txs, upstream=0, downstream=1)
     TSS <- unique(TSS)
@@ -131,7 +138,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
                               downstream = dws)
     saveRDS(sigs, "enriched_fragments_sigs.rds")
     
-    # 4. Plot heatmap of signals
+    # --- Plot heatmap of signals ---
     message("Generating feature aligned heatmap...")
     sigs.log2 <- lapply(sigs, function(.ele) log2(.ele+1))
     pdf("feature_aligned_heatmap.pdf")
@@ -139,7 +146,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
                           zeroAt=.5, n.tile=NTILE)
     dev.off()
     
-    # 5. Plot averaged coverage
+    # --- Plot averaged coverage ---
     message("Generating feature aligned distribution plot...")
     pdf("averaged_coverage.pdf")
     out <- featureAlignedDistribution(sigs, 
@@ -157,7 +164,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     dev.off()
     write.csv(out, "feature_aligned_distribution.csv")
     
-    # 6. Calculate and plot transcription factor footprints
+    # --- Calculate and plot transcription factor footprints ---
     message("Calculating CTCF footprints...")
     CTCF <- query(MotifDb, c("CTCF"))
     CTCF <- as.list(CTCF)
@@ -181,7 +188,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     write.csv(as.data.frame(sigs_fp\$Profile.segmentation), "ctcf_profile_segmentation.csv", row.names=FALSE)
     saveRDS(sigs_fp\$spearman.correlation, "ctcf_spearman_correlation.rds")
     
-    # 7. Generate V-plot and distance dyad
+    # --- Generate V-plot and distance dyad ---
     message("Generating V-plot and distance dyad...")
     pdf("ctcf_vplot.pdf")
     vp <- vPlot(shiftedBamfile, pfm=CTCF[[1]], 
@@ -192,7 +199,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     dev.off()
     saveRDS(vp, "ctcf_vplot_data.rds")
     
-    # 8. Plot correlation for multiple samples
+    # --- Plot correlation for multiple samples ---
     message("Plotting correlation across all samples...")
     bamfiles_corr <- c("shifted.bam", "NucleosomeFree.bam", "mononucleosome.bam", "dinucleosome.bam", "trinucleosome.bam")
     gals <- lapply(bamfiles_corr, function(bamfile){

@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Check input gene symbol coverage in the network resources using check_any_net_input() or check_net_input(). 2. Extract the induced
+//  * 1. [Visualization & Output] Read User Input
+//  * 2. [Visualization & Output] Check input gene symbol coverage
+//  * 3. [Visualization & Output] Extract induced subnetworks
+//  * 4. [Visualization & Output] Convert to igraph and visualize
+//  * 5. [Visualization & Output] Export network and attributes
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +65,7 @@ process BIOC_RITAN_INDUCED_SUBNETWORK_EXTRACTION {
             library(RITANdata)
             library(igraph)
             
-            # 1. Read User Input
+            # --- Read User Input ---
             if (!file.exists("my_genes.txt")) {
               stop("Required input file 'my_genes.txt' is missing.")
             }
@@ -75,11 +79,11 @@ process BIOC_RITAN_INDUCED_SUBNETWORK_EXTRACTION {
               network_list[['BioGRID_Mouse']] <- readSIF(sif_file, header = TRUE)
             }
             
-            # 2. Check input gene symbol coverage
+            # --- Check input gene symbol coverage ---
             i <- check_any_net_input ( my_genes )
             table (i)
             
-            # 3. Extract induced subnetworks
+            # --- Extract induced subnetworks ---
             net <- network_overlap ( my_genes, resources = 'CCSB' )
             net2 <- network_overlap ( my_genes, resources = c ( 'CCSB' , 'STRING' ), minStringScore = 700 )
             net3.3 <- network_overlap ( my_genes, resources = 'PID' , include_neighbors = TRUE , dedup = TRUE )
@@ -101,7 +105,7 @@ process BIOC_RITAN_INDUCED_SUBNETWORK_EXTRACTION {
               initial = g %in% my_genes
             )
             
-            # 4. Convert to igraph and visualize
+            # --- Convert to igraph and visualize ---
             tryCatch({
               edges <- as.matrix ( net4[, c ( 1 , 3 )] )
               G <- igraph :: make_undirected_graph ( c ( t (edges)) )
@@ -112,7 +116,7 @@ process BIOC_RITAN_INDUCED_SUBNETWORK_EXTRACTION {
               message("Visualization failed: ", e\$message)
             })
             
-            # 5. Export network and attributes
+            # --- Export network and attributes ---
             write_simple_table (net3.1 , 'net_example.sif' )
             write_simple_table (tab, 'net_example.tab' )
             

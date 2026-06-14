@@ -58,7 +58,7 @@ process BIOC_FRENCHFISH_CORRECT_MANUAL_COUNTS {
     # Set seed for reproducibility (essential for the MCMC Poisson model)
     set.seed(366)
     
-    # 1. Read the manual counts matrix from the working directory
+    # --- Read the manual counts matrix from the working directory ---
     # The input file 'manual_counts.csv' must have columns representing probes and rows representing nuclei
     if (!file.exists("manual_counts.csv")) {
       stop("Error: 'manual_counts.csv' not found in the working directory.")
@@ -67,7 +67,7 @@ process BIOC_FRENCHFISH_CORRECT_MANUAL_COUNTS {
     manual_counts_df <- read.csv("manual_counts.csv", check.names = FALSE)
     manual_counts <- as.matrix(manual_counts_df)
     
-    # 2. Run the manual counts estimation model using getManualCountsEstimates
+    # --- Run the manual counts estimation model using ---
     # with specified nuclear radius and section height
     nuclear_radius <- 8
     section_height <- 4
@@ -76,10 +76,10 @@ process BIOC_FRENCHFISH_CORRECT_MANUAL_COUNTS {
                                                         nuclear_radius, 
                                                         section_height)
     
-    # 3. Print the corrected spot counts at different percentiles
+    # --- Print the corrected spot counts at different percentiles ---
     print(corrected_manual_counts)
     
-    # 4. Write named output files for the results
+    # --- Write named output files for the results ---
     write.csv(corrected_manual_counts, "corrected_manual_counts.csv", row.names = FALSE)
     saveRDS(corrected_manual_counts, "corrected_manual_counts.rds")
 

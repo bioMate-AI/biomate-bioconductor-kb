@@ -34,6 +34,15 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("limma", "PAA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     library(PAA)
     
     # -------------------------------------------------------------------------
-    # Stage 1: Load and Prepare Data
+    # --- Load and Prepare Data ---
     # -------------------------------------------------------------------------
     message("Stage 1: Loading and preparing data...")
     
@@ -117,7 +126,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     brc_to_feature <- setNames(rownames(intensities), brc)
     
     # -------------------------------------------------------------------------
-    # Stage 2: Preprocessing (Background Correction, Batch Filtering, Normalization)
+    # --- Preprocessing (Background Correction, Batch Filtering, ---
     # -------------------------------------------------------------------------
     message("Stage 2: Preprocessing...")
     
@@ -163,7 +172,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     elist.unlog\$E <- 2^(elist\$E)
     
     # -------------------------------------------------------------------------
-    # Stage 3: Differential Analysis
+    # --- Differential Analysis ---
     # -------------------------------------------------------------------------
     message("Stage 3: Differential Analysis...")
     
@@ -200,7 +209,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 4: Feature Preselection
+    # --- Feature Preselection ---
     # -------------------------------------------------------------------------
     message("Stage 4: Feature Preselection...")
     
@@ -220,7 +229,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 5: Feature Selection
+    # --- Feature Selection ---
     # -------------------------------------------------------------------------
     message("Stage 5: Feature Selection...")
     
@@ -253,7 +262,7 @@ process BIOC_PAA_PAA_PROTEIN_ARRAY_PIPELINE {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 6: Results Inspection & Visualization
+    # --- Results Inspection & Visualization ---
     # -------------------------------------------------------------------------
     message("Stage 6: Results Inspection...")
     

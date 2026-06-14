@@ -59,6 +59,7 @@ process BIOC_SCMERGE_SC_SEG_INDEX_COMPUTATION {
     # Load required libraries
     library(scMerge)
     
+    library(SummarizedExperiment)
     # Read user input file from the working directory
     # The pipeline expects 'example_sce.rds' containing the SingleCellExperiment object
     example_sce <- readRDS("example_sce.rds")

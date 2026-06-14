@@ -78,10 +78,10 @@ process BIOC_SCREENCOUNTER_RANDOM_BARCODES {
     print(head(counts_matrix))
     
     # Write meaningful outputs to the working directory
-    # 1. Save the complete SummarizedExperiment object as an RDS file
+    # --- Save the complete SummarizedExperiment object as an RDS ---
     saveRDS(out, file = "random_barcodes_results.rds")
     
-    # 2. Save the quantified barcode counts as a CSV table
+    # --- Save the quantified barcode counts as a CSV table ---
     write.csv(as.matrix(counts_matrix), file = "random_barcodes_counts.csv", row.names = TRUE)
 
     writeLines(c(

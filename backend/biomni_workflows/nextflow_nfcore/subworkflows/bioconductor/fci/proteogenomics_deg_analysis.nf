@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize NPCI object; 2. Set fCI runtime variables (optional); 3. Find DEGs using lists of control and case indices across multi
+//  * 1. [Visualization & Output] Initialize NPCI object
+//  * 2. [Visualization & Output] Set fCI runtime variables
+//  * 3. [Visualization & Output] Find DEGs using lists of control and case indices across
+//  * 4. [Visualization & Output] Extract and display co-regulated DEGs
+//  * 5. [Visualization & Output] Plot kernel density distributions and save to PDF
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_FCI_PROTEOGENOMICS_DEG_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("fCI")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -58,16 +71,16 @@ process BIOC_FCI_PROTEOGENOMICS_DEG_ANALYSIS {
       stop(paste("Error: Required input file '", filename2, "' not found in the working directory.", sep=""))
     }
     
-    # 1. Initialize NPCI object
+    # --- Initialize NPCI object ---
     fci=new("NPCI")
     
-    # 2. Set fCI runtime variables
+    # --- Set fCI runtime variables ---
     fci=setfCI(fci, 7:8, 11:12, seq(from=1.1,to=3,by=0.1), TRUE)
     
-    # 3. Find DEGs using lists of control and case indices across multiple dimensions
+    # --- Find DEGs using lists of control and case indices across ---
     targets=find.fci.targets(fci, list(1:2, 7:8), list(5:6, 11:12), filename2)
     
-    # 4. Extract and display co-regulated DEGs
+    # --- Extract and display co-regulated DEGs ---
     Diff.Expr.Genes=show.targets(targets)
     print("Differentially Expressed Genes (Head):")
     print(head(Diff.Expr.Genes))
@@ -77,7 +90,7 @@ process BIOC_FCI_PROTEOGENOMICS_DEG_ANALYSIS {
     print("Proteogenomics Data (Head):")
     print(head(proteogenomic.data))
     
-    # 5. Plot kernel density distributions and save to PDF
+    # --- Plot kernel density distributions and save to PDF ---
     pdf("kernel_density_plots.pdf", width=8, height=6)
     tryCatch({
       figures(targets)

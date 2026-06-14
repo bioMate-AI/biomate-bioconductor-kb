@@ -35,6 +35,15 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MineICA", "fastICA", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     library(Biobase)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression/count matrix and sample metadata
@@ -91,7 +100,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Run Independent Component Analysis
+    # --- Run Independent Component Analysis ---
     # ==========================================
     
     # Determine number of components
@@ -116,7 +125,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     colnames(A) <- colnames(exprs_mat)
     
     # ==========================================
-    # Stage 3: Build IcaSet Object
+    # --- Build IcaSet Object ---
     # ==========================================
     
     pData_obj <- new("AnnotatedDataFrame", data = coldata)
@@ -131,7 +140,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 4: Analyze and Mine Components
+    # --- Analyze and Mine Components ---
     # ==========================================
     
     # 1. Test association of components with the qualitative variable 'condition'
@@ -182,7 +191,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 5: Visualizations and Diagnostics
+    # --- Visualizations and Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic and contribution plots...")

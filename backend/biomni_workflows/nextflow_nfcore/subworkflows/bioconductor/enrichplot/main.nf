@@ -35,6 +35,15 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("clusterProfiler", "enrichplot", "ggplot2", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Reading input data...")
     input_data <- read.csv("input.csv", stringsAsFactors = FALSE, check.names = FALSE)
@@ -108,7 +117,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     }
     
     # ==========================================
-    # STAGE 2: Build Custom Pathway Annotation
+    # --- Build Custom Pathway Annotation ---
     # ==========================================
     # To guarantee offline execution and successful enrichment results,
     # we dynamically construct a pathway database containing the input genes.
@@ -138,7 +147,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     )
     
     # ==========================================
-    # STAGE 3: Perform ORA and GSEA
+    # --- Perform ORA and GSEA ---
     # ==========================================
     message("Running Over-Representation Analysis (ORA)...")
     ora_res <- clusterProfiler::enricher(
@@ -168,7 +177,7 @@ process BIOC_ENRICHPLOT_ENRICHPLOT_FUNCTIONAL_VISUALIZATION {
     write.csv(as.data.frame(gsea_res), "gsea_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Generate enrichplot Visualizations
+    # --- Generate enrichplot Visualizations ---
     # ==========================================
     message("Generating enrichplot visualizations...")
     

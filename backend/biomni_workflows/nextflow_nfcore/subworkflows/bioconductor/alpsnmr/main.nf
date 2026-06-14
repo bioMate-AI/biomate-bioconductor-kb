@@ -61,7 +61,7 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
     # Enable parallelization
     register(SnowParam(workers = 2, exportglobals = FALSE), default = TRUE)
     
-    # 1. Load samples from user input zip_files.zip
+    # --- Load samples from user input zip_files.zip ---
     unzip_dir <- "unzipped_spectra"
     if (!dir.exists(unzip_dir)) {
       dir.create(unzip_dir)
@@ -81,31 +81,31 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
     
     dataset <- nmr_read_samples(sample_names = zip_files)
     
-    # 2. Add metadata
+    # --- Add metadata ---
     annotations <- readxl::read_excel("dummy_metadata.xlsx")
     dataset <- nmr_meta_add(dataset, metadata = annotations, by = "NMRExperiment")
     
-    # 3. Interpolate 1D spectra
+    # --- Interpolate 1D spectra ---
     dataset <- nmr_interpolate_1D(dataset, axis = c(min = -0.5, max = 10))
     
-    # 4. Exclude uninformative regions
+    # --- Exclude uninformative regions ---
     regions_to_exclude <- list(water = c(4.6, 5), methanol = c(3.33, 3.39))
     dataset <- nmr_exclude_region(dataset, exclude = regions_to_exclude)
     
-    # 5. Robust PCA outlier detection
+    # --- Robust PCA outlier detection ---
     pca_outliers_rob <- nmr_pca_outliers_robust(dataset, ncomp = 3)
     
     pdf("pca_outliers_plot.pdf")
     nmr_pca_outliers_plot(dataset, pca_outliers_rob)
     dev.off()
     
-    # 6. Baseline estimation
+    # --- Baseline estimation ---
     dataset <- nmr_baseline_estimation(dataset, lambda = 9, p = 0.01)
     
-    # 7. Baseline threshold calculation
+    # --- Baseline threshold calculation ---
     baselineThresh <- nmr_baseline_threshold(dataset, range_without_peaks = c(9.5, 10), method = "median3mad")
     
-    # 8. Initial peak detection
+    # --- Initial peak detection ---
     peak_list_initial <- nmr_detect_peaks(
         dataset,
         nDivRange_ppm = 0.1,
@@ -115,7 +115,7 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
         fit_lorentzians = TRUE
     )
     
-    # 9. Filter/accept peaks
+    # --- Filter/accept peaks ---
     peak_list_initial_accepted <- peaklist_accept_peaks(
         peak_list_initial,
         dataset,
@@ -124,10 +124,10 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
         verbose = TRUE
     )
     
-    # 10. Find reference spectrum
+    # --- Find reference spectrum ---
     NMRExp_ref <- nmr_align_find_ref(dataset, peak_list_initial_accepted)
     
-    # 11. Align spectra
+    # --- Align spectra ---
     dataset_align <- nmr_align(
         nmr_dataset = dataset, 
         peak_data = peak_list_initial_accepted, 
@@ -136,10 +136,10 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
         acceptLostPeak = TRUE
     )
     
-    # 12. Normalize spectra
+    # --- Normalize spectra ---
     dataset_norm <- nmr_normalize(dataset_align, method = "pqn")
     
-    # 13. Recalculate baseline threshold and detect peaks on normalized spectra
+    # --- Recalculate baseline threshold and detect peaks on ---
     baselineThresh <- nmr_baseline_threshold(dataset_norm, range_without_peaks = c(9.5, 10), method = "median3mad")
     
     peak_list_for_clustering_unfiltered <- nmr_detect_peaks(
@@ -160,14 +160,14 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
         verbose = TRUE
     )
     
-    # 14. Peak clustering
+    # --- Peak clustering ---
     clustering <- nmr_peak_clustering(peak_list_for_clustering, verbose = TRUE)
     peak_list_clustered <- clustering\$peak_data
     
-    # 15. Build peak table
+    # --- Build peak table ---
     peak_table <- nmr_build_peak_table(peak_list_clustered, dataset_norm)
     
-    # 16. Extract peak matrix
+    # --- Extract peak matrix ---
     peak_matrix <- nmr_data(peak_table)
     
     # Save outputs

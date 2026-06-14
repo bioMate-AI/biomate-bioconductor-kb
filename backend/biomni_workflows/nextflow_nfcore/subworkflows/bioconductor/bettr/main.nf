@@ -35,6 +35,15 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bettr", "rtracklayer", "dplyr", "tibble")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     library(tibble)
     
     # ==========================================
-    # Stage 1: Input Processing & Feature Extraction
+    # --- Input Processing & Feature Extraction ---
     # ==========================================
     
     message("Step 1: Importing genomic intervals from regions.bed...")
@@ -113,7 +122,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     )
     
     # ==========================================
-    # Stage 2: Normalization & Transformation Setup
+    # --- Normalization & Transformation Setup ---
     # ==========================================
     
     message("Step 4: Setting up metric transformations...")
@@ -129,7 +138,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     )
     
     # ==========================================
-    # Stage 3: Assemble SummarizedExperiment
+    # --- Assemble SummarizedExperiment ---
     # ==========================================
     
     message("Step 5: Assembling SummarizedExperiment...")
@@ -142,7 +151,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     )
     
     # ==========================================
-    # Stage 4: Programmatic Preparation & Scoring
+    # --- Programmatic Preparation & Scoring ---
     # ==========================================
     
     message("Step 6: Preparing data and calculating aggregated scores...")
@@ -159,7 +168,7 @@ process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     message("Saved aggregated scores to 'benchmark_scores.csv'.")
     
     # ==========================================
-    # Stage 5: Visualization & Serialization
+    # --- Visualization & Serialization ---
     # ==========================================
     
     message("Step 7: Generating diagnostic plots...")

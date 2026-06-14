@@ -167,28 +167,76 @@ async function shot(page: Page, a: DemoAudit, name: string): Promise<void> {
 // Test helpers
 // ---------------------------------------------------------------------------
 
+// Shared E2E fixture account. Per CLAUDE.md "E2E test user — use the real
+// shared fixture account": ALWAYS reuse the same registered user. Per-test
+// users hit the registration rate limiter and accumulate quota debt; they
+// also miss verification flows and stay in a degraded state. Pattern:
+// register-or-login (register is a no-op on the second test run), then drop
+// the JWT into the biomate_token cookie. Falls back to the same fixture used
+// by the canonical e2e example (allometric-qc-coverage.e2e.ts) when the
+// env vars aren't set, so the test runs without local .env setup.
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "e2e-admet-fixture@biomate.test";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "AdmetE2ETest!2026";
+
+async function instrumentStepFetch(page: Page): Promise<void> {
+  // Bridge: every /api/nextflow/steps fetch the page makes gets logged into
+  // window.__T01_STEPS_CALLS so the test can diagnose lazy-fetch failures.
+  await page.addInitScript(() => {
+    (window as any).__T01_STEPS_CALLS = [];
+    const origFetch = window.fetch.bind(window);
+    window.fetch = async (input: any, init?: any) => {
+      const url = typeof input === 'string' ? input : (input?.url || '');
+      if (typeof url === 'string' && url.includes('/api/nextflow/steps')) {
+        const t0 = Date.now();
+        const resp = await origFetch(input, init);
+        const dt = Date.now() - t0;
+        const body = await resp.clone().text().catch(() => '');
+        let parsed: any = null;
+        try { parsed = JSON.parse(body); } catch {}
+        (window as any).__T01_STEPS_CALLS.push({
+          url,
+          status: resp.status,
+          dt_ms: dt,
+          count: parsed?.count,
+          first_phase_group: parsed?.steps && Object.values<any>(parsed.steps)[0]?.phase_group,
+        });
+        return resp;
+      }
+      return origFetch(input, init);
+    };
+  });
+}
+
 async function registerUser(page: Page, label: string): Promise<{ email: string; token: string }> {
-  const email = `e2e_tier0full_${label}_${Date.now()}@biomate.test`;
-  const password = "TestPass123!";
+  await instrumentStepFetch(page);
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
   await page.context().clearCookies();
   await page.addInitScript(() => {
     try { localStorage.clear(); sessionStorage.clear(); } catch {}
   });
 
-  const resp = await page.request.post(`${BASE_URL}/api/auth/register`, {
+  // Try register first — succeeds on the very first run, returns
+  // EMAIL_EXISTS / 4xx on subsequent runs. Either way we then login to get
+  // a fresh JWT (and a guaranteed populated galaxyApiKey post the
+  // fff31ec23 auth-await provisioning fix).
+  await page.request.post(`${BASE_URL}/api/auth/register`, {
     headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
     data: {
-      fullName: `Tier0Full ${label}`,
-      email,
-      password,
+      fullName: `Tier0 Fixture (${label})`,
+      email: FIXTURE_EMAIL,
+      password: FIXTURE_PASSWORD,
       termsAccepted: true,
       privacyAccepted: true,
     },
-  });
+  }).catch(() => null);
+
   let token = "";
-  if (resp.ok()) {
-    const data = await resp.json();
+  const loginResp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
+  });
+  if (loginResp.ok()) {
+    const data = await loginResp.json();
     token = data?.token ?? "";
     if (token) {
       await page.context().addCookies([{
@@ -202,7 +250,7 @@ async function registerUser(page: Page, label: string): Promise<{ email: string;
       }]);
     }
   } else {
-    console.warn(`[registerUser:${label}] HTTP ${resp.status()}`);
+    console.warn(`[registerUser:${label}] login HTTP ${loginResp.status()}`);
   }
   await page.goto(BASE_URL);
   await page.waitForLoadState("load");
@@ -216,7 +264,7 @@ async function registerUser(page: Page, label: string): Promise<{ email: string;
   }
   await page.waitForSelector("textarea", { state: "visible", timeout: 20_000 }).catch(() => {});
   await page.waitForTimeout(600);
-  return { email, token };
+  return { email: FIXTURE_EMAIL, token };
 }
 
 async function sendChatQuery(page: Page, query: string): Promise<void> {
@@ -245,27 +293,160 @@ async function waitForWorkflowCard(page: Page, workflow: string, timeoutMs = 180
 }
 
 async function readPrefilledParams(page: Page): Promise<Record<string, string>> {
-  // Expand the params strip if collapsed
-  const strip = page.locator('[data-testid="workflow-params-strip"]').first();
-  if (await strip.isVisible({ timeout: 1500 }).catch(() => false)) {
-    const closed = await strip.getAttribute('data-state').catch(() => 'open');
-    if (closed === 'closed') await strip.click({ force: true }).catch(() => {});
+  // 924138d00 reorganised the viewer into horizontal Settings/Phases/After-run
+  // tabs. Params live in two places now:
+  //   • Settings tab → "Workflow settings" strip (button-toggle-workflow-settings)
+  //     contains a Radix Accordion (ParameterGroup) with <Input id={paramName}>
+  //   • Phases tab → each phase card has a phase-params-toggle-${groupKey} button
+  //     that expands an inline param list (raw <input> with id absent)
+  // To read every prefilled value, click into Settings, expand the strip + the
+  // accordion, then read input#paramName values.
+  // Step 1: switch to Settings tab if present
+  const settingsTab = page.locator('[data-testid="panel-tab-settings"]').first();
+  if (await settingsTab.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await settingsTab.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
   }
-  // Expand Radix Accordion inside parameter group
-  const acc = page.locator('button[role="button"][data-state="closed"]').filter({ hasText: /parameters|inputs|settings/i }).first();
+  // Step 2: expand the workflow settings strip
+  const strip = page.locator('[data-testid="button-toggle-workflow-settings"]').first();
+  if (await strip.isVisible({ timeout: 1500 }).catch(() => false)) {
+    const cls = await strip.getAttribute('class').catch(() => '');
+    if (!/\bopen\b/.test(cls || '')) await strip.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
+  }
+  // Step 3: expand the Radix accordion ("Workflow parameters") inside the strip
+  const acc = page
+    .locator('button[role="button"][data-state="closed"]')
+    .filter({ hasText: /workflow parameters|parameters|inputs|settings/i })
+    .first();
   if (await acc.isVisible({ timeout: 1500 }).catch(() => false)) {
     await acc.click({ force: true }).catch(() => {});
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
   }
-  // Read all input fields
-  const out: Record<string, string> = {};
-  const inputs = await page.locator('input[id], textarea[id]').elementHandles();
-  for (const h of inputs) {
-    const id = await h.getAttribute('id');
-    const v = await h.inputValue().catch(() => null);
-    if (id && v != null) out[id] = v;
+  // Step 4: read Settings-tab inputs first (keyed by <Input id={paramName}>).
+  const settingsOut = await page.evaluate(() => {
+    const result: Record<string, string> = {};
+    document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[id], textarea[id]')
+      .forEach(el => {
+        const id = el.id;
+        const v = (el as any).value as string | undefined;
+        if (id && v != null && v !== '') result[id] = v;
+      });
+    return result;
+  });
+  // Step 5: switch to the Phases tab — phase-specific params (target_a,
+  // target_b, indication for Phase A on bispecific) live inside each phase
+  // card's params toggle there, NOT in the Settings strip. Phase cards mount
+  // collapsed by default ("Click a phase to expand…"); we have to click each
+  // .phase-head FIRST to expand the card, only then does the
+  // phase-params-toggle-${groupKey} button appear inside. Then click each
+  // toggle to surface the .param-row inputs.
+  //
+  // Phase cards are LAZY: viewer fires /api/nextflow/steps for the workflow
+  // path when workflowDefinition.steps is empty (which it is — generate_workflow
+  // returns 0 steps and the viewer fetches them on mount). We MUST wait for
+  // the phase-group cards to actually mount before clicking, or our clicks
+  // hit nothing and the cards never open.
+  const phasesTab = page.locator('[data-testid="panel-tab-phases"]').first();
+  if (await phasesTab.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await phasesTab.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
   }
-  return out;
+  // Wait up to 120s for the lazy-fetched phase cards to mount on the Phases
+  // tab AND for at least one of them to expose its param values (which only
+  // happens after the chat-stream's `final` event lands — the workflow chip
+  // appears mid-stream but inline_parameters propagate on final). Bumped
+  // from 20s → 60s → 120s after observing the shared-fixture path with a
+  // longer chat-stream response taking ~70-90s to fully settle.
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="phase-group-"]').length >= 4,
+    null,
+    { timeout: 120_000 },
+  ).catch(() => {});
+  // Step 5a: click each phase head to expand the phase card.
+  // Diagnostic discovery: Playwright .click() with force:true silently no-ops
+  // here — aria-expanded stays "false" after the click loop. Fall back to a
+  // page.evaluate() pass that walks the .phase-head elements and dispatches a
+  // raw click event on each, which DOES propagate React's onClick.
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid^="phase-group-"] .phase-head').forEach(el => {
+      const exp = el.getAttribute('aria-expanded');
+      if (exp !== 'true') (el as HTMLElement).click();
+    });
+  });
+  await page.waitForTimeout(500);
+  // Verify the expand worked; fall back to Playwright click on any still-closed phases
+  const stillClosed = await page.locator('[data-testid^="phase-group-"] .phase-head[aria-expanded="false"]').elementHandles();
+  for (const h of stillClosed) {
+    await h.click({ force: true }).catch(() => {});
+  }
+  await page.waitForTimeout(400);
+  // Step 5b: wait for at least one phase-params-toggle to appear, then click
+  // every one so the inline param rows mount. Same Playwright force:true
+  // silently no-ops as the phase-head case → use DOM-level click via
+  // page.evaluate(), which DOES propagate React's onClick (the toggle reads
+  // `phaseParamsOpen ? 'collapse' : 'edit'` after each click, so we use that
+  // text content to decide whether to fire).
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="phase-params-toggle-"]').length >= 1,
+    null,
+    { timeout: 5_000 },
+  ).catch(() => {});
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid^="phase-params-toggle-"]').forEach(el => {
+      const text = (el.textContent || '').trim().toLowerCase();
+      if (text !== 'collapse') (el as HTMLElement).click();
+    });
+  });
+  await page.waitForTimeout(500);
+  // Fallback: any still-collapsed toggles get a Playwright click
+  const togglesStillEdit = await page.locator('[data-testid^="phase-params-toggle-"]')
+    .filter({ hasText: /edit/i }).elementHandles();
+  for (const t of togglesStillEdit) {
+    await t.click({ force: true }).catch(() => {});
+  }
+  await page.waitForTimeout(500);
+  // Diagnostic dump — kept lightly so future regressions are debuggable.
+  // Set process.env.T01_DEBUG=1 to dump DOM state + fetch counts to the
+  // test log when the test fails. See docs/20260610_TIER0_CHAT_TO_FORM_FIX_ARC.md
+  // for what we found via this dump (Galaxy /api/nextflow/steps occasionally
+  // returns HTTP 500 → viewer falls back to the 'all' phase group → no
+  // phase-card param rows render).
+  if (process.env.T01_DEBUG === '1') {
+    const stepCalls = await page.evaluate(() => (window as any).__T01_STEPS_CALLS || []);
+    console.log('[T01-FETCH] /api/nextflow/steps calls:', JSON.stringify(stepCalls));
+    const diag = await page.evaluate(() => {
+      const out: any = {};
+      out.activeTab = document.querySelector('[aria-selected="true"][data-testid^="panel-tab-"]')?.getAttribute('data-testid') || null;
+      out.phaseGroups = Array.from(document.querySelectorAll('[data-testid^="phase-group-"]'))
+        .map(el => ({
+          testid: el.getAttribute('data-testid'),
+          open: (el.getAttribute('class') || '').includes(' open'),
+          ariaExpanded: el.querySelector('.phase-head')?.getAttribute('aria-expanded'),
+        }));
+      out.phaseToggles = Array.from(document.querySelectorAll('[data-testid^="phase-params-toggle-"]'))
+        .map(el => el.getAttribute('data-testid'));
+      out.paramRowCount = document.querySelectorAll('.param-row').length;
+      out.allInputsWithId = Array.from(document.querySelectorAll<HTMLInputElement>('input[id]'))
+        .slice(0, 12).map(el => ({ id: el.id, value: el.value, visible: el.offsetParent !== null }));
+      return out;
+    });
+    console.log('[T01-DIAG]', JSON.stringify(diag, null, 2));
+  }
+  const phaseOut = await page.evaluate(() => {
+    const result: Record<string, string> = {};
+    document.querySelectorAll('.param-row').forEach(row => {
+      const labelEl = row.querySelector('.k');
+      const inputEl = row.querySelector<HTMLInputElement>('input, select, textarea');
+      if (!labelEl || !inputEl) return;
+      const label = (labelEl.textContent || '').trim().replace(/\s*\*\s*$/, '');
+      const snake = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const v = (inputEl as any).value as string | undefined;
+      if (snake && v != null && v !== '' && !result[snake]) result[snake] = v;
+    });
+    return result;
+  });
+  return { ...settingsOut, ...phaseOut };
 }
 
 async function clickRunAndCaptureId(page: Page, a: DemoAudit): Promise<string | null> {
@@ -412,6 +593,23 @@ async function runFullDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     if (!cardAppeared) return a;
 
     // ── 4. Verify form prefill ──
+    // The workflow chip appears mid-stream but inline_parameters land on the
+    // chat-stream's `final` event. Give the stream up to 90s to settle —
+    // poll for either the panelWorkflow to carry inline_parameters (visible
+    // as a non-empty workflow-card title) or just wait until the textarea
+    // is back to the idle placeholder state.
+    await page.waitForFunction(
+      () => {
+        const ta = document.querySelector('textarea') as HTMLTextAreaElement | null;
+        // Idle when no in-flight indicator + textarea empty
+        const idle = !document.querySelector('[data-testid="chat-stream-indicator"]') && (ta?.value ?? '') === '';
+        // OR: chat shows the final assistant turn (workflow chip with In-panel badge)
+        const hasFinal = !!document.querySelector('[data-testid^="workflow-card-"]');
+        return idle && hasFinal;
+      },
+      null,
+      { timeout: 90_000 },
+    ).catch(() => {});
     const params = await readPrefilledParams(page);
     a.inlineParameters = params;
     for (const chk of spec.expectedParams) {

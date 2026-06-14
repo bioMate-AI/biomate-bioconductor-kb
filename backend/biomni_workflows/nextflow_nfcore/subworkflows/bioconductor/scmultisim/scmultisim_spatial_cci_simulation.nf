@@ -35,6 +35,15 @@ process BIOC_SCMULTISIM_SCMULTISIM_SPATIAL_CCI_SIMULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scMultiSim", "dplyr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_SPATIAL_CCI_SIMULATION {
     library(dplyr)
     library(ggplot2)
     
-    # 1. Read input files
+    # --- Read input files ---
     counts <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts)) {
       rownames(counts) <- counts\$gene_id
@@ -59,11 +68,11 @@ process BIOC_SCMULTISIM_SCMULTISIM_SPATIAL_CCI_SIMULATION {
       counts <- counts[, -1, drop = FALSE]
     }
     
-    # 2. Determine simulation dimensions
+    # --- Determine simulation dimensions ---
     n_cells <- max(ncol(counts), 80)
     n_genes <- max(nrow(counts), 120)
     
-    # 3. Define Ligand-Receptor interaction database
+    # --- Define Ligand-Receptor interaction database ---
     # We designate specific gene IDs within the simulated range to act as ligand-receptor pairs
     lig_params <- data.frame(
       target = as.integer(c(101, 102)),
@@ -71,7 +80,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_SPATIAL_CCI_SIMULATION {
       effect = c(5.2, 5.9)
     )
     
-    # 4. Set up spatial simulation options
+    # --- Set up spatial simulation options ---
     options_spatial <- list(
       GRN = NA, # Disable GRN to focus purely on spatial CCI effects
       speed.up = TRUE,
@@ -91,11 +100,11 @@ process BIOC_SCMULTISIM_SCMULTISIM_SPATIAL_CCI_SIMULATION {
       )
     )
     
-    # 5. Run spatial simulation
+    # --- Run spatial simulation ---
     message("Running spatial CCI simulation...")
     results_spatial <- sim_true_counts(options_spatial)
     
-    # 6. Save spatial outputs
+    # --- Save spatial outputs ---
     message("Saving spatial outputs...")
     write.csv(as.matrix(results_spatial\$counts), "spatial_counts.csv")
     
@@ -108,7 +117,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_SPATIAL_CCI_SIMULATION {
     
     write.csv(results_spatial\$cell_meta, "spatial_cell_metadata.csv", row.names = TRUE)
     
-    # 7. Visualize spatial cell layout
+    # --- Visualize spatial cell layout ---
     message("Generating spatial plots...")
     pdf("spatial_plots.pdf", width = 8, height = 8)
     

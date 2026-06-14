@@ -45,7 +45,7 @@ process BIOC_CCIMPUTE_DECOMPOSED_IMPUTATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "SingleCellExperiment", "ccImpute")
+    .bm_deps <- c("BiocParallel", "SingleCellExperiment", "ccImpute", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,6 +64,7 @@ process BIOC_CCIMPUTE_DECOMPOSED_IMPUTATION {
     
     # Load required libraries
     library(ccImpute)
+    library(SummarizedExperiment)
     library(BiocParallel)
     
     # 1. Read the input SingleCellExperiment object from the working directory

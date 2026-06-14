@@ -35,6 +35,15 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CRISPRball", "ggplot2", "plotly", "htmlwidgets", "htmltools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     library(htmltools)
     
     # ==========================================
-    # STAGE 1: Defensive Input Ingress & Parsing
+    # --- Defensive Input Ingress & Parsing ---
     # ==========================================
     message("Stage 1: Reading and parsing input data...")
     
@@ -118,7 +127,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Quality Control (QC) Visualization
+    # --- Quality Control (QC) Visualization ---
     # ==========================================
     message("Stage 2: Generating Quality Control plots...")
     
@@ -190,7 +199,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     message("QC plots saved to 'qc_plots.html'.")
     
     # ==========================================
-    # STAGE 3: Gene-Level Summary Generation
+    # --- Gene-Level Summary Generation ---
     # ==========================================
     message("Stage 3: Performing differential abundance analysis to build gene summary...")
     
@@ -239,7 +248,7 @@ process BIOC_CRISPRBALL_CRISPRBALL_ANALYSIS_PIPELINE {
     message("Gene summary table saved to 'gene_summary.csv'.")
     
     # ==========================================
-    # STAGE 4: Gene-Level Visualization
+    # --- Gene-Level Visualization ---
     # ==========================================
     message("Stage 4: Generating Gene-Level plots...")
     

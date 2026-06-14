@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Identify the pathway(s) containing the candidate gene. 2. Compare the pathway gene list against the phenotypes of interest using h
+//  * 1. [Visualization & Output] READ USER INPUTS
+//  * 2. [Visualization & Output] PIPELINE EXECUTION (Faithful to Documented Code)
+//  * 3. [Visualization & Output] WRITE OUTPUT FILES
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PCAN")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +62,7 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     library(PCAN)
     
     # -----------------------------------------------------------------------------
-    # 1. READ USER INPUTS
+    # --- READ USER INPUTS ---
     # -----------------------------------------------------------------------------
     
     # Read genId (Entrez ID of the candidate gene)
@@ -112,7 +123,7 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     
     
     # -----------------------------------------------------------------------------
-    # 2. PIPELINE EXECUTION (Faithful to Documented Code)
+    # --- PIPELINE EXECUTION (Faithful to Documented Code) ---
     # -----------------------------------------------------------------------------
     
     # Identify the pathway(s) containing the candidate gene
@@ -173,7 +184,7 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     
     
     # -----------------------------------------------------------------------------
-    # 3. WRITE OUTPUT FILES
+    # --- WRITE OUTPUT FILES ---
     # -----------------------------------------------------------------------------
     
     # Save the main comparison result object

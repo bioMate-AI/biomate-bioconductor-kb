@@ -71,26 +71,26 @@ process BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY {
       stop(paste("Required input file missing:", addon_file))
     }
     
-    # 1. Load libraries using readLibFile
+    # --- Load libraries using readLibFile ---
     message("Reading library files...")
     Lib2 <- readLibFile(seed_file, clean = TRUE)
     Lib3 <- readLibFile(addon_file, clean = TRUE)
     
-    # 2. Clean libraries using cleanLib
+    # --- Clean libraries using cleanLib ---
     message("Cleaning libraries...")
     Lib2 <- cleanLib(Lib2, intensity.cutoff = 5, conf.cutoff = 0.99, 
                      nomod = FALSE, nomc = FALSE)
     Lib3 <- cleanLib(Lib3, intensity.cutoff = 5, conf.cutoff = 0.99, 
                      nomod = FALSE, nomc = FALSE)
     
-    # 3. Check matching quality using checkQuality
+    # --- Check matching quality using checkQuality ---
     message("Checking matching quality...")
     quality_metrics <- checkQuality(Lib2, Lib3)
     sink("matching_quality_metrics.txt")
     print(quality_metrics)
     sink()
     
-    # 4. Visualize matching quality
+    # --- Visualize matching quality ---
     message("Generating diagnostic plots...")
     pdf("matching_quality_plots.pdf", width = 8, height = 8)
     plotRTCor(Lib2, Lib3, "Seed Library", "Add-on Library")
@@ -106,14 +106,14 @@ process BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY {
       warning("Could not generate allplots.xlsx: ", e\$message)
     })
     
-    # 5. Build the extended library using buildSpectraLibPair (Time-based alignment)
+    # --- Build the extended library using buildSpectraLibPair ---
     message("Building extended library (time-based alignment)...")
     Lib2_3 <- buildSpectraLibPair(seed_file, addon_file, clean = TRUE, 
                                   nomc = TRUE, nomod = TRUE, plot = FALSE, 
                                   outputFormat = "peakview",
                                   outputFile = "extended_library.txt")
     
-    # 6. Export the extended library using outputLib
+    # --- Export the extended library using outputLib ---
     message("Exporting time-aligned extended library...")
     outputLib(Lib2_3, filename = "extended_library.txt", format = "peakview")
     

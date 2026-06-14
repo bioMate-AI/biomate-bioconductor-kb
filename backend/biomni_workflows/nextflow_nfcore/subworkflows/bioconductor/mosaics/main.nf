@@ -67,7 +67,7 @@ process BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING {
         stop(paste("Control input file not found in working directory:", control_file))
     }
     
-    # Stage 1: Construct bin-level files from aligned reads
+    # --- Construct bin-level files from aligned reads ---
     message("Constructing bin-level files...")
     constructBins( 
         infile=chip_file, 
@@ -103,7 +103,7 @@ process BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING {
         "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt"
     )
     
-    # Stage 2: Read bin-level data into R
+    # --- Read bin-level data into R ---
     message("Reading bin-level data...")
     binTFBS <- readBins( type=c("chip","input"), fileName=fileName )
     
@@ -115,7 +115,7 @@ process BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING {
     plot(binTFBS)
     plot(binTFBS, plotType="input")
     
-    # Stage 3: Fit the MOSAiCS model
+    # --- Fit the MOSAiCS model ---
     message("Fitting MOSAiCS model...")
     fitTFBS <- mosaicsFit( binTFBS, analysisType="IO", bgEst="rMOM" )
     
@@ -126,7 +126,7 @@ process BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING {
     plot(fitTFBS)
     dev.off()
     
-    # Stage 4: Call peaks
+    # --- Call peaks ---
     message("Calling peaks...")
     peakTFBS <- mosaicsPeak( 
         fitTFBS, 
@@ -143,13 +143,13 @@ process BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING {
     # Save peak calling results as a CSV table for easy downstream access
     write.csv(print(peakTFBS), file="peakTFBS_summary.csv", row.names=FALSE)
     
-    # Stage 5: Export peak calling results in standard formats
+    # --- Export peak calling results in standard formats ---
     message("Exporting peak calling results...")
     export( peakTFBS, type="txt", filename="peakTFBS.txt" )
     export( peakTFBS, type="bed", filename="peakTFBS.bed" )
     export( peakTFBS, type="gff", filename="peakTFBS.gff" )
     
-    # Stage 6: Generate wiggle files for visualization
+    # --- Generate wiggle files for visualization ---
     message("Generating wiggle files...")
     generateWig( 
         infile=chip_file, 

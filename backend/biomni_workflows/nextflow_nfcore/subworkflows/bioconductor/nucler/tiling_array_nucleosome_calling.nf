@@ -83,7 +83,7 @@ process BIOC_NUCLER_TILING_ARRAY_NUCLEOSOME_CALLING {
     raw_data <- env[[loaded_objs[1]]]
     
     # ==========================================
-    # Stage 1: Process tiling array data to 1bp resolution
+    # --- Process tiling array data to 1bp resolution ---
     # ==========================================
     if (inherits(raw_data, "ExpressionSet")) {
         # If the input is an ExpressionSet, we must process it using processTilingArray
@@ -102,7 +102,7 @@ process BIOC_NUCLER_TILING_ARRAY_NUCLEOSOME_CALLING {
     }
     
     # ==========================================
-    # Stage 2: Smooth signal using filterFFT
+    # --- Smooth signal using filterFFT ---
     # ==========================================
     # Save the power spectrum plot to a PDF
     pdf("power_spectrum.pdf")
@@ -117,7 +117,7 @@ process BIOC_NUCLER_TILING_ARRAY_NUCLEOSOME_CALLING {
     saveRDS(tiling_fft, "tiling_fft.rds")
     
     # ==========================================
-    # Stage 3: Detect peaks using peakDetection
+    # --- Detect peaks using peakDetection ---
     # ==========================================
     # Detect peaks without scoring
     peaks_raw <- peakDetection(tiling_fft, threshold="25%", score=FALSE)

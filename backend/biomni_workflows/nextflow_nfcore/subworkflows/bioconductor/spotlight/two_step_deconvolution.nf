@@ -41,7 +41,7 @@ process BIOC_SPOTLIGHT_TWO_STEP_DECONVOLUTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SPOTlight", "SingleCellExperiment", "SpatialExperiment", "ggplot2", "scater", "scran")
+    .bm_deps <- c("SPOTlight", "SingleCellExperiment", "SpatialExperiment", "ggplot2", "scater", "scran", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SPOTLIGHT_TWO_STEP_DECONVOLUTION {
         }
         
         # Load required libraries
-        library(ggplot2)
+         library(SummarizedExperiment)
+       library(ggplot2)
         library(SPOTlight)
         library(SpatialExperiment)
         library(scater)

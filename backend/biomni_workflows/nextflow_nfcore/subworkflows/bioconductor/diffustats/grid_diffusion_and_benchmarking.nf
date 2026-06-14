@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Precompute the regularised Laplacian kernel using regularisedLaplacianKernel. 2. Run diffusion across a grid of methods using diff
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Precompute the Regularised Laplacian Kernel
+//  * 3. [Core Analysis] Run Diffusion Across a Grid of Methods
+//  * 4. [Core Analysis] Evaluate Performance of Multiple Methods
+//  * 5. [Core Analysis] Statistically Compare Performance Metrics
+//  * 6. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("igraph", "diffuStats", "reshape2", "ggplot2", "ggsci")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,7 +69,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     library(ggsci)
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # Read the igraph network object
     yeast <- readRDS("network.graph")
@@ -75,12 +89,12 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     list_methods <- c("raw", "ml", "gm", "ber_s", "ber_p", "mc", "z")
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Precompute the Regularised Laplacian Kernel
+    # --- Precompute the Regularised Laplacian Kernel ---
     # -----------------------------------------------------------------------------
     K_rl <- diffuStats::regularisedLaplacianKernel(yeast)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Run Diffusion Across a Grid of Methods
+    # --- Run Diffusion Across a Grid of Methods ---
     # -----------------------------------------------------------------------------
     df_diff <- diffuse_grid(
         K = K_rl,
@@ -90,7 +104,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     )
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Evaluate Performance of Multiple Methods
+    # --- Evaluate Performance of Multiple Methods ---
     # -----------------------------------------------------------------------------
     df_methods <- perf(
         K = K_rl,
@@ -106,7 +120,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
     df_perf <- reshape2::acast(df_methods, Column~method, value.var = "auc")
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Statistically Compare Performance Metrics
+    # --- Statistically Compare Performance Metrics ---
     # -----------------------------------------------------------------------------
     df_test <- perf_wilcox(
         df_perf, 
@@ -115,7 +129,7 @@ process BIOC_DIFFUSTATS_GRID_DIFFUSION_AND_BENCHMARKING {
         scientific = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------------------
     # Save tabular results
     write.csv(df_diff, "diffusion_grid_scores.csv", row.names = FALSE)

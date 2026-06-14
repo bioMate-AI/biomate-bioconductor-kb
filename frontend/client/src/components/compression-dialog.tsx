@@ -31,6 +31,12 @@ export interface CompressionDialogProps {
   isCompressing?: boolean;
   onCompress: () => void;
   onCancel: () => void;
+  /**
+   * Start a fresh chat session. Surfaced as a third button at ≥85% of
+   * the token limit where compression hits diminishing returns.
+   * See docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q2).
+   */
+  onStartNewChat?: () => void;
 }
 
 export function CompressionDialog({
@@ -43,6 +49,7 @@ export function CompressionDialog({
   isCompressing = false,
   onCompress,
   onCancel,
+  onStartNewChat,
 }: CompressionDialogProps) {
   const percentage = (currentTokens / tokenLimit) * 100;
   const estimatedAfter = estimatedTokensAfter ?? Math.ceil(currentTokens * 0.35);
@@ -173,9 +180,23 @@ export function CompressionDialog({
           <AlertDialogCancel disabled={isCompressing} onClick={onCancel}>
             Not Yet
           </AlertDialogCancel>
+          {/* Diminishing-returns escape at ≥85%: the summary itself eats
+              tokens; a fresh chat is usually the better path. Attached
+              datasets and project context survive on the new session
+              (Galaxy history + sessionDatasetsBlock). */}
+          {onStartNewChat && percentage >= 85 && !isCompressing && (
+            <AlertDialogAction
+              onClick={onStartNewChat}
+              data-testid="compression-start-new-chat"
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Start a new chat
+            </AlertDialogAction>
+          )}
           <AlertDialogAction
             onClick={onCompress}
             disabled={isCompressing}
+            data-testid="compression-compress-now"
             className="bg-primary hover:bg-primary/90"
           >
             {isCompressing ? (

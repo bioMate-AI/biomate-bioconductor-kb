@@ -63,34 +63,34 @@ process BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY {
     luad_vcf <- "public_LUAD_TCGA-97-7938.vcf"
     sample_annotations_file <- "sample_annotations.txt"
     
-    # 1. Extract variants from files
+    # --- Extract variants from files ---
     lusc.variants <- extract_variants_from_maf_file(maf_file = lusc_maf)
     luad.variants <- extract_variants_from_vcf_file(vcf_file = luad_vcf)
     variants <- extract_variants(c(lusc_maf, luad_vcf))
     
-    # 2. Select reference genome
+    # --- Select reference genome ---
     g <- select_genome("hg38")
     
-    # 3. Create a musica object
+    # --- Create a musica object ---
     musica <- create_musica_from_variants(x = variants, genome = g)
     
-    # 4. Build standard mutation count tables
+    # --- Build standard mutation count tables ---
     build_standard_table(musica, g = g, table_name = "SBS96")
     
-    # 5. Determine optimal signature count (k)
+    # --- Determine optimal signature count (k) ---
     k_comparison <- compare_k_vals(musica, "SBS96",
       reps = 5, min_k = 2, max_k = 4,
       algorithm = "nmf"
     )
     saveRDS(k_comparison, "k_comparison.rds")
     
-    # 6. Discover signatures and exposures de novo
+    # --- Discover signatures and exposures de novo ---
     discover_signatures(
       musica = musica, modality = "SBS96", num_signatures = 3,
       algorithm = "nmf", model_id = "ex_result", nstart = 10
     )
     
-    # 7. Extract exposures and signatures
+    # --- Extract exposures and signatures ---
     expos <- exposures(musica, "result", "SBS96", "ex_result")
     sigs <- signatures(musica, "result", "SBS96", "ex_result")
     
@@ -115,11 +115,11 @@ process BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY {
     plot_exposures(musica, "ex_result", plot_type = "bar")
     dev.off()
     
-    # 8. Annotate samples using sample metadata
+    # --- Annotate samples using sample metadata ---
     annot <- read.table(sample_annotations_file, sep = "\t", header = TRUE)
     samp_annot(musica, "Tumor_Subtypes") <- annot\$Tumor_Subtypes
     
-    # 9. Visualize exposures grouped by annotation
+    # --- Visualize exposures grouped by annotation ---
     pdf("exposures_by_subtype_plot.pdf", width = 10, height = 6)
     plot_exposures(musica, "ex_result",
       plot_type = "bar", group_by = "annotation",

@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Prepare a tensor from the list of matrices using prepareTensorfromList. 2. Permute the tensor modes using aperm to align features 
+//  * 1. [Input & Preparation] Prepare a tensor from the list of matrices using
+//  * 2. [Input & Preparation] Permute the tensor modes using aperm to align features
+//  * 3. [Input & Preparation] Wrap the tensor using PrepareSummarizedExperimentTensor
+//  * 4. [Input & Preparation] Compute HOSVD using computeHosvd
+//  * 5. [Input & Preparation] Select features using selectFeatureProj in batch mode
+//  * 6. [Input & Preparation] Extract and display selected features using tableFeatures
 
 nextflow.enable.dsl = 2
 
@@ -107,10 +112,10 @@ process BIOC_TDBASEDUFEADV_MULTI_OMICS_SHARING_FEATURES {
       ID_column_of_Multi_sample[i] <- find_condition_col(Clinical[[i]])
     }
     
-    # 1. Prepare a tensor from the list of matrices using prepareTensorfromList
+    # --- Prepare a tensor from the list of matrices using ---
     Z <- prepareTensorfromList(Multi, 10L)
     
-    # 2. Permute the tensor modes using aperm to align features and samples
+    # --- Permute the tensor modes using aperm to align features ---
     Z <- aperm(Z, c(2, 1, 3))
     
     # Determine feature names from the input matrices
@@ -119,7 +124,7 @@ process BIOC_TDBASEDUFEADV_MULTI_OMICS_SHARING_FEATURES {
       feature_names <- paste0("Feature_", seq_len(dim(Z)[1]))
     }
     
-    # 3. Wrap the tensor using PrepareSummarizedExperimentTensor with clinical/sample metadata prepared via prepareCondTCGA
+    # --- Wrap the tensor using PrepareSummarizedExperimentTensor ---
     Z <- PrepareSummarizedExperimentTensor(
       feature = feature_names,
       sample = array("", 1), value = Z,
@@ -129,14 +134,14 @@ process BIOC_TDBASEDUFEADV_MULTI_OMICS_SHARING_FEATURES {
       )
     )
     
-    # 4. Compute HOSVD using computeHosvd
+    # --- Compute HOSVD using computeHosvd ---
     HOSVD <- computeHosvd(Z)
     
-    # 5. Select features using selectFeatureProj in batch mode
+    # --- Select features using selectFeatureProj in batch mode ---
     cond <- attr(Z, "sampleData")
     index <- selectFeatureProj(HOSVD, Multi, cond, de = 1e-3, input_all = 3) # Batch mode
     
-    # 6. Extract and display selected features using tableFeatures
+    # --- Extract and display selected features using tableFeatures ---
     features_table <- tableFeatures(Z, index)
     print(head(features_table))
     

@@ -34,6 +34,15 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("crisprDesign", "crisprBase", "org.Hs.eg.db", "TxDb.Hsapiens.UCSC.hg38.knownGene", "BSgenome.Hsapiens.UCSC.hg38", "GenomicFeatures", "GenomicRanges", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,7 +52,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
           }
         }
     
-    # Stage 1: Load Libraries and Input Data
+    # --- Load Libraries and Input Data ---
     library(crisprDesign)
     library(crisprBase)
     library(org.Hs.eg.db)
@@ -57,7 +66,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
     counts <- read.csv("counts.csv", row.names=1, check.names=FALSE)
     coldata <- read.csv("coldata.csv", row.names=1, check.names=FALSE)
     
-    # Stage 2: Identify and Map Target Genes
+    # --- Identify and Map Target Genes ---
     message("Identifying top expressed genes for targeting...")
     mean_expr <- rowMeans(counts)
     gene_ids <- names(mean_expr)
@@ -96,7 +105,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
     }
     message("Selected target Entrez IDs: ", paste(target_entrez, collapse=", "))
     
-    # Stage 3: Retrieve Genomic Coordinates and Design Spacers
+    # --- Retrieve Genomic Coordinates and Design Spacers ---
     message("Retrieving genomic coordinates and designing spacers...")
     target_cds <- cds_by_gene[target_entrez]
     gr_target <- unlist(target_cds)
@@ -112,7 +121,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
         guideSet <- guideSet[1:50]
     }
     
-    # Stage 4: Comprehensive gRNA Annotation
+    # --- Comprehensive gRNA Annotation ---
     message("Annotating spacer sequence features...")
     guideSet <- addSequenceFeatures(guideSet)
     
@@ -151,7 +160,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
         guideSet
     })
     
-    # Stage 5: Filter, Rank, and Export Results
+    # --- Filter, Rank, and Export Results ---
     message("Filtering and ranking designed gRNAs...")
     # Filter out gRNAs with extreme GC content or poly-T stretches
     if ("percentGC" %in% colnames(mcols(guideSet))) {

@@ -67,14 +67,14 @@ process BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION {
       stop(paste("Required input file missing:", file_rv))
     }
     
-    # 1. Load forward and reverse amplicon sequences using ReadAmplSeqs
+    # --- Load forward and reverse amplicon sequences using ---
     filepath <- file_fw
     lstFW <- ReadAmplSeqs(filepath, type="DNA")
     
     filepath <- file_rv
     lstRV <- ReadAmplSeqs(filepath, type="DNA")
     
-    # 2. Intersect and filter strand haplotypes using IntersectStrandHpls
+    # --- Intersect and filter strand haplotypes using ---
     lstI <- IntersectStrandHpls(lstFW\$nr, lstFW\$hseqs, lstRV\$nr, lstRV\$hseqs)
     
     # Save the complete intersection results list as an RDS object
@@ -110,7 +110,7 @@ process BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION {
 
     writeLines(c(
         '"BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION":',
-        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+        paste0('        qsutils: ', as.character(packageVersion("QSutils")))
     ), "versions.yml")
     """
 

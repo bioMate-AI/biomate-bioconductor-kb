@@ -35,6 +35,15 @@ process BIOC_UCSC_UTILS_UCSC_GENOME_VALIDATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("UCSC.utils", "GenomicRanges", "S4Vectors", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_UCSC_UTILS_UCSC_GENOME_VALIDATION {
           }
         }
     
-    # Stage 1: Load required libraries and read input defensively
+    # --- Load required libraries and read input defensively ---
     library(UCSC.utils)
     library(GenomicRanges)
     library(S4Vectors)
@@ -65,7 +74,7 @@ process BIOC_UCSC_UTILS_UCSC_GENOME_VALIDATION {
       feature_list <- as.character(input_data[[1]])
     }
     
-    # Stage 2: Identify UCSC Genome Build
+    # --- Identify UCSC Genome Build ---
     # Fetch supported genomes from UCSC.utils to validate input
     supported_genomes <- tryCatch({
       UCSC.utils::supported_genomes()
@@ -84,7 +93,7 @@ process BIOC_UCSC_UTILS_UCSC_GENOME_VALIDATION {
       message("No supported genome build detected in input. Defaulting to: ", genome)
     }
     
-    # Stage 3: Fetch Chromosome Sizes from UCSC
+    # --- Fetch Chromosome Sizes from UCSC ---
     chrom_sizes <- tryCatch({
       UCSC.utils::fetch_chrom_sizes(genome)
     }, error = function(e) {
@@ -98,7 +107,7 @@ process BIOC_UCSC_UTILS_UCSC_GENOME_VALIDATION {
       fallback
     })
     
-    # Stage 4: Parse and Validate Genomic Coordinates
+    # --- Parse and Validate Genomic Coordinates ---
     parsed_ranges <- data.frame(feature_id = character(), chr = character(), 
                                 start = integer(), end = integer(), stringsAsFactors = FALSE)
     
@@ -163,7 +172,7 @@ process BIOC_UCSC_UTILS_UCSC_GENOME_VALIDATION {
       gr <- GenomicRanges::GRanges()
     }
     
-    # Stage 5: Write Outputs and Generate Diagnostic Plots
+    # --- Write Outputs and Generate Diagnostic Plots ---
     # 1. Validated features
     write.csv(parsed_ranges, file = "validated_features.csv", row.names = FALSE)
     

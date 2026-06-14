@@ -706,7 +706,33 @@ def _llm_narrative(
     4. audit_constraint: when set, adds a negative constraint (used by regeneration loop)
 
     Returns empty string on any failure (graceful degradation).
+
+    B1 (2026-06-12): when data carries NOAEL + species we pre-compute HED/MRSD
+    deterministically via mrsd_calculator and inject the numbers as a
+    'use verbatim' anchor so the LLM does not redo BSA arithmetic (which
+    the n=70 cross-judge eval scored at 0.21 across every model tested).
     """
+    _mrsd_anchor = ""
+    try:
+        if data.get("noael_mg_per_kg") and data.get("species"):
+            from galaxy.ai.drug_discovery.mrsd_calculator import compute_mrsd
+            _r = compute_mrsd(
+                noael_mg_per_kg=float(data["noael_mg_per_kg"]),
+                species=str(data["species"]),
+                safety_factor=float(data.get("safety_factor", 10)),
+                human_weight_kg=float(data.get("human_weight_kg", 60)),
+            )
+            _mrsd_anchor = (
+                f"\n\nUse these computed numbers verbatim (do NOT recompute):\n"
+                f"  HED  = {_r.hed_mg_per_kg:.3f} mg/kg/day\n"
+                f"  MRSD = {_r.mrsd_mg_per_kg:.4f} mg/kg/day "
+                f"= {_r.mrsd_mg_per_patient:.1f} mg per 60-kg patient\n"
+                f"  (FDA 2005 BSA-conversion for {_r.species}; "
+                f"safety factor {_r.safety_factor:g}x)"
+            )
+    except Exception as _e:
+        log.debug("[_llm_narrative] MRSD pre-compute skipped: %s", _e)
+
     try:
         from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash
 
@@ -799,6 +825,10 @@ def _llm_narrative(
             if not user_prompt:
                 return ""
 
+        # B1: append deterministic MRSD numbers so the LLM uses them verbatim
+        if _mrsd_anchor:
+            user_prompt = user_prompt + _mrsd_anchor
+
         # ── RAG: inject narrative patterns from regulatory_skills_db ─────────
         rag_block = _build_rag_context(section_type, data, region)
         if rag_block:
@@ -828,6 +858,11 @@ def _llm_narrative(
         )
         source = "local"
 
+        # #49: instrument call latency + fallback decision
+        from galaxy.ai.drug_discovery.regulatory_metrics import record_call, record_fallback
+        import time as _time
+        _t0 = _time.time()
+
         # Check: empty output or too short → Gemini fallback
         too_short = not narrative or len(narrative.split()) < 30
         # Check: MAJOR audit findings → Gemini fallback for citation-critical sections
@@ -836,6 +871,7 @@ def _llm_narrative(
 
         if needs_gemini:
             reason = "empty" if too_short else f"audit_fail:{','.join(major_findings)}"
+            record_fallback(section_type, reason)
             log.debug("[IND narrative] local model fallback reason=%s — using Gemini", reason)
             gemini_narrative = _gemini_flash(
                 messages=[{"role": "user", "content": user_prompt}],
@@ -847,6 +883,7 @@ def _llm_narrative(
                 narrative = gemini_narrative
                 source = "gemini"
             # else: keep local model output (Gemini also failed) + let guardrails handle
+        record_call(section_type, source, _time.time() - _t0)
 
         log.debug("[IND narrative] %s/%s source=%s words=%d",
                   section_type, region, source, len(narrative.split()) if narrative else 0)
@@ -874,6 +911,19 @@ def _build_rag_context(section_type: str, data: dict, region: str) -> str:
     2. OSP benchmark comparison for PBPK sections
     """
     lines = []
+
+    # B2: region-specific narrative style rules (FDA/EMA/NMPA/PMDA).
+    # Closes region_adaptation — the highest-variance task in the n=70
+    # cross-judge eval (macro 0.388, CI [0.338, 0.446]).
+    try:
+        from .regulatory_region_packs import region_style_rules
+        region_rules = region_style_rules(region, section_type)
+        if region_rules:
+            lines.append(f"Region-specific style rules for {region}:")
+            for r in region_rules:
+                lines.append(f"  • {r}")
+    except Exception:
+        pass  # region pack optional — graceful degradation
 
     # ── Narrative patterns from skills DB ────────────────────────────────────
     try:
@@ -1607,15 +1657,24 @@ The GLP declaration above applies to any wet-lab validation studies cited herein
         n_ref = vr.get("n_reference_compounds", 0)
         reg_summary = vr.get("regulatory_summary", "")
 
-        narrative = _llm_narrative("pbpk", {
-            "AFE_Cmax": _fmt(m.get("AFE_Cmax")),
-            "AAFE_Cmax": _fmt(m.get("AAFE_Cmax")),
-            "R2_Cmax": _fmt(m.get("R2_Cmax")),
-            "within_2fold_Cmax": _pct(m.get("within_2fold_Cmax")),
-            "within_2fold_AUC": _pct(m.get("within_2fold_AUC")),
-            "ema_criterion_met": ema_met,
-        },
-            region=ctx.get("region","FDA"))
+        # B4: citation-critical section — wrap with autoloop so a missing
+        # EMA/CHMP/EWP/37498/2011 citation (CITE_001) triggers a regen with
+        # the rule injected as a constraint instead of one-shot fallback.
+        from galaxy.ai.drug_discovery.ind_autoloop import llm_narrative_with_retry
+        narrative, _autoloop_constraints = llm_narrative_with_retry(
+            "pbpk",
+            {
+                "AFE_Cmax": _fmt(m.get("AFE_Cmax")),
+                "AAFE_Cmax": _fmt(m.get("AAFE_Cmax")),
+                "R2_Cmax": _fmt(m.get("R2_Cmax")),
+                "within_2fold_Cmax": _pct(m.get("within_2fold_Cmax")),
+                "within_2fold_AUC": _pct(m.get("within_2fold_AUC")),
+                "ema_criterion_met": ema_met,
+            },
+            region=ctx.get("region", "FDA"),
+        )
+        if _autoloop_constraints:
+            log.debug("[IND autoloop] pbpk regenerated under constraints: %s", _autoloop_constraints)
 
         # Build per-compound table (top 15 by fold error)
         per_cpd = vr.get("per_compound", [])
@@ -2478,20 +2537,34 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
             "ames_flagged": ames_flagged,
         },
             region=ctx.get("region","FDA"))
-        narrative_genotox = _llm_narrative("tox_genotox", {
-            "molecule_name": ctx["molecule_name"],
-            "total_compounds": total,
-            "ames_flagged": ames_flagged,
-            "ames_result": lead_ames,
-        },
-            region=ctx.get("region","FDA"))
-        narrative_cardiac = _llm_narrative("tox_cardiac", {
-            "molecule_name": ctx["molecule_name"],
-            "total_compounds": total,
-            "herg_flagged": herg_flagged,
-            "lead_herg_ic50": lead_herg,
-        },
-            region=ctx.get("region","FDA"))
+        # B4: citation-critical sections — autoloop covers CITE_002 (S2(R1))
+        # and CONTENT_002 (Ames mention) for genotox, CITE_003 (S7B) for
+        # cardiac. Each gets up to 3 attempts with failed-rule constraint.
+        from galaxy.ai.drug_discovery.ind_autoloop import llm_narrative_with_retry
+        narrative_genotox, _gt_constraints = llm_narrative_with_retry(
+            "tox_genotox",
+            {
+                "molecule_name": ctx["molecule_name"],
+                "total_compounds": total,
+                "ames_flagged": ames_flagged,
+                "ames_result": lead_ames,
+            },
+            region=ctx.get("region", "FDA"),
+        )
+        if _gt_constraints:
+            log.debug("[IND autoloop] tox_genotox regenerated under constraints: %s", _gt_constraints)
+        narrative_cardiac, _ca_constraints = llm_narrative_with_retry(
+            "tox_cardiac",
+            {
+                "molecule_name": ctx["molecule_name"],
+                "total_compounds": total,
+                "herg_flagged": herg_flagged,
+                "lead_herg_ic50": lead_herg,
+            },
+            region=ctx.get("region", "FDA"),
+        )
+        if _ca_constraints:
+            log.debug("[IND autoloop] tox_cardiac regenerated under constraints: %s", _ca_constraints)
 
         intro_block = f"\n{narrative_intro}\n" if narrative_intro else ""
         genotox_block = f"\n{narrative_genotox}\n" if narrative_genotox else ""

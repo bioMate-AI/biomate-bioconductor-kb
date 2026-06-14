@@ -78,7 +78,7 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     # Clean sequence names (remove 'chr' prefix if present, as getStrandFromBamFile expects)
     seq_names_clean <- gsub("^chr", "", seq_names)
     
-    # 1. Calculate strand-specific read counts and coverage across sliding windows
+    # --- Calculate strand-specific read counts and coverage across ---
     # We duplicate the bam_file in the vector so that files[2] is valid and points to our BAM,
     # matching the vignette's indexing style.
     files <- c(bam_file, bam_file)
@@ -99,7 +99,7 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     winP <- getStrandFromBamFile(fileP, sequences = seq_names_clean)
     winP\$File <- basename(as.character(winP\$File)) #shorten file name
     
-    # 2. Intersect sliding windows with genomic annotations
+    # --- Intersect sliding windows with genomic annotations ---
     # Ensure sequence names are consistent (add 'chr' prefix)
     win\$Seq <- gsub("^chr", "", win\$Seq)
     win\$Seq <- paste0("chr",win\$Seq) 
@@ -112,7 +112,7 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     write.csv(as.data.frame(win), "windows_intersected.csv", row.names = FALSE)
     saveRDS(win, "windows_intersected.rds")
     
-    # 3. Plot diagnostic plots
+    # --- Plot diagnostic plots ---
     pdf("diagnostic_plots.pdf", width = 10, height = 8)
     
     # Plot histogram of positive proportion
@@ -141,7 +141,7 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     
     dev.off()
     
-    # 4. Filter out double-stranded DNA contamination from the BAM file
+    # --- Filter out double-stranded DNA contamination from the BAM ---
     filtered_bam <- "filtered.bam"
     win2 <- filterDNA(
         file = files[2], sequences = seq_names_clean, destination = filtered_bam, 
@@ -150,7 +150,7 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     
     win2\$File <- basename(as.character(win2\$File))
     
-    # 5. Compare window distributions before and after filtering
+    # --- Compare window distributions before and after filtering ---
     original_name <- basename(files[2])
     win2\$File <- factor(win2\$File, levels = c(original_name, filtered_bam))
     

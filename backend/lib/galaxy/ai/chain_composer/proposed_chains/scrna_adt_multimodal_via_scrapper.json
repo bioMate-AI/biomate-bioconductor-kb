@@ -1,0 +1,75 @@
+{
+  "name": "scrna_adt_multimodal_via_scrapper",
+  "display_name": "scRNA + ADT Multimodal Analysis (CITE-seq) via scrapper",
+  "domain": "single_cell",
+  "description": "End-to-end CITE-seq analysis: per-modality scRNA-seq + ADT preprocessing \u2192 joint scrapper analysis on the integrated SingleCellExperiment with both RNA and ADT alternative experiments. scrapper handles cross-modality QC, joint normalization, and multimodal clustering / annotation.",
+  "source": "curated",
+  "steps": [
+    {
+      "order": 1,
+      "workflow_name": "nf-core/scrnaseq",
+      "role": "scrna_preprocessing",
+      "params_template": {
+        "aligner": "cellranger"
+      }
+    },
+    {
+      "order": 2,
+      "workflow_name": "scrapper_multimodal_rna_adt_analysis",
+      "role": "joint_multimodal_analysis",
+      "params_template": {
+        "normalize": "clr_for_adt"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from_step": 1,
+      "from_output": "sce_or_h5ad",
+      "to_step": 2,
+      "to_input": "sce.s"
+    }
+  ],
+  "required_inputs": [
+    {
+      "name": "cite_seq_fastq",
+      "type": "fastq",
+      "description": "CITE-seq reads (RNA + antibody capture)"
+    },
+    {
+      "name": "antibody_panel",
+      "type": "csv"
+    },
+    {
+      "name": "reference_transcriptome",
+      "type": "string"
+    }
+  ],
+  "expected_outputs": [
+    {
+      "name": "integrated_sce",
+      "type": "rds"
+    },
+    {
+      "name": "joint_umap",
+      "type": "pdf"
+    },
+    {
+      "name": "modality_qc_report",
+      "type": "html"
+    }
+  ],
+  "example_queries": [
+    "CITE-seq analysis with RNA and ADT",
+    "multimodal single-cell RNA plus surface protein",
+    "joint scRNA-seq and antibody-derived tag analysis",
+    "single-cell multi-omics with protein and RNA"
+  ],
+  "tags": [
+    "multimodal",
+    "CITE-seq",
+    "scRNA",
+    "ADT",
+    "scrapper"
+  ]
+}

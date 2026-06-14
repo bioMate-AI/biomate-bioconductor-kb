@@ -66,7 +66,7 @@ process BIOC_NETSAM_MATSAM_CORRELATION_MODULARIZATION {
     # Load the NetSAM library
     library("NetSAM")
     
-    # Stage 1: Test the format of the input expression matrix and sample annotation data
+    # --- Test the format of the input expression matrix and sample ---
     message("Testing input file formats...")
     formatedData <- testFileFormat(
       inputMat = input_mat,
@@ -74,7 +74,7 @@ process BIOC_NETSAM_MATSAM_CORRELATION_MODULARIZATION {
       collapse_mode = "maxSD"
     )
     
-    # Stage 2: Run MatSAM to construct the correlation network, identify modules,
+    # --- Run MatSAM to construct the correlation network, identify ---
     # and calculate feature/GO associations
     message("Running MatSAM analysis...")
     outputFileName <- paste(getwd(), "/MatSAM", sep = "")

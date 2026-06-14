@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run feature selection and model training using biosign. 2. Visualize individual boxplots of the selected features. 3. Extract the 
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Run feature selection and model training using biosign
+//  * 3. [Visualization & Output] Visualize individual boxplots of the selected features
+//  * 4. [Visualization & Output] Extract the names of the selected features in the final
+//  * 5. [Visualization & Output] Train a model on a training subset and predict classes on
+//  * 6. [Visualization & Output] Retrieve the balanced accuracy of the models
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_BIOSIGNER_MATRIX_AND_DATAFRAME_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biosigner")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -70,7 +84,7 @@ process BIOC_BIOSIGNER_MATRIX_AND_DATAFRAME_ANALYSIS {
           }
         }
         
-        # 1. Read User Inputs
+        # --- Read User Inputs ---
         dataMatrix <- as.matrix(read_input("dataMatrix"))
         sampleMetadata <- read_input("sampleMetadata")
         
@@ -88,22 +102,22 @@ process BIOC_BIOSIGNER_MATRIX_AND_DATAFRAME_ANALYSIS {
           stringsAsFactors = FALSE
         )
         
-        # 2. Run feature selection and model training using biosign
+        # --- Run feature selection and model training using biosign ---
         diaSign <- biosign(dataMatrix, sampleMetadata[, "type"], bootI = 5)
         
         # Save the biosign object
         saveRDS(diaSign, "diaSign.rds")
         
-        # 3. Visualize individual boxplots of the selected features
+        # --- Visualize individual boxplots of the selected features ---
         pdf("signature_boxplot.pdf", width = 8, height = 8)
         plot(diaSign, typeC = "boxplot")
         dev.off()
         
-        # 4. Extract the names of the selected features in the final signature
+        # --- Extract the names of the selected features in the final ---
         selected_features <- variableMetadata[getSignatureLs(diaSign)[["complete"]], , drop = FALSE]
         write.csv(selected_features, "selected_features.csv", row.names = TRUE)
         
-        # 5. Train a model on a training subset and predict classes on training or new test data
+        # --- Train a model on a training subset and predict classes on ---
         trainVi <- 1:floor(0.8 * nrow(dataMatrix))
         testVi <- setdiff(1:nrow(dataMatrix), trainVi)
         
@@ -113,7 +127,7 @@ process BIOC_BIOSIGNER_MATRIX_AND_DATAFRAME_ANALYSIS {
         diaFitDF <- predict(diaTrain)
         write.csv(as.data.frame(diaFitDF), "train_predictions.csv", row.names = TRUE)
         
-        # 6. Retrieve the balanced accuracy of the models
+        # --- Retrieve the balanced accuracy of the models ---
         accuracy_S <- round(getAccuracyMN(diaTrain)["S", ], 3)
         write.csv(as.data.frame(t(accuracy_S)), "train_accuracy_S.csv", row.names = FALSE)
         

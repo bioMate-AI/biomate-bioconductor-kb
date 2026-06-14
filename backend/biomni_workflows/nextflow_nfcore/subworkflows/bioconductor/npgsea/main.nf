@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data and phenotype factor. 2. Define the gene set of interest using GeneSet. 3. Run npGSEA with the desired approx
+//  * 1. [Visualization & Output] Load expression data and phenotype factor from user input
+//  * 2. [Visualization & Output] Define the gene sets of interest using GeneSet
+//  * 3. [Visualization & Output] Run npGSEA with various options and approximations
+//  * 4. [Visualization & Output] Extract statistics and p-values using accessor functions
+//  * 5. [Visualization & Output] Visualize the approximation and observed statistics
+//  * 6. [Visualization & Output] Write output files
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +44,15 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GSEABase", "npGSEA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +68,7 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     library(npGSEA)
     
     # ----------------------------------------------------------------------
-    # 1. Load expression data and phenotype factor from user input files
+    # --- Load expression data and phenotype factor from user input ---
     # ----------------------------------------------------------------------
     
     if (!file.exists("expression_matrix.csv")) {
@@ -111,7 +125,7 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     yFactor <- ALL\$mol.biol
     
     # ----------------------------------------------------------------------
-    # 2. Define the gene sets of interest using GeneSet
+    # --- Define the gene sets of interest using GeneSet ---
     # ----------------------------------------------------------------------
     
     # Parse the user-provided gene_set.xml
@@ -156,7 +170,7 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     gsc <- GeneSetCollection(c(set1, set2, set3, set4, set5, set6, set7))
     
     # ----------------------------------------------------------------------
-    # 3. Run npGSEA with various options and approximations
+    # --- Run npGSEA with various options and approximations ---
     # ----------------------------------------------------------------------
     
     # Run npGSEA with the ExpressionSet
@@ -169,7 +183,7 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     res3 <- npGSEA(ALL, yFactor, set3)
     
     # ----------------------------------------------------------------------
-    # 4. Extract statistics and p-values using accessor functions
+    # --- Extract statistics and p-values using accessor functions ---
     # ----------------------------------------------------------------------
     
     # Accessor functions on res3
@@ -204,7 +218,7 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     res3_agesex <- npGSEA(x = ALL, y = yFactor, set = set3, covars = cbind(ALL\$age, ALL\$sex))
     
     # ----------------------------------------------------------------------
-    # 5. Visualize the approximation and observed statistics
+    # --- Visualize the approximation and observed statistics ---
     # ----------------------------------------------------------------------
     
     pdf("npgsea_plots.pdf", width = 8, height = 6)
@@ -215,7 +229,7 @@ process BIOC_NPGSEA_NPGSEA_SINGLE_SET {
     dev.off()
     
     # ----------------------------------------------------------------------
-    # 6. Write output files
+    # --- Write output files ---
     # ----------------------------------------------------------------------
     
     # Save RDS objects of the results

@@ -1,0 +1,32 @@
+{
+  "name": "cnv_consensus_pipeline",
+  "display_name": "CNV Detection — Multi-Method Consensus (cn.farms + CNVRanger)",
+  "domain": "variant_calling",
+  "description": "Copy number variant detection using cn_farms (FARMS algorithm on Affymetrix CEL files / aligned BAM) for primary segmentation, then CNVRanger for CNV-expression / phenotype association across the called regions. Members of a 19-member aCGH+CNV alternative-substitution cluster (adacgh2, biohmm, cghseg, cn.farms, crlmm) are interchangeable at step 2 depending on input array platform.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "nf-core/sarek", "role": "alignment_and_initial_calls", "params_template": {"genome": "GRCh38"}},
+    {"order": 2, "workflow_name": "cn_farms", "role": "cnv_segmentation", "params_template": {}},
+    {"order": 3, "workflow_name": "cnvranger", "role": "cnv_phenotype_association", "params_template": {}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "bam", "to_step": 2, "to_input": "bam"},
+    {"from_step": 2, "from_output": "cnv_segments", "to_step": 3, "to_input": "cnv_regions"}
+  ],
+  "required_inputs": [
+    {"name": "fastq_or_bam", "type": "fastq|bam"},
+    {"name": "sample_sheet", "type": "csv"},
+    {"name": "phenotype_or_expression", "type": "csv"}
+  ],
+  "expected_outputs": [
+    {"name": "cnv_segments", "type": "bed"},
+    {"name": "cnv_phenotype_association", "type": "tsv"}
+  ],
+  "example_queries": [
+    "copy number variant detection and phenotype association",
+    "CNV calling with cn.farms then association testing",
+    "CNV burden analysis across cohort",
+    "copy number expression eQTL via CNVRanger"
+  ],
+  "tags": ["CNV", "copy_number", "cn_farms", "cnvranger", "consensus_candidates"]
+}

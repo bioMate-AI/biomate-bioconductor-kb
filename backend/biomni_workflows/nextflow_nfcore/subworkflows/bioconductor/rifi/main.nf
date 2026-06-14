@@ -58,6 +58,8 @@ process BIOC_RIFI_RIFI_WRAPPER_WORKFLOW {
     
     library(rifi)
     
+    
+    library(SummarizedExperiment)
     # 1. Load input data and GFF3 annotation file from the working directory
     if (file.exists("example_input_e_coli")) {
       example_input_e_coli <- tryCatch({

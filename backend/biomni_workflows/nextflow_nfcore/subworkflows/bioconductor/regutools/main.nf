@@ -35,6 +35,15 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("regutools", "GenomicRanges", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     library(BiocGenerics)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression counts and sample metadata
@@ -90,7 +99,7 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     selected_genes <- head(de_genes, top_n)
     
     # ==========================================
-    # Stage 2: Connect to RegulonDB Database
+    # --- Connect to RegulonDB Database ---
     # ==========================================
     
     # Establish connection to the database
@@ -105,7 +114,7 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     )
     
     # ==========================================
-    # Stage 3: Query Gene Regulators & Networks
+    # --- Query Gene Regulators & Networks ---
     # ==========================================
     
     # Retrieve transcription factors regulating the selected genes
@@ -137,7 +146,7 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     })
     
     # ==========================================
-    # Stage 4: Retrieve Genomic Coordinates
+    # --- Retrieve Genomic Coordinates ---
     # ==========================================
     
     # Query genomic coordinates for the selected genes
@@ -157,7 +166,7 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     })
     
     # ==========================================
-    # Stage 5: Extract Transcription Factor Binding Sites
+    # --- Extract Transcription Factor Binding Sites ---
     # ==========================================
     
     # Identify the most prominent regulator from our dataset
@@ -179,7 +188,7 @@ process BIOC_REGUTOOLS_REGUTOOLS_BACTERIAL_REGULATION {
     })
     
     # ==========================================
-    # Stage 6: Write Outputs to Disk
+    # --- Write Outputs to Disk ---
     # ==========================================
     
     write.csv(as.data.frame(network_subset), "regulatory_network.csv", row.names = FALSE)

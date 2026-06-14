@@ -34,7 +34,7 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ExperimentHub", "ggalluvial", "ggplot2", "limma", "SpatialExperiment", "standR")
+    .bm_deps <- c("ExperimentHub", "ggalluvial", "ggplot2", "limma", "SpatialExperiment", "standR", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,15 +64,16 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
     
     # Load required libraries
     library(standR)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(limma)
     library(ggalluvial)
     library(ggplot2)
     
-    # 1. Import raw GeoMx data
+    # --- Import raw GeoMx data ---
     spe <- readGeoMx(countFile, sampleAnnoFile, featureAnnoFile = featureAnnoFile, rmNegProbe = TRUE)
     
-    # 2. Preprocess metadata to avoid collinearity
+    # --- Preprocess metadata to avoid collinearity ---
     colData(spe)\$regions <- paste0(colData(spe)\$region,"_",colData(spe)\$SegmentLabel) |> 
       (\(.) gsub("_Geometric Segment","",.))() |>
       paste0("_",colData(spe)\$pathology) |>
@@ -85,42 +86,42 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
     p_sample_info <- plotSampleInfo(spe, column2plot = c("SlideName","disease_status","regions"))
     print(p_sample_info)
     
-    # 3. Perform gene-level QC
+    # --- Perform gene-level QC ---
     spe <- addPerROIQC(spe, rm_genes = TRUE)
     
     p_gene_qc <- plotGeneQC(spe, ordannots = "regions", col = regions, point_size = 2)
     print(p_gene_qc)
     
-    # 4. Perform ROI-level QC and filter low-quality ROIs
+    # --- Perform ROI-level QC and filter low-quality ROIs ---
     p_roi_qc <- plotROIQC(spe, y_threshold = 50000, col = SlideName)
     print(p_roi_qc)
     
     spe <- spe[,rownames(colData(spe))[colData(spe)\$lib_size > 50000]]
     
-    # 5. Inspect variations using RLE and PCA (Pre-normalization)
+    # --- Inspect variations using RLE and PCA (Pre-normalization) ---
     p_rle_pre <- plotRLExpr(spe, ordannots = "SlideName", assay = 2, col = SlideName)
     print(p_rle_pre)
     
     p_pca_pre <- drawPCA(spe, assay = 2, col = SlideName, shape = regions)
     print(p_pca_pre)
     
-    # 6. Normalize data using TMM
+    # --- Normalize data using TMM ---
     colData(spe)\$biology <- paste0(colData(spe)\$disease_status, "_", colData(spe)\$regions)
     
     spe_tmm <- geomxNorm(spe, method = "TMM")
     
-    # 7. Identify Negative Control Genes (NCGs)
+    # --- Identify Negative Control Genes (NCGs) ---
     spe <- findNCGs(spe, batch_name = "SlideName", top_n = 500)
     
     # Print NCG metadata names to console
     message("Metadata fields after NCG identification:")
     print(names(metadata(spe)))
     
-    # 8. Perform RUV4 batch correction
+    # --- Perform RUV4 batch correction ---
     spe_ruv <- geomxBatchCorrection(spe, factors = "biology", 
                                     NCGs = metadata(spe)\$NCGs, k = 5)
     
-    # 9. Visualize corrected data
+    # --- Visualize corrected data ---
     p_pca_post <- plotPairPCA(spe_ruv, assay = 2, color = disease_status, shape = regions, title = "RUV4")
     print(p_pca_post)
     

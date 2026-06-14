@@ -86,17 +86,17 @@ process BIOC_SCRUFF_READ_MAPPING_VISUALIZATION {
         message(sprintf("BAM is empty. Using default coordinates: chr=%s, start=%d, end=%d", chr, start, end))
     }
     
-    # 1. Visualize reads using rview
+    # --- Visualize reads using rview ---
     message("Visualizing read alignment locations...")
     g1 <- rview(bamExample, chr = chr, start = start, end = end) + 
         ggplot2::scale_x_continuous(limits = c(start, end))
     
-    # 2. Visualize gene models using gview
+    # --- Visualize gene models using gview ---
     message("Visualizing gene models...")
     g2 <- gview(gtf, chr = chr, start = start, end = end) + 
         ggplot2::scale_x_continuous(limits = c(start, end))
     
-    # 3. Combine plots using patchwork
+    # --- Combine plots using patchwork ---
     message("Combining plots...")
     g <- (g1 + ggplot2::theme(axis.title.x = ggplot2::element_blank(), 
                              axis.text.x = ggplot2::element_blank(), 

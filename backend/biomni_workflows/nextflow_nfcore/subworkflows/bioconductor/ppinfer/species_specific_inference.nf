@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the pre-calculated species-specific kernel matrix. 2. Clean row names by removing prefixes. 3. Infer related proteins using p
+//  * 1. [Input & Preparation] Load kernel matrix
+//  * 2. [Input & Preparation] Clean row names
+//  * 3. [Input & Preparation] Infer related proteins
+//  * 4. [Input & Preparation] Perform functional enrichment (GO)
 
 nextflow.enable.dsl = 2
 
@@ -75,13 +78,13 @@ process BIOC_PPINFER_SPECIES_SPECIFIC_INFERENCE {
       message("Detected 'K9606.rds'. Running Human species-specific inference...")
       library(org.Hs.eg.db)
       
-      # 1. Load kernel matrix
+      # --- Load kernel matrix ---
       K.9606 <- readRDS("K9606.rds")
       
-      # 2. Clean row names
+      # --- Clean row names ---
       rownames(K.9606) <- sub(".*\\\\.", "", rownames(K.9606))
       
-      # 3. Infer related proteins
+      # --- Infer related proteins ---
       list.proteins <- target_proteins
       apoptosis.infer <- ppi.infer.human(list.proteins, K.9606, output="entrezgene", 100)
       gene.id <- apoptosis.infer\$top
@@ -89,7 +92,7 @@ process BIOC_PPINFER_SPECIES_SPECIFIC_INFERENCE {
       # Save inference results
       write.csv(as.data.frame(apoptosis.infer), "inferred_proteins_human.csv", row.names = FALSE)
       
-      # 4. Perform functional enrichment (GO)
+      # --- Perform functional enrichment (GO) ---
       params <- new("GOHyperGParams", geneIds = gene.id, annotation = "org.Hs.eg.db",
                     ontology = "BP", pvalueCutoff = 0.001, conditional = FALSE,
                     testDirection = "over")

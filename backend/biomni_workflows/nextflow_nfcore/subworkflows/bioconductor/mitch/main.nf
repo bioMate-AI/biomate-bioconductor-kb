@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import gene sets from a GMT file using gmt_import. 2. Import and merge multi-contrast profiling data using mitch_import. 3. Calcul
+//  * 1. [Visualization & Output] Import gene sets from a GMT file using gmt_import
+//  * 2. [Visualization & Output] Import and merge multi-contrast profiling data using
+//  * 3. [Visualization & Output] Calculate multivariate enrichment using mitch_calc
+//  * 4. [Visualization & Output] Generate an interactive HTML report using mitch_report
+//  * 5. [Visualization & Output] Generate high-resolution PDF plots using mitch_plots
+//  * 6. [Visualization & Output] Visualize gene set similarity and driver genes using
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_MITCH_STANDARD_MULTI_CONTRAST_ENRICHMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mitch")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +64,7 @@ process BIOC_MITCH_STANDARD_MULTI_CONTRAST_ENRICHMENT {
     # Load required library
     library("mitch")
     
-    # 1. Import gene sets from a GMT file using gmt_import
+    # --- Import gene sets from a GMT file using gmt_import ---
     if (!file.exists("ReactomePathways.gmt")) {
       stop("Required input file 'ReactomePathways.gmt' is missing in the working directory.")
     }
@@ -78,11 +92,11 @@ process BIOC_MITCH_STANDARD_MULTI_CONTRAST_ENRICHMENT {
     rna <- read_input_df("rna")
     k9a <- read_input_df("k9a")
     
-    # 2. Import and merge multi-contrast profiling data using mitch_import
+    # --- Import and merge multi-contrast profiling data using ---
     x <- list("rna"=rna,"k9a"=k9a)
     y <- mitch_import(x,"edgeR")
     
-    # 3. Calculate multivariate enrichment using mitch_calc
+    # --- Calculate multivariate enrichment using mitch_calc ---
     # We use the imported 'genesets' object instead of the forbidden 'genesetsExample'
     res <- mitch_calc(y,genesets,priority="effect",cores=2)
     
@@ -90,13 +104,13 @@ process BIOC_MITCH_STANDARD_MULTI_CONTRAST_ENRICHMENT {
     write.csv(res\$enrichment_result, "enrichment_results.csv", row.names = FALSE)
     saveRDS(res, "mitch_results.rds")
     
-    # 4. Generate an interactive HTML report using mitch_report
+    # --- Generate an interactive HTML report using mitch_report ---
     mitch_report(res,"myreport.html",overwrite=TRUE)
     
-    # 5. Generate high-resolution PDF plots using mitch_plots
+    # --- Generate high-resolution PDF plots using mitch_plots ---
     mitch_plots(res,outfile="mycharts.pdf")
     
-    # 6. Visualize gene set similarity and driver genes using networkplot and network_genes
+    # --- Visualize gene set similarity and driver genes using ---
     # Capture the network plot to a PDF file
     pdf("network_plots.pdf", width = 14, height = 6)
     tryCatch({

@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define recurrent parameters (genotypes, genomic ranges) using TVTBparam and Genotypes. 2. Import phenotypes into a DataFrame and s
+//  * 1. [Visualization & Output] Define recurrent parameters (genotypes, genomic ranges)
+//  * 2. [Visualization & Output] Import phenotypes into a DataFrame and set up VCF import
+//  * 3. [Visualization & Output] Import and expand the VCF file into an ExpandedVCF object
+//  * 4. [Visualization & Output] Calculate and append overall genotype counts and allele
+//  * 5. [Visualization & Output] Calculate and append phenotype-level genotype counts and
+//  * 6. [Visualization & Output] Define specialized VCF filter rules using VcfFixedRules,
+//  * 7. [Visualization & Output] Evaluate the filter rules on the VCF object and save
+//  * 8. [Visualization & Output] Visualize the allele frequencies across genomic ranges
 
 nextflow.enable.dsl = 2
 
@@ -64,7 +71,7 @@ process BIOC_TVTB_VCF_FILTERING_AND_FREQUENCY_ANALYSIS {
     library(S4Vectors)
     library(EnsDb.Hsapiens.v75)
     
-    # 1. Define recurrent parameters (genotypes, genomic ranges) using TVTBparam and Genotypes
+    # --- Define recurrent parameters (genotypes, genomic ranges) ---
     tparam <- TVTBparam(Genotypes(
         ref = "0|0",
         het = c("0|1", "1|0", "0|2", "2|0", "1|2", "2|1"),
@@ -78,7 +85,7 @@ process BIOC_TVTB_VCF_FILTERING_AND_FREQUENCY_ANALYSIS {
             )
         )
     
-    # 2. Import phenotypes into a DataFrame and set up VCF import parameters using ScanVcfParam
+    # --- Import phenotypes into a DataFrame and set up VCF import ---
     phenoFile <- "integrated_samples.txt"
     phenotypes <- S4Vectors::DataFrame(
         read.table(file = phenoFile, header = TRUE, row.names = 1))
@@ -89,15 +96,15 @@ process BIOC_TVTB_VCF_FILTERING_AND_FREQUENCY_ANALYSIS {
     VariantAnnotation::vcfInfo(svp(tparam)) <- vep(tparam)
     VariantAnnotation::vcfGeno(svp(tparam)) <- "GT"
     
-    # 3. Import and expand the VCF file into an ExpandedVCF object using readVcf and expand
+    # --- Import and expand the VCF file into an ExpandedVCF object ---
     vcf <- VariantAnnotation::readVcf(
         tabixVcf, param = tparam, colData = phenotypes)
     vcf <- VariantAnnotation::expand(x = vcf, row.names = TRUE)
     
-    # 4. Calculate and append overall genotype counts and allele frequencies to the VCF INFO slot
+    # --- Calculate and append overall genotype counts and allele ---
     vcf <- addOverallFrequencies(vcf = vcf)
     
-    # 5. Calculate and append phenotype-level genotype counts and allele frequencies
+    # --- Calculate and append phenotype-level genotype counts and ---
     vcf <- addPhenoLevelFrequencies(
         vcf = vcf, pheno = "super_pop", level = "AFR")
     vcf <- addFrequencies(
@@ -106,7 +113,7 @@ process BIOC_TVTB_VCF_FILTERING_AND_FREQUENCY_ANALYSIS {
     )
     vcf <- addFrequencies(vcf, "pop")
     
-    # 6. Define specialized VCF filter rules using VcfFixedRules, VcfInfoRules, and VcfVepRules
+    # --- Define specialized VCF filter rules using VcfFixedRules, ---
     fixedR <- VcfFixedRules(list(
         pass = expression(FILTER == "PASS"),
         qual = expression(QUAL > 20)
@@ -125,7 +132,7 @@ process BIOC_TVTB_VCF_FILTERING_AND_FREQUENCY_ANALYSIS {
     vcfRules <- VcfFilterRules(fixedR, infoR, vepR)
     active(vcfRules)["CADD_gt15"] <- FALSE
     
-    # 7. Evaluate the filter rules on the VCF object and save summaries
+    # --- Evaluate the filter rules on the VCF object and save ---
     sum_infoR <- summary(eval(expr = infoR, envir = vcf))
     sum_vcfRules <- summary(eval(expr = vcfRules, envir = vcf))
     sum_sep_vcfRules <- summary(evalSeparately(expr = vcfRules, envir = vcf))
@@ -140,7 +147,7 @@ process BIOC_TVTB_VCF_FILTERING_AND_FREQUENCY_ANALYSIS {
     print(sum_sep_vcfRules)
     sink()
     
-    # 8. Visualize the allele frequencies across genomic ranges and phenotypes and save plots
+    # --- Visualize the allele frequencies across genomic ranges ---
     # Save plotInfo visualization
     pdf("plotInfo_AAF.pdf", width = 10, height = 8)
     p1 <- plotInfo(

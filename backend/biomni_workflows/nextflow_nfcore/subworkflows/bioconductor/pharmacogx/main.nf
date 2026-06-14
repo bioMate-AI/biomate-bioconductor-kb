@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Find common genes and intersect PharmacoSets on cell lines and drugs using intersectPSet. 2. Summarize sensitivity profiles (AUC, 
+//  * 1. [Visualization & Output] Read the declared USER INPUT files from the working
+//  * 2. [Visualization & Output] Execute the documented workflow EXACTLY as specified
+//  * 3. [Visualization & Output] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -58,9 +60,10 @@ process BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY {
     
     # Load required libraries
     library(PharmacoGx)
+    library(SummarizedExperiment)
     library(stats)
     
-    # 1. Read the declared USER INPUT files from the working directory
+    # --- Read the declared USER INPUT files from the working ---
     if (file.exists("GDSCsmall")) {
       GDSCsmall <- readRDS("GDSCsmall")
     } else if (file.exists("GDSCsmall.rds")) {
@@ -77,7 +80,7 @@ process BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY {
       stop("Required input file 'CCLEsmall' or 'CCLEsmall.rds' not found in the working directory.")
     }
     
-    # 2. Execute the documented workflow EXACTLY as specified
+    # --- Execute the documented workflow EXACTLY as specified ---
     commonGenes <- intersect(fNames(GDSCsmall, "rna"), fNames(CCLEsmall,"rna"))
     common <- intersectPSet(list('CCLE'=CCLEsmall, 'GDSC'=GDSCsmall), intersectOn=c("cell.lines", "drugs"), strictIntersect=TRUE)
     GDSC.auc <- summarizeSensitivityProfiles( common\$GDSC, sensitivity.measure='auc_published', summary.stat="median", verbose=FALSE)
@@ -96,7 +99,7 @@ process BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY {
     yylim <- c(-1, 1)
     ss <- sprintf("GE vs. AUC = %.1E\nGE vs. IC50 = %.1E", w1\$p.value, w2\$p.value)
     
-    # 3. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the boxplot as a PDF
     pdf("concordance_boxplot.pdf", width = 7, height = 7)
     boxplot(list("GE"=ge.cor, "AUC"=auc.cor, "IC50"=ic50.cor), main="Concordance between cell lines", ylab=expression(R[s]), sub=ss, ylim=yylim, col="lightgrey", pch=20, border="black")

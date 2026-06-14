@@ -57,37 +57,37 @@ process BIOC_NUCLER_NGS_NUCLEOSOME_CALLING {
     library(GenomicRanges)
     library(IRanges)
     
-    # 1. Import BAM file
+    # --- Import BAM file ---
     sample.file <- "cellCycleM_chrII_5000-25000.bam"
     reads <- readBAM(sample.file, type="paired")
     
-    # 2. Process and trim reads
+    # --- Process and trim reads ---
     # We use the imported 'reads' object instead of the bundled 'nucleosome_htseq' dataset
     reads_pair <- processReads(reads, type="paired", fragmentLen=200)
     reads_trim <- processReads(reads, type="paired", fragmentLen=200, trim=40)
     
-    # 3. Calculate normalized coverage
+    # --- Calculate normalized coverage ---
     cover_pair <- coverage.rpm(reads_pair)
     cover_trim <- coverage.rpm(reads_trim)
     
-    # 4. Smooth coverage signal
+    # --- Smooth coverage signal ---
     htseq_raw <- as.vector(cover_trim[[1]])
     htseq_fft <- filterFFT(htseq_raw, pcKeepComp=0.02)
     
     # Set up PDF for plots
     pdf("nucleosome_plots.pdf", width=10, height=6)
     
-    # 5. Detect and score peaks (without score)
+    # --- Detect and score peaks (without score) ---
     peaks <- peakDetection(htseq_fft, threshold="25%", score=FALSE)
     write.csv(data.frame(peak_position=peaks), "peaks_no_score.csv", row.names=FALSE)
     plotPeaks(peaks, htseq_fft, threshold="25%", ylab="coverage")
     
-    # 6. Detect and score peaks (with score)
+    # --- Detect and score peaks (with score) ---
     peaks <- peakDetection(htseq_fft, threshold="25%", score=TRUE)
     write.csv(peaks, "peaks_with_score.csv", row.names=FALSE)
     plotPeaks(peaks, htseq_fft, threshold="25%")
     
-    # 7. Detect and score peaks (with score and width)
+    # --- Detect and score peaks (with score and width) ---
     peaks <- peakDetection(htseq_fft, threshold="25%", score=TRUE, width=140)
     saveRDS(peaks, "peaks_width140.rds")
     write.csv(as.data.frame(peaks), "peaks_width140.csv", row.names=FALSE)

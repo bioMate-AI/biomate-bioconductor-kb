@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load multiple methQTL result objects. 2. Generate Venn and UpSet plots to compare overlapping QTLs. 3. Identify dataset-specific Q
+//  * 1. [Visualization & Output] Load multiple methQTL result objects
+//  * 2. [Visualization & Output] Generate Venn and UpSet plots to compare overlapping QTLs
+//  * 3. [Visualization & Output] Identify dataset-specific QTLs using getSpecificQTL
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +61,7 @@ process BIOC_MAGAR_METHQTL_COMPARISON {
     # Load required libraries
     library(MAGAR)
     
-    # 1. Load multiple methQTL result objects
+    # --- Load multiple methQTL result objects ---
     # Load the first methQTL input dataset from the working directory
     imp.data <- loadMethQTLInput("reduced_methQTL")
     
@@ -75,7 +77,7 @@ process BIOC_MAGAR_METHQTL_COMPARISON {
     # Combine the results into a list
     meth.qtl.list <- list(First = meth.qtl.res, Second = meth.qtl.res.2)
     
-    # 2. Generate Venn and UpSet plots to compare overlapping QTLs
+    # --- Generate Venn and UpSet plots to compare overlapping QTLs ---
     # Generate Venn plot (saves files directly to the output folder)
     qtlVennPlot(meth.qtl.list, out.folder = getwd())
     
@@ -84,7 +86,7 @@ process BIOC_MAGAR_METHQTL_COMPARISON {
     print(qtlUpsetPlot(meth.qtl.list, type = "cor.block"))
     dev.off()
     
-    # 3. Identify dataset-specific QTLs using getSpecificQTL
+    # --- Identify dataset-specific QTLs using getSpecificQTL ---
     spec.first <- getSpecificQTL(meth.qtl.list\$First, meth.qtl.list[-1])
     
     # Save meaningful results to output files

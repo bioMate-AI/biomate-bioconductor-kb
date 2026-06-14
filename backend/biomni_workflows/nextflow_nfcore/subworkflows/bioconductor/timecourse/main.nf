@@ -35,6 +35,15 @@ process BIOC_TIMECOURSE_TIMECOURSE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("timecourse")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +56,7 @@ process BIOC_TIMECOURSE_TIMECOURSE_ANALYSIS {
     # Load required libraries
     library(timecourse)
     
-    # Stage 1: Read and align input data
+    # --- Read and align input data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -67,7 +76,7 @@ process BIOC_TIMECOURSE_TIMECOURSE_ANALYSIS {
     exprs_mat <- exprs_mat[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), ]
     
-    # Stage 2: Robustly parse and reconstruct experimental design
+    # --- Robustly parse and reconstruct experimental design ---
     # Ensure 'condition' column exists
     if (!"condition" %in% colnames(coldata)) {
       coldata\$condition <- "single_cond"
@@ -108,7 +117,7 @@ process BIOC_TIMECOURSE_TIMECOURSE_ANALYSIS {
     
     message(paste("Detected", n_conds, "condition(s) and", times_val, "time point(s)."))
     
-    # Stage 3: Run the appropriate timecourse analysis
+    # --- Run the appropriate timecourse analysis ---
     out_stats <- NULL
     analysis_type <- ""
     
@@ -178,7 +187,7 @@ process BIOC_TIMECOURSE_TIMECOURSE_ANALYSIS {
       stop(paste("Error during timecourse analysis execution:", e\$message))
     })
     
-    # Stage 4: Extract and format results
+    # --- Extract and format results ---
     results_df <- data.frame(
       gene_id = rownames(exprs_mat),
       stringsAsFactors = FALSE
@@ -219,7 +228,7 @@ process BIOC_TIMECOURSE_TIMECOURSE_ANALYSIS {
     write.csv(results_df, "temporal_stats.csv", row.names = FALSE)
     message("Saved temporal statistics to 'temporal_stats.csv'.")
     
-    # Stage 5: Generate temporal profile plots for top genes
+    # --- Generate temporal profile plots for top genes ---
     num_plots <- min(5, nrow(results_df))
     pdf("profile_plots.pdf", width = 8, height = 6)
     

@@ -124,6 +124,28 @@ export class ContextCompressor {
       tokensToSummarize: this.estimateTokens(oldMessages)
     });
 
+    // Pre-extract every dataset/attachment block from oldMessages. The LLM
+    // summarizer paraphrases content and routinely drops the [Galaxy dataset:
+    // … (id: <uuid>)] blocks → "user attached clinical metadata file" without
+    // the UUID. Those UUIDs are load-bearing for run_code's input_datasets and
+    // for workflow parameter binding. Re-attach them verbatim above the
+    // generated summary so the chat LLM can always recover the handle.
+    // See docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q1).
+    const DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:[^\]]+\]/gi;
+    const preservedBlocks: string[] = [];
+    const seen = new Set<string>();
+    for (const m of oldMessages) {
+      const matches = (m.content || '').match(DATASET_BLOCK_RE);
+      if (!matches) continue;
+      for (const blk of matches) {
+        if (!seen.has(blk)) { seen.add(blk); preservedBlocks.push(blk); }
+      }
+    }
+    const preservedHeader = preservedBlocks.length
+      ? `**[Preserved dataset attachments across compression — verbatim]**\n${preservedBlocks.map(b => `- ${b}`).join('\n')}\n\n`
+      : '';
+    console.log('[ContextCompressor] Dataset blocks preserved:', preservedBlocks.length);
+
     // Generate summary using Claude
     const summary = await this.generateSummary(oldMessages, maxSummaryTokens);
 
@@ -131,7 +153,7 @@ export class ContextCompressor {
     const summaryMessage: Message = {
       id: `summary-${Date.now()}`,
       role: 'assistant',
-      content: `**[Context Summary - ${oldMessages.length} messages compressed]**\n\n${summary}\n\n*[End of summary. Recent conversation continues below.]*`,
+      content: `**[Context Summary - ${oldMessages.length} messages compressed]**\n\n${preservedHeader}${summary}\n\n*[End of summary. Recent conversation continues below.]*`,
       timestamp: new Date(),
       // @ts-ignore - Add custom property to mark as summary
       isSummary: true,

@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run mapToSymbol specifying the appropriate inputType, idType, and organism to perform the ID conversion
+//  * 1. [Core Analysis] Transform ids from a gene list to gene symbols
+//  * 2. [Core Analysis] Transform ids in the input network to gene symbols
+//  * 3. [Core Analysis] Transform ids in the input matrix to gene symbols
+//  * 4. [Core Analysis] Transform ids in the sbt file to gene symbols
+//  * 5. [Core Analysis] Transform ids in the sct file to gene symbols
 
 nextflow.enable.dsl = 2
 
@@ -57,29 +61,29 @@ process BIOC_NETSAM_ID_MAPPING_TO_SYMBOLS {
     
     library("NetSAM")
     
-    # 1. Transform ids from a gene list to gene symbols
+    # --- Transform ids from a gene list to gene symbols ---
     print("transform ids from a gene list to gene symbols...")
     geneListDir <- "exampleGeneList.txt"
     geneList <- read.table(geneListDir, header=FALSE, sep="\t", stringsAsFactors=FALSE)
     geneList <- as.vector(as.matrix(geneList))
     geneList_symbol <- mapToSymbol(inputData=geneList, organism="hsapiens", inputType="genelist", idType="affy_hg_u133_plus_2")
     
-    # 2. Transform ids in the input network to gene symbols
+    # --- Transform ids in the input network to gene symbols ---
     print("transform ids in the input network to gene symbols...")
     inputNetwork <- "exampleNetwork_nonsymbol.net"
     network_symbol <- mapToSymbol(inputData=inputNetwork, organism="hsapiens", inputType="network", idType="entrezgene", edgeType="unweighted")
     
-    # 3. Transform ids in the input matrix to gene symbols
+    # --- Transform ids in the input matrix to gene symbols ---
     print("transform ids in the input matrix to gene symbols...")
     inputMatDir <- "exampleExpressionData_nonsymbol.cct"
     matrix_symbol <- mapToSymbol(inputData=inputMatDir, organism="hsapiens", inputType="matrix", idType="affy_hg_u133_plus_2", collapse_mode="maxSD")
     
-    # 4. Transform ids in the sbt file to gene symbols
+    # --- Transform ids in the sbt file to gene symbols ---
     print("transform ids in the sbt file to gene symbols...")
     inputSBTDir <- "exampleSBT.sbt"
     sbt_symbol <- mapToSymbol(inputData=inputSBTDir, organism="hsapiens", inputType="sbt", idType="affy_hg_u133_plus_2")
     
-    # 5. Transform ids in the sct file to gene symbols
+    # --- Transform ids in the sct file to gene symbols ---
     print("transform ids in the sct file to gene symbols...")
     inputSCTDir <- "exampleSCT.sct"
     sct_symbol <- mapToSymbol(inputData=inputSCTDir, organism="hsapiens", inputType="sct", idType="affy_hg_u133_plus_2", collapse_mode="min")

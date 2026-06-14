@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define experimental groups and the hypothesis patterns matrix. 2. Fit the GaGa model using fitGG. 3. Estimate hyper-parameters and
+//  * 1. [Input & Preparation] Read User Input Files and Preprocess
+//  * 2. [Input & Preparation] Execute Documented Workflow
+//  * 3. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gaga", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +63,7 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     library(Biobase)
     
     # -----------------------------------------------------------------
-    # 1. Read User Input Files and Preprocess
+    # --- Read User Input Files and Preprocess ---
     # -----------------------------------------------------------------
     
     # Read expression matrix
@@ -95,7 +106,7 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     xsim <- ExpressionSet(assayData = x, phenoData = AnnotatedDataFrame(pheno_data))
     
     # -----------------------------------------------------------------
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # -----------------------------------------------------------------
     
     # Define experimental groups and the hypothesis patterns matrix
@@ -132,7 +143,7 @@ process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     fc <- mpos[,1]-mpos[,2]
     
     # -----------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------
     
     # Save the fitted model object

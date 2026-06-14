@@ -58,24 +58,24 @@ process BIOC_REGIONER_LOCAL_ZSCORE_ANALYSIS {
     # Set seed for reproducibility
     set.seed(12345)
     
-    # 1. Load region sets using toGRanges
+    # --- Load region sets using toGRanges ---
     HepG2_Rad21 <- toGRanges(gzfile("Rad21.gz"), header=FALSE)
     HepG2_Ctcf <- toGRanges(gzfile("Ctcf.gz"), header=FALSE)
     promoters <- toGRanges("http://gattaca.imppc.org/regioner/data/UCSC.promoters.hg19.bed")
     
-    # 2. Filter chromosomes using filterChromosomes
+    # --- Filter chromosomes using filterChromosomes ---
     promoters <- filterChromosomes(promoters, organism="hg19")
     
-    # 3. Subset regions if necessary to speed up analysis
+    # --- Subset regions if necessary to speed up analysis ---
     HepG2_Rad21_5K <- sample(HepG2_Rad21, 5000)
     
-    # 4. Run the permutation test using permTest
+    # --- Run the permutation test using permTest ---
     pt_Rad21_5k_vs_Ctcf <- permTest(A=HepG2_Rad21_5K, B=HepG2_Ctcf, ntimes=1000, randomize.function=circularRandomizeRegions, evaluate.function=numOverlaps, count.once=TRUE, genome="hg19", mc.set.seed=FALSE, mc.cores=4)
     
-    # 5. Calculate local Z-scores by shifting regions using localZScore
+    # --- Calculate local Z-scores by shifting regions using ---
     lz_Rad21_vs_Ctcf_1 <- localZScore(A=HepG2_Rad21_5K, B=HepG2_Ctcf, pt=pt_Rad21_5k_vs_Ctcf, window=1000, step=50, count.once=TRUE)
     
-    # 6. Plot the local Z-score profile using plot and save to PDF
+    # --- Plot the local Z-score profile using plot and save to PDF ---
     pdf("local_zscore_plot.pdf", width=8, height=6)
     plot(lz_Rad21_vs_Ctcf_1, main="Rad21_5k vs CTCF (1Kbp)")
     dev.off()

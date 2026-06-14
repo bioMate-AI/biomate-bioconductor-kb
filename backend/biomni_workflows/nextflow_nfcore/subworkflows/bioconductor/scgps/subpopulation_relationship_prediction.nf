@@ -41,7 +41,7 @@ process BIOC_SCGPS_SUBPOPULATION_RELATIONSHIP_PREDICTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("dplyr", "networkD3", "scGPS")
+    .bm_deps <- c("dplyr", "networkD3", "scGPS", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_SCGPS_SUBPOPULATION_RELATIONSHIP_PREDICTION {
     
     # Load required libraries
     library(scGPS)
+    library(SummarizedExperiment)
     library(networkD3)
     library(dplyr)
     

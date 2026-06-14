@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Extract multiple contrasts using degComps. 2. Retrieve results tables using deg. 3. Identify significant genes using significants.
+//  * 1. [Visualization & Output] Load User Inputs
+//  * 2. [Visualization & Output] Extract multiple contrasts using degComps
+//  * 3. [Visualization & Output] Retrieve results tables using deg
+//  * 4. [Visualization & Output] Identify significant genes using significants
+//  * 5. [Visualization & Output] Plotting and saving visualizations
+//  * 6. [Visualization & Output] Generate a full report using degResults
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DEGreport", "DESeq2", "ggplot2", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,10 +63,11 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
         
     # Load required libraries
     library(DEGreport)
+    library(SummarizedExperiment)
     library(DESeq2)
     library(ggplot2)
     
-    # 1. Load User Inputs
+    # --- Load User Inputs ---
     if (!file.exists("dds_object.rds") || !file.exists("res_object.rds")) {
       stop("Error: 'dds_object.rds' and/or 'res_object.rds' must exist in the working directory.")
     }
@@ -68,7 +83,7 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     }
     contrast_to_use <- c(group_var, group_levels[1], group_levels[2])
     
-    # 2. Extract multiple contrasts using degComps
+    # --- Extract multiple contrasts using degComps ---
     message("Extracting contrasts...")
     degs <- degComps(dds, combs = group_var,
                      contrast = list(contrast_to_use))
@@ -77,7 +92,7 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     # Print names of contrasts
     print(names(degs))
     
-    # 3. Retrieve results tables using deg
+    # --- Retrieve results tables using deg ---
     message("Retrieving results tables...")
     deg_default <- deg(degs[[1]])
     deg_raw_tibble <- deg(degs[[1]], "raw", "tibble")
@@ -86,7 +101,7 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     write.csv(as.data.frame(deg_default), "deg_default_results.csv", row.names = TRUE)
     write.csv(as.data.frame(deg_raw_tibble), "deg_raw_tibble_results.csv", row.names = FALSE)
     
-    # 4. Identify significant genes using significants
+    # --- Identify significant genes using significants ---
     message("Identifying significant genes...")
     sig_single <- significants(degs[[1]], fc = 0, fdr = 0.05)
     sig_list <- significants(degs, fc = 0, fdr = 0.05)
@@ -97,7 +112,7 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     write.csv(data.frame(gene = sig_list), "significant_genes_list.csv", row.names = FALSE)
     write.csv(as.data.frame(sig_list_full), "significant_genes_full.csv", row.names = FALSE)
     
-    # 5. Plotting and saving visualizations
+    # --- Plotting and saving visualizations ---
     message("Generating plots...")
     pdf("deg_report_plots.pdf", width = 10, height = 8)
     
@@ -127,7 +142,7 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     
     dev.off()
     
-    # 6. Generate a full report using degResults
+    # --- Generate a full report using degResults ---
     message("Generating full report...")
     resreport <- degResults(dds = dds, name = "test", org = NULL,
                             do_go = FALSE, group = group_var, xs = group_var,

@@ -60,7 +60,7 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
     # Register serial processing to ensure reproducibility and avoid parallel overhead
     register(SerialParam())
     
-    # 1. Load data from the working directory
+    # --- Load data from the working directory ---
     mzML_files <- list.files(
       path = ".",
       pattern = "\\\\.(mzML|mzXML|cdf)\$",
@@ -82,7 +82,7 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
       mode = "onDisk"
     )
     
-    # 2. Detect peaks in the m/z dimension
+    # --- Detect peaks in the m/z dimension ---
     msw <- MSWParam(
       scales = c(1, 4, 9),
       nearbyPeak = TRUE,
@@ -92,7 +92,7 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
     )
     ham_prep <- findChromPeaks(ham_raw, param = msw)
     
-    # 3. Calibrate peak m/z values
+    # --- Calibrate peak m/z values ---
     first_file <- filterFile(ham_prep, file = 1)
     peaks_first <- chromPeaks(first_file)
     num_peaks <- nrow(peaks_first)
@@ -130,11 +130,11 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
     )
     dev.off()
     
-    # 4. Perform correspondence (grouping peaks across samples)
+    # --- Perform correspondence (grouping peaks across samples) ---
     mzc_prm <- MzClustParam(sampleGroups = ham_prep\$sample_group)
     ham_prep <- groupChromPeaks(ham_prep, param = mzc_prm)
     
-    # 5. Extract feature definitions and values
+    # --- Extract feature definitions and values ---
     feat_defs <- featureDefinitions(ham_prep)
     feat_vals <- featureValues(ham_prep, value = "into")
     
@@ -142,7 +142,7 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
     write.csv(as.data.frame(feat_defs), "feature_definitions.csv", row.names = TRUE)
     write.csv(as.data.frame(feat_vals), "feature_values_raw.csv", row.names = TRUE)
     
-    # 6. Fill missing peaks
+    # --- Fill missing peaks ---
     ham_prep <- fillChromPeaks(ham_prep, param = FillChromPeaksParam())
     feat_vals_filled <- featureValues(ham_prep, value = "into")
     

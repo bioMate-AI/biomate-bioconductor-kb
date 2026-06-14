@@ -55,14 +55,14 @@ process BIOC_OPENPRIMER_ANALYZE_PRIMERS {
     # Load required library
     library(openPrimeR)
     
-    # Stage 1: Load templates and assign binding regions
+    # --- Load templates and assign binding regions ---
     template.df <- read_templates("templates.fasta")
     template.df <- assign_binding_regions(template.df, fw = c(1, 30), rev = c(1, 30))
     
-    # Stage 2: Load existing primers using read_primers()
+    # --- Load existing primers using read_primers() ---
     primer.df <- read_primers("primers.fasta", fw.id = "_fw")
     
-    # Stage 3: Load settings and evaluate constraints using check_constraints()
+    # --- Load settings and evaluate constraints using ---
     settings <- read_settings("settings.xml")
     conOptions(settings)\$allowed_other_binding_ratio <- c("max" = 1.0)
     constraint.df <- check_constraints(primer.df, template.df, settings, active.constraints = names(constraints(settings)))
@@ -70,15 +70,15 @@ process BIOC_OPENPRIMER_ANALYZE_PRIMERS {
     # Save raw constraint evaluation results
     saveRDS(constraint.df, "constraint_results.rds")
     
-    # Stage 4: Update template coverage using update_template_cvg()
+    # --- Update template coverage using update_template_cvg() ---
     template.df <- update_template_cvg(template.df, constraint.df)
     
-    # Stage 5: Compute coverage statistics and ratios using get_cvg_ratio() and get_cvg_stats()
+    # --- Compute coverage statistics and ratios using ---
     cvg_ratio_val <- as.numeric(get_cvg_ratio(constraint.df, template.df))
     cvg.stats <- get_cvg_stats(constraint.df, template.df, for.viewing = TRUE)
     write.csv(cvg.stats, "coverage_stats.csv", row.names = FALSE)
     
-    # Stage 6: Plot coverage and binding regions using plot_template_cvg(), plot_primer_binding_regions(), and plot_primer()
+    # --- Plot coverage and binding regions using ---
     pdf("plots.pdf", width = 8, height = 8)
     plot_template_cvg(constraint.df, template.df)
     plot_primer_binding_regions(constraint.df, template.df)
@@ -87,7 +87,7 @@ process BIOC_OPENPRIMER_ANALYZE_PRIMERS {
     plot_primer_templates <- template.df[seq_len(min(10, nrow(template.df))), ]
     plot_primer(constraint.df[1,], plot_primer_templates)
     
-    # Stage 7: Compute optimal primer subsets using subset_primer_set() and plot them using plot_primer_subsets()
+    # --- Compute optimal primer subsets using subset_primer_set() ---
     primer.subsets <- subset_primer_set(constraint.df, template.df)
     plot_primer_subsets(primer.subsets, template.df)
     
@@ -101,16 +101,16 @@ process BIOC_OPENPRIMER_ANALYZE_PRIMERS {
     original.cvg <- as.character(get_cvg_ratio(constraint.df, template.df, as.char = TRUE))
     subset.cvg <- as.character(get_cvg_ratio(my.primer.subset, template.df, as.char = TRUE))
     
-    # Stage 8: Visualize constraint fulfillment using plot_constraint_fulfillment() and plot_constraint()
+    # --- Visualize constraint fulfillment using ---
     plot_constraint_fulfillment(constraint.df, settings)
     plot_constraint(constraint.df, settings, "gc_clamp")
     dev.off()
     
-    # Stage 9: Filter primers using filter_primers()
+    # --- Filter primers using filter_primers() ---
     filtered.df <- filter_primers(constraint.df, template.df, settings, active.constraints = c("gc_clamp", "gc_ratio"))
     write.csv(filtered.df, "filtered_primers.csv", row.names = FALSE)
     
-    # Stage 10: Generate a PDF report using create_report()
+    # --- Generate a PDF report using create_report() ---
     my.file <- "primer_analysis_report.pdf"
     tryCatch({
       create_report(constraint.df, template.df, my.file, settings, sample.name = "My analysis")

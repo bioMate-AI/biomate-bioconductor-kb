@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the crlmm genotyping algorithm directly on CEL files. 2. Extract genotype calls, confidence scores, and SNR. 3. Recode genotyp
+//  * 1. [Core Analysis] Read User Input CEL Files
+//  * 2. [Core Analysis] Run CRLMM Genotyping Algorithm
+//  * 3. [Core Analysis] Recode Genotype Calls & Convert to SnpMatrix
+//  * 4. [Core Analysis] Prepare Phenotype Data & Perform GWAS
+//  * 5. [Core Analysis] Generate Diagnostic Visualizations
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +66,7 @@ process BIOC_CRLMM_AFFY_SIMPLE_GENOTYPING_GWAS {
     library(snpStats)
     
     # ==========================================
-    # 1. Read User Input CEL Files
+    # --- Read User Input CEL Files ---
     # ==========================================
     # The pipeline reads raw Affymetrix .CEL files from the working directory.
     celFiles <- list.files(pattern = "\\\\.[Cc][Ee][Ll]\$", full.names = TRUE)
@@ -72,7 +76,7 @@ process BIOC_CRLMM_AFFY_SIMPLE_GENOTYPING_GWAS {
     }
     
     # ==========================================
-    # 2. Run CRLMM Genotyping Algorithm
+    # --- Run CRLMM Genotyping Algorithm ---
     # ==========================================
     # Run the crlmm genotyping algorithm directly on the user-provided CEL files.
     crlmmResult <- crlmm(celFiles, verbose=FALSE)
@@ -91,7 +95,7 @@ process BIOC_CRLMM_AFFY_SIMPLE_GENOTYPING_GWAS {
     print(crlmmResult[["SNR"]])
     
     # ==========================================
-    # 3. Recode Genotype Calls & Convert to SnpMatrix
+    # --- Recode Genotype Calls & Convert to SnpMatrix ---
     # ==========================================
     # Recode the crlmm genotype calls for compatibility with snpStats (0=AA, 1=AB, 2=BB)
     theCalls <- t(calls(crlmmResult))-1L
@@ -109,7 +113,7 @@ process BIOC_CRLMM_AFFY_SIMPLE_GENOTYPING_GWAS {
     saveRDS(crlmmSM, "crlmmSM.rds")
     
     # ==========================================
-    # 4. Prepare Phenotype Data & Perform GWAS
+    # --- Prepare Phenotype Data & Perform GWAS ---
     # ==========================================
     # Construct the subjdata data frame using actual sample names and metrics.
     # To avoid fabricating data, we use the real SNR values from crlmmResult as the 
@@ -134,7 +138,7 @@ process BIOC_CRLMM_AFFY_SIMPLE_GENOTYPING_GWAS {
     write.csv(gwas_results, "gwas_results.csv", row.names = TRUE)
     
     # ==========================================
-    # 5. Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     # ==========================================
     # Identify the top associated SNP for plotting
     ok <- which(p.value(gwas) < 1e-10)

@@ -59,7 +59,7 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     DBPATH <- "Endosymbionts_v05a.sqlite"
     GFF_PATH <- "GCF_023585825.1_ASM2358582v1_genomic.gff.gz"
     
-    # 1. Build synteny map using FindSynteny
+    # --- Build synteny map using FindSynteny ---
     message("Building synteny map...")
     Syn <- FindSynteny(dbFile = DBPATH)
     
@@ -78,7 +78,7 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     print(head(Syn[[1, 2]]))
     print(head(Syn[[2, 1]]))
     
-    # 2. Parse GFF annotations into a usable data frame using gffToDataFrame
+    # --- Parse GFF annotations into a usable data frame using ---
     message("Parsing GFF annotations...")
     GC <- gffToDataFrame(GFF = GFF_PATH,
                          Verbose = TRUE)
@@ -97,7 +97,7 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     
     print(head(GeneCalls[[1]]))
     
-    # 3. Find nucleotide overlaps between synteny maps and gene calls using NucleotideOverlap
+    # --- Find nucleotide overlaps between synteny maps and gene ---
     message("Finding nucleotide overlaps...")
     Links <- NucleotideOverlap(SyntenyObject = Syn,
                                GeneCalls = GeneCalls,
@@ -107,7 +107,7 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     print(Links)
     saveRDS(Links, "synteny_links.rds")
     
-    # 4. Summarize linked pairs using PairSummaries
+    # --- Summarize linked pairs using PairSummaries ---
     message("Summarizing linked pairs...")
     LinkedPairs1 <- PairSummaries(SyntenyLinks = Links,
                                   DBPATH = DBPATH,
@@ -117,14 +117,14 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     print(head(LinkedPairs1))
     write.csv(LinkedPairs1, "linked_pairs_summary.csv", row.names = FALSE)
     
-    # 5. Cluster predicted pairs using DisjointSet
+    # --- Cluster predicted pairs using DisjointSet ---
     message("Clustering predicted pairs...")
     SingleLinkageClusters <- DisjointSet(Pairs = LinkedPairs1,
                                          Verbose = TRUE)
     
     saveRDS(SingleLinkageClusters, "single_linkage_clusters.rds")
     
-    # 6. Extract clustered sequences using ExtractBy
+    # --- Extract clustered sequences using ExtractBy ---
     message("Extracting clustered sequences...")
     # Extract the first 10 clusters (or fewer if there are less than 10)
     num_clusters <- min(10, length(SingleLinkageClusters))

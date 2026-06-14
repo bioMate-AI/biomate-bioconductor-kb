@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read sample metadata and import quantification data using tximeta. 2. Scale inferential replicates using scaleInfReps. 3. Filter o
+//  * 1. [Input & Preparation] Read sample metadata
+//  * 2. [Input & Preparation] Import quantification data using tximeta
+//  * 3. [Input & Preparation] Scale inferential replicates
+//  * 4. [Input & Preparation] Filter out low-expression features
+//  * 5. [Input & Preparation] Run Swish differential expression testing
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_FISHPOND_BULK_DIFFERENTIAL_EXPRESSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tximeta", "fishpond")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +64,7 @@ process BIOC_FISHPOND_BULK_DIFFERENTIAL_EXPRESSION {
         library(tximeta)
         library(fishpond)
         
-        # 1. Read sample metadata
+        # --- Read sample metadata ---
         if (!file.exists("coldata.csv")) {
           stop("Error: coldata.csv not found in the working directory.")
         }
@@ -78,22 +91,22 @@ process BIOC_FISHPOND_BULK_DIFFERENTIAL_EXPRESSION {
           coldata\$pair <- as.factor(coldata\$pair)
         }
         
-        # 2. Import quantification data using tximeta
+        # --- Import quantification data using tximeta ---
         message("Importing quantification data using tximeta...")
         y <- tximeta(coldata)
         
-        # 3. Scale inferential replicates
+        # --- Scale inferential replicates ---
         message("Scaling inferential replicates...")
         y <- scaleInfReps(y)
         
-        # 4. Filter out low-expression features
+        # --- Filter out low-expression features ---
         message("Labeling features to keep...")
         y <- labelKeep(y)
         
         # Subset to keep only the labeled features
         y <- y[mcols(y)\$keep, ]
         
-        # 5. Run Swish differential expression testing
+        # --- Run Swish differential expression testing ---
         set.seed(1)
         
         # Run the simplest Swish case if 'condition' is present and not paired

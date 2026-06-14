@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Preprocess the count matrix using process_Y. 2. Perform consensus clustering using Consensus. 3. Run model selection using Select_
+//  * 1. [Visualization & Output] Preprocess the count matrix using process_Y
+//  * 2. [Visualization & Output] Perform consensus clustering using Consensus
+//  * 3. [Visualization & Output] Run model selection using Select_Model_short_TSCAN
+//  * 4. [Visualization & Output] Visualize the results using Visual_Rslt
 
 nextflow.enable.dsl = 2
 
@@ -95,11 +98,11 @@ process BIOC_FEAST_MODEL_SELECTION_AND_VISUALIZATION {
     # Ensure Y is a matrix
     Y <- as.matrix(Y)
     
-    # 1. Preprocess the count matrix using process_Y
+    # --- Preprocess the count matrix using process_Y ---
     message("Preprocessing count matrix...")
     Y = process_Y(Y, thre = 2)
     
-    # 2. Perform consensus clustering using Consensus
+    # --- Perform consensus clustering using Consensus ---
     message("Performing consensus clustering...")
     con_res = Consensus(Y, k=k)
     
@@ -110,7 +113,7 @@ process BIOC_FEAST_MODEL_SELECTION_AND_VISUALIZATION {
                 "consensus_clusters.csv", row.names = FALSE)
     }
     
-    # 3. Run model selection using Select_Model_short_TSCAN
+    # --- Run model selection using Select_Model_short_TSCAN ---
     message("Running model selection...")
     mod_res = Select_Model_short_TSCAN(Y, cluster = con_res\$cluster, top = c(200, 500, 1000, 2000))
     
@@ -128,7 +131,7 @@ process BIOC_FEAST_MODEL_SELECTION_AND_VISUALIZATION {
       })
     }
     
-    # 4. Visualize the results using Visual_Rslt
+    # --- Visualize the results using Visual_Rslt ---
     message("Visualizing results...")
     PP = Visual_Rslt(model_cv_res = mod_res, trueclass = trueclass)
     

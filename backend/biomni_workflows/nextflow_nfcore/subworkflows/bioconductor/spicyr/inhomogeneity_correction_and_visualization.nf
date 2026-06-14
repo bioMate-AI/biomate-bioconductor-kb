@@ -61,7 +61,7 @@ process BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION {
     library(SpatialExperiment)
     library(ggplot2)
     
-    # 1. Read the input SpatialExperiment object from the working directory
+    # --- Read the input SpatialExperiment object from the working ---
     if (file.exists("kerenSPE")) {
       kerenSPE <- readRDS("kerenSPE")
     } else if (file.exists("kerenSPE.rds")) {
@@ -70,10 +70,10 @@ process BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION {
       stop("Required input file 'kerenSPE' or 'kerenSPE.rds' not found in the working directory.")
     }
     
-    # 2. Subset the spatial object to a single image (image "24")
+    # --- Subset the spatial object to a single image (image "24") ---
     kerenSubset <- kerenSPE[, colData(kerenSPE)\$imageID == "24"]
     
-    # 3. Calculate pairwise associations without inhomogeneity correction (sigma = NULL)
+    # --- Calculate pairwise associations without inhomogeneity ---
     pairwiseAssoc_null <- getPairwise(kerenSubset, 
                                       sigma = NULL, 
                                       Rs = 100) |>
@@ -84,7 +84,7 @@ process BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION {
     # Save the uncorrected pairwise associations to a CSV file
     write.csv(pairwiseAssoc_null, "pairwiseAssoc_no_correction.csv", row.names = TRUE)
     
-    # 4. Calculate pairwise associations with inhomogeneity correction (sigma = 20)
+    # --- Calculate pairwise associations with inhomogeneity ---
     pairwiseAssoc_corrected <- getPairwise(kerenSubset, 
                                            sigma = 20, 
                                            Rs = 100) |>
@@ -104,7 +104,7 @@ process BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION {
     ), summary_conn)
     close(summary_conn)
     
-    # 5. Plot cell-cell relationships for the image and save to PDF
+    # --- Plot cell-cell relationships for the image and save to PDF ---
     pdf("cell_relationship_plot_image24.pdf", width = 8, height = 8)
     p <- plotImage(kerenSPE, "24", from = "Keratin_Tumour", to = "Neutrophils")
     if (inherits(p, "ggplot")) {

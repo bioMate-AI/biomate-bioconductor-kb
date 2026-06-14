@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Truncate high p-values and format chromosome names. 2. Generate a basic Manhattan plot using autoplot or traitsManh. 3. Import ext
+//  * 1. [Visualization & Output] Load GWAS Catalog Data and format
+//  * 2. [Visualization & Output] Generate Manhattan plots
+//  * 3. [Visualization & Output] Import external GFF3 track data from user input
+//  * 4. [Visualization & Output] Convert GWAS catalog data to Gviz tracks
+//  * 5. [Visualization & Output] Plot integrated tracks
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +67,7 @@ process BIOC_GWASCAT_VISUALIZE_GWAS_CATALOG_DATA {
     library(S4Vectors)
     library(GenomeInfoDb)
     
-    # 1. Load GWAS Catalog Data and format
+    # --- Load GWAS Catalog Data and format ---
     gwtrunc = gwascat_from_AHub()
     
     mlpv = mcols(gwtrunc)\$PVALUE_MLOG
@@ -72,7 +76,7 @@ process BIOC_GWASCAT_VISUALIZE_GWAS_CATALOG_DATA {
     seqlevels(gwtrunc) = paste0("chr", seqlevels(gwtrunc))
     gwlit = gwtrunc[ which(as.character(seqnames(gwtrunc)) %in% c("chr4", "chr5", "chr6")) ]
     
-    # 2. Generate Manhattan plots
+    # --- Generate Manhattan plots ---
     pdf("manhattan_autoplot.pdf", width=10, height=6)
     print(autoplot(gwlit, geom="point", aes(y=PVALUE_MLOG), xlab="chr4-chr6"))
     dev.off()
@@ -85,12 +89,12 @@ process BIOC_GWASCAT_VISUALIZE_GWAS_CATALOG_DATA {
     })
     dev.off()
     
-    # 3. Import external GFF3 track data from user input
+    # --- Import external GFF3 track data from user input ---
     c17tg = import("c17tg", format="gff3")
     c17td = c17tg[ which(S4Vectors::mcols(c17tg)\$type == "Degner_dsQTL") ]
     dsqs = DataTrack( c17td, chrom="chr17", genome="hg19", data="score", name="dsQTL")
     
-    # 4. Convert GWAS catalog data to Gviz tracks
+    # --- Convert GWAS catalog data to Gviz tracks ---
     g2 = GRanges(seqnames="chr17", IRanges(start=4.3e7, width=2e6))
     basic = gwcex2gviz(basegr = gwtrunc, contextGR=g2, plot.it=FALSE)
     c17ts = c17tg[ which(S4Vectors::mcols(c17tg)\$type == "Stranger_eqtl") ]
@@ -99,7 +103,7 @@ process BIOC_GWASCAT_VISUALIZE_GWAS_CATALOG_DATA {
     displayPars(dsqs)\$col = "red"
     integ = list(basic[[1]], eqloc, dsqs, basic[[2]], basic[[3]])
     
-    # 5. Plot integrated tracks
+    # --- Plot integrated tracks ---
     pdf("integrated_tracks.pdf", width=10, height=8)
     plotTracks(integ)
     dev.off()

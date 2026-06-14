@@ -34,7 +34,7 @@ process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ENmix")
+    .bm_deps <- c("ENmix", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,10 +53,11 @@ process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {
     }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(ENmix)
     
     # ----------------------------------------------------------------------
-    # 1. Locate User Inputs (IDAT directory and CSV sample sheet)
+    # --- Locate User Inputs (IDAT directory and CSV sample sheet) ---
     # ----------------------------------------------------------------------
     message("Searching for IDAT directory and CSV sample sheet...")
     
@@ -99,7 +100,7 @@ process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Read raw IDAT files
+    # --- Read raw IDAT files ---
     # ----------------------------------------------------------------------
     message("Reading IDAT files...")
     rgSet <- readidat(path = idat_dir, recursive = TRUE)
@@ -121,14 +122,14 @@ process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {
     }
     
     # ----------------------------------------------------------------------
-    # 3. Extract quality control information
+    # --- Extract quality control information ---
     # ----------------------------------------------------------------------
     message("Extracting QC info...")
     qc <- QCinfo(rgSet)
     saveRDS(qc, "qc_info.rds")
     
     # ----------------------------------------------------------------------
-    # 4. Background correction and dye bias correction
+    # --- Background correction and dye bias correction ---
     # ----------------------------------------------------------------------
     message("Performing background and dye bias correction...")
     mdat <- preprocessENmix(rgSet, bgParaEst="oob", dyeCorr="RELIC",
@@ -136,21 +137,21 @@ process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {
     saveRDS(mdat, "preprocess_mdat.rds")
     
     # ----------------------------------------------------------------------
-    # 5. Between-array normalization
+    # --- Between-array normalization ---
     # ----------------------------------------------------------------------
     message("Performing between-array normalization...")
     mdat <- norm.quantile(mdat, method="quantile1")
     saveRDS(mdat, "normalized_mdat.rds")
     
     # ----------------------------------------------------------------------
-    # 6. Probe-type bias adjustment
+    # --- Probe-type bias adjustment ---
     # ----------------------------------------------------------------------
     message("Adjusting for probe-type design bias...")
     beta <- rcp(mdat, qcscore=qc)
     saveRDS(beta, "rcp_beta.rds")
     
     # ----------------------------------------------------------------------
-    # 7. Filter low quality/outlier data points and perform imputation
+    # --- Filter low quality/outlier data points and perform ---
     # ----------------------------------------------------------------------
     message("Filtering and imputing missing values...")
     beta <- qcfilter(beta, qcscore=qc, rmcr=TRUE, impute=TRUE)

@@ -56,7 +56,7 @@ process BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION {
     library(GeneGA)
     library(seqinr)
     
-    # 1. Read the sequence from the FASTA file in the working directory
+    # --- Read the sequence from the FASTA file in the working ---
     seqfile <- "EGFP.fasta"
     if (!file.exists(seqfile)) {
       stop("Error: Input file 'EGFP.fasta' not found in the working directory.")
@@ -64,7 +64,7 @@ process BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION {
     
     seq <- unlist(getSequence(read.fasta(seqfile), as.string = TRUE))
     
-    # 2. Run the genetic algorithm optimization using GeneGA
+    # --- Run the genetic algorithm optimization using GeneGA ---
     # (Using exact arguments from the documented vignette)
     GeneGA.result <- GeneGA(
       sequence = seq,
@@ -77,7 +77,7 @@ process BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION {
       showGeneration = FALSE
     )
     
-    # 3. Display and save the optimized sequences and their evaluation metrics
+    # --- Display and save the optimized sequences and their ---
     # Save the console output of show() to a text file
     sink("GeneGA_summary.txt")
     show(GeneGA.result)
@@ -89,7 +89,7 @@ process BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION {
     # Save the GeneGA result object as an RDS file
     saveRDS(GeneGA.result, file = "GeneGA_result.rds")
     
-    # 4. Plot the optimization progress (CAI, Free Energy, and joint distribution)
+    # --- Plot the optimization progress (CAI, Free Energy, and ---
     # Save the plots to a PDF file
     pdf("GeneGA_plots.pdf", width = 7, height = 7)
     plotGeneGA(GeneGA.result, type = 1)

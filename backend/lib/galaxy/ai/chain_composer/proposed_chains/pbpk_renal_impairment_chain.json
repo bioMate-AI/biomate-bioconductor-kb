@@ -1,0 +1,33 @@
+{
+  "name": "pbpk_renal_impairment_chain",
+  "display_name": "PBPK Renal/Hepatic Impairment — Virtual Patient Simulation",
+  "domain": "pharmacology",
+  "description": "Mechanistic PBPK simulation for organ-impaired patient populations required for IND/NDA regulatory submissions. Begins with allometric scaling to estimate human PK from preclinical data, runs the PBPK impairment submodel (renal or hepatic), then virtual patient cohort sampling for variability characterization. Used for Phase II dose selection and label recommendations in special populations.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "allometric_scaling", "role": "preclinical_to_human_pk", "params_template": {}},
+    {"order": 2, "workflow_name": "pbpk_disease_state", "role": "organ_impairment_submodel", "params_template": {"impairment": "renal"}},
+    {"order": 3, "workflow_name": "virtual_patient_cohort", "role": "monte_carlo_variability", "params_template": {"n_subjects": 1000}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "human_pk_parameters", "to_step": 2, "to_input": "pk_parameters"},
+    {"from_step": 2, "from_output": "impaired_pk_model", "to_step": 3, "to_input": "pk_model"}
+  ],
+  "required_inputs": [
+    {"name": "preclinical_pk_data", "type": "csv"},
+    {"name": "compound_physchem", "type": "csv"},
+    {"name": "impairment_type", "type": "string"}
+  ],
+  "expected_outputs": [
+    {"name": "human_pk_predictions", "type": "csv"},
+    {"name": "virtual_patient_pk_distributions", "type": "json"},
+    {"name": "dose_recommendation_brief", "type": "pdf"}
+  ],
+  "example_queries": [
+    "PBPK simulation for renal impairment patients",
+    "PBPK simulation for hepatic impairment",
+    "organ impairment PK modeling for regulatory submission",
+    "virtual patient cohort PBPK simulation for special population"
+  ],
+  "tags": ["pharmacology", "PBPK", "renal_impairment", "regulatory", "IND"]
+}

@@ -58,7 +58,7 @@ process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     # Define the input file name
     file.name <- "raw_intensities.txt"
     
-    # 1. Read raw data using read.spot
+    # --- Read raw data using read.spot ---
     my.spot <- read.spot(file.name, cy3 = 1, cy5 = 2, bg.cy3 = 3, bg.cy5 = 4, ids = 5, header = FALSE, sep = "\t", is.ifc = FALSE)
     
     # Save the raw spot object
@@ -97,12 +97,12 @@ process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     tryCatch({ ma.plot(my.spot) }, error = function(e) { warning("ma.plot failed: ", e\$message) })
     tryCatch({ cys.plot(my.spot) }, error = function(e) { warning("cys.plot failed: ", e\$message) })
     
-    # 2. Perform background correction using bg.correct
+    # --- Perform background correction using bg.correct ---
     c.spot <- bg.correct(my.spot)
     saveRDS(c.spot, "background_corrected_spot.rds")
     write.csv(attr(c.spot, "spotData"), "background_corrected_data.csv", row.names = FALSE)
     
-    # 3. Normalize data using grid.norm and global.norm
+    # --- Normalize data using grid.norm and global.norm ---
     # Grid normalization
     tryCatch({
       n.spot_grid <- grid.norm(mySpot = my.spot, nr = 23, nc = 24)
@@ -116,12 +116,12 @@ process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     saveRDS(n.spot, "global_normalized_spot.rds")
     write.csv(attr(n.spot, "spotData"), "global_normalized_data.csv", row.names = FALSE)
     
-    # 4. Filter low-quality spots using filter.spot
+    # --- Filter low-quality spots using filter.spot ---
     f.spot <- filter.spot(mySpot = my.spot)
     saveRDS(f.spot, "filtered_spot.rds")
     write.csv(attr(f.spot, "spotData"), "filtered_data.csv", row.names = FALSE)
     
-    # 5. Handle replicate spots using spotUnique, alter.unique, and meanUnique
+    # --- Handle replicate spots using spotUnique, alter.unique, ---
     u.spot_unique <- spotUnique(mySpot = my.spot)
     saveRDS(u.spot_unique, "unique_spot.rds")
     
@@ -132,14 +132,14 @@ process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     saveRDS(u.spot, "mean_unique_spot.rds")
     write.csv(attr(u.spot, "spotData"), "mean_unique_data.csv", row.names = FALSE)
     
-    # 6. Calculate Z-scores using Zscore
+    # --- Calculate Z-scores using Zscore ---
     s.spot_ri <- Zscore(my.spot, type="ri")
     saveRDS(s.spot_ri, "zscore_ri_dataset.rds")
     
     s.spot <- Zscore(my.spot, type="ma")
     saveRDS(s.spot, "zscore_ma_dataset.rds")
     
-    # 7. Plot Z-score plots using Zscore.plot
+    # --- Plot Z-score plots using Zscore.plot ---
     tryCatch({
       Zscore.plot(s.spot_ri, Zscore.min=1)
     }, error = function(e) {

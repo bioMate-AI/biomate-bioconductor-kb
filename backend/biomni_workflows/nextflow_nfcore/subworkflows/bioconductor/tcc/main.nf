@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Construct a TCC class object using the raw count matrix and group vector. 2. Filter out low-count genes (optional but recommended)
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Execute TCC Workflow
+//  * 3. [Visualization & Output] Write Output Files
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +63,7 @@ process BIOC_TCC_TWO_GROUP_REPLICATES {
     library(TCC)
     
     # ---------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ---------------------------------------------------------
     # Locate and read the raw count matrix (hypoData)
     hypoData_file <- NULL
@@ -108,7 +110,7 @@ process BIOC_TCC_TWO_GROUP_REPLICATES {
     }
     
     # ---------------------------------------------------------
-    # 2. Execute TCC Workflow
+    # --- Execute TCC Workflow ---
     # ---------------------------------------------------------
     # Construct TCC class object
     tcc <- new("TCC", hypoData, group)
@@ -134,7 +136,7 @@ process BIOC_TCC_TWO_GROUP_REPLICATES {
     normalized.count <- getNormalizedData(tcc)
     
     # ---------------------------------------------------------
-    # 3. Write Output Files
+    # --- Write Output Files ---
     # ---------------------------------------------------------
     # Save DE results table
     write.csv(result, "tcc_de_results.csv", row.names = FALSE)

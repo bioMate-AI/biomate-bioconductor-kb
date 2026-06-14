@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Set up the design matrix using createDesignMatrix(). 2. Set up the contrast matrix using createContrast(). 3. Run the diffcyt() wr
+//  * 1. [Input & Preparation] READ USER INPUTS FROM WORKING DIRECTORY
+//  * 2. [Input & Preparation] RUN THE DOCUMENTED DIFFCYT PIPELINE
+//  * 3. [Input & Preparation] WRITE OUTPUT FILES
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +63,7 @@ process BIOC_DIFFCYT_DIFFCYT_WRAPPER_PIPELINE {
         library(flowCore)
         
         # ==========================================
-        # 1. READ USER INPUTS FROM WORKING DIRECTORY
+        # --- READ USER INPUTS FROM WORKING DIRECTORY ---
         # ==========================================
         
         # Read d_flowSet (flowSet object)
@@ -102,7 +104,7 @@ process BIOC_DIFFCYT_DIFFCYT_WRAPPER_PIPELINE {
         
         
         # ==========================================
-        # 2. RUN THE DOCUMENTED DIFFCYT PIPELINE
+        # --- RUN THE DOCUMENTED DIFFCYT PIPELINE ---
         # ==========================================
         
         # Create design matrix
@@ -155,7 +157,7 @@ process BIOC_DIFFCYT_DIFFCYT_WRAPPER_PIPELINE {
         
         
         # ==========================================
-        # 3. WRITE OUTPUT FILES
+        # --- WRITE OUTPUT FILES ---
         # ==========================================
         
         # Save RDS objects of the full results

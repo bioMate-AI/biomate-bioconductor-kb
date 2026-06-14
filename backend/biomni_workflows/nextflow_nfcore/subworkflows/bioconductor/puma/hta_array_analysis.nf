@@ -65,13 +65,13 @@ process BIOC_PUMA_HTA_ARRAY_ANALYSIS {
     
     message(paste("Found", length(celFiles), "CEL file(s). Proceeding with analysis..."))
     
-    # 1. Read CEL files
+    # --- Read CEL files ---
     oligo.hta <- read.celfiles(celFiles)
     
-    # 2. Calculate gene and transcript expression levels using gmhta
+    # --- Calculate gene and transcript expression levels using ---
     eset_gmhta <- gmhta(oligo.hta, gsnorm="none")
     
-    # 3. Write expression and standard error results to CSV files
+    # --- Write expression and standard error results to CSV files ---
     write.reslts(eset_gmhta\$gene, file="eset_gmhta_gene")
     write.reslts(eset_gmhta\$transcript, file="eset_gmhta_transcript")
     

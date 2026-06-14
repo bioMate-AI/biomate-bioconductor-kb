@@ -57,7 +57,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
     library("limma")
     
     # ==========================================
-    # Stage 1: Load target file and read Agilent Feature Extraction data
+    # --- Load target file and read Agilent Feature Extraction data ---
     # ==========================================
     
     # Read the targets file from the working directory
@@ -74,7 +74,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
     dd.micro <- readMicroRnaAFE(targets.micro, verbose=TRUE)
     
     # ==========================================
-    # Stage 2: Perform quality control plotting and array reproducibility assessment
+    # --- Perform quality control plotting and array ---
     # ==========================================
     
     pdf("qc_plots.pdf", width=10, height=8)
@@ -98,7 +98,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
     dev.off()
     
     # ==========================================
-    # Stage 3: Estimate normalized gene signal using the RMA algorithm
+    # --- Estimate normalized gene signal using the RMA algorithm ---
     # ==========================================
     
     ddTGS.rma <- rmaMicroRna(dd.micro,
@@ -106,7 +106,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
                              background=TRUE)
     
     # ==========================================
-    # Stage 4: Filter out low-quality probes and controls
+    # --- Filter out low-quality probes and controls ---
     # ==========================================
     
     ddPROC <- filterMicroRna(ddTGS.rma,
@@ -122,7 +122,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
                              writeout=FALSE)
     
     # ==========================================
-    # Stage 5: Create an ExpressionSet object
+    # --- Create an ExpressionSet object ---
     # ==========================================
     
     esetPROC <- esetMicroRna(ddPROC,
@@ -135,7 +135,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
     write.csv(exprs(esetPROC), "normalized_expression.csv", row.names=TRUE)
     
     # ==========================================
-    # Stage 6: Fit linear models and define contrast matrices using limma
+    # --- Fit linear models and define contrast matrices using limma ---
     # ==========================================
     
     levels.treatment <- levels(factor(targets.micro\$Treatment))
@@ -156,7 +156,7 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
     fit2 <- eBayes(fit2)
     
     # ==========================================
-    # Stage 7: Select significant microRNAs and output results
+    # --- Select significant microRNAs and output results ---
     # ==========================================
     
     DE <- getDecideTests(fit2,

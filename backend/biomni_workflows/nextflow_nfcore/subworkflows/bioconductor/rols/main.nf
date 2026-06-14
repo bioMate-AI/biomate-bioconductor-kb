@@ -56,7 +56,7 @@ process BIOC_ROLS_OLS_ONTOLOGY_ANNOTATION_PIPELINE {
     library(rols)
     
     # ==========================================
-    # Stage 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -100,7 +100,7 @@ process BIOC_ROLS_OLS_ONTOLOGY_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Query OLS for Term Metadata
+    # --- Query OLS for Term Metadata ---
     # ==========================================
     message("Resolving features against the Ontology Lookup Service...")
     
@@ -157,7 +157,7 @@ process BIOC_ROLS_OLS_ONTOLOGY_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 3: Extract Metadata and Relationships
+    # --- Extract Metadata and Relationships ---
     # ==========================================
     message("Extracting metadata and hierarchical relationships...")
     
@@ -253,7 +253,7 @@ process BIOC_ROLS_OLS_ONTOLOGY_ANNOTATION_PIPELINE {
     message("Saved annotated_features.csv and term_relationships.csv")
     
     # ==========================================
-    # Stage 4: Aggregate Expression Data (If Present)
+    # --- Aggregate Expression Data (If Present) ---
     # ==========================================
     if (length(numeric_cols) > 0 && nrow(annotated_df) > 0) {
       message("Aggregating expression profiles by ontology namespace...")

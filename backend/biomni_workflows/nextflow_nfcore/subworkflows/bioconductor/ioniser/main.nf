@@ -59,14 +59,14 @@ process BIOC_IONISER_MINION_QUALITY_CONTROL {
     library(dplyr)
     library(ShortRead)
     
-    # 1. List FAST5 files from the user-specified directory
+    # --- List FAST5 files from the user-specified directory ---
     fast5files <- list.files(path = "/path/to/data/", pattern = ".fast5\$", full.names = TRUE)
     
     if (length(fast5files) == 0) {
       stop("No FAST5 files found in /path/to/data/")
     }
     
-    # 2. Read summaries using readFast5Summary()
+    # --- Read summaries using readFast5Summary() ---
     example.summary <- readFast5Summary( fast5files )
     
     # Save the summary object to disk
@@ -76,7 +76,7 @@ process BIOC_IONISER_MINION_QUALITY_CONTROL {
     s.typhi.rep1 <- example.summary
     s.typhi.rep3 <- example.summary
     
-    # 3. Extract basecalled data using baseCalled()
+    # --- Extract basecalled data using baseCalled() ---
     bc_all <- baseCalled(s.typhi.rep1)
     write.csv(bc_all, file = "basecalled_all.csv", row.names = FALSE)
     
@@ -92,35 +92,35 @@ process BIOC_IONISER_MINION_QUALITY_CONTROL {
       message("Error during subsetting: ", e\$message)
     })
     
-    # 4. Plot read accumulation and active channels
+    # --- Plot read accumulation and active channels ---
     pdf("qc_plots_accumulation_active.pdf", width = 12, height = 6)
     p1 <- plotReadAccumulation(s.typhi.rep1)
     p2 <- plotActiveChannels(s.typhi.rep1)
     grid.arrange(p1, p2, ncol = 2)
     dev.off()
     
-    # 5. Plot read categories and qualities
+    # --- Plot read categories and qualities ---
     pdf("qc_plots_categories_quals.pdf", width = 12, height = 6)
     p1 <- plotReadCategoryCounts(s.typhi.rep1)
     p2 <- plotReadCategoryQuals(s.typhi.rep1)
     grid.arrange(p1, p2, ncol = 2)
     dev.off()
     
-    # 6. Plot event and base production rates
+    # --- Plot event and base production rates ---
     pdf("qc_plots_rates.pdf", width = 12, height = 6)
     p1 <- plotEventRate(s.typhi.rep1)
     p2 <- plotBaseProductionRate(s.typhi.rep1)
     grid.arrange(p1, p2, ncol = 2)
     dev.off()
     
-    # 7. Generate flow cell layout plots
+    # --- Generate flow cell layout plots ---
     pdf("qc_plots_layout.pdf", width = 12, height = 6)
     p1 <- layoutPlot(s.typhi.rep1, attribute = "nreads")
     p2 <- layoutPlot(s.typhi.rep1, attribute = "kb")
     grid.arrange(p1, p2, ncol = 2)
     dev.off()
     
-    # 8. Generate custom channel heatmaps
+    # --- Generate custom channel heatmaps ---
     read_count_2D <- baseCalled(s.typhi.rep1) %>% ## start with base called reads
       filter(strand == 'template') %>% ## keep template so we don't count things twice
       left_join(readInfo(s.typhi.rep1), by = 'id') %>% ## channel stored in @readInfo slot, match by id column
@@ -136,13 +136,13 @@ process BIOC_IONISER_MINION_QUALITY_CONTROL {
     grid.arrange(p1, p2, ncol = 2)
     dev.off()
     
-    # 9. Plot channel activity over time
+    # --- Plot channel activity over time ---
     pdf("qc_plots_channel_activity.pdf", width = 10, height = 6)
     z_scale = select(eventData(s.typhi.rep3), id, median_signal)
     channelActivityPlot( s.typhi.rep3, zScale = z_scale )
     dev.off()
     
-    # 10. Plot k-mer frequency correlation
+    # --- Plot k-mer frequency correlation ---
     pdf("qc_plots_kmer_correlation.pdf", width = 8, height = 8)
     plotKmerFrequencyCorrelation( s.typhi.rep3, only2D = FALSE )
     dev.off()

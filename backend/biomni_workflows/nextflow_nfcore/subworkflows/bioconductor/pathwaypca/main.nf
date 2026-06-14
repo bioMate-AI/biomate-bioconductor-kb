@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Import the pathway collection from a GMT file using read_gmt. 2. Create an Omics S4 data container using CreateOmics, specifying t
+//  * 1. [Input & Preparation] Import the pathway collection from a GMT file
+//  * 2. [Input & Preparation] Create an Omics S4 data container using CreateOmics
+//  * 3. [Input & Preparation] Perform pathway significance testing using AESPCA_pVals
+//  * 4. [Input & Preparation] Extract and sort pathway p-values using getPathpVals
+//  * 5. [Input & Preparation] Extract pathway-specific principal components and gene
+//  * 6. [Input & Preparation] Subset the original assay data for a specific pathway
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("pathwayPCA", "tidyverse", "survival")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,14 +66,14 @@ process BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION {
     library(tidyverse)
     library(survival)
     
-    # 1. Import the pathway collection from a GMT file
+    # --- Import the pathway collection from a GMT file ---
     # Reading the user-provided GMT file from the working directory
     wikipathways_PC <- read_gmt("wikipathways_human_symbol.gmt", description = TRUE)
     
     # Load the user-provided assay and survival phenotype data frame
     ovSurv_df <- readRDS("ovarian_PNNL_survival.RDS")
     
-    # 2. Create an Omics S4 data container using CreateOmics
+    # --- Create an Omics S4 data container using CreateOmics ---
     # Specifying the assay data, pathway collection, response, and response type
     ov_OmicsSurv <- CreateOmics(
       assayData_df = ovSurv_df[, - ( 2 : 3 )],
@@ -69,7 +83,7 @@ process BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION {
       minPathSize = 5
     )
     
-    # 3. Perform pathway significance testing using AESPCA_pVals
+    # --- Perform pathway significance testing using AESPCA_pVals ---
     ovarian_aespcOut <- AESPCA_pVals(
       object = ov_OmicsSurv,
       numPCs = 1,
@@ -79,11 +93,11 @@ process BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION {
       adjustment = "BH"
     )
     
-    # 4. Extract and sort pathway p-values using getPathpVals
+    # --- Extract and sort pathway p-values using getPathpVals ---
     top10_pvals <- getPathpVals(ovarian_aespcOut, numPaths = 10)
     write.csv(top10_pvals, "top10_pathways_pvals.csv", row.names = FALSE)
     
-    # 5. Extract pathway-specific principal components and gene loadings using getPathPCLs
+    # --- Extract pathway-specific principal components and gene ---
     wp195PCLs_ls <- getPathPCLs(ovarian_aespcOut, "WP195")
     saveRDS(wp195PCLs_ls, "wp195_PCLs.rds")
     
@@ -91,7 +105,7 @@ process BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION {
     wp195Loadings_df <- wp195PCLs_ls\$Loadings %>% filter(PC1 != 0)
     write.csv(wp195Loadings_df, "wp195_loadings.csv", row.names = FALSE)
     
-    # 6. Subset the original assay data for a specific pathway using SubsetPathwayData
+    # --- Subset the original assay data for a specific pathway ---
     wp195Data_df <- SubsetPathwayData(ov_OmicsSurv, "WP195")
     write.csv(wp195Data_df, "wp195_assay_subset.csv", row.names = FALSE)
     

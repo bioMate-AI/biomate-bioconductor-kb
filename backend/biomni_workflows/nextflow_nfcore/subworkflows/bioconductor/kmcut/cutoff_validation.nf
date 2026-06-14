@@ -71,19 +71,19 @@ process BIOC_KMCUT_CUTOFF_VALIDATION {
       stop("Error: Survival data file 'survival_data.txt' not found in the working directory.")
     }
     
-    # 1. Create SummarizedExperiment for training data
+    # --- Create SummarizedExperiment for training data ---
     se1 <- create_se_object(efile = fdat1, sfile = sdat)
     saveRDS(se1, "se1_training.rds")
     
-    # 2. Run training stratification to generate a cutoff file
+    # --- Run training stratification to generate a cutoff file ---
     # This generates "training_data_KM_quant_50.txt" and "training_data_KM_quant_50_labels.csv"
     km_qcut(obj = se1, bfname = "training_data", quant = 50, min_uval = 40)
     
-    # 3. Create SummarizedExperiment for validation data
+    # --- Create SummarizedExperiment for validation data ---
     se2 <- create_se_object(efile = fdat2, sfile = sdat)
     saveRDS(se2, "se2_validation.rds")
     
-    # 4. Validate the training cutoffs on the validation data
+    # --- Validate the training cutoffs on the validation data ---
     # This generates "test_KM_val.pdf", "test_KM_val.txt", and "test_KM_val_labels.csv"
     km_val_cut(infile = "training_data_KM_quant_50.txt", obj = se2, bfname = "test", wpdf = TRUE, min_uval = 40)
 

@@ -35,6 +35,15 @@ process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("alabaster.base", "alabaster.string", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
     library(alabaster.string)
     library(S4Vectors)
     
-    # 1. Read input defensively
+    # --- Read input defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Input file not found:", input_file))
@@ -71,7 +80,7 @@ process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
       strings <- c("fallback_gene_A", "fallback_gene_B", "fallback_gene_C")
     }
     
-    # 2. Generate diagnostic visualization of string lengths
+    # --- Generate diagnostic visualization of string lengths ---
     pdf("string_lengths.pdf")
     hist(nchar(strings), 
          main = "Distribution of String Lengths", 
@@ -80,7 +89,7 @@ process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
          border = "white")
     dev.off()
     
-    # 3. Serialize and deserialize simple character vector
+    # --- Serialize and deserialize simple character vector ---
     tmp_dir_simple <- tempfile("alabaster_string_simple")
     dir.create(tmp_dir_simple, recursive = TRUE)
     
@@ -90,7 +99,7 @@ process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
     message("Reading character vector back...")
     round_tripped_simple <- alabaster.base::readObject(tmp_dir_simple)
     
-    # 4. Serialize and deserialize CharacterList using IRanges splitAsList
+    # --- Serialize and deserialize CharacterList using IRanges ---
     num_groups <- 5
     group_factor <- rep(1:num_groups, length.out = length(strings))
     char_list <- IRanges::splitAsList(strings, group_factor)
@@ -104,7 +113,7 @@ process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
     message("Reading CharacterList back...")
     round_tripped_list <- alabaster.base::readObject(tmp_dir_list)
     
-    # 5. Verify and write outputs
+    # --- Verify and write outputs ---
     verification_df <- data.frame(
       Original = strings,
       RoundTripped = as.character(round_tripped_simple),

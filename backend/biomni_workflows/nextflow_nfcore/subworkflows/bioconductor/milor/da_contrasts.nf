@@ -44,7 +44,7 @@ process BIOC_MILOR_DA_CONTRASTS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "dplyr", "miloR", "patchwork", "scater", "scran")
+    .bm_deps <- c("SingleCellExperiment", "dplyr", "miloR", "patchwork", "scater", "scran", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,6 +63,7 @@ process BIOC_MILOR_DA_CONTRASTS {
         
     # Load required libraries
     library(miloR)
+    library(SummarizedExperiment)
     library(scater)
     library(scran)
     library(dplyr)

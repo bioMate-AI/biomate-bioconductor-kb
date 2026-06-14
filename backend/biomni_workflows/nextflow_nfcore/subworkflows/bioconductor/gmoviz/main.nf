@@ -58,7 +58,7 @@ process BIOC_GMOVIZ_SINGLE_INSERTION_DIAGRAM {
     library(rtracklayer)
     
     # ==========================================
-    # 1. Define insertion data, labels, and coverage
+    # --- Define insertion data, labels, and coverage ---
     # ==========================================
     
     # Read insertion data from GFF
@@ -167,7 +167,7 @@ process BIOC_GMOVIZ_SINGLE_INSERTION_DIAGRAM {
     saveRDS(coverage, "processed_coverage.rds")
     
     # ==========================================
-    # 2. Generate Insertion Diagrams (Styles & Annotations)
+    # --- Generate Insertion Diagrams (Styles & Annotations) ---
     # ==========================================
     
     # Style 1: Emphasis on inserted sequence

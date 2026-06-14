@@ -1,0 +1,62 @@
+{
+  "name": "phylogenetic_uncertainty_via_phykit",
+  "display_name": "Phylogenetic Tree Uncertainty Metrics with PhyKIT",
+  "domain": "genomics",
+  "description": "Multiple sequence alignment (MAFFT) \u2192 maximum-likelihood phylogeny with bootstrap (IQ-TREE) \u2192 PhyKIT computes per-gene tree-quality metrics (treeness, RCV, long-branch score, bootstrap support distribution) for quantifying phylogenetic uncertainty across orthologs. Used for ortholog quality control in phylogenomics.",
+  "source": "curated",
+  "steps": [
+    {
+      "order": 1,
+      "workflow_name": "Analyze Protein Phylogeny",
+      "role": "alignment_and_phylogeny",
+      "params_template": {
+        "method": "iqtree",
+        "bootstrap": 1000
+      }
+    },
+    {
+      "order": 2,
+      "workflow_name": "PhyKIT Phylogenetic Metrics",
+      "role": "per_gene_uncertainty_metrics",
+      "params_template": {}
+    }
+  ],
+  "connections": [
+    {
+      "from_step": 1,
+      "from_output": "mafft_alignment_and_iqtree_treefile",
+      "to_step": 2,
+      "to_input": "mafft_alignment_iqtree_treefile"
+    }
+  ],
+  "required_inputs": [
+    {
+      "name": "ortholog_fasta_set",
+      "type": "fasta",
+      "description": "One FASTA per ortholog cluster"
+    }
+  ],
+  "expected_outputs": [
+    {
+      "name": "per_gene_metrics",
+      "type": "tsv",
+      "description": "treeness, RCV, LBS, evo_rate per gene"
+    },
+    {
+      "name": "uncertainty_summary",
+      "type": "pdf"
+    }
+  ],
+  "example_queries": [
+    "bootstrap stability of phylogenetic tree",
+    "phylogenetic uncertainty quantification",
+    "per-gene tree metrics treeness RCV",
+    "phylogenomic ortholog quality control"
+  ],
+  "tags": [
+    "phylogenetics",
+    "bootstrap",
+    "uncertainty",
+    "phykit"
+  ]
+}

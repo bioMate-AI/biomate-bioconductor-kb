@@ -68,7 +68,7 @@ process BIOC_RFASTP_UMI_PROCESSING {
     outputPrefix <- "umi_processed"
     
     # ==========================================
-    # Stage 1: Run rfastp with standard UMI extraction parameters
+    # --- Run rfastp with standard UMI extraction parameters ---
     # ==========================================
     umi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, 
         outputFastq = paste0(outputPrefix, '_umi1'), umi = TRUE, umiLoc = "read1",
@@ -103,7 +103,7 @@ process BIOC_RFASTP_UMI_PROCESSING {
     
     
     # ==========================================
-    # Stage 2: Run rfastp with customized UMI prefix and location parameters
+    # --- Run rfastp with customized UMI prefix and location ---
     # ==========================================
     umi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, 
         outputFastq = paste0(outputPrefix, '_umi2'), umi = TRUE, umiLoc = "read1",

@@ -54,11 +54,11 @@ process BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS {
     
     library("fmcsR")
     
-    # 1. Import compound structures from an SDF file
+    # --- Import compound structures from an SDF file ---
     sdfset <- read.SDFset(file="sdfset.sdf")
     mysdf <- sdfset
     
-    # 2. Compute the MCS/FMCS between two compounds
+    # --- Compute the MCS/FMCS between two compounds ---
     mcsa <- fmcs(sdfset[[1]], sdfset[[2]])
     mcsa_stats <- stats(mcsa)
     
@@ -73,7 +73,7 @@ process BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS {
     saveRDS(mcsa1, file="mcsa1.rds")
     saveRDS(mcsa2, file="mcsa2.rds")
     
-    # 3. Extract the MCS substructure as an SDFset
+    # --- Extract the MCS substructure as an SDFset ---
     mcstosdfset <- mcs2sdfset(mcsa, type="new")
     write.SDF(mcstosdfset, file="mcstosdfset.sdf")
     
@@ -82,7 +82,7 @@ process BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS {
     plot(mcstosdfset[[1]], print=FALSE)
     dev.off()
     
-    # 4. Visualize the MCS highlighted in the compound structures
+    # --- Visualize the MCS highlighted in the compound structures ---
     test <- fmcs(sdfset[1], sdfset[2], au=2, bu=1)
     
     pdf("plotMCS_test.pdf")

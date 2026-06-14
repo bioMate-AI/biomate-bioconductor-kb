@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Subset the ExpressionSet to the genes of interest. 2. Compute Kendall's tau distance between genes using tau.dist with sample=FALS
+//  * 1. [Core Analysis] Save distance matrices as CSV
+//  * 2. [Core Analysis] Save nearest neighbors as CSV
+//  * 3. [Core Analysis] Save distance objects as RDS
+//  * 4. [Core Analysis] Generate a PDF plot comparing the distributions of the
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_BIODIST_CORRELATION_DISTANCE_AND_NEIGHBOR_SEARCH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bioDist", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -97,14 +109,14 @@ process BIOC_BIODIST_CORRELATION_DISTANCE_AND_NEIGHBOR_SEARCH {
         print(neighbors)
         
         # Save meaningful results to output files
-        # 1. Save distance matrices as CSV
+        # --- Save distance matrices as CSV ---
         tau_matrix <- as.matrix(tauD)
         sp_matrix <- as.matrix(sp)
         
         write.csv(tau_matrix, "tau_distance_matrix.csv", row.names = TRUE)
         write.csv(sp_matrix, "spearman_distance_matrix.csv", row.names = TRUE)
         
-        # 2. Save nearest neighbors as CSV
+        # --- Save nearest neighbors as CSV ---
         neighbors_df <- data.frame(
           Query_Gene = rep(f1, length(neighbors)),
           Neighbor_Gene = neighbors,
@@ -112,11 +124,11 @@ process BIOC_BIODIST_CORRELATION_DISTANCE_AND_NEIGHBOR_SEARCH {
         )
         write.csv(neighbors_df, "closest_neighbors.csv", row.names = FALSE)
         
-        # 3. Save distance objects as RDS
+        # --- Save distance objects as RDS ---
         saveRDS(tauD, "tau_distance.rds")
         saveRDS(sp, "spearman_distance.rds")
         
-        # 4. Generate a PDF plot comparing the distributions of the two distance metrics
+        # --- Generate a PDF plot comparing the distributions of the ---
         pdf("distance_distributions.pdf", width = 10, height = 5)
         par(mfrow = c(1, 2))
         hist(as.vector(tauD), 

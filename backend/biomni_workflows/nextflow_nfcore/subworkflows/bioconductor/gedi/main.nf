@@ -36,6 +36,15 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GeDi", "org.Hs.eg.db", "AnnotationDbi", "topGO", "mosdef", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +63,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     library(igraph)
     
     # ==========================================
-    # STAGE 1: Read Input and Extract Genes
+    # --- Read Input and Extract Genes ---
     # ==========================================
     message("Reading input data...")
     input_data <- read.csv("input.csv", stringsAsFactors = FALSE)
@@ -105,7 +114,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Run Functional Enrichment Analysis
+    # --- Run Functional Enrichment Analysis ---
     # ==========================================
     message("Running Gene Ontology enrichment analysis...")
     enrich_res <- tryCatch({
@@ -149,7 +158,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 3: Calculate Distance Matrices
+    # --- Calculate Distance Matrices ---
     # ==========================================
     message("Calculating geneset distance matrices...")
     
@@ -232,7 +241,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     write.csv(distances_df, "geneset_distances.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Cluster Genesets
+    # --- Cluster Genesets ---
     # ==========================================
     message("Clustering genesets...")
     
@@ -262,7 +271,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     write.csv(clustering_df, "geneset_clustering.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualizations
+    # --- Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("gedi_plots.pdf", width = 10, height = 8)

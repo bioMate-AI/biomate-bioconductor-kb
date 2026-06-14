@@ -35,6 +35,15 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("nucleoSim", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Input Parsing & Parameter Setup
+    # --- Input Parsing & Parameter Setup ---
     # ==========================================
     
     # Robust input handling: Create dummy files if they do not exist to ensure runnability
@@ -99,7 +108,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     read.len  <- if ("read.len" %in% colnames(coldata)) coldata\$read.len[1] else 45
     
     # ==========================================
-    # STAGE 2: Multi-Region Simulation Loop
+    # --- Multi-Region Simulation Loop ---
     # ==========================================
     
     all_reads_list <- list()
@@ -176,7 +185,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     combined_fuz   <- do.call(rbind, all_fuz_list)
     
     # ==========================================
-    # STAGE 3: Exporting Simulated Datasets
+    # --- Exporting Simulated Datasets ---
     # ==========================================
     
     # Convert simulated reads to GRanges and export as BED
@@ -195,7 +204,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     message("Successfully exported nucleosome positions to CSV files.")
     
     # ==========================================
-    # STAGE 4: Tiling Array Simulation & Plotting
+    # --- Tiling Array Simulation & Plotting ---
     # ==========================================
     
     # Simulate a separate hybridization tiling array dataset (ratio-based)

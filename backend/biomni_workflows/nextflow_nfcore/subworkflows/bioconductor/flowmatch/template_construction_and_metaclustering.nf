@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Loop through each sample, cluster it, and create ClusteredSample objects. 2. Store all ClusteredSample objects in a list. 3. Const
+//  * 1. [Visualization & Output] Loop through each sample, cluster it, and create
+//  * 2. [Visualization & Output] Store all ClusteredSample objects in a list
+//  * 3. [Visualization & Output] Construct a template from the list of clustered samples
+//  * 4. [Visualization & Output] Visualize the hierarchical relationship of the samples
+//  * 5. [Visualization & Output] Plot the template contours using various visualization
+//  * 6. [Visualization & Output] Retrieve, summarize, and plot individual meta-clusters
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_FLOWMATCH_TEMPLATE_CONSTRUCTION_AND_METACLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("flowMatch")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -56,8 +70,8 @@ process BIOC_FLOWMATCH_TEMPLATE_CONSTRUCTION_AND_METACLUSTERING {
     # Set seed for reproducible clustering
     set.seed(1234)
     
-    # 1. Loop through each sample, cluster it, and create ClusteredSample objects.
-    # 2. Store all ClusteredSample objects in a list.
+    # --- Loop through each sample, cluster it, and create ---
+    # --- Store all ClusteredSample objects in a list ---
     clustSamples = list()
     for(i in 1:length(sample_list))
     {
@@ -68,7 +82,7 @@ process BIOC_FLOWMATCH_TEMPLATE_CONSTRUCTION_AND_METACLUSTERING {
       clustSamples = c(clustSamples, clustSample1)
     }
     
-    # 3. Construct a template from the list of clustered samples using create.template.
+    # --- Construct a template from the list of clustered samples ---
     template = create.template(clustSamples)
     
     # Save template summary to a text file
@@ -79,12 +93,12 @@ process BIOC_FLOWMATCH_TEMPLATE_CONSTRUCTION_AND_METACLUSTERING {
     # Save template object
     saveRDS(template, "template.rds")
     
-    # 4. Visualize the hierarchical relationship of the samples using template.tree.
+    # --- Visualize the hierarchical relationship of the samples ---
     pdf("template_tree.pdf")
     template.tree(template)
     dev.off()
     
-    # 5. Plot the template contours using various visualization options.
+    # --- Plot the template contours using various visualization ---
     pdf("template_plots.pdf")
     plot(template)
     plot(template, color.mc=c('blue','black','green3','red'))
@@ -92,7 +106,7 @@ process BIOC_FLOWMATCH_TEMPLATE_CONSTRUCTION_AND_METACLUSTERING {
     plot(template, colorbysample=TRUE)
     dev.off()
     
-    # 6. Retrieve, summarize, and plot individual meta-clusters.
+    # --- Retrieve, summarize, and plot individual meta-clusters ---
     mc = get.metaClusters(template)[[1]]
     
     sink("metacluster_summary.txt")

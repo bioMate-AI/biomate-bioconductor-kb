@@ -66,7 +66,7 @@ process BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS {
     BR1 <- "BR1_GB6_01_10471.mzML"
     raw_mtbls_df <- "m_mtbls433_metabolite_profiling_mass_spectrometry_v2_maf.tsv"
     
-    # 1. Extract MS2 spectra from multiple files and combine them
+    # --- Extract MS2 spectra from multiple files and combine them ---
     message("Extracting MS2 spectra from raw files...")
     YH1list <- extractMS2spectra (YH1)
     AX1list <- extractMS2spectra (AX1)
@@ -74,7 +74,7 @@ process BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS {
     BR1list <- extractMS2spectra (BR1)
     raw_oillist <- c (YH1list, AX1list, LP1list, BR1list)
     
-    # 2. Format the external peak table to match CluMSID requirements
+    # --- Format the external peak table to match CluMSID ---
     message("Formatting external peak table...")
     mtbls_df <- readr :: read_delim (raw_mtbls_df, "\t" ) %>% 
       dplyr :: mutate ( metabolite_identification = stringr :: str_replace (metabolite_identification, "unknown" , "" )) %>% 
@@ -83,17 +83,17 @@ process BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS {
       dplyr :: select (id, mass_to_charge, retention_time, metabolite_identification) %>% 
       dplyr :: rename ( mz = mass_to_charge, rt = retention_time, annotation = metabolite_identification)
     
-    # 3. Merge spectra matching the external peak table
+    # --- Merge spectra matching the external peak table ---
     message("Merging MS2 spectra using external peak table...")
     oillist <- mergeMS2spectra (raw_oillist, peaktable = mtbls_df[, 1 : 3 ], exclude_unmatched = TRUE , rt_tolerance = 60 , mz_tolerance = 3e-5 )
     
-    # 4. Add external annotations
+    # --- Add external annotations ---
     message("Adding annotations...")
     fl <- featureList (oillist)
     fl_annos <- dplyr :: left_join (fl, mtbls_df, by = "id" )
     annolist <- addAnnotations (oillist, fl_annos, annotationColumn = 6 )
     
-    # 5. Generate a distance matrix
+    # --- Generate a distance matrix ---
     message("Generating distance matrix...")
     distmat <- distanceMatrix (annolist, mz_tolerance = 3e-5 )
     
@@ -103,7 +103,7 @@ process BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS {
     saveRDS(distmat, "distance_matrix.rds")
     readr::write_csv(fl_annos, "feature_list_annotations.csv")
     
-    # 6. Visualize similarities and plot individual annotated spectra
+    # --- Visualize similarities and plot individual annotated ---
     message("Generating visualization plots...")
     pdf("clumsid_plots.pdf", width = 10, height = 10)
     

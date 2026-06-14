@@ -35,6 +35,15 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("pipeFrame", "magrittr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     library(magrittr)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Defensive Input Parsing & Preprocessing
+    # --- Defensive Input Parsing & Preprocessing ---
     # ----------------------------------------------------------------------
     message("Stage 1: Reading and preprocessing input.csv defensively...")
     
@@ -98,7 +107,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     }
     
     # ----------------------------------------------------------------------
-    # Stage 2: Initialize pipeFrame Framework
+    # --- Initialize pipeFrame Framework ---
     # ----------------------------------------------------------------------
     message("Stage 2: Initializing pipeFrame framework...")
     
@@ -126,7 +135,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     printMap()
     
     # ----------------------------------------------------------------------
-    # Stage 3: Define Custom Step Classes and Methods
+    # --- Define Custom Step Classes and Methods ---
     # ----------------------------------------------------------------------
     message("Stage 3: Defining custom Step classes and methods...")
     
@@ -304,7 +313,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     )
     
     # ----------------------------------------------------------------------
-    # Stage 4: Execute the Pipeline
+    # --- Execute the Pipeline ---
     # ----------------------------------------------------------------------
     message("Stage 4: Executing the pipeFrame pipeline...")
     
@@ -317,7 +326,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     })
     
     # ----------------------------------------------------------------------
-    # Stage 5: Export Final Outputs
+    # --- Export Final Outputs ---
     # ----------------------------------------------------------------------
     message("Stage 5: Exporting final outputs...")
     

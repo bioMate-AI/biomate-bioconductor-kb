@@ -59,7 +59,7 @@ process BIOC_DYEBIAS_DYEBIAS_CORRECTION_PIPELINE {
     library(methods)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -90,7 +90,7 @@ process BIOC_DYEBIAS_DYEBIAS_CORRECTION_PIPELINE {
     cat(sprintf("Loaded data with %d genes and %d slides.\n", n_genes, n_slides))
     
     # ==========================================
-    # Stage 2: Reconstruct marray Objects
+    # --- Reconstruct marray Objects ---
     # ==========================================
     # GASSCO requires both normalized (marrayNorm) and raw (marrayRaw) objects.
     # We reconstruct average intensity (A) and raw intensities (Rf, Gf) mathematically:
@@ -155,7 +155,7 @@ process BIOC_DYEBIAS_DYEBIAS_CORRECTION_PIPELINE {
                      maTargets = targets)
     
     # ==========================================
-    # Stage 3: Estimate iGSDBs (Intrinsic Dye Bias)
+    # --- Estimate iGSDBs (Intrinsic Dye Bias) ---
     # ==========================================
     cat("Estimating intrinsic gene-specific dye biases (iGSDBs)...\n")
     iGSDBs.estimated <- dyebias.estimate.iGSDBs(data.norm = data.norm,
@@ -163,7 +163,7 @@ process BIOC_DYEBIAS_DYEBIAS_CORRECTION_PIPELINE {
                                                 verbose = TRUE)
     
     # ==========================================
-    # Stage 4: Define Subsets and Apply Correction
+    # --- Define Subsets and Apply Correction ---
     # ==========================================
     cat("Defining estimator and application subsets...\n")
     # Use all genes as potential estimators
@@ -184,7 +184,7 @@ process BIOC_DYEBIAS_DYEBIAS_CORRECTION_PIPELINE {
                                            verbose = TRUE)
     
     # ==========================================
-    # Stage 5: Export Results and Diagnostics
+    # --- Export Results and Diagnostics ---
     # ==========================================
     cat("Exporting corrected intensities and summary statistics...\n")
     

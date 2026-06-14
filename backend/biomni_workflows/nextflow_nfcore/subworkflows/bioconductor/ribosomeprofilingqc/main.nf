@@ -153,11 +153,11 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     # 2. RUN WORKFLOW: qc_and_psite_estimation
     # ==========================================
     
-    # Stage 1: Prepare CDS annotation
+    # --- Prepare CDS annotation ---
     message("Stage 1: Preparing CDS annotation...")
     CDS <- prepareCDS(txdb)
     
-    # Stage 2: Estimate P-site offset
+    # --- Estimate P-site offset ---
     message("Stage 2: Estimating P-site offset...")
     p5 <- estimatePsite(bamfile, CDS, genome)
     p3 <- estimatePsite(bamfile, CDS, genome, anchor = "3end")
@@ -166,18 +166,18 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
       paste("Estimated P-site (3' end anchor):", p3)
     ), "psite_estimation_results.txt")
     
-    # Stage 3: Plot start/stop windows
+    # --- Plot start/stop windows ---
     message("Stage 3: Plotting start/stop windows...")
     pdf("reads_end_plots.pdf", width = 8, height = 6)
     re <- readsEndPlot(bamfile, CDS, toStartCodon=TRUE)
     readsEndPlot(re\$reads, CDS, toStartCodon=TRUE, fiveEnd=FALSE)
     dev.off()
     
-    # Stage 4: Get P-site coordinates
+    # --- Get P-site coordinates ---
     message("Stage 4: Getting P-site coordinates...")
     pc <- getPsiteCoordinates(bamfile, bestpsite = 13)
     
-    # Stage 5: Summarize fragment length
+    # --- Summarize fragment length ---
     message("Stage 5: Summarizing fragment length...")
     readsLen <- summaryReadsLength(pc)
     write.csv(as.data.frame(readsLen), "summary_reads_length.csv", row.names = TRUE)
@@ -185,20 +185,20 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     # Filter reads by fragment size (28-29 nt)
     pc.sub <- pc[pc\$qwidth %in% c(28, 29)]
     
-    # Stage 6: Plot strand specificity
+    # --- Plot strand specificity ---
     message("Stage 6: Plotting strand specificity...")
     pdf("strand_plot.pdf", width = 6, height = 6)
     strandPlot(pc.sub, CDS)
     dev.off()
     
-    # Stage 7: Check genomic element distribution
+    # --- Check genomic element distribution ---
     message("Stage 7: Checking genomic element distribution...")
     pdf("reads_distribution_plot.pdf", width = 8, height = 6)
     pc.sub <- readsDistribution(pc.sub, txdb, las=2)
     dev.off()
     saveRDS(pc.sub, "pc_sub_distribution.rds")
     
-    # Stage 8: Plot metagene coverage
+    # --- Plot metagene coverage ---
     message("Stage 8: Calculating coverage depth and plotting metagene coverage...")
     cvgs.utr5 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="utr5")
     cvgs.CDS <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="cds")
@@ -208,7 +208,7 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     metaPlot(cvgs.utr5, cvgs.CDS, cvgs.utr3, sample=1)
     dev.off()
     
-    # Stage 9: Assign reading frames and plot frame density
+    # --- Assign reading frames and plot frame density ---
     message("Stage 9: Assigning reading frames and plotting frame density...")
     pc.sub <- assignReadingFrame(pc.sub, CDS)
     
@@ -220,7 +220,7 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     plotFrameDensity(pc.sub)
     dev.off()
     
-    # Stage 10: Calculate ORFscore and coverage rate
+    # --- Calculate ORFscore and coverage rate ---
     message("Stage 10: Calculating ORFscore and coverage rate...")
     cvg <- frameCounts(pc.sub, coverageRate=TRUE)
     saveRDS(cvg, "frame_counts_coverage.rds")

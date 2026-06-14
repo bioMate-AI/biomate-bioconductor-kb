@@ -71,10 +71,10 @@ process BIOC_RSUBREAD_SINGLE_CELL_RNA_SEQ_QUANTIFICATION {
       stop(paste("Required read R2 file missing:", reads_r2))
     }
     
-    # Step 1: Build reference genome index using buildindex
+    # --- Build reference genome index using buildindex ---
     buildindex("chr1", ref_fasta)
     
-    # Step 2: Define sample sheet with barcode/UMI and read files
+    # --- Define sample sheet with barcode/UMI and read files ---
     sample.sheet <- data.frame(
       BarcodeUMIFile = reads_r1,
       ReadFile = reads_r2,
@@ -82,7 +82,7 @@ process BIOC_RSUBREAD_SINGLE_CELL_RNA_SEQ_QUANTIFICATION {
       stringsAsFactors = FALSE
     )
     
-    # Step 3: Quantify single-cell expression using cellCounts
+    # --- Quantify single-cell expression using cellCounts ---
     counts <- cellCounts("chr1", sample.sheet, nthreads = 1, input.mode = "FASTQ", annot.inbuilt = "hg38")
     
     # Save the meaningful results to output files

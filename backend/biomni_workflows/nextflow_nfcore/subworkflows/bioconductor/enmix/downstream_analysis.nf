@@ -65,6 +65,7 @@ process BIOC_ENMIX_DOWNSTREAM_ANALYSIS {
     # Load required libraries
     library(ENmix)
     
+    library(SummarizedExperiment)
     # Read user input files from the working directory
     beta <- readRDS("beta.rds")
     mdat <- readRDS("mdat.rds")

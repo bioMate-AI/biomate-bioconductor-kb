@@ -55,7 +55,7 @@ process BIOC_TOPDOWNR_METHOD_GENERATION {
     # Load required library
     library("topdownr")
     
-    # 1. Read user input files
+    # --- Read user input files ---
     if (!file.exists("target_mz_matrix.csv")) {
         stop("Required input file 'target_mz_matrix.csv' not found in the working directory.")
     }
@@ -66,14 +66,14 @@ process BIOC_TOPDOWNR_METHOD_GENERATION {
     target_mz_df <- read.csv("target_mz_matrix.csv")
     targetMz <- as.matrix(target_mz_df)
     
-    # 2. Define MS1 settings
+    # --- Define MS1 settings ---
     ms1 <- expandMs1Conditions(
         FirstMass=400,
         LastMass=1200,
         Microscans=as.integer(10)
     )
     
-    # 3. Define common settings
+    # --- Define common settings ---
     common <- list(
         OrbitrapResolution="R120K",
         IsolationWindow=1,
@@ -82,7 +82,7 @@ process BIOC_TOPDOWNR_METHOD_GENERATION {
         AgcTarget=c(1e5, 5e5, 1e6)
     )
     
-    # 4. Create settings for different fragmentation conditions
+    # --- Create settings for different fragmentation conditions ---
     cid <- expandTms2Conditions(
         MassList=targetMz,
         common,
@@ -115,7 +115,7 @@ process BIOC_TOPDOWNR_METHOD_GENERATION {
         ActivationType="UVPD"
     )
     
-    # 5. Create experiments with all combinations of the above settings
+    # --- Create experiments with all combinations of the above ---
     exps <- createExperimentsFragmentOptimisation(
         ms1=ms1, cid, hcd, etd, etcid, uvpd,
         groupBy=c("AgcTarget", "replication"), nMs2perMs1=10, scanDuration=0.5,
@@ -125,10 +125,10 @@ process BIOC_TOPDOWNR_METHOD_GENERATION {
     # Save the generated experiments object to an RDS file
     saveRDS(exps, "experiments_fragment_optimisation.rds")
     
-    # 6. Write experiments to xml files
+    # --- Write experiments to xml files ---
     writeMethodXmls(exps=exps)
     
-    # 7. Run XMLMethodChanger (wrapped in tryCatch to handle missing executable gracefully)
+    # --- Run XMLMethodChanger (wrapped in tryCatch to handle ---
     tryCatch({
         runXmlMethodChanger(
             modificationXml=list.files(pattern="^method.*\\\\.xml\$"),

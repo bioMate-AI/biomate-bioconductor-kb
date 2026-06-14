@@ -40,7 +40,7 @@ process BIOC_CELLMIXS_COMPREHENSIVE_METRIC_EVALUATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CellMixS", "SingleCellExperiment", "ggplot2")
+    .bm_deps <- c("CellMixS", "SingleCellExperiment", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_CELLMIXS_COMPREHENSIVE_METRIC_EVALUATION {
     
     # Load required libraries
     suppressPackageStartupMessages({
-        library(CellMixS)
+          library(SummarizedExperiment)
+      library(CellMixS)
         library(ggplot2)
     })
     

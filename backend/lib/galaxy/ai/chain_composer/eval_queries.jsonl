@@ -1,0 +1,20 @@
+{"query": "bulk RNA-seq differential expression on human samples with GO and KEGG enrichment", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "canonical curated chain match"}
+{"query": "let's start with peak calling on this CUT&Tag data, then we will decide", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "stepwise", "note": "user_signal demotes to stepwise"}
+{"query": "do the whole rare disease workup including WGS and RNA-seq for trio analysis", "expect_pattern": "multi_omics_integration", "expect_mode": "upfront", "note": "user_signal boosts to upfront"}
+{"query": "multi-omics RNA-seq plus ATAC-seq integration on mouse brain mm10", "expect_pattern": "multi_omics_integration", "expect_mode": "upfront", "note": "canonical multi-omics"}
+{"query": "robust differential expression with DESeq2, edgeR, and limma on tumor vs normal RNA-seq", "expect_pattern": "multi_method_consensus", "expect_mode": "upfront", "note": "consensus across 3 methods"}
+{"query": "variant calling with GATK HaplotypeCaller, Strelka2, and DeepVariant for a defensible consensus", "expect_pattern": "multi_method_consensus", "expect_mode": "upfront", "note": "variant calling consensus"}
+{"query": "run GO, KEGG, and Reactome enrichment on a gene list and consolidate", "expect_pattern": "ensemble_annotation", "expect_mode": "upfront", "note": "ensemble annotation across DBs"}
+{"query": "annotate variants with VEP, SnpEff, and ClinVar lookups for a clinical report", "expect_pattern": "ensemble_annotation", "expect_mode": "upfront", "note": "variant annotation ensemble"}
+{"query": "ADMET screen with auto-loop retry when hERG fails", "expect_pattern": "iterative_refinement", "expect_mode": "upfront", "note": "QC-gated retry already shipped"}
+{"query": "validate biomarkers from a TCGA discovery cohort on UK Biobank using GRCh38", "expect_pattern": "discovery_then_validation", "expect_mode": "upfront", "note": "the canonical biomarker case"}
+{"query": "meta-analysis of RNA-seq DE results across TCGA, GTEx, and ICGC cohorts", "expect_pattern": "cross_cohort_replication", "expect_mode": "upfront", "note": "cross-cohort meta-analysis"}
+{"query": "scRNA-seq atlas: cluster, annotate, then subcluster the T cells and re-annotate", "expect_pattern": "hierarchical_re_evaluation", "expect_mode": "upfront", "note": "hierarchical re-evaluation pattern"}
+{"query": "variant prioritization by frequency, then damaging-prediction, then phenotype-match panel", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "filter cascade order matters"}
+{"query": "bootstrap stability of a DE gene list with 100 resamples", "expect_pattern": "resampling_uncertainty", "expect_mode": "upfront", "note": "resampling for uncertainty"}
+{"query": "if ribosomal RNA contamination is over 30 percent, switch to rRNA-depletion pipeline", "expect_pattern": "branching_on_qc", "expect_mode": "upfront", "note": "conditional branching by QC; expect_mode upgraded 2026-06-10 — query is fully specified (both branches stated), upfront is defensible"}
+{"query": "help me with some analysis", "expect_pattern": null, "expect_mode": "reactive", "note": "vague — should fall through"}
+{"query": "do something cool with the data I have", "expect_pattern": null, "expect_mode": "reactive", "note": "no specificity → reactive"}
+{"query": "screen ADMET on a smiles list and dock with AutoDock Vina against the kinase PDB", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "drug discovery cascade"}
+{"query": "find differentially methylated regions in mouse hippocampus WGBS data", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "WGBS DM region calling"}
+{"query": "test compound effect over time at 0, 6, 24, and 72 hours in HepG2 cells", "expect_pattern": "time_series_longitudinal", "expect_mode": "upfront", "note": "time-course; pattern added in v2"}

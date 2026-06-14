@@ -35,6 +35,15 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RgnTX", "GenomicFeatures", "GenomicRanges", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,13 +53,13 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(RgnTX)
     library(GenomicFeatures)
     library(GenomicRanges)
     library(S4Vectors)
     
-    # Stage 2: Read input expression data and sample metadata
+    # --- Read input expression data and sample metadata ---
     counts <- read.csv("counts.csv", row.names = 1)
     coldata <- read.csv("coldata.csv")
     
@@ -58,7 +67,7 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
     gene_means <- rowMeans(counts)
     high_expr_genes <- names(sort(gene_means, decreasing = TRUE))[1:min(50, length(gene_means))]
     
-    # Stage 3: Build a custom, self-contained TxDb matching the input gene IDs
+    # --- Build a custom, self-contained TxDb matching the input ---
     # This ensures 100% runnability without external database dependencies
     genes <- rownames(counts)
     n_genes <- length(genes)
@@ -84,7 +93,7 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
     
     txdb <- GenomicFeatures::makeTxDb(transcripts, splicing)
     
-    # Stage 4: Define Query (RS1) and Target (RS2) Transcriptomic Regions
+    # --- Define Query (RS1) and Target (RS2) Transcriptomic Regions ---
     # Extract exons grouped by transcript
     exons_all <- GenomicFeatures::exonsBy(txdb, by = "tx", use.names = TRUE)
     
@@ -115,7 +124,7 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
     RS2 <- do.call(c, last_exons_list)
     names(RS2) <- NULL
     
-    # Stage 5: Run Permutation Analysis using RgnTX
+    # --- Run Permutation Analysis using RgnTX ---
     message("Running standard permutation test...")
     perm_results <- tryCatch({
       permTestTx(
@@ -153,7 +162,7 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
     }
     write.csv(results_df, "permutation_test_results.csv", row.names = FALSE)
     
-    # Stage 6: Run Shifted Permutation Analysis
+    # --- Run Shifted Permutation Analysis ---
     message("Running shifted permutation test...")
     shifted_results <- tryCatch({
       shiftedPermTestTx(
@@ -181,7 +190,7 @@ process BIOC_RGNTX_RGNTX_COLOCALIZATION_ANALYSIS {
       write.csv(data.frame(Status = "Shifted permutation failed"), "shifted_permutation_results.csv", row.names = FALSE)
     }
     
-    # Stage 7: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     message("Generating diagnostic plots...")
     pdf("colocalization_plots.pdf", width = 10, height = 5)
     par(mfrow = c(1, 2))

@@ -34,7 +34,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicFeatures", "PRROC", "ASpli", "BiocParallel", "data.table", "DESeq2", "DEXSeq", "dplyr", "edgeR", "GenomicAlignments", "igraph", "limma", "saseR", "txdbmaker")
+    .bm_deps <- c("GenomicFeatures", "PRROC", "ASpli", "BiocParallel", "data.table", "DESeq2", "DEXSeq", "dplyr", "edgeR", "GenomicAlignments", "igraph", "limma", "saseR", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     
     # Load required libraries
     library(saseR)
+    library(SummarizedExperiment)
     suppressWarnings(library(ASpli))
     library(edgeR)
     library(DESeq2)
@@ -67,7 +68,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     library(txdbmaker)
     
     # -----------------------------------------------------------------------------
-    # 1. USER INPUTS
+    # --- USER INPUTS ---
     # Read GTF and BAM files from the working directory
     # -----------------------------------------------------------------------------
     gtfFileName <- list.files(pattern = "\\\\.gtf\$", full.names = TRUE)[1]
@@ -89,13 +90,13 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     )
     
     # -----------------------------------------------------------------------------
-    # 2. GENOME ANNOTATION & FEATURE EXTRACTION
+    # --- GENOME ANNOTATION & FEATURE EXTRACTION ---
     # -----------------------------------------------------------------------------
     genomeTxDb <- txdbmaker::makeTxDbFromGFF(gtfFileName)
     features <- binGenome(genomeTxDb, logTo = NULL)
     
     # -----------------------------------------------------------------------------
-    # 3. READ COUNTING
+    # --- READ COUNTING ---
     # -----------------------------------------------------------------------------
     ASpliSE <- BamtoAspliCounts(
       features = features,
@@ -106,7 +107,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     )
     
     # -----------------------------------------------------------------------------
-    # 4. ABERRANT EXPRESSION ANALYSIS PIPELINE
+    # --- ABERRANT EXPRESSION ANALYSIS PIPELINE ---
     # -----------------------------------------------------------------------------
     # Extract gene counts
     SEgenes <- convertASpli(ASpliSE, type = "gene")
@@ -133,7 +134,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     )
     
     # -----------------------------------------------------------------------------
-    # 5. WRITE OUTPUTS
+    # --- WRITE OUTPUTS ---
     # -----------------------------------------------------------------------------
     # Save the complete SummarizedExperiment object
     saveRDS(SEgenes, file = "aberrant_expression_results.rds")

@@ -89,6 +89,49 @@ class ApiClient {
     })
   }
 
+  // ─── Projects ──────────────────────────────────────────────────────
+  // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md. Projects
+  // are user-owned. The active project (if any) is sent in chat-stream
+  // context.projectId; that's how the framework gets activated.
+
+  async listProjects(status?: 'active' | 'archived' | 'completed') {
+    const qs = status ? `?status=${status}` : ''
+    return this.request<{ projects: Array<any> }>(`/projects${qs}`)
+  }
+
+  async createProject(data: {
+    name: string
+    description?: string
+    researchGoal?: string
+    primaryDomain?: string
+    organisms?: string[]
+    dataModalities?: string[]
+  }) {
+    return this.request<{ project: any }>(`/projects`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async getProject(id: string) {
+    return this.request<{ project: any; context: any }>(`/projects/${id}`)
+  }
+
+  async updateProject(id: string, data: Record<string, any>) {
+    return this.request<{ project: any }>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async archiveProject(id: string) {
+    return this.request<{ project: any }>(`/projects/${id}/archive`, { method: 'POST' })
+  }
+
+  async deleteProject(id: string) {
+    return this.request<{ ok: boolean }>(`/projects/${id}`, { method: 'DELETE' })
+  }
+
   // Contact form
   async submitContactForm(data: {
     name: string

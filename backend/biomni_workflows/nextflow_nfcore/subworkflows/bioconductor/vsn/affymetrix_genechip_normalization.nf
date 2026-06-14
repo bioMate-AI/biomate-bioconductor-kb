@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run vsnrma to perform background correction, between-array normalization, transformation, and summarization
+//  * 1. [Visualization & Output] Save the normalized ExpressionSet object as an RDS file
+//  * 2. [Visualization & Output] Save the normalized expression matrix as a CSV table
+//  * 3. [Visualization & Output] Generate and save diagnostic plots (mean-sd plot) to a PDF
 
 nextflow.enable.dsl = 2
 
@@ -83,14 +85,14 @@ process BIOC_VSN_AFFYMETRIX_GENECHIP_NORMALIZATION {
     
     # Write named output files for the meaningful results
     
-    # 1. Save the normalized ExpressionSet object as an RDS file
+    # --- Save the normalized ExpressionSet object as an RDS file ---
     saveRDS(d_vsn, file = "d_vsn.rds")
     
-    # 2. Save the normalized expression matrix as a CSV table
+    # --- Save the normalized expression matrix as a CSV table ---
     normalized_exprs <- exprs(d_vsn)
     write.csv(normalized_exprs, file = "normalized_intensities.csv", row.names = TRUE)
     
-    # 3. Generate and save diagnostic plots (mean-sd plot) to a PDF
+    # --- Generate and save diagnostic plots (mean-sd plot) to a PDF ---
     pdf("vsn_diagnostic_plots.pdf", width = 7, height = 7)
     tryCatch({
       meanSdPlot(d_vsn)

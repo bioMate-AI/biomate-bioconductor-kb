@@ -36,6 +36,15 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("immunotation", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Alleles
+    # --- Read and Preprocess Input Alleles ---
     # ==========================================
     input_file <- "input.csv"
     alleles <- character(0)
@@ -86,7 +95,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Reference Data Retrieval
+    # --- Reference Data Retrieval ---
     # ==========================================
     message("Retrieving reference tables...")
     valid_organisms <- get_valid_organisms()
@@ -105,7 +114,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 3: HLA Annotation and Conversion
+    # --- HLA Annotation and Conversion ---
     # ==========================================
     message("Annotating HLA alleles...")
     
@@ -161,7 +170,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     write.csv(annotations, "hla_annotations.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Format for Immunoinformatics Tools
+    # --- Format for Immunoinformatics Tools ---
     # ==========================================
     message("Formatting alleles for NetMHCpan...")
     mhcpan_mhc1 <- NULL
@@ -181,7 +190,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     write.csv(mhcpan_df, "mhcpan_inputs.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Query Worldwide Population Frequencies
+    # --- Query Worldwide Population Frequencies ---
     # ==========================================
     message("Querying population frequencies from AFND...")
     freq_list <- list()
@@ -216,7 +225,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 6: Query Population Details
+    # --- Query Population Details ---
     # ==========================================
     message("Querying population metadata...")
     pop_details <- NULL
@@ -242,7 +251,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 7: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating allele frequency map...")
     pdf("allele_frequency_map.pdf", width = 10, height = 7)

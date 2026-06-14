@@ -64,13 +64,13 @@ process BIOC_GENEGA_CUSTOM_W_TABLE_COMPUTATION {
       stop("Error: Input file 'EGFP.fasta' not found in the working directory.")
     }
     
-    # 1. Read the highly expressed gene sequences
+    # --- Read the highly expressed gene sequences ---
     aa=read.fasta(seqfile)
     
-    # 2. Calculate the Relative Synonymous Codon Usage (RSCU)
+    # --- Calculate the Relative Synonymous Codon Usage (RSCU) ---
     rscu=uco(unlist(aa), index="rscu")
     
-    # 3. Compute the relative adaptiveness (w) values by normalizing RSCU against the maximum RSCU for each amino acid
+    # --- Compute the relative adaptiveness (w) values by ---
     w_value=rscu # w_value is the w table we need computing
     names(w_value)=names(rscu)
     names=sapply(names(rscu), function(x) translate(s2c(x)))

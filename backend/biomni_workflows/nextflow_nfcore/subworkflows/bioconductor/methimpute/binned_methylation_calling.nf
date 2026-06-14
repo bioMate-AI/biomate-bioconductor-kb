@@ -67,27 +67,27 @@ process BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING {
       stop(paste("Required input file missing in working directory:", fasta.file))
     }
     
-    # 1. Import the BSSeeker data
+    # --- Import the BSSeeker data ---
     message("Importing BSSeeker data...")
     bsseeker.data <- importBSSeeker(file)
     print(bsseeker.data)
     
-    # 2. Extract all genomic cytosine positions from the FASTA reference
+    # --- Extract all genomic cytosine positions from the FASTA ---
     message("Extracting cytosine positions from FASTA...")
     cytosine.positions <- extractCytosinesFromFASTA(fasta.file,
                                                     contexts = c('CG','CHG','CHH'))
     
-    # 3. Inflate the methylome to include non-covered cytosines
+    # --- Inflate the methylome to include non-covered cytosines ---
     message("Inflating methylome...")
     methylome <- inflateMethylome(bsseeker.data, cytosine.positions)
     print(methylome)
     
-    # 4. Bin the inflated methylome into fixed-size windows
+    # --- Bin the inflated methylome into fixed-size windows ---
     message("Binning methylome...")
     binnedMethylome <- binMethylome(methylome, binsize = 100, contexts = c('total','CG'))
     print(binnedMethylome\$CG)
     
-    # 5. Call and impute methylation status on the binned data
+    # --- Call and impute methylation status on the binned data ---
     message("Calling methylation on binned data...")
     binnedModel <- callMethylation(data = binnedMethylome\$CG)
     print(binnedModel)
@@ -100,7 +100,7 @@ process BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING {
     binned_df <- as.data.frame(binnedModel\$data)
     write.csv(binned_df, file = "binned_methylation_calls.csv", row.names = FALSE)
     
-    # 6. Plot diagnostics and save to PDF
+    # --- Plot diagnostics and save to PDF ---
     message("Generating diagnostic plots...")
     pdf("binned_methylation_plots.pdf", width = 8, height = 6)
     

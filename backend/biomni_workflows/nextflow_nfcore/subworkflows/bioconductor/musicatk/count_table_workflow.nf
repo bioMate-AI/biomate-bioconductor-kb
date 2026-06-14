@@ -55,23 +55,23 @@ process BIOC_MUSICATK_COUNT_TABLE_WORKFLOW {
     # Load required library
     library(musicatk)
     
-    # 1. Read the count table and convert to matrix
+    # --- Read the count table and convert to matrix ---
     # We assume the first column contains the mutation motifs (row names)
     luad_count_table <- as.matrix(read.csv("luad_tcga_count_table.csv", row.names = 1, check.names = FALSE))
     
-    # 2. Create a musica object directly from the count table
+    # --- Create a musica object directly from the count table ---
     musica_from_counts <- create_musica_from_counts(luad_count_table, "SBS96")
     
     # Set seed for reproducibility of the NMF algorithm
     set.seed(1)
     
-    # 3. Discover signatures and exposures using discover_signatures
+    # --- Discover signatures and exposures using ---
     discover_signatures(
       musica = musica_from_counts, modality = "SBS96", num_signatures = 3,
       algorithm = "nmf", model_id = "ex_result", nstart = 10
     )
     
-    # 4. Extract and save meaningful results
+    # --- Extract and save meaningful results ---
     # Extract exposure matrix
     expos <- exposures(musica_from_counts, "result", "SBS96", "ex_result")
     write.csv(expos, "discovered_exposures.csv", row.names = TRUE)

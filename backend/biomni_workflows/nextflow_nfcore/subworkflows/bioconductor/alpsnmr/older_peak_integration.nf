@@ -136,16 +136,16 @@ process BIOC_ALPSNMR_OLDER_PEAK_INTEGRATION {
     identification <- nmr_identify_regions_blood(ppm_to_assign)
     
     # Save outputs
-    # 1. Peak table integration
+    # --- Peak table integration ---
     write.csv(as.data.frame(peak_table_integration), "peak_table_integration.csv", row.names = FALSE)
     
-    # 2. Pyroglutamic acid baseline corrected matrix
+    # --- Pyroglutamic acid baseline corrected matrix ---
     write.csv(as.data.frame(regions_basel_corr_matrix), "regions_basel_corr_matrix.csv", row.names = TRUE)
     
-    # 3. Identification results
+    # --- Identification results ---
     write.csv(identification, "identification_results.csv", row.names = FALSE)
     
-    # 4. Diagnostic plots
+    # --- Diagnostic plots ---
     pdf("nmr_pipeline_plots.pdf", width = 10, height = 7)
     
     # Plot alignment comparison

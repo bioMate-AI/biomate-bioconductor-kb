@@ -36,6 +36,15 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("sparrow", "limma", "edgeR", "ComplexHeatmap", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Data Loading and Defensive Preprocessing
+    # --- Data Loading and Defensive Preprocessing ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -95,7 +104,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     expr_mat <- as.matrix(expr_data)
     
     # ==========================================
-    # Stage 2: Experimental Design & Contrast Setup
+    # --- Experimental Design & Contrast Setup ---
     # ==========================================
     
     # Create a balanced two-group design based on the available samples
@@ -105,7 +114,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     contrast <- limma::makeContrasts(GroupBvA = GroupB - GroupA, levels = design)
     
     # ==========================================
-    # Stage 3: Gene Set Database Construction
+    # --- Gene Set Database Construction ---
     # ==========================================
     
     # Construct a custom GeneSetDb using the features present in the dataset to guarantee overlap
@@ -128,7 +137,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     gdb <- GeneSetDb(gs_df)
     
     # ==========================================
-    # Stage 4: Multi-method GSEA Execution (seas)
+    # --- Multi-method GSEA Execution (seas) ---
     # ==========================================
     
     message("Running multi-method GSEA using sparrow::seas...")
@@ -148,7 +157,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Single Sample Gene Set Scoring
+    # --- Single Sample Gene Set Scoring ---
     # ==========================================
     
     message("Computing single-sample gene set scores...")
@@ -169,7 +178,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     write.csv(scores, "single_sample_scores.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Extracting and Saving Results
+    # --- Extracting and Saving Results ---
     # ==========================================
     
     if (!is.null(mg)) {
@@ -187,7 +196,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     }
     
     # ==========================================
-    # Stage 7: Visualization and Plotting
+    # --- Visualization and Plotting ---
     # ==========================================
     
     message("Generating diagnostic and visualization plots...")

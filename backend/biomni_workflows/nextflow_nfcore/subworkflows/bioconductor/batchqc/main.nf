@@ -13,7 +13,17 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Create a SummarizedExperiment object using summarized_experiment. 2. Check data distribution using compute_aic and goodness_of_fit
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Create SummarizedExperiment Object
+//  * 3. [Visualization & Output] Check Data Distribution
+//  * 4. [Visualization & Output] Apply Normalization Methods
+//  * 5. [Visualization & Output] Apply Batch Effect Correction
+//  * 6. [Visualization & Output] Experimental Design & Confounding
+//  * 7. [Visualization & Output] Lambda & Variation Analysis
+//  * 8. [Visualization & Output] kBET Batch Effect Test
+//  * 9. [Visualization & Output] Visualizations
+//  * 10. [Visualization & Output] Differential Expression Analysis
+//  * 11. [Visualization & Output] Save Corrected SummarizedExperiment Object
 
 nextflow.enable.dsl = 2
 
@@ -60,8 +70,9 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     # Load required libraries
     library(BatchQC)
     
+    library(SummarizedExperiment)
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     find_file <- function(base_name) {
@@ -136,7 +147,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     metadata\$TBStatus <- metadata\$condition
     
     # ==========================================
-    # 2. Create SummarizedExperiment Object
+    # --- Create SummarizedExperiment Object ---
     # ==========================================
     
     se_object <- BatchQC::summarized_experiment(features, metadata)
@@ -157,7 +168,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     covar <- "TBStatus"
     
     # ==========================================
-    # 3. Check Data Distribution
+    # --- Check Data Distribution ---
     # ==========================================
     
     # AIC Model Fit
@@ -193,7 +204,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     writeLines(TB_fit\$recommendation, "goodness_of_fit_recommendation.txt")
     
     # ==========================================
-    # 4. Apply Normalization Methods
+    # --- Apply Normalization Methods ---
     # ==========================================
     
     # CPM Normalization
@@ -222,7 +233,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
         output_assay_name = "log_normalized_counts")
     
     # ==========================================
-    # 5. Apply Batch Effect Correction
+    # --- Apply Batch Effect Correction ---
     # ==========================================
     
     # ComBat correction
@@ -231,7 +242,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
         covar = c(covar), output_assay_name = "ComBat_corrected")
     
     # ==========================================
-    # 6. Experimental Design & Confounding
+    # --- Experimental Design & Confounding ---
     # ==========================================
     
     batch_design_tibble <- BatchQC::batch_design(se = se_object, batch = batch, 
@@ -248,7 +259,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     writeLines(as.character(cramers_v_result), "cramers_v_result.txt")
     
     # ==========================================
-    # 7. Lambda & Variation Analysis
+    # --- Lambda & Variation Analysis ---
     # ==========================================
     
     lambda_calculation <- run_lambda(se = se_object,
@@ -304,7 +315,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     write.csv(as.data.frame(EV_table_type_2), "EV_table_corrected_residual.csv", row.names = FALSE)
     
     # ==========================================
-    # 8. kBET Batch Effect Test
+    # --- kBET Batch Effect Test ---
     # ==========================================
     
     tryCatch({
@@ -320,7 +331,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     })
     
     # ==========================================
-    # 9. Visualizations
+    # --- Visualizations ---
     # ==========================================
     
     n_feat_heatmap <- min(38, nrow(se_object))
@@ -413,7 +424,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     })
     
     # ==========================================
-    # 10. Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     
     differential_expression <- BatchQC::DE_analyze(se = se_object,
@@ -456,7 +467,7 @@ process BIOC_BATCHQC_BATCH_DIAGNOSTICS_AND_CORRECTION {
     dev.off()
     
     # ==========================================
-    # 11. Save Corrected SummarizedExperiment Object
+    # --- Save Corrected SummarizedExperiment Object ---
     # ==========================================
     
     file_location <- "corrected_se_object.rds"

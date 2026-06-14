@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Prepare transformed expression matrix. 2. Detect expression patterns using degPatterns
+//  * 1. [Input & Preparation] Save the full degPatterns output object
+//  * 2. [Input & Preparation] Save the gene-to-cluster mapping table
+//  * 3. [Input & Preparation] Save the plot
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +41,15 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DESeq2", "DEGreport", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,6 +61,7 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
             
     # Load required libraries
     library(DESeq2)
+    library(SummarizedExperiment)
     library(DEGreport)
     
     # Check if input files exist
@@ -100,15 +112,15 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
     # === END DOCUMENTED CODE ===
     
     # Save meaningful results
-    # 1. Save the full degPatterns output object
+    # --- Save the full degPatterns output object ---
     saveRDS(res, "deg_patterns_results.rds")
     
-    # 2. Save the gene-to-cluster mapping table
+    # --- Save the gene-to-cluster mapping table ---
     if (!is.null(res\$df)) {
       write.csv(res\$df, "expression_patterns_cl_membership.csv", row.names = FALSE)
     }
     
-    # 3. Save the plot
+    # --- Save the plot ---
     if (!is.null(res\$plot)) {
       pdf("expression_patterns_plot.pdf", width = 10, height = 8)
       print(res\$plot)

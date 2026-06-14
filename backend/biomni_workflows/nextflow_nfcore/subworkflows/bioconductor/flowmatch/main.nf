@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Cluster both samples using a clustering algorithm (e.g., kmeans). 2. Create ClusteredSample S4 objects for both samples to encapsu
+//  * 1. [Visualization & Output] Cluster both samples using a clustering algorithm (kmeans)
+//  * 2. [Visualization & Output] Create ClusteredSample S4 objects for both samples
+//  * 3. [Visualization & Output] Match clusters across the sample pair using match.clusters
+//  * 4. [Visualization & Output] Retrieve and summarize the matching results
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("flowMatch")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -57,20 +69,20 @@ process BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING {
     sample1 <- as.matrix(read.csv("sample1.csv"))
     sample2 <- as.matrix(read.csv("sample2.csv"))
     
-    # 1. Cluster both samples using a clustering algorithm (kmeans)
+    # --- Cluster both samples using a clustering algorithm (kmeans) ---
     clust1 = kmeans(sample1, centers=4, nstart=20)
     clust2 = kmeans(sample2, centers=4, nstart=20)
     cluster.labels1 = clust1\$cluster
     cluster.labels2 = clust2\$cluster
     
-    # 2. Create ClusteredSample S4 objects for both samples
+    # --- Create ClusteredSample S4 objects for both samples ---
     clustSample1 = ClusteredSample(labels=cluster.labels1, sample=sample1)
     clustSample2 = ClusteredSample(labels=cluster.labels2, sample=sample2)
     
-    # 3. Match clusters across the sample pair using match.clusters
+    # --- Match clusters across the sample pair using match.clusters ---
     mec = match.clusters(clustSample1, clustSample2, dist.type="Mahalanobis", unmatch.penalty=99999)
     
-    # 4. Retrieve and summarize the matching results
+    # --- Retrieve and summarize the matching results ---
     class_info <- class(mec)
     print(class_info)
     

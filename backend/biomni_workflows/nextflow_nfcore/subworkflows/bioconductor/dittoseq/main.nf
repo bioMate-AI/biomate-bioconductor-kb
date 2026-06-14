@@ -35,6 +35,15 @@ process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dittoSeq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     library(dittoSeq)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input datasets...")
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -74,7 +83,7 @@ process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     coldata_df\$batch <- factor(rep(c("Batch_A", "Batch_B"), length.out = nrow(coldata_df)))
     
     # ==========================================
-    # Stage 2: Normalization & Dimensionality Reduction
+    # --- Normalization & Dimensionality Reduction ---
     # ==========================================
     message("Performing log-normalization and PCA...")
     # Simple log2 transformation for visualization purposes
@@ -89,7 +98,7 @@ process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     pca_embeddings <- pca_res\$x[, 1:2, drop = FALSE]
     
     # ==========================================
-    # Stage 3: Import into dittoSeq Structure
+    # --- Import into dittoSeq Structure ---
     # ==========================================
     message("Importing data into dittoSeq bulk structure...")
     bulkSCE <- importDittoBulk(
@@ -103,7 +112,7 @@ process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     message("Is the imported object recognized as bulk? ", is_bulk_dataset)
     
     # ==========================================
-    # Stage 4: Comprehensive Visualizations
+    # --- Comprehensive Visualizations ---
     # ==========================================
     message("Generating dittoSeq visualizations...")
     
@@ -161,7 +170,7 @@ process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     dev.off()
     
     # ==========================================
-    # Stage 5: Extracting Underlying Data & Metadata
+    # --- Extracting Underlying Data & Metadata ---
     # ==========================================
     message("Exporting underlying plot data and metadata summaries...")
     

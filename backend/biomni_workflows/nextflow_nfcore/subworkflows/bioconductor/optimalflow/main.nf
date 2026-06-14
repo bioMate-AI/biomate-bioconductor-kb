@@ -56,7 +56,7 @@ process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
     library(optimalFlow)
     library(ellipse)
     
-    # 1. Read the user input database file from the working directory
+    # --- Read the user input database file from the working ---
     database_file <- "database.rds"
     if (!file.exists(database_file) && file.exists("database")) {
       database_file <- "database"
@@ -75,19 +75,19 @@ process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
       assign(dataset_names[i], database_input[[i]], envir = .GlobalEnv)
     }
     
-    # 2. Build the database of gated cytometries using buildDatabase
+    # --- Build the database of gated cytometries using ---
     database <- buildDatabase(
       dataset_names = paste0('Cytometry', c(2:5, 7:9, 12:17, 19, 21)),
       population_ids = c('Monocytes', 'CD4+CD8-', 'Mature SIg Kappa', 'TCRgd-')
     )
     
-    # 3. Generate templates and cluster the database using optimalFlowTemplates
+    # --- Generate templates and cluster the database using ---
     templates.optimalFlow <-
       optimalFlowTemplates(
         database = database, templates.number = 5, cl.paral = 1
       )
     
-    # 4. Visualize the database clusters and templates
+    # --- Visualize the database clusters and templates ---
     pdf("optimalFlow_plots.pdf", width = 10, height = 8)
     
     # Plot database elliptical representations for cluster 3
@@ -104,7 +104,7 @@ process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
     
     dev.off()
     
-    # 5. Generate templates using alternative consensus and clustering methods
+    # --- Generate templates using alternative consensus and ---
     templates.optimalFlow.barycenter <- 
       optimalFlowTemplates(
         database = database, templates.number = 5, consensus.method = "k-barycenter",
@@ -122,7 +122,7 @@ process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
         database = database, hclust.method = "hdbscan", cl.paral = 1, consensus.method = "hierarchical"
       )
     
-    # 6. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     saveRDS(templates.optimalFlow, "templates_optimalFlow.rds")
     saveRDS(templates.optimalFlow.barycenter, "templates_optimalFlow_barycenter.rds")
     saveRDS(templates.optimalFlow.hdbscan, "templates_optimalFlow_hdbscan.rds")

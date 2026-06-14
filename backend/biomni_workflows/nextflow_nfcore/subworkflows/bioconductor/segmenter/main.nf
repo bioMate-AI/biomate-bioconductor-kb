@@ -35,6 +35,15 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("segmenter", "rtracklayer", "GenomicRanges", "ComplexHeatmap")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     library(ComplexHeatmap)
     
     # ==========================================
-    # Stage 1: Input Preparation & Formatting
+    # --- Input Preparation & Formatting ---
     # ==========================================
     message("Stage 1: Preparing input files from regions.bed...")
     
@@ -122,7 +131,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Signal Binarization
+    # --- Signal Binarization ---
     # ==========================================
     message("Stage 2: Binarizing BED files...")
     outputdir <- "binarized_outputs"
@@ -143,7 +152,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 3: Model Learning & Downstream Analysis
+    # --- Model Learning & Downstream Analysis ---
     # ==========================================
     model_success <- FALSE
     
@@ -214,7 +223,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 4: Robust Fallback Generation
+    # --- Robust Fallback Generation ---
     # ==========================================
     if (!model_success) {
       message("Stage 4: Generating fallback outputs due to execution constraints...")

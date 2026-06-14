@@ -76,26 +76,26 @@ process BIOC_GENOMICALIGNMENTS_OVERLAP_ENCODING_AND_SPLICING_COMPATIBILITY {
       stop("Required TxDb SQLite file '", txdb_file, "' not found in the working directory.")
     }
     
-    # 1. Load aligned reads from BAM file
+    # --- Load aligned reads from BAM file ---
     message("Loading aligned reads from BAM file...")
     flag0 <- scanBamFlag(isDuplicate=FALSE, isNotPassingQualityControls=FALSE)
     param0 <- ScanBamParam(flag=flag0)
     U1.GAL <- readGAlignments(bamfile, use.names=TRUE, param=param0)
     
-    # 2. Extract exons grouped by transcript from the transcript database
+    # --- Extract exons grouped by transcript from the transcript ---
     message("Loading transcript database and extracting exons...")
     txdb <- loadDb(txdb_file)
     exbytx <- exonsBy(txdb, by="tx", use.names=TRUE)
     
-    # 3. Find overlaps between alignments and transcripts
+    # --- Find overlaps between alignments and transcripts ---
     message("Finding overlaps...")
     U1.OV00 <- findOverlaps(U1.GAL, exbytx, ignore.strand=TRUE)
     
-    # 4. Convert alignments to a GRangesList object
+    # --- Convert alignments to a GRangesList object ---
     message("Converting alignments to GRangesList...")
     U1.grl <- grglist(U1.GAL, order.as.in.query=TRUE)
     
-    # 5. Encode overlaps and identify splice-compatible alignments
+    # --- Encode overlaps and identify splice-compatible alignments ---
     message("Encoding overlaps and identifying splicing compatibility...")
     U1.ovenc <- encodeOverlaps(U1.grl, exbytx, hits=U1.OV00, flip.query.if.wrong.strand=TRUE)
     U1.OV00_is_comp <- isCompatibleWithSplicing(U1.ovenc)

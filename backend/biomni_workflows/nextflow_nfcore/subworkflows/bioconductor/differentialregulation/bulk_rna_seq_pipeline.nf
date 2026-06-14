@@ -55,7 +55,7 @@ process BIOC_DIFFERENTIALREGULATION_BULK_RNA_SEQ_PIPELINE {
     # Load required libraries
     library(DifferentialRegulation)
     
-    # 1. Locate user input files in the working directory
+    # --- Locate user input files in the working directory ---
     quant_files = list.files(path = ".", pattern = "quant\\\\.sf\$", recursive = TRUE, full.names = TRUE)
     equiv_classes_files = list.files(path = ".", pattern = "eq_classes\\\\.txt\\\\.gz\$", recursive = TRUE, full.names = TRUE)
     
@@ -73,21 +73,21 @@ process BIOC_DIFFERENTIALREGULATION_BULK_RNA_SEQ_PIPELINE {
       sample_ids = paste0("sample", seq_along(quant_files))
     }
     
-    # 2. Load bulk US counts using load_bulk_US
+    # --- Load bulk US counts using load_bulk_US ---
     SE = load_bulk_US(quant_files,
                       sample_ids)
     
-    # 3. Load bulk equivalence classes using load_bulk_EC
+    # --- Load bulk equivalence classes using load_bulk_EC ---
     EC_list = load_bulk_EC(path_to_eq_classes = equiv_classes_files,
                            n_cores = 2)
     
-    # 4. Define experimental design
+    # --- Define experimental design ---
     # Dynamically assign groups A and B based on the number of samples
     group_names = rep(c("A", "B"), each = ceiling(length(sample_ids) / 2))[1:length(sample_ids)]
     design = data.frame(sample = sample_ids,
                         group = group_names)
     
-    # 5. Run bulk differential testing using DifferentialRegulation_bulk
+    # --- Run bulk differential testing using ---
     set.seed(1609612)
     results = DifferentialRegulation_bulk(SE = SE, 
                                           EC_list = EC_list,
@@ -95,12 +95,12 @@ process BIOC_DIFFERENTIALREGULATION_BULK_RNA_SEQ_PIPELINE {
                                           n_cores = 2,
                                           traceplot = TRUE)
     
-    # 6. Save results to files
+    # --- Save results to files ---
     saveRDS(results, "differential_regulation_results.rds")
     write.csv(results\$Differential_results, "differential_results.csv", row.names = FALSE)
     write.csv(results\$Convergence_results, "convergence_results.csv", row.names = FALSE)
     
-    # 7. Visualize results using plot_bulk_pi and plot_bulk_traceplot
+    # --- Visualize results using plot_bulk_pi and ---
     # Generate PDF plots for the top transcript
     top_transcript = results\$Differential_results\$Transcript_id[1]
     

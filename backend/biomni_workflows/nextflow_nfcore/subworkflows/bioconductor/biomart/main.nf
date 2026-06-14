@@ -35,6 +35,15 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biomaRt")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     library(biomaRt)
     
     # ==========================================
-    # STAGE 1: Defensive Input Reading & Parsing
+    # --- Defensive Input Reading & Parsing ---
     # ==========================================
     
     input_file <- "input.csv"
@@ -96,7 +105,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     message("Processing ", length(ids), " unique identifiers.")
     
     # ==========================================
-    # STAGE 2: Establish Connection to BioMart
+    # --- Establish Connection to BioMart ---
     # ==========================================
     
     # Configure SSL settings defensively to avoid common handshake/certificate errors
@@ -126,7 +135,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     })
     
     # ==========================================
-    # STAGE 3: Retrieve Basic Gene Annotations
+    # --- Retrieve Basic Gene Annotations ---
     # ==========================================
     
     message("Retrieving basic gene annotations...")
@@ -157,7 +166,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     write.csv(annot_df, "gene_annotations.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Retrieve Gene Ontology (GO) Terms
+    # --- Retrieve Gene Ontology (GO) Terms ---
     # ==========================================
     
     message("Retrieving Gene Ontology annotations...")
@@ -191,7 +200,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     write.csv(go_df, "go_annotations.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Retrieve Promoter Sequences
+    # --- Retrieve Promoter Sequences ---
     # ==========================================
     
     message("Retrieving 100bp upstream promoter sequences...")
@@ -211,7 +220,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     write.csv(seq_df, "promoter_sequences.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Retrieve Mouse Homologs
+    # --- Retrieve Mouse Homologs ---
     # ==========================================
     
     message("Mapping human genes to mouse homologs...")
@@ -278,7 +287,7 @@ process BIOC_BIOMART_BIOMART_GENOMIC_ANNOTATION {
     write.csv(final_homology_df, "mouse_homologs.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Diagnostics & Visualization
+    # --- Diagnostics & Visualization ---
     # ==========================================
     
     message("Generating diagnostic plots...")

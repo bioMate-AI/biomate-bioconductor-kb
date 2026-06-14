@@ -498,6 +498,334 @@ TUTORIALS = {
     ],
   },
 
+  # ── Bioconductor · DESeq2 chain (bioc-kb-routing) — 21 steps ────────────────
+  # Voiceover sourced from src/BiocTours.jsx step bodies + the shared
+  # afterRunSteps generator. JSX markup stripped, package / class names
+  # spelled out for clarity (DESeqDataSet → "DeSeq Data Set", etc).
+  # Audit notes from docs/20260610_BIOC_TUTORIAL_NARRATIVE_AUDIT.md:
+  # D1 (step 3 disambig) needs a longer dwell — handled at the playwright
+  # tour layer, not here, since this is just voiceover length.
+  "bioc_kb": {
+    "label": "Bioconductor · DESeq2 chain",
+    "steps": [
+      # 1 — center welcome
+      ("In this tutorial we compare gene expression between a control and a "
+       "treated group, using the standard Bioconductor toolkit: DESeq2, "
+       "apeglm, and clusterProfiler. No R experience needed — BioMate picks "
+       "the right workflow, runs it, and hands back a paste-ready report.",
+       True, CLOSING_SPEED),
+
+      # 2 — empty panel · understanding the request
+      ("BioMate embeds your request against the Bioconductor knowledge base. "
+       "The panel stays empty until a pipeline is committed.",
+       False, None),
+
+      # 3 — disambig card
+      ("Two curated chains scored close: a count-matrix DESeq2 path at "
+       "seventy-one percent, and a fuller FASTQ pipeline at sixty-six "
+       "percent. BioMate surfaces both with their scores and pre-selects the "
+       "top match.",
+       False, None),
+
+      # 4 — phase list populates
+      ("The panel now shows the six phases that will run: QC, normalise, "
+       "differential expression, shrinkage, enrichment, and visualisation. "
+       "The chat on the left and the panel on the right are now tracking "
+       "the same run.",
+       False, None),
+
+      # 5 — routing reasoning
+      ("Why DESeq2 and not limma-voom? An integer count matrix calls for a "
+       "negative-binomial model, which is what DESeq2 fits. Limma-voom is "
+       "for continuous log-two intensities, which is a different kind of "
+       "input.",
+       False, None),
+
+      # 6 — Phase A · QC filtering
+      ("Phase A starts and the active phase expands automatically. edgeR's "
+       "filterByExpr drops genes under ten counts. Parameters and output "
+       "files appear inline as each step finishes.",
+       False, None),
+
+      # 7 — DESeqDataSet handoff
+      ("After normalisation, the counts, sample metadata, and size factors "
+       "fold into a single DESeqDataSet object. Every downstream DESeq2 step "
+       "reads from that one object.",
+       False, None),
+
+      # 8 — Phase C · DE testing
+      ("Phase C runs the Wald test, using condition as the design. The "
+       "result is two thousand eight hundred and forty-one differentially "
+       "expressed genes at false discovery rate under five percent.",
+       False, None),
+
+      # 9 — apeglm shrinkage
+      ("Before ranking, apeglm pulls low-count fold changes toward zero. "
+       "That keeps noisy extremes from dominating the enrichment that "
+       "follows.",
+       False, None),
+
+      # 10 — Phase E · enrichment
+      ("Phase E runs clusterProfiler's gseGO on the shrunk ranked list. The "
+       "top biological-process term is regulation of apoptotic process. "
+       "Phase F then renders the volcano plot, dot plot, and heatmap.",
+       False, None),
+
+      # 11 — center: chain complete · transition
+      ("All six phases are done. A findings card lands in the chat, and the "
+       "After-run report opens in the panel.",
+       True, None),
+
+      # 12 — tabs overview
+      ("The After-run report has seven tabs: results first, methods and "
+       "reproducibility next, audit last.",
+       False, None),
+
+      # 13 — Findings tab
+      ("Findings: the headline numbers and figures, read straight from the "
+       "run.",
+       False, None),
+
+      # 14 — Outputs tab
+      ("Outputs: one row per file. View opens a file in place; Download all "
+       "packages everything as a single ZIP.",
+       False, None),
+
+      # 15 — Methods tab
+      ("Methods: paste-ready prose for a manuscript, with every tool and the "
+       "parameters used.",
+       False, None),
+
+      # 16 — Parameters tab
+      ("Parameters: a table of every value the run touched, by phase and "
+       "step.",
+       False, None),
+
+      # 17 — Software tab
+      ("Software: every package with its pinned version, so the run is "
+       "reproducible.",
+       False, None),
+
+      # 18 — Citations tab
+      ("Citations: an auto-generated reference list for the methods used.",
+       False, None),
+
+      # 19 — QC audit tab
+      ("QC audit: every quality gate that fired, with the threshold, the "
+       "observed value, the result, and the action taken. The audit trail "
+       "is compatible with twenty-one CFR Part Eleven.",
+       False, None),
+
+      # 20 — center wrap-up
+      ("And that's the full Bioconductor DESeq2 thread — from a "
+       "natural-language request, through six analysis phases, to a "
+       "complete, paste-ready report.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── Bioconductor · scRNA-seq → pseudobulk DE (bioc-sc-routing) — 19 steps ──
+  # Sourced from src/BiocTours.jsx 'bioc-sc-routing'. Strips JSX markup,
+  # spells package names phonetically (SingleCellExperiment → "single cell
+  # experiment"). Centerpiece (step 8): the pseudobulk trap-and-fix beat
+  # — extended dwell handled at the playwright tour layer.
+  "bioc_sc": {
+    "label": "Bioconductor · scRNA-seq chain",
+    "steps": [
+      # 1 — center welcome (~3min target)
+      ("Single-cell request. Route to OSCA, cluster, annotate in parallel, "
+       "then condition DE the right way — pseudobulk.",
+       True, CLOSING_SPEED),
+
+      # 2 — phase list
+      ("Seven phases. QC, normalise, feature, cluster, "
+       "markers and annotation in parallel, pseudobulk DE.",
+       False, None),
+
+      # 3 — routed to OSCA
+      ("Routed to OSCA. A single cell experiment hands off to pseudobulk "
+       "DeSeq2 with no lossy conversion.",
+       False, None),
+
+      # 4 — Phase A cell QC
+      ("Phase A. emptyDrops and perCellQCMetrics. "
+       "Nine thousand eight hundred fourteen of twelve thousand cells retained.",
+       False, None),
+
+      # 5 — one SCE throughout
+      ("One single cell experiment carries counts, log-counts, metadata, "
+       "and size factors through every step.",
+       False, None),
+
+      # 6 — Phases B–D, 11 clusters
+      ("Normalised. PCA. SNN graph plus Louvain. "
+       "Eleven clusters. UMAP is for visualisation.",
+       False, None),
+
+      # 7 — parallel branch
+      ("scoreMarkers and SingleR open in parallel — "
+       "both read the clustered object.",
+       False, None),
+
+      # 8 — pseudobulk centerpiece
+      ("Trap and fix. Thousands of cells aren't replicates — "
+       "aggregate to pseudobulk so six samples are. Then DeSeq2 per cell type.",
+       False, None),
+
+      # 9 — center: chain complete
+      ("Seven phases done. CD-eight T cells lead with two hundred fourteen DE genes.",
+       True, None),
+
+      # 10 — tabs overview
+      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, "
+       "Citations, QC audit.",
+       False, None),
+
+      # 11 — Findings tab
+      ("Findings. DE genes per cell type, composition, QC retention — from the manifest.",
+       False, None),
+
+      # 12 — Outputs tab
+      ("Outputs. UMAP, marker heatmap, per-cell-type DE tables, cell-type calls.",
+       False, None),
+
+      # 13 — UMAP preview
+      ("Clicking view on the UMAP renders it inline — "
+       "cells coloured by the eight SingleR types.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods. emptyDrops, scran, SNN/Louvain, SingleR, "
+       "aggregateAcrossCells into DeSeq2.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters. emptyDrops FDR, HVG count, SNN k, "
+       "SingleR reference, pseudobulk design.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software. DropletUtils, scran, scater, SingleR, DeSeq2 — exact versions.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations. Amezquita twenty-twenty, Lun twenty-nineteen, "
+       "Aran twenty-nineteen, Love twenty-fourteen.",
+       False, None),
+
+      # 18 — QC audit
+      ("QC audit. Cells retained, cluster count, "
+       "and the replicate-unit gate — sample, not cell.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("One object, one request, statistically honest DE. "
+       "Try the methylation tutorial next.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── Bioconductor · 450k methylation → DMRs (bioc-methyl-routing) — 19 steps
+  # Sourced from src/BiocTours.jsx 'bioc-methyl-routing'. Centerpiece
+  # (step 8): the CpG-density bias correction trap-and-fix beat — extended
+  # dwell handled at the playwright tour layer.
+  "bioc_methyl": {
+    "label": "Bioconductor · 450k methylation chain",
+    "steps": [
+      # 1 — center welcome (~3min target)
+      ("Methylation array. Genomic backbone, not a count matrix — "
+       "probe coordinates travel with the data.",
+       True, CLOSING_SPEED),
+
+      # 2 — five phases
+      ("Five phases. Read IDAT, QC, DMP calling, DMR calling, "
+       "and CpG-corrected enrichment.",
+       False, None),
+
+      # 3 — routed to minfi
+      ("IDAT plus the 450k manifest routes to minfi — "
+       "DMRs need a genomic object, not a plain matrix.",
+       False, None),
+
+      # 4 — Phase A read IDAT
+      ("Phase A. read-meth-array-exp returns a methyl set: "
+       "four hundred fifty thousand probes, twenty-four samples.",
+       False, None),
+
+      # 5 — GenomicRatioSet handoff
+      ("After QC, a genomic ratio set. Beta values with probe coordinates. "
+       "Lets the next step collapse CpGs into regions.",
+       False, None),
+
+      # 6 — Phase C DMP
+      ("Phase C. limma eBayes on M-values. "
+       "Twelve thousand four hundred CpGs significant.",
+       False, None),
+
+      # 7 — Phase D DMRs
+      ("Phase D. bumphunter, one thousand bootstraps. "
+       "Eight hundred forty-seven DMRs as genomic ranges.",
+       False, None),
+
+      # 8 — CpG-bias centerpiece
+      ("Trap and fix. Normal GO over-represents CpG-rich promoters. "
+       "missMethyl gometh weights by CpG count and keeps p-values calibrated.",
+       False, None),
+
+      # 9 — center: chain complete
+      ("Five phases done. Eight hundred forty-seven DMRs.",
+       True, None),
+
+      # 10 — tabs overview
+      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, "
+       "Citations, QC audit.",
+       False, None),
+
+      # 11 — Findings tab
+      ("Findings. DMR direction, top CpG-corrected GO terms, probe-QC retention.",
+       False, None),
+
+      # 12 — Outputs tab
+      ("Outputs. DMP table, DMR object as genomic ranges, "
+       "CpG-corrected GO enrichment.",
+       False, None),
+
+      # 13 — DMR manhattan preview
+      ("Clicking view on the DMR tracks renders it inline — "
+       "negative log-ten p across chromosomes.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods. read-meth-array, detection-p QC, preprocessQuantile, "
+       "limma DMPs, bumphunter DMRs, gometh.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters. Detection-p cutoff, M-value design, "
+       "bumphunter bootstraps, gometh array type.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software. minfi, limma, bumphunter, missMethyl — exact versions.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations. Aryee twenty-fourteen, Jaffe twenty-twelve, "
+       "Phipson twenty-sixteen, Ritchie twenty-fifteen.",
+       False, None),
+
+      # 18 — QC audit
+      ("QC audit. Samples, probes, significant CpGs, DMRs, "
+       "and the CpG-bias-corrected flag.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("Genomic backbone, DMRs, CpG-corrected GO — different lineage, "
+       "same orchestration. That's the three Bioconductor demos.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
 }
 
 

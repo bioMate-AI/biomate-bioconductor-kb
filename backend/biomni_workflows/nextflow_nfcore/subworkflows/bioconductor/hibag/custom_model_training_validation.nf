@@ -93,21 +93,21 @@ process BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION {
     HLA_Type_Table <- load_input("HLA_Type_Table")
     HapMap_CEU_Geno <- load_input("HapMap_CEU_Geno")
     
-    # 1. Format reference HLA alleles
+    # --- Format reference HLA alleles ---
     hla.id <- "A"
     train.HLA <- hlaAllele (HLA_Type_Table \$ sample.id, H1 = HLA_Type_Table[, paste (hla.id, ".1" , sep= "" )], H2 = HLA_Type_Table[, paste (hla.id, ".2" , sep= "" )], locus= hla.id, assembly= "hg19" )
     
-    # 2. Define flanking SNP regions and subset genotypes
+    # --- Define flanking SNP regions and subset genotypes ---
     region <- 500
     train.geno <- hlaGenoSubsetFlank (HapMap_CEU_Geno, hla.id, region * 1000 , assembly= "hg19" )
     summary (train.geno)
     
-    # 3. Train the HIBAG model sequentially
+    # --- Train the HIBAG model sequentially ---
     set.seed ( 100 )
     model <- hlaAttrBagging (train.HLA, train.geno, nclassifier= 100 )
     summary (model)
     
-    # 4. Train the HIBAG model in parallel
+    # --- Train the HIBAG model in parallel ---
     cl <- 2
     set.seed ( 1000 )
     hlaParallelAttrBagging (cl, train.HLA, train.geno, nclassifier= 100 , auto.save= "AutoSaveModel.RData" )
@@ -122,7 +122,7 @@ process BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION {
     # Predict HLA alleles on training/test data
     pred.guess <- hlaPredict (model, yourgeno, type= "response+prob" , cl= cl)
     
-    # 5. Split reference data into training and validation sets
+    # --- Split reference data into training and validation sets ---
     hlatab <- hlaSplitAllele (hla, train.prop= 0.5 )
     snpid <- hlaFlankingSNP (HapMap_CEU_Geno \$ snp.id, HapMap_CEU_Geno \$ snp.position, hla.id, region * 1000 , assembly= "hg19" )
     train.geno <- hlaGenoSubset (HapMap_CEU_Geno, snp.sel = match (snpid, HapMap_CEU_Geno \$ snp.id), samp.sel = match (hlatab \$ training \$ value \$ sample.id, HapMap_CEU_Geno \$ sample.id))
@@ -137,7 +137,7 @@ process BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION {
     # Save predictions to RDS
     saveRDS(pred, file = "HIBAG_validation_predictions.rds")
     
-    # 6. Evaluate accuracy and generate diagnostic plots/reports
+    # --- Evaluate accuracy and generate diagnostic plots/reports ---
     comp <- hlaCompareAllele (hlatab \$ validation, pred, allele.limit= model, call.threshold= 0 )
     comp \$ overall
     
@@ -168,7 +168,7 @@ process BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION {
     hlaReport (comp, type= "tex" , header= FALSE )
     sink()
     
-    # 7. Publish and anonymize the model for public release
+    # --- Publish and anonymize the model for public release ---
     mobj <- hlaPublish (model, platform = "Illumina 1M Duo" , information = "Training set -- HapMap Phase II" , warning = NULL , rm.unused.snp= TRUE , anonymize= TRUE )
     save (mobj, file= "Your_HIBAG_Model.RData" )
 

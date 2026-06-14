@@ -55,24 +55,24 @@ process BIOC_SSVIZ_PIRNA_PING_PONG_AND_COMPOSITION {
     # Load required libraries
     library(ssviz)
     
-    # 1. Load the dataset and extract collapsed read counts using getCountMatrix
+    # --- Load the dataset and extract collapsed read counts using ---
     # Read the user input file "file1.bam"
     pctrlbam <- readBam("file1.bam")
     pctrlbam.count <- getCountMatrix(pctrlbam)
     
-    # 2. Calculate sense and anti-sense piRNA overlap frequencies using pingpong
+    # --- Calculate sense and anti-sense piRNA overlap frequencies ---
     pp.ctrl <- pingpong(pctrlbam.count)
     
-    # 3. Plot the ping-pong overlap frequency using plotPP
+    # --- Plot the ping-pong overlap frequency using plotPP ---
     pdf("ping_pong_overlap_plot.pdf", width = 8, height = 6)
     plotPP(list(pp.ctrl), samplenames = c("Control"))
     dev.off()
     
-    # 4. Compute nucleotide frequency over a specified length using ntfreq
+    # --- Compute nucleotide frequency over a specified length ---
     pctrlbam.count <- getCountMatrix(pctrlbam)
     freq.ctrl <- ntfreq(pctrlbam.count, ntlength = 10)
     
-    # 5. Plot the nucleotide composition using plotFreq
+    # --- Plot the nucleotide composition using plotFreq ---
     pdf("nucleotide_frequency_plot.pdf", width = 8, height = 6)
     plotFreq(freq.ctrl)
     dev.off()

@@ -52,7 +52,7 @@ process BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION {
       }
     }
     
-    # 1. Load the GrafGen package
+    # --- Load the GrafGen package ---
     library(GrafGen)
     
     # Define the user input file from the working directory
@@ -62,11 +62,11 @@ process BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION {
       stop("Error: The required input file 'geno.file' does not exist in the working directory.")
     }
     
-    # 2. Run the classification algorithm on the genotype file using grafGen
+    # --- Run the classification algorithm on the genotype file ---
     message("Running grafGen classification...")
     ret <- grafGen(geno.file, print=0)
     
-    # 3. Inspect the classification table and population counts
+    # --- Inspect the classification table and population counts ---
     message("Inspecting classification table (first few rows):")
     print(ret\$table[seq_len(min(5, nrow(ret\$table))), ])
     
@@ -81,14 +81,14 @@ process BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION {
     saveRDS(ret, "grafgen_results.rds")
     message("Saved results object to 'grafgen_results.rds'")
     
-    # 4. Generate static plots of genetic distance scores
+    # --- Generate static plots of genetic distance scores ---
     message("Generating static plot of genetic distance scores...")
     pdf("genetic_distance_plot.pdf", width = 7, height = 7)
     plot(ret)
     dev.off()
     message("Saved static plot to 'genetic_distance_plot.pdf'")
     
-    # 5. Create interactive plots of the reference and user data
+    # --- Create interactive plots of the reference and user data ---
     if (interactive()) {
         message("Launching interactive reference plot...")
         interactiveReferencePlot()
@@ -96,7 +96,7 @@ process BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION {
         message("Skipping interactiveReferencePlot() as the session is non-interactive.")
     }
     
-    # 6. Launch the interactive Shiny application for filtering and viewing results
+    # --- Launch the interactive Shiny application for filtering ---
     tmp <- createApp(ret)
     
     # Save the app data components for downstream non-interactive use

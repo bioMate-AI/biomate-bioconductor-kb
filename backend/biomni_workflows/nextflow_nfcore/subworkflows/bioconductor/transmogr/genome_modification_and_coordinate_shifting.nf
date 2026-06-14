@@ -61,37 +61,37 @@ process BIOC_TRANSMOGR_GENOME_MODIFICATION_AND_COORDINATE_SHIFTING {
     library(Biostrings)
     library(magrittr)
     
-    # 1. Load Reference Genome
+    # --- Load Reference Genome ---
     chr1 <- readDNAStringSet("reference_genome.fa")
     sq <- seqinfo(chr1)
     genome(sq) <- "GRCh38"
     
-    # 2. Load and Clean Variants
+    # --- Load and Clean Variants ---
     vcf <- VcfFile("variants.vcf.gz")
     var <- cleanVariants(vcf)
     seqinfo(var) <- sq
     
-    # 3. Load Annotations
+    # --- Load Annotations ---
     gtf <- import.gff("annotations.gtf.gz", which = GRanges(sq))
     seqinfo(gtf) <- sq
     gtf <- splitAsList(gtf, gtf\$type)
     
-    # 4. Modify Reference Genome
+    # --- Modify Reference Genome ---
     chr1_mod <- genomogrify(chr1, var)
     
-    # 5. Shift Exon Coordinates
+    # --- Shift Exon Coordinates ---
     ref_exons_by_trans <- gtf\$exon %>% splitAsList(.\$transcript_id) 
     new_exons <- shiftByVar(gtf\$exon, var)
     new_exon_by_trans <- splitAsList(new_exons, new_exons\$transcript_id)
     
-    # 6. Generate Variant Tags
+    # --- Generate Variant Tags ---
     tags <- varTags(ref_exons_by_trans, var, tag = "1000GP")
     names(new_exon_by_trans) <- paste0(names(new_exon_by_trans), tags)
     
-    # 7. Extract Modified Transcript Sequences
+    # --- Extract Modified Transcript Sequences ---
     new_trans_mod <- extractTranscriptSeqs(chr1_mod, new_exon_by_trans)
     
-    # 8. Save Outputs
+    # --- Save Outputs ---
     writeXStringSet(chr1_mod, "modified_genome.fa.gz", compress = TRUE)
     writeXStringSet(new_trans_mod, "modified_transcripts.fa.gz", compress = TRUE)
     saveRDS(new_exons, "shifted_exons.rds")

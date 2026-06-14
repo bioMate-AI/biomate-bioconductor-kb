@@ -61,10 +61,10 @@ process BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING {
       stop(paste("Required input file", input_file, "is missing from the working directory."))
     }
     
-    # 1. Set seed for reproducible bootstrapping
+    # --- Set seed for reproducible bootstrapping ---
     set.seed(1234)
     
-    # 2. Run pathway analysis using pathwayAnalysis()
+    # --- Run pathway analysis using pathwayAnalysis() ---
     brca <- pathwayAnalysis(DEGpath = input_file,
                             genename = "X",
                             sampsize = 1095,
@@ -75,7 +75,7 @@ process BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING {
     write.csv(brca, "BRCA_pathway_analysis_scores.csv", row.names = TRUE)
     saveRDS(brca, "BRCA_pathway_analysis_scores.rds")
     
-    # 3. Visualize the metabolic profile using bubblePlot() and 4. Plot the bubble plot using plot()
+    # --- Visualize the metabolic profile using bubblePlot() and 4. ---
     # Bubble Plot Labeled by P Value
     pval <- bubblePlot(scorelist = brca,
                         labeltext = "Pval",

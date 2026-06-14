@@ -59,11 +59,11 @@ process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {
     library(txdbmaker)
     library(RNAmodR)
     
-    # 1. Load annotation and sequence files from the working directory
+    # --- Load annotation and sequence files from the working ---
     sequences <- "sequences.fasta"
     annotation <- GFF3File("annotation.gff3")
     
-    # 2. Define a named list of named character vectors representing BAM files for multiple sample sets
+    # --- Define a named list of named character vectors ---
     # We map the 4 user-provided BAM files into 3 sample sets to match the documented workflow structure.
     files <- list("SampleSet1" = c(treated = "sample1_rep1.bam",
                                    treated = "sample1_rep2.bam"),
@@ -72,10 +72,10 @@ process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {
                   "SampleSet3" = c(treated = "sample2_rep1.bam",
                                    treated = "sample2_rep2.bam"))
     
-    # 3. Create a ModifierSet object (ModSetInosine) to process all sample sets in parallel
+    # --- Create a ModifierSet object (ModSetInosine) to process ---
     msi <- ModSetInosine(files, annotation = annotation, sequences = sequences)
     
-    # 4. Retrieve identified modifications using modifications()
+    # --- Retrieve identified modifications using modifications() ---
     mod <- modifications(msi)
     saveRDS(mod, "modifications_genomic.rds")
     
@@ -84,7 +84,7 @@ process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {
     
     mod <- modifications(msi)
     
-    # 5. Compare modification scores across samples at specific coordinates using compareByCoord()
+    # --- Compare modification scores across samples at specific ---
     coord <- unique(unlist(mod))
     if (length(coord) > 0) {
       coord\$score <- NULL
@@ -95,13 +95,13 @@ process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {
       warning("No modifications found to compare.")
     }
     
-    # 6. Generate a TxDb object and alias data frame for transcript-to-gene mapping
+    # --- Generate a TxDb object and alias data frame for ---
     txdb <- makeTxDbFromGFF(annotation)
     alias <- data.frame(tx_id = names(id2name(txdb)),
                         name = id2name(txdb))
     write.csv(alias, "transcript_alias_map.csv", row.names = FALSE)
     
-    # 7. Visualize comparisons and evaluate performance
+    # --- Visualize comparisons and evaluate performance ---
     pdf("rnamodr_visualization_plots.pdf", width = 10, height = 8)
     
     if (length(coord) > 0) {
@@ -132,7 +132,7 @@ process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {
       message("Skipping plotData with sequence data for transcript '2': ", e\$message)
     })
     
-    # 8. Evaluate performance using ROC curves
+    # --- Evaluate performance using ROC curves ---
     if (length(coord) > 0) {
       tryCatch({
         plotROC(msi, coord)

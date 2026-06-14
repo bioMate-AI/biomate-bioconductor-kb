@@ -62,7 +62,7 @@ process BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS {
     path <- "."
     
     # ----------------------------------------------------------------------
-    # Stage 1: Run the full PoDCall workflow in one step
+    # --- Run the full PoDCall workflow in one step ---
     # ----------------------------------------------------------------------
     thresholdTable_ddpcr <- podcallDdpcr(dataDirectory=path,
                                          software="QuantaSoft")
@@ -72,7 +72,7 @@ process BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS {
     
     
     # ----------------------------------------------------------------------
-    # Stage 2: Run the step-by-step workflow
+    # --- Run the step-by-step workflow ---
     # ----------------------------------------------------------------------
     
     # 1. Import raw amplitude data from the directory
@@ -92,7 +92,7 @@ process BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS {
     
     
     # ----------------------------------------------------------------------
-    # Stage 3: Visualize results and save plots to PDF
+    # --- Visualize results and save plots to PDF ---
     # ----------------------------------------------------------------------
     
     # Select channel and well to plot (using the first well in the list)
@@ -134,7 +134,7 @@ process BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS {
     
     
     # ----------------------------------------------------------------------
-    # Stage 4: Write output files
+    # --- Write output files ---
     # ----------------------------------------------------------------------
     write.csv(thresholdTable, "threshold_table.csv", row.names=TRUE)
     write.csv(sampleSheet, "imported_sample_sheet.csv", row.names=FALSE)

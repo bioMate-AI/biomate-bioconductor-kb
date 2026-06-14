@@ -1,0 +1,74 @@
+{
+  "name": "time_series_de_with_edge",
+  "display_name": "Time-Course Differential Expression with edge",
+  "domain": "transcriptomics",
+  "description": "Process bulk RNA-seq across multiple timepoints, then identify genes with temporal differential expression patterns. Uses edge (Bioconductor) for time-aware DE rather than pairwise comparisons, preserving within-subject correlation structure.",
+  "source": "curated",
+  "steps": [
+    {
+      "order": 1,
+      "workflow_name": "nf-core/rnaseq",
+      "role": "per_timepoint_quantification",
+      "params_template": {
+        "aligner": "star_salmon"
+      }
+    },
+    {
+      "order": 2,
+      "workflow_name": "edge_timecourse_de_analysis",
+      "role": "time_aware_de",
+      "params_template": {
+        "between_groups": true
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from_step": 1,
+      "from_output": "counts_matrix",
+      "to_step": 2,
+      "to_input": "kidexpr_or_endoexpr"
+    }
+  ],
+  "required_inputs": [
+    {
+      "name": "fastq_files",
+      "type": "fastq",
+      "description": "RNA-seq reads from samples at multiple timepoints"
+    },
+    {
+      "name": "sample_sheet",
+      "type": "csv",
+      "description": "Metadata with timepoint column"
+    },
+    {
+      "name": "treatment_groups",
+      "type": "string",
+      "description": "Group labels for between-treatment comparison"
+    }
+  ],
+  "expected_outputs": [
+    {
+      "name": "temporal_de_table",
+      "type": "tsv",
+      "description": "Genes with time-dependent expression patterns"
+    },
+    {
+      "name": "trajectory_plots",
+      "type": "pdf",
+      "description": "Per-gene expression over time"
+    }
+  ],
+  "example_queries": [
+    "test compound effect over time at 0, 6, 24, and 72 hours",
+    "time-course RNA-seq differential expression",
+    "longitudinal RNA-seq with multiple timepoints",
+    "treatment time course DE analysis"
+  ],
+  "tags": [
+    "time-series",
+    "longitudinal",
+    "RNA-seq",
+    "DE"
+  ]
+}

@@ -163,7 +163,7 @@ export default function CheckoutPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 {plan.name}
-                <Badge variant="secondary">7-day free trial</Badge>
+                <Badge variant="secondary">14-day free trial</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -205,7 +205,7 @@ export default function CheckoutPage() {
 
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Trial period (7 days)</span>
+                  <span className="text-muted-foreground">Trial period (14 days)</span>
                   <span className="font-medium">Free</span>
                 </div>
                 <div className="flex justify-between font-semibold text-base">
@@ -246,7 +246,7 @@ export default function CheckoutPage() {
                 <ul className="space-y-2">
                   {[
                     "Visa, Mastercard, Amex, and most major cards",
-                    "Subscription starts after 7-day trial",
+                    "Subscription starts after 14-day trial",
                     "Cancel anytime from your account settings",
                   ].map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">

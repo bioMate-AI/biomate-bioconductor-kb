@@ -1,0 +1,33 @@
+{
+  "name": "bulk_rnaseq_consensus_de_bioc",
+  "display_name": "Bulk RNA-seq → Consensus DE (Bioconductor)",
+  "domain": "transcriptomics",
+  "description": "Standard bulk RNA-seq processing followed by DESeq2 differential expression and clusterProfiler functional enrichment. The Bioconductor multi-method consensus alternative set (edgeR, limma, DSS, EBSeq, baySeq, IHW) is explicitly named in the example queries; substitute any one in step 2 when the experimental design calls for it.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "nf-core/rnaseq", "role": "primary_processing", "params_template": {"aligner": "star_salmon"}},
+    {"order": 2, "workflow_name": "deseq2", "role": "differential_expression", "params_template": {"alpha": 0.05}},
+    {"order": 3, "workflow_name": "clusterprofiler", "role": "pathway_enrichment", "params_template": {"databases": ["GO", "KEGG"]}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "counts_matrix", "to_step": 2, "to_input": "counts"},
+    {"from_step": 2, "from_output": "de_table", "to_step": 3, "to_input": "gene_list"}
+  ],
+  "required_inputs": [
+    {"name": "fastq_files", "type": "fastq"},
+    {"name": "sample_sheet", "type": "csv"},
+    {"name": "contrast", "type": "string"}
+  ],
+  "expected_outputs": [
+    {"name": "de_results", "type": "tsv"},
+    {"name": "enrichment_results", "type": "tsv"},
+    {"name": "volcano_plot", "type": "pdf"}
+  ],
+  "example_queries": [
+    "bulk RNA-seq differential expression with DESeq2 then GO enrichment",
+    "RNA-seq DE and functional enrichment",
+    "differential expression and pathway analysis on RNA-seq",
+    "DESeq2 pipeline with clusterProfiler (alternatives: edgeR, limma, DSS, EBSeq, baySeq)"
+  ],
+  "tags": ["RNA-seq", "DE", "enrichment", "consensus_candidates_in_alternatives"]
+}

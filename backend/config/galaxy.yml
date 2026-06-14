@@ -38,8 +38,13 @@ gravity:
     # Binding to 8081 here causes the port-forward to receive "Connection reset"
     # because gunicorn isn't listening on 8080.
     bind: 0.0.0.0:8080
-    # Reduce workers to prevent OOM
-    workers: 1
+    # 4 workers keeps API responsive while one is doing a long synchronous
+    # operation (LLM routing call, NF subprocess launch, S3 staging in
+    # /api/nextflow/execute). With workers=1 a single slow request blocked
+    # /api/version and Docker marked the container unhealthy. The 512MB
+    # heap cap added to NXF_OPTS keeps total memory ~2GB for 4 workers,
+    # well within dev's 8GB. Bump to 8 on a 16GB+ host.
+    workers: 4
     # Increase timeout for AI operations
     timeout: 300
     # Limit memory per worker

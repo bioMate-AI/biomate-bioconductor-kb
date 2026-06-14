@@ -69,16 +69,16 @@ process BIOC_QDNASEQ_GENERATE_BIN_ANNOTATIONS {
       Sys.chmod(bigWigAverageOverBed, mode = "0755")
     }
     
-    # 1. Create bins from the reference genome
+    # --- Create bins from the reference genome ---
     binSize <- 15
     bins <- createBins(bsgenome=BSgenome.Hsapiens.UCSC.hg19, binSize=binSize)
     
-    # 2. Calculate mappability
+    # --- Calculate mappability ---
     bins\$mappability <- calculateMappability(bins,
       bigWigFile=bigWigFile,
       bigWigAverageOverBed=bigWigAverageOverBed)
     
-    # 3. Calculate blacklist overlap
+    # --- Calculate blacklist overlap ---
     bins\$blacklist <- calculateBlacklist(bins,
       bedFiles=blacklistBed)
     
@@ -91,16 +91,16 @@ process BIOC_QDNASEQ_GENERATE_BIN_ANNOTATIONS {
     bins\$blacklist <- calculateBlacklistByRegions(bins, 
       cbind(chromosome, bpStart, bpEnd))
     
-    # 4. Calculate residuals from control dataset
+    # --- Calculate residuals from control dataset ---
     ctrl <- binReadCounts(bins, path=controlBamPath)
     ctrl <- applyFilters(ctrl, residual=FALSE, blacklist=FALSE,
       mappability=FALSE, bases=FALSE)
     bins\$residual <- iterateResiduals(ctrl)
     
-    # 5. Define default bins to use
+    # --- Define default bins to use ---
     bins\$use <- bins\$chromosome %in% as.character(1:22) & bins\$bases > 0
     
-    # 6. Convert to AnnotatedDataFrame and add metadata
+    # --- Convert to AnnotatedDataFrame and add metadata ---
     bins <- AnnotatedDataFrame(bins,
       varMetadata=data.frame(labelDescription=c(
       "Chromosome name",

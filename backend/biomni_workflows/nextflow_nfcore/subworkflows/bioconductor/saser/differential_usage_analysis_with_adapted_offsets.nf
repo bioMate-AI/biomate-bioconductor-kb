@@ -34,7 +34,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "GenomicAlignments", "GenomicFeatures", "dplyr", "edgeR", "saseR", "txdbmaker")
+    .bm_deps <- c("DESeq2", "GenomicAlignments", "GenomicFeatures", "dplyr", "edgeR", "saseR", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     
     # Load required libraries
     library(saseR)
+    library(SummarizedExperiment)
     library(edgeR)
     library(DESeq2)
     library(dplyr)
@@ -62,7 +63,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     library(txdbmaker)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Input Files from Working Directory
+    # --- Read User Input Files from Working Directory ---
     # -----------------------------------------------------------------------------
     
     # Locate GTF file in the working directory
@@ -81,7 +82,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     message("Found ", length(BAMFiles), " BAM files.")
     
     # -----------------------------------------------------------------------------
-    # 2. Convert GTF to TxDb and Extract Exonic Parts
+    # --- Convert GTF to TxDb and Extract Exonic Parts ---
     # -----------------------------------------------------------------------------
     message("Creating TxDb from GTF...")
     genomeTxDb <- txdbmaker::makeTxDbFromGFF(gtfFileName)
@@ -91,7 +92,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
                                                         linked.to.single.gene.only = TRUE)
     
     # -----------------------------------------------------------------------------
-    # 3. Count Overlaps Using summarizeOverlaps
+    # --- Count Overlaps Using summarizeOverlaps ---
     # -----------------------------------------------------------------------------
     message("Counting overlaps...")
     se <- GenomicAlignments::summarizeOverlaps(
@@ -102,7 +103,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     )
     
     # -----------------------------------------------------------------------------
-    # 4. Define Experimental Conditions in colData
+    # --- Define Experimental Conditions in colData ---
     # -----------------------------------------------------------------------------
     # Dynamically assign conditions based on the number of BAM files available.
     # We split the samples as evenly as possible into "control" and "case".
@@ -113,7 +114,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     message("Assigned conditions: ", paste(conditions, collapse = ", "))
     
     # -----------------------------------------------------------------------------
-    # 5. Aggregate Counts Per Gene to Calculate Gene-Level Offsets
+    # --- Aggregate Counts Per Gene to Calculate Gene-Level Offsets ---
     # -----------------------------------------------------------------------------
     message("Calculating gene-level offsets...")
     counts <- assays(se)\$counts
@@ -124,14 +125,14 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
                          as.matrix() 
     
     # -----------------------------------------------------------------------------
-    # 6. Adjust Zero Offsets and Counts to 1
+    # --- Adjust Zero Offsets and Counts to 1 ---
     # -----------------------------------------------------------------------------
     index <- offsets == 0
     counts[index] <- 1
     offsets[index] <- 1
     
     # -----------------------------------------------------------------------------
-    # 7. Run DESeq2 with Custom Offsets
+    # --- Run DESeq2 with Custom Offsets ---
     # -----------------------------------------------------------------------------
     message("Running DESeq2 analysis...")
     dds <- DESeqDataSetFromMatrix(countData = counts,
@@ -145,7 +146,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     results_dds <- DESeq2::results(dds)
     
     # -----------------------------------------------------------------------------
-    # 8. Run edgeR with Custom Offsets
+    # --- Run edgeR with Custom Offsets ---
     # -----------------------------------------------------------------------------
     message("Running edgeR analysis...")
     DGE <- DGEList(counts = counts)
@@ -156,7 +157,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     results_DGE <- edgeR::glmLRT(fitDGE, coef = 2)
     
     # -----------------------------------------------------------------------------
-    # 9. Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------------------
     message("Saving results...")
     

@@ -1,0 +1,19 @@
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-__DOMAIN__:3.20
+COPY deps.txt /tmp/deps.txt
+# Pin CRAN to the Bioc-3.20-era snapshot (Bioc 3.20 released ~2024-10-30) so CRAN dependency
+# versions match what the Bioc 3.20 packages were built against. The base :3.20 image shipped
+# with NEWER CRAN deps (rbiom 3.1.0 dropped unifrac; xfun 0.5x dropped attr; ...) which broke
+# mia/iSEEtree/miaViz at LOAD — a cascade of version skews, not a single bad package.
+# VERIFIED locally: snapshot rbiom 1.0.3 + xfun 0.48 -> loadNamespace("mia") succeeds.
+RUN Rscript -e '\
+  snap <- "https://packagemanager.posit.co/cran/2024-10-30"; \
+  options(repos = c(CRAN = snap)); \
+  pkgs <- readLines("/tmp/deps.txt"); \
+  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager"); \
+  install.packages(c("rbiom","xfun"), repos = snap, quiet = TRUE); \
+  miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=4); \
+  still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
+  cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
+  cat("INSTALLED BUT WONT LOAD:", length(wont), paste(head(wont,40), collapse=","), "\n")'

@@ -67,13 +67,13 @@ process BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_SCAN {
       stop(paste("Required input file missing:", data_file))
     }
     
-    # 1. Load the network and construct a Computational Causal Graph (CCG)
+    # --- Load the network and construct a Computational Causal ---
     ccg <- CreateCCG(network_file)
     
-    # 2. Load the experimental data and map it to the CCG
+    # --- Load the experimental data and map it to the CCG ---
     experimentalData <- ReadExperimentalData(data_file, ccg)
     
-    # 3. Run the SCAN algorithm across a range of deltas to find common top-scoring regulators
+    # --- Run the SCAN algorithm across a range of deltas to find ---
     scanResults <- runSCANR(
       ccg, 
       experimentalData, 
@@ -85,7 +85,7 @@ process BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_SCAN {
       quiet = FALSE
     )
     
-    # 4. Export the sub-networks of correctly explained nodes for all common SCAN hypotheses
+    # --- Export the sub-networks of correctly explained nodes for ---
     WriteAllExplainedNodesToSifFile(
       scanResults, 
       ccg, 
@@ -95,7 +95,7 @@ process BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_SCAN {
       quiet = TRUE
     )
     
-    # 5. Save structured outputs to the working directory
+    # --- Save structured outputs to the working directory ---
     # Save the full scan results object
     saveRDS(scanResults, file = "scan_results.rds")
     

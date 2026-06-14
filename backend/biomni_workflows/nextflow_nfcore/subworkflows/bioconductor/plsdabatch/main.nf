@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Pre-filter raw count data using PreFL to remove low-abundance/rare OTUs. 2. Transform filtered counts using CLR transformation wit
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Pre-filtering
+//  * 3. [Visualization & Output] Transformation
+//  * 4. [Visualization & Output] Batch Effect Detection & Visualization Setup
+//  * 5. [Visualization & Output] Batch Effect Correction
+//  * 6. [Visualization & Output] Assessing Batch Effect Correction
+//  * 7. [Visualization & Output] Variable Selection
+//  * 8. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -20,7 +27,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -38,6 +45,15 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("pheatmap", "vegan", "gridExtra", "mixOmics", "Biobase", "PLSDAbatch", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -57,7 +73,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         library(ggplot2)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         # Read ad.count
@@ -118,7 +134,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         names(ad.batch) <- names(ad.trt) <- rownames(ad.metadata)
         
         # ==========================================
-        # 2. Pre-filtering
+        # --- Pre-filtering ---
         # ==========================================
         ad.filter.res <- PreFL(data = ad.count)
         ad.filter <- ad.filter.res\$data.filter
@@ -131,13 +147,13 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         write.csv(filter_stats, "filtering_statistics.csv", row.names = FALSE)
         
         # ==========================================
-        # 3. Transformation
+        # --- Transformation ---
         # ==========================================
         ad.clr <- logratio.transfo(X = ad.filter, logratio = "CLR", offset = 1)
         class(ad.clr) <- "matrix"
         
         # ==========================================
-        # 4. Batch Effect Detection & Visualization Setup
+        # --- Batch Effect Detection & Visualization Setup ---
         # ==========================================
         # Open PDF device to capture all diagnostic and assessment plots
         pdf("PLSDAbatch_microbiome_correction_plots.pdf", width = 11, height = 8.5)
@@ -224,7 +240,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         print(ad.rda.before\$part\$indfract)
         
         # ==========================================
-        # 5. Batch Effect Correction
+        # --- Batch Effect Correction ---
         # ==========================================
         # Determine optimal components dynamically
         ncomp_trt <- nlevels(ad.trt) - 1
@@ -270,7 +286,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         ad.sPLSDA_batch.cnc <- ad.sPLSDA_batch.res.cnc\$X.nobatch
         
         # ==========================================
-        # 6. Assessing Batch Effect Correction
+        # --- Assessing Batch Effect Correction ---
         # ==========================================
         # Post-correction PCA
         ad.pca.PLSDA_batch.cnc <- pca(ad.PLSDA_batch.cnc, ncomp = 3, scale = TRUE)
@@ -515,7 +531,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         dev.off()
         
         # ==========================================
-        # 7. Variable Selection
+        # --- Variable Selection ---
         # ==========================================
         keepX_sel <- min(50, ncol(ad.clr))
         
@@ -535,7 +551,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         cat("Overlap count between PLSDA-batch and sPLSDA-batch selected variables:", overlap_count, "\n")
         
         # ==========================================
-        # 8. Save Outputs
+        # --- Save Outputs ---
         # ==========================================
         saveRDS(ad.PLSDA_batch.reg, "ad.PLSDA_batch.reg.rds")
         saveRDS(ad.sPLSDA_batch.reg, "ad.sPLSDA_batch.reg.rds")

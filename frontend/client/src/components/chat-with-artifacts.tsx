@@ -1392,8 +1392,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     window.addEventListener('mouseup', onUp)
   }, [panelWidth])
 
-  // Auto-open right panel whenever a new workflow message arrives
-  const autoOpenedWorkflowMsgIdRef = useRef<string | null>(null)
+  // Auto-open right panel whenever a new workflow message arrives.
+  // We track msgId + the inline-params signature so the effect re-fires when
+  // the message's metadata.inlineParameters grows (workflow chip arrives
+  // mid-stream with empty inlineParameters, then the chat-stream's `final`
+  // event lands and the same message gets richer metadata). Without this,
+  // the LLM-extracted target_a/target_b/indication never reach the viewer
+  // because the second update is suppressed by the ref-equals guard.
+  const autoOpenedWorkflowSignatureRef = useRef<string | null>(null)
   const lastWorkflowMsgId = useMemo(() => {
     const msgs = currentChatSession?.messages ?? []
     for (let i = msgs.length - 1; i >= 0; i--) {
@@ -1407,34 +1413,42 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   useEffect(() => {
     if (!lastWorkflowMsgId) return
-    if (lastWorkflowMsgId === autoOpenedWorkflowMsgIdRef.current) return
-    autoOpenedWorkflowMsgIdRef.current = lastWorkflowMsgId
     const msgs = currentChatSession?.messages ?? []
     const wf = msgs.find(m => m.id === lastWorkflowMsgId)
-    if (wf?.metadata?.workflow) {
-      setPanelWorkflowMessageId(lastWorkflowMsgId)
-      // Belt-and-suspenders: merge LLM-extracted inline params from message.metadata.inlineParameters
-      // (set by chat-stream final event) into the workflow object so the viewer's form prefills.
-      // Per docs/20260518_tier0_audit_T01_results.md (Bug A+C).
-      const meta = wf.metadata as any
-      const inlineFromMeta =
-        meta?.inlineParameters ??
-        meta?.inline_parameters ??
-        meta?.workflowSuggestion?.inlineParameters ??
-        null
-      const wfWithInline = inlineFromMeta && typeof inlineFromMeta === 'object' && Object.keys(inlineFromMeta).length > 0
-        ? {
-            ...wf.metadata.workflow,
-            inline_parameters: {
-              ...((wf.metadata.workflow as any)?.inline_parameters || {}),
-              ...inlineFromMeta,
-            },
-          }
-        : wf.metadata.workflow
-      setPanelWorkflow(wfWithInline)
-      setPanelOpen(true)
-      onWorkflowPanelOpenChange?.(true)
-    }
+    if (!wf?.metadata?.workflow) return
+    // Build a signature: msgId + sorted inlineParameter keys. The signature
+    // grows monotonically as the chat-stream emits more metadata for the
+    // same message, so we re-run the panel-open/merge logic until all keys
+    // have landed.
+    const meta = wf.metadata as any
+    const inlineFromMeta =
+      meta?.inlineParameters ??
+      meta?.inline_parameters ??
+      meta?.workflowSuggestion?.inlineParameters ??
+      null
+    const inlineKeys = (inlineFromMeta && typeof inlineFromMeta === 'object')
+      ? Object.keys(inlineFromMeta).sort().join(',')
+      : ''
+    const signature = `${lastWorkflowMsgId}|${inlineKeys}`
+    if (signature === autoOpenedWorkflowSignatureRef.current) return
+    autoOpenedWorkflowSignatureRef.current = signature
+    setPanelWorkflowMessageId(lastWorkflowMsgId)
+    // Belt-and-suspenders: merge LLM-extracted inline params from
+    // message.metadata.inlineParameters into the workflow object so the
+    // viewer's form prefills. Per
+    // docs/20260518_tier0_audit_T01_results.md (Bug A+C).
+    const wfWithInline = inlineFromMeta && typeof inlineFromMeta === 'object' && Object.keys(inlineFromMeta).length > 0
+      ? {
+          ...wf.metadata.workflow,
+          inline_parameters: {
+            ...((wf.metadata.workflow as any)?.inline_parameters || {}),
+            ...inlineFromMeta,
+          },
+        }
+      : wf.metadata.workflow
+    setPanelWorkflow(wfWithInline)
+    setPanelOpen(true)
+    onWorkflowPanelOpenChange?.(true)
   }, [lastWorkflowMsgId, currentChatSession?.messages, onWorkflowPanelOpenChange])
 
   const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })

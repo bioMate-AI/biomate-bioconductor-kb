@@ -35,6 +35,15 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ginmappeR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     library(utils)
     
     # ==========================================
-    # Stage 1: Load and Pre-process Input Data
+    # --- Load and Pre-process Input Data ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -84,7 +93,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     log_intensity <- log_intensity[valid_features, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     # ==========================================
     
     message("Performing differential abundance analysis...")
@@ -121,7 +130,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     stats_res <- stats_res[order(stats_res\$P_Value), ]
     
     # ==========================================
-    # Stage 3: ID Mapping using ginmappeR
+    # --- ID Mapping using ginmappeR ---
     # ==========================================
     
     message("Mapping identifiers using ginmappeR...")
@@ -155,7 +164,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     write.csv(top_proteins, "differential_abundance_mapped.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Retrieve Similar Gene Clusters
+    # --- Retrieve Similar Gene Clusters ---
     # ==========================================
     
     message("Retrieving UniProt similar gene clusters...")
@@ -188,7 +197,7 @@ process BIOC_GINMAPPER_GINMAPPER_PROTEOMICS_TRANSLATION {
     write.csv(similar_genes_df, "similar_genes_top_protein.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic plots...")

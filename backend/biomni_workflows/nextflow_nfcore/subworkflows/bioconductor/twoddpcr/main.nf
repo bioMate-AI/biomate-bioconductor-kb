@@ -59,17 +59,17 @@ process BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS {
     # Create output directory if it doesn't exist
     dir.create("output", showWarnings = FALSE, recursive = TRUE)
     
-    # 1. Load raw amplitude data into a ddpcrPlate object
+    # --- Load raw amplitude data into a ddpcrPlate object ---
     # Reading from the user-specified directory containing raw droplet amplitude CSV files
     plate <- ddpcrPlate(wells="data/amplitudes")
     
-    # 2. Classify droplets using the k-means algorithm
+    # --- Classify droplets using the k-means algorithm ---
     plate <- kmeansClassify(plate)
     
-    # 3. Apply Mahalanobis distance-based rain filtering with customized cluster distances
+    # --- Apply Mahalanobis distance-based rain filtering with ---
     plate <- mahalanobisRain(plate, cMethod="kmeans", maxDistances=list(NN=35, NP=35, PN=35, PP=35))
     
-    # 4. Generate a Poisson concentration summary
+    # --- Generate a Poisson concentration summary ---
     kmeansMahRainSummary <- plateSummary(plate, cMethod="kmeansMahRain")
     
     # Print the head of the summary to the console

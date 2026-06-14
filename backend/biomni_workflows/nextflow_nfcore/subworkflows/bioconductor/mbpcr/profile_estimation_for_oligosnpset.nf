@@ -57,7 +57,7 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FOR_OLIGOSNPSET {
     library(oligoClasses)
     library(Biobase)
     
-    # 1. Read the user input file from the working directory
+    # --- Read the user input file from the working directory ---
     # The input is expected to be an oligoSnpSet object saved as an RDS file.
     input_file <- "oligoSet.rds"
     if (!file.exists(input_file)) {
@@ -71,7 +71,7 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FOR_OLIGOSNPSET {
     message("Reading input oligoSnpSet object from: ", input_file)
     oligoSet <- readRDS(input_file)
     
-    # 2. Run profile estimation using estProfileWithMBPCRforOligoSnpSet
+    # --- Run profile estimation using ---
     # We use the exact function call and arguments from the documented vignette workflow.
     message("Estimating copy number profile...")
     r <- estProfileWithMBPCRforOligoSnpSet(
@@ -83,11 +83,11 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FOR_OLIGOSNPSET {
       rhoSquare = 0.0889637
     )
     
-    # 3. Extract the estimated copy number profile
+    # --- Extract the estimated copy number profile ---
     cc <- r\$estPC
     cc1 <- cc[chromosome(cc) == "2", 1]
     
-    # 4. Save the results to output files
+    # --- Save the results to output files ---
     # Save the full results object
     saveRDS(r, "mbpcr_results.rds")
     

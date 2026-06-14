@@ -35,6 +35,15 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,10 +54,11 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
         }
     
     # Load required Bioconductor and base libraries
-    library(S4Vectors)
+        library(SummarizedExperiment)
+library(S4Vectors)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     
     # Read user input files
@@ -82,7 +92,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     coldata <- coldata[common_samples, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Construct SummarizedExperiment
+    # --- Construct SummarizedExperiment ---
     # ==========================================
     
     se <- SummarizedExperiment(
@@ -91,7 +101,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     # ==========================================
     
     # Filter out features with too many missing values (NAs or NaNs)
@@ -100,7 +110,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     se_filtered <- se[missing_prop <= missing_cutoff, ]
     
     # ==========================================
-    # Stage 4: Log Transformation & Normalization
+    # --- Log Transformation & Normalization ---
     # ==========================================
     
     # Replace 0 with NA to represent missing values typically found in mass spectrometry
@@ -121,7 +131,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     assay(se_filtered, "normalized") <- norm_vals
     
     # ==========================================
-    # Stage 5: Peptide-to-Protein Aggregation
+    # --- Peptide-to-Protein Aggregation ---
     # ==========================================
     
     n_feats <- nrow(se_filtered)
@@ -157,7 +167,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     }
     
     # ==========================================
-    # Stage 6: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     # ==========================================
     
     conditions <- colData(protein_se)\$condition
@@ -203,7 +213,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     }
     
     # ==========================================
-    # Stage 7: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     pdf("qc_plots.pdf", width = 12, height = 6)
@@ -245,7 +255,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 8: Export Results
+    # --- Export Results ---
     # ==========================================
     
     write.csv(as.data.frame(assay(protein_se, "normalized")), "protein_intensities.csv", row.names = TRUE)

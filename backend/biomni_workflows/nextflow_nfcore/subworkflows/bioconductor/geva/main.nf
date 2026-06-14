@@ -55,22 +55,22 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     # Load the required Bioconductor package
     library(geva)
     
-    # 1. Read input files
+    # --- Read input files ---
     filenms <- c("cond_A_2h.txt", "cond_B_2h.txt", "cond_C_2h.txt",
                  "cond_A_4h.txt", "cond_B_4h.txt", "cond_C_4h.txt")
     ginput <- geva.read.tables(filenms)
     
-    # 2. Correct numeric tables
+    # --- Correct numeric tables ---
     ginput <- geva.input.correct(ginput)
     
-    # 3. Filter out insignificant rows
+    # --- Filter out insignificant rows ---
     ginput <- geva.input.filter(ginput, p.value.cutoff = 0.05)
     
-    # 4. Rename row names and resolve duplicates
+    # --- Rename row names and resolve duplicates ---
     ginput <- geva.input.rename.rows(ginput,
                                      attr.column = "Symbol")
     
-    # 5. Summarize logFC and variation
+    # --- Summarize logFC and variation ---
     gsummary <- geva.summarize(ginput)
     
     # Save GEVASummary plot
@@ -78,7 +78,7 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     plot(gsummary)
     dev.off()
     
-    # 6. Calculate SV-space quantiles
+    # --- Calculate SV-space quantiles ---
     gquants <- geva.quantiles(gsummary)
     
     # Save GEVAQuantiles plot
@@ -86,7 +86,7 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     plot(gquants)
     dev.off()
     
-    # 7. Perform cluster analysis
+    # --- Perform cluster analysis ---
     gcluster <- geva.cluster(gsummary,
                              cluster.method="hierarchical",
                              resolution=0.3)
@@ -96,7 +96,7 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     plot(gcluster)
     dev.off()
     
-    # 8. Combine intermediate results
+    # --- Combine intermediate results ---
     ggroupedsummary <- gsummary
     groupsets(ggroupedsummary) <- gquants
     groupsets(ggroupedsummary) <- gcluster
@@ -106,7 +106,7 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     plot(ggroupedsummary)
     dev.off()
     
-    # 9. Finalize classifications
+    # --- Finalize classifications ---
     gresults <- geva.finalize(ggroupedsummary)
     
     # Save GEVAResults plot
@@ -121,7 +121,7 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     # Print the last 10 rows of the results table to console
     print(tail(res_table, 10))
     
-    # 10. Extract top relevant genes
+    # --- Extract top relevant genes ---
     dtgens <- top.genes(gresults, add.cols = "Symbol")
     write.csv(dtgens, "geva_top_genes.csv", row.names = TRUE)
     

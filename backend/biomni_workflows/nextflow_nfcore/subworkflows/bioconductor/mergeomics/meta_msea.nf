@@ -61,13 +61,13 @@ process BIOC_MERGEOMICS_META_MSEA {
     job.msea2 <- readRDS("job.msea2")
     job.msea3 <- readRDS("job.msea3")
     
-    # 1. Combine MSEA job objects into a list
+    # --- Combine MSEA job objects into a list ---
     job.metamsea = list()
     job.metamsea\$job1 = job.msea1
     job.metamsea\$job2 = job.msea2
     job.metamsea\$job3 = job.msea3
     
-    # 2. Run meta-analysis using ssea.meta
+    # --- Run meta-analysis using ssea.meta ---
     job.metamsea = ssea.meta(job.metamsea,"meta_label",
     "meta_folder")
     

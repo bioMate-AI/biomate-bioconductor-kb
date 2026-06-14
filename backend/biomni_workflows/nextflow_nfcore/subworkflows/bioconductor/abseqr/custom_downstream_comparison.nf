@@ -76,10 +76,10 @@ process BIOC_ABSEQR_CUSTOM_DOWNSTREAM_COMPARISON {
     # Set the sandbox directory to the current working directory
     sandboxDirectory <- getwd()
     
-    # 1. Combine individual sample objects using the + operator
+    # --- Combine individual sample objects using the + operator ---
     pcr1.pcr3 <- samples[["PCR1"]] + samples[["PCR3"]]
     
-    # 2. Run the report function on the combined object to generate a standalone comparative HTML report
+    # --- Run the report function on the combined object to ---
     refinedComparison <- report(pcr1.pcr3,
                                 outputDir = file.path(sandboxDirectory,
                                                       "refined_comparison"),

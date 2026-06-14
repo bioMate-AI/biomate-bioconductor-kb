@@ -42,7 +42,7 @@ process BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "BiocStyle", "scran", "scRNAseq", "scuttle")
+    .bm_deps <- c("SingleCellExperiment", "BiocStyle", "scran", "scRNAseq", "scuttle", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,6 +61,7 @@ process BIOC_SCUTTLE_FEATURE_QC_AND_DATA_TRANSFORMATION {
             
         # Load required libraries
         library(scuttle)
+        library(SummarizedExperiment)
         
         # Read user input files from the working directory
         sce <- readRDS("sce.rds")

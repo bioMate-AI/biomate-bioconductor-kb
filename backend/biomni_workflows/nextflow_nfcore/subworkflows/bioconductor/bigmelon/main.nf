@@ -35,6 +35,15 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bigmelon", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     library(Biobase)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Prep Objects
+    # --- Read Input Data & Prep Objects ---
     # ==========================================
     
     # Read user input files
@@ -99,7 +108,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
                 featureData = feature_data)
     
     # ==========================================
-    # STAGE 2: GDS Conversion & Quality Control
+    # --- GDS Conversion & Quality Control ---
     # ==========================================
     
     # Convert ExpressionSet to GDS file
@@ -127,7 +136,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Backing Up Raw Data & Normalization
+    # --- Backing Up Raw Data & Normalization ---
     # ==========================================
     
     # Backup raw betas before normalization
@@ -141,7 +150,7 @@ process BIOC_BIGMELON_BIGMELON_METHYLATION_PIPELINE {
     dasen(gfile, node = "normbeta")
     
     # ==========================================
-    # STAGE 4: Downstream Analysis & Export
+    # --- Downstream Analysis & Export ---
     # ==========================================
     
     # Retrieve raw and normalized betas from GDS

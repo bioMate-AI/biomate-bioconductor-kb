@@ -41,7 +41,7 @@ process BIOC_MEAL_METHYLATION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("brgedata", "GenomicRanges", "ggplot2", "MEAL", "minfi", "MultiDataSet")
+    .bm_deps <- c("brgedata", "GenomicRanges", "ggplot2", "MEAL", "minfi", "MultiDataSet", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_MEAL_METHYLATION_ANALYSIS {
         
         # Load required libraries
         library(MEAL)
+        library(SummarizedExperiment)
         library(GenomicRanges)
         library(ggplot2)
         

@@ -60,26 +60,26 @@ process BIOC_TRANSMOGR_DIRECT_TRANSCRIPTOME_MODIFICATION {
     library(GenomicFeatures)
     library(Biostrings)
     
-    # 1. Load Reference Genome and Setup Seqinfo
+    # --- Load Reference Genome and Setup Seqinfo ---
     chr1 <- readDNAStringSet("reference_genome.fa")
     sq <- seqinfo(chr1)
     genome(sq) <- "GRCh38"
     
-    # 2. Load and Clean Variants
+    # --- Load and Clean Variants ---
     vcf <- VcfFile("variants.vcf.gz")
     var <- cleanVariants(vcf)
     seqinfo(var) <- sq
     
-    # 3. Import and Split GTF Annotations
+    # --- Import and Split GTF Annotations ---
     f <- "annotations.gtf.gz"
     gtf <- import.gff(f, which = GRanges(sq))
     seqinfo(gtf) <- sq
     gtf <- splitAsList(gtf, gtf\$type)
     
-    # 4. Run transmogrify to Generate Modified Transcript Sequences
+    # --- Run transmogrify to Generate Modified Transcript Sequences ---
     trans_mod <- transmogrify(chr1, var, gtf\$exon, tag = "1000GP", var_tags = TRUE)
     
-    # 5. Save Outputs
+    # --- Save Outputs ---
     writeXStringSet(trans_mod, "modified_transcriptome.fa.gz", compress = TRUE)
     saveRDS(trans_mod, "modified_transcripts.rds")
     saveRDS(var, "cleaned_variants.rds")

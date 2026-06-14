@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Initialize population parameters using newSplatPopParams. 2. Simulate population gene means using splatPopSimulateMeans. 3. Simula
+//  * 1. [Core Analysis] Initialize population parameters using newSplatPopParams
+//  * 2. [Core Analysis] Simulate population gene means using splatPopSimulateMeans
+//  * 3. [Core Analysis] Simulate single-cell counts for the population using
 
 nextflow.enable.dsl = 2
 
@@ -39,7 +41,7 @@ process BIOC_SPLATTER_SPLATPOP_POPULATION_SIMULATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "VariantAnnotation", "rtracklayer", "splatter")
+    .bm_deps <- c("SingleCellExperiment", "VariantAnnotation", "rtracklayer", "splatter", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -57,7 +59,8 @@ process BIOC_SPLATTER_SPLATPOP_POPULATION_SIMULATION {
         }
             
             # Load required libraries
-            library(splatter)
+                  library(SummarizedExperiment)
+      library(splatter)
             library(VariantAnnotation)
             library(rtracklayer)
             
@@ -127,13 +130,13 @@ process BIOC_SPLATTER_SPLATPOP_POPULATION_SIMULATION {
             # 2. Run Workflow Stages
             # ==========================================
             
-            # Stage 1: Initialize population parameters using newSplatPopParams
+            # --- Initialize population parameters using newSplatPopParams ---
             params <- newSplatPopParams()
             
-            # Stage 2: Simulate population gene means using splatPopSimulateMeans
+            # --- Simulate population gene means using splatPopSimulateMeans ---
             sim_means <- splatPopSimulateMeans(vcf = vcf, gff = gff, params = params)
             
-            # Stage 3: Simulate single-cell counts for the population using splatPopSimulateSC
+            # --- Simulate single-cell counts for the population using ---
             sim_sc <- splatPopSimulateSC(sim_means, params)
             
             # Run the exact documented wrapper function call

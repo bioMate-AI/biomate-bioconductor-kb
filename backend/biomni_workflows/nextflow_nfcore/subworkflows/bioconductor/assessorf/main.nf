@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map evolutionary conservation and/or proteomics data to the central genome using MapAssessmentData. 2. Parse gene prediction coord
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Extract Identifiers from the SQLite Database
+//  * 3. [Visualization & Output] Map Evolutionary Conservation Data
+//  * 4. [Visualization & Output] Assess Predicted Genes
+//  * 5. [Visualization & Output] Visualize and Save Results
+//  * 6. [Visualization & Output] Compare Results with an Alternative Prediction Set
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DECIPHER", "AssessORF", "RSQLite")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +66,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     library(RSQLite)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     # -----------------------------------------------------------------------------
     databaseFile <- "databaseFile"
     if (!file.exists(databaseFile) && file.exists("databaseFile.sqlite")) {
@@ -72,7 +86,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     geneStrand <- readLines("geneStrand")
     
     # -----------------------------------------------------------------------------
-    # 2. Extract Identifiers from the SQLite Database
+    # --- Extract Identifiers from the SQLite Database ---
     # -----------------------------------------------------------------------------
     dbConn <- dbConnect(SQLite(), databaseFile)
     tables <- dbListTables(dbConn)
@@ -88,7 +102,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     }
     
     # -----------------------------------------------------------------------------
-    # 3. Map Evolutionary Conservation Data
+    # --- Map Evolutionary Conservation Data ---
     # -----------------------------------------------------------------------------
     # If there are no related genomes, fallback to using the central genome identifier
     related_IDs <- identifiers[-1]
@@ -105,7 +119,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     currMapObj <- myMapObj
     
     # -----------------------------------------------------------------------------
-    # 4. Assess Predicted Genes
+    # --- Assess Predicted Genes ---
     # -----------------------------------------------------------------------------
     prodigalLeft <- geneLeftPos
     prodigalRight <- geneRightPos
@@ -118,7 +132,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
                               geneSource = "Prodigal")
     
     # -----------------------------------------------------------------------------
-    # 5. Visualize and Save Results
+    # --- Visualize and Save Results ---
     # -----------------------------------------------------------------------------
     # Print summary to console and save to text file
     print(currResObj)
@@ -161,7 +175,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # 6. Compare Results with an Alternative Prediction Set
+    # --- Compare Results with an Alternative Prediction Set ---
     # -----------------------------------------------------------------------------
     # Simulate a second prediction program (e.g., GeneMarkS2) using a subset of the genes
     half_idx <- seq(1, length(geneLeftPos), by = 2)
