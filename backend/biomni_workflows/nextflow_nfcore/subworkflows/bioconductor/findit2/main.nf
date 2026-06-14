@@ -53,9 +53,9 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(FindIT2)
+    library(SummarizedExperiment)
     library(TxDb.Athaliana.BioMart.plantsmart28)
     library(GenomicRanges)
     library(S4Vectors)

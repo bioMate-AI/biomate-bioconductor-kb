@@ -55,8 +55,8 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
         }
     
     # Load required libraries
-    libr    library(SummarizedExperiment)
-ary(CuratedAtlasQueryR)
+    library(CuratedAtlasQueryR)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(dplyr)
     library(stringr)

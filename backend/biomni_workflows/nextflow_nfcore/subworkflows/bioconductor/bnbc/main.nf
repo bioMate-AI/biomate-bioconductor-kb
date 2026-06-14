@@ -60,9 +60,9 @@ process BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES {
           }
         }
         
-        # Load required librarie        library(SummarizedExperiment)
-s
+        # Load required libraries
         library(bnbc)
+        library(SummarizedExperiment)
         library(GenomicRanges)
         library(S4Vectors)
         

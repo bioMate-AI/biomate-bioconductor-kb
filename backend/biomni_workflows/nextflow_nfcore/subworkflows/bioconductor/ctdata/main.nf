@@ -53,9 +53,9 @@ process BIOC_CTDATA_CT_GENE_CHARACTERIZATION {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(CTdata)
+    library(SummarizedExperiment)
     library(S4Vectors)
     library(GenomicRanges)
     library(BiocGenerics)

@@ -59,9 +59,9 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(scDesign3)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # Set ggplot2 theme

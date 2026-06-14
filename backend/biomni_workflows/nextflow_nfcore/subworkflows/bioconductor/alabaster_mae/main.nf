@@ -54,8 +54,8 @@ process BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP {
         }
     
     # Load required libraries
-    librar    library(SummarizedExperiment)
-y(MultiAssayExperiment)
+    library(MultiAssayExperiment)
+    library(SummarizedExperiment)
     library(S4Vectors)
     library(alabaster.base)
     library(alabaster.mae)

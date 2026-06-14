@@ -53,9 +53,9 @@ process BIOC_MEGADEPTH_MEGADEPTH_COVERAGE_JUNCTION_PIPELINE {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(megadepth)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(S4Vectors)
     

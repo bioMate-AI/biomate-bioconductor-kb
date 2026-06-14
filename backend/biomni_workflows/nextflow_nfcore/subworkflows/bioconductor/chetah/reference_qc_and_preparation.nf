@@ -60,8 +60,8 @@ process BIOC_CHETAH_REFERENCE_QC_AND_PREPARATION {
         }
         
         # Load required libraries
-        l        library(SummarizedExperiment)
-ibrary(CHETAH)
+        library(CHETAH)
+        library(SummarizedExperiment)
         
         # 1. Read User Inputs from the working directory
         if (file.exists("headneck_ref")) {

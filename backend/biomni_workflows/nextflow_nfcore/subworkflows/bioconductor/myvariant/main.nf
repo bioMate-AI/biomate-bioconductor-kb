@@ -53,9 +53,9 @@ process BIOC_MYVARIANT_MYVARIANT_ANNOTATION_PIPELINE {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(myvariant)
+    library(SummarizedExperiment)
     library(VariantAnnotation)
     library(S4Vectors)
     

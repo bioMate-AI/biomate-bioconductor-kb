@@ -56,9 +56,9 @@ process BIOC_BISEQ_PREDEFINED_REGIONS_BISEQ {
           }
         }
         
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(BiSeq)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     
     # 1. Read the declared user input files from the working directory

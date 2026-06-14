@@ -61,9 +61,9 @@ process BIOC_ESCAPE_PER_CELL_ENRICHMENT_AND_VISUALIZATION {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages(      library(SummarizedExperiment)
-{
+    suppressPackageStartupMessages({
       library(escape)
+      library(SummarizedExperiment)
       library(scran)
       library(Seurat)
       library(SeuratObject)

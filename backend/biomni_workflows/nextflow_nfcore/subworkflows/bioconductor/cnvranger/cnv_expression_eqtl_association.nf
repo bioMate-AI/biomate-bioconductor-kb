@@ -59,9 +59,9 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(CNVRanger)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(AnnotationHub)
     library(ensembldb)

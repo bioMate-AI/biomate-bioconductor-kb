@@ -64,9 +64,9 @@ process BIOC_BAYESSPACE_SPATIAL_CLUSTERING_AND_RESOLUTION_ENHANCEMENT {
           }
         }
         
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(ggplot2)
+    library(SummarizedExperiment)
     library(BayesSpace)
     library(Matrix)
     library(purrr)

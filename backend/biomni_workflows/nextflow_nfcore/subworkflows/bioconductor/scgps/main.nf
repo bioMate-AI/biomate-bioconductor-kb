@@ -54,9 +54,9 @@ process BIOC_SCGPS_SUBPOPULATION_IDENTIFICATION_AND_CHARACTERISATION {
       suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(scGPS)
+    library(SummarizedExperiment)
     library(locfit)
     library(DOSE)
     library(ReactomePA)

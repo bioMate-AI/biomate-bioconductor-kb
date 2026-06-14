@@ -56,9 +56,9 @@ process BIOC_BERT_SUMMARIZED_EXPERIMENT_CORRECTION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(BERT)
+    library(SummarizedExperiment)
     
     # 1. Load the SummarizedExperiment object
     input_file <- "summarized_experiment.rds"

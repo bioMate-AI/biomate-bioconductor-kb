@@ -65,8 +65,8 @@ process BIOC_TREECLIMBR_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     
     # Load required libraries
     suppressPackageStartupMessages({
-        library(Tr        library(SummarizedExperiment)
-eeSummarizedExperiment)
+        library(TreeSummarizedExperiment)
+        library(SummarizedExperiment)
         library(treeclimbR)
         library(dplyr)
         library(ggplot2)

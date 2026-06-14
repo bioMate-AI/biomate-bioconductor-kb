@@ -61,9 +61,9 @@ process BIOC_BNBC_HIC_NORMALIZATION_FROM_COOLER {
           }
         }
         
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(bnbc)
+    library(SummarizedExperiment)
     library(GenomeInfoDb)
     library(S4Vectors)
     

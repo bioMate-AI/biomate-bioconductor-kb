@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 import subprocess
 import threading
 import time
@@ -998,14 +999,55 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         shutil.copy(str(Path(src).expanduser()), str(dest))
 
 
+def _resolve_read_filename(nf_text: str, base: str) -> str:
+    """Return the literal filename the workflow body reads for declared input `base`.
+
+    The `// Input:` declaration uses a logical base token (e.g. `sce2`), but the R body
+    often reads a specific filename with an extension (`readRDS("sce2.rds")`). The harness
+    stages by the declared token, so when the workflow reads `<base>.<ext>` we must stage
+    the file under that exact name. Strategy:
+      * If the workflow reads the bare `<base>` literally (readRDS/read.*/file.exists/loadDb),
+        keep the bare token (extension-agnostic readers work either way).
+      * Else, if it reads `<base>.<ext>`, stage under `<base>.<ext>` (prefer .rds, then the
+        first extension referenced).
+      * Else, fall back to the bare token unchanged.
+    A trailing slash (directory inputs like `sample_bams/`) is preserved as-is.
+    """
+    if base.endswith("/"):
+        return base
+    b = re.escape(base)
+    read_fn = r'(?:readRDS|loadDb|read\.csv|read\.table|read\.delim|file\.exists|readLines|gzfile)'
+    # bare literal read of the token -> already correct, keep as-is
+    if re.search(read_fn + r'\(\s*"' + b + r'"', nf_text) or \
+       re.search(r'<-\s*"' + b + r'"\s*$', nf_text, re.MULTILINE):
+        return base
+    # the token already carries an extension (e.g. Pan-cancer-hg38.rds, vV_newSamples.txt)
+    if re.search(r'\.[A-Za-z0-9]+$', base):
+        return base
+    # literal read of <base>.<ext>; prefer .rds, then the first referenced extension
+    exts = re.findall(read_fn + r'\(\s*"' + b + r'\.([A-Za-z0-9]+)"', nf_text)
+    exts += re.findall(r'<-\s*"' + b + r'\.([A-Za-z0-9]+)"', nf_text)
+    if not exts:
+        return base
+    ext = "rds" if "rds" in exts else exts[0]
+    return f"{base}.{ext}"
+
+
 def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                               run_id: str = "") -> Optional[Path]:
     """If `nf_path` is a regenerated Bioconductor subworkflow (named-only workflow with a
-    `take:` channel + a `// Input:` declaration + a `path(...stageAs)` process), generate an
-    anonymous entry wrapper that stages the user's declared inputs by base name and binds them
-    to the process channel. Returns the wrapper .nf path, or None if not applicable (caller
-    keeps the normal `-entry` path). Mutates `params`: declared-input keys are popped (they
-    become staged files, not CLI `--flags`)."""
+    `take:` channel + a `path()` process input), generate an anonymous entry wrapper that binds a
+    non-null channel to the process. `-entry` alone cannot feed a `take:` channel, so the
+    mandatory `path()` slot resolves to null → "Path value cannot be null".
+
+    Two scaffolding styles are handled (see inline notes):
+      A) `// Input:` header → stage the user's declared files by base name.
+      B) no `// Input:` header (self-generating / web-API utility packages) → bind a non-null
+         placeholder file for the vestigial `path()` slot the R body never reads.
+
+    Returns the wrapper .nf path, or None if not applicable (caller keeps the normal `-entry`
+    path). Mutates `params`: Style-A declared-input keys are popped (they become staged files,
+    not CLI `--flags`)."""
     if "/bioconductor/" not in nf_path.as_posix():
         return None
     try:
@@ -1015,41 +1057,87 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     # An anonymous workflow already provides a runnable entry — leave it alone.
     if re.search(r"(?m)^\s*workflow\s*\{", text):
         return None
-    decl = _BIOC_INPUT_DECL_RE.search(text)
     proc_m = re.search(r"(?m)^\s*process\s+([A-Z][A-Z0-9_]+)\s*\{", text)
-    if not decl or not proc_m:
+    if not proc_m:
         return None
-    names = [re.split(r"\s*\(", n)[0].strip()
-             for n in re.split(r"[,\s]+", decl.group(1)) if n.strip()]
-    if not names:
+    # A named-only workflow with a `take:` channel is the runnable-via-wrapper shape. Without a
+    # `take:` there is nothing for us to bind and the normal `-entry` path applies.
+    if not re.search(r"(?m)^\s*take:\s*$", text):
         return None
     proc = proc_m.group(1)
+
     # Process input arity: a single `path(x, stageAs:'?/*')` slot collects MANY files as one
     # list; N separate path() slots take one file each.
     inblk = re.search(r"input:(.*?)(?:output:|script:|exec:|when:)", text, re.DOTALL)
-    n_path = len(re.findall(r"\bpath\s*\(", inblk.group(1))) if inblk else 1
+    in_text = inblk.group(1) if inblk else ""
+    n_path = len(re.findall(r"\bpath\s*\(", in_text))
 
-    # Every declared input must be supplied; otherwise fall back to the normal path so the
-    # missing-input error surfaces clearly rather than producing a half-bound channel.
+    decl = _BIOC_INPUT_DECL_RE.search(text)
+    names = []
+    if decl:
+        names = [re.split(r"\s*\(", n)[0].strip()
+                 for n in re.split(r"[,\s]+", decl.group(1)) if n.strip()]
+
+    # Two scaffolding styles share the same wrapper:
+    #   (A) `// Input: a, b` header + `path(input_files, stageAs:'?/*')`: the R body reads real
+    #       user files via read_input_file(); each declared name MUST be staged.
+    #   (B) no `// Input:` header, process input `tuple val(meta), path(count_data)`: a
+    #       self-generating / web-API utility package (e.g. Biobase data(), OmnipathR omnipath()).
+    #       The path slot is vestigial — the R body never reads it — but Nextflow still requires a
+    #       non-null value for a mandatory `path()` input, so `-entry` with an unbound take channel
+    #       fails with "Path value cannot be null". We bind a non-null placeholder file instead.
     staged: list[Path] = []
-    for name in names:
-        src = params.get(name)
-        if not src:
-            return None
-        dest = run_dir / name
-        try:
-            _stage_declared_input(src, dest)
-        except Exception as exc:
-            log.warning("[Nextflow run %s] bioc input staging failed for %r: %s",
-                        run_id, name, exc)
-            return None
-        staged.append(dest.resolve())
-
-    for name in names:                       # consumed as staged files, not --flags
-        params.pop(name, None)
+    if names:
+        # Style A: every declared input must be supplied; otherwise fall back to the normal path
+        # so the missing-input error surfaces clearly rather than a half-bound channel.
+        for name in names:
+            src = params.get(name)
+            if not src:
+                return None
+            # The `// Input:` declaration carries a *logical* base token (e.g. `sce2`, `fit2`),
+            # but the workflow body frequently reads a *literal* filename with an extension
+            # (`readRDS("sce2.rds")`, `file.exists("fit2.rds")`). Stage under the literal
+            # filename the workflow actually reads so the input contract is satisfied without
+            # touching the workflow logic.
+            stage_name = _resolve_read_filename(text, name)
+            dest = run_dir / stage_name
+            try:
+                _stage_declared_input(src, dest)
+            except Exception as exc:
+                log.warning("[Nextflow run %s] bioc input staging failed for %r: %s",
+                            run_id, name, exc)
+                return None
+            staged.append(dest.resolve())
+        for name in names:                   # consumed as staged files, not --flags
+            params.pop(name, None)
+    elif n_path >= 1:
+        # Style B: bind one non-null file per mandatory path() slot. If the caller did supply a
+        # real input (common keys), stage it for the first slot; otherwise (and for any extra
+        # slots) write an empty placeholder so the channel is never null. Utility/API workflows
+        # ignore the file; a workflow that truly needs input still fails loudly inside R, not at
+        # the opaque channel-binding step.
+        _input_keys = ("input", "input_file", "count_data", "counts", "seurat_object",
+                       "rds", "data", "matrix")
+        _supplied = next((params.get(k) for k in _input_keys if params.get(k)), None)
+        for i in range(n_path):
+            dest = run_dir / (f"bioc_input_{i}.dat" if i or not _supplied else "bioc_input.dat")
+            if i == 0 and _supplied:
+                try:
+                    _stage_declared_input(_supplied, dest)
+                except Exception as exc:
+                    log.warning("[Nextflow run %s] bioc optional input staging failed for %r: %s",
+                                run_id, _supplied, exc)
+                    dest.write_text("")
+            else:
+                dest.write_text("")          # placeholder; consumed-but-unused path slot
+            staged.append(dest.resolve())
+    else:
+        # No declared inputs and no path() slot to bind — nothing for the wrapper to do.
+        return None
 
     files_lit = [f"file('{p.as_posix()}')" for p in staged]
     if n_path <= 1 and len(staged) > 1:
+        # Style A `stageAs:'?/*'` single slot collecting many files as one list.
         slot = "[ " + ", ".join(files_lit) + " ]"
     else:
         slot = ", ".join(files_lit)
@@ -1060,8 +1148,8 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
         f"include {{ {proc} }} from '{nf_path.resolve().as_posix()}'\n"
         f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
     )
-    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s inputs=%s (n_path=%d)",
-             run_id, proc, names, n_path)
+    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s style=%s inputs=%s n_path=%d staged=%d",
+             run_id, proc, ("A" if names else "B"), names or "(none)", n_path, len(staged))
     return wrapper
 
 

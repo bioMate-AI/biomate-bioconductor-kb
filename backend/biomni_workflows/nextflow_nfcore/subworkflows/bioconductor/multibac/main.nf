@@ -58,9 +58,9 @@ process BIOC_MULTIBAC_SINGLE_OMIC_CORRECTION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(MultiBaC)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     
     # Helper function to read input matrices robustly

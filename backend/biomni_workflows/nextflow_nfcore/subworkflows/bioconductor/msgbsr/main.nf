@@ -53,9 +53,9 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(msgbsR)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(BSgenome.Rnorvegicus.UCSC.rn6)
     

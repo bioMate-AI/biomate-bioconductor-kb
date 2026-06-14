@@ -63,8 +63,8 @@ process BIOC_MULTIRNAFLOW_TEMPORAL_MULTICONDITION_RNASEQ_FLOW {
         }
         
         # Load required libraries
-        library        library(SummarizedExperiment)
-(MultiRNAflow)
+        library(MultiRNAflow)
+        library(SummarizedExperiment)
         
         # Create results directory
         dir.create("results", showWarnings = FALSE, recursive = TRUE)

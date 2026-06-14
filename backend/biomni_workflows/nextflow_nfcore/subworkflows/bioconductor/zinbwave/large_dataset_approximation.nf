@@ -59,9 +59,9 @@ process BIOC_ZINBWAVE_LARGE_DATASET_APPROXIMATION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(zinbwave)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(magrittr)
     library(BiocParallel)

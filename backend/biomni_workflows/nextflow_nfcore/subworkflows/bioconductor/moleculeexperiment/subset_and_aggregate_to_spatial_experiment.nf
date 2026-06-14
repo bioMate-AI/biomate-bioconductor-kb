@@ -53,8 +53,8 @@ process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
     }
     
     # Load required libraries
-    libr    library(SummarizedExperiment)
-ary(MoleculeExperiment)
+    library(MoleculeExperiment)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(ggplot2)
     

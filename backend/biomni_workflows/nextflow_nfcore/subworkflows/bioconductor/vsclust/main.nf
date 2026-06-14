@@ -60,8 +60,8 @@ process BIOC_VSCLUST_BIOCONDUCTOR_OBJECT_WORKFLOW {
         }
     
     # Load required libraries
-    librar    library(SummarizedExperiment)
-y(MultiAssayExperiment)
+    library(MultiAssayExperiment)
+    library(SummarizedExperiment)
     library(vsclust)
     library(matrixStats)
     

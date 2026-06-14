@@ -57,9 +57,9 @@ process BIOC_CLUSTIFYR_DIRECT_OBJECT_ANNOTATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(clustifyr)
+    library(SummarizedExperiment)
     library(Seurat)
     
     # Read user input files from the working directory

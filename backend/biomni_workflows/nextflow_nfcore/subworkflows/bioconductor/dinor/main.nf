@@ -54,9 +54,9 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({        library(SummarizedExperiment)
-
+    suppressPackageStartupMessages({
         library(dinoR)
+        library(SummarizedExperiment)
         library(ggplot2)
         library(dplyr)
         library(S4Vectors)

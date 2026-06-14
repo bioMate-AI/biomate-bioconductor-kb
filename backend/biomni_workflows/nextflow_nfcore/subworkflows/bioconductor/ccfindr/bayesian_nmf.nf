@@ -62,8 +62,8 @@ process BIOC_CCFINDR_BAYESIAN_NMF {
         }
         
         # Load required libraries
-        li        library(SummarizedExperiment)
-brary(ccfindR)
+        library(ccfindR)
+        library(SummarizedExperiment)
         
         # Define directory containing the user input files
         dir <- "."

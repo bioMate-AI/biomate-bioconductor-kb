@@ -64,9 +64,9 @@ process BIOC_MOSCLIP_MULTI_OMIC_SURVIVAL_MODULE_ANALYSIS {
           }
         }
         
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(MOSClip)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     library(kableExtra)
     library(survival)

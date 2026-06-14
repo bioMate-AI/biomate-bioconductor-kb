@@ -53,8 +53,8 @@ process BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW {
     }
     
     # Load required libraries
-    lib    library(SummarizedExperiment)
-rary(SpatialExperiment)
+    library(SpatialExperiment)
+    library(SummarizedExperiment)
     library(SpotClean)
     library(S4Vectors)
     

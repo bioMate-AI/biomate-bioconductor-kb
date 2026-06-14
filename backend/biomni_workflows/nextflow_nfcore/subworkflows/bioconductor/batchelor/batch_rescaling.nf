@@ -59,9 +59,9 @@ process BIOC_BATCHELOR_BATCH_RESCALING {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(batchelor)
+    library(SummarizedExperiment)
     library(scran)
     library(scater)
     library(scuttle)

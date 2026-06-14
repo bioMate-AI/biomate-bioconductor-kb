@@ -61,9 +61,9 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
           }
         }
         
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(MAST)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(data.table)
     

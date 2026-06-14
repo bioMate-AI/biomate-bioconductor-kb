@@ -58,9 +58,9 @@ process BIOC_MEAL_METHYLATION_ANALYSIS {
           }
         }
         
-        # Load required librarie        library(SummarizedExperiment)
-s
+        # Load required libraries
         library(MEAL)
+        library(SummarizedExperiment)
         library(GenomicRanges)
         library(ggplot2)
         

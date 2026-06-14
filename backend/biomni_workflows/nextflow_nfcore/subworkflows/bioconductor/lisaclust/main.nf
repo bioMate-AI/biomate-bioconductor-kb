@@ -59,9 +59,9 @@ process BIOC_LISACLUST_AUTOMATED_LISA_CLUSTERING {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(lisaClust)
+    library(SummarizedExperiment)
     library(spicyR)
     library(ggplot2)
     

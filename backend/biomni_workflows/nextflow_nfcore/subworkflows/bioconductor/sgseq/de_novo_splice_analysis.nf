@@ -60,9 +60,9 @@ process BIOC_SGSEQ_DE_NOVO_SPLICE_ANALYSIS {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(SGSeq)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(GenomicFeatures)
     library(BSgenome)
