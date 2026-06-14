@@ -48,7 +48,7 @@ process BIOC_MULTISTATEQTL_MULTISTATE_QTL_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("QTLExperiment", "multistateQTL")
+    .bm_deps <- c("QTLExperiment", "multistateQTL", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -69,7 +69,8 @@ process BIOC_MULTISTATEQTL_MULTISTATE_QTL_ANALYSIS {
     set.seed(42)
     
     # Load required libraries
-    library(QTLExperiment)
+       library(SummarizedExperiment)
+ library(QTLExperiment)
     library(multistateQTL)
     
     # ==========================================

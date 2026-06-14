@@ -46,7 +46,7 @@ process BIOC_CONSICA_CONSENSUS_ICA_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("consICA")
+    .bm_deps <- c("consICA", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_CONSICA_CONSENSUS_ICA_WORKFLOW {
         }
     
     # Load required libraries
-    library(consICA)
+      library(SummarizedExperiment)
+  library(consICA)
     
     # 1. Load data and extract expression, metadata, and survival variables
     # Read the user-provided files from the working directory

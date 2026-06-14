@@ -36,7 +36,7 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("FindIT2", "TxDb.Athaliana.BioMart.plantsmart28", "GenomicRanges", "S4Vectors", "BiocGenerics", "dplyr", "ggplot2")
+    .bm_deps <- c("FindIT2", "TxDb.Athaliana.BioMart.plantsmart28", "GenomicRanges", "S4Vectors", "BiocGenerics", "dplyr", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(FindIT2)
     library(TxDb.Athaliana.BioMart.plantsmart28)
     library(GenomicRanges)

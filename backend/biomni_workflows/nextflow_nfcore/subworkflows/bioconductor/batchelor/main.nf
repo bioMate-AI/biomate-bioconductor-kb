@@ -44,7 +44,7 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "batchelor", "ggplot2", "knitr", "scater", "scran", "scRNAseq", "scuttle")
+    .bm_deps <- c("SingleCellExperiment", "batchelor", "ggplot2", "knitr", "scater", "scran", "scRNAseq", "scuttle", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(scuttle)
     library(scran)
     library(batchelor)

@@ -36,7 +36,7 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("recount", "GenomicRanges")
+    .bm_deps <- c("recount", "GenomicRanges", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(recount)
     library(GenomicRanges)
     

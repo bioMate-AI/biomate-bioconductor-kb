@@ -64,6 +64,7 @@ process BIOC_RAER_BULK_DIFFERENTIAL_EDITING {
             
             # Load required libraries
             library(raer)
+            library(SummarizedExperiment)
             library(GenomicRanges)
             library(rtracklayer)
             

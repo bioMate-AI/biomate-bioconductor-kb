@@ -42,7 +42,7 @@ process BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "AnnotationDbi", "dplyr", "ggplot2", "ggsci", "purrr", "scDotPlot", "scran", "scuttle", "Seurat", "SeuratObject")
+    .bm_deps <- c("SingleCellExperiment", "AnnotationDbi", "dplyr", "ggplot2", "ggsci", "purrr", "scDotPlot", "scran", "scuttle", "Seurat", "SeuratObject", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(scuttle)
     library(scran)
     library(purrr)

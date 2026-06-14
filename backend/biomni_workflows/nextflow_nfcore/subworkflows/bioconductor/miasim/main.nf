@@ -36,7 +36,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("miaSim")
+    .bm_deps <- c("miaSim", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
         }
     
     # Load required libraries
-    library(miaSim)
+     library(SummarizedExperiment)
+   library(miaSim)
     
     # ==========================================
     # --- Load and Preprocess Input Data ---

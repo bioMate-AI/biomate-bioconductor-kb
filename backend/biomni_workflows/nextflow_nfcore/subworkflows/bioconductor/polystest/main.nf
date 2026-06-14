@@ -44,7 +44,7 @@ process BIOC_POLYSTEST_QUANTITATIVE_OMICS_DIFFERENTIAL_TESTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("PolySTest", "matrixStats")
+    .bm_deps <- c("PolySTest", "matrixStats", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_POLYSTEST_QUANTITATIVE_OMICS_DIFFERENTIAL_TESTING {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(PolySTest)
     library(matrixStats)
     

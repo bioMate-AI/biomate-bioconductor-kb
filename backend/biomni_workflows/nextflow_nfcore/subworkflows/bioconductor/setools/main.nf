@@ -36,7 +36,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SEtools")
+    .bm_deps <- c("SEtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({
+    suppressPackageStartupMessages({      library(SummarizedExperiment)
+
       library(SEtools)
     })
     

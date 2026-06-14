@@ -44,7 +44,7 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MAST", "ggplot2", "data.table")
+    .bm_deps <- c("MAST", "ggplot2", "data.table", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
           }
         }
         
-    # Load required libraries
+    # Load required libr    library(SummarizedExperiment)
+aries
     library(MAST)
     library(ggplot2)
     library(data.table)

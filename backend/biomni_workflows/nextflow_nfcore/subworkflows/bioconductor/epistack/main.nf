@@ -75,6 +75,7 @@ process BIOC_EPISTACK_CHIPSEQ_PEAKS_QUALITY {
     
     # Load required libraries
     library(rtracklayer)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(EnrichedHeatmap)
     library(epistack)

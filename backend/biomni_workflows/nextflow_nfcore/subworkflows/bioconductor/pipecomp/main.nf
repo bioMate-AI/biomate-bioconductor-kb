@@ -46,7 +46,7 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("pipeComp", "S4Vectors", "edgeR", "sva", "ggplot2", "ComplexHeatmap")
+    .bm_deps <- c("pipeComp", "S4Vectors", "edgeR", "sva", "ggplot2", "ComplexHeatmap", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
         }
         
         # Load required libraries
-        library(pipeComp)
+          library(SummarizedExperiment)
+      library(pipeComp)
         library(S4Vectors)
         library(edgeR)
         library(sva)

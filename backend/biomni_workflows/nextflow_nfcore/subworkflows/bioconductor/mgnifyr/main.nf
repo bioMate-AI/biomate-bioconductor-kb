@@ -18,7 +18,7 @@ process BIOC_MGNIFYR {
     label 'process_medium'
 
     conda "bioconductor-mgnifyr"
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(count_data)

@@ -36,7 +36,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("biscuiteer", "bsseq", "GenomicRanges", "ggplot2")
+    .bm_deps <- c("biscuiteer", "bsseq", "GenomicRanges", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_BISCUITEER_BISCUITEER_EPIGENOMIC_PIPELINE {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(biscuiteer)
     library(bsseq)
     library(GenomicRanges)

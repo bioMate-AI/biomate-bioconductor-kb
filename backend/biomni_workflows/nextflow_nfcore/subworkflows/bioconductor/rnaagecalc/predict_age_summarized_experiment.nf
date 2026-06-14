@@ -41,7 +41,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_SUMMARIZED_EXPERIMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("RNAAgeCalc")
+    .bm_deps <- c("RNAAgeCalc", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_RNAAGECALC_PREDICT_AGE_SUMMARIZED_EXPERIMENT {
         }
     
     # Load required libraries
-    library(RNAAgeCalc)
+    l    library(SummarizedExperiment)
+ibrary(RNAAgeCalc)
     
     # --- Read the user input SummarizedExperiment object from the ---
     input_file <- "se.rds"

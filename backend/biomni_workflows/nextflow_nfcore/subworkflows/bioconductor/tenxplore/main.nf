@@ -37,7 +37,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("tenXplore")
+    .bm_deps <- c("tenXplore", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +55,8 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
         }
     
     # --- Load libraries and input datasets ---
-    library(tenXplore)
+        library(SummarizedExperiment)
+library(tenXplore)
     
     message("Loading input datasets...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)

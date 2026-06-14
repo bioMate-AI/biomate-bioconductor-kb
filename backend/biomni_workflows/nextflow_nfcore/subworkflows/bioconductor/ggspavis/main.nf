@@ -44,7 +44,7 @@ process BIOC_GGSPAVIS_SPATIAL_COORDINATE_AND_VISIUM_PLOTTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SpatialExperiment", "ggplot2", "ggspavis", "patchwork", "scater", "stexampledata")
+    .bm_deps <- c("SpatialExperiment", "ggplot2", "ggspavis", "patchwork", "scater", "stexampledata", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_GGSPAVIS_SPATIAL_COORDINATE_AND_VISIUM_PLOTTING {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(ggspavis)
     library(patchwork)
     library(ggplot2)

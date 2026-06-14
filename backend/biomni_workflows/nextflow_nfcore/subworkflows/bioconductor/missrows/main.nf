@@ -45,7 +45,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("missRows", "MultiAssayExperiment")
+    .bm_deps <- c("missRows", "MultiAssayExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,7 +62,8 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(missRows)
     library(MultiAssayExperiment)
     

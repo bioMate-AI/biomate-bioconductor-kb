@@ -44,7 +44,7 @@ process BIOC_SCHOT_SPATIAL_DIFFERENTIAL_CORRELATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("scHOT", "ggplot2", "matrixStats", "scater")
+    .bm_deps <- c("scHOT", "ggplot2", "matrixStats", "scater", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,9 @@ process BIOC_SCHOT_SPATIAL_DIFFERENTIAL_CORRELATION {
             }
           }
         }
-        
+            
+    library(SummarizedExperiment)
+    
     library(scHOT)
     library(ggplot2)
     library(matrixStats)

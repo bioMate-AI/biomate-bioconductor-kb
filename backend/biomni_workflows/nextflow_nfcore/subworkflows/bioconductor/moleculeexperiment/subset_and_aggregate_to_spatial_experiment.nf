@@ -34,7 +34,7 @@ process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MoleculeExperiment", "SpatialExperiment", "ggplot2")
+    .bm_deps <- c("MoleculeExperiment", "SpatialExperiment", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
     }
     
     # Load required libraries
-    library(MoleculeExperiment)
+    libr    library(SummarizedExperiment)
+ary(MoleculeExperiment)
     library(SpatialExperiment)
     library(ggplot2)
     

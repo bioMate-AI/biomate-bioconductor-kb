@@ -34,7 +34,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BSgenome.Mmusculus.UCSC.mm10", "Biostrings", "ComplexHeatmap", "GenomicRanges", "JASPAR2020", "TFBSTools", "circlize", "monaLisa", "rtracklayer")
+    .bm_deps <- c("BSgenome.Mmusculus.UCSC.mm10", "Biostrings", "ComplexHeatmap", "GenomicRanges", "JASPAR2020", "TFBSTools", "circlize", "monaLisa", "rtracklayer", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
       }
     }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(monaLisa)
     library(GenomicRanges)
     library(rtracklayer)

@@ -62,6 +62,7 @@ process BIOC_SIMBU_CUSTOM_DATA_SIMULATION {
             
             # Load required libraries
             library(SimBu)
+            library(SummarizedExperiment)
             library(Seurat)
             library(BiocParallel)
             library(utils)

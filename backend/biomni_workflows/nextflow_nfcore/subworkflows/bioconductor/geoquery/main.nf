@@ -35,7 +35,7 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GEOquery", "S4Vectors")
+    .bm_deps <- c("GEOquery", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(GEOquery)
     library(S4Vectors)
     

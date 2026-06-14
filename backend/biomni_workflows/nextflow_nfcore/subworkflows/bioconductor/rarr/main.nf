@@ -36,7 +36,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Rarr", "S4Vectors")
+    .bm_deps <- c("Rarr", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required libr    library(SummarizedExperiment)
+aries
     library(Rarr)
     library(S4Vectors)
     

@@ -34,7 +34,7 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ASpli", "BiocParallel", "DESeq2", "GenomicFeatures", "PRROC", "data.table", "dplyr", "edgeR", "igraph", "limma", "saseR", "txdbmaker")
+    .bm_deps <- c("ASpli", "BiocParallel", "DESeq2", "GenomicFeatures", "PRROC", "data.table", "dplyr", "edgeR", "igraph", "limma", "saseR", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_SASER_ABERRANT_SPLICING_ANALYSIS {
       }
     }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(saseR)
     suppressWarnings(library(ASpli))
     library(edgeR)

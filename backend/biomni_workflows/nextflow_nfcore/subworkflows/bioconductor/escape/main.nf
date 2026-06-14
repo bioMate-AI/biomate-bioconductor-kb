@@ -43,7 +43,7 @@ process BIOC_ESCAPE_PER_CELL_ENRICHMENT_AND_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("escape", "scran", "Seurat", "SeuratObject", "RColorBrewer", "ggplot2", "GSEABase")
+    .bm_deps <- c("escape", "scran", "Seurat", "SeuratObject", "RColorBrewer", "ggplot2", "GSEABase", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_ESCAPE_PER_CELL_ENRICHMENT_AND_VISUALIZATION {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({
+    suppressPackageStartupMessages(      library(SummarizedExperiment)
+{
       library(escape)
       library(scran)
       library(Seurat)

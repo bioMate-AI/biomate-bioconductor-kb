@@ -36,7 +36,7 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("RTCGAToolbox", "S4Vectors")
+    .bm_deps <- c("RTCGAToolbox", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,7 +54,8 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
         }
     
     # Load required libraries
-    library(RTCGAToolbox)
+      library(SummarizedExperiment)
+  library(RTCGAToolbox)
     library(S4Vectors)
     
     # ==========================================

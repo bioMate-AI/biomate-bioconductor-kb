@@ -34,7 +34,7 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CATALYST", "SingleCellExperiment", "imcRtools")
+    .bm_deps <- c("CATALYST", "SingleCellExperiment", "imcRtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
       }
     }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(imcRtools)
     library(CATALYST)
     library(SingleCellExperiment)

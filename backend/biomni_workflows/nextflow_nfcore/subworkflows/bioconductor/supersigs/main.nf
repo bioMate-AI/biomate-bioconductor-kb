@@ -44,7 +44,7 @@ process BIOC_SUPERSIGS_TRAIN_SUPERSIG {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "dplyr", "ggplot2", "supersigs", "VariantAnnotation")
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "dplyr", "ggplot2", "supersigs", "VariantAnnotation", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_SUPERSIGS_TRAIN_SUPERSIG {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(supersigs)
     library(VariantAnnotation)
     library(BSgenome.Hsapiens.UCSC.hg19)

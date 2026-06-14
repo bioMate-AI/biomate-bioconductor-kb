@@ -48,7 +48,7 @@ process BIOC_DEWSEQ_DEWSEQ_CLIP_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DEWSeq", "IHW", "tidyverse", "data.table")
+    .bm_deps <- c("DEWSeq", "IHW", "tidyverse", "data.table", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -66,6 +66,7 @@ process BIOC_DEWSEQ_DEWSEQ_CLIP_ANALYSIS {
         }
         
         # Load required libraries
+        library(SummarizedExperiment)
         library(DEWSeq)
         library(IHW)
         library(tidyverse)

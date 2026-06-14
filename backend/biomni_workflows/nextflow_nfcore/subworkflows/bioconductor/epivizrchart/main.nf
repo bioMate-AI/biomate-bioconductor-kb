@@ -54,6 +54,7 @@ process BIOC_EPIVIZRCHART_EPIVIZ_GENOMIC_DASHBOARD {
     
     # --- Load required libraries ---
     library(epivizrChart)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(htmltools)
     

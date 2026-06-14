@@ -43,7 +43,7 @@ process BIOC_MARR_MAXIMUM_RANK_REPRODUCIBILITY_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("marr")
+    .bm_deps <- c("marr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_MARR_MAXIMUM_RANK_REPRODUCIBILITY_ANALYSIS {
         }
         
         # Load required libraries
-        library(marr)
+               library(SummarizedExperiment)
+ library(marr)
         
         # 1. Read the user input file
         # The input file 'abundance_matrix.csv' is expected to have features as rows and replicate samples as columns.

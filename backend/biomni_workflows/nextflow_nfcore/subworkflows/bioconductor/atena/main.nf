@@ -60,6 +60,7 @@ process BIOC_ATENA_ERVMAP_QUANTIFICATION {
     
     # Load required libraries
     library(atena)
+    library(SummarizedExperiment)
     library(BiocParallel)
     library(Rsamtools)
     

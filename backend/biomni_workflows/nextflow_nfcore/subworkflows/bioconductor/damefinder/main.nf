@@ -41,7 +41,7 @@ process BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DAMEfinder", "GenomicRanges")
+    .bm_deps <- c("DAMEfinder", "GenomicRanges", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_DAMEFINDER_SNP_BASED_DAME_DETECTION {
         
         # Load required libraries
         suppressPackageStartupMessages({
-          library(DAMEfinder)
+                library(SummarizedExperiment)
+    library(DAMEfinder)
           library(GenomicRanges)
         })
         

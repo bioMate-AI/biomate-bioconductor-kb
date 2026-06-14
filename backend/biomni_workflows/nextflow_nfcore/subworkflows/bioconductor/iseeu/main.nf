@@ -35,7 +35,7 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("iSEEu", "iSEE", "limma")
+    .bm_deps <- c("iSEEu", "iSEE", "limma", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_ISEEU_ISEEU_INTERACTIVE_EXPLORER {
           }
         }
     
-    # --- Load required libraries ---
+    # --- Load required libraries    library(SummarizedExperiment)
+ ---
     library(iSEEu)
     library(iSEE)
     library(limma)

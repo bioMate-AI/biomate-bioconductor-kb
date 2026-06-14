@@ -60,6 +60,7 @@ process BIOC_PHARMACOGX_SENSITIVITY_CONSISTENCY {
     
     # Load required libraries
     library(PharmacoGx)
+    library(SummarizedExperiment)
     library(stats)
     
     # --- Read the declared USER INPUT files from the working ---

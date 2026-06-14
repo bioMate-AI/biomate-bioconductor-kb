@@ -46,7 +46,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("CAGEfightR", "GenomicFeatures", "InteractionSet", "Gviz", "rtracklayer", "TxDb.Mmusculus.UCSC.mm9.knownGene", "org.Mm.eg.db", "org.Hs.eg.db")
+    .bm_deps <- c("CAGEfightR", "GenomicFeatures", "InteractionSet", "Gviz", "rtracklayer", "TxDb.Mmusculus.UCSC.mm9.knownGene", "org.Mm.eg.db", "org.Hs.eg.db", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         }
         
         # Load required libraries
-        library(CAGEfightR)
+            library(SummarizedExperiment)
+    library(CAGEfightR)
         library(GenomicFeatures)
         library(InteractionSet)
         library(Gviz)

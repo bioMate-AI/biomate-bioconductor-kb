@@ -34,7 +34,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "GenomicAlignments", "GenomicFeatures", "dplyr", "edgeR", "saseR", "txdbmaker")
+    .bm_deps <- c("DESeq2", "GenomicAlignments", "GenomicFeatures", "dplyr", "edgeR", "saseR", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
       }
     }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(saseR)
     library(edgeR)
     library(DESeq2)

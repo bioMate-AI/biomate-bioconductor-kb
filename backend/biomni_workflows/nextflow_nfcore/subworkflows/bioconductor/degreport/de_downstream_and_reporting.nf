@@ -44,7 +44,7 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DEGreport", "DESeq2", "ggplot2")
+    .bm_deps <- c("DEGreport", "DESeq2", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_DEGREPORT_DE_DOWNSTREAM_AND_REPORTING {
           }
         }
         
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(DEGreport)
     library(DESeq2)
     library(ggplot2)

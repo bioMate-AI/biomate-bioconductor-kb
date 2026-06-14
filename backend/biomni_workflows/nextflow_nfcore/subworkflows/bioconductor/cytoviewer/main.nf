@@ -16,7 +16,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,7 +35,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("cytoviewer", "cytomapper", "EBImage", "S4Vectors")
+    .bm_deps <- c("cytoviewer", "cytomapper", "EBImage", "S4Vectors", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,6 +53,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
         }
     
     # --- Load required libraries ---
+    library(SummarizedExperiment)
     library(cytoviewer)
     library(cytomapper)
     library(EBImage)

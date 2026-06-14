@@ -49,7 +49,7 @@ process BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("QFeatures", "dplyr", "tidyr", "ggplot2", "msqrob2", "stringr", "ExploreModelMatrix")
+    .bm_deps <- c("QFeatures", "dplyr", "tidyr", "ggplot2", "msqrob2", "stringr", "ExploreModelMatrix", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -67,7 +67,8 @@ process BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW {
         }
             
             # Load required libraries
-            library(QFeatures)
+                   library(SummarizedExperiment)
+     library(QFeatures)
             library(dplyr)
             library(tidyr)
             library(ggplot2)

@@ -47,7 +47,7 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("zinbwave", "matrixStats", "sparseMatrixStats", "magrittr", "ggplot2", "Rtsne", "BiocParallel")
+    .bm_deps <- c("zinbwave", "matrixStats", "sparseMatrixStats", "magrittr", "ggplot2", "Rtsne", "BiocParallel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_ZINBWAVE_DIMENSIONALITY_REDUCTION_AND_COVARIATES {
           }
         }
     
-    # Load required libraries
+    # Load required librarie    library(SummarizedExperiment)
+s
     library(zinbwave)
     library(matrixStats)
     library(sparseMatrixStats)

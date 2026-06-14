@@ -47,7 +47,7 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("dominoSignal", "plyr", "circlize", "ComplexHeatmap")
+    .bm_deps <- c("dominoSignal", "plyr", "circlize", "ComplexHeatmap", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -65,7 +65,8 @@ process BIOC_DOMINOSIGNAL_DOMINO_SIGNALING_ANALYSIS {
         }
     
     # Load required libraries
-    library(dominoSignal)
+      library(SummarizedExperiment)
+  library(dominoSignal)
     library(plyr)
     library(circlize)
     library(ComplexHeatmap)

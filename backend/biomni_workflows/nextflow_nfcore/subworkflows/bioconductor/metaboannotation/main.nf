@@ -22,7 +22,7 @@ process BIOC_METABOANNOTATION_MATCH_VALUES {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -60,6 +60,7 @@ process BIOC_METABOANNOTATION_MATCH_VALUES {
     
     # Load required libraries
     library(MetaboAnnotation)
+    library(SummarizedExperiment)
     library(QFeatures)
     
     # 1. Load query and target datasets from the working directory

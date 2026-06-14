@@ -64,6 +64,7 @@ process BIOC_CLUSTEREXPERIMENT_MANUAL_STEP_BY_STEP_CLUSTERING {
     # Load required libraries
     library(clusterExperiment)
     
+    library(SummarizedExperiment)
     # Read the user input file 'se' from the working directory
     # Assuming 'se' is a serialized SummarizedExperiment object (RDS format)
     if (!file.exists("se")) {

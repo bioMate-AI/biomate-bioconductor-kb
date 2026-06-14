@@ -34,7 +34,7 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("IsoBayes")
+    .bm_deps <- c("IsoBayes", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     }
     
     # Load the required package
-    library(IsoBayes)
+       library(SummarizedExperiment)
+ library(IsoBayes)
     
     # -----------------------------------------------------------------------------
     # --- Check and resolve input file paths from the working ---

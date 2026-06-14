@@ -60,6 +60,7 @@ process BIOC_MSFEATURES_STEPWISE_FEATURE_GROUPING {
     # Load required libraries
     library(MsFeatures)
     
+    library(SummarizedExperiment)
     # -----------------------------------------------------------------------------
     # 1. Read User Input
     # -----------------------------------------------------------------------------

@@ -26,7 +26,7 @@ process BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -45,7 +45,7 @@ process BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("qmtools", "vsn", "pls", "ggplot2", "patchwork")
+    .bm_deps <- c("qmtools", "vsn", "pls", "ggplot2", "patchwork", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -63,7 +63,8 @@ process BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS {
         }
             
             # Load required libraries
-            library(qmtools)
+                 library(SummarizedExperiment)
+       library(qmtools)
             library(vsn)
             library(pls)
             library(ggplot2)

@@ -34,7 +34,7 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "biocmanager", "edgeR", "GenomicAlignments", "GenomicFeatures", "pasillabamsubset", "Rsamtools")
+    .bm_deps <- c("DESeq2", "biocmanager", "edgeR", "GenomicAlignments", "GenomicFeatures", "pasillabamsubset", "Rsamtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     }
     
     # --- Load GenomicAlignments and downstream analysis packages ---
-    library(GenomicAlignments)
+    lib    library(SummarizedExperiment)
+rary(GenomicAlignments)
     library(DESeq2)
     library(edgeR)
     

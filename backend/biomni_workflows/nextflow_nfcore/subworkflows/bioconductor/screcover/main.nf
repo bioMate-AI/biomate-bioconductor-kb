@@ -41,7 +41,7 @@ process BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("scRecover", "BiocParallel", "SingleCellExperiment")
+    .bm_deps <- c("scRecover", "BiocParallel", "SingleCellExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,7 +58,8 @@ process BIOC_SCRECOVER_SCRNA_SEQ_IMPUTATION {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(scRecover)
     library(BiocParallel)
     suppressMessages(library(SingleCellExperiment))

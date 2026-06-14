@@ -42,7 +42,7 @@ process BIOC_ADVERSCARIAL_RANDOM_WALK_MINIMUM_CHANGE_ATTACK {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("adverSCarial", "CHETAH", "scran", "scater", "stringr")
+    .bm_deps <- c("adverSCarial", "CHETAH", "scran", "scater", "stringr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,7 +60,8 @@ process BIOC_ADVERSCARIAL_RANDOM_WALK_MINIMUM_CHANGE_ATTACK {
         }
         
         # Load required libraries
-        library(adverSCarial)
+              library(SummarizedExperiment)
+  library(adverSCarial)
         library(CHETAH)
         library(scran)
         library(scater)

@@ -64,6 +64,7 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         
         # Load required libraries
         library(tximeta)
+        library(SummarizedExperiment)
         library(Biostrings)
         library(digest)
         

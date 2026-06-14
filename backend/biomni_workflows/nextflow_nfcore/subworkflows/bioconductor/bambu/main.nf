@@ -34,7 +34,7 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("bambu", "BiocFileCache", "DESeq2", "DEXSeq", "ExperimentHub", "nanoporernaseq")
+    .bm_deps <- c("bambu", "BiocFileCache", "DESeq2", "DEXSeq", "ExperimentHub", "nanoporernaseq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,6 +53,7 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     }
     
     # Load required library
+    library(SummarizedExperiment)
     library(bambu)
     
     # Define input files from the working directory as specified by the user

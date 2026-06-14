@@ -46,7 +46,7 @@ process BIOC_SMOOTHCLUST_SPATIAL_DOMAIN_CLUSTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("smoothclust", "scuttle", "scran", "scater", "ggspavis", "SpatialExperiment")
+    .bm_deps <- c("smoothclust", "scuttle", "scran", "scater", "ggspavis", "SpatialExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -64,7 +64,8 @@ process BIOC_SMOOTHCLUST_SPATIAL_DOMAIN_CLUSTERING {
         }
         
     # Load required libraries
-    library(smoothclust)
+     library(SummarizedExperiment)
+   library(smoothclust)
     library(scuttle)
     library(scran)
     library(scater)

@@ -36,7 +36,7 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GMRP", "VariantAnnotation", "GenomicRanges", "S4Vectors", "diagram", "plotrix")
+    .bm_deps <- c("GMRP", "VariantAnnotation", "GenomicRanges", "S4Vectors", "diagram", "plotrix", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,7 +53,8 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
           }
         }
     
-    # --- Load required libraries ---
+    # --- Load required librarie    library(SummarizedExperiment)
+s ---
     library(GMRP)
     library(VariantAnnotation)
     library(GenomicRanges)

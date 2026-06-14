@@ -37,7 +37,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("MatrixQCvis", "limma", "ggplot2")
+    .bm_deps <- c("MatrixQCvis", "limma", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +55,8 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
         }
     
     # Load required libraries
-    library(MatrixQCvis)
+     library(SummarizedExperiment)
+   library(MatrixQCvis)
     library(limma)
     library(ggplot2)
     
