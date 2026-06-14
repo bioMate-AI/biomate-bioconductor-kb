@@ -83,3 +83,22 @@ BiocManager. A rebuild with this template should recover mia/iSEEtree/miaViz (me
 metaMS/xcms (metabolomics) is a separate SOURCE-COMPILE failure — the snapshot may supply an xcms
 binary (Posit PPM has linux binaries); verify `metaMS` load on the built image, and if it still
 fails, the base image needs rebuilding FROM bioconductor/bioconductor_docker:RELEASE_3_20.
+
+## 2026-06-13 (final) — incremental patching CANNOT fix it; base must be rebuilt
+Built metagenomics with the snapshot+downgrade template and verified on the PUSHED image:
+rbiom 1.0.3 + xfun 0.48 are correctly baked, but `mia` STILL fails — now with
+`namespace 'xfun' 0.48 is being loaded, but >= 0.52 is required`. The conflict is
+**bidirectional**: `mia` (base, built against old deps) needs OLD xfun, while the
+`BiocManager::install` of the other deps.txt packages pulls packages that need xfun >= 0.52.
+No single CRAN snapshot or per-package pin can satisfy both — the base `:3.20` image is an
+internally-inconsistent mix of packages built against different dates.
+
+**Conclusion (definitive): the domain base images must be REBUILT from a consistent base** —
+`FROM bioconductor/bioconductor_docker:RELEASE_3_20` (where Bioc + all CRAN deps are
+snapshot-consistent), then install the domain deps on top. Patching the existing `:3.20`
+images (snapshots, downgrades, BiocManager) is whack-a-mole and provably can't converge.
+
+The pushed `metagenomics:3.20-deps` has `mia` still broken — but **no regression** (the prior
+`:3.20-deps` was equally broken for mia; everything else that loaded still loads). Box
+terminated, no orphans. This is the honest end of the incremental track; the base rebuild is
+the real fix and is a deliberate infra task.
