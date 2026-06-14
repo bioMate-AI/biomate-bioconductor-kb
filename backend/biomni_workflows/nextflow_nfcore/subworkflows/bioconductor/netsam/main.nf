@@ -66,7 +66,7 @@ process BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION {
     # Define output file path prefix
     outputFileName <- paste(getwd(), "/NetSAM", sep="")
     
-    # Stage 1: Run NetSAM to identify hierarchical modules and optimal leaf ordering
+    # --- Run NetSAM to identify hierarchical modules and optimal ---
     message("Running NetSAM...")
     result <- NetSAM(
       inputNetwork = inputNetworkDir, 
@@ -93,7 +93,7 @@ process BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION {
     saveRDS(result, file = "NetSAM_result.rds")
     message("NetSAM analysis complete. Result saved to 'NetSAM_result.rds'.")
     
-    # Stage 2: Run NetAnalyzer to calculate network centrality measurements and plot their distributions
+    # --- Run NetAnalyzer to calculate network centrality ---
     message("Running NetAnalyzer...")
     inputNetwork <- "network.net"
     NetAnalyzer(inputNetwork, outputFileName, "unweighted")

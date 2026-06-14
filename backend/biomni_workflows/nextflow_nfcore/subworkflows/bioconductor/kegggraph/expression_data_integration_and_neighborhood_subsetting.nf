@@ -59,7 +59,7 @@ process BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING {
     library(Rgraphviz)
     library(RBGL)
     
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # Read DE_Colorectal (Named numeric vector of log fold changes with Entrez IDs as names)
     if (file.exists("DE_Colorectal")) {
       DE_Colorectal <- tryCatch({
@@ -91,10 +91,10 @@ process BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING {
       stop("Required input file 'hsa05210.xml' not found in the working directory.")
     }
     
-    # 2. Parse the pathway KGML file into a graph
+    # --- Parse the pathway KGML file into a graph ---
     g <- parseKGML2Graph(colFile)
     
-    # 3. Translate Entrez IDs to KEGG IDs
+    # --- Translate Entrez IDs to KEGG IDs ---
     deKID <- translateGeneID2KEGGID(names(DE_Colorectal))
     allKID <- translateGeneID2KEGGID(ALL_Colorectal)
     isDiffExp <- nodes(g) %in% deKID
@@ -104,14 +104,14 @@ process BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING {
     names(logfcs) <- nodes(g)
     logfcs[is.na(logfcs)] <- 0
     
-    # 4. Identify upregulated genes
+    # --- Identify upregulated genes ---
     ups <- nodes(g)[logfcs > 0]
     
-    # 5. Find the neighborhood of upregulated genes and subset the KEGG graph
+    # --- Find the neighborhood of upregulated genes and subset the ---
     upNs <- unique(unlist(neighborhood(g, ups, return.self=TRUE)))
     upSub <- subKEGGgraph(upNs, g)
     
-    # 6. Save meaningful results
+    # --- Save meaningful results ---
     # Save the subsetted graph as an RDS object
     saveRDS(upSub, "upSub_graph.rds")
     
@@ -133,7 +133,7 @@ process BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING {
     )
     write.csv(summary_df, "upregulated_neighborhood_genes.csv", row.names = FALSE)
     
-    # 7. Generate PDF Plot of the subsetted neighborhood graph
+    # --- Generate PDF Plot of the subsetted neighborhood graph ---
     tryCatch({
       ar <- 20
       cols <- rev(colorRampPalette(brewer.pal(6, "RdBu"))(ar))

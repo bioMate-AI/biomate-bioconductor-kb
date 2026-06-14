@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Read custom gene-to-GO mappings from a file. 2. Define the gene universe and create a named factor vector indicating interesting g
+//  * 1. [Visualization & Output] Read custom gene-to-GO mappings from a file
+//  * 2. [Visualization & Output] Define the gene universe and create a named factor vector
+//  * 3. [Visualization & Output] Initialize the topGOdata object using the custom mapping
+//  * 4. [Visualization & Output] Run a count-based enrichment test (Fisher's exact test)
+//  * 5. [Visualization & Output] Generate a summary table of the top significant GO terms
 
 nextflow.enable.dsl = 2
 
@@ -58,13 +62,13 @@ process BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT {
     # Load required library
     library(topGO)
     
-    # 1. Read custom gene-to-GO mappings from a file
+    # --- Read custom gene-to-GO mappings from a file ---
     if (!file.exists("geneid2go.map")) {
       stop("Error: 'geneid2go.map' file not found in the working directory.")
     }
     geneID2GO <- readMappings(file = "geneid2go.map")
     
-    # 2. Define the gene universe and create a named factor vector indicating interesting genes
+    # --- Define the gene universe and create a named factor vector ---
     GO2geneID <- inverseList(geneID2GO)
     geneNames <- names(geneID2GO)
     
@@ -78,13 +82,13 @@ process BIOC_TOPGO_PREDEFINED_GENE_LIST_ENRICHMENT {
     geneList <- factor(as.integer(geneNames %in% myInterestingGenes))
     names(geneList) <- geneNames
     
-    # 3. Initialize the topGOdata object using the custom mapping
+    # --- Initialize the topGOdata object using the custom mapping ---
     GOdata <- new("topGOdata", ontology = "MF", allGenes = geneList, annot = annFUN.gene2GO, gene2GO = geneID2GO)
     
-    # 4. Run a count-based enrichment test (Fisher's exact test)
+    # --- Run a count-based enrichment test (Fisher's exact test) ---
     resultFis <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
     
-    # 5. Generate a summary table of the top significant GO terms
+    # --- Generate a summary table of the top significant GO terms ---
     allRes <- GenTable(GOdata, classic = resultFis, orderBy = "classic", topNodes = 20)
     
     # Write named output files

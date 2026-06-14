@@ -36,6 +36,15 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("switchde", "dplyr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Stage 1: Loading input datasets...")
     
@@ -78,7 +87,7 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Normalization and Pre-filtering
+    # --- Normalization and Pre-filtering ---
     # ==========================================
     message("Stage 2: Normalizing and filtering genes...")
     
@@ -100,7 +109,7 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 3: Pseudotime Extraction / Inference
+    # --- Pseudotime Extraction / Inference ---
     # ==========================================
     message("Stage 3: Extracting or inferring pseudotime trajectory...")
     
@@ -120,7 +129,7 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 4: Fit Sigmoidal Models
+    # --- Fit Sigmoidal Models ---
     # ==========================================
     message("Stage 4: Fitting sigmoidal models...")
     
@@ -149,7 +158,7 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     write.csv(zde, "switchde_results_zero_inflated.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Downstream Filtering & Use Cases
+    # --- Downstream Filtering & Use Cases ---
     # ==========================================
     message("Stage 5: Performing downstream filtering and trajectory analysis...")
     
@@ -170,7 +179,7 @@ process BIOC_SWITCHDE_SWITCHDE_TRAJECTORY_ANALYSIS {
     write.csv(late_genes, "late_regulated_genes.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 6: Generating diagnostic plots...")
     

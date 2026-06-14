@@ -65,17 +65,17 @@ process BIOC_DESTINY_DIFFUSION_MAP_PREDICTION {
       stop("Required input file 'guo' or 'guo.rds' not found in the working directory.")
     }
     
-    # 1. Subset reference data (64-cell stage) and build reference DiffusionMap
+    # --- Subset reference data (64-cell stage) and build reference ---
     ct64 <- guo[, guo \$ num_cells == 64 ]
     dm64 <- DiffusionMap (ct64)
     
-    # 2. Subset new query data (32-cell stage)
+    # --- Subset new query data (32-cell stage) ---
     ct32 <- guo[, guo \$ num_cells == 32 ]
     
-    # 3. Project query data into the reference map using dm_predict
+    # --- Project query data into the reference map using dm_predict ---
     pred32 <- dm_predict (dm64, ct32)
     
-    # 4. Plot reference and projected data together and save to PDF
+    # --- Plot reference and projected data together and save to PDF ---
     pdf("diffusion_map_prediction_plot.pdf", width = 8, height = 8)
     plot (dm64, 1 : 2 , col = palette ()[[ 6 ]], new_dcs = pred32, col_new = palette ()[[ 4 ]])
     dev.off()

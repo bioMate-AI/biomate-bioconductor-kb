@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create the OutriderDataSet object and filter non-expressed genes. 2. Estimate size factors. 3. Run the PEER model to calculate res
+//  * 1. [Input & Preparation] Create the OutriderDataSet object and filter
+//  * 2. [Input & Preparation] Estimate size factors
+//  * 3. [Input & Preparation] Run the PEER model to calculate residuals and expected
+//  * 4. [Input & Preparation] Fit the negative binomial model
+//  * 5. [Input & Preparation] Compute Z-scores using PEER residuals
+//  * 6. [Input & Preparation] Compute P-values and extract results
 
 nextflow.enable.dsl = 2
 
@@ -112,7 +117,7 @@ process BIOC_OUTRIDER_PEER_CONTROLLED_OUTLIER_DETECTION {
     ctsTable <- ctsTable[, common_samples, drop=FALSE]
     annoTable <- annoTable[common_samples, , drop=FALSE]
     
-    # 1. Create the OutriderDataSet object and filter non-expressed genes
+    # --- Create the OutriderDataSet object and filter ---
     ods <- OutriderDataSet(countData=ctsTable, colData=annoTable)
     ods <- filterExpression(ods, minCounts=TRUE, filterGenes=TRUE)
     
@@ -157,19 +162,19 @@ process BIOC_OUTRIDER_PEER_CONTROLLED_OUTLIER_DETECTION {
         return(ods)
     }
     
-    # 2. Estimate size factors
+    # --- Estimate size factors ---
     ods <- estimateSizeFactors(ods)
     
-    # 3. Run the PEER model to calculate residuals and expected means, saving them as normalization factors
+    # --- Run the PEER model to calculate residuals and expected ---
     ods <- peer(ods)
     
-    # 4. Fit the negative binomial model
+    # --- Fit the negative binomial model ---
     ods <- fit(ods)
     
-    # 5. Compute Z-scores using PEER residuals
+    # --- Compute Z-scores using PEER residuals ---
     ods <- computeZscores(ods, peerResiduals=TRUE)
     
-    # 6. Compute P-values and extract results
+    # --- Compute P-values and extract results ---
     ods <- computePvalues(ods)
     
     # Extract results table

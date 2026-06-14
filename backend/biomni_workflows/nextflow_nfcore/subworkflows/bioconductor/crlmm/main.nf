@@ -80,16 +80,16 @@ process BIOC_CRLMM_SIMPLE_GENOTYPING {
     # Write named output files
     message("Saving results to disk...")
     
-    # 1. Save the complete SnpSet object
+    # --- Save the complete SnpSet object ---
     saveRDS(crlmmResult, file = "crlmm_result.rds")
     
-    # 2. Save genotype calls to CSV
+    # --- Save genotype calls to CSV ---
     write.csv(calls(crlmmResult), file = "genotype_calls.csv", row.names = TRUE)
     
-    # 3. Save confidence scores to CSV
+    # --- Save confidence scores to CSV ---
     write.csv(confs(crlmmResult), file = "confidence_scores.csv", row.names = TRUE)
     
-    # 4. Save SNR values to CSV
+    # --- Save SNR values to CSV ---
     snr_df <- data.frame(
       Sample = names(crlmmResult[["SNR"]]),
       SNR = crlmmResult[["SNR"]],
@@ -97,7 +97,7 @@ process BIOC_CRLMM_SIMPLE_GENOTYPING {
     )
     write.csv(snr_df, file = "snr_values.csv", row.names = FALSE)
     
-    # 5. Generate a PDF plot of SNR values
+    # --- Generate a PDF plot of SNR values ---
     pdf("snr_histogram.pdf", width = 6, height = 6)
     hist(crlmmResult[["SNR"]], 
          main = "Signal-to-Noise Ratio (SNR) Distribution", 

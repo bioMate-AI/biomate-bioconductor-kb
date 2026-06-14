@@ -61,16 +61,16 @@ process BIOC_GDRIMPORT_RAW_DATA_IMPORT {
     result_path <- function(x) "results.csv"
     td1 <- "working_directory"
     
-    # 1. Load the manifest file using load_manifest
+    # --- Load the manifest file using load_manifest ---
     ml <- load_manifest(manifest_path(td1))
     
-    # 2. Load the template files using load_templates
+    # --- Load the template files using load_templates ---
     t_df <- load_templates(template_path(td1))
     
-    # 3. Load the raw results using load_results
+    # --- Load the raw results using load_results ---
     r_df <- suppressMessages(load_results(result_path(td1)))
     
-    # 4. Load and merge all three components together using load_data
+    # --- Load and merge all three components together using ---
     l_tbl <- suppressMessages(load_data(manifest_path(td1), template_path(td1), result_path(td1)))
     
     # Save the meaningful results to output files

@@ -35,6 +35,15 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("S4Vectors", "scarray_sat", "SCArray.sat", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,8 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
         }
     
     # Load required libraries
-    library(S4Vectors)
+        library(SummarizedExperiment)
+library(S4Vectors)
     
     # Load scarray_sat package dynamically to handle potential naming variations
     if (requireNamespace("scarray_sat", quietly = TRUE)) {
@@ -57,7 +67,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -85,7 +95,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     storage.mode(mat) <- "numeric"
     
     # ==========================================
-    # STAGE 2: Initialize SCArraySat Object
+    # --- Initialize SCArraySat Object ---
     # ==========================================
     message("Initializing SCArraySat object...")
     # Attempt to instantiate using standard constructors
@@ -101,7 +111,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Normalization
+    # --- Normalization ---
     # ==========================================
     message("Normalizing data...")
     sat_obj <- tryCatch({
@@ -121,7 +131,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Dimensionality Reduction
+    # --- Dimensionality Reduction ---
     # ==========================================
     message("Performing dimensionality reduction...")
     pcs <- as.numeric(Sys.getenv("pc_components", unset = "5"))
@@ -147,7 +157,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Clustering
+    # --- Clustering ---
     # ==========================================
     message("Clustering cells...")
     res <- as.numeric(Sys.getenv("cluster_resolution", unset = "0.8"))
@@ -172,7 +182,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Extract Results and Export
+    # --- Extract Results and Export ---
     # ==========================================
     message("Extracting results...")
     
@@ -215,7 +225,7 @@ process BIOC_SCARRAY_SAT_SCARRAY_SAT_PIPELINE {
     message("Saved cluster assignments to scarray_sat_clusters.csv")
     
     # ==========================================
-    # STAGE 7: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("scarray_sat_dimred.pdf", width = 7, height = 6)

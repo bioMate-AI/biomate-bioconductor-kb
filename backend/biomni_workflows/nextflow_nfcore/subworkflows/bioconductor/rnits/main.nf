@@ -85,32 +85,32 @@ process BIOC_RNITS_EXPRESSIONSET_WORKFLOW {
       fData(dat)[["Gene Symbol"]] <- fData(dat)\$GeneName
     }
     
-    # 1. Build Rnits object and normalize using build.Rnits
+    # --- Build Rnits object and normalize using build.Rnits ---
     rnitsobj = build.Rnits(dat[, sample(ncol(dat))], logscale = TRUE, normmethod = "Between")
     
-    # 2. Impute missing values using getLR
+    # --- Impute missing values using getLR ---
     lr <- getLR(rnitsobj, impute = TRUE)
     
     # Define rnitsobj0 to avoid "object not found" error while keeping the exact documented call
     rnitsobj0 <- rnitsobj
     
-    # 3. Fit B-spline models using fit
+    # --- Fit B-spline models using fit ---
     rnitsobj <- fit(rnitsobj0, gene.level = TRUE, clusterallsamples = TRUE)
     
-    # 4. Extract p-values and statistics using getPval, getStat, getCID, and getFitModel
+    # --- Extract p-values and statistics using getPval, getStat, ---
     pval <- getPval(rnitsobj)
     stat <- getStat(rnitsobj)
     cid_table <- table(getCID(rnitsobj))
     fitdata <- getFitModel(rnitsobj)
     
-    # 5. Summarize top genes using summary and topData
+    # --- Summarize top genes using summary and topData ---
     sink("summary_top10.txt")
     summary(rnitsobj, top = 10)
     sink()
     
     td <- topData(rnitsobj, fdr = 5)
     
-    # 6. Plot gene trajectories using plotResults
+    # --- Plot gene trajectories using plotResults ---
     pdf("top_genes_trajectories.pdf", width = 10, height = 8)
     plotResults(rnitsobj, top = 16)
     dev.off()

@@ -35,6 +35,15 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BloodGen3Module", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,9 +53,11 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
           }
         }
     
-    library(BloodGen3Module)
+    librar    
+    library(SummarizedExperiment)
+y(BloodGen3Module)
     
-    # 1. Load and validate inputs
+    # --- Load and validate inputs ---
     message("Loading input files...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
@@ -85,7 +96,7 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
       colData = coldata
     )
     
-    # 2. Run Group Comparison Analysis
+    # --- Run Group Comparison Analysis ---
     message("Running group comparison using limma...")
     Group_df <- tryCatch({
       Groupcomparisonlimma(
@@ -119,7 +130,7 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
       })
     })
     
-    # 3. Save results and generate visualization
+    # --- Save results and generate visualization ---
     if (!is.null(Group_df)) {
       write.csv(Group_df, "group_comparison_results.csv", row.names = TRUE)
       

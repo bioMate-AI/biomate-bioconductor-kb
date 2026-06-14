@@ -35,6 +35,15 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GSEABenchmarkeR", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,10 +55,11 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     
     # Load required libraries
     library(GSEABenchmarkeR)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -103,13 +113,13 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     compendium <- list(dataset1 = se)
     
     # ==========================================
-    # STAGE 2: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 2: Running differential expression analysis...")
     compendium <- runDE(compendium, de.method = "limma", padj.method = "flexible")
     
     # ==========================================
-    # STAGE 3: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ==========================================
     message("Stage 3: Performing GSEA benchmarking...")
     
@@ -137,7 +147,7 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Benchmarking & Evaluation
+    # --- Benchmarking & Evaluation ---
     # ==========================================
     message("Stage 4: Evaluating GSEA results...")
     
@@ -173,7 +183,7 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     message(sprintf("Relevance Ratio: %.2f%%", (obs.score / opt.score) * 100))
     
     # ==========================================
-    # STAGE 5: Exporting Results and Visualizations
+    # --- Exporting Results and Visualizations ---
     # ==========================================
     message("Stage 5: Exporting outputs...")
     

@@ -64,22 +64,22 @@ process BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS {
       stop(paste("Error: Required input file '", vcf, "' not found in the working directory.", sep = ""))
     }
     
-    # 1. Create individual SNV profiles
+    # --- Create individual SNV profiles ---
     message("Creating SNV profiles...")
     hct116 <- create_profile(vcf, "HCT116")
     rko <- create_profile(vcf, "RKO", min_depth = 15, filter_gd = FALSE)
     
-    # 2. Filter variants by depth or duplicates
+    # --- Filter variants by depth or duplicates ---
     message("Filtering variants...")
     rko_filtered <- filter_variants(rko, min_depth = 20)
     rko_deduplicated <- filter_duplicates(rko, filter_pd = TRUE)
     
-    # 3. Compare profiles
+    # --- Compare profiles ---
     message("Comparing profiles...")
     hct116_rko <- compare_profiles(hct116, rko)
     hct116_rko_union <- compare_profiles(hct116, rko, mode = "union")
     
-    # 4. Calculate similarity statistics
+    # --- Calculate similarity statistics ---
     message("Calculating similarity statistics...")
     similarity <- calculate_similarity(hct116_rko)
     
@@ -87,16 +87,16 @@ process BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS {
     hct116_hke3 <- compare_profiles(hct116, hke3)
     similarities <- calculate_similarity(hct116_hke3, similarity, b = 10)
     
-    # 5. Plot variant impact distributions
+    # --- Plot variant impact distributions ---
     message("Plotting variant impacts...")
     impacts <- plot_impacts(hct116_rko)
     
-    # 6. Perform many-to-many comparisons
+    # --- Perform many-to-many comparisons ---
     message("Performing many-to-many comparisons...")
     profiles <- list(hct116, hke3, rko)
     many <- compare_many(profiles)
     
-    # 7. Visualize multiple comparisons
+    # --- Visualize multiple comparisons ---
     message("Plotting heatmap...")
     heatmap <- plot_heatmap(many[[1]])
     

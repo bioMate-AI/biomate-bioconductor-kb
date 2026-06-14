@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Format multi-omic data as a MultiAssayExperiment. 2. Define reference (base_ids) and supplementary (supp_ids) individual IDs. 3. R
+//  * 1. [Input & Preparation] Read the input MultiAssayExperiment object from the
+//  * 2. [Input & Preparation] Define the pathway name
+//  * 3. [Input & Preparation] Run padma with base_ids and supp_ids specified (exactly
+//  * 4. [Input & Preparation] Save the results to output files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_PADMA_REFERENCE_BASED_PATHWAY_DEVIATION_PROJECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("padma", "MultiAssayExperiment", "ggplot2", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,14 +59,16 @@ process BIOC_PADMA_REFERENCE_BASED_PATHWAY_DEVIATION_PROJECTION {
           }
         }
     
+    library(SummarizedExperiment)
+    
     library(padma)
     library(MultiAssayExperiment)
     library(ggplot2)
     
-    # 1. Read the input MultiAssayExperiment object from the working directory
+    # --- Read the input MultiAssayExperiment object from the ---
     mae <- readRDS("mae.rds")
     
-    # 2. Define the pathway name
+    # --- Define the pathway name ---
     D4GDI <- "c2_cp_BIOCARTA_D4GDI_PATHWAY"
     
     # Safely determine base_ids and supp_ids to avoid out-of-bounds and duplicates
@@ -74,13 +88,13 @@ process BIOC_PADMA_REFERENCE_BASED_PATHWAY_DEVIATION_PROJECTION {
       }
     }
     
-    # 3. Run padma with base_ids and supp_ids specified (exactly as documented)
+    # --- Run padma with base_ids and supp_ids specified (exactly ---
     run_padma_supp <- 
       padma(mae, pathway_name = D4GDI, verbose = FALSE,
             base_ids = base_samples,
             supp_ids = supp_samples)
     
-    # 4. Save the results to output files
+    # --- Save the results to output files ---
     saveRDS(run_padma_supp, "run_padma_supp.rds")
     
     # Export pathway deviation scores

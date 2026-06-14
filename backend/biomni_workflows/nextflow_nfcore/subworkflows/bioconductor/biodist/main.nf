@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Transpose the expression matrix to compute distances between samples. 2. Compute mutual information distance using MIdist or dista
+//  * 1. [Core Analysis] Read the user input file
+//  * 2. [Core Analysis] Transpose the expression matrix to compute distances
+//  * 3. [Core Analysis] Compute mutual information distance using MIdist
+//  * 4. [Core Analysis] Compute distance from independence using mutualInfo
+//  * 5. [Core Analysis] Compute Kullback-Leibler divergence using binning
+//  * 6. [Core Analysis] Compute Kullback-Leibler divergence using density
+//  * 7. [Core Analysis] Save results to output files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bioDist")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +65,7 @@ process BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE {
     # Load required libraries
     library("bioDist")
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     # The input file 'expression_matrix.csv' has genes as rows and samples as columns.
     if (!file.exists("expression_matrix.csv")) {
       stop("Error: 'expression_matrix.csv' not found in the working directory.")
@@ -58,33 +73,33 @@ process BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE {
     
     expr_mat <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
     
-    # 2. Transpose the expression matrix to compute distances between samples
+    # --- Transpose the expression matrix to compute distances ---
     # In bioDist, distance functions compute pairwise distances between the rows of the input.
     # Transposing ensures we compute distances between samples.
     exData = t(expr_mat)
     
-    # 3. Compute mutual information distance using MIdist
+    # --- Compute mutual information distance using MIdist ---
     message("Computing mutual information distance (MIdist)...")
     s1 = MIdist(exData)
     s2 = as.matrix(s1)
     dim(s2)
     
-    # 4. Compute distance from independence using mutualInfo
+    # --- Compute distance from independence using mutualInfo ---
     message("Computing mutual information (mutualInfo)...")
     r1 = mutualInfo(exData)
     r1_matrix = as.matrix(r1)
     
-    # 5. Compute Kullback-Leibler divergence using binning (KLdist.matrix)
+    # --- Compute Kullback-Leibler divergence using binning ---
     message("Computing Kullback-Leibler distance via binning (KLdist.matrix)...")
     kl1 = KLdist.matrix(exData)
     kl1_matrix = as.matrix(kl1)
     
-    # 6. Compute Kullback-Leibler divergence using density estimation (KLD.matrix)
+    # --- Compute Kullback-Leibler divergence using density ---
     message("Computing Kullback-Leibler distance via density estimation (KLD.matrix)...")
     kl2 = KLD.matrix(exData, method="density", supp=range(exData))
     kl2_matrix = as.matrix(kl2)
     
-    # 7. Save results to output files
+    # --- Save results to output files ---
     message("Saving results...")
     
     # Save CSV tables

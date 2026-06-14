@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Convert microarray object to a 3D array; 2. Apply rank transformation or relative log expression (RLE) transformation; 3. Plot the
+//  * 1. [Visualization & Output] Load User Input
+//  * 2. [Visualization & Output] Execute Documented Code Workflow
+//  * 3. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mimager", "scales")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +63,7 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     library(scales)
     
     # -----------------------------------------------------------------------------
-    # 1. Load User Input
+    # --- Load User Input ---
     # -----------------------------------------------------------------------------
     input_file <- "raw_microarray_data.RData"
     if (!file.exists(input_file)) {
@@ -73,7 +84,7 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     Dilution <- temp_env[[object_names[1]]]
     
     # -----------------------------------------------------------------------------
-    # 2. Execute Documented Code Workflow
+    # --- Execute Documented Code Workflow ---
     # -----------------------------------------------------------------------------
     
     # Define custom divergent color palette
@@ -93,7 +104,7 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     rank_dim <- dim(DilutionRank)
     
     # -----------------------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------------------
     
     # Save the processed 3D arrays as RDS objects

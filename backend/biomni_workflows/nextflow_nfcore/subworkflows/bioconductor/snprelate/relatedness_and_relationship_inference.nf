@@ -56,7 +56,7 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     library(gdsfmt)
     library(SNPRelate)
     
-    # 1. Open the GDS file from the working directory
+    # --- Open the GDS file from the working directory ---
     genofile <- snpgdsOpen("genofile.gds")
     
     # Get sample IDs
@@ -81,7 +81,7 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     snpset <- snpgdsLDpruning(genofile, ld.threshold=0.2, verbose=FALSE)
     snpset.id <- unlist(unname(snpset))
     
-    # 2. Estimate IBD coefficients using MoM
+    # --- Estimate IBD coefficients using MoM ---
     ibd <- snpgdsIBDMoM(genofile, sample.id=YRI.id, snp.id=snpset.id,
         maf=0.05, missing.rate=0.05, num.thread=2)
     
@@ -89,7 +89,7 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     ibd.coeff_mom <- snpgdsIBDSelection(ibd)
     write.csv(ibd.coeff_mom, "ibd_coeff_mom.csv", row.names=FALSE)
     
-    # 3. Estimate IBD coefficients using MLE
+    # --- Estimate IBD coefficients using MLE ---
     set.seed(100)
     snp.id <- sample(snpset.id, min(1500, length(snpset.id)))  # random 1500 SNPs (or maximum available)
     ibd <- snpgdsIBDMLE(genofile, sample.id=YRI.id, snp.id=snp.id,
@@ -99,7 +99,7 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     ibd.coeff_mle <- snpgdsIBDSelection(ibd)
     write.csv(ibd.coeff_mle, "ibd_coeff_mle.csv", row.names=FALSE)
     
-    # 4. Incorporate with pedigree information and run KING robust method
+    # --- Incorporate with pedigree information and run KING robust ---
     family.id <- tryCatch({
         fam <- read.gdsn(index.gdsn(genofile, "sample.annot/family.id"))
         fam[match(YRI.id, sample.id)]
@@ -111,7 +111,7 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     ibd.robust <- snpgdsIBDKING(genofile, sample.id=YRI.id,
         family.id=family.id, num.thread=2)
     
-    # 5. Pairs of individuals (Select and format IBD/kinship coefficients)
+    # --- Pairs of individuals (Select and format IBD/kinship ---
     dat <- snpgdsIBDSelection(ibd.robust)
     write.csv(dat, "ibd_king_robust.csv", row.names=FALSE)
     
@@ -134,7 +134,7 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     }
     dev.off()
     
-    # 6. Close the GDS file
+    # --- Close the GDS file ---
     snpgdsClose(genofile)
 
     writeLines(c(

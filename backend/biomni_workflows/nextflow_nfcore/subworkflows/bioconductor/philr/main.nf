@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter low-abundance taxa and prune the phylogenetic tree using ape::keep.tip. 2. Add a pseudocount to the count matrix to handle 
+//  * 1. [Visualization & Output] READ USER INPUT FILES
+//  * 2. [Visualization & Output] RUN VIGNETTE WORKFLOW
+//  * 3. [Visualization & Output] WRITE OUTPUT TABLES AND OBJECTS
 
 nextflow.enable.dsl = 2
 
@@ -20,7 +22,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -39,7 +41,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("TreeSummarizedExperiment", "ape", "dplyr", "ggplot2", "ggtree", "glmnet", "mia", "philr", "tidyr")
+    .bm_deps <- c("TreeSummarizedExperiment", "ape", "dplyr", "ggplot2", "ggtree", "glmnet", "mia", "philr", "tidyr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,7 +60,8 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             
             # Load required libraries quietly
             suppressPackageStartupMessages({
-              library(philr)
+                   library(SummarizedExperiment)
+         library(philr)
               library(ape)
               library(ggplot2)
               library(mia)
@@ -70,7 +73,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             })
             
             # ==========================================
-            # 1. READ USER INPUT FILES
+            # --- READ USER INPUT FILES ---
             # ==========================================
             
             if (!file.exists("otu_table.tsv") || !file.exists("phylo_tree.tre") || 
@@ -119,7 +122,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             GlobalPatterns <- tse_init
             
             # ==========================================
-            # 2. RUN VIGNETTE WORKFLOW
+            # --- RUN VIGNETTE WORKFLOW ---
             # ==========================================
             
             ## Select prevalent taxa 
@@ -334,7 +337,7 @@ process BIOC_PHILR_PHILR_TRANSFORM_AND_ANALYSIS {
             ggsave("balances_scatter_plot.pdf", plot = p_scatter, width = 8, height = 6)
             
             # ==========================================
-            # 3. WRITE OUTPUT TABLES AND OBJECTS
+            # --- WRITE OUTPUT TABLES AND OBJECTS ---
             # ==========================================
             write.csv(as.matrix(gp.philr), "philr_balances.csv", row.names = TRUE)
             saveRDS(tse, "tse_philr.rds")

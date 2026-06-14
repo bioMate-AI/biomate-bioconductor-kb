@@ -63,14 +63,14 @@ process BIOC_OPENPRIMER_DESIGN_PRIMERS {
       stop("Error: Required input file 'settings.xml' is missing from the working directory.")
     }
     
-    # 1. Load template sequences
+    # --- Load template sequences ---
     fasta.file <- "templates.fasta"
     seq.df.simple <- read_templates(fasta.file)
     
     hdr.structure <- c("ACCESSION", "GROUP", "SPECIES", "FUNCTION")
     seq.df <- read_templates(fasta.file, hdr.structure, delim = "|", id.column = "GROUP")
     
-    # 2. Assign binding regions
+    # --- Assign binding regions ---
     template.df.uni <- assign_binding_regions(seq.df, fw = c(1,50), rev = c(1,40))
     
     # Handle optional leader.fasta; fallback to templates.fasta to guarantee matching headers if leader is missing
@@ -86,7 +86,7 @@ process BIOC_OPENPRIMER_DESIGN_PRIMERS {
       template.df <- template.df[rep(1, 2), ]
     }
     
-    # 3. Load and customize design settings
+    # --- Load and customize design settings ---
     settings.xml <- "settings.xml"
     settings <- read_settings(settings.xml)
     
@@ -98,10 +98,10 @@ process BIOC_OPENPRIMER_DESIGN_PRIMERS {
     constraints(design.settings)[["primer_length"]] <- c("min" = 25, "max" = 25)
     conOptions(design.settings)[["allowed_mismatches"]] <- 0
     
-    # 4. Design optimal primers
+    # --- Design optimal primers ---
     optimal.primers <- design_primers(template.df[1:2,], mode.directionality = "fw", settings = design.settings)
     
-    # 5. Write designed primers and results to output files
+    # --- Write designed primers and results to output files ---
     out.file <- "designed_primers.fasta"
     write_primers(optimal.primers\$opti, out.file)
     

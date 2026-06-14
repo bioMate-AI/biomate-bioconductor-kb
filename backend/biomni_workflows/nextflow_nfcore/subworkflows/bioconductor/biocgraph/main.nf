@@ -58,7 +58,7 @@ process BIOC_BIOCGRAPH_INTERACTIVE_NETWORK_MAP {
     library(graph)
     library(Rgraphviz)
     
-    # 1. Read input defensively
+    # --- Read input defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       # Fallback: Create dummy dataset if input.csv is missing
@@ -72,7 +72,7 @@ process BIOC_BIOCGRAPH_INTERACTIVE_NETWORK_MAP {
     
     data <- read.csv(input_file, row.names=1, check.names=FALSE)
     
-    # 2. Construct Graph
+    # --- Construct Graph ---
     # If it's a single-column list of genes
     if (ncol(data) < 2) {
       genes <- rownames(data)
@@ -131,7 +131,7 @@ process BIOC_BIOCGRAPH_INTERACTIVE_NETWORK_MAP {
       }
     }
     
-    # 3. Node Attributes & Layout
+    # --- Node Attributes & Layout ---
     nd <- nodes(g)
     node_colors <- rep("lightblue", length(nd))
     names(node_colors) <- nd
@@ -158,7 +158,7 @@ process BIOC_BIOCGRAPH_INTERACTIVE_NETWORK_MAP {
                             node=list(fixedsize=FALSE, shape="ellipse")),
                  nodeAttrs=node_attrs)
     
-    # 4. Generate Individual Node Plots
+    # --- Generate Individual Node Plots ---
     outdir <- "node_plots"
     if (!dir.exists(outdir)) dir.create(outdir)
     
@@ -182,14 +182,14 @@ process BIOC_BIOCGRAPH_INTERACTIVE_NETWORK_MAP {
       dev.off()
     }
     
-    # 5. Render Main Network Image
+    # --- Render Main Network Image ---
     imgname <- "graph_network.png"
     png(imgname, width=width, height=height)
     par(mai=rep(0,4))
     plot(lg)
     dev.off()
     
-    # 6. Generate Interactive HTML Map using biocGraph::imageMap
+    # --- Generate Interactive HTML Map using biocGraph::imageMap ---
     fhtml <- "index.html"
     con <- file(fhtml, open="wt")
     cat("<HTML><HEAD><TITLE>Interactive Gene Network</TITLE></HEAD>\n", file=con)
@@ -215,7 +215,7 @@ process BIOC_BIOCGRAPH_INTERACTIVE_NETWORK_MAP {
     writeLines("</body></html>", con)
     close(con)
     
-    # 7. Save Network Summary Statistics
+    # --- Save Network Summary Statistics ---
     deg <- degree(g)
     summary_df <- data.frame(
       node = names(deg),

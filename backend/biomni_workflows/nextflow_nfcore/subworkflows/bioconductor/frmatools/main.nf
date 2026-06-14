@@ -34,6 +34,15 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("frmaTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,7 +55,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
     # Load the authoritative package
     library(frmaTools)
     
-    # Stage 1: Read and parse input.csv defensively
+    # --- Read and parse input.csv defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop("Input file 'input.csv' not found.")
@@ -84,7 +93,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
       exprs_matrix <- as.matrix(input_data)
       n_probes <- nrow(exprs_matrix)
       
-      # Stage 2: Platform Conversion (convertPlatform)
+      # --- Platform Conversion (convertPlatform) ---
       # We attempt to perform platform conversion using convertPlatform.
       # Since this requires the CDF packages (e.g., hgu133atagcdf), we wrap it in a tryCatch.
       tryCatch({
@@ -104,7 +113,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
         converted_exprs <- exprs_matrix[keep_idx, , drop = FALSE]
       })
       
-      # Stage 3: Vector Creation (makeVectorsAffyBatch / Custom Vector Generation)
+      # --- Vector Creation (makeVectorsAffyBatch / Custom Vector ---
       # Since we don't have raw CEL files, we generate the required vectors from the input matrix.
       normVec <- rowMeans(exprs_matrix, na.rm = TRUE)
       probeVec <- apply(exprs_matrix, 1, sd, na.rm = TRUE)
@@ -188,7 +197,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
       }
     }
     
-    # Stage 4: Write Platform Conversion Output
+    # --- Write Platform Conversion Output ---
     if (is.null(converted_exprs)) {
       # Final fallback to ensure file is written
       converted_exprs <- matrix(0, nrow = 1, ncol = 1)
@@ -197,7 +206,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
     }
     write.csv(converted_exprs, "converted_platform_data.csv", row.names = TRUE)
     
-    # Stage 5: Write Vectors Summary
+    # --- Write Vectors Summary ---
     vectors_summary <- data.frame(
       Vector = names(vectors),
       Length = sapply(vectors, length),
@@ -206,7 +215,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
     )
     write.csv(vectors_summary, "vectors_summary.csv", row.names = FALSE)
     
-    # Stage 6: Create Vector Package (makeVectorPackage)
+    # --- Create Vector Package (makeVectorPackage) ---
     pkg_name <- "customfrmaVectors"
     if (dir.exists(pkg_name)) {
       unlink(pkg_name, recursive = TRUE)
@@ -229,7 +238,7 @@ process BIOC_FRMATOOLS_FRMA_TOOLS_PIPELINE {
       message("Failed to create vector package: ", e\$message)
     })
     
-    # Stage 7: Write Package Structure Output
+    # --- Write Package Structure Output ---
     if (package_created && dir.exists(pkg_name)) {
       pkg_files <- list.files(pkg_name, recursive = TRUE, full.names = TRUE)
       writeLines(pkg_files, "vector_package_structure.txt")

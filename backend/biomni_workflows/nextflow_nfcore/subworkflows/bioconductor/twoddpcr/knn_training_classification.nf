@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the full plate and extract a subset of wells to use as a training set. 2. Classify the training wells using k-means and remov
+//  * 1. [Input & Preparation] Load the full plate from the user-specified directory
+//  * 2. [Input & Preparation] Extract a subset of wells to use as a training set
+//  * 3. [Input & Preparation] Classify the training wells using k-means and remove
+//  * 4. [Input & Preparation] Extract the clean training amplitudes and
+//  * 5. [Input & Preparation] Classify the entire plate using the k-NN algorithm based
+//  * 6. [Input & Preparation] Save meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -63,28 +68,28 @@ process BIOC_TWODDPCR_KNN_TRAINING_CLASSIFICATION {
     # Create output directory
     dir.create("output", showWarnings = FALSE, recursive = TRUE)
     
-    # 1. Load the full plate from the user-specified directory
+    # --- Load the full plate from the user-specified directory ---
     plate <- ddpcrPlate(well="data/amplitudes")
     
-    # 2. Extract a subset of wells to use as a training set
+    # --- Extract a subset of wells to use as a training set ---
     train_well_names <- names(plate)[1:min(2, length(names(plate)))]
     trainWells <- plate[train_well_names]
     trainPlate <- ddpcrPlate(wells=trainWells)
     
-    # 3. Classify the training wells using k-means and remove noise by applying Mahalanobis rain
+    # --- Classify the training wells using k-means and remove ---
     trainPlate <- kmeansClassify(trainPlate)
     trainPlate <- mahalanobisRain(trainPlate, cMethod="kmeans", maxDistances=3)
     
-    # 4. Extract the clean training amplitudes and classifications, discarding "Rain" droplets
+    # --- Extract the clean training amplitudes and ---
     trainSet <- removeDropletClasses(trainPlate, cMethod="kmeansMahRain")
     trainSet <- do.call(rbind, trainSet)
     trainAmplitudes <- trainSet[, c("Ch1.Amplitude", "Ch2.Amplitude")]
     trainCl <- trainSet\$kmeansMahRain
     
-    # 5. Classify the entire plate using the k-NN algorithm based on the training set
+    # --- Classify the entire plate using the k-NN algorithm based ---
     plate <- knnClassify(plate, trainData=trainAmplitudes, cl=trainCl, k=3)
     
-    # 6. Save meaningful results
+    # --- Save meaningful results ---
     saveRDS(plate, file = "output/classified_plate.rds")
     
     # Generate and save summary table

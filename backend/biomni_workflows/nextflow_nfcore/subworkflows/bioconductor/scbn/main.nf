@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Calculate the optimal scaling factor using the SCBN function with housekeeping gene indices. 2. Extract the scaling factor and pre
+//  * 1. [Input & Preparation] Calculate the optimal scaling factor using the SCBN
+//  * 2. [Input & Preparation] Extract the scaling factor and prepare vectors for read
+//  * 3. [Input & Preparation] Compute p-values for each orthologous gene using the
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SCBN")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -63,10 +74,10 @@ process BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION {
     # We use the first 1000 genes (or fewer if the dataset is smaller) as housekeeping genes
     hkind <- 1:min(1000, nrow(orth_gene))
     
-    # 1. Calculate the optimal scaling factor using the SCBN function
+    # --- Calculate the optimal scaling factor using the SCBN ---
     factor <- SCBN(orth_gene=orth_gene, hkind=hkind, a=0.05)
     
-    # 2. Extract the scaling factor and prepare vectors for read counts, gene lengths, and library sizes
+    # --- Extract the scaling factor and prepare vectors for read ---
     scale <- factor\$scbn_val
     x <- orth_gene[, 2]
     y <- orth_gene[, 4]
@@ -75,7 +86,7 @@ process BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION {
     n1 <- sum(x)
     n2 <- sum(y)
     
-    # 3. Compute p-values for each orthologous gene using the sageTestNew function
+    # --- Compute p-values for each orthologous gene using the ---
     p_value <- sageTestNew(x, y, lengthx, lengthy, n1, n2, scale)
     
     # Prepare the final results data frame

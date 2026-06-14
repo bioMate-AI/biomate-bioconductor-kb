@@ -55,7 +55,7 @@ process BIOC_DEGSEQ_GENE_EXPRESSION_EXTRACTION {
     # Load required library
     library(DEGseq)
     
-    # 1. Define paths to mapped read files and the refFlat annotation file
+    # --- Define paths to mapped read files and the refFlat ---
     # Reading exactly from the working directory as specified
     kidneyR1L1 <- "kidneyChr21.bed.txt"
     refFlat    <- "refFlatChr21.txt"
@@ -71,7 +71,7 @@ process BIOC_DEGSEQ_GENE_EXPRESSION_EXTRACTION {
     mapResultBatch <- c(kidneyR1L1)
     output <- "kidneyChr21.bed.exp"
     
-    # 2. Run getGeneExp to count reads mapped to each gene and output the expression values to a file
+    # --- Run getGeneExp to count reads mapped to each gene and ---
     exp <- getGeneExp(mapResultBatch, refFlat=refFlat, output=output)
     
     # Write the meaningful results to output files

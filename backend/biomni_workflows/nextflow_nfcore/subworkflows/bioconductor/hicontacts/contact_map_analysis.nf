@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import Hi-C matrix. 2. Perform virtual 4C analysis from a specified viewpoint and plot the 4C signal. 3. Calculate cis-trans inter
+//  * 1. [Visualization & Output] Cis-Trans Ratios
+//  * 2. [Visualization & Output] Compare P(s) Curves Across Chromosomes
 
 nextflow.enable.dsl = 2
 
@@ -103,7 +104,7 @@ process BIOC_HICONTACTS_CONTACT_MAP_ANALYSIS {
     })
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Cis-Trans Ratios
+    # --- Cis-Trans Ratios ---
     # -----------------------------------------------------------------------------
     message("Stage 3: Calculating cis-trans interaction ratios...")
     tryCatch({
@@ -145,7 +146,7 @@ process BIOC_HICONTACTS_CONTACT_MAP_ANALYSIS {
     })
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Compare P(s) Curves Across Chromosomes
+    # --- Compare P(s) Curves Across Chromosomes ---
     # -----------------------------------------------------------------------------
     message("Stage 6: Comparing P(s) curves across chromosomes...")
     tryCatch({

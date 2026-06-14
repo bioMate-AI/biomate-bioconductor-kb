@@ -35,6 +35,15 @@ process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scPCA", "dplyr", "ggplot2", "ggpubr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,13 +53,13 @@ process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(scPCA)
     library(dplyr)
     library(ggplot2)
     library(ggpubr)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -80,7 +89,7 @@ process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
     top_genes <- names(sort(gene_vars, decreasing = TRUE)[1:n_genes_to_keep])
     log_counts_sub <- log_counts[top_genes, , drop = FALSE]
     
-    # Stage 3: Identify Target and Background Groups
+    # --- Identify Target and Background Groups ---
     # Contrastive PCA requires splitting the dataset into target (interest) and background (control)
     unique_conds <- unique(coldata\$condition)
     if (length(unique_conds) < 2) {
@@ -107,7 +116,7 @@ process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
     tg_mat <- t(log_counts_sub[, tg_samples, drop = FALSE])
     bg_mat <- t(log_counts_sub[, bg_samples, drop = FALSE])
     
-    # Stage 4: Run Contrastive PCA (cPCA) and Sparse Contrastive PCA (scPCA)
+    # --- Run Contrastive PCA (cPCA) and Sparse Contrastive PCA ---
     message("Running cPCA and scPCA...")
     
     # Define hyperparameter grids for contrastive and sparsity parameters
@@ -143,7 +152,7 @@ process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
       alg = "var_proj"
     )
     
-    # Stage 5: Save Results
+    # --- Save Results ---
     message("Saving coordinates and loadings...")
     
     # Save scPCA coordinates
@@ -159,7 +168,7 @@ process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
     scpca_loadings\$gene_id <- colnames(tg_mat)
     write.csv(scpca_loadings, "scpca_loadings.csv", row.names = FALSE)
     
-    # Stage 6: Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     
     # Prepare cPCA dataframe for plotting

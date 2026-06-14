@@ -69,7 +69,7 @@ process BIOC_HIBAG_HLA_IMPUTATION_PREFIT {
       stop("Error: One or more PLINK files (.bed, .fam, .bim) are missing from the working directory.")
     }
     
-    # 1. Load the pre-fit model list and extract the model for the target HLA locus
+    # --- Load the pre-fit model list and extract the model for the ---
     filename <- model_file
     model.list <- get ( load (filename))
     hla.id <- "A"
@@ -87,11 +87,11 @@ process BIOC_HIBAG_HLA_IMPUTATION_PREFIT {
     head (model \$ snp.id)
     head (model \$ snp.position)
     
-    # 2. Import the user's PLINK BED files into HIBAG genotype format
+    # --- Import the user's PLINK BED files into HIBAG genotype ---
     yourgeno <- hlaBED2Geno ( bed.fn= ".bed" , fam.fn= ".fam" , bim.fn= ".bim" )
     summary (yourgeno)
     
-    # 3. Predict HLA genotypes and posterior probabilities using the model
+    # --- Predict HLA genotypes and posterior probabilities using ---
     pred.guess <- hlaPredict (model, yourgeno, type= "response+prob" )
     summary (pred.guess)
     

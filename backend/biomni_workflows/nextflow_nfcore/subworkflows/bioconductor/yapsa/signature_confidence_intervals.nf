@@ -61,7 +61,7 @@ process BIOC_YAPSA_SIGNATURE_CONFIDENCE_INTERVALS {
     lymphomaNature2013_mutCat_df <- readRDS("lymphomaNature2013_mutCat_df.rds")
     COSMIC_subgroups_df <- readRDS("COSMIC_subgroups_df.rds")
     
-    # 1. Compute confidence intervals for the exposures using profile likelihood
+    # --- Compute confidence intervals for the exposures using ---
     complete_df <- variateExp(
       in_catalogue_df = lymphomaNature2013_mutCat_df,
       in_sig_df = lymphoma_COSMIC_listsList\$cohort\$signatures,
@@ -73,7 +73,7 @@ process BIOC_YAPSA_SIGNATURE_CONFIDENCE_INTERVALS {
     write.csv(complete_df, "confidence_intervals_exposures.csv", row.names = FALSE)
     saveRDS(complete_df, "confidence_intervals_exposures.rds")
     
-    # 2. Plot the exposures with confidence interval whiskers and save as PDF
+    # --- Plot the exposures with confidence interval whiskers and ---
     pdf("exposures_confidence_intervals_plot.pdf", width = 12, height = 10)
     plotExposuresConfidence(
       in_complete_df = complete_df,

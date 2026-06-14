@@ -43,7 +43,7 @@ process BIOC_STATIAL_CONTINUOUS_CELL_STATE_CHANGES {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ClassifyR", "SingleCellExperiment", "Statial", "dplyr", "ggplot2", "ggsurvfit", "lisaClust", "spicyR", "survival", "tibble")
+    .bm_deps <- c("ClassifyR", "SingleCellExperiment", "Statial", "dplyr", "ggplot2", "ggsurvfit", "lisaClust", "spicyR", "survival", "tibble", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,7 +61,8 @@ process BIOC_STATIAL_CONTINUOUS_CELL_STATE_CHANGES {
         }
         
         # Load required libraries
-        library(Statial)
+         library(SummarizedExperiment)
+       library(Statial)
         library(spicyR)
         library(ClassifyR)
         library(lisaClust)

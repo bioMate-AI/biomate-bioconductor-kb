@@ -56,11 +56,11 @@ process BIOC_OPENCYTO_INTERACTIVE_GATING_PROTOTYPING {
     library(openCyto)
     library(flowWorkspace)
     
-    # 1. Load the pre-loaded, compensated, and transformed GatingSet object
+    # --- Load the pre-loaded, compensated, and transformed ---
     # In flowWorkspace, GatingSets are stored and loaded as directories.
     gs <- load_gs("gs")
     
-    # 2. Add a new population using gs_add_gating_method by specifying gating parameters directly
+    # --- Add a new population using gs_add_gating_method by ---
     gs_add_gating_method(gs, alias = "non-activated cd4",
                              pop = "--",
                              parent = "cd4",
@@ -70,15 +70,15 @@ process BIOC_OPENCYTO_INTERACTIVE_GATING_PROTOTYPING {
     # Save the GatingSet with the newly added gate
     save_gs(gs, path = "gs_with_prototype", overwrite = TRUE)
     
-    # 3. Visualize the updated gating tree to inspect the results
+    # --- Visualize the updated gating tree to inspect the results ---
     pdf("plot_after_add.pdf")
     plot(gs[[1]])
     dev.off()
     
-    # 4. Remove the last added population using gs_remove_gating_method
+    # --- Remove the last added population using ---
     gs_remove_gating_method(gs)
     
-    # 5. Visualize the gating tree again to confirm removal
+    # --- Visualize the gating tree again to confirm removal ---
     pdf("plot_after_remove.pdf")
     plot(gs[[1]])
     dev.off()

@@ -73,7 +73,7 @@ process BIOC_CHROMDRAW_BED_FILE_KARYOTYPE {
 
     writeLines(c(
         '"BIOC_CHROMDRAW_BED_FILE_KARYOTYPE":',
-        paste0('        chromdraw: ', as.character(packageVersion("chromdraw")))
+        paste0('        chromdraw: ', as.character(packageVersion("chromDraw")))
     ), "versions.yml")
     """
 

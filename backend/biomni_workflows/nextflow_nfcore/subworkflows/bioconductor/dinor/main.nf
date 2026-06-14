@@ -35,6 +35,15 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dinoR", "ggplot2", "dplyr", "S4Vectors", "GenomicRanges", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,6 +56,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     # Load required libraries
     suppressPackageStartupMessages({
         library(dinoR)
+        library(SummarizedExperiment)
         library(ggplot2)
         library(dplyr)
         library(S4Vectors)
@@ -54,7 +64,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     })
     
     # ==========================================
-    # STAGE 1: Load and Prepare Input Data
+    # --- Load and Prepare Input Data ---
     # ==========================================
     message("Loading input files...")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -103,7 +113,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     message(paste("Group 2 (KO-like):", paste(group2_samples, collapse = ", ")))
     
     # ==========================================
-    # STAGE 2: Generate Metaplots
+    # --- Generate Metaplots ---
     # ==========================================
     message("Generating metaplots...")
     avePlotData <- dinoR::metaPlots(NomeData = se_adapted, nr = 5, ROIgroup = "motif")
@@ -122,7 +132,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     ggsave("metaplots.pdf", plot = p_meta, width = 8, height = 6)
     
     # ==========================================
-    # STAGE 3: Footprint Classification & Quantification
+    # --- Footprint Classification & Quantification ---
     # ==========================================
     message("Classifying fragments into footprint types...")
     se_adapted <- dinoR::footprintCalc(se_adapted)
@@ -131,7 +141,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     se_adapted <- dinoR::footprintQuant(se_adapted)
     
     # ==========================================
-    # STAGE 4: Differential Footprint Abundance Testing
+    # --- Differential Footprint Abundance Testing ---
     # ==========================================
     message("Testing for differential footprint abundance...")
     res <- dinoR::diNOMeTest(
@@ -144,7 +154,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     write.csv(res, "differential_footprints.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualizing Differential Results
+    # --- Visualizing Differential Results ---
     # ==========================================
     message("Plotting regulated ROIs and MA plots...")
     
@@ -171,7 +181,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     ggsave("ma_plots.pdf", plot = p_ma, width = 10, height = 4)
     
     # ==========================================
-    # STAGE 6: Footprint Percentages & Heatmap
+    # --- Footprint Percentages & Heatmap ---
     # ==========================================
     message("Calculating footprint percentages...")
     footprint_percentages <- dinoR::footprintPerc(se_adapted)
@@ -183,7 +193,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     dev.off()
     
     # ==========================================
-    # STAGE 7: Compare Footprints & Significance
+    # --- Compare Footprints & Significance ---
     # ==========================================
     message("Generating footprint comparison plots...")
     pdf("compare_footprints.pdf", width = 8, height = 4)
@@ -197,7 +207,7 @@ process BIOC_DINOR_DINOR_NOME_SEQ_FOOTPRINTING {
     dev.off()
     
     # ==========================================
-    # STAGE 8: Combined Nucleosome Analysis
+    # --- Combined Nucleosome Analysis ---
     # ==========================================
     message("Running combined nucleosome analysis...")
     res_comb <- dinoR::diNOMeTest(

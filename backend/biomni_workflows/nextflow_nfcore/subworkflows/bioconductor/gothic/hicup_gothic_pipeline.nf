@@ -75,13 +75,13 @@ process BIOC_GOTHIC_HICUP_GOTHIC_PIPELINE {
     # Write meaningful output files
     message("Writing output files...")
     
-    # 1. Save the complete interactions table as a CSV
+    # --- Save the complete interactions table as a CSV ---
     write.csv(binom, file = "significant_interactions.csv", row.names = FALSE)
     
-    # 2. Save the result as an RDS object for downstream R analysis
+    # --- Save the result as an RDS object for downstream R analysis ---
     saveRDS(binom, file = "significant_interactions.rds")
     
-    # 3. Generate and save the p-value density plot if p-values are present
+    # --- Generate and save the p-value density plot if p-values ---
     if (!is.null(binom) && "pvalue" %in% colnames(binom)) {
       pdf("pvalue_distribution.pdf", width = 6, height = 6)
       plot(density(binom\$pvalue), 

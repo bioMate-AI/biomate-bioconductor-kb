@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load pedigree structures and genotype data. 2. Calculate sharing probabilities for individual families or multiple families using 
+//  * 1. [Input & Preparation] Load pedigree structures and genotype data
+//  * 2. [Input & Preparation] Calculate sharing probabilities using RVsharing
+//  * 3. [Input & Preparation] Compute p-value for single variants using
+//  * 4. [Input & Preparation] Compute p-values for multiple variants using
+//  * 5. [Input & Preparation] Sensitivity analysis for MAF and kinship coefficients
+//  * 6. [Input & Preparation] Enrichment test across all variants
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RVS", "kinship2", "snpStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +67,7 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     suppressMessages(library(snpStats))
     
     # ==========================================
-    # STAGE 1: Load pedigree structures and genotype data
+    # --- Load pedigree structures and genotype data ---
     # ==========================================
     
     # Read pedigree data from the working directory
@@ -93,7 +107,7 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     sample\$fam <- sample\$fam[keep_idx, , drop=FALSE]
     
     # ==========================================
-    # STAGE 2: Calculate sharing probabilities using RVsharing
+    # --- Calculate sharing probabilities using RVsharing ---
     # ==========================================
     
     # Compute sharing probability for a single family
@@ -108,7 +122,7 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     write.csv(as.data.frame(sharing_probs), "sharing_probabilities.csv", row.names=TRUE)
     
     # ==========================================
-    # STAGE 3: Compute p-value for single variants using multipleFamilyPValue
+    # --- Compute p-value for single variants using ---
     # ==========================================
     
     geno_matrix <- as(sample\$genotypes, "numeric")
@@ -136,7 +150,7 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     write(single_p_val, file="single_variant_p_value.txt")
     
     # ==========================================
-    # STAGE 4: Compute p-values for multiple variants using multipleVariantPValue
+    # --- Compute p-values for multiple variants using ---
     # ==========================================
     
     famids <- unique(sample\$fam\$pedigree)
@@ -165,7 +179,7 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     saveRDS(result_bonf, "multiple_variant_results_bonferroni.rds")
     
     # ==========================================
-    # STAGE 5: Sensitivity analysis for MAF and kinship coefficients
+    # --- Sensitivity analysis for MAF and kinship coefficients ---
     # ==========================================
     
     # Set up PDF for sensitivity plots
@@ -224,7 +238,7 @@ process BIOC_RVS_SINGLE_OR_MULTIPLE_VARIANT_SHARING {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Enrichment test across all variants
+    # --- Enrichment test across all variants ---
     # ==========================================
     
     enrich_p <- enrichmentPValue(sample\$genotypes, sample\$fam, sharingProbs, 0.001)

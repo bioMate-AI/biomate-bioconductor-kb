@@ -36,6 +36,15 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("TTMap", "rgl", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,11 +57,13 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     # Set rgl to use NULL device to prevent headless display errors
     options(rgl.useNULL = TRUE)
     
+    library(SummarizedExperiment)
+    
     library(TTMap)
     library(rgl)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read count matrix and sample metadata
@@ -106,7 +117,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     )
     
     # ==========================================
-    # Stage 2: Control Group Adjustment (Part 1)
+    # --- Control Group Adjustment (Part 1) ---
     # ==========================================
     E <- 1
     Pw <- 1.1
@@ -124,7 +135,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     )
     
     # ==========================================
-    # Stage 3: Hyperrectangle Deviation Assessment
+    # --- Hyperrectangle Deviation Assessment ---
     # ==========================================
     TTMAP_part1_hda <- TTMap::hyperrectangle_deviation_assessment(
       x = TTMAP_part1prime,
@@ -137,7 +148,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     write.csv(TTMAP_part1_hda\$Dc.Dmat, "deviation_components.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Global-to-Local Mapper (Part 2)
+    # --- Global-to-Local Mapper (Part 2) ---
     # ==========================================
     ALPHA <- 1
     
@@ -181,7 +192,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     })
     
     # ==========================================
-    # Stage 5: Identify Significant Genes
+    # --- Identify Significant Genes ---
     # ==========================================
     TTMap::ttmap_sgn_genes(
       TTMAP_part2_gtlmap,

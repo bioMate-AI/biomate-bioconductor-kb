@@ -56,7 +56,7 @@ process BIOC_NORCE_PATHWAY_ENRICHMENT {
     library(NoRCE)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     if (!file.exists("brain_mirna")) {
       stop("Error: Required input file 'brain_mirna' not found in the working directory.")
@@ -77,7 +77,7 @@ process BIOC_NORCE_PATHWAY_ENRICHMENT {
     brain_disorder_ncRNA <- brain_disorder_ncRNA[brain_disorder_ncRNA != ""]
     
     # -----------------------------------------------------------------------------
-    # 2. Execute Documented Workflow Steps
+    # --- Execute Documented Workflow Steps ---
     # -----------------------------------------------------------------------------
     
     # Step 2.1: Run KEGG pathway enrichment for miRNAs
@@ -103,7 +103,7 @@ process BIOC_NORCE_PATHWAY_ENRICHMENT {
     ncGO_bader <- genePathwayEnricher(gene = brain_disorder_ncRNA, org_assembly = 'hg19', genetype = 'Ensembl_gene', gmtName = wp.gmt)
     
     # -----------------------------------------------------------------------------
-    # 3. Save Enrichment Results
+    # --- Save Enrichment Results ---
     # -----------------------------------------------------------------------------
     message("Saving enrichment results...")
     
@@ -133,7 +133,7 @@ process BIOC_NORCE_PATHWAY_ENRICHMENT {
     })
     
     # -----------------------------------------------------------------------------
-    # 4. Visualize Pathway Diagrams
+    # --- Visualize Pathway Diagrams ---
     # -----------------------------------------------------------------------------
     message("Generating pathway diagrams...")
     

@@ -42,7 +42,7 @@ process BIOC_MEAL_METHYLATION_EXPRESSION_INTEGRATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Biobase", "GenomicRanges", "MEAL", "MultiDataSet", "minfi")
+    .bm_deps <- c("Biobase", "GenomicRanges", "MEAL", "MultiDataSet", "minfi", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,6 +61,7 @@ process BIOC_MEAL_METHYLATION_EXPRESSION_INTEGRATION {
     
     # Load required libraries
     library(MEAL)
+    library(SummarizedExperiment)
     library(MultiDataSet)
     library(GenomicRanges)
     library(minfi)

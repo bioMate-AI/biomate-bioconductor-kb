@@ -68,11 +68,11 @@ process BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT {
       stop(paste("Error: No CSV files found in '", testdir, "'.", sep = ""))
     }
     
-    # 1. Baseline subtraction of raw spectra using rmBaseline
+    # --- Baseline subtraction of raw spectra using rmBaseline ---
     message("Performing baseline subtraction...")
     testM <- rmBaseline(testdir)
     
-    # 2. Renormalization of spectra using renorm
+    # --- Renormalization of spectra using renorm ---
     message("Renormalizing spectra...")
     rtM <- renorm(testM, cutoff = 1500)
     
@@ -84,11 +84,11 @@ process BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT {
     normalized_spectra_file <- "normalized_spectra.rds"
     biomarkers_rds_file <- "proto_biomarkers.rds"
     
-    # 3. Peak identification in individual spectra using getPeaks
+    # --- Peak identification in individual spectra using getPeaks ---
     message("Identifying peaks...")
     getPeaks(rtM, peakfile)
     
-    # 4. Quality assessment of spectra using quality
+    # --- Quality assessment of spectra using quality ---
     message("Assessing quality...")
     qualRes <- quality(testM, peakfile, cutoff = 1500)
     print(qualRes)
@@ -96,7 +96,7 @@ process BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT {
     # Save quality assessment results
     write.csv(qualRes, file = quality_file, row.names = TRUE)
     
-    # 5. Peak alignment and proto-biomarker identification using pk2bmkr
+    # --- Peak alignment and proto-biomarker identification using ---
     message("Aligning peaks and identifying proto-biomarkers...")
     testBio <- pk2bmkr(peakfile, rtM, bmkfile)
     

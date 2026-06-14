@@ -80,7 +80,7 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     kerenSPE <- load_input("kerenSPE")
     diabetesData <- load_input("diabetesData")
     
-    # 1. Test for change in localization for a specific pair of cells
+    # --- Test for change in localization for a specific pair of ---
     spicyTestPair <- spicy(
       kerenSPE,
       condition = "tumour_type",
@@ -93,7 +93,7 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     write.csv(testPairResults, "spicyTestPair_results.csv", row.names = TRUE)
     saveRDS(spicyTestPair, "spicyTestPair.rds")
     
-    # 2. Test for change in localization for all pairwise cell combinations
+    # --- Test for change in localization for all pairwise cell ---
     spicyTest <- spicy(
       kerenSPE,
       condition = "tumour_type"
@@ -104,11 +104,11 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     write.csv(testResults, "spicyTest_results.csv", row.names = TRUE)
     saveRDS(spicyTest, "spicyTest.rds")
     
-    # 3. Extract image-level L-function metrics using bind()
+    # --- Extract image-level L-function metrics using bind() ---
     bindResults <- bind(spicyTest)
     write.csv(bindResults, "spicyTest_bind.csv", row.names = TRUE)
     
-    # 4. Visualize significant relationships using signifPlot()
+    # --- Visualize significant relationships using signifPlot() ---
     pdf("signifPlot.pdf", width = 8, height = 8)
     signifPlot(
       spicyTest,
@@ -118,7 +118,7 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     )
     dev.off()
     
-    # 5. Generate boxplots for specific cell-cell relationships using spicyBoxPlot()
+    # --- Generate boxplots for specific cell-cell relationships ---
     pdf("spicyBoxPlot.pdf", width = 6, height = 6)
     spicyBoxPlot(results = spicyTest, 
                  # from = "Macrophages",
@@ -126,7 +126,7 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
                  rank = 1)
     dev.off()
     
-    # 6. Perform mixed-effects modeling by specifying the subject parameter
+    # --- Perform mixed-effects modeling by specifying the subject ---
     spicyMixedTest <- spicy(
       diabetesData,
       condition = "stage",

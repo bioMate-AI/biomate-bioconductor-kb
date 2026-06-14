@@ -52,12 +52,12 @@ process BIOC_PREBS_CUSTOM_CDF_EXPRESSION {
       }
     }
     
-    # 1. Load the prebs and prebsdata libraries
+    # --- Load the prebs and prebsdata libraries ---
     library(prebs)
     library(prebsdata)
     library(Biobase)
     
-    # 2. Define paths to BAM files and the Custom CDF mapping file
+    # --- Define paths to BAM files and the Custom CDF mapping file ---
     # Reading directly from the working directory as specified by the user
     bam_file1 <- "input1.bam"
     bam_file2 <- "input2.bam"
@@ -71,15 +71,15 @@ process BIOC_PREBS_CUSTOM_CDF_EXPRESSION {
         }
     }
     
-    # 3. Run calc_prebs to compute gene-level expression values
+    # --- Run calc_prebs to compute gene-level expression values ---
     prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1)
     
-    # 4. Extract and view the expression matrix using exprs()
+    # --- Extract and view the expression matrix using exprs() ---
     expression_matrix <- exprs(prebs_values)
     print("First few rows of the calculated PREBS expression values:")
     print(head(expression_matrix))
     
-    # 5. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     write.table(expression_matrix, file="prebs_values.txt", quote=FALSE, sep="\t", col.names=NA)
     saveRDS(prebs_values, file="prebs_values.rds")
 

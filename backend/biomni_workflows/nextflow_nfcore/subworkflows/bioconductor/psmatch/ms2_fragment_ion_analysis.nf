@@ -57,18 +57,18 @@ process BIOC_PSMATCH_MS2_FRAGMENT_ION_ANALYSIS {
     library(PSMatch)
     library(PTMods)
     
-    # 1. Load raw MS data from the working directory
+    # --- Load raw MS data from the working directory ---
     spf <- "spf.mzML.gz"
     sp <- Spectra(spf)
     
-    # 2. Load and filter identification data from the working directory
+    # --- Load and filter identification data from the working ---
     idf <- "idf.mzid"
     id <- PSM(idf) |> filterPSMs()
     
-    # 3. Merge raw and identification data
+    # --- Merge raw and identification data ---
     sp <- joinSpectraData(sp, id, by.x = "spectrumId", by.y = "spectrumID")
     
-    # 4. Filter precursor scans
+    # --- Filter precursor scans ---
     sp1158 <- filterPrecursorScan(sp, 1158)
     
     # Save precursor scan plot to PDF
@@ -77,7 +77,7 @@ process BIOC_PSMATCH_MS2_FRAGMENT_ION_ANALYSIS {
     abline(v = precursorMz(sp1158)[2], col = "red", lty = "dotted")
     dev.off()
     
-    # 5. Calculate theoretical fragment ions
+    # --- Calculate theoretical fragment ions ---
     # Print sequence to console
     sp1158\$sequence
     
@@ -92,7 +92,7 @@ process BIOC_PSMATCH_MS2_FRAGMENT_ION_ANALYSIS {
     frags_var_mod <- calculateFragments(var_seq)
     write.csv(frags_var_mod, "fragments_variable_modifications.csv", row.names = FALSE)
     
-    # 6. Plot experimental spectra and annotate with PTMs
+    # --- Plot experimental spectra and annotate with PTMs ---
     pdf("experimental_spectra_ptm.pdf", width = 10, height = 8)
     
     # Plot experimental spectrum as is

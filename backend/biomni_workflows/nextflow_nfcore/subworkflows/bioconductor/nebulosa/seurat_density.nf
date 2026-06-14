@@ -101,19 +101,19 @@ process BIOC_NEBULOSA_SEURAT_DENSITY {
     # Generate and save density plots
     pdf("nebulosa_density_plots.pdf", width = 8, height = 11)
     
-    # 1. Single-gene density plot for CD4
+    # --- Single-gene density plot for CD4 ---
     p1 <- plot_density(pbmc, "CD4")
     print(p1)
     
-    # 2. Multi-gene density plot for CD8A and CCR7
+    # --- Multi-gene density plot for CD8A and CCR7 ---
     p3 <- plot_density(pbmc, c("CD8A", "CCR7"))
     print(p3 + plot_layout(ncol = 1))
     
-    # 3. Joint density plot for CD8A and CCR7
+    # --- Joint density plot for CD8A and CCR7 ---
     p4 <- plot_density(pbmc, c("CD8A", "CCR7"), joint = TRUE)
     print(p4 + plot_layout(ncol = 1))
     
-    # 4. Joint density plot with combine = FALSE (extracting the joint plot only)
+    # --- Joint density plot with combine = FALSE (extracting the ---
     p_list <- plot_density(pbmc, c("CD8A", "CCR7"), joint = TRUE, combine = FALSE)
     print(p_list[[length(p_list)]])
     

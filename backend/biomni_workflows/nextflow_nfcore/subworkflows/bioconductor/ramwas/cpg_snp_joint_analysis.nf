@@ -107,7 +107,7 @@ process BIOC_RAMWAS_CPG_SNP_JOINT_ANALYSIS {
     # Export meaningful results to named output files in the working directory
     message("Exporting results...")
     
-    # 1. Export CpG-SNP Joint Analysis Top Findings
+    # --- Export CpG-SNP Joint Analysis Top Findings ---
     snp_top_file = file.path(pfull\$dirSNPs, "Top_tests.txt")
     if (file.exists(snp_top_file)) {
       snp_top = read.table(snp_top_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
@@ -117,7 +117,7 @@ process BIOC_RAMWAS_CPG_SNP_JOINT_ANALYSIS {
       warning("CpG-SNP joint analysis Top_tests.txt not found.")
     }
     
-    # 2. Export Standard MWAS Top Findings
+    # --- Export Standard MWAS Top Findings ---
     mwas_top_file = file.path(pfull\$dirmwas, "Top_tests.txt")
     if (file.exists(mwas_top_file)) {
       mwas_top = read.table(mwas_top_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
@@ -127,7 +127,7 @@ process BIOC_RAMWAS_CPG_SNP_JOINT_ANALYSIS {
       warning("Standard MWAS Top_tests.txt not found.")
     }
     
-    # 3. Copy the Standard MWAS QQ Plot
+    # --- Copy the Standard MWAS QQ Plot ---
     mwas_qq_file = file.path(pfull\$dirmwas, "QQ_plot.pdf")
     if (file.exists(mwas_qq_file)) {
       file.copy(mwas_qq_file, "standard_mwas_qq_plot.pdf", overwrite = TRUE)

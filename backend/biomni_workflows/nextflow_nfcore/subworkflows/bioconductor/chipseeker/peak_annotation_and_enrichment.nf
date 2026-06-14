@@ -59,7 +59,7 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     library(org.Hs.eg.db)
     library(clusterProfiler)
     
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     # The pipeline expects "files_4.bed" (BED file of ChIP-seq peaks)
     # and "txdb.rds" (serialized TxDb object) in the working directory.
     if (!file.exists("files_4.bed")) {
@@ -77,7 +77,7 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     # Read peak file for downstream seq2gene analysis
     peak <- readPeakFile(files[[4]])
     
-    # 2. Annotate peaks with genomic features and nearest genes
+    # --- Annotate peaks with genomic features and nearest genes ---
     message("Annotating peaks...")
     peakAnno <- annotatePeak(files[[4]], tssRegion=c(-3000, 3000), TxDb=txdb, annoDb="org.Hs.eg.db")
     
@@ -85,7 +85,7 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     saveRDS(peakAnno, "peakAnno.rds")
     write.csv(as.data.frame(peakAnno), "peakAnno.csv", row.names = FALSE)
     
-    # 3. Visualize genomic annotations
+    # --- Visualize genomic annotations ---
     message("Generating genomic annotation plots...")
     pdf("plotAnnoPie.pdf", width = 8, height = 6)
     plotAnnoPie(peakAnno)
@@ -99,13 +99,13 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     vennpie(peakAnno)
     dev.off()
     
-    # 4. Visualize distance to TSS
+    # --- Visualize distance to TSS ---
     message("Generating distance to TSS plot...")
     pdf("plotDistToTSS.pdf", width = 8, height = 6)
     plotDistToTSS(peakAnno, title="Distribution of transcription factor-binding loci\nrelative to TSS")
     dev.off()
     
-    # 5. Pathway enrichment analysis (Reactome) on nearest genes
+    # --- Pathway enrichment analysis (Reactome) on nearest genes ---
     message("Performing pathway enrichment on nearest genes...")
     pathway1 <- tryCatch({
       p1 <- enrichPathway(as.data.frame(peakAnno)\$geneId)
@@ -120,12 +120,12 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
       NULL
     })
     
-    # 6. Link genomic regions to genes using seq2gene
+    # --- Link genomic regions to genes using seq2gene ---
     message("Linking genomic regions to genes using seq2gene...")
     gene <- seq2gene(peak, tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
     saveRDS(gene, "seq2gene_genes.rds")
     
-    # 7. Pathway enrichment analysis on seq2gene linked genes
+    # --- Pathway enrichment analysis on seq2gene linked genes ---
     message("Performing pathway enrichment on seq2gene linked genes...")
     pathway2 <- tryCatch({
       p2 <- enrichPathway(gene)

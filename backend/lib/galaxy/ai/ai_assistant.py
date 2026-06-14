@@ -106,6 +106,37 @@ _FAST_CLASSIFICATION_MODELS: dict = {
 }
 
 
+# Tokens that commonly appear as named alternative methods in DE / consensus
+# workflows. When a query mentions ≥2 of these alongside an alternative-marker
+# word (or, vs, compare, etc.), the disambiguation gate fires regardless of
+# the BGE retrieval score — see _detect_alt_method_enumeration().
+_ALT_METHOD_TOKENS: tuple = (
+    'deseq2', 'edger', 'limma', 'dss', 'ebseq', 'baysseq', 'baycseq',
+    'noiseq', 'sleuth', 'mast', 'monocle',
+)
+def _detect_alt_method_enumeration(user_intent: str):
+    """Return (methods_mentioned, is_enumeration).
+
+    A query "enumerates alternatives" when it names ≥2 known DE / consensus
+    method tokens AND includes an alternative-marker word (or, vs, compare,
+    alternatives, either, both, and). Used by the disambiguation gate in
+    UnifiedWorkflowGeneration to force candidate selection even when BGE
+    retrieval returns a single high-confidence winner.
+    """
+    import re as _re_local
+    if not user_intent:
+        return [], False
+    q = user_intent.lower()
+    methods = [t for t in _ALT_METHOD_TOKENS if t in q]
+    if len(methods) < 2:
+        return methods, False
+    has_marker = bool(_re_local.search(
+        r'\b(or|vs\.?|versus|compare|comparison|alternatives?|either|both|and)\b',
+        q,
+    ))
+    return methods, has_marker
+
+
 class AIAssistant:
     """Main Galaxy AI Assistant that orchestrates the entire AI pipeline."""
     
@@ -446,6 +477,15 @@ class AIAssistant:
         _ctx = context or {}
         _uid = _ctx.get('userId', '') or _ctx.get('user_id', '')
         _sid = _ctx.get('sessionId', '') or _ctx.get('session_id', '')
+
+        # Shadow-only chain composer telemetry. Default off, never raises, log-only.
+        # Enable via BIOMATE_COMPOSER_SHADOW=1. See chain_composer/telemetry.py.
+        try:
+            from .chain_composer.telemetry import shadow_log as _composer_shadow_log
+            _composer_shadow_log(query, _ctx)
+        except Exception:  # pragma: no cover — must never break routing
+            pass
+
         if self._looks_like_multi_task(query, user_id=_uid, session_id=_sid):
             return await self._handle_multi_task_clarification(query, _ctx)
 
@@ -3504,6 +3544,60 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             #   _MATCH_SCORE_MED  = 6.0   (medium_confidence / plausible)
             _DISAMBIG_MIN_SCORE = 6.0
             _DISAMBIG_GAP_THRESHOLD = 3.0
+
+            # Intent-driven override: when the user explicitly enumerates multiple
+            # alternative methods (e.g. "DESeq2 or edgeR", "compare DESeq2 edgeR limma"),
+            # the request is by definition ambiguous — even when BGE dense retrieval
+            # produces a single high-confidence winner. Force disambig in that case
+            # so the user can pick which method to actually run. The set is
+            # intentionally narrow (well-known DE / DEG methods that often appear
+            # as alternatives in bioc consensus chains) to avoid spurious triggers.
+            # Extend cautiously as similar consensus-style patterns surface.
+            _methods_mentioned, _enumerates_alternatives = _detect_alt_method_enumeration(
+                user_intent
+            )
+            if _enumerates_alternatives and search_results:
+                # Surface the top plausible matches (relax the score floor since the
+                # intent signal alone justifies disambig). Prefer matches that mention
+                # one of the named methods in name/description so the candidate list
+                # actually reflects what the user asked to compare.
+                def _method_in_match(m: Any) -> bool:
+                    blob = (
+                        (getattr(m, 'name', '') or '')
+                        + ' '
+                        + (getattr(m, 'description', '') or '')
+                    ).lower()
+                    return any(t in blob for t in _methods_mentioned)
+
+                method_matches = [m for m in search_results if _method_in_match(m)]
+                other_matches = [m for m in search_results if not _method_in_match(m)]
+                ordered = method_matches + other_matches
+                disambig_candidates = []
+                for m in ordered[:4]:
+                    disambig_candidates.append({
+                        'name': m.name,
+                        'display_name': getattr(m, 'display_name', None) or m.name,
+                        'description': (getattr(m, 'description', None) or '')[:220],
+                        'source': getattr(m, 'source', ''),
+                        'format': getattr(m, 'format', ''),
+                        'score': round(m.score, 2),
+                    })
+                if len(disambig_candidates) >= 2:
+                    log.info(
+                        "[UnifiedWorkflowGeneration] Disambiguation (alt-enumeration) — "
+                        "methods=%s, candidates=%s",
+                        _methods_mentioned, [c['name'] for c in disambig_candidates],
+                    )
+                    return {
+                        'success': False,
+                        'workflow_type': 'disambiguation',
+                        'message': (
+                            "You mentioned multiple methods (" + ", ".join(_methods_mentioned)
+                            + "). Which workflow would you like to run?"
+                        ),
+                        'candidates': disambig_candidates,
+                    }
+
             if search_results and match_type != 'high_confidence':
                 plausible = [r for r in search_results if r.score >= _DISAMBIG_MIN_SCORE]
                 if (len(plausible) >= 2

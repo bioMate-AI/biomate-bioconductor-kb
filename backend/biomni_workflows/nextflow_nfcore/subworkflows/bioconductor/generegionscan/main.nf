@@ -63,7 +63,7 @@ process BIOC_GENEREGIONSCAN_BUILD_PROBE_LEVEL_SET {
     pgfPath <- "~/HuEx-1-0-st-v2.r2.pgf"
     celFilesDir <- "~/test-cels"
     
-    # Stage 1: Find probesets of interest in a genomic region using getProbesetsFromRegionOfInterest
+    # --- Find probesets of interest in a genomic region using ---
     message("Stage 1: Finding probesets of interest in the genomic region...")
     listOfProbesets <- getProbesetsFromRegionOfInterest(
       "HuEx-1-0-st-v2", 
@@ -83,7 +83,7 @@ process BIOC_GENEREGIONSCAN_BUILD_PROBE_LEVEL_SET {
       quote = FALSE
     )
     
-    # Stage 2: Extract and normalize probe intensities from CEL files using getLocalProbeIntensities
+    # --- Extract and normalize probe intensities from CEL files ---
     message("Stage 2: Extracting and normalizing probe intensities from CEL files...")
     myProbeLevelSet <- getLocalProbeIntensities(
       listOfProbesets, 
@@ -96,7 +96,7 @@ process BIOC_GENEREGIONSCAN_BUILD_PROBE_LEVEL_SET {
     # Save the constructed ProbeLevelSet object to an RDS file
     saveRDS(myProbeLevelSet, file = "myProbeLevelSet.rds")
     
-    # Stage 3: Retrieve probe sequences using getSequence
+    # --- Retrieve probe sequences using getSequence ---
     message("Stage 3: Retrieving probe sequences...")
     probeSequences <- getSequence(myProbeLevelSet, 1:5)
     

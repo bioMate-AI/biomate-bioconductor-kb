@@ -60,16 +60,16 @@ process BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING {
     fastq1 <- "reads_supporting_defuse_fusion_5267.1.fq"
     fastq2 <- "reads_supporting_defuse_fusion_5267.2.fq"
     
-    # 1. Import fusion data and select the target fusion event
+    # --- Import fusion data and select the target fusion event ---
     fusions <- import_defuse(defuse833ke, "hg19", 1)
     fusion <- get_fusion_by_id(fusions, 5267)
     
-    # 2. Write the fusion junction reference sequence to a FASTA file
+    # --- Write the fusion junction reference sequence to a FASTA ---
     referenceFilename <- "reference.fa"
     reference_filename <- "reference.fa" # Define both to ensure compatibility with documented code variables
     write_fusion_reference(fusion = fusion, filename = referenceFilename)
     
-    # 3. Source alignment wrapper scripts and align supporting reads to the reference
+    # --- Source alignment wrapper scripts and align supporting ---
     # Using find.package to locate the script without using system.file
     rsubread_script <- file.path(find.package("chimeraviz"), "scripts", "rsubread.R")
     source(rsubread_script)
@@ -84,11 +84,11 @@ process BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING {
       fastq2 = fastq2,
       output_bam_filename = "fusion_alignment")
     
-    # 4. Add the resulting BAM alignment to the Fusion object
+    # --- Add the resulting BAM alignment to the Fusion object ---
     bamfile5267 <- "fusion_alignment.bam"
     fusion <- add_fusion_reads_alignment(fusion, bamfile5267)
     
-    # 5. Plot the aligned supporting reads across the fusion junction and save to PDF
+    # --- Plot the aligned supporting reads across the fusion ---
     pdf("fusion_reads_plot.pdf", width = 12, height = 6)
     plot_fusion_reads(fusion)
     dev.off()

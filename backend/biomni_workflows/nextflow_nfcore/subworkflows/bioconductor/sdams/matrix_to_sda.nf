@@ -97,13 +97,13 @@ process BIOC_SDAMS_MATRIX_TO_SDA {
       groupInfo <- groupInfo[common_samples, , drop = FALSE]
     }
     
-    # 1. Create a SummarizedExperiment object from the feature matrix and covariate data frame
+    # --- Create a SummarizedExperiment object from the feature ---
     exampleSE2 <- createSEFromMatrix(feature = featureInfo, colData = groupInfo)
     
-    # 2. Perform differential expression analysis using SDA
+    # --- Perform differential expression analysis using SDA ---
     results_SC <- SDA(exampleSE2)
     
-    # 3. Extract results for gamma, beta, and the two-part test (as documented)
+    # --- Extract results for gamma, beta, and the two-part test ---
     print("Head of pv_gamma:")
     print(head(results_SC\$pv_gamma[,1]))
     

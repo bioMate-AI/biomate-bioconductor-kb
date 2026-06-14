@@ -58,7 +58,7 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     library(flowCore)
     library(ggcyto)
     
-    # 1. Load raw FCS files into a cytoset and initialize a GatingSet.
+    # --- Load raw FCS files into a cytoset and initialize a ---
     flowDataPath <- "."
     fcsFiles <- list.files(pattern = "CytoTrol", flowDataPath, full = TRUE)
     if (length(fcsFiles) == 0) {
@@ -72,7 +72,7 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     cf <- realize_view(cs[[1]])
     gs <- GatingSet(cs)
     
-    # 2. Apply compensation using a compensation matrix.
+    # --- Apply compensation using a compensation matrix ---
     gh <- gs[[1]]
     compMat <- gh_get_compensations(gh)
     
@@ -104,22 +104,22 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     
     compensate(gs, compMat)
     
-    # 3. Transform the stained channels.
+    # --- Transform the stained channels ---
     chnls <- parameters(compMat)
     trans <- estimateLogicle(gs[[1]], channels = chnls)
     gs <- transform(gs, trans)
     
-    # 4. Load the gating template from the CSV file.
+    # --- Load the gating template from the CSV file ---
     gtFile <- list.files(pattern = "\\\\.csv\$", full.names = TRUE)[1]
     if (is.na(gtFile)) {
       stop("No CSV gating template found in the working directory.")
     }
     gt_tcell <- gatingTemplate(gtFile)
     
-    # 5. Apply the gating template to the GatingSet using gt_gating.
+    # --- Apply the gating template to the GatingSet using gt_gating ---
     gt_gating(gt_tcell, gs)
     
-    # 6. Hide intermediate or auxiliary gating nodes and rename populations.
+    # --- Hide intermediate or auxiliary gating nodes and rename ---
     all_paths <- gs_get_pop_paths(gs[[1]])
     nodesToHide_vignette <- c("cd8+", "cd4+", "cd4-cd8-", "cd4+cd8+", "cd4+cd8-/HLA+", "cd4+cd8-/CD38+",
                               "cd4-cd8+/HLA+", "cd4-cd8+/CD38+", "CD45_neg/CCR7_gate", "cd4+cd8-/CD45_neg",
@@ -145,7 +145,7 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
       message("Skipping renaming of cd4-cd8+ (not found or already renamed)")
     })
     
-    # 7. Plot the gating hierarchy and visualize the gates.
+    # --- Plot the gating hierarchy and visualize the gates ---
     pdf("gating_plots.pdf", width = 11, height = 8.5)
     tryCatch({
       plot(gs[[1]])

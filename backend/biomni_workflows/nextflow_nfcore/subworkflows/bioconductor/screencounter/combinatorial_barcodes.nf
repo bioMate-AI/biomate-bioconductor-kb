@@ -64,7 +64,7 @@ process BIOC_SCREENCOUNTER_COMBINATORIAL_BARCODES {
     known1 <- c("AAAA", "CCCC", "GGGG", "TTTT")
     known2 <- c("ATTA", "CGGC", "GCCG", "TAAT")
     
-    # 1. Quantify combinatorial barcodes using matrixOfComboBarcodes
+    # --- Quantify combinatorial barcodes using ---
     out <- matrixOfComboBarcodes(combo.fq,
         template="GTACNNNNCATGNNNNGTAC",
         choices=list(first=known1, second=known2))
@@ -72,11 +72,11 @@ process BIOC_SCREENCOUNTER_COMBINATORIAL_BARCODES {
     # Print the SummarizedExperiment object
     print(out)
     
-    # 2. Extract the count matrix using assay
+    # --- Extract the count matrix using assay ---
     counts_matrix <- assay(out)
     print(counts_matrix)
     
-    # 3. Extract barcode identities using rowData
+    # --- Extract barcode identities using rowData ---
     barcode_metadata <- rowData(out)
     print(barcode_metadata)
     

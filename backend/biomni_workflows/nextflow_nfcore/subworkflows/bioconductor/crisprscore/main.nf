@@ -63,7 +63,7 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
     spacer20 <- trimws(seq_lines[1])
     spacer23 <- if (length(seq_lines) > 1) trimws(seq_lines[2]) else "AATCGATGCTGATGCTAGATATT"
     
-    # 1. Run RuleSet1 scoring using getRuleSet1Scores
+    # --- Run RuleSet1 scoring using getRuleSet1Scores ---
     flank5 <- "ACCT" #4bp
     spacer <- spacer20 #20bp
     pam    <- "AGG" #3bp 
@@ -72,7 +72,7 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
     results <- getRuleSet1Scores(input)
     write.csv(as.data.frame(results), "results_ruleset1.csv", row.names = FALSE)
     
-    # 2. Run RuleSet3 scoring using getRuleSet3Scores with a specified conda environment
+    # --- Run RuleSet3 scoring using getRuleSet3Scores with a ---
     condaEnv <- "/Users/fortin946/miniforge3/envs/rs3-env"
     tryCatch({
         results <- getRuleSet3Scores(input, tracrRNA = "Hsu2013", condaEnv = condaEnv)
@@ -81,7 +81,7 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
         message("RuleSet3 scoring skipped or failed: ", e\$message)
     })
     
-    # 3. Run DeepHF scoring using getDeepHFScores with a specified conda environment
+    # --- Run DeepHF scoring using getDeepHFScores with a specified ---
     spacer  <- spacer20 #20bp
     pam     <- "AGG" #3bp
     input   <- paste0(spacer, pam)
@@ -93,7 +93,7 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
         message("DeepHF scoring skipped or failed: ", e\$message)
     })
     
-    # 4. Run CRISPRscan scoring using getCRISPRscanScores
+    # --- Run CRISPRscan scoring using getCRISPRscanScores ---
     flank5 <- "ACCTAA" #6bp
     spacer <- spacer20 #20bp
     pam    <- "AGG" #3bp 
@@ -102,12 +102,12 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
     results <- getCRISPRscanScores(input)
     write.csv(as.data.frame(results), "results_crisprscan.csv", row.names = FALSE)
     
-    # 5. Run CRISPRater scoring using getCRISPRaterScores
+    # --- Run CRISPRater scoring using getCRISPRaterScores ---
     spacer <- spacer20 #20bp
     results <- getCRISPRaterScores(spacer)
     write.csv(as.data.frame(results), "results_crisprater.csv", row.names = FALSE)
     
-    # 6. Run enPAM+GB scoring for Cas12a using getEnPAMGBScores
+    # --- Run enPAM+GB scoring for Cas12a using getEnPAMGBScores ---
     flank5 <- "ACCG" #4bp
     pam    <- "TTTT" #4bp
     spacer <- spacer23 #23bp
@@ -121,7 +121,7 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
         message("enPAM+GB scoring skipped or failed: ", e\$message)
     })
     
-    # 7. Run CasRxRF scoring for Cas13d using getCasRxRFScores on a DNAStringSet
+    # --- Run CasRxRF scoring for Cas13d using getCasRxRFScores on ---
     mrnaSequence <- Biostrings::readDNAStringSet(filepath = "test.fa",
                                                  format = "fasta",
                                                  use.names = TRUE)

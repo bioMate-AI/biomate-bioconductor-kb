@@ -1,0 +1,32 @@
+{
+  "name": "shotgun_metagenomics_to_mag",
+  "display_name": "Shotgun Metagenomics → Assembly → CONCOCT Binning → Taxonomy",
+  "domain": "metagenomics",
+  "description": "Standard shotgun metagenomics pipeline producing metagenome-assembled genomes (MAGs): contig binning with CONCOCT, taxonomy assignment via MMseqs2, then differential abundance analysis across conditions using PathoStat for statistical microbiome analysis.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "Fasta Binning Concoct", "role": "contig_binning", "params_template": {}},
+    {"order": 2, "workflow_name": "Mmseqs Contig Taxonomy", "role": "taxonomy_assignment", "params_template": {}},
+    {"order": 3, "workflow_name": "PathoStat", "role": "statistical_microbiome_analysis", "params_template": {}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "bins", "to_step": 2, "to_input": "contigs"},
+    {"from_step": 2, "from_output": "taxonomy_table", "to_step": 3, "to_input": "taxa_abundance"}
+  ],
+  "required_inputs": [
+    {"name": "assembled_contigs", "type": "fasta"},
+    {"name": "sample_metadata", "type": "csv"}
+  ],
+  "expected_outputs": [
+    {"name": "MAGs", "type": "fasta"},
+    {"name": "taxonomy", "type": "tsv"},
+    {"name": "differential_abundance", "type": "tsv"}
+  ],
+  "example_queries": [
+    "shotgun metagenomics with CONCOCT binning and taxonomy",
+    "metagenome assembled genomes from shotgun sequencing",
+    "MAG recovery with binning and taxonomy assignment",
+    "metagenomics differential abundance analysis across conditions"
+  ],
+  "tags": ["metagenomics", "CONCOCT", "MMseqs2", "MAG", "microbiome"]
+}

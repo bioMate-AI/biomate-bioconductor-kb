@@ -67,15 +67,15 @@ process BIOC_KMCUT_FIXED_OR_QUANTILE_CUTOFF {
       stop(paste("Required input file missing:", sdat))
     }
     
-    # 1. Create a SummarizedExperiment object from the input files
+    # --- Create a SummarizedExperiment object from the input files ---
     message("Creating SummarizedExperiment object...")
     se <- create_se_object(efile = fdat, sfile = sdat)
     
-    # 2. Stratify samples using a quantile cutoff (50th percentile / median)
+    # --- Stratify samples using a quantile cutoff (50th percentile ---
     message("Running km_qcut with 50th quantile...")
     km_qcut(obj = se, bfname = "test", quant = 50, wpdf = FALSE)
     
-    # 3. Stratify samples using a fixed user-defined cutoff (cutoff = 5)
+    # --- Stratify samples using a fixed user-defined cutoff ---
     message("Running km_ucut with fixed cutoff of 5...")
     km_ucut(obj = se, bfname = "test", cutoff = 5, min_uval = 90, wpdf = FALSE)
     

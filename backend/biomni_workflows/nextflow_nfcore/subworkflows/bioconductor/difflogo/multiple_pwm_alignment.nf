@@ -64,8 +64,8 @@ process BIOC_DIFFLOGO_MULTIPLE_PWM_ALIGNMENT {
     pwm_long = getPwmFromPwmFile("pwm_long.pwm")
     pwm_short = getPwmFromPwmFile("pwm_short.pwm")
     
-    # 1. Perform multiple local alignment of PWMs
-    # 2. Extend the PWMs based on the alignment vector
+    # --- Perform multiple local alignment of PWMs ---
+    # --- Extend the PWMs based on the alignment vector ---
     pwms = list(pwm_long, pwm_short)
     multiple_pwms_alignment = multipleLocalPwmsAlignment(pwms)
     aligned_pwms = extendPwmsFromAlignmentVector(pwms, multiple_pwms_alignment\$alignment\$vector)
@@ -81,7 +81,7 @@ process BIOC_DIFFLOGO_MULTIPLE_PWM_ALIGNMENT {
     )
     write.csv(alignment_df, "alignment_vector.csv", row.names = FALSE)
     
-    # 3. Plot the unaligned and aligned sequence logos to a PDF file
+    # --- Plot the unaligned and aligned sequence logos to a PDF ---
     pdf("unaligned_vs_aligned_logos.pdf", width = 10, height = 8)
     
     layout(mat = matrix(data = 1:4, nrow = 2, ncol = 2))

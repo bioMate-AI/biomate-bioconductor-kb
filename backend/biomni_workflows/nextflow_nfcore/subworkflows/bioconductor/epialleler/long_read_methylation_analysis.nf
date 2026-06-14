@@ -57,7 +57,7 @@ process BIOC_EPIALLELER_LONG_READ_METHYLATION_ANALYSIS {
     library(rtracklayer)
     library(GenomicRanges)
     
-    # 1. Load the target region (long.bed)
+    # --- Load the target region (long.bed) ---
     # Robust loading: try RDS first, then BED import
     if (file.exists("long.bed")) {
       long.bed <- tryCatch({
@@ -74,11 +74,11 @@ process BIOC_EPIALLELER_LONG_READ_METHYLATION_ANALYSIS {
       stop("Required input file 'longread.bam' not found in the working directory.")
     }
     
-    # 2. Preprocess long-read BAM using preprocessBam with quality and probability filters
+    # --- Preprocess long-read BAM using preprocessBam with quality ---
     message("Preprocessing long-read BAM...")
     longread.data <- preprocessBam("longread.bam", min.mapq=30, min.baseq=20, min.prob=178)
     
-    # 3. Generate cytosine-level report using generateCytosineReport with threshold.reads=FALSE
+    # --- Generate cytosine-level report using ---
     message("Generating cytosine report...")
     cytosine.report <- generateCytosineReport(longread.data, threshold.reads=FALSE)
     
@@ -86,7 +86,7 @@ process BIOC_EPIALLELER_LONG_READ_METHYLATION_ANALYSIS {
     write.csv(cytosine.report, "cytosine_report.csv", row.names=FALSE)
     message("Cytosine report saved to 'cytosine_report.csv'.")
     
-    # 4. Extract and plot methylation patterns using extractPatterns and plotPatterns
+    # --- Extract and plot methylation patterns using ---
     message("Preprocessing BAM with target regions...")
     long.bam <- "longread.bam"
     long.data <- preprocessBam(bam=long.bam, targets=long.bed, clip.to.targets=TRUE, min.mapq=30, min.baseq=20, min.prob=178)

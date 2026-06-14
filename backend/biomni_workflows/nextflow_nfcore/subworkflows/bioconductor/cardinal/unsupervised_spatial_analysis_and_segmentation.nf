@@ -54,7 +54,7 @@ process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {
     
     library(Cardinal)
     
-    # 1. Load the user input dataset
+    # --- Load the user input dataset ---
     if (!file.exists("aligned_peaks.imzML")) {
         stop("Error: aligned_peaks.imzML not found in the working directory.")
     }
@@ -81,7 +81,7 @@ process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {
         mse\$square <- rep(c(TRUE, FALSE), length.out=ncol(mse))
     }
     
-    # 2. Run Principal Components Analysis (PCA)
+    # --- Run Principal Components Analysis (PCA) ---
     pca <- PCA(mse, ncomp=3)
     
     pdf("pca_plots.pdf", width=12, height=4)
@@ -92,7 +92,7 @@ process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {
     
     saveRDS(pca, "pca_results.rds")
     
-    # 3. Run Non-negative Matrix Factorization (NMF)
+    # --- Run Non-negative Matrix Factorization (NMF) ---
     nmf <- NMF(mse, ncomp=3)
     
     pdf("nmf_plots.pdf", width=12, height=4)
@@ -103,11 +103,11 @@ process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {
     
     saveRDS(nmf, "nmf_results.rds")
     
-    # 4. Find colocalized features
+    # --- Find colocalized features ---
     coloc <- colocalized(mse, mz=1003.3)
     write.csv(as.data.frame(coloc), "colocalized_features.csv", row.names=TRUE)
     
-    # 5. Perform spatial shrunken centroids clustering
+    # --- Perform spatial shrunken centroids clustering ---
     ssc <- spatialShrunkenCentroids(mse, r=1, k=3, s=c(0,6,12,18))
     
     pdf("ssc_plots.pdf", width=12, height=4)
@@ -121,7 +121,7 @@ process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {
     ssc_top <- topFeatures(ssc[[2L]])
     write.csv(as.data.frame(ssc_top), "ssc_top_features.csv", row.names=TRUE)
     
-    # 6. Perform spatial Dirichlet Gaussian mixture modeling (spatial-DGMM)
+    # --- Perform spatial Dirichlet Gaussian mixture modeling ---
     dgmm <- spatialDGMM(mse, r=1, k=3, weights="gaussian")
     
     pdf("dgmm_plots.pdf", width=12, height=4)

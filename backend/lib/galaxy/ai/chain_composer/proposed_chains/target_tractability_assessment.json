@@ -1,0 +1,29 @@
+{
+  "name": "target_tractability_assessment",
+  "display_name": "Target Tractability Scoring + AlphaFold Structure Validation",
+  "domain": "drug_discovery",
+  "description": "Combines target tractability scoring (protein family, pocket detection, druggability) with AlphaFold structure database search to confirm structural foundation for both small molecule and biologic drug discovery campaigns. Used at the discovery stage to triage candidate targets before screening investment.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "target_tractability_scorer", "role": "multi_criteria_target_scoring", "params_template": {}},
+    {"order": 2, "workflow_name": "AlphaFold DB Search", "role": "structure_database_search", "params_template": {"max_hits": 50}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "scored_targets", "to_step": 2, "to_input": "candidate_targets"}
+  ],
+  "required_inputs": [
+    {"name": "candidate_protein_targets", "type": "fasta"},
+    {"name": "indication_context", "type": "string"}
+  ],
+  "expected_outputs": [
+    {"name": "tractability_scores", "type": "tsv"},
+    {"name": "structural_matches", "type": "json"}
+  ],
+  "example_queries": [
+    "target tractability scoring for small molecule and biologic drug discovery",
+    "assess druggability of candidate protein targets",
+    "target prioritization with structure search",
+    "AlphaFold structure validation for drug target"
+  ],
+  "tags": ["drug_discovery", "target_tractability", "AlphaFold", "druggability"]
+}

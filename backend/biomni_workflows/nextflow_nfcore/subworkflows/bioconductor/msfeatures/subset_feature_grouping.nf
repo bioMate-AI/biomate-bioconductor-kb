@@ -59,6 +59,7 @@ process BIOC_MSFEATURES_SUBSET_FEATURE_GROUPING {
     # Load required libraries
     library(MsFeatures)
     
+    library(SummarizedExperiment)
     # Read the input SummarizedExperiment object from the working directory
     # The pipeline expects a file named "se.rds" containing the SummarizedExperiment
     input_file <- "se.rds"

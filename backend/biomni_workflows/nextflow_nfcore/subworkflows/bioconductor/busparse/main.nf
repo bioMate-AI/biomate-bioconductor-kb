@@ -80,7 +80,7 @@ process BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING {
       dir.create(output_dir, recursive = TRUE)
     }
     
-    # Stage 1: Generate transcript-to-gene mapping using transcript2gene
+    # --- Generate transcript-to-gene mapping using transcript2gene ---
     message("Generating transcript-to-gene mapping...")
     tr2g <- transcript2gene(species = c("Homo sapiens", "Mus musculus"), 
                             kallisto_out_path = "./out_hgmm100", ensembl_version = 99,
@@ -90,7 +90,7 @@ process BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING {
     write.csv(tr2g, file = file.path(output_dir, "tr2g_mapping.csv"), row.names = FALSE)
     message("Saved transcript-to-gene mapping to output_results/tr2g_mapping.csv")
     
-    # Stage 2: Convert sorted BUS file to sparse gene count and TCC matrices using make_sparse_matrix
+    # --- Convert sorted BUS file to sparse gene count and TCC ---
     message("Converting BUS file to sparse matrices...")
     c(gene_count, tcc) %<-% make_sparse_matrix("./out_hgmm100/output.sorted.txt",
                                    tr2g = tr2g, est_ncells = 1e5,

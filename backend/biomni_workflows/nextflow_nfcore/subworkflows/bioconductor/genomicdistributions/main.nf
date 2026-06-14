@@ -58,11 +58,11 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
     library("GenomicRanges")
     library("ggplot2")
     
-    # 1. Load query genomic ranges using rtracklayer::import
+    # --- Load query genomic ranges using rtracklayer::import ---
     queryFile = "vistaEnhancers.bed.gz"
     query = rtracklayer::import(queryFile)
     
-    # 2. Calculate and plot chromosome distribution using calcChromBinsRef and plotChromBins
+    # --- Calculate and plot chromosome distribution using ---
     x = calcChromBinsRef(query, "hg19")
     write.csv(as.data.frame(x), "chrom_bins_single.csv", row.names=FALSE)
     p1 = plotChromBins(x)
@@ -75,7 +75,7 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
     p2 = plotChromBins(x2)
     ggsave("chrom_bins_multi.pdf", plot=p2, width=8, height=6)
     
-    # 3. Calculate and plot distance to TSS or custom features
+    # --- Calculate and plot distance to TSS or custom features ---
     TSSdist = calcFeatureDistRefTSS(query, "hg19")
     write.csv(as.data.frame(TSSdist), "tss_dist_single.csv", row.names=FALSE)
     p3 = plotFeatureDist(TSSdist, featureName="TSS")
@@ -95,7 +95,7 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
     p6 = plotFeatureDist(fdd)
     ggsave("feature_dist_example.pdf", plot=p6, width=8, height=6)
     
-    # 4. Calculate and plot genomic partition distributions
+    # --- Calculate and plot genomic partition distributions ---
     gp = calcPartitionsRef(query, "hg19")
     write.csv(as.data.frame(gp), "partitions_single.csv", row.names=FALSE)
     p7 = plotPartitions(gp)
@@ -142,7 +142,7 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
     p16 = plotCumulativePartitions(cp2)
     ggsave("cumulative_partitions_multi.pdf", plot=p16, width=8, height=6)
     
-    # 5. Calculate and plot neighboring region distances
+    # --- Calculate and plot neighboring region distances ---
     nd = calcNeighborDist(query)
     write.csv(as.data.frame(nd), "neighbor_dist_single.csv", row.names=FALSE)
     p17 = plotNeighborDist(nd)
@@ -156,7 +156,7 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
     p18 = plotNeighborDist(dist2)
     ggsave("neighbor_dist_multi.pdf", plot=p18, width=8, height=6)
     
-    # 6. Calculate and plot GC content and dinucleotide frequencies (wrapped in tryCatch)
+    # --- Calculate and plot GC content and dinucleotide ---
     tryCatch({
       gc1 = calcGCContentRef(query, "hg19")
       write.csv(as.data.frame(gc1), "gc_content_single.csv", row.names=FALSE)
@@ -190,7 +190,7 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
       message("Dinucleotide frequency calculation skipped or failed (requires BSgenome.Hsapiens.UCSC.hg19): ", e\$message)
     })
     
-    # 7. Calculate and plot width distributions
+    # --- Calculate and plot width distributions ---
     qt1 = calcWidth(query)
     write.csv(as.data.frame(qt1), "width_single.csv", row.names=FALSE)
     p24 = plotQTHist(qt1)

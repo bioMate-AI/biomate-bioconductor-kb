@@ -67,7 +67,7 @@ process BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS {
       stop(paste("Required input file missing:", gist_input))
     }
     
-    # 1. Run the joint segmentation, classification, and significance testing on the breast dataset
+    # --- Run the joint segmentation, classification, and ---
     results <- vegaMC(
       breast_input,
       output_file_name = "breast.analysis",
@@ -86,11 +86,11 @@ process BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS {
     write.csv(results, "breast_analysis_results.csv", row.names = FALSE)
     saveRDS(results, "breast_analysis_results.rds")
     
-    # 2. Sort the unsorted GIST dataset by genomic position using sortData
+    # --- Sort the unsorted GIST dataset by genomic position using ---
     gist_sorted <- "gist.sorted.txt"
     sortData(gist_input, gist_sorted)
     
-    # 3. Run the joint segmentation, classification, and significance testing on the sorted GIST dataset
+    # --- Run the joint segmentation, classification, and ---
     gist.results <- vegaMC(
       gist_sorted,
       output_file_name = "gist.analysis.default",

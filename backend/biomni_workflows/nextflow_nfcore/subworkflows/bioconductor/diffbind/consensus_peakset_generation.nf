@@ -56,7 +56,7 @@ process BIOC_DIFFBIND_CONSENSUS_PEAKSET_GENERATION {
     library(DiffBind)
     library(GenomicRanges)
     
-    # 1. Load peaksets from the user-provided sample sheet
+    # --- Load peaksets from the user-provided sample sheet ---
     if (!file.exists("tamoxifen.csv")) {
       stop("Required input file 'tamoxifen.csv' not found in the working directory.")
     }
@@ -76,7 +76,7 @@ process BIOC_DIFFBIND_CONSENSUS_PEAKSET_GENERATION {
     # Construct the DBA object from the filtered sample sheet
     tamoxifen <- dba(sampleSheet=samples)
     
-    # 2. Derive consensus peaksets based on overlap threshold, and 3. Filter and retrieve consensus peaks
+    # --- Derive consensus peaksets based on overlap threshold, and ---
     # Wrap in a tryCatch block to handle cases where the input files do not contain enough groups/replicates
     tryCatch({
       # Derive consensus peaksets based on overlap rates across tissue and condition

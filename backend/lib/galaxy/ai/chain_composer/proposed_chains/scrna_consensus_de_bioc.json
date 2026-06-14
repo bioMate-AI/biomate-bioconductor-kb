@@ -1,0 +1,35 @@
+{
+  "name": "scrna_consensus_de_bioc",
+  "display_name": "scRNA-seq → Multi-Method Cell-Type DE (Bioc)",
+  "domain": "single_cell",
+  "description": "Single-cell RNA-seq processing followed by per-method differential expression: scater (population-aware QC and normalization), MAST (hurdle model for zero-inflation), and Monocle (pseudotime-aware DE). Use this chain when scRNA DE robustness across method choice is required (publication-grade single-cell studies).",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "nf-core/scrnaseq", "role": "scrna_processing", "params_template": {"aligner": "cellranger"}},
+    {"order": 2, "workflow_name": "scater", "role": "qc_normalization", "params_template": {}},
+    {"order": 3, "workflow_name": "mast", "role": "de_hurdle_model", "params_template": {"zero_inflated": true}},
+    {"order": 4, "workflow_name": "monocle", "role": "pseudotime_aware_de", "params_template": {}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "sce_or_h5ad", "to_step": 2, "to_input": "sce"},
+    {"from_step": 2, "from_output": "normalized_sce", "to_step": 3, "to_input": "sce"},
+    {"from_step": 2, "from_output": "normalized_sce", "to_step": 4, "to_input": "sce"}
+  ],
+  "required_inputs": [
+    {"name": "scrna_fastq", "type": "fastq"},
+    {"name": "sample_sheet", "type": "csv"},
+    {"name": "reference_transcriptome", "type": "string"}
+  ],
+  "expected_outputs": [
+    {"name": "mast_de_results", "type": "tsv"},
+    {"name": "monocle_trajectory", "type": "rds"},
+    {"name": "qc_report", "type": "html"}
+  ],
+  "example_queries": [
+    "single-cell RNA-seq with multi-method DE",
+    "scRNA-seq with MAST and Monocle differential expression",
+    "robust scRNA-seq DE with hurdle model and pseudotime",
+    "scRNA-seq analysis with scater QC then MAST DE"
+  ],
+  "tags": ["scRNA-seq", "DE", "MAST", "Monocle", "scater", "consensus_candidates"]
+}

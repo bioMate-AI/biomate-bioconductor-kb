@@ -41,7 +41,7 @@ process BIOC_RAER_SINGLE_CELL_EDITING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "Rsamtools", "AnnotationHub", "ComplexHeatmap", "raer", "raerdata", "scater", "SingleCellExperiment")
+    .bm_deps <- c("GenomicRanges", "Rsamtools", "AnnotationHub", "ComplexHeatmap", "raer", "raerdata", "scater", "SingleCellExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_RAER_SINGLE_CELL_EDITING {
                     
     # Load required libraries
     library(raer)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(Rsamtools)
     

@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Predict signature features and classification scores on new data using predict_signature
+//  * 1. [Core Analysis] Read User Input Files from Working Directory
+//  * 2. [Core Analysis] Predict signature features and classification scores on
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +60,7 @@ process BIOC_SUPERSIGS_PREDICT_SUPERSIG {
     library(supersigs)
     library(dplyr)
     
-    # 1. Read User Input Files from Working Directory
+    # --- Read User Input Files from Working Directory ---
     if (file.exists("input_dt.csv")) {
       input_dt <- read.csv("input_dt.csv", check.names = FALSE)
     } else if (file.exists("input_dt.rds")) {
@@ -85,7 +86,7 @@ process BIOC_SUPERSIGS_PREDICT_SUPERSIG {
     # Relocate IndVar to the first column
     input_dt <- input_dt %>% relocate(IndVar)
     
-    # 2. Predict signature features and classification scores on new data using predict_signature
+    # --- Predict signature features and classification scores on ---
     # Using the pre-trained SuperSig from the provided list
     newdata = predict_signature(supersig_ls[["SMOKING (LUAD)"]], newdata = input_dt, factor = "Smoking")
     

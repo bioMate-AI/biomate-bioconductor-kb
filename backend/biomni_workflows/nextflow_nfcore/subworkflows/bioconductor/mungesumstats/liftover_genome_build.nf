@@ -56,7 +56,7 @@ process BIOC_MUNGESUMSTATS_LIFTOVER_GENOME_BUILD {
     library(data.table)
     library(MungeSumstats)
     
-    # 1. Load the summary statistics from the user input file 'sumstats_dt'
+    # --- Load the summary statistics from the user input file ---
     # We attempt to read it as an RDS object first, and fallback to data.table::fread
     if (file.exists("sumstats_dt")) {
       sumstats_dt <- tryCatch({
@@ -81,10 +81,10 @@ process BIOC_MUNGESUMSTATS_LIFTOVER_GENOME_BUILD {
       sumstats_dt <- data.table::as.data.table(sumstats_dt)
     }
     
-    # 2. Run liftover specifying the source and target genome builds
+    # --- Run liftover specifying the source and target genome ---
     sumstats_dt_hg38 <- MungeSumstats::liftover(sumstats_dt = sumstats_dt, ref_genome = "hg19", convert_ref_genome = "hg38")
     
-    # 3. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     data.table::fwrite(sumstats_dt_hg38, "sumstats_dt_hg38.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
     saveRDS(sumstats_dt_hg38, "sumstats_dt_hg38.rds")
 

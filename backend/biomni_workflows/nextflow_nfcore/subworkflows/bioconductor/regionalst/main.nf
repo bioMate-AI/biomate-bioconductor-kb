@@ -62,7 +62,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
     # Create output directory
     dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
     
-    # 1. Load and preprocess spatial data using BayesSpace
+    # --- Load and preprocess spatial data using BayesSpace ---
     # Read Visium data from the declared user input directory
     sce <- BayesSpace::readVisium("path/to/spaceranger/outs/")
     
@@ -89,7 +89,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
     sce\$"pxl_col_in_fullres" <- sce\$imagecol
     sce\$"pxl_row_in_fullres" <- sce\$imagerow
     
-    # 2. Define cell type weights and calculate weighted entropy
+    # --- Define cell type weights and calculate weighted entropy ---
     # Dynamically construct the weight data frame based on the cell types present in the deconvolution results
     celltypes <- colnames(props)
     weight <- data.frame(
@@ -107,7 +107,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
                                  mytitle = "Radius 5 weighted entropy")
     dev.off()
     
-    # 3. Automatically select Regions of Interest (ROIs) based on entropy
+    # --- Automatically select Regions of Interest (ROIs) based on ---
     pdf("outputs/roi_selection.pdf")
     sce <- RankCenterByEntropy_withProp(sce, 
                                         weight,
@@ -130,7 +130,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
                                   selCenter = c(1,2,3))
     dev.off()
     
-    # 4. Perform cross-regional cell type-specific differential expression
+    # --- Perform cross-regional cell type-specific differential ---
     # Compare the first and second ROIs
     CR12_DE <- GetCrossRegionalDE_withProp(sce, 
                                            twoCenter = c(1,2),
@@ -178,7 +178,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
     
     write.csv(CTS_DE\$allDE, "outputs/cell_type_specific_DE.csv", row.names = TRUE)
     
-    # 5. Run GSEA pathway enrichment on the DE genes and visualize
+    # --- Run GSEA pathway enrichment on the DE genes and visualize ---
     lCTres <- list(CTS_DE)
     CTres <- DoGSEA(lCTres, whichDB = "hallmark", withProp = TRUE)
     

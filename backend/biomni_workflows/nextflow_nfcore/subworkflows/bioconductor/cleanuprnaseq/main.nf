@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Build an EnsDb database from the reference GTF file using ensDbFromGtf. 2. Generate Simplified Annotation Format (SAF) files for g
+//  * 1. [Visualization & Output] Build an EnsDb database from the reference GTF file
+//  * 2. [Visualization & Output] Generate Simplified Annotation Format (SAF) files
+//  * 3. [Visualization & Output] Create a SummarizedCounts object
+//  * 4. [Visualization & Output] Summarize reads and import Salmon quantifications
+//  * 5. [Visualization & Output] Generate diagnostic plots
+//  * 6. [Visualization & Output] Correct for gDNA contamination
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CleanUpRNAseq", "ggplotify", "patchwork", "ensembldb", "GenomicRanges", "Biostrings", "GenomeInfoDb", "genome_pkg")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -63,7 +77,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     options(timeout = max(3000, getOption("timeout")))
     tmp_dir <- tempdir()
     
-    # 1. Build an EnsDb database from the reference GTF file
+    # --- Build an EnsDb database from the reference GTF file ---
     gtf_gz <- "example.gtf.gz"
     gtf <- "example.gtf"
     if (!file.exists(gtf)) {
@@ -78,7 +92,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
       version = 110
     )
     
-    # 2. Generate Simplified Annotation Format (SAF) files
+    # --- Generate Simplified Annotation Format (SAF) files ---
     bam_file <- "K084CD7PCD1N.srt.bam"
     saf_list <- get_saf(
       ensdb_sqlite = hs_ensdb_sqlite,
@@ -86,7 +100,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
       mitochondrial_genome = "MT"
     )
     
-    # 3. Create a SummarizedCounts object
+    # --- Create a SummarizedCounts object ---
     col_data <- read.delim("example.colData.txt", as.is = TRUE)
     
     # Standardize paths to the working directory
@@ -116,7 +130,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     
     sc <- create_summarizedcounts(lib_strand = 0, colData = col_data)
     
-    # 4. Summarize reads and import Salmon quantifications
+    # --- Summarize reads and import Salmon quantifications ---
     capture.output({
       counts_list <- summarize_reads(
         SummarizedCounts = sc,
@@ -137,7 +151,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     sc\$set_salmon_quant(salmon_counts)
     sc\$set_salmon_quant_opposite(salmon_counts)
     
-    # 5. Generate diagnostic plots
+    # --- Generate diagnostic plots ---
     pdf("cleanup_diagnostics.pdf", width = 10, height = 8)
     
     p_assignment_stat <- plot_assignment_stat(SummarizedCounts = sc)
@@ -166,7 +180,7 @@ process BIOC_CLEANUPRNASEQ_UNSTRANDED_GDNA_CLEANUP {
     
     dev.off()
     
-    # 6. Correct for gDNA contamination
+    # --- Correct for gDNA contamination ---
     # Global median per-base read coverage subtraction
     global_correction <- correct_global(SummarizedCounts = sc)
     saveRDS(global_correction, "global_correction_results.rds")

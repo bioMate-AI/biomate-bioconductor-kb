@@ -56,7 +56,7 @@ process BIOC_PLANTTFHUNTER_SINGLE_SPECIES_TF_CLASSIFICATION {
     library(planttfhunter)
     library(Biostrings)
     
-    # 1. Read protein sequences into an AAStringSet object
+    # --- Read protein sequences into an AAStringSet object ---
     fasta_file <- "proteome.fasta"
     if (!file.exists(fasta_file)) {
       stop("Required input file 'proteome.fasta' not found in the working directory.")
@@ -64,7 +64,7 @@ process BIOC_PLANTTFHUNTER_SINGLE_SPECIES_TF_CLASSIFICATION {
     
     gsu <- Biostrings::readAAStringSet(fasta_file)
     
-    # 2. Scan sequences for TF-related Pfam domains using HMMER
+    # --- Scan sequences for TF-related Pfam domains using HMMER ---
     if (hmmer_is_installed()) {
       gsu_annotation <- annotate_pfam(gsu)
     } else {
@@ -83,7 +83,7 @@ process BIOC_PLANTTFHUNTER_SINGLE_SPECIES_TF_CLASSIFICATION {
       )
     }
     
-    # 3. Classify identified proteins into TF families and subfamilies
+    # --- Classify identified proteins into TF families and ---
     gsu_families <- classify_tfs(gsu_annotation)
     
     # Print the table of families

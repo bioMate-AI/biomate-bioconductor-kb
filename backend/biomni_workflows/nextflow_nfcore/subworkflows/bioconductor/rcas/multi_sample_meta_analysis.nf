@@ -57,14 +57,14 @@ process BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS {
     library(RSQLite)
     library(knitr)
     
-    # 1. Define paths to BED files and read the project data frame from user input
+    # --- Define paths to BED files and read the project data frame ---
     projDataFile <- file.path(getwd(), 'myProjDataFile.tsv')
     if (!file.exists(projDataFile)) {
       stop("Required user input file 'myProjDataFile.tsv' not found in the working directory.")
     }
     projData <- read.table(projDataFile, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
     
-    # 2. Write the project data frame to a TSV file (preserving documented call)
+    # --- Write the project data frame to a TSV file (preserving ---
     write.table(projData, projDataFile, sep = '\t', quote = FALSE, row.names = FALSE)
     
     # Define path to the reference genome annotation GTF file from user input
@@ -73,7 +73,7 @@ process BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS {
       stop("Required user input file 'annotation.gtf' not found in the working directory.")
     }
     
-    # 3. Create or update an SQLite database
+    # --- Create or update an SQLite database ---
     databasePath <- file.path(getwd(), 'myProject.sqlite')
     
     # Remove pre-existing database to ensure a clean, reproducible run
@@ -84,26 +84,26 @@ process BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS {
     invisible(createDB(dbPath = databasePath, projDataFile = projDataFile, gtfFilePath = gtfFilePath, genomeVersion = 'hg19'))
     createDB(dbPath = databasePath, projDataFile = projDataFile, gtfFilePath = gtfFilePath, genomeVersion = 'hg19', update = TRUE)
     
-    # 4. Delete specific sample data from the database (wrapped in tryCatch for robustness)
+    # --- Delete specific sample data from the database (wrapped in ---
     tryCatch({
       RCAS::deleteSampleDataFromDB(dbPath = databasePath, sampleNames = c('FMR1_1', 'FMR1_2'))
     }, error = function(e) {
       message("Skipped deleting FMR1_1/FMR1_2: ", e\$message)
     })
     
-    # 5. Summarize database content and write to a CSV file
+    # --- Summarize database content and write to a CSV file ---
     dbSummary <- RCAS::summarizeDatabaseContent(dbPath = databasePath)
     knitr::kable(dbSummary)
     write.csv(dbSummary, file.path(getwd(), 'database_summary.csv'), row.names = FALSE)
     
-    # 6. Connect to the database and read tables
+    # --- Connect to the database and read tables ---
     mydb <- RSQLite::dbConnect(RSQLite::SQLite(), databasePath)
     RSQLite::dbListTables(mydb)
     annotationSummaries <- RSQLite::dbReadTable(mydb, 'annotationSummaries')
     write.csv(annotationSummaries, file.path(getwd(), 'annotation_summaries.csv'), row.names = FALSE)
     RSQLite::dbDisconnect(mydb)
     
-    # 7. Read the sample data table mapping samples to groups and write to a TSV file
+    # --- Read the sample data table mapping samples to groups and ---
     sampleDataFile <- file.path(getwd(), 'mySampleDataTable.tsv')
     if (!file.exists(sampleDataFile)) {
       stop("Required user input file 'mySampleDataTable.tsv' not found in the working directory.")
@@ -111,7 +111,7 @@ process BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS {
     sampleData <- read.table(sampleDataFile, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
     write.table(sampleData, sampleDataFile, sep = '\t', quote = FALSE, row.names = FALSE)
     
-    # 8. Generate a comparative meta-analysis HTML report
+    # --- Generate a comparative meta-analysis HTML report ---
     runReportMetaAnalysis(dbPath = databasePath, sampleTablePath = sampleDataFile, outFile = file.path(getwd(), 'myProject.html'))
 
     writeLines(c(

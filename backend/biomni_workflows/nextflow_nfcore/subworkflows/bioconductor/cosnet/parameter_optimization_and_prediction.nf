@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Partition the data into stratified folds using `find.division.strat`. 2. Hide the test set labels by setting them to 0, and set ne
+//  * 1. [Core Analysis] Load the user input files
+//  * 2. [Core Analysis] Prepare variables and labels
+//  * 3. [Core Analysis] Execute the documented workflow steps exactly as specified
+//  * 4. [Core Analysis] Evaluate and save results
 
 nextflow.enable.dsl = 2
 
@@ -93,7 +96,7 @@ process BIOC_COSNET_PARAMETER_OPTIMIZATION_AND_PREDICTION {
       stop(paste("Could not parse file format for:", filepath))
     }
     
-    # 1. Load the user input files
+    # --- Load the user input files ---
     DD.chem.data <- load_input("DD.chem.data")
     DrugBank.Cat <- load_input("DrugBank.Cat")
     
@@ -101,7 +104,7 @@ process BIOC_COSNET_PARAMETER_OPTIMIZATION_AND_PREDICTION {
     DD.chem.data <- as.matrix(DD.chem.data)
     DrugBank.Cat <- as.matrix(DrugBank.Cat)
     
-    # 2. Prepare variables and labels
+    # --- Prepare variables and labels ---
     n <- nrow(DD.chem.data)
     drugs <- rownames(DD.chem.data)
     
@@ -114,7 +117,7 @@ process BIOC_COSNET_PARAMETER_OPTIMIZATION_AND_PREDICTION {
     labels <- as.vector(DrugBank.Cat[, drug.category])
     names(labels) <- rownames(DrugBank.Cat)
     
-    # 3. Execute the documented workflow steps exactly as specified
+    # --- Execute the documented workflow steps exactly as specified ---
     folds <- find.division.strat(labels, 1:n, 5)
     labels[labels <= 0] <- -1;
     test.drugs <- folds[[1]];
@@ -132,7 +135,7 @@ process BIOC_COSNET_PARAMETER_OPTIMIZATION_AND_PREDICTION {
     
     res <- runSubnet(DD.chem.data, labels, alpha, gamma, cost=0.035);
     
-    # 4. Evaluate and save results
+    # --- Evaluate and save results ---
     # Retrieve original labels for the test set to compute performance metrics
     orig_labels <- as.vector(DrugBank.Cat[, drug.category])
     names(orig_labels) <- rownames(DrugBank.Cat)

@@ -35,6 +35,15 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("NanoTube", "Biobase", "limma", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Data Loading and Preprocessing
+    # --- Data Loading and Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing data...")
     
@@ -80,7 +89,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     exprs(dat) <- log2(exprs(dat) + 1)
     
     # ==========================================
-    # Stage 2: Quality Control & PCA
+    # --- Quality Control & PCA ---
     # ==========================================
     message("Stage 2: Generating PCA plot...")
     
@@ -90,7 +99,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 3: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 3: Running differential expression analysis...")
     
@@ -118,7 +127,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 4: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ==========================================
     message("Stage 4: Running Gene Set Enrichment Analysis...")
     

@@ -35,6 +35,15 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("splineTimeR", "Biobase", "GSEABase", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     library(igraph)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading input data...")
     
@@ -119,7 +128,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
                           phenoData = AnnotatedDataFrame(coldata))
     
     # ==========================================
-    # Stage 2: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 2: Running spline-based differential expression analysis...")
     
@@ -140,7 +149,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     message(paste("Saved", nrow(diffExprs), "differentially expressed genes to diff_exprs.csv"))
     
     # ==========================================
-    # Stage 3: Visualization of Spline Curves
+    # --- Visualization of Spline Curves ---
     # ==========================================
     message("Stage 3: Generating spline plots...")
     
@@ -176,7 +185,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 4: Pathway Enrichment Analysis
+    # --- Pathway Enrichment Analysis ---
     # ==========================================
     message("Stage 4: Performing pathway enrichment analysis...")
     
@@ -206,7 +215,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     if (file.exists("temp_pathways.gmt")) file.remove("temp_pathways.gmt")
     
     # ==========================================
-    # Stage 5: Network Reconstruction & Properties
+    # --- Network Reconstruction & Properties ---
     # ==========================================
     message("Stage 5: Reconstructing gene association network...")
     

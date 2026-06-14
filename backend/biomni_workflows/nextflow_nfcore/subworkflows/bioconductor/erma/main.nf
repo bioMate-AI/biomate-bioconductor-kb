@@ -36,6 +36,15 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("erma", "Gviz", "GenomicRanges", "GenomicFeatures", "TxDb.Hsapiens.UCSC.hg19.knownGene", "org.Hs.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries safely
+    # --- Load required libraries safely ---
     suppressPackageStartupMessages({
       library(erma)
       library(Gviz)
@@ -55,7 +64,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
       library(org.Hs.eg.db)
     })
     
-    # Stage 2: Define robust input parsing functions
+    # --- Define robust input parsing functions ---
     parse_coords <- function(x) {
       # Matches formats like chr1:100-200, chrX:1000..2000, 1:100-200
       m <- regexec("^([Cc][Hh][Rr])?([0-9XYxyMmtT]+)[:_]([0-9]+)[-..]+([0-9]+)\$", x)
@@ -77,7 +86,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
       NULL
     }
     
-    # Stage 3: Read and process user input
+    # --- Read and process user input ---
     user_gr <- NULL
     fallback_range <- GRanges("chr22", IRanges(36253000, 36290000)) # APOL1 locus on hg19
     
@@ -150,7 +159,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
       user_gr <- fallback_range
     }
     
-    # Stage 4: Select representative epigenomes from Roadmap Metadata
+    # --- Select representative epigenomes from Roadmap Metadata ---
     meta <- erma::roadmapMetadata
     # Select a diverse set of standard epigenomes (e.g., Stem Cells, Lung, Blood, Leukemia)
     selected_eids <- c("E003", "E096", "E116", "E123")
@@ -161,7 +170,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
     
     message("Querying ChromHMM states for epigenomes: ", paste(selected_eids, collapse = ", "))
     
-    # Stage 5: Retrieve ChromHMM state tracks using erma
+    # --- Retrieve ChromHMM state tracks using erma ---
     tracks <- tryCatch({
       stateTracks(user_gr, eid = selected_eids)
     }, error = function(e) {
@@ -169,7 +178,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
       NULL
     })
     
-    # Stage 6: Extract state data programmatically and save to CSV
+    # --- Extract state data programmatically and save to CSV ---
     if (!is.null(tracks) && length(tracks) > 0) {
       extracted_states <- list()
       for (i in seq_along(tracks)) {
@@ -215,7 +224,7 @@ process BIOC_ERMA_ERMA_EPIGENOMIC_ROADMAP_ANALYSIS {
       write.csv(data.frame(Message = "Failed to retrieve tracks"), "epigenomic_states_summary.csv", row.names = FALSE)
     }
     
-    # Stage 7: Visualize tracks using Gviz and save to PDF
+    # --- Visualize tracks using Gviz and save to PDF ---
     if (!is.null(tracks) && length(tracks) > 0) {
       message("Generating Gviz visualization...")
       pdf("epigenomic_states_plot.pdf", width = 12, height = 8)

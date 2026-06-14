@@ -55,11 +55,11 @@ process BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS {
     # Load required library
     library(MungeSumstats)
     
-    # 1. Define the path to the raw summary statistics files (from the working directory)
+    # --- Define the path to the raw summary statistics files (from ---
     eduAttainOkbayPth <- "eduAttainOkbay.txt"
     ALSvcfPth <- "ALSvcf.vcf"
     
-    # 2. Run format_sumstats() specifying the reference genome and output parameters
+    # --- Run format_sumstats() specifying the reference genome and ---
     reformatted <- MungeSumstats::format_sumstats(
       path = eduAttainOkbayPth, 
       ref_genome = "GRCh37"
@@ -70,7 +70,7 @@ process BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS {
       ref_genome = "GRCh37"
     )
     
-    # 3. Run format_sumstats() with logging and imputation indicators enabled
+    # --- Run format_sumstats() with logging and imputation ---
     reformatted_vcf_2 <- MungeSumstats::format_sumstats(
       path = ALSvcfPth, 
       ref_genome = "GRCh37", 
@@ -79,7 +79,7 @@ process BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS {
       log_mungesumstats_msgs = TRUE
     )
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Copy the formatted tabular summary statistics to the working directory
     file.copy(reformatted, "reformatted_eduAttainOkbay.tsv.gz", overwrite = TRUE)
     

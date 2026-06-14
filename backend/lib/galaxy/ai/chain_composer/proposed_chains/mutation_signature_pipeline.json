@@ -1,0 +1,33 @@
+{
+  "name": "mutation_signature_pipeline",
+  "display_name": "Mutation Signature Extraction & Kataegis Detection",
+  "domain": "variant_calling",
+  "description": "After somatic variant calling, extract mutational signatures using musicatk (multi-method signature decomposition: NMF + ICA + community-detection variants) and detect kataegis (clustered hypermutation events) via katdetectr. Members of a 13-member mutation-signature alternative-substitution cluster (clusteredmutations, kataegis, katdetectr, maftools, musicatk) are interchangeable depending on cancer type and analysis goal.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "nf-core/sarek", "role": "somatic_variant_calling", "params_template": {"tools": ["mutect2"], "wes": false}},
+    {"order": 2, "workflow_name": "musicatk", "role": "signature_extraction", "params_template": {"method": "nmf"}},
+    {"order": 3, "workflow_name": "katdetectr", "role": "kataegis_detection", "params_template": {}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "somatic_vcf", "to_step": 2, "to_input": "vcf"},
+    {"from_step": 1, "from_output": "somatic_vcf", "to_step": 3, "to_input": "vcf"}
+  ],
+  "required_inputs": [
+    {"name": "tumor_fastq_or_bam", "type": "fastq|bam"},
+    {"name": "normal_fastq_or_bam", "type": "fastq|bam"},
+    {"name": "sample_sheet", "type": "csv"}
+  ],
+  "expected_outputs": [
+    {"name": "mutational_signatures", "type": "rds"},
+    {"name": "signature_exposure_per_sample", "type": "tsv"},
+    {"name": "kataegis_regions", "type": "bed"}
+  ],
+  "example_queries": [
+    "mutational signature analysis on somatic variants",
+    "extract mutation signatures with musicatk",
+    "kataegis hypermutation detection after sarek",
+    "signature deconvolution and hypermutation clustering"
+  ],
+  "tags": ["mutation_signatures", "kataegis", "musicatk", "katdetectr", "consensus_candidates"]
+}

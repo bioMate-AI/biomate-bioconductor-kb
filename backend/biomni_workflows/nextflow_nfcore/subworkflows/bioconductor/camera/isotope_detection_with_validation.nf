@@ -82,24 +82,24 @@ process BIOC_CAMERA_ISOTOPE_DETECTION_WITH_VALIDATION {
     file <- file_list[[1]]
     message("Processing file: ", file)
     
-    # 1. Perform peak picking targeting isotopes using centWaveWithPredictedIsotopeROIs
+    # --- Perform peak picking targeting isotopes using ---
     xs    <- xcmsSet(
        files=file, method="centWaveWithPredictedIsotopeROIs",
        ppm=10, peakwidth=c(5,12), snthresh=25, prefilter=c(3,200)
     )
     
-    # 2. Initialize CAMERA annotation object
+    # --- Initialize CAMERA annotation object ---
     an   <- xsAnnotate(xs, polarity="positive")
     
-    # 3. Group peaks by retention time
+    # --- Group peaks by retention time ---
     an   <- groupFWHM(an, perfwhm = 1)
     
-    # 4. Detect and validate isotope clusters using database statistics
+    # --- Detect and validate isotope clusters using database ---
     an   <- findIsotopesWithValidation(object = an, ppm = 10,
                                        mzabs = 0.01, intval="intb",
            maxcharge = 3)
     
-    # 5. Extract the annotated peak list
+    # --- Extract the annotated peak list ---
     peakTable <- getPeaklist(an)
     
     # Write outputs

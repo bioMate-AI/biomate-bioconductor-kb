@@ -70,7 +70,7 @@ process BIOC_MAGAR_METH_QTL_WITH_IMPUTATION {
       stop(paste("Error: Sample annotation file not found at:", anno.sheet))
     }
     
-    # 1. Configure imputation options
+    # --- Configure imputation options ---
     qtlSetOption(
       impute.geno.data=TRUE,
       imputation.reference.panel="apps@hrc-r1.1",
@@ -78,7 +78,7 @@ process BIOC_MAGAR_METH_QTL_WITH_IMPUTATION {
       imputation.population="eur"
     )
     
-    # 2. Import and impute data using doImport
+    # --- Import and impute data using doImport ---
     qtlSetOption(hdf5dump=TRUE)
     imp.data <- doImport(data.location = c(idat.dir=idat.dir,geno.dir=geno.dir),
                         s.anno = anno.sheet,
@@ -89,7 +89,7 @@ process BIOC_MAGAR_METH_QTL_WITH_IMPUTATION {
     # Save imported data object
     saveRDS(imp.data, file = "imported_meth_qtl_data.rds")
     
-    # 3. Call methQTLs using doMethQTL
+    # --- Call methQTLs using doMethQTL ---
     qtlSetOption(standard.deviation.gauss=100,
         cluster.cor.threshold=0.75)
     meth.qtl.res <- doMethQTL(imp.data,default.options=FALSE,p.val.cutoff=0.05)
@@ -97,7 +97,7 @@ process BIOC_MAGAR_METH_QTL_WITH_IMPUTATION {
     # Save methQTL result object
     saveRDS(meth.qtl.res, file = "meth_qtl_result_object.rds")
     
-    # 4. Extract results using getResult
+    # --- Extract results using getResult ---
     result.table <- getResult(meth.qtl.res)
     
     # Write output table

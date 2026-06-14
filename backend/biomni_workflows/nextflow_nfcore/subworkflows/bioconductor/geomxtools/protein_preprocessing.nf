@@ -98,7 +98,7 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     # 2. Execute GeoMx Protein Preprocessing
     # ==========================================
     
-    # Step 1: Read raw protein data
+    # --- Read raw protein data ---
     message("Reading GeoMx protein data...")
     proteinData <- suppressWarnings(readNanoStringGeoMxSet(
       dccFiles = DCCFiles,
@@ -113,7 +113,7 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
       experimentDataColNames = NULL
     ))
     
-    # Step 2: Flag and remove low-quality ROIs
+    # --- Flag and remove low-quality ROIs ---
     message("Performing Segment QC...")
     proteinData <- setSegmentQCFlags(
       proteinData,
@@ -140,7 +140,7 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
       message("No segments flagged for low saturation.")
     }
     
-    # Step 3: Identify and filter low-signal proteins
+    # --- Identify and filter low-signal proteins ---
     message("Identifying target names and control probes...")
     hk.names <- hkNames(proteinData)
     igg.names <- iggNames(proteinData)
@@ -156,7 +156,7 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     
     proteinOrder <- qcProteinSignalNames(object = proteinData, neg.names = igg.names)
     
-    # Step 4: Evaluate normalization options using concordance plots
+    # --- Evaluate normalization options using concordance plots ---
     message("Generating concordance plots...")
     plotConcordance(object = proteinData, targetList = igg.names, plotFactor = "Tissue")
     
@@ -168,7 +168,7 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     dev.off()
     message("Plots saved to 'protein_preprocessing_plots.pdf'.")
     
-    # Step 5: Normalize protein data using multiple methods
+    # --- Normalize protein data using multiple methods ---
     message("Normalizing protein data...")
     proteinData <- normalize(proteinData, norm_method = "hk", toElt = "hk_norm")
     proteinData <- normalize(proteinData, norm_method = "neg", toElt = "neg_norm")

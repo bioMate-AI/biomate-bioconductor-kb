@@ -60,14 +60,14 @@ process BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION {
     # Set default ggplot2 theme
     theme_set(theme_bw())
     
-    # 1. Read User Input
+    # --- Read User Input ---
     # The pipeline reads EXACTLY the declared file from the working directory
     if (!file.exists("phyloseq_object")) {
       stop("Error: 'phyloseq_object' file not found in the working directory.")
     }
     ps <- readRDS("phyloseq_object")
     
-    # 2. Preprocess/Standardize the phyloseq object to ensure all vignette steps run smoothly
+    # --- Preprocess/Standardize the phyloseq object to ensure all ---
     # Ensure phylogenetic tree exists (required for UniFrac and DPCoA)
     if (is.null(phy_tree(ps, errorIfNULL = FALSE))) {
       set.seed(42)
@@ -157,22 +157,22 @@ process BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION {
     p_tree <- plot_tree(GP.chl, color="SampleType", shape="Family", label.tips="Genus", size="Abundance")
     print(p_tree)
     
-    # 3. Generate taxonomic abundance bar plots using plot_bar
+    # --- Generate taxonomic abundance bar plots using plot_bar ---
     p_bar <- plot_bar(ent10, "SeqTech", fill="Enterotype", facet_grid=~Genus)
     print(p_bar)
     
-    # 4. Create abundance heatmaps using plot_heatmap
+    # --- Create abundance heatmaps using plot_heatmap ---
     (p <- plot_heatmap(gpac, "NMDS", "bray", "SampleType", "Family"))
     print(p)
     
-    # 5. Construct and plot sample co-occurrence networks using plot_net
+    # --- Construct and plot sample co-occurrence networks using ---
     p_net <- plot_net(enterotype, maxdist=0.4, color="SeqTech", shape="Enterotype")
     print(p_net)
     
-    # 6. Calculate ecological distances using distance or UniFrac
+    # --- Calculate ecological distances using distance or UniFrac ---
     GPUF <- UniFrac(GlobalPatterns)
     
-    # 7. Perform ordination (PCoA, NMDS, CA, DPCoA) using ordinate and plot results
+    # --- Perform ordination (PCoA, NMDS, CA, DPCoA) using ordinate ---
     GloPa.pcoa = ordinate(GlobalPatterns, method="PCoA", distance=GPUF)
     plot_scree(GloPa.pcoa, "Scree plot for Global Patterns, UniFrac/PCoA")
     
@@ -195,7 +195,7 @@ process BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION {
     dist_bray <- distance(esophagus, "bray")
     dist_wunifrac <- distance(esophagus, "wunifrac")
     
-    # 8. Perform hierarchical clustering using hclust
+    # --- Perform hierarchical clustering using hclust ---
     GP.hclust <- hclust(GPUF, method="average")
     plot(GP.hclust, col=cols)
     

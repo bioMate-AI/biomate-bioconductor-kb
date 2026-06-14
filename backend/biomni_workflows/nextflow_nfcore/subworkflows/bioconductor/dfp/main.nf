@@ -65,7 +65,7 @@ process BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN {
       stop("Error: Input file 'rmadataset' or 'rmadataset.rds' not found in the working directory.")
     }
     
-    # Stage 1: Run the wrapper function discriminantFuzzyPattern
+    # --- Run the wrapper function discriminantFuzzyPattern ---
     res <- discriminantFuzzyPattern(rmadataset)
     
     # Save the complete results list as an RDS object
@@ -74,7 +74,7 @@ process BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN {
     # Save the discriminant fuzzy pattern matrix as a CSV table
     write.csv(as.data.frame(res\$discriminant.fuzzy.pattern), "discriminant_fuzzy_pattern.csv", row.names = TRUE)
     
-    # Stage 2: Plot the resulting discriminant fuzzy patterns to a PDF file
+    # --- Plot the resulting discriminant fuzzy patterns to a PDF ---
     pdf("discriminant_fuzzy_pattern_plot.pdf", width = 11, height = 8.5)
     plotDiscriminantFuzzyPattern(res\$discriminant.fuzzy.pattern)
     dev.off()

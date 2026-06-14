@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Identify features of interest. 2. Model gene-drug associations using drugSensitivitySig (linear regression adjusted for tissue and
+//  * 1. [Core Analysis] Identify features of interest
+//  * 2. [Core Analysis] Model gene-drug associations using drugSensitivitySig
 
 nextflow.enable.dsl = 2
 
@@ -81,10 +82,10 @@ process BIOC_PHARMACOGX_GENE_DRUG_ASSOCIATION {
               stop("Error: CCLEsmall file not found in the working directory. Please ensure 'CCLEsmall' (RDS or RData) is present.")
             }
             
-            # 1. Identify features of interest
+            # --- Identify features of interest ---
             features <- fNames(CCLEsmall, "rna")[ which(featureInfo(CCLEsmall, "rna")\$Symbol == "NQO1")]
             
-            # 2. Model gene-drug associations using drugSensitivitySig
+            # --- Model gene-drug associations using drugSensitivitySig ---
             sig.rna <- drugSensitivitySig(
               pSet=CCLEsmall, 
               mDataType="rna", 

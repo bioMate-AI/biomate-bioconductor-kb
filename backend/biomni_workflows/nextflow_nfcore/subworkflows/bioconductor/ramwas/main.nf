@@ -62,7 +62,7 @@ process BIOC_RAMWAS_STANDARD_MWAS_PIPELINE {
       dir.create(dr, recursive = TRUE)
     }
     
-    # 1. Define pipeline parameters using ramwasParameters
+    # --- Define pipeline parameters using ramwasParameters ---
     param = ramwasParameters(
      dirproject = dr,
      dirbam = "bams",
@@ -94,27 +94,27 @@ process BIOC_RAMWAS_STANDARD_MWAS_PIPELINE {
     # Preprocess parameters to resolve paths
     pfull = parameterPreprocess(param)
     
-    # 2. Scan BAM files and calculate QC metrics
+    # --- Scan BAM files and calculate QC metrics ---
     message("Step 1: Scanning BAM files...")
     ramwas1scanBams(param)
     
-    # 3. Summarize QC metrics and estimate fragment size distribution
+    # --- Summarize QC metrics and estimate fragment size ---
     message("Step 2: Collecting QC metrics...")
     ramwas2collectqc(param)
     
-    # 4. Calculate and normalize the CpG score (coverage) matrix
+    # --- Calculate and normalize the CpG score (coverage) matrix ---
     message("Step 3: Calculating normalized coverage...")
     ramwas3normalizedCoverage(param)
     
-    # 5. Perform Principal Component Analysis (PCA)
+    # --- Perform Principal Component Analysis (PCA) ---
     message("Step 4: Performing PCA...")
     ramwas4PCA(param)
     
-    # 6. Run the association analysis (MWAS)
+    # --- Run the association analysis (MWAS) ---
     message("Step 5: Running MWAS...")
     ramwas5MWAS(param)
     
-    # 7. Annotate top findings with gene symbols and IDs
+    # --- Annotate top findings with gene symbols and IDs ---
     message("Step 6: Annotating top findings...")
     tryCatch({
       ramwas6annotateTopFindings(param)
@@ -122,7 +122,7 @@ process BIOC_RAMWAS_STANDARD_MWAS_PIPELINE {
       warning("Annotation step failed (possibly due to biomaRt network issues): ", e\$message)
     })
     
-    # 8. Predict the outcome variable using cross-validated elastic net models
+    # --- Predict the outcome variable using cross-validated ---
     message("Step 7: Running cross-validated risk score prediction...")
     ramwas7riskScoreCV(param)
     

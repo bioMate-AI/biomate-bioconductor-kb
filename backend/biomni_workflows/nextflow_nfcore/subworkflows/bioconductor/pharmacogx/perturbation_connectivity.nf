@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Compute drug perturbation signatures using drugPerturbationSig. 2. Calculate connectivity scores between the drug signatures and t
+//  * 1. [Core Analysis] Compute drug perturbation signatures using
+//  * 2. [Core Analysis] Calculate connectivity scores between the drug signatures
+//  * 3. [Core Analysis] Rank and format the results
 
 nextflow.enable.dsl = 2
 
@@ -86,20 +88,20 @@ process BIOC_PHARMACOGX_PERTURBATION_CONNECTIVITY {
       HDAC_genes <- HDAC_genes[, 1, drop = FALSE]
     }
     
-    # 1. Compute drug perturbation signatures using drugPerturbationSig
+    # --- Compute drug perturbation signatures using ---
     drug.perturbation <- drugPerturbationSig(CMAPsmall, mDataType="rna", verbose=FALSE)
     
     # Save intermediate drug perturbation signature
     saveRDS(drug.perturbation, "drug_perturbation_sig.rds")
     
-    # 2. Calculate connectivity scores between the drug signatures and the reference gene signature using connectivityScore
+    # --- Calculate connectivity scores between the drug signatures ---
     y_vec <- setNames(as.numeric(HDAC_genes[, 1]), rownames(HDAC_genes))
     res <- apply(drug.perturbation[, , "tstat", drop=FALSE], 2, function(x, y_ref, gene_names){ 
       x_vec <- setNames(as.numeric(x), gene_names)
       return(connectivityScore(x=x_vec, y=y_ref, method="fgsea", nperm=100)) 
     }, y_ref=y_vec, gene_names=dimnames(drug.perturbation)[[1]])
     
-    # 3. Rank and format the results
+    # --- Rank and format the results ---
     rownames(res) <- c("Connectivity", "P Value")
     res <- t(res)
     res <- res[order(res[,1], decreasing=TRUE),]

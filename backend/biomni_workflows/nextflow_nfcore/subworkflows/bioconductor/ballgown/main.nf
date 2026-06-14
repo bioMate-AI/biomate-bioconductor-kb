@@ -55,7 +55,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     library(ballgown)
     
     # ----------------------------------------------------------------------
-    # 1. Load Tablemaker output into a ballgown object using ballgown()
+    # --- Load Tablemaker output into a ballgown object using ---
     # ----------------------------------------------------------------------
     
     # Define the required input files
@@ -83,7 +83,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     bg = ballgown(dataDir='.', samplePattern='sample', meas='all')
     
     # ----------------------------------------------------------------------
-    # 2. Assign phenotype data to the object using pData()
+    # --- Assign phenotype data to the object using pData() ---
     # ----------------------------------------------------------------------
     pData(bg) = data.frame(id=sampleNames(bg), group=rep(c(1,0), each=10))
     
@@ -91,7 +91,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     write.csv(pData(bg), "phenotype_table.csv", row.names = FALSE)
     
     # ----------------------------------------------------------------------
-    # 3. Extract expression matrices using texpr() or gexpr()
+    # --- Extract expression matrices using texpr() or gexpr() ---
     # ----------------------------------------------------------------------
     transcript_fpkm = texpr(bg, 'FPKM')
     transcript_cov = texpr(bg, 'cov')
@@ -113,7 +113,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     write.csv(transcript_gene_table, "transcript_gene_table.csv", row.names = FALSE)
     
     # ----------------------------------------------------------------------
-    # 4. Visualize transcript structures and mean abundances
+    # --- Visualize transcript structures and mean abundances ---
     # ----------------------------------------------------------------------
     
     # Dynamically select a target gene present in the loaded dataset.
@@ -163,7 +163,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     dev.off()
     
     # ----------------------------------------------------------------------
-    # 5. Perform differential expression testing using stattest()
+    # --- Perform differential expression testing using stattest() ---
     # ----------------------------------------------------------------------
     
     # Standard differential expression testing
@@ -220,7 +220,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 6. Transcript Clustering and Collapsing
+    # --- Transcript Clustering and Collapsing ---
     # ----------------------------------------------------------------------
     
     # Cluster transcripts
@@ -264,7 +264,7 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 7. Cleanup Temporary Sample Directories
+    # --- Cleanup Temporary Sample Directories ---
     # ----------------------------------------------------------------------
     for (s in samples_vec) {
         unlink(s, recursive = TRUE)

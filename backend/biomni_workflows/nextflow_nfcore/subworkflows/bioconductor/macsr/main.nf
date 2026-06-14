@@ -52,10 +52,10 @@ process BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING {
       }
     }
     
-    # 1. Load the MACSr package
+    # --- Load the MACSr package ---
     library(MACSr)
     
-    # 2. Identify user input files from the working directory
+    # --- Identify user input files from the working directory ---
     CHIP <- "CHIP"
     CTRL <- "CTRL"
     
@@ -81,19 +81,19 @@ process BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING {
     out_dir <- "macsr_results"
     dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
     
-    # 3. Call narrow peaks using callpeak with cutoff analysis
+    # --- Call narrow peaks using callpeak with cutoff analysis ---
     message("Running narrow peak calling...")
     cp1 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
                     name = "run_callpeak_narrow0", outdir = out_dir,
                     cutoff_analysis = TRUE)
     
-    # 4. Call broad peaks using callpeak with broad=TRUE
+    # --- Call broad peaks using callpeak with broad=TRUE ---
     message("Running broad peak calling...")
     cp2 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
                     name = "run_callpeak_broad", outdir = out_dir,
                     broad = TRUE)
     
-    # 5. Inspect the resulting macsList objects, including arguments, outputs, and logs
+    # --- Inspect the resulting macsList objects, including ---
     message("Inspecting results...")
     print(cp1)
     print(cp2)

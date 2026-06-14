@@ -235,12 +235,13 @@ export function InteractiveLauncher({
                 <ScrollArea className="h-40 border rounded-lg p-2">
                   <div className="space-y-2">
                     {outputs.map(output => (
-                      <div
+                      <label
                         key={output.id}
+                        htmlFor={`launcher-output-${output.id}`}
                         className="flex items-center space-x-2 p-2 rounded hover:bg-muted/50 cursor-pointer"
-                        onClick={() => toggleOutput(output.id)}
                       >
                         <Checkbox
+                          id={`launcher-output-${output.id}`}
                           checked={selectedOutputs.has(output.id)}
                           onCheckedChange={() => toggleOutput(output.id)}
                         />
@@ -249,7 +250,7 @@ export function InteractiveLauncher({
                         <span className="text-xs text-muted-foreground">
                           {formatFileSize(output.size)}
                         </span>
-                      </div>
+                      </label>
                     ))}
                   </div>
                 </ScrollArea>

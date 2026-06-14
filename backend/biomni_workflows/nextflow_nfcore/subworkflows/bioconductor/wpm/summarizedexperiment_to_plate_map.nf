@@ -71,10 +71,10 @@ process BIOC_WPM_SUMMARIZEDEXPERIMENT_TO_PLATE_MAP {
     # Extract colData to ensure it is available as a data frame for visualization parameters
     colData <- as.data.frame(SummarizedExperiment::colData(se))
     
-    # 1. Convert the SummarizedExperiment object into the WPM-compatible dataframe format
+    # --- Convert the SummarizedExperiment object into the ---
     df <- wpm::convertSE(se, "Treatment")
     
-    # 2. Run the randomization algorithm using wrapperWPM
+    # --- Run the randomization algorithm using wrapperWPM ---
     wpm_result <- wpm::wrapperWPM(user_df = df,
                 plate_dims = list(8,12),
                 nb_plates = 1,
@@ -82,7 +82,7 @@ process BIOC_WPM_SUMMARIZEDEXPERIMENT_TO_PLATE_MAP {
                 fixed_wells = "B1,B2",
                 spatial_constraint = "NS")
     
-    # 3. Visualize the generated plate map using drawMap
+    # --- Visualize the generated plate map using drawMap ---
     drawned_map <- wpm::drawMap(df = wpm_result,
             sample_gps = length(levels(as.factor(colData\$Treatment))),
             gp_levels = gp_lvl <- levels(as.factor(colData\$Treatment)),

@@ -25,7 +25,18 @@ interface ChatInputProps {
   onStop?: () => void
   /** Register a setter function that can externally pre-fill the draft */
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
+  /**
+   * Count of dataset references already attached to THIS chat session
+   * (everything in chat_sessions.datasets, accumulated across all turns).
+   * Surfaces the X / MAX_DATASET_REFS indicator next to the attach button
+   * so users see when they're approaching the server-side cap (32; see
+   * frontend/server/dataset-cap.ts).
+   */
+  sessionDatasetCount?: number
 }
+
+/** Mirrors MAX_DATASET_REFS in frontend/server/dataset-cap.ts. */
+const MAX_DATASET_REFS = 32
 
 export function ChatInput({
   onSend,
@@ -36,6 +47,7 @@ export function ChatInput({
   isStreaming = false,
   onStop,
   onRegisterSetDraft,
+  sessionDatasetCount = 0,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
@@ -266,6 +278,46 @@ export function ChatInput({
           >
             <Plus className="w-4 h-4" />
           </button>
+
+          {/* Attached-count indicator. Hidden at 0 (no noise pre-attach);
+              muted up to 75% of the cap; amber 76–99%; red at cap with a
+              tooltip pointing users at Galaxy collections for bulk files.
+              Server-side cap lives in frontend/server/dataset-cap.ts. */}
+          {sessionDatasetCount > 0 && (() => {
+            const pct = sessionDatasetCount / MAX_DATASET_REFS
+            const atCap = sessionDatasetCount >= MAX_DATASET_REFS
+            const tone = atCap
+              ? 'var(--bm-err, oklch(0.58 0.18 25))'
+              : pct >= 0.76
+                ? 'oklch(0.62 0.18 60)'
+                : 'var(--bm-text-dim, oklch(0.62 0.010 260))'
+            const fontWeight = atCap ? 600 : 500
+            const tooltip = atCap
+              ? `At the ${MAX_DATASET_REFS}-attachment cap — older entries will drop when you attach another. For bulk experiments, use a Galaxy collection (1 reference for N files).`
+              : pct >= 0.76
+                ? `Approaching the ${MAX_DATASET_REFS}-attachment cap. Older entries will drop on overflow.`
+                : `${sessionDatasetCount} of ${MAX_DATASET_REFS} attachment references used in this conversation.`
+            return (
+              <span
+                data-testid="chat-input-attached-count"
+                title={tooltip}
+                style={{
+                  fontSize: 11,
+                  lineHeight: 1,
+                  color: tone,
+                  fontWeight,
+                  padding: '4px 6px',
+                  borderRadius: 4,
+                  background: atCap ? 'oklch(0.95 0.04 25)' : 'transparent',
+                  flexShrink: 0,
+                  fontVariantNumeric: 'tabular-nums',
+                  cursor: 'help',
+                }}
+              >
+                {sessionDatasetCount} / {MAX_DATASET_REFS}
+              </span>
+            )
+          })()}
 
           <Textarea
             ref={textareaRef}

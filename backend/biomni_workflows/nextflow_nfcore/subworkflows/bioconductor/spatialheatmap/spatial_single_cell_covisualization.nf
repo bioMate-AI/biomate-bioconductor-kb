@@ -58,24 +58,24 @@ process BIOC_SPATIALHEATMAP_SPATIAL_SINGLE_CELL_COVISUALIZATION {
     library(SummarizedExperiment)
     library(ggplot2)
     
-    # 1. Import the spatial aSVG image with srsc=TRUE using read_svg
+    # --- Import the spatial aSVG image with srsc=TRUE using ---
     # Reading from the declared user input file: anatomical_map_sp.svg
     svg.mus.sp <- read_svg("anatomical_map_sp.svg", srsc=TRUE)
     
-    # 2. Rotate spatial coordinates if necessary by modifying the angle slot
+    # --- Rotate spatial coordinates if necessary by modifying the ---
     angle(svg.mus.sp)[[1]] <- angle(svg.mus.sp)[[1]] + 90
     
-    # 3. Define the cell-cluster-to-tissue association list
+    # --- Define the cell-cluster-to-tissue association list ---
     lis.match <- list(cerebral.cortex=c('clus1', 'clus3', 'clus5', 'clus10', 'clus14'))
     
     # Read the other declared user input files
     srt.sc <- readRDS("spatial_single_cell.rds")
     blk.sp <- readRDS("bulk_data.rds")
     
-    # 4. Store objects in an SPHM container
+    # --- Store objects in an SPHM container ---
     dat.srsc <- SPHM(svg=svg.mus.sp, bulk=blk.sp, cell=srt.sc, match=lis.match)
     
-    # 5. Generate the composite co-visualization plot using covis
+    # --- Generate the composite co-visualization plot using covis ---
     covis_plot <- covis(
       data=dat.srsc, 
       ID='Epha4', 

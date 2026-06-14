@@ -35,6 +35,15 @@ process BIOC_BGEEDB_REFERENCE_TISSUE_CORRELATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BgeeDB", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,12 +57,12 @@ process BIOC_BGEEDB_REFERENCE_TISSUE_CORRELATION {
     library(BgeeDB)
     library(Biobase)
     
-    # Stage 1: Read input data
+    # --- Read input data ---
     message("Reading input files...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Determine species and initialize Bgee
+    # --- Determine species and initialize Bgee ---
     all_genes <- rownames(counts)
     species <- "Homo_sapiens"
     if (any(grepl("^ENSMUSG", all_genes))) {
@@ -65,7 +74,7 @@ process BIOC_BGEEDB_REFERENCE_TISSUE_CORRELATION {
     
     bgee <- Bgee\$new(species = species, dataType = "rna_seq")
     
-    # Stage 3: Retrieve reference dataset metadata and select a representative experiment
+    # --- Retrieve reference dataset metadata and select a ---
     message("Retrieving Bgee annotations...")
     ann <- getAnnotation(bgee)
     exp_ann <- ann\$experiment.annotation
@@ -75,7 +84,7 @@ process BIOC_BGEEDB_REFERENCE_TISSUE_CORRELATION {
     selected_exp_id <- exp_ann\$Experiment.ID[1]
     message(paste("Selected reference experiment:", selected_exp_id))
     
-    # Stage 4: Download and format reference expression data
+    # --- Download and format reference expression data ---
     message("Downloading reference processed data...")
     ref_data <- getSampleProcessedData(bgee, experimentId = selected_exp_id)
     ref_eset <- formatData(bgee, ref_data, callType = "present", stats = "tpm")
@@ -83,7 +92,7 @@ process BIOC_BGEEDB_REFERENCE_TISSUE_CORRELATION {
     ref_expr <- Biobase::exprs(ref_eset)
     ref_pheno <- Biobase::pData(ref_eset)
     
-    # Stage 5: Normalize user counts and compute correlation
+    # --- Normalize user counts and compute correlation ---
     message("Computing correlation matrix...")
     # Simple CPM normalization for user counts
     user_cpm <- apply(counts, 2, function(x) (x / sum(x)) * 1e6)

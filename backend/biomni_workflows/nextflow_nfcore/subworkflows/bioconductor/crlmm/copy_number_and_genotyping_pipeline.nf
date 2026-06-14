@@ -59,7 +59,7 @@ process BIOC_CRLMM_COPY_NUMBER_AND_GENOTYPING_PIPELINE {
     library(VanillaICE)
     library(lattice)
     
-    # 1. Set up disk-backed storage and RAM limits
+    # --- Set up disk-backed storage and RAM limits ---
     outdir <- "./crlmm_output"
     if (!dir.exists(outdir)) {
       dir.create(outdir, recursive = TRUE)
@@ -80,23 +80,23 @@ process BIOC_CRLMM_COPY_NUMBER_AND_GENOTYPING_PIPELINE {
     # Extract batch/plate information from CEL filenames
     plates <- substr(basename(celFiles), 13, 13)
     
-    # 2. Construct the CNSet container
+    # --- Construct the CNSet container ---
     cnSet <- constructAffyCNSet(celFiles, batch=plates, cdfName="genomewidesnp6", genome="hg19")
     
-    # 3. Perform quantile normalization
+    # --- Perform quantile normalization ---
     cnrmaAffy(cnSet)
     validCEL(celFiles)
     snprmaAffy(cnSet)
     
-    # 4. Genotype and impute gender
+    # --- Genotype and impute gender ---
     genotypeAffy(cnSet, gender=NULL)
     gender_table <- table(c("male", "female")[cnSet\$gender[]])
     print(gender_table)
     
-    # 5. Fit linear model for copy number
+    # --- Fit linear model for copy number ---
     crlmmCopynumber(cnSet)
     
-    # 6. Extract raw copy number or coerce to BafLrrSetList for log R ratios and B allele frequencies
+    # --- Extract raw copy number or coerce to BafLrrSetList for ---
     tmp <- totalCopynumber(cnSet, i=seq_len(nrow(cnSet)), j=1:2)
     snp.index <- which(isSnp(cnSet) & !is.na(chromosome(cnSet)))
     ca <- CA(cnSet, i=snp.index, j=1:2)

@@ -77,7 +77,7 @@ process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {
     region <- NULL
     
     # =========================================================================
-    # Stage 1: Initialize and run the RNA-seq transcript detection workflow
+    # --- Initialize and run the RNA-seq transcript detection ---
     # =========================================================================
     message("[STAGE 1] Initializing RNA-seq transcript detection...")
     
@@ -124,7 +124,7 @@ process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {
     transcriptsToBed(object = trx, file = "transcripts.bed", strand.color = c("blue", "red"))
     
     # =========================================================================
-    # Stage 2: Construct the ChipDataSet object and evaluate peak genomic distribution
+    # --- Construct the ChipDataSet object and evaluate peak ---
     # =========================================================================
     message("[STAGE 2] Constructing ChipDataSet and evaluating peak distribution...")
     
@@ -155,7 +155,7 @@ process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {
     dev.off()
     
     # =========================================================================
-    # Stage 3: Predict gene-associated ChIP-seq peaks using a logistic regression model
+    # --- Predict gene-associated ChIP-seq peaks using a logistic ---
     # =========================================================================
     message("[STAGE 3] Predicting gene-associated peaks...")
     
@@ -181,7 +181,7 @@ process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {
     dev.off()
     
     # =========================================================================
-    # Stage 4: Predict peak strandedness by analyzing upstream/downstream RNA-seq read densities
+    # --- Predict peak strandedness by analyzing ---
     # =========================================================================
     message("[STAGE 4] Predicting peak strandedness...")
     
@@ -197,14 +197,14 @@ process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {
     peaksToBed(object = cds, file = "peaks.bed", gene.associated.peaks = TRUE)
     
     # =========================================================================
-    # Stage 5: Demarcate transcript boundaries by breaking closely spaced transcripts using active peaks
+    # --- Demarcate transcript boundaries by breaking closely ---
     # =========================================================================
     message("[STAGE 5] Demarcating transcript boundaries...")
     
     breakTranscriptsByPeaks(tdsObj = tds, cdsObj = cds, estimate.params = TRUE)
     
     # =========================================================================
-    # Stage 6: Re-annotate and retrieve the final set of resolved transcripts
+    # --- Re-annotate and retrieve the final set of resolved ---
     # =========================================================================
     message("[STAGE 6] Re-annotating and retrieving final transcripts...")
     

@@ -42,7 +42,7 @@ process BIOC_DEEPSNV_SHEARWATER_ML_VARIANT_CALLING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "Rsamtools", "VariantAnnotation", "deepSNV")
+    .bm_deps <- c("GenomicRanges", "Rsamtools", "VariantAnnotation", "deepSNV", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -61,6 +61,7 @@ process BIOC_DEEPSNV_SHEARWATER_ML_VARIANT_CALLING {
     
     # Load required libraries
     library(deepSNV)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(VariantAnnotation)
     library(Rsamtools)

@@ -65,15 +65,15 @@ process BIOC_DESTINY_SCRNA_SEQ_GENE_RELEVANCE {
     # Read the user input file (SingleCellExperiment object)
     allen_hvg <- readRDS("allen_hvg")
     
-    # 1. Create DiffusionMap objects using multiple distance metrics
+    # --- Create DiffusionMap objects using multiple distance ---
     dms <- c('euclidean', 'cosine', 'rankcor') %>% 
       set_names() %>% 
       map(~ DiffusionMap(allen_hvg, distance = ., knn_params = list(method = 'covertree')))
     
-    # 2. Calculate gene relevance for each diffusion map
+    # --- Calculate gene relevance for each diffusion map ---
     grs <- map(dms, gene_relevance)
     
-    # 3. Plot gene relevance to identify top driving genes
+    # --- Plot gene relevance to identify top driving genes ---
     gms <- imap(grs, function(gr, dist) plot(gr, iter_smooth = 0) + ggtitle(dist))
     
     # Save the DiffusionMap and Gene Relevance objects

@@ -61,7 +61,7 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_MATRICES {
     # Load the DEGseq library
     library(DEGseq)
     
-    # 1. Read gene expression data from file into R matrices using readGeneExp
+    # --- Read gene expression data from file into R matrices using ---
     geneExpFile <- input_file
     geneExpMatrix1 <- readGeneExp(file=geneExpFile, geneCol=1, valCol=c(7,9,12,15,18))
     geneExpMatrix2 <- readGeneExp(file=geneExpFile, geneCol=1, valCol=c(8,10,11,13,16))
@@ -79,14 +79,14 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_MATRICES {
     # Open a PDF device to capture the generated plots
     pdf("DEGseq_analysis_plots.pdf", width=10, height=12)
     
-    # 2. Run differential expression analysis using DEGexp with the MARS method
+    # --- Run differential expression analysis using DEGexp with ---
     layout(matrix(c(1,2,3,4,5,6), 3, 2, byrow=TRUE))
     par(mar=c(2, 2, 2, 2))
     DEGexp(geneExpMatrix1=geneExpMatrix1, geneCol1=1, expCol1=c(2,3,4,5,6), groupLabel1="kidney",
            geneExpMatrix2=geneExpMatrix2, geneCol2=1, expCol2=c(2,3,4,5,6), groupLabel2="liver",
            method="MARS")
     
-    # 3. Run differential expression analysis using DEGexp with the MATR method
+    # --- Run differential expression analysis using DEGexp with ---
     layout(matrix(c(1,2,3,4,5,6), 3, 2, byrow=TRUE))
     par(mar=c(2, 2, 2, 2))
     DEGexp(geneExpMatrix1=geneExpMatrix1, expCol1=2, groupLabel1="kidneyR1L1", 

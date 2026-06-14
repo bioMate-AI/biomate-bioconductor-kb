@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create numerical matrix and metadata. 2. Import data using importData
+//  * 1. [Input & Preparation] Read user input files from the working directory
+//  * 2. [Input & Preparation] Import data using importData exactly as documented
+//  * 3. [Input & Preparation] Save the meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +60,7 @@ process BIOC_SCDATAVIZ_IMPORT_NUMERICAL_DATA {
     # Load required libraries
     library(scDataviz)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # We assume 'matrix.csv' contains the numerical matrix (cells as rows, markers as columns)
     # and 'metadata.csv' contains the sample metadata with row names matching the cell IDs.
     mat_df <- read.csv("matrix.csv", row.names = 1, check.names = FALSE)
@@ -66,12 +68,12 @@ process BIOC_SCDATAVIZ_IMPORT_NUMERICAL_DATA {
     
     metadata <- read.csv("metadata.csv", row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
     
-    # 2. Import data using importData exactly as documented
+    # --- Import data using importData exactly as documented ---
     sce <- importData(mat,
       assayname = 'normcounts',
       metadata = metadata)
     
-    # 3. Save the meaningful results to output files
+    # --- Save the meaningful results to output files ---
     saveRDS(sce, file = "sce_imported.rds")
     
     # Save a text summary of the imported SingleCellExperiment object

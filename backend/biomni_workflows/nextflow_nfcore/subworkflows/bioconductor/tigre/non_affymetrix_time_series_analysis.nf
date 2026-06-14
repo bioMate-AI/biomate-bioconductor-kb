@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Preprocess raw data using processRawData
+//  * 1. [Core Analysis] Save the complete ExpressionTimeSeries object as an RDS
+//  * 2. [Core Analysis] Export the processed expression matrix to a CSV file
 
 nextflow.enable.dsl = 2
 
@@ -74,10 +75,10 @@ process BIOC_TIGRE_NON_AFFYMETRIX_TIME_SERIES_ANALYSIS {
                                experiments=experiments)
     
     # Save the meaningful results
-    # 1. Save the complete ExpressionTimeSeries object as an RDS file
+    # --- Save the complete ExpressionTimeSeries object as an RDS ---
     saveRDS(procData, file="procData.rds")
     
-    # 2. Export the processed expression matrix to a CSV file
+    # --- Export the processed expression matrix to a CSV file ---
     tryCatch({
       write.csv(exprs(procData), file="processed_expression.csv", row.names=TRUE)
     }, error = function(e) {

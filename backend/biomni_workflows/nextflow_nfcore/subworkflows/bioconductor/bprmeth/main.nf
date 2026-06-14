@@ -36,6 +36,15 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BPRMeth")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     library(utils)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Expression Data
+    # --- Load and Preprocess Expression Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing expression data...")
     
@@ -90,7 +99,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     names(y) <- rownames(log_cpm)
     
     # ==========================================
-    # STAGE 2: Generate Paired Methylation Profiles
+    # --- Generate Paired Methylation Profiles ---
     # ==========================================
     message("Stage 2: Generating paired methylation profiles...")
     
@@ -132,7 +141,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     names(meth_profiles) <- names(y)
     
     # ==========================================
-    # STAGE 3: Fit BPR Model (Feature Extraction)
+    # --- Fit BPR Model (Feature Extraction) ---
     # ==========================================
     message("Stage 3: Fitting BPR model to extract features...")
     
@@ -151,7 +160,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     write.csv(bpr_coefs, "bpr_coefficients.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Predict Gene Expression
+    # --- Predict Gene Expression ---
     # ==========================================
     message("Stage 4: Predicting gene expression from methylation profiles...")
     
@@ -211,7 +220,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     write.csv(predictions_df, "predictions.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Cluster Methylation Profiles
+    # --- Cluster Methylation Profiles ---
     # ==========================================
     message("Stage 5: Clustering methylation profiles...")
     
@@ -238,7 +247,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     write.csv(clustering_df, "clustering_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Stage 6: Generating diagnostic plots...")
     

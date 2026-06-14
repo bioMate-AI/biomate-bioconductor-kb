@@ -57,7 +57,7 @@ process BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS {
     library(dplyr)
     
     # ==========================================
-    # 0. Load User Input File
+    # --- Load User Input File ---
     # ==========================================
     if (!file.exists("processedProfile.RData")) {
       stop("Error: Input file 'processedProfile.RData' not found in the working directory.")
@@ -91,7 +91,7 @@ process BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS {
     var2AggregateBy <- "mean"
     
     # ==========================================
-    # 1. Profile Clustering
+    # --- Profile Clustering ---
     # ==========================================
     data <- finalProcessedProfile
     profileType <- "binary"
@@ -118,7 +118,7 @@ process BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 2. Gene Age Estimation
+    # --- Gene Age Estimation ---
     # ==========================================
     rankName <- "class"
     refTaxon <- "Mammalia"
@@ -167,7 +167,7 @@ process BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS {
     write.csv(geneAge, "gene_age_estimation.csv", row.names = FALSE)
     
     # ==========================================
-    # 3. Core Gene Identification
+    # --- Core Gene Identification ---
     # ==========================================
     taxaCore <- c("Mammalia", "Saccharomycetes", "Insecta")
     
@@ -197,7 +197,7 @@ process BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS {
     write.table(coreGenes, "core_genes.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
     
     # ==========================================
-    # 4. Group Comparison
+    # --- Group Comparison ---
     # ==========================================
     data <- mainLongRaw
     

@@ -36,6 +36,15 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MatrixQCvis", "limma", "ggplot2", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,12 +55,13 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
         }
     
     # Load required libraries
-    library(MatrixQCvis)
+     library(SummarizedExperiment)
+   library(MatrixQCvis)
     library(limma)
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Load Data and Construct SummarizedExperiment
+    # --- Load Data and Construct SummarizedExperiment ---
     # ==========================================
     
     # Read input files
@@ -89,7 +99,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     se <- se[!is.na(se_sds) & se_sds > 0, ]
     
     # ==========================================
-    # STAGE 2: Missing Value Diagnostics
+    # --- Missing Value Diagnostics ---
     # ==========================================
     
     # 1. Samples measured/missing barplot
@@ -116,7 +126,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Normalization, Transformation, and Imputation
+    # --- Normalization, Transformation, and Imputation ---
     # ==========================================
     
     a_raw <- assay(se)
@@ -154,7 +164,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     assay(se_processed) <- a_imputed
     
     # ==========================================
-    # STAGE 4: Post-Processing Quality Control
+    # --- Post-Processing Quality Control ---
     # ==========================================
     
     # 1. CV comparison across processing stages
@@ -198,7 +208,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     ggsave("qc_sum_distances.pdf", plot = p_sum_dist, width = 8, height = 6)
     
     # ==========================================
-    # STAGE 5: Dimension Reduction
+    # --- Dimension Reduction ---
     # ==========================================
     
     pca_res <- tryCatch({
@@ -230,7 +240,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     
     conds <- factor(colData(se_processed)\$condition)

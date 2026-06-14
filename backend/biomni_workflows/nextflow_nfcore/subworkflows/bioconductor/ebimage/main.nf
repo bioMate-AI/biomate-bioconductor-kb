@@ -58,32 +58,32 @@ process BIOC_EBIMAGE_CELL_SEGMENTATION {
     # Set display option to raster to avoid opening interactive browser windows
     options(EBImage.display = "raster")
     
-    # 1. Load nuclei and cell body images from the working directory
+    # --- Load nuclei and cell body images from the working ---
     nuc = readImage('nuclei.tif')
     cel = readImage('cells.tif')
     
-    # 2. Combine images into a false-color RGB image and display
+    # --- Combine images into a false-color RGB image and display ---
     cells = rgbImage(green=1.5*cel, blue=nuc)
     display(cells, all = TRUE)
     
-    # 3. Segment nuclei
+    # --- Segment nuclei ---
     nmask = thresh(nuc, w=10, h=10, offset=0.05)
     nmask = opening(nmask, makeBrush(5, shape='disc'))
     nmask = fillHull(nmask)
     nmask = bwlabel(nmask)
     display(nmask, all=TRUE)
     
-    # 4. Define cell body mask and segment cytoplasm using Voronoi tessellation (propagate)
+    # --- Define cell body mask and segment cytoplasm using Voronoi ---
     ctmask = opening(cel>0.1, makeBrush(5, shape='disc'))
     cmask = propagate(cel, seeds=nmask, mask=ctmask)
     display(ctmask, all=TRUE)
     
-    # 5. Highlight and visualize segmented nuclei and cell boundaries
+    # --- Highlight and visualize segmented nuclei and cell ---
     segmented = paintObjects(cmask, cells, col='#ff00ff')
     segmented = paintObjects(nmask, segmented, col='#ffff00')
     display(segmented, all=TRUE)
     
-    # 6. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     # Save the final segmented visualization as an image
     writeImage(segmented, "segmented_cells.png")
     

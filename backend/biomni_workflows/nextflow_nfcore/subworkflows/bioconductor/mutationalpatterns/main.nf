@@ -35,6 +35,15 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MutationalPatterns", "NMF", "gridExtra", "ggplot2", "BSgenome.Hsapiens.UCSC.hg19", "TxDb.Hsapiens.UCSC.hg19.knownGene")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Defensive Input Loading & Parsing
+    # --- Defensive Input Loading & Parsing ---
     # ==========================================
     message("Reading input.csv...")
     input_df <- read.csv("input.csv", header = TRUE, check.names = FALSE)
@@ -110,7 +119,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     pdf("mutational_patterns_report.pdf", width = 10, height = 8)
     
     # ==========================================
-    # STAGE 2: De Novo Signature Extraction (NMF)
+    # --- De Novo Signature Extraction (NMF) ---
     # ==========================================
     message("Performing De Novo Signature Extraction...")
     # Extract 2 signatures (rank = 2)
@@ -135,7 +144,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     print(p_nmf_compare)
     
     # ==========================================
-    # STAGE 3: Signature Refitting
+    # --- Signature Refitting ---
     # ==========================================
     message("Performing Signature Refitting...")
     # Standard refit
@@ -160,7 +169,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     print(p_boots)
     
     # ==========================================
-    # STAGE 4: Cosine Similarity
+    # --- Cosine Similarity ---
     # ==========================================
     message("Calculating Cosine Similarity...")
     cos_sim_samples_signatures <- cos_sim_matrix(mut_mat, signatures)
@@ -170,7 +179,7 @@ process BIOC_MUTATIONALPATTERNS_MUTATIONAL_PATTERNS_SIGNATURE_ANALYSIS {
     print(p_cosine)
     
     # ==========================================
-    # STAGE 5: Signature Potential Damage Analysis
+    # --- Signature Potential Damage Analysis ---
     # ==========================================
     message("Attempting Signature Potential Damage Analysis...")
     tryCatch({

@@ -35,6 +35,15 @@ process BIOC_PLPE_PLPE_PAIRED_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PLPE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +56,7 @@ process BIOC_PLPE_PLPE_PAIRED_ANALYSIS {
     # Load required libraries
     library(PLPE)
     
-    # Stage 1: Load input data
+    # --- Load input data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -72,7 +81,7 @@ process BIOC_PLPE_PLPE_PAIRED_ANALYSIS {
     counts_df <- counts_df[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # Stage 2: Preprocessing & Normalization
+    # --- Preprocessing & Normalization ---
     x <- as.matrix(counts_df)
     # Apply log2 transformation if data is not already log-transformed
     if (max(x, na.rm = TRUE) > 50) {
@@ -80,7 +89,7 @@ process BIOC_PLPE_PLPE_PAIRED_ANALYSIS {
       x <- log2(x + 1)
     }
     
-    # Stage 3: Design Matrix Construction
+    # --- Design Matrix Construction ---
     cond_vals <- coldata\$condition
     unique_conds <- unique(cond_vals)
     if (length(unique_conds) < 2) {
@@ -95,14 +104,14 @@ process BIOC_PLPE_PLPE_PAIRED_ANALYSIS {
     
     design <- cbind(cond, pair)
     
-    # Stage 4: Run PLPE Analysis
+    # --- Run PLPE Analysis ---
     # Compute test statistics (L-statistic, t-statistic, and weighted Lw-statistic)
     out <- lpe.paired(x = x, design = design, q = 0.1, data.type = "ms")
     
     # Compute False Discovery Rates (FDRs) using resampling
     out.fdr <- lpe.paired.fdr(x, obj = out)
     
-    # Stage 5: Export Results and Summaries
+    # --- Export Results and Summaries ---
     results <- data.frame(
       Gene = rownames(x),
       out\$test.out,
@@ -128,7 +137,7 @@ process BIOC_PLPE_PLPE_PAIRED_ANALYSIS {
     })
     sink()
     
-    # Stage 6: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     pdf("plpe_plots.pdf", width = 10, height = 5)
     par(mfrow = c(1, 2))
     

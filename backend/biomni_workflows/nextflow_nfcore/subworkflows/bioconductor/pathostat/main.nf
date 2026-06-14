@@ -16,7 +16,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -34,6 +34,15 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PathoStat")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +56,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     library(PathoStat)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input data...")
     abundance_df <- read.csv("abundance.csv", row.names = 1, check.names = FALSE)
@@ -63,7 +72,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     group <- coldata_df\$group
     
     # ==========================================
-    # Stage 2: Data Transformation & Normalization
+    # --- Data Transformation & Normalization ---
     # ==========================================
     message("Performing data transformations...")
     count_matrix <- as.matrix(abundance_df)
@@ -81,7 +90,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     write.csv(pam_matrix, "presence_absence_matrix.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 3: Taxonomy Resolution
+    # --- Taxonomy Resolution ---
     # ==========================================
     message("Resolving taxonomy...")
     taxon_ids <- rownames(abundance_df)
@@ -105,7 +114,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     write.csv(taxonomy_df, "taxonomy_matrix.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Statistical Association Testing
+    # --- Statistical Association Testing ---
     # ==========================================
     message("Running statistical tests...")
     # Transpose matrices for sample-wise analysis (samples as rows, taxa as columns)
@@ -137,7 +146,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     write.csv(pam_test_results, "pam_test_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Biomarker Identification & Classification
+    # --- Biomarker Identification & Classification ---
     # ==========================================
     message("Running biomarker classification...")
     auc_results <- tryCatch({

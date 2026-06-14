@@ -87,13 +87,13 @@ process BIOC_HICOOL_HIC_PROCESSING_PIPELINE {
     print(hcf_metadata)
     
     # Save the meaningful results to the working directory
-    # 1. Save the CoolFile S4 object as an RDS file
+    # --- Save the CoolFile S4 object as an RDS file ---
     saveRDS(hcf, file = "hicool_result.rds")
     
-    # 2. Save the metadata as an RDS file
+    # --- Save the metadata as an RDS file ---
     saveRDS(hcf_metadata, file = "hicool_metadata.rds")
     
-    # 3. Export processing statistics to a CSV file
+    # --- Export processing statistics to a CSV file ---
     if (!is.null(hcf_metadata\$stats)) {
         stats_df <- as.data.frame(hcf_metadata\$stats)
         write.csv(stats_df, file = "hicool_processing_stats.csv", row.names = FALSE)

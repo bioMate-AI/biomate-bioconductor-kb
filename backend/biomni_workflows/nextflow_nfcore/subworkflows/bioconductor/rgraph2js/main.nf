@@ -57,7 +57,7 @@ process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     library(grDevices)
     
     # ==========================================
-    # Stage 1: Robust Input Loading & Filtering
+    # --- Robust Input Loading & Filtering ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -98,7 +98,7 @@ process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     }
     
     # ==========================================
-    # Stage 2: Network Construction (Correlation)
+    # --- Network Construction (Correlation) ---
     # ==========================================
     
     # Compute pairwise Pearson correlation matrix
@@ -122,7 +122,7 @@ process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     }
     
     # ==========================================
-    # Stage 3: Node and Edge Customization
+    # --- Node and Edge Customization ---
     # ==========================================
     
     # Calculate node metrics
@@ -160,7 +160,7 @@ process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     )
     
     # ==========================================
-    # Stage 4: In-Node Barplot Data Preparation
+    # --- In-Node Barplot Data Preparation ---
     # ==========================================
     
     # Scale sample values to [0, 1] for barplot rendering inside nodes
@@ -176,7 +176,7 @@ process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     rownames(inner_colors) <- node_names
     
     # ==========================================
-    # Stage 5: Interactive HTML Generation
+    # --- Interactive HTML Generation ---
     # ==========================================
     
     # Set up output directory
@@ -205,7 +205,7 @@ process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     )
     
     # ==========================================
-    # Stage 6: Export Summary Tables
+    # --- Export Summary Tables ---
     # ==========================================
     
     # Write node properties summary

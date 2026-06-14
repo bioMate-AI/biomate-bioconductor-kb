@@ -1,0 +1,32 @@
+{
+  "name": "variant_burden_after_sarek",
+  "display_name": "Variant Calling → Burden Testing & Genetic Modeling",
+  "domain": "variant_calling",
+  "description": "Standard variant calling via nf-core/sarek followed by gene-burden / rare-variant association testing using the GWASTools and SeqArray Bioconductor packages. Use for case-control rare-variant studies or population genetic analyses on WGS/WES cohorts.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "nf-core/sarek", "role": "germline_variant_calling", "params_template": {"genome": "GRCh38", "tools": ["haplotypecaller"]}},
+    {"order": 2, "workflow_name": "SeqArray", "role": "snp_array_container", "params_template": {}},
+    {"order": 3, "workflow_name": "GWASTools", "role": "burden_and_qc", "params_template": {"test": "burden"}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "vcf", "to_step": 2, "to_input": "vcf"},
+    {"from_step": 2, "from_output": "gds", "to_step": 3, "to_input": "gds"}
+  ],
+  "required_inputs": [
+    {"name": "fastq_or_bam", "type": "fastq|bam"},
+    {"name": "sample_sheet", "type": "csv"},
+    {"name": "phenotype_table", "type": "csv"}
+  ],
+  "expected_outputs": [
+    {"name": "burden_test_results", "type": "tsv"},
+    {"name": "gwas_qc_report", "type": "html"}
+  ],
+  "example_queries": [
+    "variant calling then gene burden test",
+    "WGS variant calling and rare variant burden testing",
+    "case-control rare variant association after sarek",
+    "germline variants with GWASTools burden analysis"
+  ],
+  "tags": ["variant_calling", "burden_test", "GWAS", "rare_variants", "GWASTools", "SeqArray"]
+}

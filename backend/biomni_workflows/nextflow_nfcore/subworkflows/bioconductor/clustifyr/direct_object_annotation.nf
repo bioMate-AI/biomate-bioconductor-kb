@@ -40,7 +40,7 @@ process BIOC_CLUSTIFYR_DIRECT_OBJECT_ANNOTATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Seurat", "SingleCellExperiment", "clustifyr")
+    .bm_deps <- c("Seurat", "SingleCellExperiment", "clustifyr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,6 +59,7 @@ process BIOC_CLUSTIFYR_DIRECT_OBJECT_ANNOTATION {
     
     # Load required libraries
     library(clustifyr)
+    library(SummarizedExperiment)
     library(Seurat)
     
     # Read user input files from the working directory

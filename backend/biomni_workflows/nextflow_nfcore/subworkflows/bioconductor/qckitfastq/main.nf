@@ -35,6 +35,15 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("qckitfastq", "rtracklayer", "GenomicRanges", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load Inputs and Generate FASTQ
+    # --- Load Inputs and Generate FASTQ ---
     # ==========================================
     
     message("Stage 1: Loading input files and generating synthetic FASTQ...")
@@ -115,7 +124,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     message("Generated synthetic FASTQ file: ", fastq_file)
     
     # ==========================================
-    # Stage 2: Run qckitfastq QC Metrics
+    # --- Run qckitfastq QC Metrics ---
     # ==========================================
     
     message("Stage 2: Running qckitfastq metrics...")
@@ -177,7 +186,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Save Metrics and Summaries
+    # --- Save Metrics and Summaries ---
     # ==========================================
     
     message("Stage 3: Saving metrics to CSV...")
@@ -209,7 +218,7 @@ process BIOC_QCKITFASTQ_QCKITFASTQ_QC_PIPELINE {
     write.csv(overrep_res, "overrepresented_sequences.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ==========================================
     
     message("Stage 4: Generating diagnostic plots...")

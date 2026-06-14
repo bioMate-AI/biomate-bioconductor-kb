@@ -35,6 +35,15 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SEtools", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,10 +56,11 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     # Load required libraries
     suppressPackageStartupMessages({
       library(SEtools)
+      library(SummarizedExperiment)
     })
     
     # ==========================================
-    # STAGE 1: Load and Prepare Input Data
+    # --- Load and Prepare Input Data ---
     # ==========================================
     message("Stage 1: Loading input files...")
     
@@ -92,7 +102,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Batch Correction using SVA
+    # --- Batch Correction using SVA ---
     # ==========================================
     message("Stage 2: Running SVA correction...")
     
@@ -110,7 +120,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Calculate Log2 Fold Changes
+    # --- Calculate Log2 Fold Changes ---
     # ==========================================
     message("Stage 3: Calculating log2 fold changes...")
     
@@ -135,7 +145,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Feature Aggregation
+    # --- Feature Aggregation ---
     # ==========================================
     message("Stage 4: Aggregating features...")
     
@@ -149,7 +159,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Splitting and Merging SEs
+    # --- Splitting and Merging SEs ---
     # ==========================================
     message("Stage 5: Splitting and merging batches...")
     
@@ -174,7 +184,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Visualization and Export
+    # --- Visualization and Export ---
     # ==========================================
     message("Stage 6: Exporting results and generating plots...")
     

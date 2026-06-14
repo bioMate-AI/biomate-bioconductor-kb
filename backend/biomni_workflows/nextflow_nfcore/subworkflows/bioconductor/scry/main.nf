@@ -42,7 +42,7 @@ process BIOC_SCRY_SCE_DEVIANCE_GLMPCA {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("duoclustering2018", "ggplot2", "scry", "SingleCellExperiment", "tenxpbmcdata")
+    .bm_deps <- c("duoclustering2018", "ggplot2", "scry", "SingleCellExperiment", "tenxpbmcdata", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -62,6 +62,7 @@ process BIOC_SCRY_SCE_DEVIANCE_GLMPCA {
     # Load required libraries
     suppressPackageStartupMessages({
       library(scry)
+      library(SummarizedExperiment)
       library(ggplot2)
     })
     

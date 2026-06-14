@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define paths to the configuration file and fastq folder. 2. Run the complete amplican pipeline to perform alignment, filtering, no
+//  * 1. [Visualization & Output] Define paths to the configuration file and fastq folder
+//  * 2. [Visualization & Output] Run the complete amplican pipeline to perform alignment,
+//  * 3. [Visualization & Output] Load alignment results and look up specific alignments in
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("amplican")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +60,7 @@ process BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE {
     # Load required libraries
     library(amplican)
     
-    # 1. Define paths to the configuration file and fastq folder from user input
+    # --- Define paths to the configuration file and fastq folder ---
     config <- "config.csv"
     fastq_folder <- "fastq_folder"
     results_folder <- "results_output"
@@ -59,10 +70,10 @@ process BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE {
       dir.create(results_folder, recursive = TRUE)
     }
     
-    # 2. Run the complete amplican pipeline to perform alignment, filtering, normalization, and report generation
+    # --- Run the complete amplican pipeline to perform alignment, ---
     amplicanPipeline(config, fastq_folder, results_folder)
     
-    # 3. Load alignment results and look up specific alignments in human-readable format
+    # --- Load alignment results and look up specific alignments in ---
     # Dynamically locate the generated RDS alignment file to adapt the system.file call
     rds_files <- list.files(file.path(results_folder, "alignments", "temp"), pattern = "\\\\.rds\$", full.names = TRUE)
     if (length(rds_files) > 0) {

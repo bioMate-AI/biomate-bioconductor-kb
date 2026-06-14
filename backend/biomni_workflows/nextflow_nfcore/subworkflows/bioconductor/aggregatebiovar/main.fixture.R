@@ -17,3 +17,13 @@ data(small_airway)
 
 # Serialize the object to the declared input file in the exact format the workflow reads
 saveRDS(small_airway, file = "small_airway.rds")
+
+# [biomate-fx-dual] emit each declared input under BOTH bare-token and .rds names
+# so any input-staging harness collects the real serialized object under the
+# exact name the workflow reads (bare token or <token>.rds).
+.bm_dual <- function(b) {
+  rds <- paste0(b, '.rds')
+  if (file.exists(rds) && !file.exists(b)) file.copy(rds, b, overwrite=TRUE)
+  if (file.exists(b) && !file.exists(rds)) file.copy(b, rds, overwrite=TRUE)
+}
+.bm_dual('small_airway')

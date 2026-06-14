@@ -98,18 +98,18 @@ process BIOC_FLAGME_GC_MS_ALIGNMENT_WORKFLOW {
     # 2. Run flagme Alignment Workflow
     # ==========================================
     
-    # Step 1: Read raw NetCDF files into a peaksDataset object
+    # --- Read raw NetCDF files into a peaksDataset object ---
     pd <- peaksDataset(cdfFiles, mz=seq(50,550), rtrange=c(7.5,8.5))
     
-    # Step 2: Add AMDIS peak detection results
+    # --- Add AMDIS peak detection results ---
     pd <- addAMDISPeaks(pd, eluFiles)
     
-    # Step 3: Perform multiple alignment across experimental groups
+    # --- Perform multiple alignment across experimental groups ---
     ma <- multipleAlignment(pd, group=targets\$Group, wn.gap=0.5, wn.D=.05, 
                             bw.gap=.6, bw.D=0.05, usePeaks=TRUE, filterMin=1, 
                             df=50, verbose=FALSE, metric = 1, type = 1)
     
-    # Step 4: Extract aligned peak information
+    # --- Extract aligned peak information ---
     outList <- gatherInfo(pd, ma)
     
     # Construct retention time matrix

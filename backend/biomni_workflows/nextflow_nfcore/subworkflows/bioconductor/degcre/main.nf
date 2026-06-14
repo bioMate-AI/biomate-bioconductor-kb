@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run the core association algorithm using runDegCre or optimize the DEG significance threshold using optimizeAlphaDegCre. 2. Filter
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Run Core Association Algorithm
+//  * 3. [Visualization & Output] Filter Hits Object by FDR and Association Probability
+//  * 4. [Visualization & Output] Optimize DEG Significance Threshold (Alpha)
+//  * 5. [Visualization & Output] Visualizations: Association Probabilities, Binning
+//  * 6. [Visualization & Output] Estimate and Plot Expected Associations per DEG
+//  * 7. [Visualization & Output] Browser-Style Visualizations
+//  * 8. [Visualization & Output] Convert Results to Standard Formats and Export
 
 nextflow.enable.dsl = 2
 
@@ -66,7 +73,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     library(magick)
     
     # ------------------------------------------------------------------------------
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ------------------------------------------------------------------------------
     # The pipeline expects 'subDegGR.rds' and 'subCreGR.rds' in the working directory.
     if (!file.exists("subDegGR.rds") || !file.exists("subCreGR.rds")) {
@@ -77,7 +84,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     subCreGR <- readRDS("subCreGR.rds")
     
     # ------------------------------------------------------------------------------
-    # 2. Run Core Association Algorithm
+    # --- Run Core Association Algorithm ---
     # ------------------------------------------------------------------------------
     myDegCreResList <- runDegCre(DegGR=subDegGR,
                                  DegP=subDegGR\$pVal,
@@ -92,7 +99,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     saveRDS(myDegCreResList, "myDegCreResList.rds")
     
     # ------------------------------------------------------------------------------
-    # 3. Filter Hits Object by FDR and Association Probability
+    # --- Filter Hits Object by FDR and Association Probability ---
     # ------------------------------------------------------------------------------
     passFDR <- which(mcols(myDegCreResList\$degCreHits)\$assocProbFDR <= 0.05)
     passProb <- which(mcols(myDegCreResList\$degCreHits)\$assocProb >= 0.25)
@@ -103,7 +110,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     saveRDS(keepDegCreHits, "keepDegCreHits.rds")
     
     # ------------------------------------------------------------------------------
-    # 4. Optimize DEG Significance Threshold (Alpha)
+    # --- Optimize DEG Significance Threshold (Alpha) ---
     # ------------------------------------------------------------------------------
     alphaOptList <- optimizeAlphaDegCre(DegGR=subDegGR,
                                         DegP=subDegGR\$pVal,
@@ -122,7 +129,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     saveRDS(bestDegCreResList, "bestDegCreResList.rds")
     
     # ------------------------------------------------------------------------------
-    # 5. Visualizations: Association Probabilities, Binning Heuristic, and PR Curve
+    # --- Visualizations: Association Probabilities, Binning ---
     # ------------------------------------------------------------------------------
     # Plot 1: Association Probabilities vs Distance
     pdf("assoc_prob_vs_dist.pdf", width=8, height=6)
@@ -159,7 +166,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     dev.off()
     
     # ------------------------------------------------------------------------------
-    # 6. Estimate and Plot Expected Associations per DEG
+    # --- Estimate and Plot Expected Associations per DEG ---
     # ------------------------------------------------------------------------------
     expectAssocPerDegDf <- getExpectAssocPerDEG(degCreResList=bestDegCreResList,
                                                 geneNameColName="GeneSymb",
@@ -179,7 +186,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     dev.off()
     
     # ------------------------------------------------------------------------------
-    # 7. Browser-Style Visualizations
+    # --- Browser-Style Visualizations ---
     # ------------------------------------------------------------------------------
     # Robustly select a gene name present in the dataset (fallback if ERRFI1 is missing)
     geneName <- "ERRFI1"
@@ -242,7 +249,7 @@ process BIOC_DEGCRE_DEG_CRE_ASSOCIATION_ANALYSIS {
     dev.off()
     
     # ------------------------------------------------------------------------------
-    # 8. Convert Results to Standard Formats and Export
+    # --- Convert Results to Standard Formats and Export ---
     # ------------------------------------------------------------------------------
     # Convert to GInteractions object
     degCreGInter <- convertdegCreResListToGInteraction(degCreResList=bestDegCreResList,

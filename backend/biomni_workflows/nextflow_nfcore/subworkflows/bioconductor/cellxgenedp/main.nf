@@ -35,6 +35,15 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cellxgenedp", "dplyr", "zellkonverter", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,11 +54,12 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
         }
     
     # Load required libraries
-    library(cellxgenedp)
+     library(SummarizedExperiment)
+   library(cellxgenedp)
     library(dplyr)
     library(zellkonverter)
     
-    # 1. Read local input files
+    # --- Read local input files ---
     counts_file <- "counts.csv"
     coldata_file <- "coldata.csv"
     
@@ -67,11 +77,11 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
       colData = coldata
     )
     
-    # 2. Initialize CELLxGENE database
+    # --- Initialize CELLxGENE database ---
     message("Connecting to CELLxGENE database...")
     cellxgene_db <- db()
     
-    # 3. Query and filter for a matching reference dataset
+    # --- Query and filter for a matching reference dataset ---
     message("Querying CELLxGENE datasets...")
     datasets_df <- datasets(cellxgene_db)
     
@@ -101,7 +111,7 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
     # Write reference metadata to output
     write.csv(as.data.frame(selected_dataset), "reference_metadata.csv", row.names = FALSE)
     
-    # 4. Download and compare (with tryCatch for network robustness)
+    # --- Download and compare (with tryCatch for network ---
     comparison_results <- data.frame(
       Gene = character(),
       Local_Mean = numeric(),
@@ -159,7 +169,7 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
     )
     write.csv(summary_df, "comparison_summary.csv", row.names = FALSE)
     
-    # 5. Generate visualization
+    # --- Generate visualization ---
     pdf("expression_correlation_plot.pdf", width = 6, height = 6)
     if (nrow(comparison_results) > 0 && !is.na(correlation_value)) {
       plot(

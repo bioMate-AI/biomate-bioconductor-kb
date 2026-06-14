@@ -64,25 +64,25 @@ process BIOC_CAMERA_SINGLE_SAMPLE_LCMS_ANNOTATION {
       stop(paste("Required input file missing:", file))
     }
     
-    # 1. Preprocess raw data with xcms peak picking
+    # --- Preprocess raw data with xcms peak picking ---
     xs <- xcmsSet(file, method="centWave", ppm=30, peakwidth=c(5,10))
     
-    # 2. Initialize CAMERA annotation object
+    # --- Initialize CAMERA annotation object ---
     an <- xsAnnotate(xs)
     
-    # 3. Group peaks by retention time
+    # --- Group peaks by retention time ---
     anF <- groupFWHM(an, perfwhm = 0.6)
     
-    # 4. Annotate isotopes
+    # --- Annotate isotopes ---
     anI <- findIsotopes(anF, mzabs = 0.01)
     
-    # 5. Verify grouping with peak shape correlation
+    # --- Verify grouping with peak shape correlation ---
     anIC <- groupCorr(anI, cor_eic_th = 0.75)
     
-    # 6. Annotate adducts
+    # --- Annotate adducts ---
     anFA <- findAdducts(anIC, polarity="positive")
     
-    # 7. Export annotated peak list
+    # --- Export annotated peak list ---
     peaklist <- getPeaklist(anFA)
     write.csv(peaklist, file='xsannotated.csv', row.names=FALSE)
     

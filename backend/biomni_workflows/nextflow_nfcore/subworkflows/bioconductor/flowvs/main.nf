@@ -35,6 +35,15 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("flowVS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +56,7 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
     # Load required libraries
     library(flowVS)
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Loading input expression data...")
     if (!file.exists("counts.csv")) {
       stop("Input file 'counts.csv' not found.")
@@ -62,7 +71,7 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
       stop("Expression matrix contains non-numeric values.")
     }
     
-    # Stage 2: Variance Stabilization using flowVS
+    # --- Variance Stabilization using flowVS ---
     message("Running microVS variance stabilization...")
     stabilized_matrix <- tryCatch({
       # microVS identifies the optimum cofactor by minimizing Bartlett's statistics
@@ -74,11 +83,11 @@ process BIOC_FLOWVS_MICROARRAY_VARIANCE_STABILIZATION {
       asinh(exprs_matrix / 100)
     })
     
-    # Stage 3: Save stabilized expression matrix
+    # --- Save stabilized expression matrix ---
     message("Saving stabilized expression matrix...")
     write.csv(stabilized_matrix, "stabilized_expression.csv", row.names = TRUE)
     
-    # Stage 4: Diagnostic Visualization (Mean-SD Plot)
+    # --- Diagnostic Visualization (Mean-SD Plot) ---
     message("Generating diagnostic Mean-SD plot...")
     tryCatch({
       pdf("mean_sd_plot.pdf", width = 7, height = 7)

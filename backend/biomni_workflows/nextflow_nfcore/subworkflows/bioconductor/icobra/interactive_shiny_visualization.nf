@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Launch the Shiny app using COBRAapp
+//  * 1. [Core Analysis] Read user input files from the working directory
+//  * 2. [Core Analysis] Launch the interactive Shiny application to explore
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +59,7 @@ process BIOC_ICOBRA_INTERACTIVE_SHINY_VISUALIZATION {
         # Load required libraries
         library(iCOBRA)
         
-        # 1. Read user input files from the working directory
+        # --- Read user input files from the working directory ---
         # The pipeline expects either a serialized COBRAData object ('cobradata.rds')
         # or text files ('cobradata_truth.txt' and 'cobradata_results.txt').
         
@@ -77,7 +78,7 @@ process BIOC_ICOBRA_INTERACTIVE_SHINY_VISUALIZATION {
         # Save the loaded COBRAData object to verify successful loading and parsing
         saveRDS(cobradata_example, "processed_cobradata.rds")
         
-        # 2. Launch the interactive Shiny application to explore performance metrics
+        # --- Launch the interactive Shiny application to explore ---
         # (Documented calls reproduced exactly)
         COBRAapp(cobradata_example)
 

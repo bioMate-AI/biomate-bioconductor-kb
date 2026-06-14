@@ -63,7 +63,7 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     }
     
     # ---------------------------------------------------------
-    # Stage 1: Compute Probe Mask using Max Entropy Threshold
+    # --- Compute Probe Mask using Max Entropy Threshold ---
     # ---------------------------------------------------------
     img = readImage(f)
     
@@ -76,7 +76,7 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     writeImage(img, fProbes1)
     
     # ---------------------------------------------------------
-    # Stage 2: Clean up Probe Mask (Remove small/large particles)
+    # --- Clean up Probe Mask (Remove small/large particles) ---
     # ---------------------------------------------------------
     img = readImage(fProbes1)
     
@@ -84,7 +84,7 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     writeImage(anaImg, "exImgProbes1Clean.jpg")
     
     # ---------------------------------------------------------
-    # Stage 3: Compute Cell Mask using Otsu Threshold
+    # --- Compute Cell Mask using Otsu Threshold ---
     # ---------------------------------------------------------
     img = readImage(f)
     
@@ -97,7 +97,7 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     writeImage(img, fCellMask)
     
     # ---------------------------------------------------------
-    # Stage 4: Clean up Cell Mask (Remove small/large particles)
+    # --- Clean up Cell Mask (Remove small/large particles) ---
     # ---------------------------------------------------------
     img = readImage(fCellMask)
     
@@ -105,7 +105,7 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     writeImage(anaImg, "exImgCellMaskClean.jpg")
     
     # ---------------------------------------------------------
-    # Stage 5: Generate Summary and Outputs
+    # --- Generate Summary and Outputs ---
     # ---------------------------------------------------------
     probe_mask_clean <- readImage("exImgProbes1Clean.jpg")
     cell_mask_clean <- readImage("exImgCellMaskClean.jpg")

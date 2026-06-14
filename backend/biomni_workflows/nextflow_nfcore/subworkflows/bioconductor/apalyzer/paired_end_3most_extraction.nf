@@ -76,7 +76,7 @@ process BIOC_APALYZER_PAIRED_END_3MOST_EXTRACTION {
     load(con)
     close(con)
     
-    # Stage 1: Extract 3'-most alignments using ThreeMostPairBam
+    # --- Extract 3'-most alignments using ThreeMostPairBam ---
     message("Extracting 3'-most alignments...")
     ThreeMostPairBam (BamfilePath=Bamfile,
     					OutDirPath=Outdir,
@@ -99,7 +99,7 @@ process BIOC_APALYZER_PAIRED_END_3MOST_EXTRACTION {
       }
     }
     
-    # Stage 2: Use the extracted BAM file in PASEXP_IPA with SeqType set to 'ThreeMostPairEnd'
+    # --- Use the extracted BAM file in PASEXP_IPA with SeqType set ---
     message("Calculating relative expression of IPAs...")
     IPA_OUTraw=PASEXP_IPA(dfIPA, dfLE, ThreemostBamfile, Strandtype="forward", SeqType="ThreeMostPairEnd")
     

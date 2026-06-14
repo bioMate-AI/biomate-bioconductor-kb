@@ -60,23 +60,23 @@ process BIOC_HILDA_MUTATIONAL_SIGNATURE_BURDEN_TESTING {
     # Define the input file path (exactly as specified in the working directory)
     inputFile <- "inputFile"
     
-    # 1. Read mutation position data
+    # --- Read mutation position data ---
     G <- hildaReadMPFile(inputFile, numBases=5, trDir=TRUE)
     
-    # 2. Perform global and local Bayesian tests (without initial values)
+    # --- Perform global and local Bayesian tests (without initial ---
     set.seed(123)
     hildaGlobal_initial <- hildaTest(inputG=G, numSig=3, localTest=FALSE, refGroup=1:4, nIter=1000)
     hildaLocal_initial <- hildaTest(inputG=G, numSig=3, localTest=TRUE, refGroup=1:4, nIter=1000)
     
-    # 3. Estimate initial signature parameters using pmgetSignature
+    # --- Estimate initial signature parameters using pmgetSignature ---
     Param <- pmgetSignature(G, K = 3)
     
-    # 4. Perform global and local Bayesian tests with initial values to accelerate MCMC
+    # --- Perform global and local Bayesian tests with initial ---
     set.seed(123)
     hildaGlobal <- hildaTest(inputG=G, numSig=3, useInits = Param, localTest=TRUE, refGroup=1:4, nIter=1000)
     hildaLocal <- hildaTest(inputG=G, numSig=3, useInits = Param, localTest=TRUE, refGroup=1:4, nIter=1000)
     
-    # 5. Assess MCMC convergence using hildaRhat
+    # --- Assess MCMC convergence using hildaRhat ---
     rhat_global <- hildaRhat(hildaGlobal)
     rhat_local <- hildaRhat(hildaLocal)
     
@@ -87,7 +87,7 @@ process BIOC_HILDA_MUTATIONAL_SIGNATURE_BURDEN_TESTING {
     )
     write.csv(rhat_df, "hilda_mcmc_convergence_rhat.csv", row.names = FALSE)
     
-    # 6. Visualize the signatures and exposure differences
+    # --- Visualize the signatures and exposure differences ---
     
     # Plot 1: Standard signature estimation and visualization from pmsignature
     pmPlots <- pmBarplot(G, Param, refGroup=1:4, sigOrder=c(1,3,2))

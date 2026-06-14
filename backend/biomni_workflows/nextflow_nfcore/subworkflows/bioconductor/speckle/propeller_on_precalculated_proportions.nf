@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Convert the proportions matrix into a propeller-compatible list object. 2. Set up the design matrix with covariates. 3. Define con
+//  * 1. [Input & Preparation] Read the declared user input files
+//  * 2. [Input & Preparation] Convert the proportions matrix into a
+//  * 3. [Input & Preparation] Set up the design matrix with covariates dynamically
+//  * 4. [Input & Preparation] Define contrasts and run propeller.ttest
+//  * 5. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -101,7 +105,7 @@ process BIOC_SPECKLE_PROPELLER_ON_PRECALCULATED_PROPORTIONS {
           stop(paste("Required input file not found in the working directory:", base_name))
         }
         
-        # 1. Read the declared user input files
+        # --- Read the declared user input files ---
         pbmc.props <- read_input("pbmc.props")
         pbmc.sample.info <- read_input("pbmc.sample.info")
         tot.cells <- read_input("tot.cells")
@@ -114,12 +118,12 @@ process BIOC_SPECKLE_PROPELLER_ON_PRECALCULATED_PROPORTIONS {
         }
         tot.cells <- as.numeric(tot.cells)
         
-        # 2. Convert the proportions matrix into a propeller-compatible list object
+        # --- Convert the proportions matrix into a ---
         # Dynamically handle scale.fac: if scalar, divide by number of samples; if vector, use directly
         scale_factor <- if (length(tot.cells) == 1) tot.cells / ncol(pbmc.props) else tot.cells
         prop.list <- convertDataToList(pbmc.props, data.type="proportions", transform="logit", scale.fac=scale_factor)
         
-        # 3. Set up the design matrix with covariates dynamically
+        # --- Set up the design matrix with covariates dynamically ---
         # Clean up column names to ensure valid variable names in the formula
         colnames(pbmc.sample.info) <- make.names(colnames(pbmc.sample.info))
         
@@ -138,7 +142,7 @@ process BIOC_SPECKLE_PROPELLER_ON_PRECALCULATED_PROPORTIONS {
         designAS <- model.matrix(~ 0 + ., data = pbmc.sample.info)
         colnames(designAS) <- make.names(colnames(designAS))
         
-        # 4. Define contrasts and run propeller.ttest
+        # --- Define contrasts and run propeller.ttest ---
         # Compare the second level to the first level of the primary group
         lvl1 <- make.names(paste0(group_col, levels_group[1]))
         lvl2 <- make.names(paste0(group_col, levels_group[2]))
@@ -147,7 +151,7 @@ process BIOC_SPECKLE_PROPELLER_ON_PRECALCULATED_PROPORTIONS {
         mycontr <- makeContrasts(contrasts = contr_str, levels=designAS)
         results <- propeller.ttest(prop.list = prop.list, design = designAS, contrasts = mycontr, robust=TRUE, trend=FALSE, sort=TRUE)
         
-        # 5. Write named output files for the meaningful results
+        # --- Write named output files for the meaningful results ---
         # Save the statistical results table
         write.csv(results, file = "propeller_ttest_results.csv", row.names = TRUE)
         

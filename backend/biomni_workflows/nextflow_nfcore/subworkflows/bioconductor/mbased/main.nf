@@ -60,6 +60,7 @@ process BIOC_MBASED_SINGLE_SAMPLE_ASE {
     
     # Load required libraries
     library(GenomicRanges)
+    library(SummarizedExperiment)
     library(MBASED)
     library(BiocParallel)
     

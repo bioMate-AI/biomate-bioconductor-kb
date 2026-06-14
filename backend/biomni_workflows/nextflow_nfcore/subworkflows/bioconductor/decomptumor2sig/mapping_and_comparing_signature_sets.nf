@@ -55,7 +55,7 @@ process BIOC_DECOMPTUMOR2SIG_MAPPING_AND_COMPARING_SIGNATURE_SETS {
     # Load required library
     library(decompTumor2Sig)
     
-    # 1. Load the two sets of mutational signatures from the working directory
+    # --- Load the two sets of mutational signatures from the ---
     # First set: 4 Shiraishi signatures from Nik-Zainal et al.
     sigfiles <- paste0("Nik-Zainal_PMID_22608084-pmsignature-sig", 1:4, ".tsv")
     sign_s4 <- readShiraishiSignatures(files=sigfiles)
@@ -65,27 +65,27 @@ process BIOC_DECOMPTUMOR2SIG_MAPPING_AND_COMPARING_SIGNATURE_SETS {
     load(sfile)
     sign_s15 <- signatures
     
-    # 2. Compute distances between a single signature and a target signature set
+    # --- Compute distances between a single signature and a target ---
     distances <- determineSignatureDistances(fromSignature=sign_s4[[1]], toSignatures=sign_s15,
                                              method="frobenius")
     
-    # 3. Map the signature sets to find the best matches (non-unique)
+    # --- Map the signature sets to find the best matches ---
     mapping_non_unique <- mapSignatureSets(fromSignatures=sign_s4, toSignatures=sign_s15,
                                            method="frobenius", unique=FALSE)
     
-    # 4. Convert Alexandrov signatures to Shiraishi format
+    # --- Convert Alexandrov signatures to Shiraishi format ---
     sign_a <- readAlexandrovSignatures()
     sign_a2s <- convertAlexandrov2Shiraishi(sign_a)
     
-    # 5. Downgrade Shiraishi signatures to make different formats compatible
+    # --- Downgrade Shiraishi signatures to make different formats ---
     sign_sdown <- downgradeShiraishiSignatures(sign_s15, numBases=3,
                                                removeTrDir=TRUE)
     
-    # 6. Map the converted/downgraded signature sets (unique)
+    # --- Map the converted/downgraded signature sets (unique) ---
     mapping_unique <- mapSignatureSets(fromSignatures=sign_sdown, toSignatures=sign_a2s,
                                        method="frobenius", unique=TRUE)
     
-    # 7. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save distances
     write.csv(as.data.frame(t(distances)), "signature_distances_s4_to_s15.csv", row.names = TRUE)
     

@@ -55,7 +55,7 @@ process BIOC_CHICAGO_PEAK_ENRICHMENT_ANALYSIS {
     # Load required libraries
     library(Chicago)
     
-    # 1. Load the processed chicagoData object from the working directory
+    # --- Load the processed chicagoData object from the working ---
     if (file.exists("cd")) {
       cd <- readRDS("cd")
     } else if (file.exists("cd.rds")) {
@@ -64,7 +64,7 @@ process BIOC_CHICAGO_PEAK_ENRICHMENT_ANALYSIS {
       stop("Error: Processed chicagoData object 'cd' or 'cd.rds' not found in the working directory.")
     }
     
-    # 2. Set up the features folder and list
+    # --- Set up the features folder and list ---
     featuresFolder <- "."
     
     # Read the features mapping file
@@ -84,15 +84,15 @@ process BIOC_CHICAGO_PEAK_ENRICHMENT_ANALYSIS {
     featuresList <- as.list(featuresTable\$V2)
     names(featuresList) <- featuresTable\$V1
     
-    # 3. Calculate the appropriate number of distance bins based on the maximum interaction distance
+    # --- Calculate the appropriate number of distance bins based ---
     no_bins <- ceiling(max(abs(intData(cd)\$distSign), na.rm = TRUE)/1e4)
     
-    # 4. Run permutation-based enrichment testing and save the plot to a PDF
+    # --- Run permutation-based enrichment testing and save the ---
     pdf("peak_enrichment_plot.pdf", width=12, height=7)
     enrichmentResults <- peakEnrichment4Features(cd, folder=featuresFolder, list_frag=featuresList, no_bins=no_bins, sample_number=100)
     dev.off()
     
-    # 5. Save the meaningful results to disk
+    # --- Save the meaningful results to disk ---
     write.csv(as.data.frame(enrichmentResults), "enrichment_results.csv", row.names=TRUE)
     saveRDS(enrichmentResults, "enrichment_results.rds")
 

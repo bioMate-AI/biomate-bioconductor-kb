@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Create a FraserDataSet settings object from the sample table. 2. Count split and non-split reads from BAM files using countRNAData
+//  * 1. [Visualization & Output] Create a FraserDataSet settings object from the sample
+//  * 2. [Visualization & Output] Count split and non-split reads from BAM files using
+//  * 3. [Visualization & Output] Calculate Percent Spliced In (PSI) and Jaccard values
+//  * 4. [Visualization & Output] Filter out lowly expressed and low-variability junctions
+//  * 5. [Visualization & Output] Annotate genomic ranges with gene symbols using
+//  * 6. [Visualization & Output] Fit the splicing autoencoder model and calculate p-values
+//  * 7. [Visualization & Output] Extract significant splicing outliers using results
+//  * 8. [Visualization & Output] Visualize results using plotVolcano
 
 nextflow.enable.dsl = 2
 
@@ -39,7 +46,7 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_BAM {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("TxDb.Hsapiens.UCSC.hg19.knownGene", "BiocParallel", "data.table", "FRASER", "org.Hs.eg.db")
+    .bm_deps <- c("TxDb.Hsapiens.UCSC.hg19.knownGene", "BiocParallel", "data.table", "FRASER", "org.Hs.eg.db", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -55,7 +62,9 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_BAM {
             }
           }
         }
-    
+     
+    library(SummarizedExperiment)
+   
     library(FRASER)
     library(data.table)
     library(BiocParallel)
@@ -65,7 +74,7 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_BAM {
     # Set parallel backend to serial for stability
     register(SerialParam())
     
-    # 1. Create a FraserDataSet settings object from the sample table
+    # --- Create a FraserDataSet settings object from the sample ---
     # Read the user-provided sample table
     sampleTable <- fread("sampleTable.tsv")
     
@@ -79,31 +88,31 @@ process BIOC_FRASER_ABERRANT_SPLICING_FROM_BAM {
     # Create FRASER object
     fds <- FraserDataSet(colData=sampleTable, workingDir="FRASER_output")
     
-    # 2. Count split and non-split reads from BAM files using countRNAData
+    # --- Count split and non-split reads from BAM files using ---
     fds <- countRNAData(fds)
     
-    # 3. Calculate Percent Spliced In (PSI) and Jaccard values using calculatePSIValues
+    # --- Calculate Percent Spliced In (PSI) and Jaccard values ---
     fds <- calculatePSIValues(fds)
     
-    # 4. Filter out lowly expressed and low-variability junctions using filterExpressionAndVariability
+    # --- Filter out lowly expressed and low-variability junctions ---
     fds <- filterExpressionAndVariability(fds, minExpressionInOneSample=20,
            minDeltaPsi=0.0, filter=TRUE)
     
-    # 5. Annotate genomic ranges with gene symbols using annotateRangesWithTxDb
+    # --- Annotate genomic ranges with gene symbols using ---
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
     orgDb <- org.Hs.eg.db
     fds <- annotateRangesWithTxDb(fds, txdb=txdb, orgDb=orgDb)
     
-    # 6. Fit the splicing autoencoder model and calculate p-values using FRASER
+    # --- Fit the splicing autoencoder model and calculate p-values ---
     fds <- FRASER(fds, q=c(jaccard=2))
     
-    # 7. Extract significant splicing outliers using results
+    # --- Extract significant splicing outliers using results ---
     res <- results(fds, all=TRUE)
     
     # Save results table to a TSV file
     write.table(as.data.frame(res), file="fraser_results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
     
-    # 8. Visualize results using plotVolcano
+    # --- Visualize results using plotVolcano ---
     # Dynamically select the first sample ID from the dataset to avoid hardcoding
     sample_id <- as.character(colData(fds)\$sampleID[1])
     

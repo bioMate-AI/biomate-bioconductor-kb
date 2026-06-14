@@ -13,7 +13,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import Space Ranger output into a SingleCellExperiment object using createVisiumSCE. 2. Perform quality control visualization by o
+//  * 1. [Visualization & Output] Import Space Ranger output into a SingleCellExperiment
+//  * 2. [Visualization & Output] Perform quality control visualization
+//  * 3. [Visualization & Output] Filter out low-quality spots
+//  * 4. [Visualization & Output] Normalize the filtered data
+//  * 5. [Visualization & Output] Visualize the spatial expression of a specific gene
+//  * 6. [Visualization & Output] Perform dimensionality reduction and clustering
+//  * 7. [Visualization & Output] Visualize the resulting spatial clusters
 
 nextflow.enable.dsl = 2
 
@@ -40,7 +46,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DropletUtils", "ggplot2", "scater", "scran", "Spaniel")
+    .bm_deps <- c("DropletUtils", "ggplot2", "scater", "scran", "Spaniel", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,6 +65,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
         
     # Load required libraries
     library(Spaniel)
+    library(SummarizedExperiment)
     library(DropletUtils)
     library(scater)
     library(scran)
@@ -72,7 +79,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
       stop(paste("Error: The input directory", pathToTenXOuts, "does not exist."))
     }
     
-    # 1. Import Space Ranger output into a SingleCellExperiment object
+    # --- Import Space Ranger output into a SingleCellExperiment ---
     sce <- createVisiumSCE(tenXDir=pathToTenXOuts, 
                                 resolution="Low")
     
@@ -86,7 +93,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     print("Grob Metadata:")
     print(metadata(sce)\$Grob)
     
-    # 2. Perform quality control visualization
+    # --- Perform quality control visualization ---
     filter <- sce\$detected > 0
     
     pdf("qc_filter_plot.pdf", width = 8, height = 8)
@@ -97,13 +104,13 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
             ptSizeMax = 3))
     dev.off()
     
-    # 3. Filter out low-quality spots
+    # --- Filter out low-quality spots ---
     sce <- sce[, filter]
     
-    # 4. Normalize the filtered data
+    # --- Normalize the filtered data ---
     sce <- logNormCounts(sce)
     
-    # 5. Visualize the spatial expression of a specific gene
+    # --- Visualize the spatial expression of a specific gene ---
     gene <- rownames(sce)[1]
     p2 <- spanielPlot(object = sce,
             plotType = "Gene", 
@@ -115,7 +122,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     print(p2)
     dev.off()
     
-    # 6. Perform dimensionality reduction and clustering
+    # --- Perform dimensionality reduction and clustering ---
     library(scran)
     sce <- logNormCounts(sce)
     sce <- runPCA(sce)
@@ -131,7 +138,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     print(p3)
     dev.off()
     
-    # 7. Visualize the resulting spatial clusters
+    # --- Visualize the resulting spatial clusters ---
     p4 <- spanielPlot(object = sce,
             plotType = "Cluster", 
             clusterRes = "clust",

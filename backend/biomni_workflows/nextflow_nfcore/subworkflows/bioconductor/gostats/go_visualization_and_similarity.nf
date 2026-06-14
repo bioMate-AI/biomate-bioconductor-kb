@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate mean expression per phenotype group for each gene. 2. Map GO terms to probes and classify them based on the phenotype wi
+//  * 1. [Visualization & Output] READ USER INPUTS
+//  * 2. [Visualization & Output] PREPARATION & GRAPH SETUP
+//  * 3. [Visualization & Output] FAITHFUL REPRODUCTION OF DOCUMENTED CODE
+//  * 4. [Visualization & Output] WRITE OUTPUT FILES
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GOstats", "GO.db", "annotate", "Rgraphviz", "RBGL", "graph", "annot_pkg_db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -57,7 +69,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         library(graph)
         
         # ==========================================
-        # 1. READ USER INPUTS
+        # --- READ USER INPUTS ---
         # ==========================================
         
         # Read selected genes (Entrez Gene IDs)
@@ -122,7 +134,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         MB <- as.factor(MB)
         
         # ==========================================
-        # 2. PREPARATION & GRAPH SETUP
+        # --- PREPARATION & GRAPH SETUP ---
         # ==========================================
         
         # Construct the induced GO graph for Cellular Component (CC) ontology
@@ -164,7 +176,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         gN <- gN[!is.na(gN)]
         
         # ==========================================
-        # 3. FAITHFUL REPRODUCTION OF DOCUMENTED CODE
+        # --- FAITHFUL REPRODUCTION OF DOCUMENTED CODE ---
         # ==========================================
         
         mns <- apply(exprs(eS), 1, function(x) sapply(split(x, MB), mean))
@@ -245,7 +257,7 @@ process BIOC_GOSTATS_GO_VISUALIZATION_AND_SIMILARITY {
         gCC.leaves <- leaves(gCC, "in")
         
         # ==========================================
-        # 4. WRITE OUTPUT FILES
+        # --- WRITE OUTPUT FILES ---
         # ==========================================
         
         # Save the phenotype count matrix per GO term

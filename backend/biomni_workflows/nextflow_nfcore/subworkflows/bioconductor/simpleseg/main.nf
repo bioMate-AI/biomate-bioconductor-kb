@@ -34,7 +34,7 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("EBImage", "BiocStyle", "cytomapper", "ggplot2", "simpleSeg")
+    .bm_deps <- c("EBImage", "BiocStyle", "cytomapper", "ggplot2", "simpleSeg", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,12 +54,13 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     
     # Load required packages
     library(simpleSeg)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(EBImage)
     library(cytomapper)
     
     # ==========================================
-    # 1. Load multiplexed images from TIFF files
+    # --- Load multiplexed images from TIFF files ---
     # ==========================================
     
     # Define input directory
@@ -128,7 +129,7 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     }
     
     # ==========================================
-    # 2. Perform cell segmentation
+    # --- Perform cell segmentation ---
     # ==========================================
     
     masks <- simpleSeg::simpleSeg(images,
@@ -172,13 +173,13 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     dev.off()
     
     # ==========================================
-    # 3. Summarise cell features
+    # --- Summarise cell features ---
     # ==========================================
     
     cellSCE <- cytomapper::measureObjects(masks, images, img_id = "imageID")
     
     # ==========================================
-    # 4. Normalising cells
+    # --- Normalising cells ---
     # ==========================================
     
     cellSCE <- normalizeCells(cellSCE,
@@ -214,7 +215,7 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     dev.off()
     
     # ==========================================
-    # 5. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save SingleCellExperiment and Masks

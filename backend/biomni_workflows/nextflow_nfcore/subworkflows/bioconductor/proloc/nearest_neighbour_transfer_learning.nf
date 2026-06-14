@@ -56,7 +56,7 @@ process BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING {
     library(MSnbase)
     library(pRoloc)
     
-    # 1. Read primary and auxiliary data from the working directory
+    # --- Read primary and auxiliary data from the working directory ---
     if (!file.exists("primary_data.csv")) {
       stop("Error: 'primary_data.csv' not found in the working directory.")
     }
@@ -111,23 +111,23 @@ process BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING {
     m <- unique(fData(andy2011)\$markers.tl)
     m <- m[m != "unknown"]
     
-    # 2. Define weight combinations using thetas
+    # --- Define weight combinations using thetas ---
     th <- thetas(length(m), length.out=4)
     
-    # 3. Optimize class-specific weights using knntlOptimisation
+    # --- Optimize class-specific weights using knntlOptimisation ---
     topt <- knntlOptimisation(andy2011, andy2011goCC, th = th, k = c(3, 3), fcol = "markers.tl", times = 50)
     
-    # 4. Extract the best parameters using getParams
+    # --- Extract the best parameters using getParams ---
     bw <- getParams(topt)
     getParams(topt)
     
-    # 5. Apply the optimal weights and classify unlabelled proteins using knntlClassification
+    # --- Apply the optimal weights and classify unlabelled ---
     andy2011 <- knntlClassification(andy2011, andy2011goCC, bestTheta = bw, k = c(3, 3), fcol = "markers.tl")
     
-    # 6. Extract predictions and scores using getPredictions
+    # --- Extract predictions and scores using getPredictions ---
     andy2011 <- getPredictions(andy2011, fcol = "knntl")
     
-    # 7. Write named output files for the results
+    # --- Write named output files for the results ---
     # Save predictions and scores to CSV
     predictions_df <- data.frame(
       Protein = rownames(fData(andy2011)),

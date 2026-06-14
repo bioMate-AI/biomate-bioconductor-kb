@@ -34,7 +34,7 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "SpatialExperiment", "cytomapper", "ggplot2", "ggraph", "imcRtools")
+    .bm_deps <- c("SingleCellExperiment", "SpatialExperiment", "cytomapper", "ggplot2", "ggraph", "imcRtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,19 +54,20 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     
     # Load required libraries
     library(SingleCellExperiment)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(imcRtools)
     library(cytomapper)
     library(ggplot2)
     library(ggraph)
     
-    # 1. Read User Input
+    # --- Read User Input ---
     if (!file.exists("SingleCellExperiment.rds")) {
       stop("Error: 'SingleCellExperiment.rds' not found in the working directory.")
     }
     pancreasSCE <- readRDS("SingleCellExperiment.rds")
     
-    # 2. Robustness & Preprocessing Checks
+    # --- Robustness & Preprocessing Checks ---
     # Ensure required columns exist in colData for the documented workflow
     if (!"ImageNb" %in% colnames(colData(pancreasSCE))) {
       if ("sample_id" %in% colnames(colData(pancreasSCE))) {
@@ -126,7 +127,7 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
       }
     }
     
-    # 3. Execute Documented Workflow Steps
+    # --- Execute Documented Workflow Steps ---
     
     # Step 3.1: Build spatial graphs
     pancreasSCE <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb", type = "expansion", threshold = 20)
@@ -205,7 +206,7 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     # Step 3.9: Calculate distances to cells of interest
     pancreasSCE <- distToCells(pancreasSCE, x_cells = pancreasSCE\$CellType == "celltype_B", coords = c("Pos_X","Pos_Y"), statistics = "min", name = "minDist", img_id = "ImageNb")
     
-    # 4. Save Final Processed Object
+    # --- Save Final Processed Object ---
     saveRDS(pancreasSCE, "pancreasSCE_processed.rds")
     message("Pipeline completed successfully. Outputs saved to working directory.")
 

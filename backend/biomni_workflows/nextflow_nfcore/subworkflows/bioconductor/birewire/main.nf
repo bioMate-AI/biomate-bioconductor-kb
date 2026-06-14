@@ -35,6 +35,15 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiRewire")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     library(BiRewire)
     
     # ---------------------------------------------------------
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ---------------------------------------------------------
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found.")
@@ -84,7 +93,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Compute Analytical Bound for Switching Steps
+    # --- Compute Analytical Bound for Switching Steps ---
     # ---------------------------------------------------------
     # Compute the minimal number of switching steps to maximize dissimilarity (Jaccard distance)
     bound <- tryCatch({
@@ -95,7 +104,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     })
     
     # ---------------------------------------------------------
-    # Stage 3: Visual Monitoring of Markov Chain Convergence
+    # --- Visual Monitoring of Markov Chain Convergence ---
     # ---------------------------------------------------------
     # Open PDF device to save diagnostic plots
     pdf("birewire_diagnostic_plots.pdf", width = 8, height = 6)
@@ -114,7 +123,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 4: Perform Network Rewiring
+    # --- Perform Network Rewiring ---
     # ---------------------------------------------------------
     # Rewire the bipartite network using the computed analytical bound
     rewired <- tryCatch({
@@ -125,7 +134,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     })
     
     # ---------------------------------------------------------
-    # Stage 5: Compute Similarity and Save Outputs
+    # --- Compute Similarity and Save Outputs ---
     # ---------------------------------------------------------
     # Compute Jaccard similarity between original and rewired matrix
     sim <- tryCatch({

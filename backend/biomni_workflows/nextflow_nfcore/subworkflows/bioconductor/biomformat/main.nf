@@ -17,7 +17,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biomformat", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,27 +55,34 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     
     # Load required libraries
     library(biomformat)
+    library(SummarizedExperiment)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read abundance matrix (taxon/OTU-by-sample)
     abundance_df <- read.csv("abundance.csv", check.names = FALSE, stringsAsFactors = FALSE)
-    if (!"taxon_id" %in% colnames(abundance_df)) {
-      stop("abundance.csv must contain a 'taxon_id' column representing row names.")
+    # Accept a named 'taxon_id' column or the conventional first-column-is-IDs CSV export
+    # (write.csv of an OTU table); then keep only numeric columns as the abundance matrix.
+    if ("taxon_id" %in% colnames(abundance_df)) {
+      rownames(abundance_df) <- abundance_df\$taxon_id
+      abundance_df\$taxon_id <- NULL
+    } else {
+      rownames(abundance_df) <- as.character(abundance_df[[1]])
+      abundance_df[[1]] <- NULL
     }
-    
-    # Set taxon_id as row names and convert the rest to a numeric matrix
-    rownames(abundance_df) <- abundance_df\$taxon_id
-    abundance_matrix <- as.matrix(abundance_df[, setdiff(names(abundance_df), "taxon_id"), drop = FALSE])
-    
-    # Read sample metadata
+    abundance_df <- abundance_df[, vapply(abundance_df, is.numeric, logical(1)), drop = FALSE]
+    abundance_matrix <- as.matrix(abundance_df)
+
+    # Read sample metadata (named 'sample' column or first column)
     coldata_df <- read.csv("coldata.csv", check.names = FALSE, stringsAsFactors = FALSE)
     if (!"sample" %in% colnames(coldata_df)) {
-      stop("coldata.csv must contain a 'sample' column.")
+      # adopt the first column as the sample identifier (standard CSV export)
+      colnames(coldata_df)[1] <- "sample"
+      coldata_df\$sample <- as.character(coldata_df\$sample)
     }
-    rownames(coldata_df) <- coldata_df\$sample
+    rownames(coldata_df) <- coldata_df\$sample   # keep the 'sample' column for downstream merges
     
     # Align sample metadata with abundance matrix columns
     common_samples <- intersect(colnames(abundance_matrix), rownames(coldata_df))
@@ -76,21 +92,17 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     abundance_matrix <- abundance_matrix[, common_samples, drop = FALSE]
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Parse taxon IDs to construct a hierarchical taxonomy table if delimiters exist
-    tax_list <- lapply(rownames(abundance_matrix), function(taxon) {
-      parts <- unlist(strsplit(taxon, "[;|]"))
-      if (length(parts) == 0 || identical(parts, "")) {
-        return("Unknown")
-      }
-      trimws(parts)
-    })
+    # Taxonomy table: one row per taxon, keeping the full taxon string as a single column.
+    # (A ragged per-rank list column — strsplit into 0..N parts — breaks the BIOM object's
+    # as.data.frame serialization with "arguments imply differing number of rows".)
     tax_df <- data.frame(
-      taxonomy = I(tax_list),
-      row.names = rownames(abundance_matrix)
+      taxonomy = rownames(abundance_matrix),
+      row.names = rownames(abundance_matrix),
+      stringsAsFactors = FALSE
     )
     
     # ==========================================
-    # STAGE 2: Construct and Serialize BIOM Object
+    # --- Construct and Serialize BIOM Object ---
     # ==========================================
     
     # Build the BIOM object
@@ -114,11 +126,16 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: SummarizedExperiment Interoperability
+    # --- SummarizedExperiment Interoperability ---
     # ==========================================
     
-    # Convert BIOM object to SummarizedExperiment
-    se <- biom_to_SummarizedExperiment(biom_obj)
+    # Convert BIOM object to SummarizedExperiment. biomformat ships no direct converter
+    # (biom_to_SummarizedExperiment does not exist); extract the abundance matrix with
+    # biom_data() and assemble the SE, carrying the sample metadata as colData.
+    se <- SummarizedExperiment(
+      assays = list(counts = as(biom_data(biom_obj), "matrix")),
+      colData = coldata_df
+    )
     
     # Perform basic QC: Calculate library sizes (total counts per sample)
     colData(se)\$LibrarySize <- colSums(assay(se, "counts"))
@@ -127,7 +144,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     write.csv(as.data.frame(colData(se)), "sample_metadata_enriched.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Tidy Data Transformation & Diversity Analysis
+    # --- Tidy Data Transformation & Diversity Analysis ---
     # ==========================================
     
     # Convert BIOM object to tidy long-format data frame
@@ -152,7 +169,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     write.csv(diversity_df, "shannon_diversity.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     # Generate diagnostic plots

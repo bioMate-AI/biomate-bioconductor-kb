@@ -67,16 +67,16 @@ process BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION {
     wt <- "wt_chr14.bam"
     mt <- "mt_chr14.bam"
     
-    # 1. Build TxDb from GTF and extract CDS and exon information
+    # --- Build TxDb from GTF and extract CDS and exon information ---
     txdb <- makeTxDbFromGFF(file=gtf_file, chrominfo = Seqinfo(genome="mm9"))
     thecds <- cdsBy(txdb, by="tx", use.names=TRUE)
     theexons <- exonsBy(txdb, by="tx", use.names=TRUE)
     
-    # 2. Extract splicing events from MATS output
+    # --- Extract splicing events from MATS output ---
     typeofAS <- "SE"
     splice_data <- extractSpliceEvents(data=mats_file, filetype='mats', splicetype=typeofAS)
     
-    # 3. Add Ensembl annotation to the splicing data
+    # --- Add Ensembl annotation to the splicing data ---
     splice_data <- addEnsemblAnnotation(data=splice_data, species="mmusculus")
     
     # Optional sorting as shown in the vignette
@@ -85,7 +85,7 @@ process BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION {
     # Save annotated splice events to CSV
     write.csv(splice_data\$data, "annotated_splice_events.csv", row.names=FALSE)
     
-    # 4. Find valid transcripts and coding sequences for a target gene
+    # --- Find valid transcripts and coding sequences for a target ---
     single_id <- 'Prmt5'
     pp <- which(grepl(single_id, splice_data\$data\$Symbol))
     single_record <- splice_data\$data[pp[1], ]
@@ -93,35 +93,35 @@ process BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION {
     valid_tx <- findTX(id=single_record\$ID, tx=theexons, db=txdb)
     valid_cds <- findTX(id=single_record\$ID, tx=thecds, db=txdb)
     
-    # 5. Construct the Region of Interest (ROI)
+    # --- Construct the Region of Interest (ROI) ---
     roi <- makeROI(single_record, type="SE")
     
-    # 6. Find compatible transcripts containing the ROI
+    # --- Find compatible transcripts containing the ROI ---
     compatible_tx <- findCompatibleEvents(valid_tx, roi=roi, verbose=TRUE)
     compatible_cds <- findCompatibleEvents(valid_cds, valid_tx, roi=roi, verbose=TRUE)
     
-    # 7. Simulate splicing outcomes by removing or inserting regions
+    # --- Simulate splicing outcomes by removing or inserting ---
     region_minus_exon <- removeRegion(compatible_cds\$hits[[1]], roi)
     region_plus_exon <- insertRegion(region_minus_exon, roi)
     
-    # 8. Compare sequence outcomes and predict translation changes
+    # --- Compare sequence outcomes and predict translation changes ---
     event <- eventOutcomeCompare(seq1=compatible_cds\$hits[[1]], seq2=region_minus_exon,
                                  genome=bsgenome, direction=TRUE, fullseq=FALSE)
     
     # Save event outcome comparison
     saveRDS(event, "event_outcome_comparison.rds")
     
-    # 9. Extract DNA sequence for the ROI
+    # --- Extract DNA sequence for the ROI ---
     aa <- getRegionDNA(roi, bsgenome)
     
-    # 10. Design primers and check their genomic coverage
+    # --- Design primers and check their genomic coverage ---
     primers <- data.frame(PRIMER_LEFT_SEQUENCE="ACTTTCGGACTCTGTGTGACT",
                           PRIMER_RIGHT_SEQUENCE="TCATAGGCATTGGGTGGAGG",
                           stringsAsFactors=FALSE)
     
     cp <- checkPrimer(primers[1,], bsgenome, roi)
     
-    # 11. Predict PCR product sizes for the splicing isoforms
+    # --- Predict PCR product sizes for the splicing isoforms ---
     pcr_result1 <- getPCRsizes(cp, theexons)
     tx_minus_exon <- removeRegion(compatible_tx\$hits[[1]], roi)
     pcr_result2 <- getPCRsizes(cp, tx_minus_exon)
@@ -133,7 +133,7 @@ process BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION {
     write.csv(pcr_result2, "pcr_result_without_exon.csv", row.names=FALSE)
     saveRDS(relevant_pcr_bands, "relevant_pcr_bands.rds")
     
-    # 12. Plot genomic coverage and PSI values
+    # --- Plot genomic coverage and PSI values ---
     pdf("splicing_validation_plots.pdf", width=10, height=8)
     eventPlot(transcripts=theexons, roi_plot=roi, bams=c(wt, mt), names=c('wt', 'mt'),
               annoLabel=single_id, rspan=2000)

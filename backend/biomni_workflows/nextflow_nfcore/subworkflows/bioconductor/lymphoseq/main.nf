@@ -12,7 +12,20 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import ImmunoSEQ files using readImmunoSeq. 2. Subset samples using metadata if necessary. 3. Extract productive sequences and agg
+//  * 1. [Visualization & Output] Import ImmunoSEQ files using readImmunoSeq
+//  * 2. [Visualization & Output] Subset samples using metadata if necessary
+//  * 3. [Visualization & Output] Extract productive sequences and aggregate
+//  * 4. [Visualization & Output] Calculate repertoire diversity metrics and visualize
+//  * 5. [Visualization & Output] Calculate clonal relatedness and visualize sequence
+//  * 6. [Visualization & Output] Perform multiple sequence alignment
+//  * 7. [Visualization & Output] Search for specific sequences
+//  * 8. [Visualization & Output] Compare samples pairwise
+//  * 9. [Visualization & Output] Identify differentially abundant sequences
+//  * 10. [Visualization & Output] Find recurring sequences
+//  * 11. [Visualization & Output] Track sequences across samples
+//  * 12. [Visualization & Output] Analyze V(D)J gene usage and visualize
+//  * 13. [Visualization & Output] Remove contamination sequences
+//  * 14. [Visualization & Output] Merge samples
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +51,15 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("LymphoSeq", "RColorBrewer", "wordcloud", "reshape", "pheatmap", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -57,7 +79,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             library(ggplot2)
             
             # -----------------------------------------------------------------------------
-            # Stage 1: Import ImmunoSEQ files using readImmunoSeq
+            # --- Import ImmunoSEQ files using readImmunoSeq ---
             # -----------------------------------------------------------------------------
             TCRB.path <- "sample_folder"
             
@@ -86,7 +108,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             head(TCRB.list[[sample1]])
             
             # -----------------------------------------------------------------------------
-            # Stage 2: Subset samples using metadata if necessary
+            # --- Subset samples using metadata if necessary ---
             # -----------------------------------------------------------------------------
             if (file.exists("metadata.csv")) {
               TCRB.metadata <- read.csv("metadata.csv")
@@ -122,7 +144,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             sample3 <- if(length(sample_names) > 2) sample_names[3] else sample_names[1]
             
             # -----------------------------------------------------------------------------
-            # Stage 3: Extract productive sequences and aggregate
+            # --- Extract productive sequences and aggregate ---
             # -----------------------------------------------------------------------------
             productive.TRB.aa <- productiveSeq(file.list = TCRB.list.selected, aggregate = "aminoAcid", 
                                            prevalence = FALSE)
@@ -137,7 +159,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             head(productive.TRB.nt[[sample1]])
             
             # -----------------------------------------------------------------------------
-            # Stage 4: Calculate repertoire diversity metrics and visualize
+            # --- Calculate repertoire diversity metrics and visualize ---
             # -----------------------------------------------------------------------------
             clonality_results <- clonality(file.list = TCRB.list.selected)
             write.csv(clonality_results, "clonality_report.csv", row.names = FALSE)
@@ -151,7 +173,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             dev.off()
             
             # -----------------------------------------------------------------------------
-            # Stage 5: Calculate clonal relatedness and visualize sequence similarity
+            # --- Calculate clonal relatedness and visualize sequence ---
             # -----------------------------------------------------------------------------
             relatedness_results <- clonalRelatedness(list = TCRB.list.selected, editDistance = 10)
             write.csv(relatedness_results, "clonal_relatedness.csv", row.names = FALSE)
@@ -162,7 +184,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             dev.off()
             
             # -----------------------------------------------------------------------------
-            # Stage 6: Perform multiple sequence alignment
+            # --- Perform multiple sequence alignment ---
             # -----------------------------------------------------------------------------
             alignment_output <- capture.output({
               alignSeq(list = productive.TRB.nt, sample = sample1, type = "aminoAcid", 
@@ -171,7 +193,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             writeLines(alignment_output, "alignment_output.txt")
             
             # -----------------------------------------------------------------------------
-            # Stage 7: Search for specific sequences
+            # --- Search for specific sequences ---
             # -----------------------------------------------------------------------------
             # Dynamically select a sequence from the user's data
             top_seq <- productive.TRB.aa[[sample1]]\$aminoAcid[1]
@@ -184,7 +206,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             head(published)
             
             # -----------------------------------------------------------------------------
-            # Stage 8: Compare samples pairwise
+            # --- Compare samples pairwise ---
             # -----------------------------------------------------------------------------
             bhattacharyya.matrix <- bhattacharyyaMatrix(productive.seqs = productive.TRB.aa)
             write.csv(bhattacharyya.matrix, "bhattacharyya_matrix.csv")
@@ -230,7 +252,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             dev.off()
             
             # -----------------------------------------------------------------------------
-            # Stage 9: Identify differentially abundant sequences
+            # --- Identify differentially abundant sequences ---
             # -----------------------------------------------------------------------------
             if (length(unique(c(sample1, sample2))) >= 2) {
               diff_abundance <- differentialAbundance(list = productive.TRB.aa, 
@@ -241,7 +263,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             }
             
             # -----------------------------------------------------------------------------
-            # Stage 10: Find recurring sequences
+            # --- Find recurring sequences ---
             # -----------------------------------------------------------------------------
             unique.seqs <- uniqueSeqs(productive.aa = productive.TRB.aa)
             write.csv(unique.seqs, "unique_sequences.csv", row.names = FALSE)
@@ -260,7 +282,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             head(top.freq.matrix)
             
             # -----------------------------------------------------------------------------
-            # Stage 11: Track sequences across samples
+            # --- Track sequences across samples ---
             # -----------------------------------------------------------------------------
             pdf("clone_track_plot.pdf", width = 7, height = 5)
             print(cloneTrack(sequence.matrix = sequence.matrix, 
@@ -272,7 +294,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             dev.off()
             
             # -----------------------------------------------------------------------------
-            # Stage 12: Analyze V(D)J gene usage and visualize
+            # --- Analyze V(D)J gene usage and visualize ---
             # -----------------------------------------------------------------------------
             vGenes <- geneFreq(productive.nt = productive.TRB.nt, locus = "V", family = TRUE)
             write.csv(vGenes, "v_genes_frequency.csv", row.names = FALSE)
@@ -316,7 +338,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             dev.off()
             
             # -----------------------------------------------------------------------------
-            # Stage 13: Remove contamination sequences
+            # --- Remove contamination sequences ---
             # -----------------------------------------------------------------------------
             searchSeq(list = productive.TRB.aa, sequence = top_seq)
             cleansed <- removeSeq(file.list = productive.TRB.aa, sequence = top_seq)
@@ -324,7 +346,7 @@ process BIOC_LYMPHOSEQ_TCR_BCR_REPERTOIRE_ANALYSIS {
             searchSeq(list = cleansed, sequence = top_seq)
             
             # -----------------------------------------------------------------------------
-            # Stage 14: Merge samples
+            # --- Merge samples ---
             # -----------------------------------------------------------------------------
             if (length(unique(c(sample1, sample2))) >= 2) {
               merged_samples <- mergeFiles(samples = c(sample1, sample2), 

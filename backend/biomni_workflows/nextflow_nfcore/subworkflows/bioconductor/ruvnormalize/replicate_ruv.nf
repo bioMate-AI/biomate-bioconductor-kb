@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Center the gene expression matrix. 2. Identify negative control genes and construct the replicate index matrix. 3. Run replicate-b
+//  * 1. [Visualization & Output] Read user input files
+//  * 2. [Visualization & Output] Center the gene expression matrix
+//  * 3. [Visualization & Output] Run replicate-based RUV correction using naiveReplicateRUV
+//  * 4. [Visualization & Output] Prepare visualization parameters
+//  * 5. [Visualization & Output] Visualize the corrected data using SVD/PCA plotting
+//  * 6. [Visualization & Output] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_RUVNORMALIZE_REPLICATE_RUV {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RUVnormalize")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +64,7 @@ process BIOC_RUVNORMALIZE_REPLICATE_RUV {
         # Load required libraries
         library(RUVnormalize)
         
-        # 1. Read user input files
+        # --- Read user input files ---
         # Read expression matrix (samples as rows, genes as columns)
         Y <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
         
@@ -66,13 +80,13 @@ process BIOC_RUVNORMALIZE_REPLICATE_RUV {
         scIdx <- as.matrix(read.csv("replicates_mapping.csv", header = FALSE))
         storage.mode(scIdx) <- "integer"
         
-        # 2. Center the gene expression matrix
+        # --- Center the gene expression matrix ---
         Y <- scale(Y, scale=FALSE)
         
-        # 3. Run replicate-based RUV correction using naiveReplicateRUV
+        # --- Run replicate-based RUV correction using naiveReplicateRUV ---
         sRes <- naiveReplicateRUV(Y, cIdx, scIdx, k=20)
         
-        # 4. Prepare visualization parameters
+        # --- Prepare visualization parameters ---
         # Determine nKeep (number of genes to keep based on variance)
         nKeep <- min(1260, ncol(Y))
         
@@ -106,7 +120,7 @@ process BIOC_RUVNORMALIZE_REPLICATE_RUV {
         plAnnots <- list('gender'='categorical')
         gender.col <- c('-1' = "deeppink3", '1' = "blue")
         
-        # 5. Visualize the corrected data using SVD/PCA plotting
+        # --- Visualize the corrected data using SVD/PCA plotting ---
         pdf("svd_plot.pdf")
         svdResRep <- svdPlot(sRes\$cY[, ssd[1:nKeep], drop=FALSE], 
                              annot=annot, 
@@ -116,7 +130,7 @@ process BIOC_RUVNORMALIZE_REPLICATE_RUV {
                              kColors=gender.col, file=NULL)
         dev.off()
         
-        # 6. Save outputs
+        # --- Save outputs ---
         write.csv(sRes\$cY, "corrected_expression_matrix.csv", row.names = TRUE)
         saveRDS(sRes, "ruv_results.rds")
         saveRDS(svdResRep, "svd_results.rds")

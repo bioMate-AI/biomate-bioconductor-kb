@@ -60,18 +60,18 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATIO
     library(DOSE)
     library(dplyr)
     
-    # 1. Load differential expression data and define up- and down-regulated gene sets
+    # --- Load differential expression data and define up- and ---
     lung.expr <- read.csv("data-lung-cancer.csv", stringsAsFactors = FALSE)
     up.genes <- lung.expr[lung.expr\$log2FC > 1 & lung.expr\$adj.P.Value < 0.05, 1]
     dn.genes <- lung.expr[lung.expr\$log2FC < -1 & lung.expr\$adj.P.Value < 0.05, 1]
     bkgd.genes <- lung.expr[,1]
     
-    # 2. Convert gene identifiers (Ensembl to Entrez) using clusterProfiler::bitr
+    # --- Convert gene identifiers (Ensembl to Entrez) using ---
     up.genes.entrez <- clusterProfiler::bitr(up.genes, fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
     dn.genes.entrez <- clusterProfiler::bitr(dn.genes, fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
     bkgd.genes.entrez <- clusterProfiler::bitr(bkgd.genes, fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
     
-    # 3. Perform pathway enrichment analysis (Over-representation Analysis) using clusterProfiler::enrichWP
+    # --- Perform pathway enrichment analysis (Over-representation ---
     ewp.up <- clusterProfiler::enrichWP(
       up.genes.entrez[[2]],
       universe = bkgd.genes.entrez[[2]],
@@ -89,7 +89,7 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATIO
     )
     ewp.dn <- DOSE::setReadable(ewp.dn, org.Hs.eg.db, keyType = "ENTREZID")
     
-    # 4. Search and explore relevant pathways using rWikiPathways text search functions
+    # --- Search and explore relevant pathways using rWikiPathways ---
     lc.pathways <- findPathwaysByText("lung cancer")
     human.lc.pathways <- lc.pathways %>% dplyr::filter(species == "Homo sapiens")
     lc.wpids <- human.lc.pathways\$id

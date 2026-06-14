@@ -35,6 +35,15 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BAGS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     library(BAGS)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     cat("Reading input data...\n")
     if (!file.exists("input.csv")) {
@@ -105,7 +114,7 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     gene.nams <- rownames(gene.expr)
     
     # ==========================================
-    # Stage 2: Prepare Gene Sets
+    # --- Prepare Gene Sets ---
     # ==========================================
     cat("Constructing gene sets...\n")
     # Dynamically define minimum gene set size based on available genes
@@ -129,13 +138,13 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     }
     
     # ==========================================
-    # Stage 3: Prepare MCMC Data Set
+    # --- Prepare MCMC Data Set ---
     # ==========================================
     cat("Preparing MCMC dataset...\n")
     data.mcmc <- MCMCDataSet(gene.expr, data.gene.grps\$DataGeneSetsIds, phntp.list)
     
     # ==========================================
-    # Stage 4: Run Gibbs Sampler
+    # --- Run Gibbs Sampler ---
     # ==========================================
     cat("Running Gibbs sampler...\n")
     noRow <- dim(data.mcmc\$y.mu)[1]
@@ -162,7 +171,7 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     )
     
     # ==========================================
-    # Stage 5: Post-processing and Diagnostics
+    # --- Post-processing and Diagnostics ---
     # ==========================================
     cat("Analyzing posterior chains...\n")
     burn.in <- floor(iter * 0.2)  # 20% burn-in
