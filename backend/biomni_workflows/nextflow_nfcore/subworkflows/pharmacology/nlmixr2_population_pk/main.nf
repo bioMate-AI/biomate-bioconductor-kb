@@ -241,19 +241,49 @@ process NLMIXR2_POPULATION_PK {
     params_df <- as.data.frame(fit\$parFixed)
     etas       <- fit\$eta
 
-    # ETA shrinkage (per random effect)
+    # Helper: coerce nlmixr2 accessor return values (which can be data.frames,
+    # named lists, numeric vectors, NULL, or NA) into a single finite scalar
+    # or NA. Without this the auto_unbox=TRUE writer emits '{}' for non-scalar
+    # accessors instead of a number — surfaced 2026-06-14 in run 5b366088.
+    as_scalar <- function(x) {
+        if (is.null(x)) return(NA_real_)
+        x <- suppressWarnings(as.numeric(x))
+        x <- x[is.finite(x)]
+        if (length(x) == 0) return(NA_real_)
+        x[1]
+    }
+
+    # ETA shrinkage (per random effect). nlmixr2 fit\$shrink can be a list or
+    # a data.frame; take the max finite value.
     shrinkage_vals <- tryCatch(fit\$shrink, error = function(e) NULL)
-    max_shrinkage  <- if (!is.null(shrinkage_vals)) max(shrinkage_vals, na.rm = TRUE) else NA
+    raw_shrink_max <- if (!is.null(shrinkage_vals)) {
+        v <- suppressWarnings(as.numeric(unlist(shrinkage_vals)))
+        v <- v[is.finite(v)]
+        if (length(v) > 0) max(v) else NA_real_
+    } else NA_real_
+    # nlmixr2 returns shrinkage already as PERCENT (0-100 scale), not fraction.
+    # Earlier code multiplied by 100 producing impossible values like 8719%.
+    # Detect scale defensively: if the max looks like a fraction (<=1.0)
+    # multiply by 100; otherwise treat as already-percent.
+    max_shrinkage_pct <- if (is.na(raw_shrink_max)) NA_real_ else
+        if (raw_shrink_max <= 1.0) raw_shrink_max * 100 else raw_shrink_max
 
     # Condition number from covariance matrix
     cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
-    cond_number <- if (!is.null(cov_mat) && nrow(cov_mat) > 0) {
+    cond_number <- if (!is.null(cov_mat) && is.matrix(cov_mat) && nrow(cov_mat) > 0) {
         eig <- eigen(cov_mat, only.values = TRUE)\$values
-        max(abs(eig)) / min(abs(eig[abs(eig) > 1e-10]))
-    } else NA
+        eig <- eig[is.finite(eig) & abs(eig) > 1e-10]
+        if (length(eig) > 0) max(abs(eig)) / min(abs(eig)) else NA_real_
+    } else NA_real_
 
-    # OFV (objective function value)
-    ofv <- tryCatch(fit\$ofv, error = function(e) NA)
+    # OFV — nlmixr2 returns it via different accessors across versions
+    # (fit\$ofv, fit\$objDf\$OBJF, fit\$obf). Try each + coerce to scalar.
+    ofv_raw <- tryCatch(fit\$ofv, error = function(e) NULL)
+    if (is.null(ofv_raw) || length(suppressWarnings(as.numeric(ofv_raw))) == 0)
+        ofv_raw <- tryCatch(fit\$obf, error = function(e) NULL)
+    if (is.null(ofv_raw) || length(suppressWarnings(as.numeric(ofv_raw))) == 0)
+        ofv_raw <- tryCatch(fit\$objDf\$OBJF, error = function(e) NULL)
+    ofv <- as_scalar(ofv_raw)
 
     # Convergence: nlmixr2 sets fit\$message; SAEM converged if no warning keyword
     converged <- tryCatch({
@@ -261,10 +291,10 @@ process NLMIXR2_POPULATION_PK {
         !grepl("not converge|failed|warning", msg, ignore.case = TRUE)
     }, error = function(e) TRUE)  # assume converged if message not accessible
 
-    cat(sprintf("OFV        : %.2f\\n", ofv))
+    cat(sprintf("OFV        : %s\\n", ifelse(is.na(ofv), "NA", sprintf("%.2f", ofv))))
     cat(sprintf("Converged  : %s\\n", converged))
-    cat(sprintf("Max eta shrinkage: %.1f%%\\n", max_shrinkage * 100))
-    cat(sprintf("Condition number : %.1f\\n", cond_number))
+    cat(sprintf("Max eta shrinkage: %s%%\\n", ifelse(is.na(max_shrinkage_pct), "NA", sprintf("%.1f", max_shrinkage_pct))))
+    cat(sprintf("Condition number : %s\\n", ifelse(is.na(cond_number), "NA", sprintf("%.1f", cond_number))))
 
     # ── Write outputs ────────────────────────────────────────────────────────
     fwrite(params_df, "parameter_estimates.csv", row.names = TRUE)
@@ -297,8 +327,8 @@ process NLMIXR2_POPULATION_PK {
         algorithm             = "${params.algorithm}",
         n_subjects            = n_subjects,
         n_observations        = n_obs,
-        max_eta_shrinkage_pct = if (!is.na(max_shrinkage)) round(max_shrinkage * 100, 1) else NULL,
-        condition_number      = if (!is.na(cond_number))   round(cond_number, 1)          else NULL,
+        max_eta_shrinkage_pct = if (!is.na(max_shrinkage_pct)) round(max_shrinkage_pct, 1) else NULL,
+        condition_number      = if (!is.na(cond_number))       round(cond_number, 1)       else NULL,
         aic                   = tryCatch(AIC(fit), error = function(e) NULL),
         bic                   = tryCatch(BIC(fit), error = function(e) NULL)
     )
