@@ -557,6 +557,70 @@ resync_galaxy_env() {
   log "[galaxy-env] Done — env vars from /opt/biomate/.env are now active"
 }
 
+push_managed_env() {
+  # Render the manifest-managed env locally and upsert it into the EC2's
+  # /opt/biomate/.env via scp+ssh (no S3 needed — sync runs locally with SSH).
+  #
+  # Single source of variable NAMES: deploy/biomate.env.manifest.
+  # Single source of VALUES:         $BIOMATE_ENV_SOURCE (default
+  #                                  env-files/opt-biomate.env — the collected
+  #                                  real env, gitignored).
+  #
+  # Per-key upsert: managed value overrides; host-only keys NOT in the manifest
+  # (e.g. GALAXY_MASTER_API_KEY) are preserved. Required-but-missing vars fail
+  # the render (fail-fast) before anything is pushed.
+  #
+  # Trigger via: BIOMATE_PUSH_ENV=1 [BIOMATE_ENV_SOURCE=path] bash scripts/sync_to_dev.sh
+  # Pair with BIOMATE_RESYNC_GALAXY_ENV=1 to apply it to the Galaxy container.
+  local manifest="$REPO_ROOT/deploy/biomate.env.manifest"
+  local renderer="$REPO_ROOT/scripts/render_env_manifest.sh"
+  local source_env="${BIOMATE_ENV_SOURCE:-$REPO_ROOT/env-files/opt-biomate.env}"
+
+  [[ -f "$manifest"   ]] || { log "[push-env] FATAL: manifest missing: $manifest"; return 1; }
+  [[ -f "$renderer"   ]] || { log "[push-env] FATAL: renderer missing: $renderer"; return 1; }
+  [[ -f "$source_env" ]] || { log "[push-env] FATAL: value source missing: $source_env (set BIOMATE_ENV_SOURCE=<file>)"; return 1; }
+
+  log "[push-env] Rendering managed env from manifest (values: $source_env)..."
+  local managed; managed="$(mktemp)"
+  # Render in a subshell: load source values WITHOUT \`source\` (values taken
+  # literally via split-on-first-=, safe for spaces/specials), then render.
+  if ! (
+        while IFS= read -r line; do
+          case "$line" in ''|\#*) continue ;; esac
+          [[ "$line" == *=* ]] || continue
+          export "${line%%=*}=${line#*=}"
+        done < "$source_env"
+        bash "$renderer" "$managed"
+      ); then
+    log "[push-env] FATAL: render failed (missing required vars? see error above)"
+    rm -f "$managed"; return 1
+  fi
+
+  local n; n="$(grep -c '=' "$managed" 2>/dev/null || true)"
+  if [[ "${n:-0}" -eq 0 ]]; then
+    log "[push-env] Nothing to push (no managed vars rendered)"; rm -f "$managed"; return 0
+  fi
+
+  log "[push-env] Pushing $n managed var(s) → EC2 /opt/biomate/.env (host-only keys preserved)..."
+  ec2_scp "$managed" "${EC2_USER}@${EC2_HOST}:/tmp/.env.managed"
+  ec2_ssh '
+    set -euo pipefail
+    cd /opt/biomate
+    touch .env
+    cp .env ".env.backup.$(date +%Y%m%d_%H%M%S)"
+    # Per-key upsert: drop each managed key, then append the managed block.
+    while IFS="=" read -r k _; do
+      [ -n "$k" ] && sed -i "/^${k}=/d" .env
+    done < /tmp/.env.managed
+    cat /tmp/.env.managed >> .env
+    chmod 600 .env
+    rm -f /tmp/.env.managed
+    echo "[push-env] /opt/biomate/.env now has $(wc -l < .env) line(s)"
+  '
+  rm -f "$managed"
+  log "[push-env] Done. Apply with BIOMATE_RESYNC_GALAXY_ENV=1 (frontend picks it up on next recreate)."
+}
+
 restart_galaxy() {
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
@@ -704,6 +768,12 @@ do_sync() {
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db marketing=$do_marketing"
+
+  # Optional: render the manifest-managed env locally and push it into the
+  # EC2's /opt/biomate/.env (per-key upsert; host-only keys preserved). Runs
+  # BEFORE resync so the freshly-pushed file is what gets applied below.
+  # Trigger via BIOMATE_PUSH_ENV=1 [BIOMATE_ENV_SOURCE=path].
+  [[ "${BIOMATE_PUSH_ENV:-}" == "1" ]] && push_managed_env
 
   # Optional: recreate Galaxy container with /opt/biomate/.env merged in.
   # Trigger via BIOMATE_RESYNC_GALAXY_ENV=1 when env vars in that file change

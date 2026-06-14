@@ -20,6 +20,7 @@ wheels/
 *.egg
 MANIFEST
 *.manifest
+!deploy/biomate.env.manifest
 *.spec
 pip-log.txt
 pip-delete-this-directory.txt
@@ -33,6 +34,8 @@ env/
 .env.production
 secrets-aws.json
 .secrets-temp/
+# Collected real env files for shared secret management — NEVER commit
+env-files/
 .fix-*.sh
 *.pem
 *.key
