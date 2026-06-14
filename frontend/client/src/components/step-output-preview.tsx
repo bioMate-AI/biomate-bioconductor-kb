@@ -48,7 +48,11 @@ interface FetchedContent {
 // Extension → viewer category
 // ---------------------------------------------------------------------------
 
-const IMAGE_EXTS   = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf']);
+const IMAGE_EXTS   = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg']);
+// PDF is the dominant Bioconductor figure output (pdf()/ggsave .pdf). It is NOT an
+// <img>-renderable raster — browsers display it natively in an <iframe>/<embed>.
+// Putting it in IMAGE_EXTS rendered it in <img> → broken-image icon for most figures.
+const PDF_EXTS     = new Set(['pdf']);
 const TABLE_EXTS   = new Set(['csv', 'tsv', 'json', 'tabular', 'star']);
 const SEQ_EXTS     = new Set(['fasta', 'fa', 'fastq', 'fq']);
 const VCF_EXTS     = new Set(['vcf', 'bcf']);
@@ -63,12 +67,13 @@ const TEXT_EXTS    = new Set(['log', 'txt', 'sh', 'py', 'out', 'err']);
 const R_EXTS       = new Set(['rds', 'rdata']);
 
 type ViewerKind =
-  | 'image' | 'table' | 'sequence' | 'vcf' | 'annotation'
+  | 'image' | 'pdf' | 'table' | 'sequence' | 'vcf' | 'annotation'
   | 'structure' | 'density' | 'r-object' | 'html' | 'text' | 'download';
 
 function resolveViewer(ext: string): ViewerKind {
   const e = ext.toLowerCase().replace(/^\./, '');
   if (IMAGE_EXTS.has(e))   return 'image';
+  if (PDF_EXTS.has(e))     return 'pdf';
   if (TABLE_EXTS.has(e))   return 'table';
   if (SEQ_EXTS.has(e))     return 'sequence';
   if (VCF_EXTS.has(e))     return 'vcf';
@@ -492,8 +497,14 @@ function FetchingPreview({
           if (cancelled) return;
           setContent({ url: stepFileUrl, contentType: ct, text });
         } else {
-          const blob = await res.blob();
+          let blob = await res.blob();
           if (cancelled) return;
+          // The step-file endpoint sometimes serves binaries as
+          // application/octet-stream; an <iframe> only renders a PDF blob whose
+          // type is application/pdf. Force it so the inline viewer always works.
+          if (viewer === 'pdf' && blob.type !== 'application/pdf') {
+            blob = new Blob([blob], { type: 'application/pdf' });
+          }
           objectUrl = URL.createObjectURL(blob);
           setContent({ url: objectUrl, contentType: ct });
         }
@@ -580,6 +591,18 @@ function ViewerContent({
   switch (viewer) {
     case 'image':
       return <InlineImageViewer src={content.url} name={file.name} />;
+
+    case 'pdf':
+      // PDFs render natively in an iframe (vector figures stay sharp). Taller than
+      // the html box since figures are usually full-page. A download link is offered
+      // by the surrounding chrome for browsers without an inline PDF plugin.
+      return (
+        <iframe
+          src={content.url}
+          className="w-full h-96 border rounded"
+          title={file.name}
+        />
+      );
 
     case 'html':
       return (
