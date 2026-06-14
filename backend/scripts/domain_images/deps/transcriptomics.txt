@@ -92,6 +92,8 @@ HTqPCR
 IHW
 IRanges
 IWTomics
+biclust
+iBBiG
 InPAS
 InteractionSet
 IsoBayes
