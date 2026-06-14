@@ -55,7 +55,7 @@ process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     # Load required libraries
     library(DegNorm)
     
-    # 1. Identify and list BAM and GTF files from the working directory
+    # --- Identify and list BAM and GTF files from the working ---
     bam_file_list = list.files(path=".", pattern="\\\\.bam\$", full.names=TRUE)
     if (length(bam_file_list) == 0) {
       stop("Error: No BAM files found in the working directory.")
@@ -70,7 +70,7 @@ process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     message("Found ", length(bam_file_list), " BAM files.")
     message("Using GTF file: ", gtf_file)
     
-    # 2. Calculate read coverage scores and counts across samples
+    # --- Calculate read coverage scores and counts across samples ---
     message("Calculating read coverage...")
     coverage_res_chr21 = read_coverage_batch(bam_file_list, gtf_file, cores=2)
     
@@ -85,7 +85,7 @@ process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     saveRDS(coverage_res_chr21, file="coverage_results.rds")
     write.csv(counts, file="raw_counts.csv", row.names=TRUE)
     
-    # 3. Run the DegNorm core algorithm
+    # --- Run the DegNorm core algorithm ---
     message("Running DegNorm core algorithm...")
     res_DegNorm_chr21 = degnorm(read_coverage = coverage_res_chr21[[1]],
                                 counts = coverage_res_chr21[[2]],
@@ -105,7 +105,7 @@ process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     write.csv(counts_normed, file="degnorm_normalized_counts.csv", row.names=TRUE)
     saveRDS(res_DegNorm_chr21, file="degnorm_results.rds")
     
-    # 4. Visualize coverage curves, degradation index boxplots, heatmaps, and correlation matrices
+    # --- Visualize coverage curves, degradation index boxplots, ---
     message("Generating diagnostic plots...")
     pdf("degnorm_diagnostic_plots.pdf", width=7, height=6)
     

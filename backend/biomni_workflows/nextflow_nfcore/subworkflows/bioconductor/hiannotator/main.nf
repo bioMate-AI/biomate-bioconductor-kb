@@ -35,6 +35,15 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("hiAnnotator", "GenomicRanges", "rtracklayer", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Import Query Regions and Metadata
+    # --- Import Query Regions and Metadata ---
     # ==========================================
     message("Loading input genomic intervals...")
     if (!file.exists("regions.bed")) {
@@ -76,7 +85,7 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     }
     
     # ==========================================
-    # Stage 2: Generate Subject Annotation Set
+    # --- Generate Subject Annotation Set ---
     # ==========================================
     # To perform annotation, we construct a realistic subject GRanges (e.g., gene models)
     # based on the chromosomes present in the query to ensure meaningful overlaps.
@@ -105,7 +114,7 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     subject <- do.call(c, subject_list)
     
     # ==========================================
-    # Stage 3: Annotate Query using hiAnnotator
+    # --- Annotate Query using hiAnnotator ---
     # ==========================================
     message("Running hiAnnotator pipeline...")
     
@@ -149,14 +158,14 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     })
     
     # ==========================================
-    # Stage 4: Export Annotated Results
+    # --- Export Annotated Results ---
     # ==========================================
     message("Exporting annotated regions...")
     df_annotated <- as.data.frame(annotated_query)
     write.csv(df_annotated, "annotated_regions.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("annotation_summary.pdf", width = 8, height = 6)

@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Create MOFA object using create_mofa. 2. Set covariates using set_covariates. 3. Define data, model, training, and MEFISTO options
+//  * 1. [Visualization & Output] Create MOFA object
+//  * 2. [Visualization & Output] Set covariates
+//  * 3. [Visualization & Output] Define options
+//  * 4. [Visualization & Output] Prepare and train the model
+//  * 5. [Visualization & Output] Downstream analysis and visualization
 
 nextflow.enable.dsl = 2
 
@@ -74,13 +78,13 @@ process BIOC_MOFA2_MEFISTO_COVARIATE_ANALYSIS {
             # Set up PDF device to capture all plots
             pdf("mefisto_analysis_plots.pdf", width = 8, height = 6)
             
-            # 1. Create MOFA object
+            # --- Create MOFA object ---
             sm <- create_mofa(data = dd\$data)
             
-            # 2. Set covariates
+            # --- Set covariates ---
             sm <- set_covariates(sm, covariates = time)
             
-            # 3. Define options
+            # --- Define options ---
             data_opts <- get_default_data_options(sm)
             model_opts <- get_default_model_options(sm)
             model_opts\$num_factors <- 4
@@ -88,12 +92,12 @@ process BIOC_MOFA2_MEFISTO_COVARIATE_ANALYSIS {
             train_opts\$maxiter <- 100
             mefisto_opts <- get_default_mefisto_options(sm)
             
-            # 4. Prepare and train the model
+            # --- Prepare and train the model ---
             sm <- prepare_mofa(sm, model_options = model_opts, mefisto_options = mefisto_opts, training_options = train_opts, data_options = data_opts)
             outfile = file.path(tempdir(),"model.hdf5")
             sm <- run_mofa(sm, outfile, use_basilisk = TRUE)
             
-            # 5. Downstream analysis and visualization
+            # --- Downstream analysis and visualization ---
             print(plot_variance_explained(sm))
             r <- plot_factor_cor(sm)
             

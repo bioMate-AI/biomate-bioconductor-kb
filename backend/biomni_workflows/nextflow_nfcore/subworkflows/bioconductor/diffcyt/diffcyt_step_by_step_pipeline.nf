@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare the input data into a SummarizedExperiment format using prepareData(). 2. Transform the marker expression data using trans
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Set Up Design and Contrast Matrices
+//  * 3. [Visualization & Output] Run Step-by-Step diffcyt Pipeline
+//  * 4. [Visualization & Output] Save Outputs and Generate Plots
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +64,7 @@ process BIOC_DIFFCYT_DIFFCYT_STEP_BY_STEP_PIPELINE {
     library(flowCore)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read d_flowSet (expected to be saved as an RDS file)
@@ -95,7 +98,7 @@ process BIOC_DIFFCYT_DIFFCYT_STEP_BY_STEP_PIPELINE {
     }
     
     # ==========================================
-    # 2. Set Up Design and Contrast Matrices
+    # --- Set Up Design and Contrast Matrices ---
     # ==========================================
     
     # Dynamically determine design columns based on available metadata
@@ -116,7 +119,7 @@ process BIOC_DIFFCYT_DIFFCYT_STEP_BY_STEP_PIPELINE {
     contrast <- createContrast(contrast_vec)
     
     # ==========================================
-    # 3. Run Step-by-Step diffcyt Pipeline
+    # --- Run Step-by-Step diffcyt Pipeline ---
     # ==========================================
     
     # Prepare data
@@ -151,7 +154,7 @@ process BIOC_DIFFCYT_DIFFCYT_STEP_BY_STEP_PIPELINE {
     print(top_DS_table)
     
     # ==========================================
-    # 4. Save Outputs and Generate Plots
+    # --- Save Outputs and Generate Plots ---
     # ==========================================
     
     # Save RDS objects

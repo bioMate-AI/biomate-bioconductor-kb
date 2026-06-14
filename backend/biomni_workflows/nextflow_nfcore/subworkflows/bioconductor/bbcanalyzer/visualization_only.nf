@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run analyzeBasesPlotOnly using the output list from a previous analyzeBases run to generate customized plots
+//  * 1. [Visualization & Output] Declare and verify USER INPUT files from the working
+//  * 2. [Visualization & Output] Run the visualization pipeline
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +59,7 @@ process BIOC_BBCANALYZER_VISUALIZATION_ONLY {
         # Load the required Bioconductor package
         library(BBCAnalyzer)
         
-        # 1. Declare and verify USER INPUT files from the working directory
+        # --- Declare and verify USER INPUT files from the working ---
         sample_file <- "SampleNames.txt"
         if (!file.exists(sample_file)) {
           stop("Error: Required input file 'SampleNames.txt' not found in the working directory.")
@@ -89,7 +90,7 @@ process BIOC_BBCANALYZER_VISUALIZATION_ONLY {
           known_file_path <- ""
         }
         
-        # 2. Run the visualization pipeline
+        # --- Run the visualization pipeline ---
         analyzeBasesPlotOnly(sample_names=sample_file,
                     vcf_input=vcf_input_dir,
                     output="",

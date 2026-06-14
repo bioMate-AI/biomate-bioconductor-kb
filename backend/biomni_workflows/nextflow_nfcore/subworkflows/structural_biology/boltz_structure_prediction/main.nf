@@ -38,18 +38,19 @@ process PREPARE_INPUT {
     container ECR
 
     input:
-    path(fasta)
-    path(yaml_input)
+    path(input_file)
 
     output:
     path("boltz_input.*"), emit: input_file
 
     script:
-    def use_yaml = yaml_input.name != 'NO_FILE'
-    def src = use_yaml ? yaml_input : fasta
-    def dst = use_yaml ? 'boltz_input.yaml' : 'boltz_input.fasta'
+    // Real file — pick destination extension by source. Avoids the NO_FILE
+    // placeholder pattern (which AWS Batch can't stage — no physical file).
+    def dst = input_file.name.toLowerCase().endsWith('.yaml') || input_file.name.toLowerCase().endsWith('.yml')
+        ? 'boltz_input.yaml'
+        : 'boltz_input.fasta'
     """
-    cp ${src} ${dst}
+    cp ${input_file} ${dst}
     """
 }
 
@@ -58,7 +59,7 @@ process PREPARE_INPUT {
 process BOLTZ_PREDICT {
     tag "boltz2"
     label 'process_gpu'
-    publishDir "${params.outdir}/structures", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/structures" }, mode: 'copy'
 
     container ECR
 
@@ -71,13 +72,13 @@ process BOLTZ_PREDICT {
     path("boltz_results/**/confidence_*.json"), emit: confidence, optional: true
 
     script:
-    def msa_flag = params.use_msa_server ? '--use-msa-server' : ''
+    def msa_flag = params.use_msa_server ? '--use_msa_server' : ''
     """
     boltz predict ${input_file} \\
         --out_dir boltz_results/ \\
-        --output-format ${params.output_format} \\
-        --sampling-steps ${params.sampling_steps} \\
-        --recycling-steps ${params.recycling_steps} \\
+        --output_format ${params.output_format} \\
+        --sampling_steps ${params.sampling_steps} \\
+        --recycling_steps ${params.recycling_steps} \\
         ${msa_flag} \\
         --accelerator gpu \\
         --devices 1
@@ -86,10 +87,10 @@ process BOLTZ_PREDICT {
 
 // -- Summarise results --------------------------------------------------------
 
-process SUMMARISE_RESULTS {
+process BOLTZ_SUMMARISE_RESULTS {
     tag "summary"
     label 'process_low'
-    publishDir "${params.outdir}", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}" }, mode: 'copy'
 
     container ECR
 
@@ -97,7 +98,8 @@ process SUMMARISE_RESULTS {
     path(results_dir)
 
     output:
-    path("boltz_summary.json"), emit: summary
+    path("boltz_summary.json"),  emit: summary
+    path("qc_metrics.json"),     emit: qc_metrics
 
     script:
     """
@@ -123,6 +125,42 @@ summary = {
 with open("boltz_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 print(json.dumps(summary, indent=2))
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# structure-prediction gates (Jumper 2021 / Tunyasuvunakool 2021):
+#   mean_plddt           ≥ 70 → downstream-docking ready (GOLD)
+#   confident_fraction   ≥ 0.70 → bulk of model well-modelled (SILVER)
+#   max_pae              ≤ 8 Å inter-domain (SILVER, skipped when None)
+# Boltz output keys vary by version; defensively extract whatever the
+# top-ranked confidence file reports.
+mean_plddt = None
+confident_fraction = None
+max_pae = None
+if confidence_data:
+    top = confidence_data[0]["scores"]
+    for k in ("complex_plddt", "mean_plddt", "plddt_mean", "plddt", "ptm_iptm_global_plddt"):
+        if k in top and top[k] is not None:
+            mean_plddt = float(top[k])
+            break
+    for k in ("confident_fraction", "frac_plddt_gt_70", "plddt_confident_frac"):
+        if k in top and top[k] is not None:
+            confident_fraction = float(top[k])
+            break
+    for k in ("max_pae", "pae_max", "complex_pae"):
+        if k in top and top[k] is not None:
+            v = top[k]
+            max_pae = float(v) if not isinstance(v, list) else float(max(max(row) for row in v))
+            break
+
+qc_metrics = {
+    "mean_plddt":         round(mean_plddt, 2) if mean_plddt is not None else None,
+    "confident_fraction": round(confident_fraction, 3) if confident_fraction is not None else None,
+    "max_pae":            round(max_pae, 2) if max_pae is not None else None,
+    "structures_predicted": len(structures),
+    "tool":               "Boltz-2",
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2)
 EOF
     """
 }
@@ -130,15 +168,15 @@ EOF
 // -- Workflow ----------------------------------------------------------------
 
 workflow {
-    fasta_ch = params.input_fasta
-        ? Channel.fromPath(params.input_fasta, checkIfExists: true)
-        : Channel.fromPath('NO_FILE', checkIfExists: false).ifEmpty(file('NO_FILE'))
+    // Pick whichever real input was supplied — YAML wins if both set.
+    // Avoids the NO_FILE placeholder channel which AWS Batch can't stage.
+    if (!params.input_fasta && !params.input_yaml) {
+        error "Please provide --input_fasta or --input_yaml (one is required)"
+    }
+    def input_path = params.input_yaml ?: params.input_fasta
+    input_ch = Channel.fromPath(input_path, checkIfExists: true)
 
-    yaml_ch = params.input_yaml
-        ? Channel.fromPath(params.input_yaml, checkIfExists: true)
-        : Channel.fromPath('NO_FILE', checkIfExists: false).ifEmpty(file('NO_FILE'))
-
-    PREPARE_INPUT(fasta_ch, yaml_ch)
+    PREPARE_INPUT(input_ch)
     BOLTZ_PREDICT(PREPARE_INPUT.out.input_file)
-    SUMMARISE_RESULTS(BOLTZ_PREDICT.out.results_dir)
+    BOLTZ_SUMMARISE_RESULTS(BOLTZ_PREDICT.out.results_dir)
 }

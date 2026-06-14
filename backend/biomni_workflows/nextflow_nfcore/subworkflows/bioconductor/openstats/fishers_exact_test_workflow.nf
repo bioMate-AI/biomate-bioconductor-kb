@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Preprocess categorical data and create an OpenStatsList object using OpenStatsList. 2. Run Fisher's Exact Test analysis using Open
+//  * 1. [Input & Preparation] Preprocess categorical data and create an OpenStatsList
+//  * 2. [Input & Preparation] Run Fisher's Exact Test analysis
+//  * 3. [Input & Preparation] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_OPENSTATS_FISHERS_EXACT_TEST_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("OpenStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +60,7 @@ process BIOC_OPENSTATS_FISHERS_EXACT_TEST_WORKFLOW {
     
     library(OpenStats)
     
-    # 1. Preprocess categorical data and create an OpenStatsList object
+    # --- Preprocess categorical data and create an OpenStatsList ---
     input_file <- "test_categorical.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -69,14 +80,14 @@ process BIOC_OPENSTATS_FISHERS_EXACT_TEST_WORKFLOW {
       debug = FALSE
     )
     
-    # 2. Run Fisher's Exact Test analysis
+    # --- Run Fisher's Exact Test analysis ---
     FE_result <- OpenStatsAnalysis(
       OpenStatsList = test_Cat,
       method = "FE",
       FE_formula = Thoracic.Processes ~ Genotype + Sex
     )
     
-    # 3. Save outputs
+    # --- Save outputs ---
     saveRDS(FE_result, file = "FE_result.rds")
     
     # Generate and save report in JSON format

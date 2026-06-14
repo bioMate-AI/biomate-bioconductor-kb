@@ -17,7 +17,7 @@ process BIOC_BIODBHMDB_HMDB_METABOLITE_ANNOTATION_AND_DIFFERENTIAL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -57,7 +57,7 @@ process BIOC_BIODBHMDB_HMDB_METABOLITE_ANNOTATION_AND_DIFFERENTIAL_ANALYSIS {
     library(biodb)
     library(biodbHmdb)
     
-    # 1. Load Input Data
+    # --- Load Input Data ---
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
     }
@@ -73,7 +73,7 @@ process BIOC_BIODBHMDB_HMDB_METABOLITE_ANNOTATION_AND_DIFFERENTIAL_ANALYSIS {
     intensity <- intensity[, common_samples, drop = FALSE]
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
-    # 2. Initialize biodb and HMDB Connector
+    # --- Initialize biodb and HMDB Connector ---
     message("Initializing biodb and HMDB connector...")
     bd <- biodb::newBiodb()
     conn <- NULL
@@ -88,7 +88,7 @@ process BIOC_BIODBHMDB_HMDB_METABOLITE_ANNOTATION_AND_DIFFERENTIAL_ANALYSIS {
       warning("Failed to initialize HMDB connector: ", e\$message)
     })
     
-    # 3. Retrieve HMDB Annotations
+    # --- Retrieve HMDB Annotations ---
     feature_ids <- rownames(intensity)
     hmdb_ids <- feature_ids[grep("^HMDB\\\\d+", feature_ids)]
     
@@ -136,7 +136,7 @@ process BIOC_BIODBHMDB_HMDB_METABOLITE_ANNOTATION_AND_DIFFERENTIAL_ANALYSIS {
       message("No HMDB-format IDs detected or connector unavailable; skipping database query.")
     }
     
-    # 4. Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     message("Performing differential abundance analysis...")
     conditions <- unique(coldata\$condition)
     p_values <- rep(NA, nrow(intensity))
@@ -189,7 +189,7 @@ process BIOC_BIODBHMDB_HMDB_METABOLITE_ANNOTATION_AND_DIFFERENTIAL_ANALYSIS {
     write.csv(final_results, "annotated_differential_metabolites.csv", row.names = FALSE)
     message("Saved annotated results to 'annotated_differential_metabolites.csv'")
     
-    # 5. Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     pdf("metabolite_analysis_plots.pdf", width = 8, height = 6)
     

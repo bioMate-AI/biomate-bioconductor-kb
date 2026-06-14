@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Compute the distance matrix using `dist` and convert it to a matrix. 2. Construct the affinity matrix using `affinity_matrix`. 3. 
+//  * 1. [Input & Preparation] Read the user input file 'feature1' from the working
+//  * 2. [Input & Preparation] Compute the distance matrix and convert it to a matrix
+//  * 3. [Input & Preparation] Construct the affinity matrix using affinity_matrix
+//  * 4. [Input & Preparation] Perform spectral clustering using spectral_clustering
+//  * 5. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +63,7 @@ process BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING {
     # Load required libraries
     library(ANF)
     
-    # 1. Read the user input file 'feature1' from the working directory.
+    # --- Read the user input file 'feature1' from the working ---
     # We check for common formats like CSV, TSV, or TXT.
     if (file.exists("feature1.csv")) {
       feature1 <- as.matrix(read.csv("feature1.csv", row.names = 1, check.names = FALSE))
@@ -71,17 +75,17 @@ process BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING {
       stop("Error: Input file 'feature1' (e.g., feature1.csv, feature1.tsv, or feature1.txt) not found in the working directory.")
     }
     
-    # 2. Compute the distance matrix and convert it to a matrix
+    # --- Compute the distance matrix and convert it to a matrix ---
     d = dist(feature1)
     d = as.matrix(d)
     
-    # 3. Construct the affinity matrix using affinity_matrix
+    # --- Construct the affinity matrix using affinity_matrix ---
     A1 = affinity_matrix(d, 10)
     
-    # 4. Perform spectral clustering using spectral_clustering
+    # --- Perform spectral clustering using spectral_clustering ---
     labels = spectral_clustering(A1, 2)
     
-    # 5. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the cluster labels
     output_labels <- data.frame(
       ID = rownames(feature1),

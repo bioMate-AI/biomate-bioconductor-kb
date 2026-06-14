@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Sort the data by chromosome and genomic position. 2. Calculate enrichment measurements (limma t-statistics) using lmtstat. 3. Prep
+//  * 1. [Input & Preparation] Read the user input file
+//  * 2. [Input & Preparation] Calculate enrichment measurements (limma t-statistics)
+//  * 3. [Input & Preparation] Prepare the input matrix Y by combining chromosome and
+//  * 4. [Input & Preparation] Run the second-order Ising model using iChip2
+//  * 5. [Input & Preparation] Call enriched regions using enrichreg with posterior
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("iChip")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +63,7 @@ process BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING {
     # Load required library
     library(iChip)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     # The file 'chip_data.txt' is expected to be a tab-delimited file containing:
     # Column 1: Chromosome
     # Column 2: Genomic Position
@@ -65,14 +78,14 @@ process BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING {
     # Sort the data by chromosome and genomic position
     oct4 <- oct4[order(oct4[, 1], oct4[, 2]), ]
     
-    # 2. Calculate enrichment measurements (limma t-statistics) using lmtstat
+    # --- Calculate enrichment measurements (limma t-statistics) ---
     # Columns 5:6 are IP replicates, columns 3:4 are Control replicates
     oct4lmt <- lmtstat(oct4[, 5:6], oct4[, 3:4])
     
-    # 3. Prepare the input matrix Y by combining chromosome and the t-statistics
+    # --- Prepare the input matrix Y by combining chromosome and ---
     oct4Y <- cbind(oct4[, 1], oct4lmt)
     
-    # 4. Run the second-order Ising model using iChip2
+    # --- Run the second-order Ising model using iChip2 ---
     set.seed(777)
     oct4res2 <- iChip2(Y = oct4Y, burnin = 2000, sampling = 10000, winsize = 2,
                        sdcut = 2, beta = 1.25, verbose = FALSE)
@@ -80,7 +93,7 @@ process BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING {
     # Save the raw model results as an RDS object
     saveRDS(oct4res2, file = "ichip2_results.rds")
     
-    # 5. Call enriched regions using enrichreg with posterior probability or FDR cutoffs
+    # --- Call enriched regions using enrichreg with posterior ---
     # Method 1: Posterior probability cutoff (ppcut)
     reg1 <- enrichreg(pos = oct4[, 1:2], enrich = oct4lmt, pp = oct4res2\$pp,
                       cutoff = 0.9, method = "ppcut", maxgap = 500)

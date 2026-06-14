@@ -85,10 +85,10 @@ process BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS {
       known_file_path <- known_polymorphisms
     }
     
-    # 1. Load reference genome
+    # --- Load reference genome ---
     ref_genome <- BSgenome.Hsapiens.UCSC.hg19
     
-    # 2. Run analyzeBases to determine target positions, analyze reads, sum up frequencies,
+    # --- Run analyzeBases to determine target positions, analyze ---
     # report variants, and generate plots.
     output1 <- analyzeBases(
       sample_names = sample_file,

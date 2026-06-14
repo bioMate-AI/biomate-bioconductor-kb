@@ -36,6 +36,15 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Organism.dplyr", "TxDb.Hsapiens.UCSC.hg38.knownGene", "org.Hs.eg.db", "dplyr", "ggplot2", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +63,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     
     input_file <- "input.csv"
@@ -87,7 +96,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     ids <- ids[ids != ""]
     
     # ==========================================
-    # STAGE 2: Initialize Organism.dplyr Source
+    # --- Initialize Organism.dplyr Source ---
     # ==========================================
     
     # Create a temporary SQLite database combining TxDb and OrgDb
@@ -97,7 +106,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
                         orgdb = org.Hs.eg.db)
     
     # ==========================================
-    # STAGE 3: Query and Annotate Features
+    # --- Query and Annotate Features ---
     # ==========================================
     
     # Extract tables from the organism source
@@ -157,7 +166,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     write.csv(annotated_df, "annotated_features.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Functional Annotation (GO Terms)
+    # --- Functional Annotation (GO Terms) ---
     # ==========================================
     
     if ("go" %in% src_tbls(src)) {
@@ -173,7 +182,7 @@ process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     # Plot top 30 genes by transcript count

@@ -98,19 +98,19 @@ process BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS {
     # 2. Run ExCluster Workflow
     # ==========================================
     
-    # Stage 1: Convert GTF to flattened GFF format
+    # --- Convert GTF to flattened GFF format ---
     message("Stage 1: Converting GTF to flattened GFF format...")
     GFF <- GFF_convert(GTF.File=GTF_file)
     
-    # Stage 2: Count and normalize reads per exon bin from BAM files
+    # --- Count and normalize reads per exon bin from BAM files ---
     message("Stage 2: Counting and normalizing reads per exon bin...")
     normCounts <- processCounts(bam.Files=bamFiles, sample.Names=sampleNames, annot.GFF=GFF, paired.Reads=TRUE)
     
-    # Stage 3: Run core differential splicing analysis
+    # --- Run core differential splicing analysis ---
     message("Stage 3: Running core differential splicing analysis...")
     ExClust_Results <- ExCluster(exon.Counts=normCounts, cond.Nums=condNums, annot.GFF=GFF, combine.Exons=FALSE)
     
-    # Stage 4: Plot exon log2 fold changes for significant genes
+    # --- Plot exon log2 fold changes for significant genes ---
     message("Stage 4: Plotting exon log2 fold changes...")
     outDir <- "./Images/"
     if (!dir.exists(outDir)) {
@@ -118,7 +118,7 @@ process BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS {
     }
     plotExonlog2FC(results.Data=ExClust_Results, out.Dir=outDir, plot.Type="PNG")
     
-    # Stage 5: Convert results to a GRanges object
+    # --- Convert results to a GRanges object ---
     message("Stage 5: Converting results to GRanges object...")
     GRanges.ExClustResults <- GRangesFromExClustResults(results.ExClust=ExClust_Results)
     

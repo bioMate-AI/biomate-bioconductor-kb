@@ -65,23 +65,23 @@ process BIOC_QUASR_BIS_SEQ_WORKFLOW {
     genomeFile <- "hg19sub.fa"
     annotFile <- "hg19sub_annotation.gtf"
     
-    # 1. Align bisulfite-converted reads using qAlign
+    # --- Align bisulfite-converted reads using qAlign ---
     proj4 <- qAlign(sampleFile, genomeFile, bisulfite = "dir")
     print(proj4)
     
-    # 2. Quantify methylation states for all genomic CpGs using qMeth
+    # --- Quantify methylation states for all genomic CpGs using ---
     meth <- qMeth(proj4, mode = "CpGcomb", collapseBySample = TRUE)
     
     # Save all CpG methylation results
     saveRDS(meth, "meth_all_CpG.rds")
     write.csv(as.data.frame(meth), "meth_all_CpG.csv", row.names = FALSE)
     
-    # 3. Quantify methylation states for a specific single-cytosine region
+    # --- Quantify methylation states for a specific ---
     meth_single <- qMeth(proj4, query = GRanges("chr1", IRanges(start = 31633, width = 2)),
                          collapseBySample = TRUE)
     write.csv(as.data.frame(meth_single), "meth_single_region.csv", row.names = FALSE)
     
-    # 4. Construct promoter query regions (promRegSel) from the GTF annotation
+    # --- Construct promoter query regions (promRegSel) from the ---
     chrLen <- scanFaIndex(genomeFile)
     chrominfo <- data.frame(chrom = as.character(seqnames(chrLen)), 
                             length = width(chrLen), 
@@ -98,7 +98,7 @@ process BIOC_QUASR_BIS_SEQ_WORKFLOW {
     promRegSel <- promReg[match(unique(gnId), gnId)]
     names(promRegSel) <- unique(gnId)
     
-    # 5. Quantify methylation states across specific query regions (promoters)
+    # --- Quantify methylation states across specific query regions ---
     meth_promoters <- qMeth(proj4, query = promRegSel, collapseByQueryRegion = TRUE,
                             collapseBySample = TRUE)
     

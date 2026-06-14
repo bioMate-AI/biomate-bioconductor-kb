@@ -64,10 +64,10 @@ process BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW {
       stop(paste("Error: Input file", chas.fn, "not found in the working directory."))
     }
     
-    # 1. Load the ChAS file
+    # --- Load the ChAS file ---
     segments <- load_chas(chas.fn, oncoscan_na33.cov)
     
-    # 2. Clean the segments: restricted to Oncoscan coverage, LOH not overlapping
+    # --- Clean the segments: restricted to Oncoscan coverage, LOH ---
     # with copy loss segments, smooth & merge segments within 300kb and prune
     # segments smaller than 300kb.
     segs.clean <- trim_to_coverage(segments, oncoscan_na33.cov) %>%
@@ -78,7 +78,7 @@ process BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW {
     # Save the cleaned segments as an RDS object
     saveRDS(segs.clean, "cleaned_segments.rds")
     
-    # 3. Compute the arm-level alteration for loss and LOH since many 
+    # --- Compute the arm-level alteration for loss and LOH since ---
     # scores discard arms that are globally altered.
     arms.loss <- names(get_loss_segments(segs.clean) %>%
             armlevel_alt(kit.coverage = oncoscan_na33.cov))
@@ -93,7 +93,7 @@ process BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW {
     )
     write.csv(arm_alts, "arm_level_alterations.csv", row.names = FALSE)
     
-    # 4. Compute individual HRD scores
+    # --- Compute individual HRD scores ---
     # Get the number of LST
     lst <- score_lst(segs.clean, oncoscan_na33.cov)
     
@@ -107,7 +107,7 @@ process BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW {
     wgd <- score_estwgd(segs.clean, oncoscan_na33.cov)  # Get the avg CN, including 21p
     nlst <- score_nlst(segs.clean, wgd["WGD"], oncoscan_na33.cov)
     
-    # 5. Compute TDplus score
+    # --- Compute TDplus score ---
     td <- score_td(segs.clean)
     
     # Print results to console

@@ -58,7 +58,7 @@ process BIOC_TANGGLE_SPLIT_NETWORKS {
     library(ggtree)
     library(ggplot2)
     
-    # 1. Read the split network Nexus file from the working directory
+    # --- Read the split network Nexus file from the working ---
     input_file <- "woodmouse.nxs"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -66,13 +66,13 @@ process BIOC_TANGGLE_SPLIT_NETWORKS {
     
     Nnet <- phangorn::read.nexus.networx(input_file)
     
-    # 2. Generate the base split network plot using ggsplitnet and add tip labels
+    # --- Generate the base split network plot using ggsplitnet and ---
     p1 <- ggsplitnet(Nnet) + geom_tiplab2()
     
-    # 3. Adjust x and y axis limits to ensure labels are fully visible
+    # --- Adjust x and y axis limits to ensure labels are fully ---
     p2 <- p1 + xlim(-0.019, .003) + ylim(-.01, .012)
     
-    # 4. Rename tip labels and customize tip/node aesthetics
+    # --- Rename tip labels and customize tip/node aesthetics ---
     Nnet\$translate\$label <- seq_along(Nnet\$tip.label)
     
     p3 <- ggsplitnet(Nnet) + geom_tiplab2(col = "blue", font = 4, hjust = -0.15) + 

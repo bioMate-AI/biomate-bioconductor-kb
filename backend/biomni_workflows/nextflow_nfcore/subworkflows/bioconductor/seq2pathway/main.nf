@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Map genomic regions to genes using runseq2gene. 2. Run pathway enrichment analysis using gene2pathway_test with FAIME and Fisher's
+//  * 1. [Core Analysis] Load User Inputs
+//  * 2. [Core Analysis] Map genomic regions to genes using runseq2gene
+//  * 3. [Core Analysis] Run pathway enrichment analysis using gene2pathway_test
+//  * 4. [Core Analysis] Add detailed gene descriptions using addDescription
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +40,15 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("seq2pathway")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -88,7 +100,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     }
     
     # ----------------------------------------------------------------------
-    # Step 0: Load User Inputs
+    # --- Load User Inputs ---
     # ----------------------------------------------------------------------
     message("Loading user input files...")
     Chipseq_Peak_demo <- load_input("Chipseq_Peak_demo")
@@ -96,7 +108,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     dat_chip          <- load_input("dat_chip")
     
     # ----------------------------------------------------------------------
-    # Step 1: Map genomic regions to genes using runseq2gene
+    # --- Map genomic regions to genes using runseq2gene ---
     # ----------------------------------------------------------------------
     message("Mapping genomic regions to genes...")
     Chipseq_anno <- runseq2gene(
@@ -112,7 +124,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     }
     
     # ----------------------------------------------------------------------
-    # Step 2: Run pathway enrichment analysis using gene2pathway_test
+    # --- Run pathway enrichment analysis using gene2pathway_test ---
     # ----------------------------------------------------------------------
     message("Running pathway enrichment analysis (FAIME & Fisher's Exact Test)...")
     result_FAIME <- gene2pathway_test(dat= dat_chip, DataBase= MsigDB_C5,
@@ -139,7 +151,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     }
     
     # ----------------------------------------------------------------------
-    # Step 3: Add detailed gene descriptions using addDescription
+    # --- Add detailed gene descriptions using addDescription ---
     # ----------------------------------------------------------------------
     message("Adding detailed gene descriptions...")
     gene_description <- addDescription(genome="hg38", genevector=as.vector(rownames(dat_chip)))

@@ -35,6 +35,15 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MSstats", "MSstatsPTM", "data.table")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     library(data.table)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -89,7 +98,7 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     rownames(prot_counts) <- prot_names
     
     # ==========================================
-    # Stage 2: Format Data for MSstatsPTM
+    # --- Format Data for MSstatsPTM ---
     # ==========================================
     
     message("Formatting data into MSstats standard 10-column format...")
@@ -156,14 +165,14 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     input_list <- list(PTM = ptm_input, PROTEIN = prot_input)
     
     # ==========================================
-    # Stage 3: Data Summarization
+    # --- Data Summarization ---
     # ==========================================
     
     message("Summarizing PTM and Protein datasets...")
     summarized <- dataSummarizationPTM(input_list, verbose = FALSE)
     
     # ==========================================
-    # Stage 4: Statistical Modeling & Adjustment
+    # --- Statistical Modeling & Adjustment ---
     # ==========================================
     
     message("Setting up contrast matrix...")
@@ -217,7 +226,7 @@ process BIOC_MSSTATSPTM_MSSTATS_PTM_LABEL_FREE {
     }
     
     # ==========================================
-    # Stage 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic and results plots...")

@@ -35,6 +35,15 @@ process BIOC_NULLRANGES_BLOCK_BOOTSTRAP_ENRICHMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("nullranges", "GenomicRanges", "GenomeInfoDb", "plyranges", "ggplot2", "tidyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_NULLRANGES_BLOCK_BOOTSTRAP_ENRICHMENT {
     library(ggplot2)
     library(tidyr)
     
-    # Stage 1: Read and parse input data
+    # --- Read and parse input data ---
     if (!file.exists("matrix.csv")) {
       stop("Required input file 'matrix.csv' is missing.")
     }
@@ -79,7 +88,7 @@ process BIOC_NULLRANGES_BLOCK_BOOTSTRAP_ENRICHMENT {
     
     gr <- parse_features(matrix_df\$feature_id)
     
-    # Stage 2: Prepare Seqinfo (required for bootRanges)
+    # --- Prepare Seqinfo (required for bootRanges) ---
     max_coords <- tapply(end(gr), seqnames(gr), max)
     seqlengths(gr) <- max_coords + 100000
     gr <- keepStandardChromosomes(gr, pruning.mode = "coarse")
@@ -88,11 +97,11 @@ process BIOC_NULLRANGES_BLOCK_BOOTSTRAP_ENRICHMENT {
     counts_mat <- as.matrix(matrix_df[, setdiff(colnames(matrix_df), "feature_id")])
     gr\$mean_signal <- rowMeans(counts_mat)
     
-    # Stage 3: Segment the genome de novo based on feature density
+    # --- Segment the genome de novo based on feature density ---
     # Using CBS segmentation to define homogeneous genomic states
     seg <- segmentDensity(gr, n = 2, L_s = 100000, type = "cbs")
     
-    # Stage 4: Run block bootstrap
+    # --- Run block bootstrap ---
     set.seed(123)
     R_iterations <- 50
     boots <- bootRanges(gr, blockLength = 50000, R = R_iterations, seg = seg)
@@ -101,7 +110,7 @@ process BIOC_NULLRANGES_BLOCK_BOOTSTRAP_ENRICHMENT {
     boots_df <- as.data.frame(boots)
     write.csv(boots_df, "bootstrapped_ranges.csv", row.names = FALSE)
     
-    # Stage 5: Perform enrichment analysis
+    # --- Perform enrichment analysis ---
     # Define a query set of interest (e.g., top 5% highest signal regions)
     query_set <- gr[gr\$mean_signal >= quantile(gr\$mean_signal, 0.95)]
     
@@ -130,7 +139,7 @@ process BIOC_NULLRANGES_BLOCK_BOOTSTRAP_ENRICHMENT {
     )
     write.csv(summary_df, "bootstrap_enrichment_summary.csv", row.names = FALSE)
     
-    # Stage 6: Plot bootstrap distribution vs observed
+    # --- Plot bootstrap distribution vs observed ---
     p <- ggplot(boot_overlaps, aes(x = n_overlaps)) +
       geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
       geom_vline(xintercept = obs_overlaps, linetype = "dashed", color = "red", size = 1.2) +

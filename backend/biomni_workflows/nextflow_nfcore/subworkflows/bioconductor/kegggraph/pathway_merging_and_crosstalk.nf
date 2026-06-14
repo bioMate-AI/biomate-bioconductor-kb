@@ -67,14 +67,14 @@ process BIOC_KEGGGRAPH_PATHWAY_MERGING_AND_CROSSTALK {
       stop(paste("Required input file missing:", wntKGML))
     }
     
-    # 1. Parse individual KGML files into graphs with gene expansion enabled
+    # --- Parse individual KGML files into graphs with gene ---
     mapkG <- parseKGML2Graph(mapkKGML, expandGenes=TRUE)
     wntG <- parseKGML2Graph(wntKGML, expandGenes=TRUE)
     
-    # 2. Combine the parsed graphs into a named list
+    # --- Combine the parsed graphs into a named list ---
     graphs <- list(mapk=mapkG, wnt=wntG)
     
-    # 3. Merge the graphs into a single unified network
+    # --- Merge the graphs into a single unified network ---
     merged <- mergeGraphs(graphs)
     
     # --- Output Generation ---

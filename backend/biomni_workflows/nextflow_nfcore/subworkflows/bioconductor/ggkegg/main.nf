@@ -72,13 +72,13 @@ process BIOC_GGKEGG_KEGG_MODULE_VISUALIZATION {
       basename(input_file)
     }
     
-    # 1. Retrieve and parse the KEGG module
+    # --- Retrieve and parse the KEGG module ---
     mod <- module(module_id, use_cache=TRUE)
     
     # Save the parsed module object
     saveRDS(mod, "kegg_module.rds")
     
-    # 2. Generate a text-based module visualization
+    # --- Generate a text-based module visualization ---
     mod_text_df <- mod |>
         module_text() ## return data.frame
     
@@ -92,7 +92,7 @@ process BIOC_GGKEGG_KEGG_MODULE_VISUALIZATION {
     # Save the text-based plot
     ggplot2::ggsave("module_text_plot.pdf", plot = p_text, width = 8, height = 4)
     
-    # 3. Generate a network-based module block visualization
+    # --- Generate a network-based module block visualization ---
     mod_graph <- mod |>
         obtain_sequential_module_definition() ## return tbl_graph
     

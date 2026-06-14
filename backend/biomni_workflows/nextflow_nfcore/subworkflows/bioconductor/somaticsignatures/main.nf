@@ -57,7 +57,7 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     library(Rsamtools)
     library(ggplot2)
     
-    # 1. Import somatic variants into a VRanges object
+    # --- Import somatic variants into a VRanges object ---
     vcf_file <- "somatic_variants.vcf"
     vcf <- readVcf(vcf_file)
     sca_vr <- as(vcf, "VRanges")
@@ -77,10 +77,10 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     }
     ref_genome <- FaFile(ref_file)
     
-    # 2. Extract the trinucleotide sequence context of each variant
+    # --- Extract the trinucleotide sequence context of each variant ---
     sca_motifs <- mutationContext(sca_vr, ref_genome)
     
-    # 3. Construct a normalized motif matrix grouped by study
+    # --- Construct a normalized motif matrix grouped by study ---
     sca_mm <- motifMatrix(sca_motifs, group = "study", normalize = TRUE)
     
     # Save the mutation spectrum plot
@@ -89,7 +89,7 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     print(p_spec)
     dev.off()
     
-    # 4. Assess the optimal number of signatures
+    # --- Assess the optimal number of signatures ---
     n_sigs <- 2:8
     gof_nmf <- assessNumberSignatures(sca_mm, n_sigs, nReplicates = 5)
     gof_pca <- assessNumberSignatures(sca_mm, n_sigs, pcaDecomposition)
@@ -101,7 +101,7 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     print(p_gof_pca)
     dev.off()
     
-    # 5. Identify mutational signatures using NMF and PCA
+    # --- Identify mutational signatures using NMF and PCA ---
     n_sigs <- 5
     sigs_nmf <- identifySignatures(sca_mm, n_sigs, nmfDecomposition)
     sigs_pca <- identifySignatures(sca_mm, n_sigs, pcaDecomposition)
@@ -110,7 +110,7 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     saveRDS(sigs_nmf, "sigs_nmf.rds")
     saveRDS(sigs_pca, "sigs_pca.rds")
     
-    # 6. Visualize the signatures, sample contributions, and spectrum fits
+    # --- Visualize the signatures, sample contributions, and ---
     pdf("somatic_signatures_nmf_plots.pdf", width = 10, height = 8)
     
     p1 <- plotSignatureMap(sigs_nmf) + ggtitle("Somatic Signatures: NMF - Heatmap")
@@ -133,7 +133,7 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     
     dev.off()
     
-    # 7. Cluster the mutational spectrum by motif
+    # --- Cluster the mutational spectrum by motif ---
     clu_motif <- clusterSpectrum(sca_mm, "motif")
     saveRDS(clu_motif, "cluster_motif.rds")
     

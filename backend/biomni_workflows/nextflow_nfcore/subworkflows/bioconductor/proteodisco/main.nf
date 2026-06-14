@@ -70,14 +70,14 @@ process BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW {
       stop(paste("Required input file missing:", vcf_file, "\nPlease place it in the working directory."))
     }
     
-    # 1. Generate the ProteoDiscography reference database
+    # --- Generate the ProteoDiscography reference database ---
     message("Generating ProteoDiscography reference database...")
     ProteoDiscography.hg19 <- ProteoDisco::generateProteoDiscography(
       TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene, 
       genomeSeqs = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     )
     
-    # 2. Import genomic variants
+    # --- Import genomic variants ---
     message("Importing genomic variants from VCF...")
     ProteoDiscography.hg19 <- ProteoDisco::importGenomicVariants(
       ProteoDiscography = ProteoDiscography.hg19,
@@ -113,7 +113,7 @@ process BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW {
       })
     }
     
-    # 3. Incorporate genomic variants into transcripts
+    # --- Incorporate genomic variants into transcripts ---
     message("Incorporating genomic variants into transcripts...")
     ProteoDiscography.hg19 <- ProteoDisco::incorporateGenomicVariants(
       ProteoDiscography = ProteoDiscography.hg19,
@@ -154,7 +154,7 @@ process BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW {
       warning("Could not convert TxIDs to gene symbols: ", e\$message)
     })
     
-    # 4. Export the customized database to FASTA
+    # --- Export the customized database to FASTA ---
     message("Exporting customized protein database to FASTA...")
     ProteoDisco::exportProteoDiscography(
       ProteoDiscography = ProteoDiscography.hg19,

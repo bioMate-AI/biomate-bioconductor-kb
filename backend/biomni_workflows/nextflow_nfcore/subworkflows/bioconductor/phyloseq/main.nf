@@ -71,14 +71,14 @@ process BIOC_PHYLOSEQ_DATA_IMPORT_AND_ASSEMBLY {
     y <- import_qiime_sample_data(map.txt)
     
     # ==========================================
-    # Stage 3: Merge components using merge_phyloseq
+    # --- Merge components using merge_phyloseq ---
     # ==========================================
     
     # Merge the imported BIOM and sample data components
     merged_obj <- merge_phyloseq(x, y)
     
     # ==========================================
-    # Stage 4: Alternative manual construction
+    # --- Alternative manual construction ---
     # ==========================================
     
     # Extract raw matrices/data frames from the imported objects to avoid data fabrication

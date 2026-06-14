@@ -126,6 +126,7 @@
             <span style="font-size:.85rem;color:var(--text-muted);" id="bm-post-count"></span>
           </div>
           <div class="bm-blog-grid" id="bm-posts"><noscript>
+            <article><h3><a href="blog-why-ai-bioconductor-doesnt-run.html">Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It</a></h3><p>Jun 9, 2026 · 7 min · Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding lifts it to 88.2% — and real execution is the ground truth.</p></article>
             <article><h3><a href="blog-llm-core.html">Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results</a></h3><p>Apr 22, 2026 · 7 min · BioMate coordinates specialized AI systems for routing, analysis, quality evaluation, and findings narration — matching each scientific task to the reasoning capability best suited to it.</p></article>
             <article><h3><a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate</a></h3><p>Apr 20, 2026 · 6 min · The full Bioconductor ecosystem of peer-reviewed R methods, available through plain-English requests — no R required.</p></article>
             <article><h3><a href="blog-auto-discovery.html">Keeping Current: How BioMate Discovers and Validates New Analytical Tools</a></h3><p>Apr 18, 2026 · 8 min · BioMate continuously monitors primary tool sources, tests candidates against sample datasets, and adds validated workflows after human review.</p></article>
@@ -167,13 +168,16 @@
                 msg.style.display = '';
                 return;
               }
-              fetch('https://dev-public.biomate.ai/api/newsletter/subscribe', {
+              var fd = new FormData();
+              fd.append('email', email);
+              fd.append('_subject', 'Newsletter signup (blog)');
+              fetch('https://formspree.io/f/xlgvqqvz', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-              }).then(() => {
+                headers: { 'Accept': 'application/json' },
+                body: fd
+              }).then(function(r){ if(!r.ok) throw 0;
                 document.getElementById('sub-form').innerHTML =
-                  '<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed! Check your inbox for a confirmation.</p>';
+                  '<p style="font-size:.85rem;color:var(--accent);font-weight:600;">Thanks &mdash; you\'re on the list! We\'ll be in touch.</p>';
               }).catch(() => {
                 msg.style.color = '#b42828';
                 msg.textContent = 'Something went wrong. Try emailing contact@biomate.ai directly.';
@@ -196,15 +200,9 @@
 
           <div class="bm-side-widget">
             <h3>Recent posts</h3>
-            <ul>
-              <li><a href="blog-llm-core.html">Purpose&#8209;Built AI for Science</a><div class="meta">April 22, 2026</div></li>
-              <li><a href="blog-drug-1-target.html">Target Discovery and Validation</a><div class="meta">April 22, 2026</div></li>
-              <li><a href="blog-drug-2-hit.html">Virtual Screening and Hit Discovery</a><div class="meta">April 21, 2026</div></li>
-              <li><a href="blog-drug-3-admet.html">ADMET Profiling and Lead Optimization</a><div class="meta">April 19, 2026</div></li>
-              <li><a href="blog-drug-4-preclinical.html">Preclinical Development and IND Filing</a><div class="meta">April 17, 2026</div></li>
-              <li><a href="blog-drug-5-clinical.html">Clinical Development and Trial Design</a><div class="meta">April 15, 2026</div></li>
-              <li><a href="blog-drug-6-postmarket.html">Post&#8209;Approval and Pharmacovigilance</a><div class="meta">April 13, 2026</div></li>
-            </ul>
+            <ul id="bm-recent"><noscript>
+              <li><a href="blog-why-ai-bioconductor-doesnt-run.html">Why AI Writes Bioconductor Code That Doesn't Run</a><div class="meta">Jun 9, 2026</div></li>
+            </noscript></ul>
           </div>
 
           <div class="bm-side-widget">
@@ -299,7 +297,7 @@
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <script src="illustrations.js"></script>
-  <script src="shell.js"></script>
+  <script src="shell.js?v=20260609b"></script>
   <script>
     renderShell({ active: 'newsroom' });
 
@@ -368,6 +366,9 @@
 
     // Real posts from the BioMate blog
     const POSTS = [
+      { cat: 'Research', title: "Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It",
+        date: 'Jun 9, 2026', read: '7 min', href: 'blog-why-ai-bioconductor-doesnt-run.html',
+        desc: "Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding lifts it to 88.2% — and real execution is the ground truth." },
       // Platform Architecture
       { cat: 'AI & LLMs', title: 'Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results',
         date: 'Apr 22, 2026', read: '7 min', href: 'blog-llm-core.html',
@@ -478,6 +479,15 @@
     // Featured post uses real hero image (see HTML above)
 
     renderPosts('all');
+
+    // Recent posts widget — newest-first from POSTS (auto-includes new posts)
+    (function renderRecent(){
+      var el = document.getElementById('bm-recent');
+      if (!el) return;
+      el.innerHTML = POSTS.slice(0, 7).map(function(p){
+        return '<li><a href="' + p.href + '">' + p.title + '</a><div class="meta">' + p.date + '</div></li>';
+      }).join('');
+    })();
 
     // Category filter
     document.querySelectorAll('[data-cat]').forEach(el => {

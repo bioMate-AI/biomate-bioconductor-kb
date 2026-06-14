@@ -66,6 +66,7 @@ process P0_PKPD_SEMAGLUTIDE {
     path "pd_weight_curve.csv",    emit: pd_curve
     path "pkpd_plot.png",          emit: plot
     path "p0_pkpd_report.json",    emit: report
+    path "qc_metrics.json",        emit: qc_metrics
 
     script:
     """
@@ -285,6 +286,23 @@ report = {
 
 with open('p0_pkpd_report.json', 'w') as jf:
     json.dump(report, jf, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# p0_pkpd_weight_loss_band gate ([-6, +3] kg at week 30, GOLD-anchored
+# to Overgaard 2019 / SUSTAIN-1 — band is in the cited literature).
+# Sign convention: weight_loss_30w is positive when weight is LOST;
+# the gate expects CHANGE (negative = loss), so we negate.
+qc_metrics = {
+    "week30_weight_change_kg":       round(-weight_loss_30w, 3),
+    "weight_loss_30w_kg":            round(weight_loss_30w, 3),
+    "cmax_ss_nm":                    round(Cmax_ss, 2),
+    "cmax_deviation_pct":            round(100 * (Cmax_ss - cmax_ref) / cmax_ref, 1),
+    "pass_cmax":                     bool(pass_cmax),
+    "pass_weight_loss":              bool(pass_wt),
+    "overall":                       overall,
+}
+with open('qc_metrics.json', 'w') as jf:
+    json.dump(qc_metrics, jf, indent=2)
 
 print(f'P0-E Semaglutide PKPD Validation')
 print(f'  Cmax,ss:           {Cmax_ss:.2f} nM  (ref {cmax_ref} nM +/- {int(cmax_tol*100)}% -> {cmax_lo:.1f}-{cmax_hi:.1f} nM)  {"PASS" if pass_cmax else "FAIL"}')

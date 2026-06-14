@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import Hi-C matrix at a specific resolution. 2. Compute chromosome compartments using getCompartments(). 3. Export compartments as
+//  * 1. [Visualization & Output] Import Hi-C matrix at a specific resolution
+//  * 2. [Visualization & Output] Compute chromosome compartments using getCompartments()
+//  * 3. [Visualization & Output] Export compartments as BigWig and BED files
+//  * 4. [Visualization & Output] Generate a saddle plot using plotSaddle()
+//  * 5. [Visualization & Output] Compute diamond insulation scores using
+//  * 6. [Visualization & Output] Identify domain borders using getBorders()
+//  * 7. [Visualization & Output] Export insulation scores as BigWig and borders as BED
 
 nextflow.enable.dsl = 2
 
@@ -66,7 +72,7 @@ process BIOC_HICONTACTS_TOPOLOGICAL_FEATURE_MAPPING {
     # Define input file
     mcool_file <- "mcool_file.mcool"
     
-    # 1. Import Hi-C matrix at a specific resolution
+    # --- Import Hi-C matrix at a specific resolution ---
     # Check available resolutions in the mcool file to ensure robust loading
     temp_hic <- import(mcool_file, format = 'mcool')
     avail_res <- resolutions(temp_hic)
@@ -77,7 +83,7 @@ process BIOC_HICONTACTS_TOPOLOGICAL_FEATURE_MAPPING {
     
     hic <- import(mcool_file, format = 'mcool', resolution = initial_res)
     
-    # 2. Compute chromosome compartments using getCompartments()
+    # --- Compute chromosome compartments using getCompartments() ---
     # Dynamically select chromosomes to avoid errors if 'XV' and 'XVI' are not present
     available_chrs <- seqlevels(hic)
     target_chrs <- c('XV', 'XVI')
@@ -87,7 +93,7 @@ process BIOC_HICONTACTS_TOPOLOGICAL_FEATURE_MAPPING {
     
     hic <- getCompartments(hic, chromosomes = target_chrs)
     
-    # 3. Export compartments as BigWig and BED files
+    # --- Export compartments as BigWig and BED files ---
     export(IRanges::coverage(metadata(hic)\$eigens, weight = 'eigen'), 'compartments.bw')
     export(
         topologicalFeatures(hic, 'compartments')[topologicalFeatures(hic, 'compartments')\$compartment == 'A'], 
@@ -98,13 +104,13 @@ process BIOC_HICONTACTS_TOPOLOGICAL_FEATURE_MAPPING {
         'B-compartments.bed'
     )
     
-    # 4. Generate a saddle plot using plotSaddle()
+    # --- Generate a saddle plot using plotSaddle() ---
     pdf('saddle_plot.pdf')
     print(plotSaddle(hic))
     dev.off()
     
-    # 5. Compute diamond insulation scores using getDiamondInsulation()
-    # 6. Identify domain borders using getBorders()
+    # --- Compute diamond insulation scores using ---
+    # --- Identify domain borders using getBorders() ---
     # Dynamically adjust focus, resolution, and window size based on input file properties
     target_focus <- 'II:1-300000'
     if (!any(available_chrs == 'II')) {
@@ -126,7 +132,7 @@ process BIOC_HICONTACTS_TOPOLOGICAL_FEATURE_MAPPING {
         getDiamondInsulation(window_size = target_window) |> 
         getBorders()
     
-    # 7. Export insulation scores as BigWig and borders as BED
+    # --- Export insulation scores as BigWig and borders as BED ---
     export(IRanges::coverage(metadata(hic)\$insulation, weight = 'insulation'), 'insulation.bw')
     export(topologicalFeatures(hic, 'borders'), 'borders.bed')
 

@@ -36,6 +36,15 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("annotate", "hgu95av2.db", "GO.db", "GenomicRanges", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     library("rtracklayer")
     
     # ==========================================
-    # Stage 1: Import Input Data
+    # --- Import Input Data ---
     # ==========================================
     message("Stage 1: Importing input genomic regions...")
     
@@ -74,7 +83,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Build Chromosomal Location Object
+    # --- Build Chromosomal Location Object ---
     # ==========================================
     message("Stage 2: Building chromLocation object for hgu95av2...")
     
@@ -91,7 +100,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     message(paste("Number of Chromosomes:", num_chroms))
     
     # ==========================================
-    # Stage 3: Map BED Features to Probe Coordinates
+    # --- Map BED Features to Probe Coordinates ---
     # ==========================================
     message("Stage 3: Mapping genomic intervals to probe coordinates...")
     
@@ -164,7 +173,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     probe_ids_matched <- matched_probes\$probe_id
     
     # ==========================================
-    # Stage 4: Retrieve and Filter Annotations
+    # --- Retrieve and Filter Annotations ---
     # ==========================================
     message("Stage 4: Querying and filtering annotations...")
     
@@ -201,7 +210,7 @@ process BIOC_ANNOTATE_CHROMOSOMAL_ANNOTATION_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Export Results and Generate Plots
+    # --- Export Results and Generate Plots ---
     # ==========================================
     message("Stage 5: Exporting results and generating diagnostic plots...")
     

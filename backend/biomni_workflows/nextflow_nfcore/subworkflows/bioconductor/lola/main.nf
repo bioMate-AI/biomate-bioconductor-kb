@@ -56,24 +56,24 @@ process BIOC_LOLA_GENOMIC_REGION_ENRICHMENT_ANALYSIS {
     library("LOLA")
     library("data.table")
     
-    # 1. Load the reference database
+    # --- Load the reference database ---
     # The database is expected to be located at "LOLACore/hg19" in the working directory
     regionDB = loadRegionDB("LOLACore/hg19")
     
-    # 2. Read user region sets and the background universe
+    # --- Read user region sets and the background universe ---
     # Reading exactly the files specified by the user from the working directory
     regionSetA = readBed("setA_100.bed")
     regionSetB = readBed("setB_100.bed")
     regionSetC = readBed("setC_100.bed")
     activeDHS = readBed("activeDHS_universe.bed")
     
-    # 3. Combine user region sets into a GRangesList
+    # --- Combine user region sets into a GRangesList ---
     userSets = GRangesList(regionSetA, regionSetB, regionSetC)
     
-    # 4. Run the enrichment analysis
+    # --- Run the enrichment analysis ---
     locResults = runLOLA(userSets, activeDHS, regionDB, cores=1)
     
-    # 5. Order and explore results
+    # --- Order and explore results ---
     orderedResults = locResults[order(meanRnk, decreasing=FALSE),][1:20,]
     
     # Save ordered top results to a CSV file
@@ -81,10 +81,10 @@ process BIOC_LOLA_GENOMIC_REGION_ENRICHMENT_ANALYSIS {
     # Save full results as an RDS object
     saveRDS(locResults, file = "lola_results.rds")
     
-    # 6. Write results to files using writeCombinedEnrichment
+    # --- Write results to files using writeCombinedEnrichment ---
     writeCombinedEnrichment(locResults, outFolder= "lolaResults", includeSplits=TRUE)
     
-    # 7. Extract specific overlapping regions for a given result
+    # --- Extract specific overlapping regions for a given result ---
     oneResult = locResults[2,]
     overlaps = extractEnrichmentOverlaps(oneResult, userSets, regionDB)
     

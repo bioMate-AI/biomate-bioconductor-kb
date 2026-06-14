@@ -35,6 +35,15 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scanMiRApp", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # Stage 1: Load and Process Expression Data
+    # --- Load and Process Expression Data ---
     # ==========================================
     message("Loading expression data...")
     counts <- read.csv("counts.csv", row.names = 1)
@@ -59,7 +68,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     avg_expr <- rowMeans(counts)
     
     # ==========================================
-    # Stage 2: Initialize Annotation and Scan
+    # --- Initialize Annotation and Scan ---
     # ==========================================
     message("Initializing ScanMiR annotation...")
     # Using the lightweight "fake" annotation for a runnable pipeline
@@ -81,7 +90,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     expressed_txs <- names(avg_expr[avg_expr > 0])
     
     # ==========================================
-    # Stage 3: Save Scan Results as IndexedFst
+    # --- Save Scan Results as IndexedFst ---
     # ==========================================
     message("Saving scan results as IndexedFst...")
     # Save the GRanges scan results indexed by transcript (seqnames)
@@ -93,7 +102,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     print(summary(indexed_scan))
     
     # ==========================================
-    # Stage 4: Detect Enriched miRNA-Target Pairs
+    # --- Detect Enriched miRNA-Target Pairs ---
     # ==========================================
     message("Detecting enriched miRNA-target pairs...")
     enriched <- enrichedMirTxPairs(scan_gr)
@@ -125,7 +134,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     message("Enriched pairs saved to enriched_mir_tx_pairs.csv")
     
     # ==========================================
-    # Stage 5: Visualize Top Enriched Site
+    # --- Visualize Top Enriched Site ---
     # ==========================================
     message("Visualizing top enriched miRNA-target site...")
     tx_id <- "ENSTFAKE0000056456" # Default fallback

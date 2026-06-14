@@ -34,7 +34,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Rsubread", "SingleCellExperiment", "BiocStyle", "ggplot2", "patchwork", "scruff", "tenxbraindata")
+    .bm_deps <- c("Rsubread", "SingleCellExperiment", "BiocStyle", "ggplot2", "patchwork", "scruff", "tenxbraindata", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,7 +52,8 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
       }
     }
     
-    # Load required libraries
+    # Load required librar    library(SummarizedExperiment)
+ies
     library(scruff)
     library(patchwork)
     library(Rsubread)
@@ -80,10 +81,10 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
     # Specify the basename for Rsubread index
     indexBase <- "reference_index"
     
-    # Stage 1: Build Rsubread alignment index
+    # --- Build Rsubread alignment index ---
     Rsubread::buildindex(basename = indexBase, reference = fasta, indexSplit = FALSE)
     
-    # Stage 2: Run all-in-one scruff pipeline
+    # --- Run all-in-one scruff pipeline ---
     sce <- scruff(
       project = "example",
       experiment = c("1h1"),
@@ -107,7 +108,7 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
       verbose = TRUE
     )
     
-    # Stage 3: Plot QC metrics
+    # --- Plot QC metrics ---
     sceExample <- sce
     qc <- qcplots(sceExample)
     

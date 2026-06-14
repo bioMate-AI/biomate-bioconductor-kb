@@ -56,7 +56,7 @@ process BIOC_CAUSALR_STANDARD_CAUSAL_REASONING {
     library(CausalR)
     library(igraph)
     
-    # 1. Load the network and construct a Computational Causal Graph (CCG)
+    # --- Load the network and construct a Computational Causal ---
     # Reading from the user-provided 'testNetwork1.sif' in the working directory
     ccg <- CreateCCG("testNetwork1.sif")
     
@@ -65,15 +65,15 @@ process BIOC_CAUSALR_STANDARD_CAUSAL_REASONING {
     PlotGraphWithNodeNames(ccg)
     dev.off()
     
-    # 2. Load the experimental data and map it to the CCG
+    # --- Load the experimental data and map it to the CCG ---
     # Reading from the user-provided 'testData1.txt' in the working directory
     experimentalData <- ReadExperimentalData("testData1.txt", ccg)
     
-    # 3. Rank all hypotheses at a specific path length (delta=2)
+    # --- Rank all hypotheses at a specific path length (delta=2) ---
     ranked_hypotheses <- RankTheHypotheses(ccg, experimentalData, delta=2)
     write.csv(ranked_hypotheses, "ranked_hypotheses_delta2.csv", row.names=FALSE)
     
-    # 4. Generate predictions for a specific signed hypothesis (Node0+) and score it
+    # --- Generate predictions for a specific signed hypothesis ---
     predictions <- MakePredictionsFromCCG('Node0', +1, ccg, 2)
     write.csv(predictions, "predictions_node0_plus.csv", row.names=FALSE)
     
@@ -87,7 +87,7 @@ process BIOC_CAUSALR_STANDARD_CAUSAL_REASONING {
     # Re-calculate/assign Score for significance testing
     Score <- ScoreHypothesis(predictions, experimentalData)
     
-    # 5. Calculate exact and approximate significance p-values and enrichment p-values
+    # --- Calculate exact and approximate significance p-values and ---
     # Calculate exact significance (quartic algorithm)
     sig_exact <- CalculateSignificance(Score, predictions, experimentalData)
     
@@ -116,7 +116,7 @@ process BIOC_CAUSALR_STANDARD_CAUSAL_REASONING {
     )
     saveRDS(significance_results, "significance_results.rds")
     
-    # 6. Export the sub-network of correctly explained nodes for a specific hypothesis (Node1+) to SIF format
+    # --- Export the sub-network of correctly explained nodes for a ---
     # This will generate .sif and annotation files in the working directory
     WriteExplainedNodesToSifFile("Node1", +1, ccg, experimentalData, delta=2)
 

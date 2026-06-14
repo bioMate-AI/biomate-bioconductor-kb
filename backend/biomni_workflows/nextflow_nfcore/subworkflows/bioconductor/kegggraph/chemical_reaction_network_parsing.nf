@@ -63,16 +63,16 @@ process BIOC_KEGGGRAPH_CHEMICAL_REACTION_NETWORK_PARSING {
       stop(paste("Required input file missing:", mapfile))
     }
     
-    # 1. Parse the KGML file into a KEGGPathway object
+    # --- Parse the KGML file into a KEGGPathway object ---
     map <- parseKGML(mapfile)
     
-    # 2. Extract chemical reactions
+    # --- Extract chemical reactions ---
     reactions <- getReactions(map)
     
-    # 3. Convert the pathway into a reaction graph of chemical compounds
+    # --- Convert the pathway into a reaction graph of chemical ---
     chemicalGraph <- KEGGpathway2reactionGraph(map)
     
-    # 4. Calculate compound out-degrees
+    # --- Calculate compound out-degrees ---
     outDegrees <- sapply(edges(chemicalGraph), length)
     
     # Save meaningful results to output files

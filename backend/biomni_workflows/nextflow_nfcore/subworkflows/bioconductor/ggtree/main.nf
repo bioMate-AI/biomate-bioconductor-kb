@@ -35,6 +35,15 @@ process BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "ggtree", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING {
     library(ggtree)
     library(ggplot2)
     
-    # Stage 1: Import genomic intervals and metadata
+    # --- Import genomic intervals and metadata ---
     message("Reading input files...")
     bed_data <- read.table("regions.bed", header = FALSE, sep = "\t", stringsAsFactors = FALSE)
     colnames(bed_data) <- c("chrom", "start", "end", "name", "score", "strand")[1:min(6, ncol(bed_data))]
@@ -63,7 +72,7 @@ process BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING {
       score = if ("score" %in% colnames(bed_data)) bed_data\$score else 0
     )
     
-    # Stage 2: Compute distance matrix and perform hierarchical clustering
+    # --- Compute distance matrix and perform hierarchical ---
     message("Clustering genomic regions...")
     midpoints <- (start(gr) + end(gr)) / 2
     dist_matrix <- dist(matrix(midpoints, ncol = 1))
@@ -72,7 +81,7 @@ process BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING {
     # Generate hierarchical clustering tree
     hc <- hclust(dist_matrix, method = "average")
     
-    # Stage 3: Prepare and merge metadata
+    # --- Prepare and merge metadata ---
     message("Preparing metadata...")
     df_meta <- data.frame(
       label = gr\$name,
@@ -93,7 +102,7 @@ process BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING {
     # Export combined metadata
     write.csv(df_meta, "tree_metadata.csv", row.names = FALSE)
     
-    # Stage 4: Visualize and annotate tree using ggtree
+    # --- Visualize and annotate tree using ggtree ---
     message("Generating ggtree visualization...")
     p <- ggtree(hc)
     

@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Convert GWAS data frame to a GRanges object using createArrayData. 2. Map gene IDs in the GeneSetCollection to SNP IDs using geneT
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Convert GWAS data frame to a GRanges object using
+//  * 3. [Visualization & Output] Map gene IDs in the GeneSetCollection to SNP IDs using
+//  * 4. [Visualization & Output] Subset the GWAS GRanges to independent SNPs and extract
+//  * 5. [Visualization & Output] Run GLOSSI using glossi
+//  * 6. [Visualization & Output] Extract results using pValue, degreesOfFreedom, and
+//  * 7. [Visualization & Output] Visualize results using plotPvals and save to a PDF file
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_CPVSNP_GLOSSI_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cpvSNP", "GSEABase", "TxDb.Hsapiens.UCSC.hg19.knownGene")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,27 +67,27 @@ process BIOC_CPVSNP_GLOSSI_ANALYSIS {
     library(GSEABase)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     arrayData <- read.csv("arrayData.csv", stringsAsFactors = FALSE)
     geneSets <- getGmt("gene_sets.gmt")
     indep <- read.table("independent_snps.txt", header = FALSE, stringsAsFactors = FALSE)
     
-    # 2. Convert GWAS data frame to a GRanges object using createArrayData
+    # --- Convert GWAS data frame to a GRanges object using ---
     arrayDataGR <- createArrayData(arrayData, positionName = "Position")
     
-    # 3. Map gene IDs in the GeneSetCollection to SNP IDs using geneToSNPList and a transcript database
+    # --- Map gene IDs in the GeneSetCollection to SNP IDs using ---
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
     genesHg19 <- genes(txdb)
     snpsGSC <- geneToSNPList(geneSets, arrayDataGR, genesHg19)
     
-    # 4. Subset the GWAS GRanges to independent SNPs and extract named p-values
+    # --- Subset the GWAS GRanges to independent SNPs and extract ---
     pvals <- arrayDataGR\$P[is.element(arrayDataGR\$SNP, indep\$V1)]
     names(pvals) <- arrayDataGR\$SNP[is.element(arrayDataGR\$SNP, indep\$V1)]
     
-    # 5. Run GLOSSI using glossi
+    # --- Run GLOSSI using glossi ---
     gRes <- glossi(pvals, snpsGSC)
     
-    # 6. Extract results using pValue, degreesOfFreedom, and statistic
+    # --- Extract results using pValue, degreesOfFreedom, and ---
     p_values <- pValue(gRes)
     dfs <- degreesOfFreedom(gRes)
     stats <- statistic(gRes)
@@ -91,7 +106,7 @@ process BIOC_CPVSNP_GLOSSI_ANALYSIS {
     # Save the GLOSSIResultCollection object as an RDS file
     saveRDS(gRes, "glossi_results.rds")
     
-    # 7. Visualize results using plotPvals and save to a PDF file
+    # --- Visualize results using plotPvals and save to a PDF file ---
     pdf("glossi_pvals_plot.pdf")
     plotPvals(gRes, main = "GLOSSI P-values")
     dev.off()

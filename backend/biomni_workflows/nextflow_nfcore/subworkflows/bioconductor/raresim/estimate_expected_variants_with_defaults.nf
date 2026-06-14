@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate the expected number of variants per Kb using default parameters for a specified ancestry with nvariant. 2. Scale the var
+//  * 1. [Core Analysis] Calculate the expected number of variants per Kb using
+//  * 2. [Core Analysis] Estimate the proportion of variants in each MAC bin using
+//  * 3. [Core Analysis] Combine the total expected variants (scaled by region
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_WITH_DEFAULTS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RAREsim")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,13 +64,13 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_WITH_DEFAULTS {
         # The file mac_bins.csv must contain the lower and upper boundaries of the MAC bins
         mac <- read.csv("mac_bins.csv")
         
-        # 1. Calculate the expected number of variants per Kb using default parameters for AFR ancestry
+        # --- Calculate the expected number of variants per Kb using ---
         nvariant_default <- nvariant(N = 8128, pop = 'AFR')
         
-        # 2. Estimate the proportion of variants in each MAC bin using default parameters
+        # --- Estimate the proportion of variants in each MAC bin using ---
         afs_default <- afs(mac_bins = mac, pop = 'AFR')
         
-        # 3. Combine the total expected variants (scaled by region size 19.029 Kb) and default AFS proportions
+        # --- Combine the total expected variants (scaled by region ---
         # using expected_variants to get the expected number of variants per MAC bin.
         # This call uses the exact documented parameters and structure.
         bin_estimates <- expected_variants(Total_num_var = 19.029 * nvariant_default,

@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run tuneM to evaluate the stability of configurations across different numbers of imputations. 2. Inspect the stability statistics
+//  * 1. [Visualization & Output] Run tuneM to evaluate the stability of configurations
+//  * 2. [Visualization & Output] Inspect the stability statistics and plot the RV
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +39,15 @@ process BIOC_MISSROWS_TUNE_IMPUTATIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("missRows", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -63,13 +73,13 @@ process BIOC_MISSROWS_TUNE_IMPUTATIONS {
       stop("Error: 'midt' object not found in 'midt.RData'.")
     }
     
-    # 1. Run tuneM to evaluate the stability of configurations across different numbers of imputations.
+    # --- Run tuneM to evaluate the stability of configurations ---
     set.seed(1)
     tune <- tuneM(midt, ncomp=2, Mmax=100, inc=10, N=20, showPlot=FALSE)
     
     print(tune)
     
-    # 2. Inspect the stability statistics and plot the RV coefficients.
+    # --- Inspect the stability statistics and plot the RV ---
     print(tune\$stats)
     
     # Save the stability statistics to a CSV file

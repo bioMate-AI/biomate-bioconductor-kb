@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Why AI Writes Bioconductor Code That Doesn't Run (and the Fix) — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  /* Blog article theme — scoped to .bm-blog so the shared site nav/footer (styles.css) is unaffected */
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+    background:#f5f0e4; color:#1c2b32; font-family:'Open Sans',sans-serif; line-height:1.6; font-size:16px;
+  }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body code { font-family:'Courier New',monospace; background:var(--bg-card); padding:1px 5px; border-radius:4px; font-size:.88em; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  /* Comparison table */
+  .article-body table { width:100%; border-collapse:collapse; margin:1.75rem 0; font-size:.9rem; }
+  .article-body table th, .article-body table td { border:1px solid var(--border); padding:.6rem .8rem; text-align:left; }
+  .article-body table th { background:var(--bg-card); color:var(--text); font-weight:700; }
+  .article-body table td { color:var(--text); }
+  .article-body table td strong { color:var(--accent-light); }
+  .article-body table caption { caption-side:bottom; font-size:.8rem; color:var(--text-muted); margin-top:.6rem; text-align:left; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; padding:0; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA button — scoped ABOVE .bm-blog a so the white text wins */
+  .bm-blog .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  </style>
+  <meta name="description" content="AI-generated DESeq2 and Seurat code often looks right but won't run — only 71.4% of cited functions are real. It's a grounding problem, not a prompt problem. Here's the fix." />
+  <meta name="keywords" content="AI bioinformatics, LLM hallucination, Bioconductor, DESeq2, R code doesn't run, structure grounding, execution grounding, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html" />
+  <meta property="og:title" content="Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It" />
+  <meta property="og:description" content="Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding raises it to 88.2% — and execution is the real ground truth." />
+  <meta property="og:url" content="https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-why-ai-bioconductor-doesnt-run-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It" />
+  <meta name="twitter:description" content="Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding raises it to 88.2% — and execution is the real ground truth." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-why-ai-bioconductor-doesnt-run-hero.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It",
+    "description": "Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding raises it to 88.2% — and real execution is the ground truth.",
+    "datePublished": "2026-06-09",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html",
+    "image": "https://biomate.ai/images/blog-why-ai-bioconductor-doesnt-run-hero.png",
+    "articleSection": "Research"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "Why AI Writes Bioconductor Code That Doesn't Run", "item": "https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "Why does AI-generated R / Bioconductor code fail to run?", "acceptedAnswer": { "@type": "Answer", "text": "Because the model predicts plausible tokens rather than consulting each package's real contract. Failures cluster into three types: stale function signatures from old releases, namespace conflation (the right verb attributed to the wrong package), and invented APIs (e.g. results.shrink() instead of lfcShrink()). In a 20-task benchmark, an ungrounded LLM cited real functions only 71.4% of the time." } },
+      { "@type": "Question", "name": "What is structure grounding?", "acceptedAnswer": { "@type": "Answer", "text": "Checking every function the model proposes against the package's actual NAMESPACE export manifest for the targeted Bioconductor release, and feeding that structure back into generation. It raises function-citation accuracy from 71.4% to 88.2% and cuts wrong-package citations from 14.3% to 2.1%." } },
+      { "@type": "Question", "name": "What is execution grounding?", "acceptedAnswer": { "@type": "Answer", "text": "Actually running the workflow end to end in a dependency-complete environment on realistic input and checking it produces the outputs it claims. A workflow can pass every NAMESPACE check and still fail at runtime through version drift or data-contract mismatch, so execution is the only ground truth." } }
+    ]
+  }
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-why-ai-bioconductor-doesnt-run-hero.png" alt="Why AI writes Bioconductor code that doesn't run — and what actually fixes it" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Research
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Research</span>
+      <h1>Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It</h1>
+      <div class="article-meta">
+        <span><strong>June 9, 2026</strong></span>
+        <span>7 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">If you've asked ChatGPT or Claude to write you a DESeq2 or Seurat workflow, you've probably seen it: code that looks completely right, references functions that sound real, and then fails the moment you run it. This isn't a prompt problem. It's a grounding problem — and the fix tells us something useful about how AI should be built for science.</p>
+
+      <h2>The thing every bioinformatician has quietly noticed</h2>
+      <p>Ask a large language model for a Bioconductor analysis workflow and you get something remarkable: fluent R, plausible package names, a confident narrative of steps. Ask it to actually run, and a meaningful fraction of the time it doesn't. A function that doesn't exist. A package that was renamed two releases ago. An argument that belongs to a different function entirely. The code <em>reads</em> as expert; it just isn't grounded in what the packages really expose.</p>
+      <p>We wanted to measure this rather than gesture at it. Across a 20-task benchmark spanning seven biological domains, an ungrounded LLM — a strong general model, no retrieval, no structural scaffolding — produced function citations that were correct only <strong>71.4%</strong> of the time. Put plainly: roughly <strong>three in ten</strong> function calls in generated Bioconductor workflows pointed at something that wasn't actually an exported function of the package it was attributed to. Wrong-package citations alone ran at <strong>14.3%</strong>.</p>
+      <p>None of this is a knock on the models, or on the people using them. It's a structural consequence of how these models learn. And it has a structural fix.</p>
+
+      <h2>Why it happens: three failure modes</h2>
+      <p>When we looked at <em>what</em> the failures were, they clustered into three recognizable types:</p>
+      <p><strong>Stale signatures.</strong> Bioconductor moves fast — a release every six months, functions deprecated and renamed, arguments added and removed. A model trained on a snapshot of the internet has seen years of overlapping versions blended together. It confidently emits an argument that was valid in 2021 and removed in 2023.</p>
+      <p><strong>Namespace conflation.</strong> Many packages export a <code>filter()</code>, a <code>select()</code>, a <code>plot()</code>. The model knows the <em>verb</em> but attributes it to the wrong package — calling for <code>dplyr::filter</code> semantics inside a flow that needs the <code>Biostrings</code> or <code>S4Vectors</code> meaning. The name is real; the attribution is wrong.</p>
+      <p><strong>Invented APIs.</strong> Sometimes the model simply hallucinates a function that <em>should</em> exist by analogy — <code>results.shrink()</code> instead of the real <code>lfcShrink()</code>. It's a reasonable guess about how the world might be organized. It just isn't how DESeq2 is organized.</p>
+      <p>All three share a root cause: the model is predicting plausible tokens, not consulting the package's actual contract.</p>
+
+      <h2>The fix: ground generation in the structure that already exists</h2>
+      <p>Here's the encouraging part. Bioconductor is unusually well-structured for exactly this problem. Every package ships a formal <strong>NAMESPACE</strong> manifest of what it actually exports. Classes are declared as typed <strong>S4</strong> hierarchies. Packages are organized under controlled <strong>BiocViews</strong> vocabularies. And nearly every package ships standardized <strong>vignettes</strong> — worked, runnable examples maintained by the authors.</p>
+      <p>That structure is a grounding scaffold. When you check every function the model proposes against the real NAMESPACE export manifest for the targeted Bioconductor release — does this symbol actually exist, exported, in this package? — and feed that structure back into generation, the numbers move sharply:</p>
+      <table>
+        <thead><tr><th>Metric</th><th>Ungrounded LLM</th><th>Structure-grounded</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Function citation accuracy</td><td>71.4%</td><td><strong>88.2%</strong></td><td>+16.8 pp</td></tr>
+          <tr><td>Wrong-package citations</td><td>14.3%</td><td><strong>2.1%</strong></td><td>&minus;12.2 pp</td></tr>
+        </tbody>
+        <caption>20 workflow-generation tasks across seven domains, validated against Bioconductor 3.20 NAMESPACE export manifests. Both arms scored by the identical protocol.</caption>
+      </table>
+      <p>That's the difference between "looks right" and "is right" — not by making the model bigger, but by anchoring it to the ecosystem's own ground truth. The residual ~12% is not all hallucination, either: much of it is legitimate cross-package co-imports that simply weren't yet in our validation allowlist; expanding to the full registry lifts confirmed coverage further.</p>
+
+      <h2>But grounding in structure still isn't enough</h2>
+      <p>Here's the part that surprised us, and it's the more important lesson.</p>
+      <p>A workflow can cite only real, verified functions — pass every NAMESPACE check — and <em>still fail to run.</em> Versions drift between when a vignette was written and the environment you're in. The data contract between step three's output and step four's input doesn't quite match. An input can't be synthesized in a form the next tool accepts. Structural correctness is necessary. It is not sufficient.</p>
+      <p>So the only thing that actually tells you a workflow works is the obvious thing: <strong>run it.</strong> End to end, in a dependency-complete environment, on realistic input, and check that it produces the outputs it claims to. That binary — did it run and produce what it promised? — is a correctness signal that needs no human reviewer and no second AI to judge it. It either ran or it didn't.</p>
+      <blockquote>A grounding hierarchy: lexical grounding (the words look right) sits inside structural grounding (the functions are real) sits inside execution grounding (the workflow actually runs). Execution is the floor you can't fall through — the ground truth.</blockquote>
+      <p>This reframes a lot. "The code runs" and "the code is scientifically correct" are not the same claim, and neither is guaranteed by fluency. The discipline that closes the gap is execution, not eloquence.</p>
+
+      <h2>What we built on top of this</h2>
+      <p>This is the foundation of <strong>BioMate-KB</strong>, an open knowledge base of <strong>15,641 workflow steps</strong> extracted from across the Bioconductor 3.20 ecosystem. Steps are NAMESPACE-validated, annotated with EDAM ontology terms, linked to container images and software DOIs, and — for the validated head of the collection — confirmed by real end-to-end execution. The public skill bundle covering the top 100 packages is free, under CC-BY-4.0.</p>
+      <p>The methodology and the full validation results are documented in two preprints:</p>
+      <ul>
+        <li><em>BioMate-KB: A Real-Execution-Validated Workflow Knowledge Base for Bioconductor</em> — <a href="https://doi.org/10.5281/zenodo.20616355" target="_blank" rel="noopener">doi.org/10.5281/zenodo.20616355</a></li>
+        <li><em>Structure Grounding Is Not Enough: Real Execution as the Ground Truth for LLM-Generated Bioinformatics Workflows</em> — <a href="https://doi.org/10.5281/zenodo.20616543" target="_blank" rel="noopener">doi.org/10.5281/zenodo.20616543</a></li>
+      </ul>
+      <p>The knowledge layer is a gift to the community — clone it, use it, build on it: <a href="https://github.com/bioMate-AI/biomate-bioconductor-kb" target="_blank" rel="noopener">github.com/bioMate-AI/biomate-bioconductor-kb</a>.</p>
+      <p style="margin-top:-.4rem;">
+        <a href="https://github.com/bioMate-AI/biomate-bioconductor-kb" target="_blank" rel="noopener"><img src="https://img.shields.io/github/stars/bioMate-AI/biomate-bioconductor-kb?style=social" alt="GitHub stars" height="24" style="display:inline;vertical-align:middle;border:none;margin:0;" /></a>
+        <span style="margin-left:.6rem;color:var(--text-muted);font-size:.9rem;">Already 200+ stars from the community.</span>
+      </p>
+      <p>And the execution layer is what <a href="https://www.biomate.ai">BioMate</a> does for you. You describe the analysis in plain language; BioMate routes only to workflows that have been validated to actually run, in environments that are already dependency-complete — so you skip the version-mismatch hunt, the container wrangling, and the "why doesn't this example work anymore" afternoon entirely. The grounding we measured isn't a paper result you have to take on faith; it's the thing standing between you and a workflow that runs the first time.</p>
+
+      <hr class="article-divider" />
+      <p><em>BioMate is a life-sciences AI platform that turns validated computational workflows into something you can run by asking. If you spend afternoons getting other people's bioinformatics code to run, <a href="https://www.biomate.ai">that's the afternoon we're trying to give you back</a>.</em></p>
+
+      <div class="callout">
+        <strong>The takeaway</strong>
+        <p>Fluent AI code is not the same as runnable AI code. Structure grounding — checking every function against the real NAMESPACE — lifts citation accuracy from 71.4% to 88.2%. But only real execution proves a workflow runs. BioMate routes you to workflows validated to actually run.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate</a><div class="meta">April 20, 2026</div></li>
+        <li><a href="blog-llm-core.html">The AI Layer in BioMate: Purpose-Built for Scientific Reasoning</a><div class="meta">April 22, 2026</div></li>
+        <li><a href="blog-workflow-routing.html">Finding the Right Workflow: BioMate's Hybrid Semantic Search</a><div class="meta">April 15, 2026</div></li>
+        <li><a href="blog-auto-qc-loop.html">Quality That Never Settles: BioMate's Evidence-Graded Auto-QC Loop</a><div class="meta">March 12, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Bioconductor</span><span class="topic-chip">LLM Hallucination</span><span class="topic-chip">Structure Grounding</span><span class="topic-chip">Execution Validation</span><span class="topic-chip">NAMESPACE</span><span class="topic-chip">Research</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong \u2014 email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

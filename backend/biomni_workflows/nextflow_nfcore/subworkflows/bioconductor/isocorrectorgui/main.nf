@@ -35,6 +35,15 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("IsoCorrectoRGUI", "IsoCorrectoR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     library(IsoCorrectoR)
     
     # ==========================================
-    # Stage 1: Load and Align User Input Data
+    # --- Load and Align User Input Data ---
     # ==========================================
     message("Stage 1: Loading and aligning input files...")
     
@@ -78,7 +87,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
     # ==========================================
-    # Stage 2: Construct IsoCorrectoR Input Files
+    # --- Construct IsoCorrectoR Input Files ---
     # ==========================================
     message("Stage 2: Generating molecule, measurement, and element files...")
     
@@ -140,7 +149,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     write.csv(element_df, "temp_element.csv", row.names = FALSE, na = "")
     
     # ==========================================
-    # Stage 3: Perform Isotope Correction
+    # --- Perform Isotope Correction ---
     # ==========================================
     message("Stage 3: Running IsoCorrectoR algorithm...")
     
@@ -168,7 +177,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     file.remove("temp_measurement.csv", "temp_molecule.csv", "temp_element.csv")
     
     # ==========================================
-    # Stage 4: Export Corrected Results
+    # --- Export Corrected Results ---
     # ==========================================
     message("Stage 4: Exporting corrected data...")
     
@@ -181,7 +190,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     write.csv(mean_enrichment, "mean_enrichment.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 5: Visualization of Mean Enrichment
+    # --- Visualization of Mean Enrichment ---
     # ==========================================
     message("Stage 5: Generating diagnostic visualization...")
     

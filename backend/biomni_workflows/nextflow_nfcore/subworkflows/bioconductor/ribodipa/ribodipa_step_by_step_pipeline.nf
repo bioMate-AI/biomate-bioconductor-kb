@@ -90,7 +90,7 @@ process BIOC_RIBODIPA_RIBODIPA_STEP_BY_STEP_PIPELINE {
     # 2. Step-by-Step RiboDiPA Pipeline
     # -----------------------------------------------------------------------------
     
-    # Step 1: Map RPFs to P-sites and generate total transcript coordinates
+    # --- Map RPFs to P-sites and generate total transcript ---
     message("Step 1: Performing P-site mapping...")
     data.psite <- psiteMapping(bam_file_list = bam_path[1:4], 
         gtf_file = bam_path[5], psite.mapping = "auto", cores = 2)
@@ -99,12 +99,12 @@ process BIOC_RIBODIPA_RIBODIPA_STEP_BY_STEP_PIPELINE {
     message("P-site mapping offsets generated:")
     print(data.psite\$psite.mapping)
     
-    # Step 2: Group P-site counts into bins using adaptive binning (bin.width = 0)
+    # --- Group P-site counts into bins using adaptive binning ---
     message("Step 2: Performing data binning...")
     data.binned <- dataBinning(data = data.psite\$coverage, bin.width = 0,
         zero.omit = FALSE, bin.from.5UTR = TRUE, cores = 2)
     
-    # Step 3: Perform bin-wise and gene-wise differential pattern testing
+    # --- Perform bin-wise and gene-wise differential pattern ---
     message("Step 3: Performing differential pattern testing...")
     result.pst <- diffPatternTest(data = data.binned,
         classlabel = classlabel, method=c('gtxr', 'qvalue'))

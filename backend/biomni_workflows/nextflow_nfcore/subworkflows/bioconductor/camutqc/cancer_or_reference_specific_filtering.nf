@@ -67,7 +67,7 @@ process BIOC_CAMUTQC_CANCER_OR_REFERENCE_SPECIFIC_FILTERING {
       stop(paste("Required Panel of Normals (PON) file not found in the working directory:", pon_input))
     }
     
-    # Stage 1: Convert VEP-annotated VCF to MAF format
+    # --- Convert VEP-annotated VCF to MAF format ---
     message("Converting VEP-annotated VCF to MAF format...")
     MAFdat <- vcfToMAF(vcf_input)
     
@@ -75,7 +75,7 @@ process BIOC_CAMUTQC_CANCER_OR_REFERENCE_SPECIFIC_FILTERING {
     write.csv(MAFdat, "MAFdat_converted.csv", row.names = FALSE)
     saveRDS(MAFdat, "MAFdat_converted.rds")
     
-    # Stage 2: Apply cancer-type-specific filtering (e.g., LAML)
+    # --- Apply cancer-type-specific filtering (e.g., LAML) ---
     message("Applying cancer-type-specific filtering (LAML)...")
     MAFCan <- mutFilterCan(MAFdat, cancerType='LAML', report=FALSE, TMB=FALSE, 
                            progressbar=FALSE, 
@@ -85,7 +85,7 @@ process BIOC_CAMUTQC_CANCER_OR_REFERENCE_SPECIFIC_FILTERING {
     write.csv(MAFCan, "MAF_cancer_specific_LAML_filtered.csv", row.names = FALSE)
     saveRDS(MAFCan, "MAF_cancer_specific_LAML_filtered.rds")
     
-    # Stage 3: Apply reference-study-specific filtering (e.g., Zhu et al. 2020 KIRP)
+    # --- Apply reference-study-specific filtering (e.g., Zhu et ---
     message("Applying reference-study-specific filtering (Zhu_et_al-Nat_Commun-2020-KIRP)...")
     MAFRef <- mutFilterRef(MAFdat, reference="Zhu_et_al-Nat_Commun-2020-KIRP", 
                            report=FALSE, TMB=FALSE, progressbar=FALSE,

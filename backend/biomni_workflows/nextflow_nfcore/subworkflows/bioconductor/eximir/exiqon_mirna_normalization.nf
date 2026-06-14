@@ -71,20 +71,20 @@ process BIOC_EXIMIR_EXIQON_MIRNA_NORMALIZATION {
     # Load required package
     library(ExiMiR)
     
-    # 1. Create the GAL annotation environment using make.gal.env
+    # --- Create the GAL annotation environment using make.gal.env ---
     # Reading from the current working directory ('.')
     make.gal.env(galname='galenv', gal.path='.')
     
-    # 2. Read raw TXT files into an AffyBatch object using ReadExi
+    # --- Read raw TXT files into an AffyBatch object using ReadExi ---
     # Reading from the current working directory ('.')
     ebatch <- ReadExi(galname='galenv', txtfile.path='.')
     
-    # 3. Normalize and summarize the data using NormiR to produce an ExpressionSet
+    # --- Normalize and summarize the data using NormiR to produce ---
     eset.spike <- NormiR(ebatch, bg.correct=FALSE,
                                  normalize.method='spikein',
                                  summary.method='medianpolish')
     
-    # 4. Write named output files for the results
+    # --- Write named output files for the results ---
     # Save the complete ExpressionSet object
     saveRDS(eset.spike, file = "eset_spike.rds")
     

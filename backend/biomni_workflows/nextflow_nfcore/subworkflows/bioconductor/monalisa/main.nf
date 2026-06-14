@@ -63,7 +63,7 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     library(rtracklayer)
     
     # ==========================================
-    # 1. Load genomic regions and select subset
+    # --- Load genomic regions and select subset ---
     # ==========================================
     
     if (!file.exists("peaks.bed")) {
@@ -100,7 +100,7 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     lmrsel <- lmr[ sample(x = length(lmr), size = sample_size, replace = FALSE) ]
     
     # ==========================================
-    # 2. Bin genomic regions based on numerical values
+    # --- Bin genomic regions based on numerical values ---
     # ==========================================
     
     bins <- bin(x = lmrsel\$deltaMeth, binmode = "equalN", nElement = 800, minAbsX = 0.3)
@@ -109,7 +109,7 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     write.csv(as.data.frame(table(bins)), "bin_counts.csv", row.names = FALSE)
     
     # ==========================================
-    # 3. Prepare motifs (get PFMs and convert to PWMs)
+    # --- Prepare motifs (get PFMs and convert to PWMs) ---
     # ==========================================
     
     # Read PFMs from the user-provided JASPAR file
@@ -117,14 +117,14 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     pwms <- TFBSTools::toPWM(pfms)
     
     # ==========================================
-    # 4. Resize genomic regions and extract sequences
+    # --- Resize genomic regions and extract sequences ---
     # ==========================================
     
     lmrsel <- trim(resize(lmrsel, width = median(width(lmrsel)), fix = "center"))
     lmrseqs <- getSeq(BSgenome.Mmusculus.UCSC.mm10, lmrsel)
     
     # ==========================================
-    # 5. Run diagnostics on sequence composition
+    # --- Run diagnostics on sequence composition ---
     # ==========================================
     
     pdf("plot_bin_diagnostics_GCfrac.pdf", width = 7, height = 5)
@@ -136,7 +136,7 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     dev.off()
     
     # ==========================================
-    # 6. Run binned motif enrichment
+    # --- Run binned motif enrichment ---
     # ==========================================
     
     se <- calcBinnedMotifEnrR(seqs = lmrseqs, bins = bins, pwmL = pwms)
@@ -152,7 +152,7 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     write.csv(as.data.frame(assay(se, "negLog10Padj")), "motif_negLog10Padj.csv")
     
     # ==========================================
-    # 7. Filter and plot results
+    # --- Filter and plot results ---
     # ==========================================
     
     sel <- apply(assay(se, "negLog10Padj"), 1, function(x) max(abs(x), 0, na.rm = TRUE)) > 4.0
@@ -172,7 +172,7 @@ process BIOC_MONALISA_BINNED_MOTIF_ENRICHMENT {
     }
     
     # ==========================================
-    # 8. Cluster motifs by similarity and plot
+    # --- Cluster motifs by similarity and plot ---
     # ==========================================
     
     if (nrow(seSel) > 1) {

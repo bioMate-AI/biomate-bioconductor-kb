@@ -55,7 +55,7 @@ process BIOC_CRISPRSCORE_INDEL_FRAMESHIFT_PREDICTION {
     # Load required library
     library(crisprScore)
     
-    # 1. Read the 65bp sequence context around the protospacer from the user input file
+    # --- Read the 65bp sequence context around the protospacer ---
     input_file <- "sequences.txt"
     if (!file.exists(input_file)) {
       stop(paste("Error: Required input file", input_file, "not found in the working directory."))
@@ -77,11 +77,11 @@ process BIOC_CRISPRSCORE_INDEL_FRAMESHIFT_PREDICTION {
                     paste(head(invalid_seqs, 5), collapse = ", "), "..."))
     }
     
-    # 2. Define the conda environment path
+    # --- Define the conda environment path ---
     # We default to the documented path, but allow overriding via an environment variable for portability
     condaEnv <- Sys.getenv("LINDEL_CONDA_ENV", unset = "/Users/fortin946/miniforge3/envs/lindel-env")
     
-    # 3. Run Lindel scoring using getLindelScores
+    # --- Run Lindel scoring using getLindelScores ---
     message("Running Lindel scoring...")
     results <- tryCatch({
       getLindelScores(input, condaEnv=condaEnv)
@@ -91,7 +91,7 @@ process BIOC_CRISPRSCORE_INDEL_FRAMESHIFT_PREDICTION {
       stop(e)
     })
     
-    # 4. Format and write the output results
+    # --- Format and write the output results ---
     if (is.vector(results) || is.numeric(results)) {
       output_df <- data.frame(
         sequence = input,

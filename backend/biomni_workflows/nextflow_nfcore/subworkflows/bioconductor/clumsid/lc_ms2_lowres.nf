@@ -63,14 +63,14 @@ process BIOC_CLUMSID_LC_MS2_LOWRES {
       stop(paste("Required input file missing:", lowresfile))
     }
     
-    # 1. Extract MS2 spectra
+    # --- Extract MS2 spectra ---
     message("Extracting MS2 spectra...")
     ms2list <- extractMS2spectra(lowresfile)
     
     # Save the extracted MS2 spectra list
     saveRDS(ms2list, "extracted_ms2_spectra.rds")
     
-    # 2. Merge redundant spectra with a low-resolution mass tolerance
+    # --- Merge redundant spectra with a low-resolution mass ---
     message("Merging MS2 spectra...")
     featlist <- mergeMS2spectra(ms2list, mz_tolerance = 0.02)
     
@@ -82,7 +82,7 @@ process BIOC_CLUMSID_LC_MS2_LOWRES {
       message("Could not write feature list CSV: ", e\$message)
     })
     
-    # 3. Generate a distance matrix
+    # --- Generate a distance matrix ---
     message("Generating distance matrix...")
     distmat <- distanceMatrix(featlist)
     
@@ -90,7 +90,7 @@ process BIOC_CLUMSID_LC_MS2_LOWRES {
     saveRDS(distmat, "distance_matrix.rds")
     write.csv(as.matrix(distmat), "distance_matrix.csv")
     
-    # 4. Visualize similarities and save plots to PDF
+    # --- Visualize similarities and save plots to PDF ---
     message("Generating plots...")
     
     # MDS Plot

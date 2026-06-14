@@ -40,7 +40,7 @@ process BIOC_BAMBU_CUSTOM_MODEL_TRAINING_AND_APPLICATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("bambu")
+    .bm_deps <- c("bambu", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,6 +58,7 @@ process BIOC_BAMBU_CUSTOM_MODEL_TRAINING_AND_APPLICATION {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(bambu)
     
     # Define input file paths from the working directory

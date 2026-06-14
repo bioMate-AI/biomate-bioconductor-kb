@@ -100,16 +100,16 @@ process BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS {
       stop("No raw droplet amplitude CSV files identified in the working directory.")
     }
     
-    # 1. Read raw ddPCR amplitude files
+    # --- Read raw ddPCR amplitude files ---
     files <- readFiles(amplitude_files)
     
-    # 2. Read template
+    # --- Read template ---
     template <- readTemplate(template_file)
     
-    # 3. Run ddPCRclust
+    # --- Run ddPCRclust ---
     result <- ddPCRclust(files, template)
     
-    # 4. Plot the results
+    # --- Plot the results ---
     # Dynamically select the first available well from the results for plotting
     well_name <- names(result)[1]
     plot_data <- result[[well_name]]\$data

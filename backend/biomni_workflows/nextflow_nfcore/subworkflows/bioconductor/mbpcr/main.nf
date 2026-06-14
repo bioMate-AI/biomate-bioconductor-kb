@@ -55,7 +55,7 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FROM_TEXT_FILE {
     # Load the required Bioconductor library
     library(mBPCR)
     
-    # 1. Import data using importCNData from the local working directory
+    # --- Import data using importCNData from the local working ---
     path <- "rec10k.txt"
     rec10k <- importCNData(path, NRowSkip=1)
     
@@ -64,28 +64,28 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FROM_TEXT_FILE {
     rec10k\$PhysicalPosition <- rec10k\$position
     rec10k\$log2ratio <- rec10k\$logratio
     
-    # 2. Estimate global parameters using estGlobParam
+    # --- Estimate global parameters using estGlobParam ---
     global_params <- estGlobParam(rec10k\$log2ratio)
     saveRDS(global_params, file="global_parameters.rds")
     
-    # 3. Verify memory allocation for maxProbeNumber
+    # --- Verify memory allocation for maxProbeNumber ---
     maxProbeNumber <- 1000
     A <- array(1, dim=(maxProbeNumber+1)*(maxProbeNumber+2)/2)
     remove(A)
     
-    # 4. Estimate copy number profile using estProfileWithMBPCR (mBPCR method)
+    # --- Estimate copy number profile using estProfileWithMBPCR ---
     results <- estProfileWithMBPCR(rec10k\$SNPname, rec10k\$Chromosome, rec10k\$PhysicalPosition, rec10k\$log2ratio, chrToBeAnalyzed=c(3,5), maxProbeNumber=1000)
     saveRDS(results, file="mbpcr_results_chr3_5.rds")
     
-    # 5. Export estimated profile and breakpoints using writeEstProfile
+    # --- Export estimated profile and breakpoints using ---
     # This writes 'rec10kmBPCRestimate.txt' and 'rec10kmBPCRbreakpoints.txt' to the working directory
     writeEstProfile(path='', sampleName='rec10k', rec10k\$SNPname, rec10k\$Chromosome, rec10k\$PhysicalPosition, rec10k\$log2ratio, chrToBeWritten=c(3,5), results\$estPC, results\$estBoundaries)
     
-    # 6. Estimate copy number profile using estProfileWithMBPCR (BRC method)
+    # --- Estimate copy number profile using estProfileWithMBPCR ---
     results <- estProfileWithMBPCR(rec10k\$SNPname, rec10k\$Chromosome, rec10k\$PhysicalPosition, rec10k\$log2ratio, chrToBeAnalyzed=3, regr='BRC', maxProbeNumber=1000)
     saveRDS(results, file="mbpcr_brc_results_chr3.rds")
     
-    # 7. Plot estimated profile using plotEstProfile and save to PDF
+    # --- Plot estimated profile using plotEstProfile and save to ---
     pdf("rec10k_profile_estimation_chr3.pdf", width=10, height=7)
     plotEstProfile(sampleName='rec10k', rec10k\$Chromosome, rec10k\$PhysicalPosition, rec10k\$log2ratio, chrToBePlotted=3, results\$estPC, maxProbeNumber=2000, regrCurve=results\$regrCurve, regr='BRC')
     dev.off()

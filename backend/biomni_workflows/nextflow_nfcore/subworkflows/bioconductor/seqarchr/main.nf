@@ -59,7 +59,7 @@ process BIOC_SEQARCHR_SEQARCHR_SEQUENCE_CLUSTERING {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read Input and Generate Sequences
+    # --- Read Input and Generate Sequences ---
     # ==========================================
     message("Stage 1: Reading input and preparing sequence data...")
     
@@ -115,7 +115,7 @@ process BIOC_SEQARCHR_SEQARCHR_SEQUENCE_CLUSTERING {
     dna_seqs <- Biostrings::DNAStringSet(seqs_vec)
     
     # ==========================================
-    # STAGE 2: Configure and Run seqArchR
+    # --- Configure and Run seqArchR ---
     # ==========================================
     message("Stage 2: Running seqArchR clustering...")
     
@@ -133,7 +133,7 @@ process BIOC_SEQARCHR_SEQARCHR_SEQUENCE_CLUSTERING {
     res <- seqArchR::seqArchR(seqs = dna_seqs, config = config)
     
     # ==========================================
-    # STAGE 3: Extract and Process Clusters
+    # --- Extract and Process Clusters ---
     # ==========================================
     message("Stage 3: Processing clustering results...")
     
@@ -167,7 +167,7 @@ process BIOC_SEQARCHR_SEQARCHR_SEQUENCE_CLUSTERING {
     write.csv(cluster_df, "seq_clusters.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Generate Summary Statistics
+    # --- Generate Summary Statistics ---
     # ==========================================
     message("Stage 4: Generating cluster summary statistics...")
     
@@ -189,7 +189,7 @@ process BIOC_SEQARCHR_SEQARCHR_SEQUENCE_CLUSTERING {
     write.csv(summary_df, "cluster_summary.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating sequence architecture plots...")
     

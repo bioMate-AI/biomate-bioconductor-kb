@@ -34,6 +34,15 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rpx", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -42,10 +51,12 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
             }
           }
         }
-    
+       
+    library(SummarizedExperiment)
+ 
     library(rpx)
     
-    # Stage 1: Load and process user input files
+    # --- Load and process user input files ---
     message("Loading user input files...")
     intensity_df <- read.csv("intensity.csv", check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", check.names = FALSE)
@@ -76,7 +87,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
       colData = DataFrame(coldata_df)
     )
     
-    # Stage 2: Query ProteomeXchange dynamically
+    # --- Query ProteomeXchange dynamically ---
     message("Querying ProteomeXchange...")
     px_id <- NULL
     
@@ -110,7 +121,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
     
     message("Selected ProteomeXchange ID: ", px_id)
     
-    # Stage 3: Retrieve PX Dataset and Metadata
+    # --- Retrieve PX Dataset and Metadata ---
     px_metadata <- data.frame(
       pxid = px_id,
       title = "Unknown",
@@ -157,7 +168,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
       write.csv(data.frame(file_name = "No files found"), "px_files_list.csv", row.names = FALSE)
     }
     
-    # Stage 4: Download a small file from the dataset
+    # --- Download a small file from the dataset ---
     downloaded_file_path <- NULL
     if (exists("px") && !is.null(px_files) && length(px_files) > 0 && !identical(px_files, "No files retrieved")) {
       # Look for a small text/readme file
@@ -179,7 +190,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
       writeLines("No file downloaded or download failed.", "downloaded_px_file.txt")
     }
     
-    # Stage 5: Analyze user intensity data and export summary
+    # --- Analyze user intensity data and export summary ---
     message("Analyzing user intensity data...")
     conditions <- unique(colData(se)\$condition)
     mean_intensities <- sapply(conditions, function(cond) {

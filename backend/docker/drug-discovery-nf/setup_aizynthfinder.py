@@ -38,9 +38,13 @@ config_path = "/opt/aizynthfinder/config.yml"
 # Use the USPTO models if present, otherwise stock-only config
 models_dir = "/opt/aizynthfinder/models"
 import os
-onnx   = f"{models_dir}/uspto_model.onnx"
-tmpl   = f"{models_dir}/uspto_templates.csv"
-stock  = "/opt/aizynthfinder/stock/starting_materials.smi"
+onnx     = f"{models_dir}/uspto_model.onnx"
+# Templates are shipped gzipped from Zenodo; aizynthfinder loads .csv.gz
+# directly (expansion_strategies.py:296). Prefer .csv.gz, fall back to .csv.
+tmpl_gz  = f"{models_dir}/uspto_templates.csv.gz"
+tmpl_csv = f"{models_dir}/uspto_templates.csv"
+tmpl     = tmpl_gz if os.path.exists(tmpl_gz) else tmpl_csv
+stock    = "/opt/aizynthfinder/stock/starting_materials.smi"
 
 if os.path.exists(onnx) and os.path.exists(tmpl):
     config = f"""expansion:

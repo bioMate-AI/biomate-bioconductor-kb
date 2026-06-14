@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Create MOFA object using create_mofa. 2. Define data, model, and training options using get_default_data_options, get_default_mode
+//  * 1. [Visualization & Output] Create MOFA object
+//  * 2. [Visualization & Output] Define data, model, and training options
+//  * 3. [Visualization & Output] Prepare the MOFA object
+//  * 4. [Visualization & Output] Train the model
+//  * 5. [Visualization & Output] Perform downstream analysis
 
 nextflow.enable.dsl = 2
 
@@ -65,7 +69,7 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             data <- readRDS("data.rds")
             dt <- readRDS("dt.rds")
             
-            # 1. Create MOFA object
+            # --- Create MOFA object ---
             if (is.list(data) && !is.data.frame(data) && length(data) > 0) {
               MOFAobject <- create_mofa(data)
             } else {
@@ -77,13 +81,13 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             
             print(plot_data_overview(MOFAobject))
             
-            # 2. Define data, model, and training options
+            # --- Define data, model, and training options ---
             data_opts <- get_default_data_options(MOFAobject)
             model_opts <- get_default_model_options(MOFAobject)
             model_opts\$num_factors <- 10
             train_opts <- get_default_training_options(MOFAobject)
             
-            # 3. Prepare the MOFA object
+            # --- Prepare the MOFA object ---
             MOFAobject <- prepare_mofa(
               object = MOFAobject,
               data_options = data_opts,
@@ -91,7 +95,7 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
               training_options = train_opts
             )
             
-            # 4. Train the model
+            # --- Train the model ---
             outfile = file.path(tempdir(),"model.hdf5")
             MOFAobject.trained <- run_mofa(MOFAobject, outfile, use_basilisk=TRUE)
             
@@ -110,7 +114,7 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             )
             samples_metadata(model) <- sample_metadata
             
-            # 5. Perform downstream analysis
+            # --- Perform downstream analysis ---
             # Variance decomposition
             print(head(get_variance_explained(model)\$r2_total[[1]]))
             print(head(get_variance_explained(model)\$r2_per_factor[[1]]))

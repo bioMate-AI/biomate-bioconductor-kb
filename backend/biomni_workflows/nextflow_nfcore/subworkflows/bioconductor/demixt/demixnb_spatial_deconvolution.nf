@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Subset the count matrix to keep only the selected spatially variable genes. 2. Separate the count matrix into reference (normal) a
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Execute Documented Workflow
+//  * 3. [Visualization & Output] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DeMixT", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +58,8 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
         }
     
     # Load required libraries
-    library(DeMixT)
+     library(SummarizedExperiment)
+   library(DeMixT)
     
     # Helper function to read vector inputs robustly
     read_vector <- function(base_name) {
@@ -79,7 +91,7 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
       }
     }
     
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     count_matrix <- read_matrix("count_matrix")
     barcode_reference <- read_vector("barcode_reference")
     barcode_mixed <- read_vector("barcode_mixed")
@@ -100,7 +112,7 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
       stop("No overlap between barcode_mixed and count_matrix column names.")
     }
     
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     filtered_mat <- count_matrix[gl, ]
     data.N1 <- as.matrix(filtered_mat[, barcode_reference])
     data.Y <- as.matrix(filtered_mat[, barcode_mixed])
@@ -112,7 +124,7 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
     # Run DeMixNB deconvolution
     test_simulation <- DeMixNB(data.Y = data.Y, data.N1 = data.N1, niter = 30, tol = 1e-3)
     
-    # 3. Write Outputs
+    # --- Write Outputs ---
     saveRDS(test_simulation, file = "demixnb_results.rds")
     
     if (!is.null(test_simulation\$pi_t_summary)) {

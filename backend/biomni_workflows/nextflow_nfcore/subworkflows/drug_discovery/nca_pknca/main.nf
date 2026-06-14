@@ -179,6 +179,7 @@ process NCA_PKNCA_ANALYSIS {
     output:
     path "nca_results.csv",   emit: nca_results
     path "nca_summary.json",  emit: nca_summary
+    path "qc_metrics.json",   emit: qc_metrics
     path "versions.yml",      emit: versions
 
     script:
@@ -201,6 +202,21 @@ df <- read_csv("${validated_csv}", show_col_types = FALSE)
 
 dose_val  <- as.numeric("${dose}")
 route_val <- "${route}"
+# PKNCA requires 'extravascular' or 'intravascular'; canonicalize common synonyms.
+route_val <- switch(tolower(route_val),
+    oral           = "extravascular",
+    po             = "extravascular",
+    sc             = "extravascular",
+    im             = "extravascular",
+    subcutaneous   = "extravascular",
+    intramuscular  = "extravascular",
+    extravascular  = "extravascular",
+    iv             = "intravascular",
+    intravenous    = "intravascular",
+    intravascular  = "intravascular",
+    route_val
+)
+df\$route <- route_val
 time_u    <- "${time_unit}"
 conc_u    <- "${conc_unit}"
 
@@ -278,6 +294,29 @@ summary_list <- list(
 )
 
 write_json(summary_list, "nca_summary.json", auto_unbox = TRUE, pretty = TRUE)
+
+# ── QC gate: AUC extrapolation pct (FDA 2003 BA/BE, GOLD) ─────────────────────
+# auc_extrap_pct = (AUCinf - AUClast) / AUCinf * 100, per-subject then max.
+auc_inf  <- as.numeric(params_wide\$AUCinf)
+auc_last <- as.numeric(params_wide\$AUClast)
+extrap_pct <- ifelse(auc_inf > 0, (auc_inf - auc_last) / auc_inf * 100, NA_real_)
+extrap_pct <- extrap_pct[is.finite(extrap_pct)]
+auc_extrap_max  <- if (length(extrap_pct) > 0) max(extrap_pct) else NA_real_
+auc_extrap_mean <- if (length(extrap_pct) > 0) mean(extrap_pct) else NA_real_
+
+qc_metrics <- list(
+    success                  = TRUE,
+    process                  = "NCA_PKNCA_ANALYSIS",
+    domain                   = "drug_discovery",
+    n_subjects               = length(unique(df\$subject_id)),
+    auc_extrap_pct_max       = auc_extrap_max,
+    auc_extrap_pct_mean      = auc_extrap_mean,
+    auc_extrap_within_20pct  = isTRUE(auc_extrap_max <= 20),
+    evidence_tier            = "GOLD",
+    citation                 = "FDA 2003 BA/BE Studies for Orally Administered Drug Products"
+)
+write_json(qc_metrics, "qc_metrics.json", auto_unbox = TRUE, pretty = TRUE)
+
 cat("PKNCA analysis complete — ", nrow(params_wide), "subjects\\n")
 REOF
 

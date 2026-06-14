@@ -56,7 +56,7 @@ process BIOC_PGXRPI_CALCULATE_CNV_FREQUENCY {
     library(pgxRpi)
     library(GenomicRanges)
     
-    # 1. Read the user-provided segment data
+    # --- Read the user-provided segment data ---
     # The file 'segdata.tsv' must exist in the working directory.
     # It should contain segment data with columns for sample ID, chromosome, start, end,
     # and CNV states (at index 6 and index 9).
@@ -66,13 +66,13 @@ process BIOC_PGXRPI_CALCULATE_CNV_FREQUENCY {
     
     segdata <- read.delim("segdata.tsv", sep = "\t", header = TRUE, check.names = FALSE)
     
-    # 2. Calculate CNV frequency using segtoFreq specifying the CNV state column index (column 6)
+    # --- Calculate CNV frequency using segtoFreq specifying the ---
     segfreq1 <- segtoFreq(segdata, cnv_column_idx = 6, cohort_name = "c1")
     
-    # 3. Calculate level-specific CNV frequency using EFO codes (column 9)
+    # --- Calculate level-specific CNV frequency using EFO codes ---
     segfreq2 <- segtoFreq(segdata, cnv_column_idx = 9, cohort_name = "c1")
     
-    # 4. Save the meaningful results to output files
+    # --- Save the meaningful results to output files ---
     # Save as RDS objects (since they are GRangesList objects)
     saveRDS(segfreq1, "segfreq1.rds")
     saveRDS(segfreq2, "segfreq2.rds")
@@ -83,7 +83,7 @@ process BIOC_PGXRPI_CALCULATE_CNV_FREQUENCY {
     write.csv(segfreq1_df, "segfreq1.csv", row.names = FALSE)
     write.csv(segfreq2_df, "segfreq2.csv", row.names = FALSE)
     
-    # 5. Visualize the calculated CNV frequencies and save to a PDF
+    # --- Visualize the calculated CNV frequencies and save to a PDF ---
     pdf("cnv_frequency_plots.pdf", width = 10, height = 6)
     
     # Plot for standard CNV frequency (segfreq1)

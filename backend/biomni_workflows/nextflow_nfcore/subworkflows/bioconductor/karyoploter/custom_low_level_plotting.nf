@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize a multi-panel karyotype plot using plotKaryotype with plot.type=2. 2. Add backgrounds to specific data panels using kpD
+//  * 1. [Visualization & Output] Initialize a multi-panel karyotype plot using
+//  * 2. [Visualization & Output] Add backgrounds to specific data panels using
+//  * 3. [Visualization & Output] Add custom axes using kpAxis
+//  * 4. [Visualization & Output] Plot data points, lines, segments, and bars using
 
 nextflow.enable.dsl = 2
 
@@ -96,12 +99,12 @@ process BIOC_KARYOPLOTER_CUSTOM_LOW_LEVEL_PLOTTING {
         # Set up the output PDF file for the plot
         pdf("karyoplot_custom_low_level.pdf", width = 12, height = 10)
         
-        # 1. Initialize a multi-panel karyotype plot using plotKaryotype with plot.type=2
+        # --- Initialize a multi-panel karyotype plot using ---
         kp <- plotKaryotype(genome="hg19", plot.type=2, chromosomes=c("chr1", "chr2", "chr3"))
         
-        # 2. Add backgrounds to specific data panels using kpDataBackground
-        # 3. Add custom axes using kpAxis
-        # 4. Plot data points, lines, segments, and bars using low-level functions
+        # --- Add backgrounds to specific data panels using ---
+        # --- Add custom axes using kpAxis ---
+        # --- Plot data points, lines, segments, and bars using ---
         
         kpDataBackground(kp, data.panel = 1, r0=0, r1=0.45)
         kpAxis(kp, ymin=-1, ymax=1, r0=0.05, r1=0.4, col="gray50", cex=0.5)

@@ -64,13 +64,13 @@ process BIOC_DDCT_DDCT_STEP_BY_STEP_ANALYSIS {
     warningFile <- "warnings.txt"
     savedir <- function(x) file.path(".", x)
     
-    # 1. Load data into an SDMFrame object
+    # --- Load data into an SDMFrame object ---
     if (!file.exists(file.names)) {
       stop(paste("Required input file missing:", file.names))
     }
     CtData <- SDMFrame(file.names)
     
-    # 2. Read sample annotation metadata
+    # --- Read sample annotation metadata ---
     if (file.exists(info)) {
       sampleInformation <- read.AnnotatedDataFrame(info, header=TRUE, row.names=NULL)
     } else {
@@ -87,20 +87,20 @@ process BIOC_DDCT_DDCT_STEP_BY_STEP_ANALYSIS {
     all_genes <- unique(coreData(CtData)\$Detector)
     name.reference.gene <- if (length(all_genes) > 0) all_genes[length(all_genes)] else "Gene2"
     
-    # 3. Calculate relative expression using ddCtExpression
+    # --- Calculate relative expression using ddCtExpression ---
     result <- ddCtExpression(CtData, 
                              calibrationSample=name.reference.sample, 
                              housekeepingGene=name.reference.gene, 
                              sampleInformation=sampleInformation, 
                              warningStream=warningFile)
     
-    # 4. Export results using elistWrite
+    # --- Export results using elistWrite ---
     elistWrite(result, file=savedir("allValues.txt"))
     
     # Save R object for downstream analysis
     saveRDS(result, file=savedir("ddCt_result.rds"))
     
-    # 5. Visualize results using errBarchart
+    # --- Visualize results using errBarchart ---
     pdf(file=savedir("errBarchart_plot.pdf"), width=10, height=8)
     br <- errBarchart(result)
     print(br)

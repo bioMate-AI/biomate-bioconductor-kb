@@ -35,6 +35,15 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("a4Classif", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
     library(a4Classif)
     library(Biobase)
     
-    # Stage 1: Load and preprocess input data
+    # --- Load and preprocess input data ---
     message("Loading input datasets...")
     exprs_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     if ("gene_id" %in% colnames(exprs_df)) {
@@ -77,7 +86,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
     phenoData <- new("AnnotatedDataFrame", data = coldata)
     eset <- ExpressionSet(assayData = exprs_matrix, phenoData = phenoData)
     
-    # Stage 2: Lasso Classification
+    # --- Lasso Classification ---
     message("Running Lasso Classification...")
     resultLasso <- tryCatch({
       lassoClass(object = eset, groups = "condition")
@@ -100,7 +109,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
       dev.off()
     }
     
-    # Stage 3: PAM Classification
+    # --- PAM Classification ---
     message("Running PAM Classification...")
     resultPam <- tryCatch({
       pamClass(object = eset, groups = "condition")
@@ -123,7 +132,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
       dev.off()
     }
     
-    # Stage 4: Random Forest Classification
+    # --- Random Forest Classification ---
     message("Running Random Forest Classification...")
     resultRf <- tryCatch({
       rfClass(object = eset, groups = "condition")
@@ -146,7 +155,7 @@ process BIOC_A4CLASSIF_A4_CLASSIF_MICROARRAY_PIPELINE {
       dev.off()
     }
     
-    # Stage 5: ROC Curve Visualization
+    # --- ROC Curve Visualization ---
     message("Generating ROC Curve...")
     target_gene <- rownames(eset)[1]
     pdf("roc_curve.pdf")

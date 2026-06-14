@@ -64,10 +64,10 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     outdir <- "."
     outfile <- file.path(outdir, "testWrapUp")
     
-    # 1. Convert VCF to GDS and create SeqSQC object
+    # --- Convert VCF to GDS and create SeqSQC object ---
     seqfile <- LoadVfile(vfile = infile, output = outfile, capture.region = cr, sample.annot = sample.annot)
     
-    # 2. Check missing rate
+    # --- Check missing rate ---
     seqfile <- MissingRate(seqfile, remove.samples=NULL)
     pdf("plot_MissingRate.pdf")
     plotQC(seqfile, QCstep = "MissingRate")
@@ -77,7 +77,7 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     res.mr <- QCresult(seqfile)\$MissingRate
     write.csv(res.mr, "missing_rate_results.csv", row.names = FALSE)
     
-    # 3. Check sex discordance
+    # --- Check sex discordance ---
     seqfile <- SexCheck(seqfile, remove.samples=NULL)
     pdf("plot_SexCheck.pdf")
     plotQC(seqfile, QCstep = "SexCheck")
@@ -87,7 +87,7 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     res.sexc <- QCresult(seqfile)\$SexCheck
     write.csv(res.sexc, "sex_check_results.csv", row.names = FALSE)
     
-    # 4. Check inbreeding coefficient
+    # --- Check inbreeding coefficient ---
     seqfile <- Inbreeding(seqfile, remove.samples=NULL)
     pdf("plot_Inbreeding.pdf")
     plotQC(seqfile, QCstep = "Inbreeding")
@@ -97,7 +97,7 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     res.inb <- QCresult(seqfile)\$Inbreeding
     write.csv(res.inb, "inbreeding_results.csv", row.names = FALSE)
     
-    # 5. Check identity-by-descent (IBD)
+    # --- Check identity-by-descent (IBD) ---
     seqfile <- IBD(seqfile, remove.samples=NULL)
     pdf("plot_IBD.pdf")
     plotQC(seqfile, QCstep = "IBD")
@@ -107,7 +107,7 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     res.ibd <- QCresult(seqfile)\$IBD
     write.csv(res.ibd, "ibd_results.csv", row.names = FALSE)
     
-    # 6. Check population outliers (PCA)
+    # --- Check population outliers (PCA) ---
     seqfile <- PCA(seqfile, remove.samples=NULL)
     pdf("plot_PCA.pdf")
     plotQC(seqfile, QCstep = "PCA")
@@ -127,7 +127,7 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
       })
     }
     
-    # 7. Extract problematic samples
+    # --- Extract problematic samples ---
     probs <- problemList(seqfile)
     write.csv(probs\$prob.list, "problematic_samples.csv", row.names = FALSE)
     write.csv(probs\$remove.list, "remove_list.csv", row.names = FALSE)
@@ -135,7 +135,7 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     # Save the SeqSQC object
     save(seqfile, file="seqfile.Rdata")
     
-    # 8. Generate HTML report
+    # --- Generate HTML report ---
     RenderReport(seqfile, output="report.html", interactive=TRUE)
 
     writeLines(c(

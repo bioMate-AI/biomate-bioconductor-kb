@@ -57,7 +57,7 @@ process BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING {
     library(Biostrings)
     
     # ==========================================
-    # 1. Read User Input Files & Construct PFM
+    # --- Read User Input Files & Construct PFM ---
     # ==========================================
     
     # Read DNA sequence of interest
@@ -123,18 +123,18 @@ process BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING {
     }
     
     # ==========================================
-    # 2. Convert PFMatrix to PWMatrix
+    # --- Convert PFMatrix to PWMatrix ---
     # ==========================================
     pwm <- toPWM(pfm, type="log2probratio", pseudocounts=0.8,
                  bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
     
     # ==========================================
-    # 3. Scan Sequence with PWMatrix
+    # --- Scan Sequence with PWMatrix ---
     # ==========================================
     siteset <- searchSeq(pwm, subject, seqname="seq1", min.score="60%", strand="*")
     
     # ==========================================
-    # 4. Calculate Empirical P-values
+    # --- Calculate Empirical P-values ---
     # ==========================================
     p_tfm <- tryCatch({
       pvalues(siteset, type="TFMPvalue")
@@ -151,7 +151,7 @@ process BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING {
     })
     
     # ==========================================
-    # 5. Export Results
+    # --- Export Results ---
     # ==========================================
     
     # Generate GFF3 and GFF2 data frames

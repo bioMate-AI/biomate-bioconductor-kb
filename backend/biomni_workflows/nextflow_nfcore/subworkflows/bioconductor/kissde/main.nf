@@ -63,25 +63,25 @@ process BIOC_KISSDE_ALTERNATIVE_SPLICING_ANALYSIS {
       stop(paste("Required input file '", fileInAS, "' not found in the working directory.", sep = ""))
     }
     
-    # 1. Convert KisSplice2refgenome output to counts
+    # --- Convert KisSplice2refgenome output to counts ---
     myCounts_AS <- kissplice2counts(fileInAS, pairedEnd = TRUE, k2rg = TRUE, counts = 2, exonicReads = FALSE)
     
-    # 2. Define condition vector
+    # --- Define condition vector ---
     myConditions_AS <- c(rep("SKNSH", 2), rep("SKNSH-RA", 2))
     
-    # 3. Perform quality control (saving plots to a PDF file)
+    # --- Perform quality control (saving plots to a PDF file) ---
     pdf("quality_control_plots.pdf", width = 12, height = 6)
     qualityControl(myCounts_AS, myConditions_AS)
     dev.off()
     
-    # 4. Run differential analysis
+    # --- Run differential analysis ---
     myResult_AS <- diffExpressedVariants(myCounts_AS, myConditions_AS)
     
-    # 5. Export results
+    # --- Export results ---
     writeOutputKissDE(myResult_AS, output = "results_table.tab")
     writeOutputKissDE(myResult_AS, output = "psi_table.tab", writePSI = TRUE)
     
-    # 6. Explore results (wrapped in tryCatch for non-interactive environments)
+    # --- Explore results (wrapped in tryCatch for non-interactive ---
     tryCatch({
       if (interactive()) {
         exploreResults(rdsFile = "results_table.tab.rds")

@@ -35,6 +35,15 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Repitools", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Load and Validate Input Data
+    # --- Load and Validate Input Data ---
     # ==========================================
     message("Stage 1: Loading input data...")
     
@@ -75,7 +84,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     groups <- as.factor(coldata\$condition)
     
     # ==========================================
-    # STAGE 2: Normalization and Quality Control
+    # --- Normalization and Quality Control ---
     # ==========================================
     message("Stage 2: Normalizing data and generating MDS plot...")
     
@@ -101,7 +110,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Differential Enrichment Analysis
+    # --- Differential Enrichment Analysis ---
     # ==========================================
     message("Stage 3: Calculating differential enrichment...")
     
@@ -122,7 +131,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     overall_mean <- rowMeans(norm_enrichment)
     
     # ==========================================
-    # STAGE 4: CpG Density Simulation & Binning
+    # --- CpG Density Simulation & Binning ---
     # ==========================================
     message("Stage 4: Simulating CpG density and binning features...")
     
@@ -141,7 +150,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 5: Repitools Visualization (binPlots)
+    # --- Repitools Visualization (binPlots) ---
     # ==========================================
     message("Stage 5: Generating bin plots...")
     
@@ -164,7 +173,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Export Results
+    # --- Export Results ---
     # ==========================================
     message("Stage 6: Exporting analysis summary...")
     

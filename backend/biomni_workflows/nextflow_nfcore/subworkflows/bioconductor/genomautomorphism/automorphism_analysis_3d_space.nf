@@ -56,7 +56,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_3D_SPACE {
     library(Biostrings)
     library(GenomAutomorphism)
     
-    # 1. Load the pairwise sequence alignment from the working directory
+    # --- Load the pairwise sequence alignment from the working ---
     # We support reading 'covid_aln' either as a serialized RDS object or as a FASTA file.
     if (file.exists("covid_aln")) {
       covid_aln <- tryCatch({
@@ -74,7 +74,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_3D_SPACE {
       stop("Error: Input file 'covid_aln' (RDS or FASTA format) not found in the working directory.")
     }
     
-    # 2. Compute automorphisms on the 3D space group Z5^3 using dual cubes
+    # --- Compute automorphisms on the 3D space group Z5^3 using ---
     autm_3d <- automorphisms(
       seq = covid_aln,
       group = "Z5^3",
@@ -83,11 +83,11 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_3D_SPACE {
       verbose = FALSE
     )
     
-    # 3. Group automorphisms by coefficients to identify codon-preserving (identity matrix "1,1,1") and mutational events
+    # --- Group automorphisms by coefficients to identify ---
     autby_coef_3d <- automorphism_bycoef(autm_3d)
     autby_coef_3d <- autby_coef_3d[ autby_coef_3d\$autm != "1,1,1" ]
     
-    # 4. Extract conserved genomic regions
+    # --- Extract conserved genomic regions ---
     conserv <- conserved_regions(autm_3d)
     
     # Save results to output files

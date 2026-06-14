@@ -68,19 +68,19 @@ process BIOC_BASECALLQC_SAMPLE_SHEET_PREP_AND_COMMAND_GENERATION {
                  paste(missing_files, collapse = ", ")))
     }
     
-    # 1. Initialize run parameters using BCL2FastQparams
+    # --- Initialize run parameters using BCL2FastQparams ---
     message("Initializing BCL2FastQ parameters...")
     bcl2fastqparams <- BCL2FastQparams(runXML, config, runDir = getwd(), verbose = FALSE)
     
-    # 2. Clean and validate the sample sheet using validateBCLSheet
+    # --- Clean and validate the sample sheet using validateBCLSheet ---
     message("Validating and cleaning sample sheet...")
     cleanedSampleSheet <- validateBCLSheet(sampleSheet, param = bcl2fastqparams)
     
-    # 3. Generate base masks using createBasemasks
+    # --- Generate base masks using createBasemasks ---
     message("Generating base masks...")
     baseMasks <- createBasemasks(cleanedSampleSheet, param = bcl2fastqparams)
     
-    # 4. Create the bcl2fastq execution command using createBCLcommand
+    # --- Create the bcl2fastq execution command using ---
     message("Constructing bcl2fastq execution command...")
     toSubmit <- createBCLcommand(bcl2fastqparams, cleanedSampleSheet, baseMasks)
     

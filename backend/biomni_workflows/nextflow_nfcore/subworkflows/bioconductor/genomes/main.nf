@@ -35,6 +35,15 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("genomes", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     library(GenomicRanges)
     
     # -------------------------------------------------------------------------
-    # Stage 1: Read Input Files
+    # --- Read Input Files ---
     # -------------------------------------------------------------------------
     message("Reading input files...")
     
@@ -84,7 +93,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 2: Download and Parse NCBI Genome Reports
+    # --- Download and Parse NCBI Genome Reports ---
     # -------------------------------------------------------------------------
     message("Fetching genome reports from NCBI...")
     
@@ -119,7 +128,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 3: Taxonomic Extraction and Matching
+    # --- Taxonomic Extraction and Matching ---
     # -------------------------------------------------------------------------
     message("Extracting taxonomic information...")
     
@@ -134,7 +143,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     merged_metadata <- merge(coldata, proks, by = "Genus", all.x = TRUE, suffixes = c(".local", ".ncbi"))
     
     # -------------------------------------------------------------------------
-    # Stage 4: Annotate Genomic Ranges
+    # --- Annotate Genomic Ranges ---
     # -------------------------------------------------------------------------
     message("Annotating genomic intervals...")
     
@@ -160,7 +169,7 @@ process BIOC_GENOMES_NCBI_GENOME_ANNOTATION {
     message("Saved annotated regions to 'annotated_regions.csv'")
     
     # -------------------------------------------------------------------------
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # -------------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

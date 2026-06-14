@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Fit initial linear model using lmFit(). 2. Inspect average expression distribution and residual variance using hist() and plotSA()
+//  * 1. [Visualization & Output] Fit initial linear model using lmFit()
+//  * 2. [Visualization & Output] Inspect average expression distribution and residual
+//  * 3. [Visualization & Output] Filter out probes below a threshold
+//  * 4. [Visualization & Output] Run empirical Bayes with trend on the filtered fit using
+//  * 5. [Visualization & Output] Inspect the final residual variance plot using plotSA()
 
 nextflow.enable.dsl = 2
 
@@ -67,26 +71,26 @@ process BIOC_LIMMA_FILTERING_UNEXPRESSED_PROBES {
     y <- readRDS("y.rds")
     design <- readRDS("design.rds")
     
-    # 1. Fit initial linear model using lmFit()
+    # --- Fit initial linear model using lmFit() ---
     fit <- lmFit(y, design)
     
     # Open PDF device to save diagnostic plots
     pdf("diagnostic_plots.pdf", width=10, height=5)
     par(mfrow=c(1, 3))
     
-    # 2. Inspect average expression distribution and residual variance using hist() and plotSA()
+    # --- Inspect average expression distribution and residual ---
     hist(fit\$Amean)
     plotSA(fit)
     
-    # 3. Filter out probes below a threshold
+    # --- Filter out probes below a threshold ---
     # Define CutOff dynamically as the median of average log-expression values to ensure robustness
     CutOff <- median(fit\$Amean, na.rm = TRUE)
     keep <- fit\$Amean > CutOff
     
-    # 4. Run empirical Bayes with trend on the filtered fit using eBayes()
+    # --- Run empirical Bayes with trend on the filtered fit using ---
     fit2 <- eBayes(fit[keep,], trend=TRUE)
     
-    # 5. Inspect the final residual variance plot using plotSA()
+    # --- Inspect the final residual variance plot using plotSA() ---
     plotSA(fit2)
     
     # Close the plotting device

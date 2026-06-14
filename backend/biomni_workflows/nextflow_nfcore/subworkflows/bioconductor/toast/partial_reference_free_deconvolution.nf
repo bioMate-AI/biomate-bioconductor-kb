@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Select cell type-specific markers from pure profiles using ChooseMarker(). 2. Retrieve prior composition parameters (alpha and sig
+//  * 1. [Input & Preparation] Read User Input Files
+//  * 2. [Input & Preparation] Select cell type-specific markers from pure profiles
+//  * 3. [Input & Preparation] Perform partial reference-free deconvolution without prior
+//  * 4. [Input & Preparation] Define prior composition parameters manually or retrieve
+//  * 5. [Input & Preparation] Perform partial reference-free deconvolution with priors
+//  * 6. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +64,7 @@ process BIOC_TOAST_PARTIAL_REFERENCE_FREE_DECONVOLUTION {
     library(TOAST)
     
     # ----------------------------------------------------------------------
-    # Stage 0: Read User Input Files
+    # --- Read User Input Files ---
     # ----------------------------------------------------------------------
     # The pipeline expects CBS_mix.rds, LM_5.rds, and CellType.rds in the working directory.
     if (!file.exists("CBS_mix.rds") || !file.exists("LM_5.rds") || !file.exists("CellType.rds")) {
@@ -71,17 +76,17 @@ process BIOC_TOAST_PARTIAL_REFERENCE_FREE_DECONVOLUTION {
     CellType <- readRDS("CellType.rds")
     
     # ----------------------------------------------------------------------
-    # Stage 1: Select cell type-specific markers from pure profiles
+    # --- Select cell type-specific markers from pure profiles ---
     # ----------------------------------------------------------------------
     myMarker <- ChooseMarker(LM_5, CellType, nMarkCT = 20, chooseSig = TRUE, verbose = FALSE)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Perform partial reference-free deconvolution without prior
+    # --- Perform partial reference-free deconvolution without prior ---
     # ----------------------------------------------------------------------
     resCBS0 <- MDeconv(CBS_mix, myMarker, epsilon = 1e-3, verbose = FALSE)
     
     # ----------------------------------------------------------------------
-    # Stage 3: Define prior composition parameters manually or retrieve them
+    # --- Define prior composition parameters manually or retrieve ---
     # ----------------------------------------------------------------------
     cell_types <- names(CellType)
     num_ct <- length(cell_types)
@@ -138,7 +143,7 @@ process BIOC_TOAST_PARTIAL_REFERENCE_FREE_DECONVOLUTION {
     }
     
     # ----------------------------------------------------------------------
-    # Stage 4: Perform partial reference-free deconvolution with priors
+    # --- Perform partial reference-free deconvolution with priors ---
     # ----------------------------------------------------------------------
     # Deconvolution using manually input alpha and sigma
     resCBS1 <- MDeconv(CBS_mix, myMarker, alpha = prior_alpha, sigma = prior_sigma, epsilon = 1e-3, verbose = FALSE)
@@ -147,7 +152,7 @@ process BIOC_TOAST_PARTIAL_REFERENCE_FREE_DECONVOLUTION {
     resCBS2 <- MDeconv(CBS_mix, myMarker, alpha = alpha_input, epsilon = 1e-3, verbose = FALSE)
     
     # ----------------------------------------------------------------------
-    # Stage 5: Save Outputs
+    # --- Save Outputs ---
     # ----------------------------------------------------------------------
     # Save selected markers
     saveRDS(myMarker, "selected_markers.rds")

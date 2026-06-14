@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Perform graphical background subtraction or RMA-like background convolution. 2. Apply log2 transformation instead of variance stab
+//  * 1. [Core Analysis] Read user input files from the working directory
+//  * 2. [Core Analysis] Perform graphical background subtraction
+//  * 3. [Core Analysis] Perform RMA-like background convolution (Xie background
+//  * 4. [Core Analysis] Apply log2 transformation instead of variance
+//  * 5. [Core Analysis] Save the processed beadLevelData object
+//  * 6. [Core Analysis] Generate summary statistics and output CSV
+//  * 7. [Core Analysis] Generate diagnostic plots
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_BLIMA_ALTERNATIVE_PREPROCESSING_OPTIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("blima", "beadarray")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +66,7 @@ process BIOC_BLIMA_ALTERNATIVE_PREPROCESSING_OPTIONS {
     library(blima)
     library(beadarray)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     if (!file.exists("blimatestingall.rds") || !file.exists("negAdr.rds")) {
       stop("Required input files 'blimatestingall.rds' and/or 'negAdr.rds' are missing from the working directory.")
     }
@@ -81,28 +96,28 @@ process BIOC_BLIMA_ALTERNATIVE_PREPROCESSING_OPTIONS {
       warning("Failed to check/create 'bgf' channel: ", e\$message)
     })
     
-    # 2. Perform graphical background subtraction
+    # --- Perform graphical background subtraction ---
     message("Performing background channel subtraction...")
     blimatestingall = backgroundChannelSubtract(blimatestingall, normalizationMod = NULL,
             channelSubtractFrom = "GrnF", channelSubtractWhat = "GrnB", channelResult = "BGS")
     
-    # 3. Perform RMA-like background convolution (Xie background correction)
+    # --- Perform RMA-like background convolution (Xie background ---
     message("Performing Xie background correction...")
     blimatestingall = xieBacgroundCorrect(blimatestingall, normalizationMod = NULL,
             negativeArrayAddresses=negAdr, channelCorrect="GrnF", channelResult="XIE",
             channelInclude="bgf")
     
-    # 4. Apply log2 transformation instead of variance stabilization
+    # --- Apply log2 transformation instead of variance ---
     message("Applying log2 transformation...")
     blimatestingall = selectedChannelTransform(blimatestingall, normalizationMod=NULL,
             channelTransformFrom="GrnF", channelResult="LOG",
             transformation=log2TransformPositive)
     
-    # 5. Save the processed beadLevelData object
+    # --- Save the processed beadLevelData object ---
     message("Saving processed beadLevelData object...")
     saveRDS(blimatestingall, "processed_blimatestingall.rds")
     
-    # 6. Generate summary statistics and output CSV
+    # --- Generate summary statistics and output CSV ---
     message("Generating channel summary statistics...")
     summary_list <- list()
     if (length(blimatestingall) > 0) {
@@ -130,7 +145,7 @@ process BIOC_BLIMA_ALTERNATIVE_PREPROCESSING_OPTIONS {
       message("Saved channel summaries to 'channel_summaries.csv'.")
     }
     
-    # 7. Generate diagnostic plots
+    # --- Generate diagnostic plots ---
     message("Generating diagnostic plots...")
     pdf("preprocessing_comparison.pdf", width = 10, height = 8)
     par(mfrow = c(2, 2))

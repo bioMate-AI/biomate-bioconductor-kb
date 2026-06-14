@@ -76,7 +76,7 @@ process BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE {
     piVal <- 0.9
     overlapping <- 2
     
-    # Step 1: Calculate Membership Functions
+    # --- Calculate Membership Functions ---
     mfs <- calculateMembershipFunctions(rmadataset, skipFactor)
     saveRDS(mfs, "membership_functions.rds")
     
@@ -90,7 +90,7 @@ process BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE {
       if (dev.cur() > 1) dev.off()
     })
     
-    # Step 2: Discretize Expression Values
+    # --- Discretize Expression Values ---
     dvs <- discretizeExpressionValues(rmadataset, mfs, zeta, overlapping)
     write.csv(dvs, "discretized_expression_values.csv", row.names = TRUE)
     
@@ -102,7 +102,7 @@ process BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE {
       warning("Could not show discrete values for 'healthy' and 'AML-inv': ", e\$message)
     })
     
-    # Step 3: Calculate Fuzzy Patterns
+    # --- Calculate Fuzzy Patterns ---
     fps <- calculateFuzzyPatterns(rmadataset, dvs, piVal, overlapping)
     write.csv(fps, "fuzzy_patterns.csv", row.names = TRUE)
     
@@ -114,7 +114,7 @@ process BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE {
       warning("Could not show fuzzy patterns for 'healthy': ", e\$message)
     })
     
-    # Step 4: Calculate Discriminant Fuzzy Patterns
+    # --- Calculate Discriminant Fuzzy Patterns ---
     dfps <- calculateDiscriminantFuzzyPattern(rmadataset, fps)
     write.csv(dfps, "discriminant_fuzzy_patterns.csv", row.names = TRUE)
     

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the DNA methylation data and metadata. 2. Run the methyLImp2 imputation algorithm, specifying the array type, parallelization
+//  * 1. [Input & Preparation] Load the DNA methylation data and metadata
+//  * 2. [Input & Preparation] Run the methyLImp2 imputation algorithm
+//  * 3. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_METHYLIMP2_METHYLATION_IMPUTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("methyLImp2", "BiocParallel", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,10 +59,11 @@ process BIOC_METHYLIMP2_METHYLATION_IMPUTATION {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(methyLImp2)
     library(BiocParallel)
     
-    # Step 1: Load the DNA methylation data and metadata
+    # --- Load the DNA methylation data and metadata ---
     # The pipeline reads the user-provided SummarizedExperiment object from the working directory.
     if (file.exists("beta_SE.rds")) {
       beta_SE <- readRDS("beta_SE.rds")
@@ -61,14 +73,14 @@ process BIOC_METHYLIMP2_METHYLATION_IMPUTATION {
       stop("Error: Input file 'beta_SE.rds' or 'beta_SE' not found in the working directory.")
     }
     
-    # Step 2: Run the methyLImp2 imputation algorithm
+    # --- Run the methyLImp2 imputation algorithm ---
     # Specifying the array type, parallelization settings, and mini-batch fraction exactly as documented.
     time <- system.time(beta_SE_imputed <- methyLImp2(input = beta_SE, 
                                                    type = "EPIC", 
                                                    BPPARAM = SnowParam(exportglobals = FALSE),
                                                    minibatch_frac = 0.5))
     
-    # Step 3: Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete imputed SummarizedExperiment object
     saveRDS(beta_SE_imputed, "beta_SE_imputed.rds")
     

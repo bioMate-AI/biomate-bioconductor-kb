@@ -41,7 +41,7 @@ process BIOC_VANILLAICE_CNV_CALLING_FROM_CRLMM_CNSET {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ArrayTV", "GenomicRanges", "IRanges", "VanillaICE", "crlmm", "oligoClasses")
+    .bm_deps <- c("ArrayTV", "GenomicRanges", "IRanges", "VanillaICE", "crlmm", "oligoClasses", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,7 +59,8 @@ process BIOC_VANILLAICE_CNV_CALLING_FROM_CRLMM_CNSET {
         }
     
     # Load required libraries
-    library(oligoClasses)
+      library(SummarizedExperiment)
+  library(oligoClasses)
     library(VanillaICE)
     library(crlmm)
     library(ArrayTV)

@@ -35,6 +35,15 @@ process BIOC_ALABASTER_RANGES_ALABASTER_RANGES_SERIALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "S4Vectors", "alabaster.base", "alabaster.ranges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_ALABASTER_RANGES_ALABASTER_RANGES_SERIALIZATION {
     library(grDevices)
     library(graphics)
     
-    # Stage 1: Read and defensively parse the input file
+    # --- Read and defensively parse the input file ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -73,7 +82,7 @@ process BIOC_ALABASTER_RANGES_ALABASTER_RANGES_SERIALIZATION {
       stop("Input CSV must have at least one column.")
     }
     
-    # Stage 2: Construct GRanges object
+    # --- Construct GRanges object ---
     # Attempt to parse standard genomic coordinate strings (e.g., "chr1:100-200" or "chr1:100-200:+")
     gr <- tryCatch({
       GenomicRanges::GRanges(feature_ids)
@@ -99,12 +108,12 @@ process BIOC_ALABASTER_RANGES_ALABASTER_RANGES_SERIALIZATION {
       S4Vectors::mcols(gr)\$mean_abundance <- rep(0, length(gr))
     }
     
-    # Stage 3: Construct GRangesList object
+    # --- Construct GRangesList object ---
     # Group ranges by chromosome (seqnames) or an arbitrary grouping factor
     grouping_factor <- as.character(GenomicRanges::seqnames(gr))
     grl <- split(gr, grouping_factor)
     
-    # Stage 4: Serialize objects using alabaster
+    # --- Serialize objects using alabaster ---
     # Create temporary directories for serialization
     gr_save_dir <- tempfile("save_granges")
     grl_save_dir <- tempfile("save_grangeslist")
@@ -115,14 +124,14 @@ process BIOC_ALABASTER_RANGES_ALABASTER_RANGES_SERIALIZATION {
     message("Saving GRangesList object to: ", grl_save_dir)
     alabaster.base::saveObject(grl, grl_save_dir)
     
-    # Stage 5: Load serialized objects back to verify integrity
+    # --- Load serialized objects back to verify integrity ---
     message("Loading GRanges object back...")
     gr_loaded <- alabaster.base::readObject(gr_save_dir)
     
     message("Loading GRangesList object back...")
     grl_loaded <- alabaster.base::readObject(grl_save_dir)
     
-    # Stage 6: Export results and generate diagnostic plots
+    # --- Export results and generate diagnostic plots ---
     # Export loaded GRanges to CSV
     gr_df <- as.data.frame(gr_loaded)
     write.csv(gr_df, "processed_ranges.csv", row.names = FALSE)

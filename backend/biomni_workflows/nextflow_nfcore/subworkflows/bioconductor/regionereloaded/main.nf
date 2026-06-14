@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run crosswise permutation tests using crosswisePermTest() to calculate associations. 2. Build the association matrix and perform h
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Run Crosswise Permutation Tests
+//  * 3. [Visualization & Output] Build Association Matrices
+//  * 4. [Visualization & Output] Visualization and Clustering (Output to PDF)
+//  * 5. [Visualization & Output] Save Outputs to Disk
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +66,7 @@ process BIOC_REGIONERELOADED_CROSSWISE_ASSOCIATION_CLUSTERING {
         library(GenomicRanges)
         
         # -----------------------------------------------------------------------------
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # -----------------------------------------------------------------------------
         if (file.exists("Alist.rds")) {
           Alist <- readRDS("Alist.rds")
@@ -99,7 +103,7 @@ process BIOC_REGIONERELOADED_CROSSWISE_ASSOCIATION_CLUSTERING {
         }
         
         # -----------------------------------------------------------------------------
-        # 2. Run Crosswise Permutation Tests
+        # --- Run Crosswise Permutation Tests ---
         # -----------------------------------------------------------------------------
         if (is.null(Blist)) {
           # Run with resampleGenome
@@ -150,13 +154,13 @@ process BIOC_REGIONERELOADED_CROSSWISE_ASSOCIATION_CLUSTERING {
         }
         
         # -----------------------------------------------------------------------------
-        # 3. Build Association Matrices
+        # --- Build Association Matrices ---
         # -----------------------------------------------------------------------------
         cw_Alien_ReG <- makeCrosswiseMatrix(cw_Alien_ReG, pvcut = 1)
         cw_Alien_ReR <- makeCrosswiseMatrix(cw_Alien_ReR, pvcut = 1)
         
         # -----------------------------------------------------------------------------
-        # 4. Visualization and Clustering (Output to PDF)
+        # --- Visualization and Clustering (Output to PDF) ---
         # -----------------------------------------------------------------------------
         pdf("crosswise_association_plots.pdf", width = 10, height = 10)
         
@@ -222,7 +226,7 @@ process BIOC_REGIONERELOADED_CROSSWISE_ASSOCIATION_CLUSTERING {
         dev.off()
         
         # -----------------------------------------------------------------------------
-        # 5. Save Outputs to Disk
+        # --- Save Outputs to Disk ---
         # -----------------------------------------------------------------------------
         write.csv(silTable, "silhouette_table.csv", row.names = FALSE)
         saveRDS(cw_Alien_ReG, "cw_Alien_ReG.rds")

@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define a helper function to run cv_survclust across multiple rounds for a given k. 2. Execute cross-validation across a range of c
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Execute Cross-Validation
+//  * 3. [Visualization & Output] Summarize and Plot Performance Metrics
+//  * 4. [Visualization & Output] Consolidate Cluster Assignments (k=4)
+//  * 5. [Visualization & Output] Survival Analysis (Kaplan-Meier Plot)
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_SURVCLUST_INTEGRATIVE_MULTI_OMIC_CLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("survClust", "survival", "BiocParallel")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -60,7 +73,7 @@ process BIOC_SURVCLUST_INTEGRATIVE_MULTI_OMIC_CLUSTERING {
     }
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Load uvm_dat (list of matrices/data frames)
@@ -91,7 +104,7 @@ process BIOC_SURVCLUST_INTEGRATIVE_MULTI_OMIC_CLUSTERING {
     uvm_survdat <- as.matrix(uvm_survdat)
     
     # ==========================================
-    # 2. Execute Cross-Validation
+    # --- Execute Cross-Validation ---
     # ==========================================
     
     cv_rounds = 10
@@ -117,7 +130,7 @@ process BIOC_SURVCLUST_INTEGRATIVE_MULTI_OMIC_CLUSTERING {
     saveRDS(uvm_survClust_cv.fit, "uvm_survClust_cv_fit.rds")
     
     # ==========================================
-    # 3. Summarize and Plot Performance Metrics
+    # --- Summarize and Plot Performance Metrics ---
     # ==========================================
     
     ss_stats <- getStats(uvm_survClust_cv.fit, kk=7, cvr=10)
@@ -129,7 +142,7 @@ process BIOC_SURVCLUST_INTEGRATIVE_MULTI_OMIC_CLUSTERING {
     dev.off()
     
     # ==========================================
-    # 4. Consolidate Cluster Assignments (k=4)
+    # --- Consolidate Cluster Assignments (k=4) ---
     # ==========================================
     
     k4 <- cv_voting(uvm_survClust_cv.fit, getDist(uvm_dat, uvm_survdat), pick_k=4)
@@ -142,7 +155,7 @@ process BIOC_SURVCLUST_INTEGRATIVE_MULTI_OMIC_CLUSTERING {
     print(table(k4))
     
     # ==========================================
-    # 5. Survival Analysis (Kaplan-Meier Plot)
+    # --- Survival Analysis (Kaplan-Meier Plot) ---
     # ==========================================
     
     pdf("survClust_km_plot.pdf", width = 7, height = 7)

@@ -35,6 +35,15 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scanMiR", "Biostrings", "S4Vectors", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     library(GenomicRanges)
     
     # ------------------------------------------------------------------------------
-    # Stage 1: Load Input Data and Generate Mock Transcript Sequences
+    # --- Load Input Data and Generate Mock Transcript Sequences ---
     # ------------------------------------------------------------------------------
     message("Stage 1: Loading expression data and generating transcript sequences...")
     
@@ -81,7 +90,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     mcols(seqs)\$ORF.length <- sample(500:800, n_genes, replace = TRUE)
     
     # ------------------------------------------------------------------------------
-    # Stage 2: Construct a Custom KdModel
+    # --- Construct a Custom KdModel ---
     # ------------------------------------------------------------------------------
     message("Stage 2: Constructing custom KdModel...")
     
@@ -93,7 +102,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     kd_model <- getKdModel(kd = kd_data, mirseq = mir_seq, name = "custom-mock-miR")
     
     # ------------------------------------------------------------------------------
-    # Stage 3: Scan Transcripts for miRNA Binding Sites
+    # --- Scan Transcripts for miRNA Binding Sites ---
     # ------------------------------------------------------------------------------
     message("Stage 3: Scanning transcripts for binding sites...")
     
@@ -107,7 +116,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     )
     
     # ------------------------------------------------------------------------------
-    # Stage 4: Aggregate Matches and Predict Repression
+    # --- Aggregate Matches and Predict Repression ---
     # ------------------------------------------------------------------------------
     message("Stage 4: Aggregating matches to predict target repression...")
     
@@ -128,7 +137,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     }
     
     # ------------------------------------------------------------------------------
-    # Stage 5: Integrate with Expression Data and Save Results
+    # --- Integrate with Expression Data and Save Results ---
     # ------------------------------------------------------------------------------
     message("Stage 5: Integrating repression predictions with expression data...")
     
@@ -162,7 +171,7 @@ process BIOC_SCANMIR_SCANMIR_TARGET_REPRESSION_PREDICTION {
     write.csv(merged_data, "mirna_targets_repression.csv", row.names = FALSE)
     
     # ------------------------------------------------------------------------------
-    # Stage 6: Visualizations and Diagnostics
+    # --- Visualizations and Diagnostics ---
     # ------------------------------------------------------------------------------
     message("Stage 6: Generating diagnostic plots and alignments...")
     

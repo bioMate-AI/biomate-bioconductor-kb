@@ -35,6 +35,15 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "GenomicRanges", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     # calculates regional coverage, and runs a targeted pileup analysis.
     
     # ------------------------------------------
-    # Stage 1: Load Libraries and Inputs
+    # --- Load Libraries and Inputs ---
     # ------------------------------------------
     message("Stage 1: Loading libraries and input files...")
     library(Rsamtools)
@@ -95,7 +104,7 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     }
     
     # ------------------------------------------
-    # Stage 2: Generate Synthetic BAMs (Robustness)
+    # --- Generate Synthetic BAMs (Robustness) ---
     # ------------------------------------------
     # To ensure the pipeline is fully runnable and self-contained, we generate
     # synthetic BAM files matching the chromosomes and coordinates in regions.bed.
@@ -161,7 +170,7 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     }
     
     # ------------------------------------------
-    # Stage 3: Quality Control & Alignment Stats
+    # --- Quality Control & Alignment Stats ---
     # ------------------------------------------
     message("Stage 3: Performing alignment quality control...")
     
@@ -192,7 +201,7 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     message("Saved alignment QC statistics to 'bam_qc_stats.csv'.")
     
     # ------------------------------------------
-    # Stage 4: Multi-sample Analysis with BamViews
+    # --- Multi-sample Analysis with BamViews ---
     # ------------------------------------------
     message("Stage 4: Constructing BamViews and extracting regional coverage...")
     
@@ -253,7 +262,7 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     message("Saved regional coverage summary to 'region_coverage_summary.csv'.")
     
     # ------------------------------------------
-    # Stage 5: Targeted Pileup Analysis
+    # --- Targeted Pileup Analysis ---
     # ------------------------------------------
     message("Stage 5: Running targeted pileup analysis...")
     
@@ -283,7 +292,7 @@ process BIOC_RSAMTOOLS_RSAMTOOLS_GENOMIC_COVERAGE_PIPELINE {
     })
     
     # ------------------------------------------
-    # Stage 6: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ------------------------------------------
     message("Stage 6: Generating diagnostic plots...")
     

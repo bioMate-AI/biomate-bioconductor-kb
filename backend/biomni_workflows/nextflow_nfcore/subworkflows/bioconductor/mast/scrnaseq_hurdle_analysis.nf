@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import expression matrix and metadata into a SingleCellAssay using FromMatrix. 2. Filter cells and genes based on quality metrics 
+//  * 1. [Visualization & Output] Import expression matrix and metadata
+//  * 2. [Visualization & Output] Filter cells and genes based on quality metrics and
+//  * 3. [Visualization & Output] Recalculate cellular detection rate (CDR) and add to cell
+//  * 4. [Visualization & Output] Apply adaptive thresholding using
+//  * 5. [Visualization & Output] Fit Hurdle model adjusting for CDR and condition using zlm
+//  * 6. [Visualization & Output] Summarize differential expression and perform likelihood
+//  * 7. [Visualization & Output] Extract model residuals using combined_residuals_hook
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MAST", "data.table", "ggplot2", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,12 +62,13 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libr    library(SummarizedExperiment)
+aries
     library(MAST)
     library(data.table)
     library(ggplot2)
     
-    # 1. Import expression matrix and metadata
+    # --- Import expression matrix and metadata ---
     # Read user input files from the working directory
     exprs_mat <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
     cell_meta <- read.csv("cell_metadata.csv", row.names = 1, stringsAsFactors = FALSE)
@@ -95,15 +111,15 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
     # Construct the SingleCellAssay object
     scaRaw <- FromMatrix(exprs_mat, cell_meta, feature_meta)
     
-    # 2. Filter cells and genes based on quality metrics and expression frequency
+    # --- Filter cells and genes based on quality metrics and ---
     filterCrit <- with(colData(scaRaw), pastFastqc=="PASS"& exonRate >0.3 & PercentToHuman>0.6 & nGeneOn> 4000)
     sca <- subset(scaRaw,filterCrit)
     
-    # 3. Recalculate cellular detection rate (CDR) and add to cell metadata
+    # --- Recalculate cellular detection rate (CDR) and add to cell ---
     cdr2 <-colSums(assay(sca)>0)
     colData(sca)\$cngeneson <- scale(cdr2)
     
-    # 4. Apply adaptive thresholding using thresholdSCRNACountMatrix
+    # --- Apply adaptive thresholding using ---
     # Adjust nbins and min_per_bin dynamically if the dataset is extremely small
     nbins_val <- min(20, ncol(sca))
     min_per_bin_val <- min(30, floor(ncol(sca) / nbins_val))
@@ -121,13 +137,13 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
     }
     sca <- sca[expressed_genes,]
     
-    # 5. Fit Hurdle model adjusting for CDR and condition using zlm
+    # --- Fit Hurdle model adjusting for CDR and condition using zlm ---
     cond<-factor(colData(sca)\$condition)
     cond<-relevel(cond,"Unstim")
     colData(sca)\$condition<-cond
     zlmCond <- zlm(~condition + cngeneson, sca)
     
-    # 6. Summarize differential expression and perform likelihood ratio tests
+    # --- Summarize differential expression and perform likelihood ---
     summaryCond <- summary(zlmCond, doLRT='conditionStim')
     summaryDt <- summaryCond\$datatable
     
@@ -147,7 +163,7 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
       entrez_to_plot <- head(rownames(sca), 2)
     }
     
-    # 7. Extract model residuals using combined_residuals_hook
+    # --- Extract model residuals using combined_residuals_hook ---
     scaDE <- sca[entrez_to_plot,]
     zlmResidDE <- zlm(~condition + cngeneson, scaDE, hook=combined_residuals_hook)
     residDE <- zlmResidDE@hookOut

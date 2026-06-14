@@ -56,19 +56,19 @@ process BIOC_NORMQPCR_DELTA_DELTA_CQ_NORMALIZATION {
     library(ReadqPCR)
     library(NormqPCR)
     
-    # 1. Read raw qPCR data
+    # --- Read raw qPCR data ---
     taqman.example <- "example.txt"
     if (!file.exists(taqman.example)) {
       stop("Required input file 'example.txt' not found in the working directory.")
     }
     qPCRBatch.taqman <- read.taqman(taqman.example)
     
-    # 2. Construct contrast matrix to define case and control groups
+    # --- Construct contrast matrix to define case and control ---
     contM <- cbind(c(0,0,1,1,0,0,1,1), c(1,1,0,0,1,1,0,0))
     colnames(contM) <- c("interestingPhenotype", "wildTypePhenotype")
     rownames(contM) <- sampleNames(qPCRBatch.taqman)
     
-    # 3. Perform delta-delta Cq normalization using single or multiple housekeeping genes
+    # --- Perform delta-delta Cq normalization using single or ---
     
     # Case A: Single housekeeping gene (paired)
     hkg <- "Actb-Rn00667869_m1"
@@ -88,7 +88,7 @@ process BIOC_NORMQPCR_DELTA_DELTA_CQ_NORMALIZATION {
                                    hkgs=hkgs, contrastM=contM, case="interestingPhenotype", 
                                    control="wildTypePhenotype", statCalc="arith", hkgCalc="arith")
     
-    # 4. Write outputs
+    # --- Write outputs ---
     write.csv(ddCq.taqman, "ddCq_single_paired.csv", row.names = FALSE)
     write.csv(ddCqAvg.taqman, "ddCq_single_unpaired.csv", row.names = FALSE)
     write.csv(ddCq.gM.taqman, "ddCq_multiple.csv", row.names = FALSE)

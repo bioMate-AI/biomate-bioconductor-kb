@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Filter out low-expressed genes using count-per-million (CPM) thresholds. 2. Normalize counts using RPKM and log2-transform the dat
+//  * 1. [Core Analysis] Read user input files from the working directory
+//  * 2. [Core Analysis] Execute the documented workflow steps
+//  * 3. [Core Analysis] Write named output files for the results
 
 nextflow.enable.dsl = 2
 
@@ -113,7 +115,7 @@ process BIOC_GSAR_RNASEQ_GSA {
           stop(paste("Vector file not found:", name))
         }
         
-        # 1. Read user input files from the working directory
+        # --- Read user input files from the working directory ---
         PickrellDataSet      <- load_matrix("PickrellDataSet")
         genes.length         <- load_vector("genes.length", "numeric")
         group.label.pickrell <- load_vector("group.label.pickrell", "numeric")
@@ -123,7 +125,7 @@ process BIOC_GSAR_RNASEQ_GSA {
         # group.label.pickrell is expected to be 1 for female and 2 for male
         gender <- ifelse(group.label.pickrell == 2, "male", "female")
         
-        # 2. Execute the documented workflow steps
+        # --- Execute the documented workflow steps ---
         cpm.matrix <- cpm(PickrellDataSet)
         cpm.means <- rowMeans(cpm.matrix)
         cpm.filter <- which(cpm.means > 0.1)
@@ -152,7 +154,7 @@ process BIOC_GSAR_RNASEQ_GSA {
         WW_pvalue_filtered <- WWtest(XYpathway, group.label.pickrell)
         KS_pvalue_filtered <- KStest(XYpathway, group.label.pickrell)
         
-        # 3. Write named output files for the results
+        # --- Write named output files for the results ---
         # Save the p-values to a CSV table
         results_df <- data.frame(
           Analysis_Stage = c("Pre-filtering", "Pre-filtering", "Post-filtering", "Post-filtering"),

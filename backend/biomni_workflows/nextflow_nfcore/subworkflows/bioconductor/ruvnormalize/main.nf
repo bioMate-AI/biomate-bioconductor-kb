@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Center the gene expression matrix. 2. Identify the indices of negative control genes. 3. Run naive RUV-2 without shrinkage (rank r
+//  * 1. [Visualization & Output] Read user input files
+//  * 2. [Visualization & Output] Center the gene expression matrix
+//  * 3. [Visualization & Output] Run naive RUV-2 without shrinkage
+//  * 4. [Visualization & Output] Visualize the corrected data using SVD/PCA plotting
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RUVnormalize")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +62,7 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
     # Load required libraries
     library(RUVnormalize)
     
-    # 1. Read user input files
+    # --- Read user input files ---
     Y <- as.matrix(read.csv("expression_matrix.csv", row.names=1, check.names=FALSE))
     
     # Read negative controls
@@ -61,14 +73,14 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
       cIdx <- which(colnames(Y) %in% controls)
     }
     
-    # 2. Center the gene expression matrix
+    # --- Center the gene expression matrix ---
     Y <- scale(Y, scale=FALSE)
     
     # Define dimensions
     m <- nrow(Y)
     n <- ncol(Y)
     
-    # 3. Run naive RUV-2 without shrinkage
+    # --- Run naive RUV-2 without shrinkage ---
     k <- min(20, m)
     nu <- 0
     nsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=k)
@@ -78,7 +90,7 @@ process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
     nu.coeff <- 1e-3
     nY <- naiveRandRUV(Y, cIdx, nu.coeff=nu.coeff, k=k)
     
-    # 4. Visualize the corrected data using SVD/PCA plotting
+    # --- Visualize the corrected data using SVD/PCA plotting ---
     nKeep <- min(1260, n)
     sdY <- apply(nY, 2, sd)
     ssd <- sort(sdY, decreasing=TRUE, index.return=TRUE)\$ix

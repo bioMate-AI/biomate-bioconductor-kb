@@ -187,6 +187,18 @@ Never add params to `nextflow_nfcore/subworkflows/**/*.nf` to match benchmark ex
 
 Unit tests may use mocks only for external third-party services (e.g. AWS, Stripe) where real calls are impractical.
 
+### E2E test user — use the real shared fixture account
+
+**ALWAYS use `lifeifei163361@163.com` for registration + login in E2E tests.** It is a real, deliverable email — verification flows and any password-reset behaviour can actually round-trip through it. Made-up `@e2e.test` / `@biomate.test` addresses bounce in the verification path and silently leave the fixture in a degraded state (unverified emails get reduced quota, blocked from some flows).
+
+- **Email:** `lifeifei163361@163.com`
+- **Password:** the value of the `E2E_FIXTURE_PASSWORD` env var. If unset, ask before generating a new one — do not commit the password to the repo.
+- **Reuse the same account across tests.** Do not create per-test users; per-test users hit the registration rate limiter and accumulate quota debt. Register-or-login on first use, then keep the session.
+- **Auth header on dev:** `x-e2e-test-token: biomate-e2e-bypass-token-dev-only` (the actual value of `E2E_TEST_TOKEN` on dev — confirm via `docker exec biomate-dev-frontend env | grep E2E`).
+- **Pattern that works** (Playwright `APIRequestContext`): register-then-login-for-token, then `page.context().addCookies({ name: 'biomate_token', value: token, ... })`. See `frontend/e2e/allometric-qc-coverage.e2e.ts` for the canonical example.
+
+If you write a new e2e test that uses any other email, that's a regression — fix it before merging.
+
 ---
 
 ## UX E2E Completeness Standard

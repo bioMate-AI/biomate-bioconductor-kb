@@ -35,6 +35,15 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biodb", "biodbChebi")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
           }
         }
     
-    # Stage 1: Load required libraries and initialize biodb
+    # --- Load required libraries and initialize biodb ---
     message("Loading libraries...")
     library(biodb)
     library(biodbChebi)
@@ -68,7 +77,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
       })
     }
     
-    # Stage 2: Read and parse input file defensively
+    # --- Read and parse input file defensively ---
     message("Reading input file...")
     input_file <- "input.csv"
     
@@ -98,7 +107,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
     raw_ids <- as.character(raw_ids)
     raw_ids <- raw_ids[!is.na(raw_ids) & raw_ids != ""]
     
-    # Stage 3: Query ChEBI Database
+    # --- Query ChEBI Database ---
     annotations <- data.frame(
       query_id = character(),
       accession = character(),
@@ -209,7 +218,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
       )
     }
     
-    # Stage 4: Merge annotations back with original feature data
+    # --- Merge annotations back with original feature data ---
     message("Merging annotations with original feature data...")
     # Determine merge key
     if ("feature_id" %in% colnames(input_data)) {
@@ -221,7 +230,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
       annotated_features <- merge(annotations, input_data_with_key, by = "query_id", all.y = TRUE)
     }
     
-    # Stage 5: Write Outputs
+    # --- Write Outputs ---
     message("Writing output files...")
     write.csv(annotations, "chebi_annotations.csv", row.names = FALSE)
     write.csv(annotated_features, "annotated_features.csv", row.names = FALSE)

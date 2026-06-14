@@ -35,6 +35,15 @@ process BIOC_NULLRANGES_COVARIATE_MATCHING_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("nullranges", "GenomicRanges", "plyranges", "ggplot2", "patchwork")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_NULLRANGES_COVARIATE_MATCHING_ANALYSIS {
     library(ggplot2)
     library(patchwork)
     
-    # Stage 1: Read and parse input data
+    # --- Read and parse input data ---
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'matrix.csv' and/or 'coldata.csv' are missing.")
     }
@@ -80,7 +89,7 @@ process BIOC_NULLRANGES_COVARIATE_MATCHING_ANALYSIS {
     
     gr <- parse_features(matrix_df\$feature_id)
     
-    # Stage 2: Compute covariates and define focal vs pool sets
+    # --- Compute covariates and define focal vs pool sets ---
     # Extract numeric count/beta matrix
     counts_mat <- as.matrix(matrix_df[, setdiff(colnames(matrix_df), "feature_id")])
     mean_signal <- rowMeans(counts_mat)
@@ -95,7 +104,7 @@ process BIOC_NULLRANGES_COVARIATE_MATCHING_ANALYSIS {
     gr\$width <- width(gr)
     gr\$focal <- focal_idx
     
-    # Stage 3: Perform covariate matching using matchRanges
+    # --- Perform covariate matching using matchRanges ---
     set.seed(123)
     mgr <- tryCatch({
       matchRanges(
@@ -116,14 +125,14 @@ process BIOC_NULLRANGES_COVARIATE_MATCHING_ANALYSIS {
       )
     })
     
-    # Stage 4: Export matched ranges and overview statistics
+    # --- Export matched ranges and overview statistics ---
     matched_df <- as.data.frame(matched(mgr))
     write.csv(matched_df, "matched_ranges.csv", row.names = FALSE)
     
     ov <- overview(mgr)
     write.csv(as.data.frame(ov), "matching_overview.csv", row.names = FALSE)
     
-    # Stage 5: Generate diagnostic visualizations
+    # --- Generate diagnostic visualizations ---
     pdf("matching_diagnostics.pdf", width = 8, height = 6)
     p1 <- plotPropensity(mgr) + ggtitle("Propensity Score Balance")
     p2 <- plotCovariate(mgr, covariate = "mean_signal") + ggtitle("Mean Signal Distribution")

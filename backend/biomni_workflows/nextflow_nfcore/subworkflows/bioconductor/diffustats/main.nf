@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the network and input scores. 2. Run diffusion using the diffuse function with a specified method (e.g., "raw" or "mc"). 3. M
+//  * 1. [Visualization & Output] Load the network and input scores
+//  * 2. [Visualization & Output] Run diffusion using the diffuse function with a specified
+//  * 3. [Visualization & Output] Map scores to colors and shapes using scores2colours and
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_DIFFUSTATS_SINGLE_NETWORK_DIFFUSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("igraph", "diffuStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +62,7 @@ process BIOC_DIFFUSTATS_SINGLE_NETWORK_DIFFUSION {
     library(igraph)
     library(diffuStats)
     
-    # 1. Load the network and input scores
+    # --- Load the network and input scores ---
     # Read the igraph network object
     graph_toy <- readRDS("network.graph")
     
@@ -63,13 +74,13 @@ process BIOC_DIFFUSTATS_SINGLE_NETWORK_DIFFUSION {
     input_vec <- input_mat[, 1]
     names(input_vec) <- rownames(input_mat)
     
-    # 2. Run diffusion using the diffuse function with a specified method ("raw")
+    # --- Run diffusion using the diffuse function with a specified ---
     output_vec <- diffuStats::diffuse(
         graph = graph_toy,
         method = "raw",
         scores = input_vec)
     
-    # 3. Map scores to colors and shapes using scores2colours and scores2shapes for network visualization
+    # --- Map scores to colors and shapes using scores2colours and ---
     # Save the visualization to a PDF file
     pdf("diffusion_plot.pdf", width = 8, height = 8)
     igraph::plot.igraph(

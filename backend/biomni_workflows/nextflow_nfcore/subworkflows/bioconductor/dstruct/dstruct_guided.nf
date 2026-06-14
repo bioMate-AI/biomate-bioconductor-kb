@@ -34,6 +34,15 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dStruct")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,7 +55,7 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
     # Load required libraries
     library(dStruct)
     
-    # Stage 1: Read and validate input files
+    # --- Read and validate input files ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -62,7 +71,7 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
     cond_A <- conds[1]
     cond_B <- conds[2]
     
-    # Stage 2: Map sample names to dStruct-compliant names (A1, A2, ..., B1, B2, ...)
+    # --- Map sample names to dStruct-compliant names (A1, A2, ..., ---
     coldata\$new_name <- ""
     idx_A <- which(coldata\$condition == cond_A)
     coldata\$new_name[idx_A] <- paste0("A", seq_along(idx_A))
@@ -72,7 +81,7 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
     reps_A <- length(idx_A)
     reps_B <- length(idx_B)
     
-    # Stage 3: Format pre-defined regions into a list of data.frames
+    # --- Format pre-defined regions into a list of data.frames ---
     if ("gene_id" %in% colnames(counts)) {
       gene_list <- split(counts, counts\$gene_id)
       gene_list <- lapply(gene_list, function(df) {
@@ -87,7 +96,7 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
       gene_list <- list(Region_1 = df_sub)
     }
     
-    # Stage 4: Normalize reactivities using the 2-8% method
+    # --- Normalize reactivities using the 2-8% method ---
     gene_list_norm <- lapply(gene_list, function(df) {
       norm_df <- lapply(df, function(col) {
         tryCatch({
@@ -99,7 +108,7 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
       as.data.frame(norm_df)
     })
     
-    # Stage 5: Run guided differential analysis
+    # --- Run guided differential analysis ---
     res_guided <- tryCatch({
       dStructome(
         rl = gene_list_norm,
@@ -113,7 +122,7 @@ process BIOC_DSTRUCT_DSTRUCT_GUIDED {
       NULL
     })
     
-    # Stage 6: Save results
+    # --- Save results ---
     if (!is.null(res_guided)) {
       write.csv(res_guided, "guided_results.csv", row.names = FALSE)
     } else {

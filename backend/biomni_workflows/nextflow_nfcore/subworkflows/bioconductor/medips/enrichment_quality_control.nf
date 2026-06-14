@@ -85,7 +85,7 @@ process BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL {
     DE_Input <- hESCs_MeDIP
     
     # ----------------------------------------------------------------------
-    # Stage 1: Saturation Analysis
+    # --- Saturation Analysis ---
     # ----------------------------------------------------------------------
     sr <- MEDIPS.saturation(
       file = bam.file.hESCs.Rep1.MeDIP,
@@ -110,7 +110,7 @@ process BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL {
     dev.off()
     
     # ----------------------------------------------------------------------
-    # Stage 2: Correlation between samples
+    # --- Correlation between samples ---
     # ----------------------------------------------------------------------
     pdf("correlation_plot.pdf")
     cor.matrix <- MEDIPS.correlation(
@@ -124,7 +124,7 @@ process BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL {
     write.csv(cor.matrix, "correlation_matrix.csv", row.names = TRUE)
     
     # ----------------------------------------------------------------------
-    # Stage 3: Sequence Pattern Coverage
+    # --- Sequence Pattern Coverage ---
     # ----------------------------------------------------------------------
     cr <- MEDIPS.seqCoverage(
       file = bam.file.hESCs.Rep1.MeDIP,
@@ -159,7 +159,7 @@ process BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL {
     dev.off()
     
     # ----------------------------------------------------------------------
-    # Stage 4: CpG Enrichment
+    # --- CpG Enrichment ---
     # ----------------------------------------------------------------------
     er <- MEDIPS.CpGenrich(
       file = bam.file.hESCs.Rep1.MeDIP,

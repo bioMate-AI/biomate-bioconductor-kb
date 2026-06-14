@@ -34,6 +34,15 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ompBAM", "S4Vectors", "GenomicRanges", "BiocGenerics")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
     library(GenomicRanges)
     library(BiocGenerics)
     
-    # Stage 1: Read input files from working directory
+    # --- Read input files from working directory ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -57,7 +66,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Create and compile the custom ompBAM-based package
+    # --- Create and compile the custom ompBAM-based package ---
     pkg_name <- "MyOmpBampPkg"
     pkg_path <- file.path(getwd(), pkg_name)
     
@@ -82,7 +91,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
       warning("Failed to compile the ompBAM package. Proceeding with fallback. Error: ", e\$message)
     })
     
-    # Stage 3: Generate BAM files from counts.csv and run idxstats
+    # --- Generate BAM files from counts.csv and run idxstats ---
     results_list <- list()
     
     # We will attempt to use Rsamtools to generate real BAM files if compilation succeeded
@@ -152,7 +161,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
       )
     }
     
-    # Stage 4: Write outputs
+    # --- Write outputs ---
     if (length(results_list) > 0) {
       final_df <- do.call(rbind, results_list)
       rownames(final_df) <- NULL

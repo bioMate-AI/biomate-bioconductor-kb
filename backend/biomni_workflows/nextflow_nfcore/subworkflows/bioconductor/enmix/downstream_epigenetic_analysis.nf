@@ -132,7 +132,7 @@ process BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS {
       }
     }
     
-    # 1. Estimate cell type proportions
+    # --- Estimate cell type proportions ---
     message("Estimating cell type proportions...")
     celltype=estimateCellProp(userdata=beta,
              refdata="FlowSorted.Blood.450k",
@@ -141,7 +141,7 @@ process BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS {
     # Save cell type proportions
     write.csv(as.data.frame(celltype), "cell_type_proportions.csv", row.names = TRUE)
     
-    # 2. Predict sample sex
+    # --- Predict sample sex ---
     message("Predicting sample sex...")
     sex=predSex(rgSet)
     write.csv(as.data.frame(sex), "predicted_sex_rgSet.csv", row.names = TRUE)
@@ -149,7 +149,7 @@ process BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS {
     sex=predSex(mdat)
     write.csv(as.data.frame(sex), "predicted_sex_mdat.csv", row.names = TRUE)
     
-    # 3. Calculate methylation age and predictors
+    # --- Calculate methylation age and predictors ---
     message("Calculating methylation scores and age...")
     mscore=methscore(datMeth=beta,datPheno=pheno)
     
@@ -167,7 +167,7 @@ process BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS {
       }
     }
     
-    # 4. Identify differentially methylated regions (DMRs)
+    # --- Identify differentially methylated regions (DMRs) ---
     message("Running ipDMR...")
     ipdmr_res <- ipdmr(data=dat,seed=0.1)
     if (!is.null(ipdmr_res)) {

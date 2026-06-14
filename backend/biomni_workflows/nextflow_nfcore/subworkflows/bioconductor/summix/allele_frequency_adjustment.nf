@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the package and data. 2. Run adjAF() with target and observed proportions, reference and observed sample sizes, and adjustmen
+//  * 1. [Input & Preparation] Load the user-provided data
+//  * 2. [Input & Preparation] Run adjAF() with target and observed proportions,
+//  * 3. [Input & Preparation] Inspect the adjusted allele frequencies
+//  * 4. [Input & Preparation] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +61,7 @@ process BIOC_SUMMIX_ALLELE_FREQUENCY_ADJUSTMENT {
     # Load the required package
     library(Summix)
     
-    # 1. Load the user-provided data
+    # --- Load the user-provided data ---
     # The pipeline expects 'ancestryData' in the working directory (as CSV, TSV, or RDS)
     if (file.exists("ancestryData.csv")) {
       ancestryData <- read.csv("ancestryData.csv", header = TRUE, stringsAsFactors = FALSE)
@@ -76,7 +79,7 @@ process BIOC_SUMMIX_ALLELE_FREQUENCY_ADJUSTMENT {
       stop("Required input file 'ancestryData' (CSV, TSV, or RDS format) not found in the working directory.")
     }
     
-    # 2. Run adjAF() with target and observed proportions, reference and observed sample sizes, and adjustment method
+    # --- Run adjAF() with target and observed proportions, ---
     adjusted_data <- adjAF(
       data = ancestryData,
       reference = c("reference_AF_afr", "reference_AF_eur", "reference_AF_iam"),
@@ -89,11 +92,11 @@ process BIOC_SUMMIX_ALLELE_FREQUENCY_ADJUSTMENT {
       filter = TRUE
     )
     
-    # 3. Inspect the adjusted allele frequencies
+    # --- Inspect the adjusted allele frequencies ---
     cat("First 5 rows of adjusted allele frequencies:\n")
     print(adjusted_data\$adjusted.AF[1:5, ])
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete adjusted data list object
     saveRDS(adjusted_data, file = "adjusted_data.rds")
     

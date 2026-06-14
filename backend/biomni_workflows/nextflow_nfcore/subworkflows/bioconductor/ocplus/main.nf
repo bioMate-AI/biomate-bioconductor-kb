@@ -35,6 +35,15 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("OCplus")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     EFFECT_SIZE <- 1.0
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     cat("Loading input data...\n")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -86,7 +95,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
                 nrow(counts_filtered), ncol(counts_filtered)))
     
     # ==========================================
-    # Stage 2: Empirical Operating Characteristics (EOC)
+    # --- Empirical Operating Characteristics (EOC) ---
     # ==========================================
     cat("Running Empirical Operating Characteristics (EOC)...\n")
     sim1 <- EOC(counts_filtered, group_labels, plot = FALSE)
@@ -131,7 +140,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Mixture Model for p0 Estimation
+    # --- Mixture Model for p0 Estimation ---
     # ==========================================
     cat("Estimating p0 using mixture t-distributions...\n")
     p0_mix <- NA
@@ -151,7 +160,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     write.csv(p0_df, "p0_estimates.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Sample Size & Design Planning
+    # --- Sample Size & Design Planning ---
     # ==========================================
     cat("Performing sample size planning...\n")
     # Use the empirical fdr1d p0 estimate for planning, fallback to 0.9 if invalid
@@ -161,7 +170,7 @@ process BIOC_OCPLUS_OCPLUS_MICROARRAY_PIPELINE {
     write.csv(as.data.frame(ss_plan), "sample_size_planning.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 7: Export Tables and Generate Plots
+    # --- Export Tables and Generate Plots ---
     # ==========================================
     cat("Exporting results and generating diagnostic plots...\n")
     

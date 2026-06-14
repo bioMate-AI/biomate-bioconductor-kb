@@ -63,16 +63,16 @@ process BIOC_DECIPHER_FISH_PROBE_DESIGN {
     # Establish SQLite database connection
     dbConn <- dbConnect(SQLite(), dbConnPath)
     
-    # 1. Import sequences into an SQLite database using Seqs2DB
+    # --- Import sequences into an SQLite database using Seqs2DB ---
     Seqs2DB(gb, "GenBank", dbConn, "Bacteria")
     
-    # 2. Identify taxonomic ranks using IdentifyByRank
+    # --- Identify taxonomic ranks using IdentifyByRank ---
     ids <- IdentifyByRank(dbConn, level=Inf, add2tbl=TRUE)
     
-    # 3. Generate sequence tiles using TileSeqs
+    # --- Generate sequence tiles using TileSeqs ---
     tiles <- TileSeqs(dbConn, add2tbl="Tiles")
     
-    # 4. Design specific probes using DesignProbes
+    # --- Design specific probes using DesignProbes ---
     # Note: "Sphingopyxis" is the target group specified in the documented workflow.
     # If the input GenBank file does not contain this group, probes may be empty.
     probes <- DesignProbes(tiles, identifier="Sphingopyxis",
@@ -91,7 +91,7 @@ process BIOC_DECIPHER_FISH_PROBE_DESIGN {
         FA <- 35
     }
     
-    # 5. Evaluate hybridization efficiency using CalculateEfficiencyFISH
+    # --- Evaluate hybridization efficiency using ---
     efficiency <- CalculateEfficiencyFISH(probe, targets,
     		temp=46, P=250e-9, ions=1, FA)
     

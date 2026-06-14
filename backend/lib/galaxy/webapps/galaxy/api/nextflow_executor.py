@@ -407,12 +407,34 @@ _NF_LOG_WORKFLOW_STATS_RE = re.compile(
     r"WorkflowStats\[succeededCount=(\d+);\s*failedCount=(\d+)",
 )
 
+# CLI-side summary format emitted at workflow completion. Matches:
+#   Succeeded   : 4
+#   Cached      : 0
+#   Failed      : 0
+# All three keys are emitted by Nextflow's terminal summary. The internal
+# WorkflowStats[...] form is Java-DSL-internal and not always present in
+# the head log, so this regex is the reliable fallback for the false-
+# failure salvage (without it, sub-workflows that exit non-zero after
+# clean Batch tasks were being mis-marked as failed — observed on dev
+# 2026-06-09 for pocket / ich_s7a / LNP among others).
+_NF_CLI_WORKFLOW_SUCCEEDED_RE = re.compile(
+    r"^\s*Succeeded\s*:\s*(\d+)\s*$", re.MULTILINE
+)
+_NF_CLI_WORKFLOW_FAILED_RE = re.compile(
+    r"^\s*Failed\s*:\s*(\d+)\s*$", re.MULTILINE
+)
+
 
 def _parse_workflow_stats_from_log(
     log_full_text: str = "",
     log_tail: Optional[Union[list, str]] = None,
 ) -> Optional[Tuple[int, int]]:
-    """Return (succeeded_count, failed_count) from the last WorkflowStats line in logs."""
+    """Return (succeeded_count, failed_count) from the last WorkflowStats line in logs.
+
+    Tries the internal WorkflowStats[...] form first; falls back to the
+    CLI summary lines (``Succeeded : N`` / ``Failed : M``) that Nextflow
+    prints at workflow completion. Either form is acceptable evidence.
+    """
     text_parts: list[str] = []
     if log_full_text:
         text_parts.append(log_full_text)
@@ -423,10 +445,21 @@ def _parse_workflow_stats_from_log(
             text_parts.append(str(log_tail))
     combined = "\n".join(text_parts)
     matches = list(_NF_LOG_WORKFLOW_STATS_RE.finditer(combined))
-    if not matches:
-        return None
-    m = matches[-1]
-    return int(m.group(1)), int(m.group(2))
+    if matches:
+        m = matches[-1]
+        return int(m.group(1)), int(m.group(2))
+
+    # Fallback: parse the CLI summary block ("Succeeded : N" / "Failed : M").
+    succ = _NF_CLI_WORKFLOW_SUCCEEDED_RE.findall(combined)
+    fail = _NF_CLI_WORKFLOW_FAILED_RE.findall(combined)
+    # Use the LAST occurrence of each (workflow may print summaries multiple
+    # times during long runs; the trailing one is authoritative). If only
+    # one of the two appears, treat the missing count as zero.
+    if succ or fail:
+        s = int(succ[-1]) if succ else 0
+        f = int(fail[-1]) if fail else 0
+        return s, f
+    return None
 
 
 def _log_indicates_nextflow_failure(
@@ -937,6 +970,99 @@ def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
 
     preferred = [name for name in named_entries if name.lower() in ("main", "run", "workflow")]
     return preferred[0] if preferred else named_entries[0]
+
+
+# Declared-input contract for regenerated Bioconductor subworkflows.
+# Each main.nf carries a `// Input: <name>, <name>` comment naming the base filenames the
+# R body reads (e.g. read_input_file("cts")), a single process that consumes
+# `path(input_files, stageAs:'?/*')`, and a named `*_WORKFLOW` that `take:`s the channel.
+# There is NO anonymous `workflow { }`, so `-entry <name>` cannot bind the take channel —
+# the workflow is unrunnable without an entry wrapper. This mirrors the proven real-execution
+# harness (realrun_test_bioc_workflows.py wrap.nf): stage each declared input under its base
+# name and bind the process channel.
+_BIOC_INPUT_DECL_RE = re.compile(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$')
+
+
+def _stage_declared_input(src: str, dest: Path) -> None:
+    """Stage a user-supplied input file to `dest` (named as the workflow's declared base name).
+    Handles s3:// (aws s3 cp), http(s):// (download) and local paths (copy)."""
+    src = str(src).strip()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if src.startswith("s3://"):
+        subprocess.run(["aws", "s3", "cp", src, str(dest), "--no-progress"],
+                       check=True, capture_output=True, text=True, timeout=600)
+    elif src.startswith(("http://", "https://")):
+        import urllib.request
+        urllib.request.urlretrieve(src, str(dest))
+    else:
+        shutil.copy(str(Path(src).expanduser()), str(dest))
+
+
+def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
+                              run_id: str = "") -> Optional[Path]:
+    """If `nf_path` is a regenerated Bioconductor subworkflow (named-only workflow with a
+    `take:` channel + a `// Input:` declaration + a `path(...stageAs)` process), generate an
+    anonymous entry wrapper that stages the user's declared inputs by base name and binds them
+    to the process channel. Returns the wrapper .nf path, or None if not applicable (caller
+    keeps the normal `-entry` path). Mutates `params`: declared-input keys are popped (they
+    become staged files, not CLI `--flags`)."""
+    if "/bioconductor/" not in nf_path.as_posix():
+        return None
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return None
+    # An anonymous workflow already provides a runnable entry — leave it alone.
+    if re.search(r"(?m)^\s*workflow\s*\{", text):
+        return None
+    decl = _BIOC_INPUT_DECL_RE.search(text)
+    proc_m = re.search(r"(?m)^\s*process\s+([A-Z][A-Z0-9_]+)\s*\{", text)
+    if not decl or not proc_m:
+        return None
+    names = [re.split(r"\s*\(", n)[0].strip()
+             for n in re.split(r"[,\s]+", decl.group(1)) if n.strip()]
+    if not names:
+        return None
+    proc = proc_m.group(1)
+    # Process input arity: a single `path(x, stageAs:'?/*')` slot collects MANY files as one
+    # list; N separate path() slots take one file each.
+    inblk = re.search(r"input:(.*?)(?:output:|script:|exec:|when:)", text, re.DOTALL)
+    n_path = len(re.findall(r"\bpath\s*\(", inblk.group(1))) if inblk else 1
+
+    # Every declared input must be supplied; otherwise fall back to the normal path so the
+    # missing-input error surfaces clearly rather than producing a half-bound channel.
+    staged: list[Path] = []
+    for name in names:
+        src = params.get(name)
+        if not src:
+            return None
+        dest = run_dir / name
+        try:
+            _stage_declared_input(src, dest)
+        except Exception as exc:
+            log.warning("[Nextflow run %s] bioc input staging failed for %r: %s",
+                        run_id, name, exc)
+            return None
+        staged.append(dest.resolve())
+
+    for name in names:                       # consumed as staged files, not --flags
+        params.pop(name, None)
+
+    files_lit = [f"file('{p.as_posix()}')" for p in staged]
+    if n_path <= 1 and len(staged) > 1:
+        slot = "[ " + ", ".join(files_lit) + " ]"
+    else:
+        slot = ", ".join(files_lit)
+    chan = "[ [id:'sample'], " + slot + " ]"
+    wrapper = run_dir / "biomate_entry.nf"
+    wrapper.write_text(
+        "nextflow.enable.dsl = 2\n"
+        f"include {{ {proc} }} from '{nf_path.resolve().as_posix()}'\n"
+        f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
+    )
+    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s inputs=%s (n_path=%d)",
+             run_id, proc, names, n_path)
+    return wrapper
 
 
 def _extract_documented_images() -> list[str]:
@@ -1592,9 +1718,20 @@ def _generate_executor_config(
             # value and crashes with:
             #   Cannot compare groovy.util.ConfigObject [:] with Integer 0
             # Reproduced 2026-06-07 on nfcore/airrflow 5.1.0.
+            # Paths that must NOT receive the publishDir-null directive:
+            #   - /nf-core-workflows/ — newer nf-core uses
+            #     `workflow.output.mode = params.publish_dir_mode` which crashes
+            #     comparing ConfigObject [:] with Integer 0 (airrflow 5.1.0).
+            #   - structural_biology/boltz_* — Nextflow 25.10.5 rejects the
+            #     `publishDir = null` property assignment at config parse time
+            #     for this subworkflow's process shape; error surfaces as
+            #     "Could not find method publishDir() to invoke" (boltz v3-v5,
+            #     2026-06-12). nf-amazon@3.3.0 pin above already prevents the
+            #     CRT crash this null was guarding against.
             *(
                 ["process {", "    publishDir = null", "}"]
                 if "/nf-core-workflows/" not in nf_path
+                   and "structural_biology/" not in nf_path
                 else []
             ),
             "process {",
@@ -2225,15 +2362,37 @@ def _start_qc_monitor(
         idle_seconds = 0
         max_idle = 1800 if is_batch else 120  # 30 min for Batch cold-start; 2 min local
         hard_cap = 12 * 3600  # 12-hour hard stop
+        # Sub-2min workflows (e.g. pocket_detection, antibody_developability)
+        # can complete entirely between two 5s polls. Track whether the run
+        # has reached a terminal state in _runs[] — if so, do one final poll
+        # immediately and exit, rather than continuing to idle.
+        finished_seen = False
 
         def _short_phase_name(full: str) -> str:
             # "NFCORE_RNASEQ:RNASEQ:FASTQ_QC_TRIM_FILTER:STAR_ALIGN" → "STAR_ALIGN"
             return full.rsplit(":", 1)[-1] if ":" in full else full
 
+        def _is_run_terminal() -> bool:
+            # Look up the run by invocation_id → run_id and check status.
+            try:
+                with _runs_lock:
+                    for _rid, _r in _runs.items():
+                        if _r.get("invocation_id") == invocation_id:
+                            st = (_r.get("status") or "").lower()
+                            return st in ("succeeded", "completed", "failed", "interrupted")
+            except Exception:
+                pass
+            return False
+
         deadline = _time.monotonic() + hard_cap
 
         while _time.monotonic() < deadline:
             _time.sleep(5)
+            # If the run is already terminal, this loop should drain any
+            # final trace updates and exit. finished_seen latches so we
+            # poll once more then break.
+            if not finished_seen and _is_run_terminal():
+                finished_seen = True
             if not trace_file.exists():
                 idle_seconds += 5
                 if idle_seconds >= max_idle:
@@ -2344,6 +2503,18 @@ def _start_qc_monitor(
                 idle_seconds += 5
                 if idle_seconds >= max_idle:
                     break
+
+            # After the run reached terminal state we've had one more pass
+            # through the trace file to catch any final-second updates.
+            # Now exit cleanly so we don't burn 30 min of idle polling on
+            # sub-minute workflows.
+            if finished_seen:
+                log.info(
+                    "[QC Monitor] Run terminal — exiting monitor for %s "
+                    "(saw_tasks=%d, phases_terminal=%d)",
+                    invocation_id, len(seen_tasks), len(seen_phase_terminal),
+                )
+                break
 
         log.debug(f"[QC Monitor] Monitoring thread for {invocation_id} exiting")
         # Keep handler in registry even after thread exits — it holds the
@@ -3595,6 +3766,16 @@ def execute_nextflow(
     # Entry selection: honor explicit request first; otherwise auto-detect for
     # scripts with named-only workflows (e.g. runnable subworkflows).
     selected_entry = (request.entry or "").strip() or _detect_nextflow_entry(nf_path)
+
+    # Bioconductor subworkflows declare their inputs via `// Input:` and expose only a
+    # `take:`-bound named workflow — `-entry` cannot bind that channel, so the workflow is
+    # unrunnable as-is. Build an anonymous entry wrapper that stages the user's declared
+    # inputs by base name and binds the process channel (mirrors the validated run harness).
+    _bioc_wrapper = _build_bioc_entry_wrapper(nf_path, params, log_dir, run_id)
+    if _bioc_wrapper is not None:
+        cmd = [nf_bin, "run", str(_bioc_wrapper)]
+        selected_entry = None     # wrapper provides an anonymous workflow { } entry
+
     if selected_entry:
         cmd += ["-entry", selected_entry]
 
@@ -4189,7 +4370,11 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     # DB has step_metadata for this path it wins; the parser stays the fallback for everything
     # else (nf-core / drug_discovery / non-indexed paths -> _steps_from_db_metadata returns {}).
     db_steps = _steps_from_db_metadata(nextflow_path)
-    if db_steps:
+    # DB metadata wins (it carries curated per-step visualizations + QC) — EXCEPT when it has
+    # collapsed to a single coarse step while the .nf now parses into several (the B-1 section
+    # markers). A degenerate one-step DB row is stale/uncurated, so the finer parser result is
+    # the better UI; richer DB metadata (>=2 steps, or matching the parser) still wins.
+    if db_steps and not (len(db_steps) <= 1 < len(steps)):
         steps = db_steps
     return {"steps": steps, "count": len(steps)}
 
@@ -5322,12 +5507,40 @@ _WORKFLOW_DOMAIN_ALIASES: Dict[str, str] = {
 }
 
 
+def _lookup_workflow_domain_from_db(workflow_name: str) -> Optional[str]:
+    """Read the workflow's domain straight from galaxy_ai_tools.db.
+    Checks workflow_chains first (curated chains), then workflows.
+    Single source of truth — no per-chain keyword hardcoding needed."""
+    import sqlite3 as _sql
+    db_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..",
+        "database", "galaxy_ai_tools.db",
+    ))
+    if not os.path.exists(db_path):
+        return None
+    try:
+        with _sql.connect(db_path) as conn:
+            cur = conn.cursor()
+            for table in ("workflow_chains", "workflows"):
+                cur.execute(f"SELECT domain FROM {table} WHERE name=? LIMIT 1", (workflow_name,))
+                row = cur.fetchone()
+                if row and row[0]:
+                    return row[0]
+    except Exception:
+        pass
+    return None
+
+
 def _resolve_qc_evidence_domain(workflow_name: str, available_domains: list) -> Optional[str]:
     """Pick the best-matching qc_evidence domain for a workflow name.
     Returns None when no plausible match — citations endpoint then returns empty."""
     import re as _re
+    # 0) Authoritative: read the workflow's domain from the DB.
+    db_domain = _lookup_workflow_domain_from_db(workflow_name)
+    if db_domain and db_domain in available_domains:
+        return db_domain
     wf_low = workflow_name.lower()
-    # 1) Direct alias hit
+    # 1) Direct alias hit (legacy tool-name + domain-keyword classification)
     for keyword, domain in _WORKFLOW_DOMAIN_ALIASES.items():
         if keyword in wf_low and domain in available_domains:
             return domain

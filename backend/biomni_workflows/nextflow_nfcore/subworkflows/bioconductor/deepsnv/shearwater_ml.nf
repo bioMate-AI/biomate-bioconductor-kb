@@ -58,7 +58,7 @@ process BIOC_DEEPSNV_SHEARWATER_ML {
     library(Rsamtools)
     library(VariantAnnotation)
     
-    # 1. Define genomic regions of interest dynamically from input BAM files
+    # --- Define genomic regions of interest dynamically from input ---
     # Find all BAM files in the working directory
     files <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
     if (length(files) == 0) {
@@ -78,17 +78,17 @@ process BIOC_DEEPSNV_SHEARWATER_ML {
     end_pos <- min(1000, targets[1])
     regions <- GRanges(chr, IRanges(start = start_pos, end = end_pos))
     
-    # 2. Load count data from BAM files
+    # --- Load count data from BAM files ---
     counts <- loadAllData(files, regions, q=30)
     
-    # 3. Compute p-values using the beta-binomial Likelihood Ratio Test
+    # --- Compute p-values using the beta-binomial Likelihood Ratio ---
     pvals <- betabinLRT(counts, rho=1e-4, maxtruncate = 1)\$pvals
     
-    # 4. Adjust p-values for multiple testing
+    # --- Adjust p-values for multiple testing ---
     qvals <- p.adjust(pvals, method="BH")
     dim(qvals) = dim(pvals)
     
-    # 5. Convert results to VCF format
+    # --- Convert results to VCF format ---
     vcfML = qvals2Vcf(qvals, counts, regions, samples = files, mvcf = TRUE)
     
     # Save outputs

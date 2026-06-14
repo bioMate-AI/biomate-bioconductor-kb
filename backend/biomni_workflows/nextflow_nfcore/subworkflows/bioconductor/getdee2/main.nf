@@ -34,6 +34,15 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("getDEE2", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,11 +52,12 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(getDEE2)
     library(S4Vectors)
     
-    # 1. Read local input files
+    # --- Read local input files ---
     message("Reading local input files...")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     local_counts <- read.csv("counts.csv", check.names = FALSE)
@@ -76,7 +86,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
       q(save = "no", status = 0)
     }
     
-    # 2. Auto-detect species from DEE2 metadata
+    # --- Auto-detect species from DEE2 metadata ---
     message("Detecting species for the provided SRA accessions...")
     species_list <- c("celegans", "hsapiens", "mmusculus", "dmelanogaster", "athaliana", "drerio", "rnorvegicus")
     detected_species <- NULL
@@ -107,7 +117,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
       })
     }
     
-    # 3. Fetch standardized data from DEE2
+    # --- Fetch standardized data from DEE2 ---
     se_dee2 <- NULL
     legacy_dee2 <- NULL
     
@@ -129,7 +139,7 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
       })
     }
     
-    # 4. Process and write outputs
+    # --- Process and write outputs ---
     # Output 1: Standardized Gene Counts
     if (!is.null(se_dee2)) {
       dee2_counts <- assays(se_dee2)\$counts

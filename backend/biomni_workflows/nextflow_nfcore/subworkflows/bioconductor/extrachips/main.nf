@@ -36,6 +36,15 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tidyverse", "extraChIPs", "GenomicRanges", "edgeR", "patchwork", "scales", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,7 +54,8 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libraries    library(SummarizedExperiment)
+
     library(tidyverse)
     library(extraChIPs)
     library(GenomicRanges)
@@ -54,7 +64,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     library(scales)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -101,7 +111,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     assay(se, "logCPM") <- edgeR::cpm(assay(se, "counts"), lib.size = se\$totals, log = TRUE)
     
     # ==========================================
-    # STAGE 2: Quality Control & Diagnostics
+    # --- Quality Control & Diagnostics ---
     # ==========================================
     
     message("Generating QC and diagnostic plots...")
@@ -124,7 +134,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Differential Signal Testing
+    # --- Differential Signal Testing ---
     # ==========================================
     
     message("Performing differential signal testing...")
@@ -142,7 +152,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Genomic Feature & Gene Mapping
+    # --- Genomic Feature & Gene Mapping ---
     # ==========================================
     
     message("Mapping differential regions to genes and genomic features...")
@@ -192,7 +202,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
       factor(levels = names(regions_list))
     
     # ==========================================
-    # STAGE 5: Downstream Visualization & Export
+    # --- Downstream Visualization & Export ---
     # ==========================================
     
     message("Generating downstream visualization plots...")

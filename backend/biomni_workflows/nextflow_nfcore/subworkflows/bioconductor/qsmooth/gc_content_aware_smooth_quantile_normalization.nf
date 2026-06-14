@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Align the GC-content vector with the expression matrix rows and filter out missing values. 2. Run qsmoothGC to perform GC-content-
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Align and Filter GC-Content
+//  * 3. [Core Analysis] Run GC-Content-Aware Smooth Quantile Normalization
+//  * 4. [Core Analysis] Save Outputs and Generate Diagnostic Plots
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("qsmooth", "quantro")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +64,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     library(quantro)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read counts1 (matrix or data frame of raw expression counts)
@@ -93,7 +105,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     }
     
     # ==========================================
-    # 2. Align and Filter GC-Content
+    # --- Align and Filter GC-Content ---
     # ==========================================
     
     # Ensure gcContent is named and aligned with counts1 rows
@@ -112,7 +124,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     keep <- names(gcContent)[!is.na(gcContent)]
     
     # ==========================================
-    # 3. Run GC-Content-Aware Smooth Quantile Normalization
+    # --- Run GC-Content-Aware Smooth Quantile Normalization ---
     # ==========================================
     
     # Perform smooth quantile normalization accounting for GC-content
@@ -122,7 +134,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     normalized_data <- qsmoothData(qs_norm_gc)
     
     # ==========================================
-    # 4. Save Outputs and Generate Diagnostic Plots
+    # --- Save Outputs and Generate Diagnostic Plots ---
     # ==========================================
     
     # Save the normalized expression matrix to CSV

@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load and filter query scRNA-seq data using load_dataset_10Xdata and trim_small_groups_and_low_expression_genes. 2. Run within-expe
+//  * 1. [Input & Preparation] Load and filter query scRNA-seq data
+//  * 2. [Input & Preparation] Run within-experiment differential expression for query
+//  * 3. [Input & Preparation] Run within-experiment differential expression for
+//  * 4. [Input & Preparation] Compare query to microarray reference using
+//  * 5. [Input & Preparation] Generate similarity labels using make_ref_similarity_names
 
 nextflow.enable.dsl = 2
 
@@ -64,7 +68,7 @@ process BIOC_CELAREF_SCRNA_SEQ_QUERY_VS_MICROARRAY_REF {
             datasets_dir <- "."
             
             # -----------------------------------------------------------------------------
-            # Stage 1: Load and filter query scRNA-seq data
+            # --- Load and filter query scRNA-seq data ---
             # -----------------------------------------------------------------------------
             
             # Read the user-provided query files from the working directory
@@ -110,12 +114,12 @@ process BIOC_CELAREF_SCRNA_SEQ_QUERY_VS_MICROARRAY_REF {
             dataset_se.10X_pbmc4k_k7 <- trim_small_groups_and_low_expression_genes(dataset_se.10X_pbmc4k_k7)
             
             # -----------------------------------------------------------------------------
-            # Stage 2: Run within-experiment differential expression for query
+            # --- Run within-experiment differential expression for query ---
             # -----------------------------------------------------------------------------
             de_table.10X_pbmc4k_k7 <- contrast_each_group_to_the_rest(dataset_se.10X_pbmc4k_k7, dataset_name = "10X_pbmc4k_k7")
             
             # -----------------------------------------------------------------------------
-            # Stage 3: Run within-experiment differential expression for microarray reference
+            # --- Run within-experiment differential expression for ---
             # -----------------------------------------------------------------------------
             
             # Read the user-provided microarray reference files
@@ -135,7 +139,7 @@ process BIOC_CELAREF_SCRNA_SEQ_QUERY_VS_MICROARRAY_REF {
                              group_name            = ma_group_col)
             
             # -----------------------------------------------------------------------------
-            # Stage 4: Compare query to microarray reference using make_ranking_violin_plot
+            # --- Compare query to microarray reference using ---
             # -----------------------------------------------------------------------------
             
             # Generate and save the standard ranking violin plot
@@ -149,7 +153,7 @@ process BIOC_CELAREF_SCRNA_SEQ_QUERY_VS_MICROARRAY_REF {
             dev.off()
             
             # -----------------------------------------------------------------------------
-            # Stage 5: Generate similarity labels using make_ref_similarity_names
+            # --- Generate similarity labels using make_ref_similarity_names ---
             # -----------------------------------------------------------------------------
             label_table.pbmc4k_k7_vs_Watkins2009PBMCs <- make_ref_similarity_names(de_table.10X_pbmc4k_k7, de_table.Watkins2009PBMCs)
             

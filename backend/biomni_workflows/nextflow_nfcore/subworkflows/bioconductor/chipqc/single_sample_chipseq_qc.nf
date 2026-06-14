@@ -67,7 +67,7 @@ process BIOC_CHIPQC_SINGLE_SAMPLE_CHIPSEQ_QC {
       stop(paste("Required BED peak file not found in the working directory:", peak_file))
     }
     
-    # 1. Construct a ChIPQCsample object for the single BAM file and its associated peak file
+    # --- Construct a ChIPQCsample object for the single BAM file ---
     # Using the exact function and argument names from the documented code
     CTCF1 = ChIPQCsample(bam_file, peaks=peak_file)
     
@@ -77,7 +77,7 @@ process BIOC_CHIPQC_SINGLE_SAMPLE_CHIPSEQ_QC {
     # Save the constructed ChIPQCsample object to an RDS file
     saveRDS(CTCF1, file = "CTCF1_ChIPQCsample.rds")
     
-    # 2. Retrieve and display the primary quality metrics
+    # --- Retrieve and display the primary quality metrics ---
     metrics <- QCmetrics(CTCF1)
     print(metrics)
     
@@ -86,7 +86,7 @@ process BIOC_CHIPQC_SINGLE_SAMPLE_CHIPSEQ_QC {
     metrics_df <- as.data.frame(t(metrics))
     write.csv(metrics_df, file = "CTCF1_QCmetrics.csv", row.names = FALSE)
     
-    # 3. Plot the cross-coverage score across successive strand shifts
+    # --- Plot the cross-coverage score across successive strand ---
     # Save the generated plot to a PDF file
     pdf("CTCF1_cross_coverage_plot.pdf", width = 7, height = 5)
     plotCC(CTCF1)

@@ -35,6 +35,15 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ffpe", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
           }
         }
     
-    # Stage 1: Load libraries and read input data
+    # --- Load libraries and read input data ---
     library(ffpe)
     library(Biobase)
     
@@ -67,12 +76,12 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     pheno_data <- new("AnnotatedDataFrame", data = coldata_df)
     eset <- ExpressionSet(assayData = expr_matrix, phenoData = pheno_data)
     
-    # Stage 2: Initial Quality Control Visualization
+    # --- Initial Quality Control Visualization ---
     pdf("sorted_iqr_plot.pdf", width = 8, height = 6)
     sortedIqrPlot(eset, dolog2 = TRUE, main = "Sorted IQR Plot of Expression Intensities")
     dev.off()
     
-    # Stage 3: Sample Quality Control and Rejection
+    # --- Sample Quality Control and Rejection ---
     pdf("sample_qc_plot.pdf", width = 8, height = 6)
     QC <- sampleQC(eset, xaxis = "index", cor.to = "pseudochip", QCmeasure = "IQR")
     dev.off()
@@ -85,7 +94,7 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     )
     write.csv(qc_results, "sample_qc_results.csv", row.names = FALSE)
     
-    # Stage 4: Feature and Sample Filtering
+    # --- Feature and Sample Filtering ---
     # Keep only samples that passed QC
     passed_samples <- colnames(eset)[!QC\$rejectQC]
     if (length(passed_samples) < 2) {
@@ -102,7 +111,7 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     # Save filtered expression matrix
     write.csv(exprs(eset_filtered), "filtered_expression.csv")
     
-    # Stage 5: Concordance at the Top (CAT) Analysis
+    # --- Concordance at the Top (CAT) Analysis ---
     # To demonstrate CAT-plot, we split the filtered samples into two mock replicate groups
     # and perform differential expression analysis on each group.
     tryCatch({

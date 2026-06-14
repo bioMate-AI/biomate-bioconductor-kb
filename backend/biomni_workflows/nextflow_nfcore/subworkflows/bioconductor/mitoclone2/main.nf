@@ -56,7 +56,7 @@ process BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM {
     library(mitoClone2)
     library(pheatmap)
     
-    # 1. Count nucleotides from BAM files (User Input Stage)
+    # --- Count nucleotides from BAM files (User Input Stage) ---
     # The pipeline reads either a multiplexed 10x BAM file or a directory of single-cell BAM files.
     if (file.exists("multiplexed_10x.bam")) {
       message("Processing multiplexed 10x Genomics BAM file...")
@@ -83,7 +83,7 @@ process BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM {
     # Save the raw base counts object
     saveRDS(example.counts, file = "baseCounts.rds")
     
-    # 2. Call and filter mutations using exclusion list
+    # --- Call and filter mutations using exclusion list ---
     message("Calling mutations using exclusion list...")
     Example <- mutationCallsFromExclusionlist(
       example.counts,
@@ -118,7 +118,7 @@ process BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM {
     )
     dev.off()
     
-    # 3. Call and filter mutations using Cohort-based filtering
+    # --- Call and filter mutations using Cohort-based filtering ---
     message("Calling mutations using cohort-based filtering...")
     Example <- mutationCallsFromCohort(
       example.counts,

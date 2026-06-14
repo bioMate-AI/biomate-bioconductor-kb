@@ -35,6 +35,15 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("miaSim", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,10 +54,11 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
         }
     
     # Load required libraries
-    library(miaSim)
+     library(SummarizedExperiment)
+   library(miaSim)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'matrix.csv' or 'coldata.csv' not found.")
@@ -80,7 +90,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     x0[x0 <= 0] <- 0.1
     
     # ==========================================
-    # STAGE 2: Generate Interaction & Resource Matrices
+    # --- Generate Interaction & Resource Matrices ---
     # ==========================================
     message("Generating interaction matrices...")
     # Generate interactions from power-law distribution
@@ -93,7 +103,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     E_matrix <- randomE(n_species = n_species, n_resources = n_species * 2)
     
     # ==========================================
-    # STAGE 3: Run Simulation Models
+    # --- Run Simulation Models ---
     # ==========================================
     message("Running simulations...")
     
@@ -146,7 +156,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     })
     
     # ==========================================
-    # STAGE 4: Export Simulated Abundance Matrices
+    # --- Export Simulated Abundance Matrices ---
     # ==========================================
     write_simulation_csv <- function(tse, filename) {
       if (!is.null(tse)) {
@@ -171,7 +181,7 @@ process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     write_simulation_csv(tse_logistic, "logistic_simulation.csv")
     
     # ==========================================
-    # STAGE 5: Visualization of Trajectories
+    # --- Visualization of Trajectories ---
     # ==========================================
     pdf("simulation_plots.pdf", width = 10, height = 8)
     par(mfrow = c(3, 2), mar = c(4, 4, 3, 1))

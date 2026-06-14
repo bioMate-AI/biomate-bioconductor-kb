@@ -55,7 +55,7 @@ process BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE {
     # Load the required library
     library(chromDraw)
     
-    # 1. Define output path and input file paths
+    # --- Define output path and input file paths ---
     # The pipeline reads exactly these files from the working directory as specified
     INPUTPATH <- file.path(getwd(), "karyotype_definition.txt")
     COLORPATH <- file.path(getwd(), "color_definitions.txt")
@@ -69,7 +69,7 @@ process BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE {
       stop(paste("Required color file missing:", COLORPATH))
     }
     
-    # 2. Run visualization using chromDraw with command-line style arguments
+    # --- Run visualization using chromDraw with command-line style ---
     # The first element of the argv vector must always be the package name "chromDraw"
     # argc is set to 7, representing the 7 elements in the argv vector
     status <- chromDraw(
@@ -82,7 +82,7 @@ process BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE {
       )
     )
     
-    # 3. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the execution status of the chromDraw run
     saveRDS(status, file = file.path(OUTPUTPATH, "chromDraw_status.rds"))
     

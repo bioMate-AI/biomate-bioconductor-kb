@@ -71,13 +71,13 @@ process BIOC_WPM_CSV_TO_PLATE_MAP {
     # Read the CSV file to create the colData object needed for drawMap
     colData <- read.csv(input_file, sep = ";", header = TRUE)
     
-    # 1. Convert the CSV file into the WPM-compatible dataframe format using convertCSV
+    # --- Convert the CSV file into the WPM-compatible dataframe ---
     imported_csv <- wpm::convertCSV("path-to-CSV-file")
     
     # Ensure the Group column is correctly populated from the CSV's Treatment column
     imported_csv\$df_wpm\$Group <- colData\$Treatment
     
-    # 2. Run the randomization algorithm using wrapperWPM
+    # --- Run the randomization algorithm using wrapperWPM ---
     wpm_result <- wpm::wrapperWPM(user_df = imported_csv\$df_wpm,
                 plate_dims = list(8,12),
                 nb_plates = 1,
@@ -85,7 +85,7 @@ process BIOC_WPM_CSV_TO_PLATE_MAP {
                 fixed_wells = "B1,B2",
                 spatial_constraint = "NS")
     
-    # 3. Visualize the generated plate map using drawMap
+    # --- Visualize the generated plate map using drawMap ---
     drawned_map <- wpm::drawMap(df = wpm_result,
             sample_gps = length(levels(as.factor(colData\$Treatment))),
             gp_levels = gp_lvl <- levels(as.factor(colData\$Treatment)),
@@ -96,7 +96,7 @@ process BIOC_WPM_CSV_TO_PLATE_MAP {
     # Print the map to the active device
     print(drawned_map)
     
-    # 4. Save the generated plot using ggplot2::ggsave
+    # --- Save the generated plot using ggplot2::ggsave ---
     ggplot2::ggsave(
         filename = "my file name",
         plot = drawned_map,

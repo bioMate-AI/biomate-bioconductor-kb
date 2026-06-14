@@ -57,7 +57,7 @@ process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
     library(Biostrings)
     library(GenomicRanges)
     
-    # 1. Identify input directories containing FASTA and GFF/GTF files
+    # --- Identify input directories containing FASTA and GFF/GTF ---
     fasta_dir <- "."
     gff_dir <- "."
     
@@ -82,14 +82,14 @@ process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
     proteomes <- aastringsetlist
     annotation <- grangeslist
     
-    # 2. Validate and preprocess inputs
+    # --- Validate and preprocess inputs ---
     if (!check_input(proteomes, annotation)) {
         stop("Input validation failed. Please check sequence names and gene IDs.")
     }
     check_input(proteomes, annotation)
     pdata <- process_input(proteomes, annotation)
     
-    # 3. Run similarity searches using DIAMOND
+    # --- Run similarity searches using DIAMOND ---
     blast_list <- tryCatch({
         run_diamond(seq = pdata\$seq)
     }, error = function(e) {
@@ -97,15 +97,15 @@ process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
         stop(e)
     })
     
-    # 4. Infer the synteny network
+    # --- Infer the synteny network ---
     net <- infer_syntenet(blast_list, pdata\$annotation)
     id_table <- create_species_id_table(names(proteomes))
     
-    # 5. Cluster the network
+    # --- Cluster the network ---
     network <- net
     clusters <- cluster_network(network)
     
-    # 6. Perform phylogenomic profiling
+    # --- Perform phylogenomic profiling ---
     profiles <- phylogenomic_profile(clusters)
     
     # Define species order and annotation dynamically based on input species
@@ -124,7 +124,7 @@ process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
     })
     dev.off()
     
-    # 7. Identify group-specific clusters
+    # --- Identify group-specific clusters ---
     gs_clusters <- find_GS_clusters(profiles, species_annotation)
     
     # Define cluster IDs to plot (use group-specific clusters if found, otherwise top clusters)
@@ -143,7 +143,7 @@ process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
     })
     dev.off()
     
-    # 8. Reconstruct microsynteny-based phylogeny
+    # --- Reconstruct microsynteny-based phylogeny ---
     bt_mat <- binarize_and_transpose(profiles)
     
     phylo <- tryCatch({

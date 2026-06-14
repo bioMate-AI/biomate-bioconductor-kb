@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the COTAN object and metadata. 2. Assign cell origin conditions. 3. Generate quality control plots (empirical cumulativ
+//  * 1. [Visualization & Output] Initialize the COTAN object and metadata
+//  * 2. [Visualization & Output] Assign cell origin conditions
+//  * 3. [Visualization & Output] Generate quality control plots
+//  * 4. [Visualization & Output] Drop cells exceeding library size or gene count thresholds
+//  * 5. [Visualization & Output] Identify and drop cells with high mitochondrial gene
+//  * 6. [Visualization & Output] Run the clean function to estimate parameters and drop
+//  * 7. [Visualization & Output] Generate clean plots
+//  * 8. [Visualization & Output] Drop low-efficiency cells and re-run parameter estimation
 
 nextflow.enable.dsl = 2
 
@@ -110,18 +117,18 @@ process BIOC_COTAN_DATASET_CLEANING {
     cond <- "custom_condition"
     
     # ==========================================
-    # STAGE 1: Initialize the COTAN object and metadata
+    # --- Initialize the COTAN object and metadata ---
     # ==========================================
     obj <- COTAN(raw = rawDataset)
     obj <- initializeMetaDataset( obj, GEO = GEO, sequencingMethod = "Drop_seq", sampleCondition = cond )
     
     # ==========================================
-    # STAGE 2: Assign cell origin conditions
+    # --- Assign cell origin conditions ---
     # ==========================================
     obj <- addCondition(obj, condName = "origin", conditions = vignette.cells.origin)
     
     # ==========================================
-    # STAGE 3: Generate quality control plots
+    # --- Generate quality control plots ---
     # ==========================================
     pdf("qc_plots.pdf")
     plot(ECDPlot(obj, condName = "origin"))
@@ -147,7 +154,7 @@ process BIOC_COTAN_DATASET_CLEANING {
     }
     
     # ==========================================
-    # STAGE 4: Drop cells exceeding library size or gene count thresholds
+    # --- Drop cells exceeding library size or gene count thresholds ---
     # ==========================================
     obj <- addElementToMetaDataset(obj, "Cells size threshold", cellsSizeThr)
     cellsToRem <- getCells(obj)[getCellsSize(obj) > cellsSizeThr]
@@ -163,7 +170,7 @@ process BIOC_COTAN_DATASET_CLEANING {
     obj <- dropGenesCells(obj, cells = cellsToRem)
     
     # ==========================================
-    # STAGE 5: Identify and drop cells with high mitochondrial gene percentages
+    # --- Identify and drop cells with high mitochondrial gene ---
     # ==========================================
     c(mitPlot, mitSizes) %<-% mitochondrialPercentagePlot(obj, genePrefix = "^mt-", condName = "origin")
     
@@ -183,13 +190,13 @@ process BIOC_COTAN_DATASET_CLEANING {
     obj <- dropGenesCells(obj, cells = cellsToRem)
     
     # ==========================================
-    # STAGE 6: Run the clean function to estimate parameters and drop low-expression genes/cells
+    # --- Run the clean function to estimate parameters and drop ---
     # ==========================================
     obj <- addElementToMetaDataset(obj, "Num drop B group", 0L)
     obj <- clean(obj)
     
     # ==========================================
-    # STAGE 7: Generate clean plots
+    # --- Generate clean plots ---
     # ==========================================
     c(pcaCellsPlot, pcaCellsData, genesPlot, UDEPlot, nuPlot, zoomedNuPlot) %<-% cleanPlots(obj)
     
@@ -202,7 +209,7 @@ process BIOC_COTAN_DATASET_CLEANING {
     dev.off()
     
     # ==========================================
-    # STAGE 8: Drop low-efficiency cells and re-run parameter estimation
+    # --- Drop low-efficiency cells and re-run parameter estimation ---
     # ==========================================
     # Drop group B if present in the PCA clustering
     if ("groups" %in% colnames(pcaCellsData) && "B" %in% pcaCellsData[["groups"]]) {

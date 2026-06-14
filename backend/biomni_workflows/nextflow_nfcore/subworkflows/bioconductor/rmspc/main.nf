@@ -56,7 +56,7 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
     library(rmspc)
     library(GenomicRanges)
     
-    # 1. Define paths to input BED files (from the working directory)
+    # --- Define paths to input BED files (from the working ---
     input1 <- "rep1.bed"
     input2 <- "rep2.bed"
     
@@ -67,7 +67,7 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
     
     input <- c(input1, input2)
     
-    # 2. Run the mspc function with BED file paths and threshold parameters
+    # --- Run the mspc function with BED file paths and threshold ---
     results <- mspc(
         input = input, replicateType = "Technical",
         stringencyThreshold = 1e-8,
@@ -76,7 +76,7 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
         multipleIntersections = "Lowest",
         c = 2, alpha = 0.05)
     
-    # 3. Retrieve status and GRanges output objects
+    # --- Retrieve status and GRanges output objects ---
     status <- results\$status
     gr_objects <- results\$GRangesObjects
     
@@ -88,7 +88,7 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
     consensus_peaks <- results\$GRangesObjects\$ConsensusPeaks
     rep1_background <- results\$GRangesObjects\$`rep1/Background`
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete results object as an RDS file
     saveRDS(results, file = "mspc_results.rds")
     

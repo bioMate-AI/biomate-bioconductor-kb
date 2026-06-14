@@ -35,6 +35,15 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("singleCellTK", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,10 +54,11 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
         }
     
     # Load required libraries
-    library(singleCellTK)
+    lib    library(SummarizedExperiment)
+rary(singleCellTK)
     
     # ==========================================
-    # Stage 1: Data Loading & SCE Construction
+    # --- Data Loading & SCE Construction ---
     # ==========================================
     message("Stage 1: Loading input data and constructing SingleCellExperiment...")
     
@@ -88,7 +98,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     SummarizedExperiment::assay(sce, "logcounts") <- log2(SummarizedExperiment::assay(sce, "counts") + 1)
     
     # ==========================================
-    # Stage 2: Quality Control & Outlier Detection
+    # --- Quality Control & Outlier Detection ---
     # ==========================================
     message("Stage 2: Running quality control and outlier detection...")
     
@@ -100,7 +110,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Highly Variable Gene Selection
+    # --- Highly Variable Gene Selection ---
     # ==========================================
     message("Stage 3: Identifying highly variable genes...")
     
@@ -113,7 +123,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 4: Dimensionality Reduction
+    # --- Dimensionality Reduction ---
     # ==========================================
     message("Stage 4: Performing t-SNE dimensionality reduction...")
     
@@ -125,7 +135,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Differential Expression & Marker Detection
+    # --- Differential Expression & Marker Detection ---
     # ==========================================
     message("Stage 5: Identifying marker genes...")
     
@@ -166,7 +176,7 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     })
     
     # ==========================================
-    # Stage 6: Exporting Results
+    # --- Exporting Results ---
     # ==========================================
     message("Stage 6: Exporting analysis results...")
     

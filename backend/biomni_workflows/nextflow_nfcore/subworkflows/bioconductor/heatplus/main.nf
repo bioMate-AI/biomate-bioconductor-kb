@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load expression data. 2. Define custom distance and clustering functions (optional). 3. Generate heatmap object using regHeatmap. 
+//  * 1. [Visualization & Output] Load expression data from the user input file
+//  * 2. [Visualization & Output] Generate and plot Heatmap 1 (Default settings)
+//  * 3. [Visualization & Output] Generate and plot Heatmap 2 (Custom legend, colors, and
+//  * 4. [Visualization & Output] Define custom distance and clustering functions
+//  * 5. [Visualization & Output] Generate and plot Heatmap 3 (Using custom clustering and
+//  * 6. [Visualization & Output] Generate and plot Heatmap 4 (Hiding column dendrogram)
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_HEATPLUS_REGULAR_HEATMAP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "Heatplus")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +65,7 @@ process BIOC_HEATPLUS_REGULAR_HEATMAP {
     library(Biobase)
     library(Heatplus)
     
-    # 1. Load expression data from the user input file
+    # --- Load expression data from the user input file ---
     if (!file.exists("exprs_matrix.csv")) {
       stop("Error: 'exprs_matrix.csv' not found in the working directory.")
     }
@@ -64,32 +78,32 @@ process BIOC_HEATPLUS_REGULAR_HEATMAP {
     num_features <- min(50, nrow(raw_matrix))
     raw_matrix2 <- raw_matrix[1:num_features, , drop = FALSE]
     
-    # 2. Generate and plot Heatmap 1 (Default settings)
+    # --- Generate and plot Heatmap 1 (Default settings) ---
     pdf("heatmap_reg1.pdf")
     reg1 = regHeatmap(raw_matrix)
     plot(reg1)
     dev.off()
     saveRDS(reg1, "reg1.rds")
     
-    # 3. Generate and plot Heatmap 2 (Custom legend, colors, and breaks)
+    # --- Generate and plot Heatmap 2 (Custom legend, colors, and ---
     pdf("heatmap_reg2.pdf")
     reg2 = regHeatmap(raw_matrix2, legend=2, col=heat.colors, breaks=7)
     plot(reg2)
     dev.off()
     saveRDS(reg2, "reg2.rds")
     
-    # 4. Define custom distance and clustering functions
+    # --- Define custom distance and clustering functions ---
     corrdist = function(x) as.dist(1-cor(t(x)))
     hclust.avl = function(x) hclust(x, method="average")
     
-    # 5. Generate and plot Heatmap 3 (Using custom clustering and distance)
+    # --- Generate and plot Heatmap 3 (Using custom clustering and ---
     pdf("heatmap_reg3.pdf")
     reg3 = regHeatmap(raw_matrix2, legend=2, dendrogram = list(clustfun=hclust.avl, distfun=corrdist))
     plot(reg3)
     dev.off()
     saveRDS(reg3, "reg3.rds")
     
-    # 6. Generate and plot Heatmap 4 (Hiding column dendrogram)
+    # --- Generate and plot Heatmap 4 (Hiding column dendrogram) ---
     pdf("heatmap_reg4.pdf")
     reg4 = regHeatmap(raw_matrix2, legend=3, dendrogram=list(Col=list(status="hide")))
     plot(reg4)

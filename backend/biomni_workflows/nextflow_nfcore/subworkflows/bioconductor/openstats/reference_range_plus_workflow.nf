@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Preprocess continuous data and create an OpenStatsList object using OpenStatsList. 2. Run the Reference Range Plus analysis using 
+//  * 1. [Input & Preparation] Preprocess continuous data and create an OpenStatsList
+//  * 2. [Input & Preparation] Run the Reference Range Plus analysis
+//  * 3. [Input & Preparation] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_OPENSTATS_REFERENCE_RANGE_PLUS_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("OpenStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -58,7 +69,7 @@ process BIOC_OPENSTATS_REFERENCE_RANGE_PLUS_WORKFLOW {
       stop(paste("Error: Input file", input_file, "not found in the working directory."))
     }
     
-    # 1. Preprocess continuous data and create an OpenStatsList object
+    # --- Preprocess continuous data and create an OpenStatsList ---
     test_Cont <- OpenStatsList(
       dataset = read.csv(input_file),
       testGenotype = "experimental",
@@ -71,14 +82,14 @@ process BIOC_OPENSTATS_REFERENCE_RANGE_PLUS_WORKFLOW {
       debug = FALSE
     )
     
-    # 2. Run the Reference Range Plus analysis
+    # --- Run the Reference Range Plus analysis ---
     RR_result <- OpenStatsAnalysis(
       OpenStatsList = test_Cont,
       method = "RR",
       RR_formula = data_point ~ Genotype + Sex
     )
     
-    # 3. Save outputs
+    # --- Save outputs ---
     # Save the complete analysis object
     saveRDS(RR_result, file = "RR_result.rds")
     

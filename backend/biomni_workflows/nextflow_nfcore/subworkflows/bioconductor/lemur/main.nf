@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the LEMUR model using lemur with a design formula and latent dimensions. 2. Align corresponding cells across conditions using 
+//  * 1. [Core Analysis] Read User Input
+//  * 2. [Core Analysis] Fit the LEMUR model
+//  * 3. [Core Analysis] Align corresponding cells across conditions
+//  * 4. [Core Analysis] Predict differential expression for a specific contrast
+//  * 5. [Core Analysis] Find and validate differential expression neighborhoods
+//  * 6. [Core Analysis] Save Results and Generate Outputs
 
 nextflow.enable.dsl = 2
 
@@ -39,7 +44,7 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("lemur", "SingleCellExperiment", "tidyverse", "uwot")
+    .bm_deps <- c("lemur", "SingleCellExperiment", "tidyverse", "uwot", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -56,7 +61,8 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
           }
         }
     
-    # Load required libraries
+    # Load required libra    library(SummarizedExperiment)
+ries
     library(lemur)
     library(tidyverse)
     library(uwot)
@@ -65,7 +71,7 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
     set.seed(42)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Read User Input
+    # --- Read User Input ---
     # -----------------------------------------------------------------------------
     # The pipeline reads exactly the 'glioblastoma_example_data' file from the working directory.
     # We check for both the unextended filename and the .rds extension.
@@ -87,31 +93,31 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Fit the LEMUR model
+    # --- Fit the LEMUR model ---
     # -----------------------------------------------------------------------------
     message("Fitting LEMUR model...")
     fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, test_fraction = 0.5)
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Align corresponding cells across conditions
+    # --- Align corresponding cells across conditions ---
     # -----------------------------------------------------------------------------
     message("Aligning embeddings using Harmony...")
     fit <- align_harmony(fit)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Predict differential expression for a specific contrast
+    # --- Predict differential expression for a specific contrast ---
     # -----------------------------------------------------------------------------
     message("Predicting differential expression...")
     fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Find and validate differential expression neighborhoods
+    # --- Find and validate differential expression neighborhoods ---
     # -----------------------------------------------------------------------------
     message("Finding differential expression neighborhoods...")
     neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Save Results and Generate Outputs
+    # --- Save Results and Generate Outputs ---
     # -----------------------------------------------------------------------------
     message("Saving results...")
     

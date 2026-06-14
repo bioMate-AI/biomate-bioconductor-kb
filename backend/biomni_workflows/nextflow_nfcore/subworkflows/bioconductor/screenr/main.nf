@@ -35,6 +35,15 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ScreenR", "ggplot2", "dplyr", "tidyr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     library(tidyr)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -129,7 +138,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 2: Normalization and Filtering
+    # --- Normalization and Filtering ---
     # ==========================================
     message("Stage 2: Normalizing and filtering data...")
     object <- remove_all_zero_row(object)
@@ -137,7 +146,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     object <- compute_data_table(object)
     
     # ==========================================
-    # STAGE 3: Statistical Analysis (Hits)
+    # --- Statistical Analysis (Hits) ---
     # ==========================================
     message("Stage 3: Performing statistical hit identification...")
     
@@ -248,7 +257,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 4: Export Results Table
+    # --- Export Results Table ---
     # ==========================================
     message("Stage 4: Exporting results table...")
     
@@ -282,7 +291,7 @@ process BIOC_SCREENR_SCREENR_SHRNA_ANALYSIS {
     write.csv(final_results, "screenr_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Generate Diagnostic & Result Plots
+    # --- Generate Diagnostic & Result Plots ---
     # ==========================================
     message("Stage 5: Generating diagnostic and result plots...")
     

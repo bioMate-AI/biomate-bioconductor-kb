@@ -64,23 +64,23 @@ process BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE {
     filtF1 <- "sample_F_filtered.fastq.gz"
     filtR1 <- "sample_R_filtered.fastq.gz"
     
-    # 1. Inspect quality profiles
+    # --- Inspect quality profiles ---
     pdf("quality_profiles.pdf", width = 10, height = 7)
     plotQualityProfile(fnF1) # Forward
     plotQualityProfile(fnR1) # Reverse
     dev.off()
     
-    # 2. Filter and trim reads
+    # --- Filter and trim reads ---
     filterAndTrim(fwd=fnF1, filt=filtF1, rev=fnR1, filt.rev=filtR1,
                   trimLeft=10, truncLen=c(240, 200), 
                   maxN=0, maxEE=2,
                   compress=TRUE, verbose=TRUE)
     
-    # 3. Dereplicate filtered reads
+    # --- Dereplicate filtered reads ---
     derepF1 <- derepFastq(filtF1, verbose=TRUE)
     derepR1 <- derepFastq(filtR1, verbose=TRUE)
     
-    # 4. Learn error rates
+    # --- Learn error rates ---
     errF <- learnErrors(derepF1, multithread=FALSE)
     errR <- learnErrors(derepR1, multithread=FALSE)
     
@@ -90,21 +90,21 @@ process BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE {
     plotErrors(errR, nominalQ=TRUE)
     dev.off()
     
-    # 5. Infer sample composition
+    # --- Infer sample composition ---
     dadaF1 <- dada(derepF1, err=errF, multithread=FALSE)
     dadaR1 <- dada(derepR1, err=errR, multithread=FALSE)
     print(dadaF1)
     
-    # 6. Merge forward and reverse reads
+    # --- Merge forward and reverse reads ---
     merger1 <- mergePairs(dadaF1, derepF1, dadaR1, derepR1, verbose=TRUE)
     
     # Remove chimeras on the single merged sample (as shown in the first part of the vignette)
     merger1.nochim <- removeBimeraDenovo(merger1, multithread=FALSE, verbose=TRUE)
     
-    # 7. Construct sequence table (adapted for the single user-provided sample)
+    # --- Construct sequence table (adapted for the single ---
     seqtab <- makeSequenceTable(list(merger1))
     
-    # 8. Remove chimeras from the sequence table
+    # --- Remove chimeras from the sequence table ---
     seqtab.nochim <- removeBimeraDenovo(seqtab, verbose=TRUE)
     print(dim(seqtab.nochim))
     

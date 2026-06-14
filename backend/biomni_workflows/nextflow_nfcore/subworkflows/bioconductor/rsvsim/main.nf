@@ -71,7 +71,7 @@ process BIOC_RSVSIM_STRUCTURAL_VARIATION_SIMULATION {
     names(genome)[1:2] = c("chr1", "chr2")
     
     # 2. Run simulateSV with specified SV counts, sizes, and optional parameters
-    # Stage 1: Deletions simulation
+    # --- Deletions simulation ---
     sim = simulateSV(output=NA, genome=genome, dels=3, sizeDels=10,
     bpSeqSize=6, seed=456, verbose=FALSE)
     
@@ -83,7 +83,7 @@ process BIOC_RSVSIM_STRUCTURAL_VARIATION_SIMULATION {
       write.csv(meta1\$deletions, "sim1_deletions_metadata.csv", row.names=FALSE)
     }
     
-    # Stage 2: Deletions with breakpoint mutations
+    # --- Deletions with breakpoint mutations ---
     sim = simulateSV(output=NA, genome=genome, dels=1, sizeDels=5, bpFlankSize=10, 
     percSNPs=0.25, indelProb=1, maxIndelSize=3, bpSeqSize=10, seed=123, verbose=FALSE)
     
@@ -95,7 +95,7 @@ process BIOC_RSVSIM_STRUCTURAL_VARIATION_SIMULATION {
       write.csv(meta2\$deletions, "sim2_deletions_metadata.csv", row.names=FALSE)
     }
     
-    # Stage 3: Inversions within specific genomic regions
+    # --- Inversions within specific genomic regions ---
     regions = GRanges(IRanges(c(21,1),c(40,20)), seqnames=c("chr1","chr2"))
     sim = simulateSV(output=NA, genome=genome, invs=4, sizeInvs=5, 
     regionsInvs=regions, bpSeqSize=6, seed=2345, verbose=FALSE)

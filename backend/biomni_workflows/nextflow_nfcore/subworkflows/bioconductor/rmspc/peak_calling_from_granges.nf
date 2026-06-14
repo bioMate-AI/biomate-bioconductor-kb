@@ -92,14 +92,14 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_GRANGES {
       return(obj_bed)
     }
     
-    # 1. Import BED files or RDS files as GRanges objects
+    # --- Import BED files or RDS files as GRanges objects ---
     GR1 <- load_granges("GR1")
     GR2 <- load_granges("GR2")
     
-    # 2. Combine GRanges objects into a GRangesList
+    # --- Combine GRanges objects into a GRangesList ---
     GR <- GenomicRanges::GRangesList("GR1" = GR1, "GR2" = GR2)
     
-    # 3. Run the mspc function with the GRangesList and threshold parameters
+    # --- Run the mspc function with the GRangesList and threshold ---
     results <- mspc(
         input = GR, replicateType = "Biological",
         stringencyThreshold = 1e-8, weakThreshold = 1e-4,
@@ -107,7 +107,7 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_GRANGES {
         multipleIntersections = "Highest",
         c = 2,alpha = 0.05)
     
-    # 4. Retrieve status and GRanges output objects
+    # --- Retrieve status and GRanges output objects ---
     status <- results\$status
     gr_objects <- results\$GRangesObjects
     

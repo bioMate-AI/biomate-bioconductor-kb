@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the expression data and phenotype information. 2. Define or import a single gene set of interest, optionally filtering out co
+//  * 1. [Visualization & Output] Load Expression Data and Phenotypes
+//  * 2. [Visualization & Output] Define and Filter Gene Sets
+//  * 3. [Visualization & Output] Run GSRI with Custom Tests and Parameters
+//  * 4. [Visualization & Output] Save Results and Generate Plots
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GSRI", "GSEABase", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +66,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     library(limma)
     
     # ==========================================
-    # 1. Load Expression Data and Phenotypes
+    # --- Load Expression Data and Phenotypes ---
     # ==========================================
     
     # Load the expression data from the working directory
@@ -123,7 +135,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     col_score <- if (length(num_cols) > 0) num_cols[1] else pheno_cols[1]
     
     # ==========================================
-    # 2. Define and Filter Gene Sets
+    # --- Define and Filter Gene Sets ---
     # ==========================================
     
     # Run GSRI on all probes
@@ -147,7 +159,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     gChr17 <- gsri(eset, phenotypes[[col_type]], gsChr17)
     
     # ==========================================
-    # 3. Run GSRI with Custom Tests and Parameters
+    # --- Run GSRI with Custom Tests and Parameters ---
     # ==========================================
     
     # Categorize the continuous score variable into classes dynamically
@@ -177,7 +189,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     g3Limma <- gsri(eset, phenotypes[[col_type]], gsChr17, test=limmaTest)
     
     # ==========================================
-    # 4. Save Results and Generate Plots
+    # --- Save Results and Generate Plots ---
     # ==========================================
     
     # Save RDS objects of the GSRI results

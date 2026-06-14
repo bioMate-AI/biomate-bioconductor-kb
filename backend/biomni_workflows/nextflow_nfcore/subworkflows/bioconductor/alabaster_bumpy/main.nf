@@ -36,6 +36,15 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BumpyMatrix", "S4Vectors", "alabaster.base", "alabaster.bumpy")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,14 +54,14 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
           }
         }
     
-    # Stage 1: Load required libraries safely
+    # --- Load required libraries safely ---
     message("Loading required Bioconductor libraries...")
     library(BumpyMatrix)
     library(S4Vectors)
     library(alabaster.base)
     library(alabaster.bumpy)
     
-    # Stage 2: Read and preprocess input data defensively
+    # --- Read and preprocess input data defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(sprintf("Required input file '%s' not found.", input_file))
@@ -87,7 +96,7 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
     class(input_mat) <- "numeric"
     input_mat[is.na(input_mat)] <- 0 # Handle missing values defensively
     
-    # Stage 3: Construct a BumpyDataFrameMatrix
+    # --- Construct a BumpyDataFrameMatrix ---
     message("Constructing BumpyDataFrameMatrix...")
     features <- rownames(input_mat)
     samples <- colnames(input_mat)
@@ -127,7 +136,7 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
     
     print(bumpy_mat)
     
-    # Stage 4: Serialize the BumpyMatrix using alabaster
+    # --- Serialize the BumpyMatrix using alabaster ---
     message("Serializing BumpyMatrix to disk...")
     save_dir <- "serialized_bumpy_matrix"
     if (dir.exists(save_dir)) {
@@ -138,7 +147,7 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
     alabaster.base::saveObject(bumpy_mat, save_dir)
     message(sprintf("Successfully saved BumpyMatrix to '%s'", save_dir))
     
-    # Stage 5: Deserialize and verify the BumpyMatrix
+    # --- Deserialize and verify the BumpyMatrix ---
     message("Deserializing BumpyMatrix back into R...")
     restored_bumpy_mat <- alabaster.base::readObject(save_dir)
     
@@ -146,7 +155,7 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
     stopifnot(identical(dim(bumpy_mat), dim(restored_bumpy_mat)))
     message("Verification successful: Restored object matches original dimensions.")
     
-    # Stage 6: Downstream analysis and summary generation
+    # --- Downstream analysis and summary generation ---
     message("Extracting data from restored BumpyMatrix for downstream analysis...")
     # Flatten the bumpy matrix back to a standard DataFrame for reporting
     unbumped_data <- tryCatch({
@@ -177,7 +186,7 @@ process BIOC_ALABASTER_BUMPY_ALABASTER_BUMPY_SERIALIZATION {
     write.csv(summary_df, "bumpy_summary.csv", row.names = FALSE)
     message("Saved summary statistics to 'bumpy_summary.csv'")
     
-    # Stage 7: Diagnostic Visualization
+    # --- Diagnostic Visualization ---
     message("Generating diagnostic plots...")
     pdf("bumpy_distribution.pdf", width = 8, height = 6)
     tryCatch({

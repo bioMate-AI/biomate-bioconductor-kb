@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Estimate SV sizes using estimateSVSizes by fitting a beta distribution to user-supplied sizes or using default distributions from 
+//  * 1. [Core Analysis] Estimate SV sizes by fitting a beta distribution to the
+//  * 2. [Core Analysis] Estimate SV sizes using default database distributions
 
 nextflow.enable.dsl = 2
 
@@ -73,10 +74,10 @@ process BIOC_RSVSIM_SV_SIZE_ESTIMATION {
         pdf("sv_size_distributions.pdf", width = 10, height = 5)
         par(mfrow = c(1, 2))
         
-        # 1. Estimate SV sizes by fitting a beta distribution to the user-supplied or default sizes
+        # --- Estimate SV sizes by fitting a beta distribution to the ---
         simSizes = estimateSVSizes(n=1000, svSizes=svSizes, hist=TRUE)
         
-        # 2. Estimate SV sizes using default database distributions (deletions)
+        # --- Estimate SV sizes using default database distributions ---
         delSizes = estimateSVSizes(n=10000, minSize=500, maxSize=10000, default="deletions", hist=TRUE)
         
         # Close the PDF device

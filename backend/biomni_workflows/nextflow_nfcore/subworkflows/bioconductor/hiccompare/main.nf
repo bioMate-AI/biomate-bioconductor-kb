@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the sparse chromatin interaction matrices. 2. Create a hic.table object using create.hic.table. 3. Jointly normalize the data
+//  * 1. [Input & Preparation] Load the sparse chromatin interaction matrices from user
+//  * 2. [Input & Preparation] Create a hic.table object using create.hic.table
+//  * 3. [Input & Preparation] Jointly normalize the datasets using hic_loess
+//  * 4. [Input & Preparation] Evaluate filtering parameters using filter_params
+//  * 5. [Input & Preparation] Detect differential interactions using hic_compare
+//  * 6. [Input & Preparation] Convert the results to an InteractionSet object using
 
 nextflow.enable.dsl = 2
 
@@ -83,19 +88,19 @@ process BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON {
       return(df)
     }
     
-    # 1. Load the sparse chromatin interaction matrices from user input files
+    # --- Load the sparse chromatin interaction matrices from user ---
     message("Loading input datasets...")
     HMEC.chr22 <- read_hic_file("HMEC.chr22")
     NHEK.chr22 <- read_hic_file("NHEK.chr22")
     
     print(head(HMEC.chr22))
     
-    # 2. Create a hic.table object using create.hic.table
+    # --- Create a hic.table object using create.hic.table ---
     message("Creating hic.table object...")
     chr22.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
     print(head(chr22.table))
     
-    # 3. Jointly normalize the datasets using hic_loess
+    # --- Jointly normalize the datasets using hic_loess ---
     message("Performing joint normalization using hic_loess...")
     pdf("hic_loess_plot.pdf", width = 7, height = 5)
     hic.table <- hic_loess(chr22.table, Plot = TRUE, Plot.smooth = FALSE)
@@ -108,7 +113,7 @@ process BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON {
       print(head(hic.table))
     }
     
-    # 4. Evaluate filtering parameters using filter_params
+    # --- Evaluate filtering parameters using filter_params ---
     message("Evaluating filtering parameters...")
     pdf("filter_params_plot.pdf", width = 7, height = 5)
     tryCatch({
@@ -118,7 +123,7 @@ process BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON {
     })
     dev.off()
     
-    # 5. Detect differential interactions using hic_compare
+    # --- Detect differential interactions using hic_compare ---
     message("Detecting differential chromatin interactions using hic_compare...")
     pdf("hic_compare_plot.pdf", width = 7, height = 5)
     hic.table <- hic_compare(hic.table, A.min = 15, adjust.dist = TRUE, p.method = 'fdr', Plot = TRUE)
@@ -135,7 +140,7 @@ process BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON {
     write.csv(hic.table, "hic_compare_results.csv", row.names = FALSE)
     message("Saved comparison results to 'hic_compare_results.csv'")
     
-    # 6. Convert the results to an InteractionSet object using make_InteractionSet
+    # --- Convert the results to an InteractionSet object using ---
     message("Converting results to an InteractionSet object...")
     IntSet <- make_InteractionSet(hic.table)
     

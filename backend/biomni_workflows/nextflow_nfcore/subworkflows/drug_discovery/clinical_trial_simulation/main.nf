@@ -57,6 +57,7 @@ process CLINICAL_TRIAL_SIMULATION {
     tuple val(meta), path("BOIN_decision_table.json"),         emit: boin
     tuple val(meta), path("phase2_simulation.csv"),            emit: phase2
     tuple val(meta), path("operating_characteristics.json"),   emit: oc
+    tuple val(meta), path("qc_metrics.json"),                  emit: qc_metrics
     path "versions.yml",                                       emit: versions
 
     script:
@@ -358,6 +359,31 @@ summary = {'status':'completed','design':design,'n_sim':n_sim_use,
            'phase2_results':p2_results}
 with open('clinical_trial_results.json','w') as f:
     json.dump(summary, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# boin_dlt_boundary gate (MTD observed DLT rate ≤ target φ, GOLD-anchored
+# to Liu & Yuan 2015 — both the BOIN decision rule AND the per-φ
+# boundary values are stated verbatim in Table 2 of the paper).
+# Keys the gate reader expects:
+#   mtd_observed_dlt_rate — true DLT rate at the selected MTD level
+#   target_dlt_rate       — the φ target
+# When no safe dose exists in range, mtd_observed_dlt_rate is None
+# and the gate skips (returns None) rather than firing a spurious FAIL.
+_mtd_dlt = None
+if true_mtd_idx is not None and true_mtd_idx < len(true_DLT_probs):
+    _mtd_dlt = round(float(true_DLT_probs[true_mtd_idx]), 4)
+qc_metrics = {
+    'mtd_observed_dlt_rate':     _mtd_dlt,
+    'target_dlt_rate':           round(float(dlt_target), 4),
+    'P_correct_MTD_selection':   round(P_correct_MTD, 3),
+    'P_underdosing':             round(P_underdosing, 3),
+    'P_overdosing':              round(P_overdosing, 3),
+    'no_safe_dose_in_range':     bool(no_safe_dose),
+    'design':                    design,
+    'n_simulations':             n_sim_use,
+}
+with open('qc_metrics.json','w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 report = [f"=== CLINICAL TRIAL SIMULATION REPORT ===",
           f"Design: {design} | Target DLT rate: {dlt_target*100:.0f}% | Simulations: {n_sim_use}","",

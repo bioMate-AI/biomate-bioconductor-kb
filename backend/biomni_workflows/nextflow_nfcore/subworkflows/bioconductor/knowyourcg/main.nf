@@ -60,7 +60,7 @@ process BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT {
     library(ggrepel)
     library(ggplot2)
     
-    # 1. Cache required database sets
+    # --- Cache required database sets ---
     sesameDataCache(data_titles = c(
       "genomeInfo.hg38",
       "genomeInfo.mm10",
@@ -77,7 +77,7 @@ process BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT {
     sesameDataCache("MM285.tissueSignature")
     kycgDataCache()
     
-    # 2. Retrieve query CpG list from user input file
+    # --- Retrieve query CpG list from user input file ---
     if (file.exists("query")) {
       query <- tryCatch({
         readRDS("query")
@@ -91,7 +91,7 @@ process BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT {
     # Ensure query is a character vector of probe IDs
     query <- as.character(query)
     
-    # 3. Run enrichment testing using testEnrichment()
+    # --- Run enrichment testing using testEnrichment() ---
     # Test 1: Enrichment against specified databases (using MM285 platform)
     dbs <- c(
       "KYCG.MM285.chromHMM.20210210",
@@ -116,7 +116,7 @@ process BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT {
     write.csv(results_2tailed, "results_tfbs_2tailed.csv", row.names = FALSE)
     saveRDS(results_2tailed, "results_tfbs_2tailed.rds")
     
-    # 4. Visualize results
+    # --- Visualize results ---
     # Plot 1: Dot Plot
     pdf("KYCG_plotDot.pdf", width = 8, height = 6)
     p_dot <- KYCG_plotDot(results)

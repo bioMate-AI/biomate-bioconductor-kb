@@ -17,7 +17,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("microbiome")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,43 +57,34 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     library(microbiome)
     
     # ==========================================
-    # STAGE 1: Data Loading & Preprocessing
+    # --- Data Loading & Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
-    # Read the abundance matrix and metadata
-    abundance_df <- read.csv("abundance.csv", check.names = FALSE)
-    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
-    
-    # Format abundance data: ensure taxon_id is set as row names
-    if ("taxon_id" %in% colnames(abundance_df)) {
-      rownames(abundance_df) <- abundance_df\$taxon_id
-      abundance_df\$taxon_id <- NULL
+    # Read inputs per the declared contract: abundance.csv has a 'taxon_id' ID column
+    # (taxa as rows), coldata.csv has a 'sample' ID column (samples as rows).
+    abundance_df <- read.csv("abundance.csv", check.names = FALSE, row.names = "taxon_id")
+    coldata_df   <- read.csv("coldata.csv",   check.names = FALSE, row.names = "sample")
+
+    # Construct the phyloseq object directly from the abundance matrix and metadata.
+    # (read_csv2phyloseq forces a CSV round-trip and additionally requires a taxonomy
+    # file the workflow does not produce — direct construction is robust and avoids it.)
+    otu_mat <- as.matrix(abundance_df)
+    storage.mode(otu_mat) <- "double"
+    # align samples present in both the abundance matrix (columns) and the metadata (rows)
+    common_samples <- intersect(colnames(otu_mat), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+      stop("No overlapping sample IDs between abundance columns and metadata rows.")
     }
-    
-    # Format metadata: ensure sample column is set as row names
-    if ("sample" %in% colnames(coldata_df)) {
-      rownames(coldata_df) <- coldata_df\$sample
-    }
-    
-    # Write temporary files formatted specifically for read_csv2phyloseq
-    # read_csv2phyloseq expects the first column of OTU file to be taxon IDs,
-    # and the first column of metadata file to be sample IDs.
-    otu_temp <- data.frame(taxon_id = rownames(abundance_df), abundance_df, check.names = FALSE)
-    write.csv(otu_temp, "temp_otu.csv", row.names = FALSE)
-    
-    meta_temp <- data.frame(sample = rownames(coldata_df), coldata_df, check.names = FALSE)
-    write.csv(meta_temp, "temp_meta.csv", row.names = FALSE)
-    
-    # Load into a phyloseq object using microbiome's native parser
-    pseq <- read_csv2phyloseq(otu.file = "temp_otu.csv", metadata.file = "temp_meta.csv", sep = ",")
-    
-    # Clean up temporary files immediately
-    unlink("temp_otu.csv")
-    unlink("temp_meta.csv")
+    otu_mat <- otu_mat[, common_samples, drop = FALSE]
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    pseq <- phyloseq(
+      otu_table(otu_mat, taxa_are_rows = TRUE),
+      sample_data(coldata_df)
+    )
     
     # ==========================================
-    # STAGE 2: Quality Control & Profiling
+    # --- Quality Control & Profiling ---
     # ==========================================
     message("Stage 2: Profiling samples and taxa...")
     
@@ -115,7 +115,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     write.csv(sample_summary, "sample_summary.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: Alpha Diversity Analysis
+    # --- Alpha Diversity Analysis ---
     # ==========================================
     message("Stage 3: Analyzing alpha diversity...")
     
@@ -139,7 +139,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Compositional & Core Microbiome Analysis
+    # --- Compositional & Core Microbiome Analysis ---
     # ==========================================
     message("Stage 4: Analyzing taxonomic composition and core members...")
     
@@ -178,7 +178,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Taxon-Level Summary
+    # --- Taxon-Level Summary ---
     # ==========================================
     message("Stage 5: Generating taxon-level summary...")
     

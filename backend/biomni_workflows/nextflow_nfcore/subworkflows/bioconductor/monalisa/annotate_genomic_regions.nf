@@ -59,7 +59,7 @@ process BIOC_MONALISA_ANNOTATE_GENOMIC_REGIONS {
     library(monaLisa)
     library(BiocParallel)
     
-    # 1. Define genomic regions and extract sequences
+    # --- Define genomic regions and extract sequences ---
     # Read genomic coordinates from the user-provided BED file
     gr <- trim(import("promoters.bed", format = "bed"))
     
@@ -75,15 +75,15 @@ process BIOC_MONALISA_ANNOTATE_GENOMIC_REGIONS {
       }
     }
     
-    # 2. Load motifs and convert to PWMs
+    # --- Load motifs and convert to PWMs ---
     # Read transcription factor binding motifs from the user-provided JASPAR file
     pfms <- readJASPARMatrix("motifs.jaspar", matrixClass = "PFM")
     pwms <- toPWM(pfms)
     
-    # 3. Scan sequences for motif hits using findMotifHits
+    # --- Scan sequences for motif hits using findMotifHits ---
     res <- findMotifHits(query = pwms, subject = seqs, min.score = 6.0, method = "matchPWM", BPPARAM = BiocParallel::SerialParam())
     
-    # 4. Create a motif hit matrix (counts of motifs per sequence)
+    # --- Create a motif hit matrix (counts of motifs per sequence) ---
     m <- table(factor(seqnames(res), levels = names(seqs)), factor(res\$pwmname, levels = name(pwms)))
     
     # Save meaningful results to output files

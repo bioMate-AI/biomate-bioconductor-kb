@@ -35,6 +35,15 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("recount", "GenomicRanges", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,11 +53,12 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(recount)
     library(GenomicRanges)
     
-    # Stage 1: Read and align input files
+    # --- Read and align input files ---
     message("Loading input datasets...")
     counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
     if (!"gene_id" %in% colnames(counts_df)) {
@@ -71,7 +81,7 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
     counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 2: Construct RangedSummarizedExperiment with recount-specific metadata
+    # --- Construct RangedSummarizedExperiment with ---
     message("Constructing RangedSummarizedExperiment object...")
     # Create dummy genomic ranges for the genes
     row_ranges <- GRanges(
@@ -97,7 +107,7 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
         colData = as(coldata_df, "DataFrame")
     )
     
-    # Stage 3: Perform recount scaling and normalization
+    # --- Perform recount scaling and normalization ---
     message("Scaling counts using recount::scale_counts...")
     # Scale counts to mapped reads (standardizes library size)
     rse_scaled <- scale_counts(rse, by = "mapped_reads")
@@ -109,13 +119,13 @@ process BIOC_RECOUNT_RECOUNT_NORMALIZATION_PIPELINE {
     message("Calculating TPM using recount::getTPM...")
     tpm_matrix <- getTPM(rse, length_var = "bp_length", mapped_var = "mapped_read_count")
     
-    # Stage 4: Write outputs to files
+    # --- Write outputs to files ---
     message("Writing normalized matrices to CSV...")
     write.csv(scaled_counts, "scaled_counts.csv", row.names = TRUE)
     write.csv(rpkm_matrix, "rpkm_matrix.csv", row.names = TRUE)
     write.csv(tpm_matrix, "tpm_matrix.csv", row.names = TRUE)
     
-    # Stage 5: Generate diagnostic plots
+    # --- Generate diagnostic plots ---
     message("Generating diagnostic plots...")
     pdf("normalization_summary.pdf", width = 10, height = 8)
     par(mfrow = c(2, 2), mar = c(6, 4, 4, 2))

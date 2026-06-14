@@ -35,6 +35,15 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("FindIT2", "TxDb.Athaliana.BioMart.plantsmart28", "GenomicRanges", "S4Vectors", "BiocGenerics", "dplyr", "ggplot2", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,8 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
           }
         }
     
-    # Load required libraries
+    # Load required librari    library(SummarizedExperiment)
+es
     library(FindIT2)
     library(TxDb.Athaliana.BioMart.plantsmart28)
     library(GenomicRanges)
@@ -56,7 +66,7 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
     # Set seed for reproducibility
     set.seed(20160806)
     
-    # 1. Read input files
+    # --- Read input files ---
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", check.names = FALSE)
     
@@ -68,7 +78,7 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
     counts <- counts[, common_samples, drop = FALSE]
     coldata <- coldata[coldata\$sample %in% common_samples, , drop = FALSE]
     
-    # 2. Load and prepare TxDb
+    # --- Load and prepare TxDb ---
     Txdb <- TxDb.Athaliana.BioMart.plantsmart28
     seqlevels(Txdb) <- c(paste0("Chr", 1:5), "M", "C")
     all_genes <- GenomicFeatures::genes(Txdb)
@@ -85,7 +95,7 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
         user_genes <- rownames(counts)
     }
     
-    # 3. Generate synthetic peak GRanges near the matched genes
+    # --- Generate synthetic peak GRanges near the matched genes ---
     matched_genes <- all_genes[names(all_genes) %in% user_genes]
     peaks_list <- list()
     for (i in seq_along(matched_genes)) {
@@ -105,7 +115,7 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
     }
     peaks_gr <- do.call(c, unname(peaks_list))
     
-    # 4. Generate a synthetic peak score matrix correlated with gene expression
+    # --- Generate a synthetic peak score matrix correlated with ---
     peak_names <- peaks_gr\$feature_id
     peakScoreMt <- matrix(0, nrow = length(peak_names), ncol = ncol(counts))
     rownames(peakScoreMt) <- peak_names
@@ -119,18 +129,18 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
         peakScoreMt[p_id, ] <- abs(gene_expr * runif(ncol(counts), 0.5, 1.5) + rnorm(ncol(counts), mean = 5, sd = 2))
     }
     
-    # 5. Run mm_geneScan to associate peaks with genes
+    # --- Run mm_geneScan to associate peaks with genes ---
     message("Running mm_geneScan...")
     mmAnno <- mm_geneScan(peak_GR = peaks_gr, Txdb = Txdb, upstream = 20000, downstream = 20000)
     
-    # 6. Calculate Regulation Potential (RP) using calcRP_region
+    # --- Calculate Regulation Potential (RP) using calcRP_region ---
     message("Calculating Regulation Potential...")
     chrs <- unique(as.character(seqnames(peaks_gr)))
     regionRP <- calcRP_region(mmAnno = mmAnno, peakScoreMt = peakScoreMt, Txdb = Txdb, Chrs_included = chrs)
     sumRP <- assays(regionRP)\$sumRP
     write.csv(sumRP, "gene_regulation_potentials.csv", row.names = TRUE)
     
-    # 7. Integrate replicates and calculate peak-gene correlation
+    # --- Integrate replicates and calculate peak-gene correlation ---
     message("Calculating peak-gene correlations...")
     atac_colData <- data.frame(row.names = coldata\$sample, type = coldata\$condition)
     peakScore_merged <- integrate_replicates(peakScoreMt, atac_colData)
@@ -142,7 +152,7 @@ process BIOC_FINDIT2_PEAK_GENE_CORRELATION_RP {
                              parallel = FALSE)
     write.csv(as.data.frame(mmAnnoCor), "peak_gene_correlations.csv", row.names = FALSE)
     
-    # 8. Generate diagnostic and visualization plots
+    # --- Generate diagnostic and visualization plots ---
     message("Generating plots...")
     tryCatch({
         # Distance to TSS plot

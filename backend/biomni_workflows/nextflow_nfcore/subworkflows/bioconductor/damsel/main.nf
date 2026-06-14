@@ -35,6 +35,15 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Damsel", "dplyr", "stringr", "GenomicRanges", "BSgenome.Dmelanogaster.UCSC.dm6", "TxDb.Dmelanogaster.UCSC.dm6.ensGene", "org.Dm.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +63,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     library(org.Dm.eg.db)
     
     # ==========================================
-    # STAGE 1: Read and Parse User Input Files
+    # --- Read and Parse User Input Files ---
     # ==========================================
     
     message("Reading input files...")
@@ -152,7 +161,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     names(regions) <- counts.df\$Position
     
     # ==========================================
-    # STAGE 2: Exploratory Data Analysis & QC
+    # --- Exploratory Data Analysis & QC ---
     # ==========================================
     
     message("Generating QC plots...")
@@ -165,7 +174,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Differential Methylation Analysis
+    # --- Differential Methylation Analysis ---
     # ==========================================
     
     message("Setting up edgeR analysis...")
@@ -177,7 +186,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 4: Peak Calling (Bridges)
+    # --- Peak Calling (Bridges) ---
     # ==========================================
     
     message("Identifying peaks...")
@@ -205,7 +214,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     write.csv(peaks, "peaks.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Gene Annotation
+    # --- Gene Annotation ---
     # ==========================================
     
     message("Collating genes and annotating peaks...")
@@ -233,7 +242,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     write.csv(annotation\$closest, "annotated_peaks_closest.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Gene Ontology Analysis
+    # --- Gene Ontology Analysis ---
     # ==========================================
     
     message("Running Gene Ontology analysis...")
@@ -254,7 +263,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 7: Visualizing Top Peak Coverage
+    # --- Visualizing Top Peak Coverage ---
     # ==========================================
     
     message("Plotting top peak coverage...")

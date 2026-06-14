@@ -35,6 +35,15 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DMRScan", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     library(rtracklayer)
     library(GenomicRanges)
     
-    # Stage 1: Import and Parse Input Data
+    # --- Import and Parse Input Data ---
     message("Loading input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
@@ -78,7 +87,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
       message("Loaded coldata.csv with ", nrow(coldata), " rows.")
     }
     
-    # Stage 2: Cluster CpGs into Regions
+    # --- Cluster CpGs into Regions ---
     message("Clustering CpGs into regions...")
     min_cpg <- 3
     max_gap <- 750
@@ -93,7 +102,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     )
     message(paste("Created", length(regions), "CpG clusters/regions."))
     
-    # Stage 3: Estimate Window Thresholds
+    # --- Estimate Window Thresholds ---
     n_cpg <- sum(sapply(regions, length))
     message(paste("Total CpGs in clusters:", n_cpg))
     
@@ -126,7 +135,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
       return(NULL)
     })
     
-    # Stage 4: Run DMRScan
+    # --- Run DMRScan ---
     run_dmrscan <- function(regions, window_sizes, thresholds, method_name) {
       if (is.null(thresholds)) {
         message(paste("Skipping DMRScan for", method_name, "due to missing thresholds."))
@@ -148,7 +157,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     results_sampling <- run_dmrscan(regions, window_sizes, thresholds_sampling, "sampling")
     results_siegmund <- run_dmrscan(regions, window_sizes, thresholds_siegmund, "siegmund")
     
-    # Stage 5: Export Results
+    # --- Export Results ---
     write_results <- function(gr_res, filename) {
       if (length(gr_res) > 0) {
         df <- as.data.frame(gr_res)
@@ -174,7 +183,7 @@ process BIOC_DMRSCAN_DMRSCAN_SLIDING_WINDOW_PIPELINE {
     write_results(results_sampling, "dmrscan_results_sampling.csv")
     write_results(results_siegmund, "dmrscan_results_siegmund.csv")
     
-    # Stage 6: Visualization / Diagnostics
+    # --- Visualization / Diagnostics ---
     pdf("dmr_report.pdf", width = 8, height = 6)
     op <- par(mfrow = c(2, 1))
     

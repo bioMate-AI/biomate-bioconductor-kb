@@ -16,6 +16,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
+import { buildCanonicalFixturePromptSection, matchesCanonicalFixture } from './canonical-fixtures';
+import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
 
 // Per-request override of `this.galaxyAPI`. Set by processMessage() when the
 // caller (chat-stream) provides context.galaxyAPIOverride; resolved at every
@@ -965,13 +967,26 @@ function stringifyParamValues(
 }
 
 export function buildWorkflowRoutingBlock(preferredDomains: string[]): string {
+  // The canonical-fixture auto-resolve rule is the bioinformatics analog of
+  // the existing ADMET-from-SMILES and pocket-from-PDB-id rules. It belongs
+  // at the top of the routing block so the LLM applies it before any
+  // domain-specific rule that might re-introduce a clarification ask.
+  // See docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md for the gap audit.
+  const fixturePreamble = buildCanonicalFixturePromptSection();
+
+  let domainRules: string;
   if (!preferredDomains || preferredDomains.length === 0) {
-    return Object.values(DOMAIN_ROUTING_RULES).join('\n');
+    domainRules = Object.values(DOMAIN_ROUTING_RULES).join('\n');
+  } else {
+    const matched = preferredDomains
+      .map(d => DOMAIN_ROUTING_RULES[d])
+      .filter((r): r is string => !!r);
+    domainRules = matched.length > 0
+      ? matched.join('\n')
+      : Object.values(DOMAIN_ROUTING_RULES).join('\n');
   }
-  const matched = preferredDomains
-    .map(d => DOMAIN_ROUTING_RULES[d])
-    .filter((r): r is string => !!r);
-  return matched.length > 0 ? matched.join('\n') : Object.values(DOMAIN_ROUTING_RULES).join('\n');
+
+  return `${fixturePreamble}\n\n${domainRules}`;
 }
 
 /**
@@ -1574,10 +1589,20 @@ export class GalaxyAssistant {
     let rawResponse = '';
     if (messages.length === 0) return '';
 
-    const history = messages.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
+    // Gemini requires the first history entry to have role='user'. The chat
+    // often starts with a greeting/system reply (role='assistant' → 'model'
+    // here), which Gemini rejects with:
+    //   "First content should be with role 'user', got model"
+    // Drop any leading model-role messages so history always starts user.
+    const mappedHistory = messages.slice(0, -1).map(m => ({
+      role: (m.role === 'assistant' ? 'model' : 'user') as 'user' | 'model',
       parts: [{ text: m.content }],
     }));
+    let firstUserIdx = 0;
+    while (firstUserIdx < mappedHistory.length && mappedHistory[firstUserIdx].role !== 'user') {
+      firstUserIdx++;
+    }
+    const history = mappedHistory.slice(firstUserIdx);
     const chat = model.startChat({ history });
     const lastMessage = messages[messages.length - 1].content;
 
@@ -2145,6 +2170,19 @@ export class GalaxyAssistant {
     let ambiguity = intent.workflowAmbiguity;
     if (!ambiguity || !actions.needsWorkflowGeneration) return null;
 
+    // Canonical-fixture gate (Plan C): when the user already named a built-in
+    // fixture or accession (airway, pasilla, pbmc3k, SRR\d+, etc.), the
+    // dataset is resolved — the workflow knows how to load it. Suppress the
+    // clarification ask deterministically so verbose phrasings like
+    // "Run DESeq2 on airway; treated vs untreated; export CSV + MA plot"
+    // don't re-trigger an "I need the counts matrix" reply. See
+    // docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md (Plan C).
+    const _canonicalFixture = matchesCanonicalFixture(message);
+    if (_canonicalFixture) {
+      console.log(`[_clarificationGate] suppressed by canonical fixture: ${_canonicalFixture}`);
+      return null;
+    }
+
     // Suppress ambiguity when the user's message already resolves it.
     // AMBIGUITY_RESOLVERS maps each fork type → regex that detects the disambiguating terms.
     // This is generalizable: adding a new fork point only requires adding one resolver entry.
@@ -2533,6 +2571,24 @@ Rules:
       const _isBoInIntentEarly = /\b(boin|phase\s*i\s*(dose\s*escalation|trial)|dose[\s-]escalation[\s-](trial|study)|dose[\s-]finding[\s-](trial|study)|bayesian[\s-]optimal[\s-]interval|clinical[\s-]dose[\s-]escalation|phase[\s-]i[\s-]oncology|dlt[\s-]based[\s-]escalation|mtd[\s-]estimation|3\+3[\s-]design)\b/i.test(message);
       if (_isBoInIntentEarly) {
         log('BOIN intent override: forcing needsWorkflowGeneration=true for prereq gate');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Canonical-fixture intent override (Plan C):
+    // When the user names a built-in fixture or accession (airway, pasilla,
+    // pbmc3k, SRR\d+, etc.) the input is resolved — they want a workflow,
+    // not a chat about it. The intent classifier sometimes returns chat_only
+    // because the verbose phrasing ("treated vs untreated; export CSV + MA
+    // plot") triggers heuristics that look like missing-data signals. Force
+    // workflow_generation so the chat doesn't go down the "I need files"
+    // path. See docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md.
+    if (!actions.needsWorkflowGeneration) {
+      const _fixture = matchesCanonicalFixture(message);
+      const _isExplanationQuery = /\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe)\b/i.test(message);
+      if (_fixture && !_isExplanationQuery) {
+        log(`Canonical-fixture override: ${_fixture} present — forcing needsWorkflowGeneration=true`);
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
@@ -3334,11 +3390,14 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const pipelineSteps = stepResults.map(({ intent, subResult, idx }) => {
       const wf = subResult?.generatedWorkflow;
       const prevStep = idx > 0 ? stepResults[idx - 1] : null;
+      const resolvedPath = wf?.nextflow_path || resolveCanonicalChainStepPath(
+        wf?.workflow_name || wf?.name || intent.subQuery || ''
+      );
       return {
         id: intent.id || `step_${idx + 1}`,
         step_number: idx + 1,
         workflow_name: wf?.workflow_name || wf?.name || intent.subQuery,
-        nextflow_path: wf?.nextflow_path || null,
+        nextflow_path: resolvedPath || null,
         params: wf?.parameters || wf?.params || intent.inlineParameters || {},
         status: 'pending',
         output_types: wf?.output_types || [],
@@ -5618,8 +5677,22 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // The extracted map is injected into the system prompt as structured facts so the LLM
     // never needs to ask for parameters already present in the message.
     const inlineDataMap = await extractInlineDataWithLLM(message, this.claude);
+    // Treat a canonical fixture name (airway, pasilla, pbmc3k, SRR\d+, etc.)
+    // as if it were inline data. The fixture is the data — `data(airway)`
+    // loads counts + metadata from the airway R package; SRA accessions
+    // resolve via sra-toolkit; nf-core test profiles ship their fixtures
+    // inside the pipeline. Without this, verbose phrasings like
+    // "Run DESeq2 on airway; treated vs untreated; export CSV + MA plot"
+    // still re-triggered the LLM's "Please upload counts matrix" reflex
+    // despite the prompt-level rule. See Plan C in
+    // docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md.
+    const _matchedFixture = matchesCanonicalFixture(message);
+    if (_matchedFixture) {
+      console.log(`[chat] canonical fixture matched in user message: ${_matchedFixture} — suppressing clarification ask`);
+    }
     const hasInlineData = Object.keys(inlineDataMap).length > 0 ||
-      /do not ask|no (further )?clarification|use (the )?provided|use default/i.test(message);
+      /do not ask|no (further )?clarification|use (the )?provided|use default/i.test(message) ||
+      _matchedFixture !== null;
 
     // ── Context stack: detect tangents and push/pop ──────────────────────────────
     // A tangent is a message that is: (a) informational/off-domain relative to the
@@ -5692,6 +5765,73 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       return `\n<pre_satisfied_parameters>\nThe following parameters are already present in the user's message and must NOT be requested again:\n${lines.join('\n')}${genomeSuffix}\n</pre_satisfied_parameters>\n`;
     })();
 
+    // ── Session datasets block ─────────────────────────────────────────────
+    // Galaxy history is the authoritative store for uploaded datasets;
+    // sessionDatasets is the structured projection we already load on every
+    // chat turn (req.session.uploadedDatasets ∪ chat_sessions.datasets
+    // rehydration). Previously the chat LLM only "saw" attached datasets via
+    // the verbose `[Galaxy dataset: <name> (id: <uuid>)]` blocks inlined into
+    // the user message — those fell out of the recency window after a few
+    // turns and the bot kept asking for files. See
+    // docs/20260610_REAL_USER_FULL_CHAT_LOGS.md (wjunlin@HKU) and
+    // docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q3).
+    //
+    // The canonical fix is to inject the dataset list as a short, structured
+    // bulletin in the system prompt — ~80 bytes per dataset, present every
+    // turn, independent of chat-history slicing.
+    const sessionDatasetsBlock = (() => {
+      const sd = (context as any)?.sessionDatasets as Array<{
+        id?: string; name?: string; type?: string; file_path?: string | null;
+        recovered?: boolean; sourceSessionId?: string;
+      }> | undefined;
+      if (!sd?.length) return '';
+
+      // Context-aware injection gate. The block is only useful when the
+      // chat round actually needs to reason about the user's data — see
+      // docs/20260613_DATASET_INJECTION_GATE_DESIGN.md. Default-on
+      // (false-skip cost > false-inject cost), but suppress on pure
+      // abstract-knowledge turns where no signal points at data.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { shouldInjectDatasets } = require('./dataset-injection-gate');
+      const _gate = shouldInjectDatasets({
+        message,
+        intentType: (intent as any)?.type,
+        datasets: sd as any,
+        history: (context as any)?.previousMessages,
+        runState: (context as any)?.runState,
+      });
+      if (!_gate.inject) {
+        // Audit log — counted in production traces for tuning.
+        console.log(`[sessionDatasetsBlock] gate=skip reason=${_gate.reason}`);
+        return '';
+      }
+      // Log injects too so the per-reason mix is visible.
+      console.log(`[sessionDatasetsBlock] gate=inject reason=${_gate.reason}`);
+
+      // Split into direct (attached this conversation) vs recovered
+      // (from a sister session in the same project — cold-refresh).
+      // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const valid = sd.filter(d => d && d.id);
+      const direct = valid.filter(d => !d.recovered).slice(0, 32);
+      const recovered = valid.filter(d => d.recovered).slice(0, 20);
+
+      const fmt = (d: any) => `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}`;
+      const directRows = direct.map(fmt).join('\n');
+      const recoveredRows = recovered.map(fmt).join('\n');
+
+      if (!directRows && !recoveredRows) return '';
+
+      let body = '\n<session_datasets>\n';
+      if (directRows) {
+        body += `Datasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${directRows}\n\n`;
+      }
+      if (recoveredRows) {
+        body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
+      }
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id with read_file (preview), run_code's input_datasets (analysis), or as a workflow parameter. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      return body;
+    })();
+
     const runnableWorkflow = !!(
       generatedWorkflow?.success &&
       !generatedWorkflow?.error &&
@@ -5739,7 +5879,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
       || !isWorkflowTurn;
     const systemPrompt = isResearchIntent
-      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with the information already on the table BEFORE asking the user a clarifying question.
@@ -5799,7 +5939,7 @@ RESPONSE STRUCTURE (use this for every substantive answer):
 
 Do NOT strip explanation for "give me a number" questions — keep the number first, then a one-line rationale. The previous "print only value" pattern was overfitted to benchmark scoring and is removed.
 For trivial arithmetic, answer directly without invoking run_code.`
-      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
+      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with what's on the table BEFORE asking the user a clarifying question. Use literature defaults (typical human dose/route, standard population, well-characterized PK values for known drugs) and STATE assumptions explicitly.
@@ -5858,9 +5998,11 @@ TURN-2 QUALIFIER RULE:
 
 ONE-QUESTION RULE:
 - Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
-- SECOND-TURN OVERRIDE: If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), GENERATE THE WORKFLOW IMMEDIATELY. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel. This applies in particular when the user's reply is a confirmation-style answer such as "yes", "yes run with defaults", "go ahead", "run it", "proceed", "ok", "sure", "use the demo data", "fine, use defaults". Treat all of these as instructions to generate the workflow now. NEVER ask for data twice in the same conversation — if you asked once and the user did not provide data on reply, generate with defaults/synthetic-data fallback.
+- If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), generate the workflow immediately. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel. This applies in particular when the user's reply is a confirmation-style answer such as "yes", "yes run with defaults", "go ahead", "run it", "proceed", "ok", "sure", "use the demo data", "fine, use defaults". Treat all of these as instructions to generate the workflow now. Never ask for data twice in the same conversation — if you asked once and the user did not provide data on reply, generate with defaults/synthetic-data fallback.
+- META-RULE on phrasing: never echo the name of an internal instruction in your reply. Forbidden surface phrases include (but are not limited to): "SECOND-TURN OVERRIDE", "OVERRIDE applies", "ONE-QUESTION RULE", "rule applies", "applying rule X", "META-RULE", "system prompt says", "according to my instructions". Internal scaffolding must stay internal. Just produce the answer the rule prescribes — do not narrate the rule.
 - When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>, s3_uri=<S3URI>". For run_code: use galaxy_dataset_id (or dataset_id) and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present — AWS Batch workers read directly from S3. If no s3_uri, the workflow cannot run on Batch; use run_code instead.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
+- Differential-expression method selection (data-type rule): When the input is **microarray** data — signals include (a) the word "microarray", (b) a log-transformed continuous expression matrix (non-integer values, often 4–14 range), (c) a GEO accession known to be microarray (e.g. GSE22055, GSE10072 — Affymetrix/Illumina BeadChip series) — **prefer limma** (linear-model + empirical Bayes) and NOT DESeq2/edgeR. DESeq2 and edgeR assume raw integer counts (RNA-seq) and produce invalid results on continuous microarray intensities. For RNA-seq raw counts use DESeq2 (most common) or edgeR. For RNA-seq with low-count genes or covariate-heavy designs, limma-voom is also valid. If the data type is ambiguous, ask once which platform produced the data, then route accordingly — do not default to DESeq2 silently.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}
 
@@ -6640,9 +6782,25 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (isResearchAnswer) {
       return assistantMessage;
     }
-    const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
-      userMessage || ''
-    );
+    const _msg = userMessage || '';
+    // Word-boundary'd drug-dev terms. The previous unanchored regex matched
+    // filenames like `clinical_gse22055.csv` (clinical=metadata) and bare
+    // substrings like "pk" inside other tokens, leaking pharma-specific
+    // boilerplate ("docking, ADMET, or PK/NCA") into RNA-seq / genomics chats.
+    // See docs/20260610_REAL_USER_FULL_CHAT_LOGS.md — wjunlin@hku session.
+    const _drugDevTerms = /\b(drug|admet|herg|dili|toxicity|docking|ligand|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|ic50|ec50)\b/i;
+    const _pkWord = /(?:^|[^a-z])pk(?:[^a-z]|$)/i;
+    // "clinical" alone is too broad (matches "clinical metadata", "clinical sample").
+    // Only treat as drug-dev when it co-occurs with trial/dose/phase language.
+    const _clinicalCtx = /\bclinical\s+(?:trial|study|phase|protocol|dose|dosing|escalation|pharmacology)\b/i;
+    const isDrugDevelopmentQuery = _drugDevTerms.test(_msg) || _pkWord.test(_msg) || _clinicalCtx.test(_msg);
+
+    // Hard escape hatch: never apply pharma boilerplate when the user is
+    // clearly in a genomics / transcriptomics / cheminformatics-free context.
+    const _genomicsContext = /\b(rna[- ]?seq|scrna|single[- ]?cell|deg|deseq2|edger|limma|geo|gse\d+|srr\d+|ensembl|fastq|bam|vcf|variant|gwas|cryo[- ]?em|microarray|differential\s+expression|count\s+matrix|volcano|gtf|gff|genome\s+assembly|chip[- ]?seq|atac[- ]?seq|methyl[- ]?seq)\b/i;
+    if (_genomicsContext.test(_msg)) {
+      return assistantMessage;
+    }
     if (!isDrugDevelopmentQuery) {
       return assistantMessage;
     }

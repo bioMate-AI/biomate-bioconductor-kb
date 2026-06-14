@@ -17,7 +17,7 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("plotGrouper", "EBImage")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,11 +53,11 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(plotGrouper)
     library(EBImage)
     
-    # Stage 2: Read and process the microscopy image
+    # --- Read and process the microscopy image ---
     message("Reading microscopy image...")
     img <- EBImage::readImage("image.tif")
     
@@ -59,7 +68,7 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
       img_gray <- img
     }
     
-    # Stage 3: Segment cells and extract features
+    # --- Segment cells and extract features ---
     message("Segmenting cells and extracting features...")
     thr <- EBImage::otsu(img_gray)
     segmented <- EBImage::bwlabel(img_gray > thr)
@@ -99,7 +108,7 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
     write.csv(df, "cell_features.csv", row.names = FALSE)
     message("Saved cell features to cell_features.csv")
     
-    # Stage 4: Import and organize data using plotGrouper
+    # --- Import and organize data using plotGrouper ---
     message("Organizing data with plotGrouper...")
     imported_data <- plotGrouper::readData("cell_features.csv")
     
@@ -120,7 +129,7 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
     if (is.na(var_col)) var_col <- "Variable"
     if (is.na(val_col)) val_col <- "Value"
     
-    # Stage 5: Generate and save plots using plotGrouper::gplot
+    # --- Generate and save plots using plotGrouper::gplot ---
     message("Generating plots...")
     pdf("cell_plots.pdf", width = 8, height = 6)
     
@@ -172,7 +181,7 @@ process BIOC_PLOTGROUPER_PLOT_GROUPER_MICROSCOPY_ANALYSIS {
     dev.off()
     message("Saved plots to cell_plots.pdf")
     
-    # Stage 6: Calculate and save summary statistics
+    # --- Calculate and save summary statistics ---
     message("Calculating summary statistics...")
     if (all(c(var_col, comp_col, val_col) %in% colnames(organized_df))) {
       stats_df <- aggregate(

@@ -72,18 +72,18 @@ process BIOC_CIRCSEQALIGNTK_CIRCULAR_GENOME_ALIGNMENT_AND_COVERAGE {
     dir.create(file.path(ws, 'index'), recursive = TRUE, showWarnings = FALSE)
     dir.create(file.path(ws, 'align_results'), recursive = TRUE, showWarnings = FALSE)
     
-    # 1. Build circular-aware index files (Type 1 and Type 2 references)
+    # --- Build circular-aware index files (Type 1 and Type 2 ---
     message("Building circular-aware index...")
     ref_index <- build_index(input = genome_seq, 
                              output = file.path(ws, 'index'))
     
-    # 2. Align trimmed reads to the generated index
+    # --- Align trimmed reads to the generated index ---
     message("Aligning reads...")
     aln <- align_reads(input = trimmed_fq, 
                        index = ref_index,
                        output = file.path(ws, 'align_results'))
     
-    # 3. Calculate strand-specific coverage from the alignment results
+    # --- Calculate strand-specific coverage from the alignment ---
     message("Calculating coverage...")
     alncov <- calc_coverage(aln)
     
@@ -94,7 +94,7 @@ process BIOC_CIRCSEQALIGNTK_CIRCULAR_GENOME_ALIGNMENT_AND_COVERAGE {
     message("Reverse strand coverage preview:")
     print(head(slot(alncov, 'reverse')))
     
-    # 4. Write meaningful results to output files
+    # --- Write meaningful results to output files ---
     message("Saving results...")
     
     # Save coverage tables as CSV

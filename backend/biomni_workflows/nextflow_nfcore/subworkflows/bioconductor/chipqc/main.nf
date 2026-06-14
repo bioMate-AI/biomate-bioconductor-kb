@@ -55,17 +55,17 @@ process BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC {
     # Load required libraries
     library(ChIPQC)
     
-    # 1. Load the sample sheet from the working directory
+    # --- Load the sample sheet from the working directory ---
     samples <- read.csv("tamoxifenQC.csv", stringsAsFactors = FALSE)
     
-    # 2. Load the blacklist GRanges object from the working directory
+    # --- Load the blacklist GRanges object from the working ---
     blacklist_file <- "blacklist_hg19"
     if (!file.exists(blacklist_file) && file.exists("blacklist_hg19.rds")) {
       blacklist_file <- "blacklist_hg19.rds"
     }
     blacklist.hg19 <- readRDS(blacklist_file)
     
-    # 3. Run ChIPQC to construct a ChIPQCexperiment object
+    # --- Run ChIPQC to construct a ChIPQCexperiment object ---
     tamoxifen <- ChIPQC(samples, consensus=TRUE, bCount=TRUE, summits=250,
                         annotation="hg19", chromosomes="chr18",
                         blacklist = blacklist.hg19)
@@ -77,7 +77,7 @@ process BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC {
     qc_metrics <- QCmetrics(tamoxifen)
     write.csv(qc_metrics, "tamoxifen_QCmetrics.csv", row.names = TRUE)
     
-    # 4. Generate and save diagnostic plots to PDF files
+    # --- Generate and save diagnostic plots to PDF files ---
     
     pdf("plot_coverage_hist.pdf")
     plotCoverageHist(tamoxifen, facetBy=c("Tissue","Condition"))

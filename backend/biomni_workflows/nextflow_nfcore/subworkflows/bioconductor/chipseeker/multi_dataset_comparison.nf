@@ -100,19 +100,19 @@ process BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON {
     # 3. Run Documented Workflow & Save Outputs
     # ==========================================
     
-    # Stage 1: Plot comparative average profiles
+    # --- Plot comparative average profiles ---
     message("Plotting comparative average profiles...")
     pdf("plotAvgProf_comparison.pdf", width=8, height=6)
     plotAvgProf(tagMatrixList, xlim=c(-3000, 3000))
     dev.off()
     
-    # Stage 2: Plot comparative heatmaps
+    # --- Plot comparative heatmaps ---
     message("Plotting comparative heatmaps...")
     pdf("tagHeatmap_comparison.pdf", width=12, height=8)
     tagHeatmap(tagMatrixList)
     dev.off()
     
-    # Stage 3: Annotate multiple peak files
+    # --- Annotate multiple peak files ---
     message("Annotating peak files...")
     peakAnnoList <- lapply(files, annotatePeak, TxDb=txdb, tssRegion=c(-3000, 3000), verbose=FALSE)
     saveRDS(peakAnnoList, "peakAnnoList.rds")
@@ -122,19 +122,19 @@ process BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON {
       write.csv(as.data.frame(peakAnnoList[[name]]), file = paste0("peakAnno_", name, ".csv"), row.names = FALSE)
     }
     
-    # Stage 4: Compare genomic annotations
+    # --- Compare genomic annotations ---
     message("Comparing genomic annotations...")
     pdf("plotAnnoBar_comparison.pdf", width=10, height=6)
     print(plotAnnoBar(peakAnnoList))
     dev.off()
     
-    # Stage 5: Compare TSS distance distributions
+    # --- Compare TSS distance distributions ---
     message("Comparing TSS distance distributions...")
     pdf("plotDistToTSS_comparison.pdf", width=10, height=6)
     print(plotDistToTSS(peakAnnoList))
     dev.off()
     
-    # Stage 6: Compare functional profiles
+    # --- Compare functional profiles ---
     message("Comparing functional profiles...")
     genes = lapply(peakAnnoList, function(i) as.data.frame(i)\$geneId)
     names(genes) = sub("_", "\n", names(genes))
@@ -152,7 +152,7 @@ process BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON {
       warning("compareCluster or dotplot failed. This is common if there is no internet connection or if gene IDs do not match KEGG organism database. Error: ", e\$message)
     })
     
-    # Stage 7: Visualize overlap of annotated genes
+    # --- Visualize overlap of annotated genes ---
     message("Visualizing overlap of annotated genes...")
     pdf("vennplot_genes.pdf", width=8, height=8)
     vennplot(genes)

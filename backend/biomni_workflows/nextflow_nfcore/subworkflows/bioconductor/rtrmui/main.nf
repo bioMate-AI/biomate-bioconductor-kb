@@ -55,7 +55,7 @@ process BIOC_RTRMUI_RTRMUI_SHINY_INTERFACE {
     # Load required libraries
     library(rTRMui)
     
-    # Stage 1: Read and process input defensively
+    # --- Read and process input defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop("Required input file 'input.csv' is missing.")
@@ -86,7 +86,7 @@ process BIOC_RTRMUI_RTRMUI_SHINY_INTERFACE {
       ids <- c("Sox2", "Pou5f1", "Nanog", "Klf4", "Esrrb", "Sall4")
     }
     
-    # Stage 2: Prepare files for rTRMui upload
+    # --- Prepare files for rTRMui upload ---
     # rTRMui expects a list of enriched motifs and a list of expressed genes
     writeLines(ids, "prepared_motifs.txt")
     writeLines(ids, "prepared_expressed_genes.txt")
@@ -95,7 +95,7 @@ process BIOC_RTRMUI_RTRMUI_SHINY_INTERFACE {
     message("- prepared_motifs.txt (", length(ids), " identifiers)")
     message("- prepared_expressed_genes.txt (", length(ids), " identifiers)")
     
-    # Stage 3: Launch the rTRMui Shiny application
+    # --- Launch the rTRMui Shiny application ---
     # Since runTRM() starts a blocking Shiny web server, we set a CPU/elapsed time limit
     # to allow the app to initialize and then terminate gracefully in non-interactive environments.
     message("Launching rTRMui web interface...")
@@ -118,7 +118,7 @@ process BIOC_RTRMUI_RTRMUI_SHINY_INTERFACE {
     # Reset time limits
     setTimeLimit(elapsed = Inf, transient = TRUE)
     
-    # Stage 4: Write execution log
+    # --- Write execution log ---
     log_content <- c(
       "rTRMui Pipeline Execution Log",
       "=============================",

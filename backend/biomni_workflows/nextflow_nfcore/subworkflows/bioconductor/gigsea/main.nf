@@ -36,6 +36,15 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GIGSEA", "Matrix")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     library(Matrix)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Loading input counts and metadata...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -71,7 +80,7 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     log2_cpm <- log2(cpm + 1)
     
     # ==========================================
-    # Stage 2: Compute Differential Expression Statistics
+    # --- Compute Differential Expression Statistics ---
     # ==========================================
     message("Computing differential expression statistics...")
     conds <- unique(coldata\$condition)
@@ -101,7 +110,7 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     names(weights) <- rownames(counts)
     
     # ==========================================
-    # Stage 3: Build Custom Gene Sets
+    # --- Build Custom Gene Sets ---
     # ==========================================
     message("Building custom gene sets from expression data...")
     num_genes <- length(t_stat)
@@ -129,7 +138,7 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     net <- geneSet2sparseMatrix(term = terms, geneset = geneset_vec, value = value_vec)
     
     # ==========================================
-    # Stage 4: Intersect and Align Data
+    # --- Intersect and Align Data ---
     # ==========================================
     message("Aligning gene expression statistics with gene sets...")
     data_df <- data.frame(gene = names(t_stat), fc = t_stat, weights = weights, stringsAsFactors = FALSE)
@@ -137,7 +146,7 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     net2 <- orderedIntersect(x = net, by.x = rownames(net), by.y = data_df\$gene)
     
     # ==========================================
-    # Stage 5: Run GIGSEA Enrichment Analyses
+    # --- Run GIGSEA Enrichment Analyses ---
     # ==========================================
     message("Running Single Gene Set Enrichment Analysis (SGSEA)...")
     sgsea_res <- tryCatch({
@@ -156,7 +165,7 @@ process BIOC_GIGSEA_GIGSEA_DIFFERENTIAL_EXPRESSION_ENRICHMENT {
     })
     
     # ==========================================
-    # Stage 6: Save Results and Generate Plots
+    # --- Save Results and Generate Plots ---
     # ==========================================
     message("Writing output files...")
     if (!is.null(sgsea_res)) {

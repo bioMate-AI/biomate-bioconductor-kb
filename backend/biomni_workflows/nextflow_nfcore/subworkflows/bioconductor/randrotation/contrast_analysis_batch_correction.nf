@@ -13,7 +13,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create the model matrix and define the contrast matrix using limma::makeContrasts. 2. Transform the model matrix to include the co
+//  * 1. [Input & Preparation] Create the model matrix and define the contrast matrix
+//  * 2. [Input & Preparation] Transform the model matrix to include the contrast as the
+//  * 3. [Input & Preparation] Initialize the batch random rotation object using
+//  * 4. [Input & Preparation] Define a custom statistic function that performs batch
+//  * 5. [Input & Preparation] Run the rotation using rotateStat and calculate p-values
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +43,15 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("randRotation", "limma", "sva")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -99,7 +112,7 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
     }
     group <- as.factor(pdata[[group_col]])
     
-    # 1. Create the model matrix and define the contrast matrix using limma::makeContrasts
+    # --- Create the model matrix and define the contrast matrix ---
     mod.groups <- model.matrix(~ group)
     # Ensure column names are valid R variable names to prevent makeContrasts from failing on spaces/special characters
     colnames(mod.groups) <- make.names(colnames(mod.groups))
@@ -113,13 +126,13 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
     target_coef <- coef_names[2]
     contrasts1 <- limma::makeContrasts(contrasts = target_coef, levels = mod.groups)
     
-    # 2. Transform the model matrix to include the contrast as the last coefficient using contrastModel
+    # --- Transform the model matrix to include the contrast as the ---
     mod.cont <- contrastModel(X = mod.groups, C = contrasts1)
     
-    # 3. Initialize the batch random rotation object using initBatchRandrot
+    # --- Initialize the batch random rotation object using ---
     init1 <- initBatchRandrot(edata, mod.cont, batch = pdata\$batch)
     
-    # 4. Define a custom statistic function that performs batch correction, fits the contrast, and extracts absolute t-statistics
+    # --- Define a custom statistic function that performs batch ---
     statistic <- function(Y, batch, mod, cont){
       Y.tmp <- sva::ComBat(dat = Y, batch = batch, mod = mod)
       fit1 <- limma::lmFit(Y.tmp, mod)
@@ -128,7 +141,7 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
       abs(fit1\$t[,1])
     }
     
-    # 5. Run the rotation using rotateStat and calculate p-values using pFdr
+    # --- Run the rotation using rotateStat and calculate p-values ---
     res1 <- rotateStat(initialised.obj = init1, R = 20, statistic = statistic,
                        batch = pdata\$batch, mod = mod.groups, cont = contrasts1)
     p.rot <- pFdr(res1)

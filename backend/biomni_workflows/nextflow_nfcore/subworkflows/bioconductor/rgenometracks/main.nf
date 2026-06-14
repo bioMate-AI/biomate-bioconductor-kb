@@ -55,7 +55,7 @@ process BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS {
     # Load the rGenomeTracks library
     library(rGenomeTracks)
     
-    # 1. Install pyGenomeTracks dependency
+    # --- Install pyGenomeTracks dependency ---
     tryCatch({
       install_pyGenomeTracks()
     }, error = function(e) {
@@ -68,7 +68,7 @@ process BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS {
     bw_dir <- "bigwig2_X_2.5e6_3.5e6.bw"
     h5_dir <- "h5_dir"
     
-    # 2. Create individual track objects
+    # --- Create individual track objects ---
     # Create HiC track from HiC matrix
     h5 <- track_hic_matrix(
       file = h5_dir, depth = 250000, min_value = 5, max_value = 200,
@@ -104,14 +104,14 @@ process BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS {
       show_data_range = FALSE
     )
     
-    # 3. Combine track objects using the + operator
+    # --- Combine track objects using the + operator ---
     tracks <- tads + arcs + bw
     
     # Save the combined track objects as RDS files
     saveRDS(tracks, "tracks_tads_arcs_bw.rds")
     saveRDS(h5 + tads + bw, "tracks_h5_tads_bw.rds")
     
-    # 4. Plot the combined tracks for a specific genomic region using plot_gtracks()
+    # --- Plot the combined tracks for a specific genomic region ---
     pdf("genomic_tracks_output.pdf", width = 10, height = 12)
     
     layout(matrix(c(1,1,2,3,4,4), nrow = 3, ncol = 2, byrow = TRUE))

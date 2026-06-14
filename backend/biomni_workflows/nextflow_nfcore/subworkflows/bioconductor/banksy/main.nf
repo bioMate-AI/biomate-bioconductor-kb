@@ -64,6 +64,7 @@ process BIOC_BANKSY_SINGLE_SAMPLE_SPATIAL_CLUSTERING {
         
         # Load required libraries
         library(Banksy)
+        library(SummarizedExperiment)
         library(data.table)
         library(SpatialExperiment)
         library(scater)
