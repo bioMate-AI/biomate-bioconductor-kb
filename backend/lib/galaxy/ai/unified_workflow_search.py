@@ -1299,6 +1299,25 @@ class UnifiedWorkflowSearch:
         Returns True when the index is ready, False on any failure.
         Uses module-level singletons so the index is built at most once per
         process regardless of how many UnifiedWorkflowSearch instances exist.
+
+        Staleness contract (added 2026-06-13 — see
+        docs/20260613_DENSE_EMBEDDINGS_PATHS.md §6):
+
+          - On load, we re-derive a content signature from the live DB
+            and compare it against the signature stamped into the .npz
+            at build time. Mismatch → rebuild.
+          - The signature is a SHA-256 over the same (id, name,
+            description, annotation) tuples the build uses to encode
+            text, so it catches BOTH row-count drift AND in-place
+            edits.
+          - Computing the signature is a single SQL SELECT + a hash
+            pass over ~4k strings (~5-10 ms). Cheap relative to the
+            ~67 s rebuild it prevents.
+          - When the .npz pre-dates this contract (no signature
+            metadata), we trust the existing file and just check
+            row-count parity as the minimum bar — first opportunity
+            to upgrade lands the signature in the saved .npz so the
+            next process gets the full check for free.
         """
         global _WF_EMBED_MODEL, _WF_EMBED_IDS, _WF_EMBED_MATRIX, _WF_EMBED_READY, _WF_EMBED_FAILED, _WORKFLOW_EMBED_NPZ
 
@@ -1322,6 +1341,10 @@ class UnifiedWorkflowSearch:
 
             if _WORKFLOW_EMBED_NPZ.exists():
                 self._load_workflow_embeddings()
+                # Staleness check: did the DB drift since the .npz was built?
+                if self._workflow_embeddings_stale():
+                    log.info("[WorkflowEmbed] .npz is stale vs DB — rebuilding")
+                    self._build_workflow_embeddings()
             else:
                 self._build_workflow_embeddings()
 
@@ -1341,6 +1364,77 @@ class UnifiedWorkflowSearch:
             log.warning("[WorkflowEmbed] Init failed (dense retrieval disabled): %s", exc)
             return False
 
+    # ------------------------------------------------------------------
+    # Staleness detection
+    # ------------------------------------------------------------------
+
+    def _compute_workflow_db_signature(self) -> tuple:
+        """Compute (row_count, sha256_hex) over the DB's workflow rows.
+
+        Hashes the same (id, name, description, annotation) tuples
+        _build_workflow_embeddings reads, so any change that would
+        affect the encoded text shows up as a different signature.
+        """
+        import hashlib as _hashlib
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, COALESCE(name,''), COALESCE(description,''), "
+            "COALESCE(domain,''), COALESCE(tags,''), COALESCE(annotation,'') "
+            "FROM workflows ORDER BY id"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        h = _hashlib.sha256()
+        for r in rows:
+            # Use a delimiter that can't appear in normal text fields
+            h.update("\x1e".join(str(x) for x in r).encode("utf-8", errors="replace"))
+            h.update(b"\x1f")
+        return len(rows), h.hexdigest()
+
+    def _workflow_embeddings_stale(self) -> bool:
+        """True iff the loaded .npz no longer matches the live DB.
+
+        Compares:
+          1) row count — fast, catches new/removed workflows
+          2) signature — catches in-place edits to name/description/etc.
+             when present in the .npz metadata (built post-2026-06-13).
+
+        Conservative on missing metadata: pre-signature .npz files pass
+        the check on row-count alone; the next rebuild lands the
+        signature so subsequent loads get the full check.
+        """
+        try:
+            db_count, db_sig = self._compute_workflow_db_signature()
+        except Exception as exc:
+            log.warning("[WorkflowEmbed] DB signature failed (treating as fresh): %s", exc)
+            return False
+
+        if db_count != len(_WF_EMBED_IDS):
+            log.info(
+                "[WorkflowEmbed] Row-count drift: DB=%d .npz=%d",
+                db_count, len(_WF_EMBED_IDS),
+            )
+            return True
+
+        # Optional signature check — only present on .npz files built
+        # post-2026-06-13. Absence is NOT stale (back-compat).
+        try:
+            data = _np.load(str(_WORKFLOW_EMBED_NPZ), allow_pickle=True)
+            stored = data.get("workflow_signature")
+            if stored is not None:
+                stored_sig = stored.item() if hasattr(stored, "item") else str(stored)
+                if stored_sig != db_sig:
+                    log.info(
+                        "[WorkflowEmbed] Content signature mismatch (stored=%s.. live=%s..)",
+                        str(stored_sig)[:12], db_sig[:12],
+                    )
+                    return True
+        except Exception as exc:
+            log.warning("[WorkflowEmbed] Signature read failed: %s", exc)
+
+        return False
+
     def _load_workflow_embeddings(self) -> None:
         global _WF_EMBED_IDS, _WF_EMBED_MATRIX
         log.info("[WorkflowEmbed] Loading from %s", _WORKFLOW_EMBED_NPZ)
@@ -1350,7 +1444,12 @@ class UnifiedWorkflowSearch:
         log.info("[WorkflowEmbed] Loaded %d workflow embeddings", len(_WF_EMBED_IDS))
 
     def _build_workflow_embeddings(self) -> None:
-        """Encode all workflows and persist to disk as .npz."""
+        """Encode all workflows and persist to disk as .npz.
+
+        Stamps a content signature into the .npz so subsequent loads
+        can detect staleness without re-encoding (see §6 of
+        docs/20260613_DENSE_EMBEDDINGS_PATHS.md).
+        """
         global _WF_EMBED_IDS, _WF_EMBED_MATRIX
 
         log.info("[WorkflowEmbed] Building embedding index for all workflows …")
@@ -1395,13 +1494,26 @@ class UnifiedWorkflowSearch:
         _WF_EMBED_IDS = ids
         _WF_EMBED_MATRIX = matrix
 
+        # Compute the same signature _workflow_embeddings_stale will
+        # check against on load. Stored as a 0-dim object array so np
+        # round-trips it cleanly.
+        try:
+            _, sig = self._compute_workflow_db_signature()
+        except Exception as exc:
+            log.warning("[WorkflowEmbed] Signature compute on save failed: %s", exc)
+            sig = ""
+
         # Persist
         _np.savez_compressed(
             str(_WORKFLOW_EMBED_NPZ),
             workflow_ids=_np.array(ids, dtype=_np.int64),
             embeddings=matrix,
+            workflow_signature=_np.array(sig, dtype=object),
         )
-        log.info("[WorkflowEmbed] Saved %d embeddings to %s", len(ids), _WORKFLOW_EMBED_NPZ)
+        log.info(
+            "[WorkflowEmbed] Saved %d embeddings to %s (sig=%s..)",
+            len(ids), _WORKFLOW_EMBED_NPZ, sig[:12] if sig else "none",
+        )
 
     def _dense_workflow_prefilter(
         self,
