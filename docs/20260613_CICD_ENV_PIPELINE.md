@@ -1,122 +1,73 @@
-# CI/CD 环境变量流水线 (工业化外置配置)
+# 环境变量配置与部署流水线(最终架构)
 
-> 日期: 2026-06-13 · 配套: [ENV_REGISTRY.md](ENV_REGISTRY.md) · [20260613_ENV_FILES_CONFLICT_AUDIT.md](20260613_ENV_FILES_CONFLICT_AUDIT.md)
-> 目标: AWS CI/CD 自动部署时能正确读取环境变量,变量名在仓库、值在 GitHub 外部配置。
+> 创建 2026-06-13 · 修订 2026-06-14(改为反映真实部署拓扑)
+> 配套: [ENV_REGISTRY.md](ENV_REGISTRY.md) · [20260613_ENV_FILES_CONFLICT_AUDIT.md](20260613_ENV_FILES_CONFLICT_AUDIT.md)
 
----
+## 0. 核心结论
 
-## 1. 架构(值从哪来,到哪去)
+- **真实部署走 `scripts/sync_to_dev.sh`**(本地脚本,EC2 Instance Connect + scp/ssh,按实例 ID 直连 dev 机 `i-06696b0d91f4346e0` / `Env=dev`)。
+- **runtime env 在 EC2 主机 `/opt/biomate/.env`**(`ubuntu:ubuntu`),容器用 `--env-file` 读;仓库内零密钥值。
+- **变量名单一事实源 = `deploy/biomate.env.manifest`**。
+- **env 注入由 sync_to_dev.sh 负责**(scp 直传,不需要 S3)。GHA deploy.yml **只负责部署**,不注入 env。
+
+## 1. 两条路径
 
 ```
-GitHub 网页 Settings → Secrets and variables → Actions
-  ├─ Secrets   (敏感: API key / JWT / AWS / billing)
-  └─ Variables (非敏感: URL / region / bucket / flag)
-        │  deploy.yml: toJSON(secrets) + toJSON(vars) 全量透传(无需手维护列表)
-        ▼
-  scripts/render_env_manifest.sh
-        │  按 deploy/biomate.env.manifest(仓库内,只有变量名)渲染
-        │  · 有值才写 · 必需缺失则 fail-fast · OIDC 部署凭证已 unset 防泄漏
-        ▼
-  /tmp/managed.env (runner 上,临时)
-        │  scripts/deploy.sh 用 OIDC 部署角色凭证经 S3+SSM 传输
-        ▼
-  EC2 /opt/biomate/.env  ← 逐 key upsert(托管值覆盖;主机独有 key 保留)
-        │  docker-compose.deploy.yml: env_file 注入
-        ▼
-  galaxy-backend-deploy + frontend-deploy 容器
+┌─ 真实路径:sync_to_dev.sh(本地 → dev 机,scp/ssh)──────────────────┐
+│  代码/镜像同步 + (可选) env 推送:                                    │
+│    BIOMATE_PUSH_ENV=1 [BIOMATE_ENV_SOURCE=file] BIOMATE_RESYNC_GALAXY_ENV=1 \│
+│      bash scripts/sync_to_dev.sh                                      │
+│    → 本地按 manifest 渲染(render_env_manifest.sh,必需缺失即 fail)    │
+│    → scp 到 EC2 → 逐 key upsert 进 /opt/biomate/.env(保留主机独有key) │
+│    → resync_galaxy_env 应用到容器                                     │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌─ 备用路径:GHA deploy.yml(workflow_dispatch / 镜像构建联动)─────────┐
+│  仅部署:OIDC 角色 GitHubActionsDeploy → SSM 到 Env=test 实例         │
+│  (i-0482a6fa98c6f301a / biomate-deploy-test)→ 拉镜像/重启/健康检查   │
+│  env 不注入:沿用主机 /opt/biomate/.env(由上面的路径或人工维护)      │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-**单一事实源 = `deploy/biomate.env.manifest`**。增删一个生产变量 = 改 manifest 一行 + 在 GitHub 网页设值。workflow 不用动。
+## 2. 为什么 GHA 不注入 env(2026-06-14 排查结论)
 
----
+GHA 路径的 env 注入(经 SSM→S3 中转)在当前基础设施下**走不通**:
+1. 中转桶 `biomate-deploy-temp` **不存在**(NoSuchBucket)。
+2. OIDC 部署角色 `GitHubActionsDeploy` **无 S3 权限**。
+3. 关键:**EC2 实例角色读不了任何 S3 桶**(app 在 EC2 上用 galaxy-dev 凭证访问 S3,不是实例角色)→ 即便换现有桶,EC2 端 `aws s3 cp` 下载也会 DENIED。
 
-## 2. 关键设计点(为什么这么做)
+唯二可行方案是「改实例角色 IAM(需 admin)」或「base64 走 SSM(密钥进 CloudTrail,已否决)」。由于 sync_to_dev.sh 已用 scp 安全地完成 env 注入,**GHA 不重复做** —— 只部署、env 主机托管。
 
-| 设计 | 原因 |
+## 3. 本次对 GHA deploy.sh / deploy.yml 的修复
+
+| 问题 | 修复 |
 |---|---|
-| `toJSON(secrets/vars)` 全量透传 | 避免 deploy.yml 里手维护 17 行 `X: ${{ secrets.X }}` 与现实漂移 |
-| manifest 决定哪些落地 | 只有 manifest 列出的变量写入 .env;CI-only(E2E token)不污染生产 |
-| 渲染前 unset OIDC 凭证 | 否则没配应用 AWS key 时,会把部署角色的临时凭证误写进应用 .env |
-| 渲染 / 传输 拆两个凭证上下文 | `AWS_ACCESS_KEY_ID` 一名两义(应用值 vs 部署角色),同进程会互相覆盖 |
-| 逐 key upsert(非 `sort -u`) | 修复旧 bug:同 key 新旧值并存 + 文件被打乱 |
-| 主机独有 key 保留 | `EMAIL_PASS`/`GALAXY_MASTER_API_KEY`/`LAGO_WEBHOOK_SECRET` 只在 EC2,不进 CI |
-| opt-in 闸门 + fail-fast | 没配任何 Secret → 退回旧行为不破坏;配了却漏必需项 → 部署失败 |
+| deploy.sh 按 `biomate:env` 找实例,实例实际用 `Env` 标签 → 永远找不到 | 改为 `Env`(已用真实 AWS 验证:`tag:Env=test` 命中 biomate-deploy-test) |
+| deploy.sh Step 2 经不存在的 S3 桶注入 env → 必失败 | 改为「确认主机 .env 存在」,不再注入(env 主机托管) |
+| deploy.yml 用 toJSON 渲染+S3 注入(基础设施不支持) | 退回简单部署,用 OIDC 角色(有 SSM/EC2/ECR,够部署) |
 
----
+## 4. 改动的文件(分支 feat/cicd-env)
 
-## 3. 首次配置:把值灌进 GitHub
+| 文件 | 作用 | 谁用 |
+|---|---|---|
+| `deploy/biomate.env.manifest` | 变量名单一事实源(61 变量,14 required) | sync_to_dev 渲染 |
+| `scripts/render_env_manifest.sh` | 渲染 + 必需校验 + 向后兼容 | sync_to_dev |
+| `scripts/sync_to_dev.sh` | `BIOMATE_PUSH_ENV=1` 推送钩子 + `push_managed_env()` | **真实部署** |
+| `scripts/deploy.sh` | 修标签 + Step 2 主机托管 | GHA(备用) |
+| `.github/workflows/deploy.yml` | 简单部署(OIDC 角色) | GHA(备用) |
+| `scripts/setup_github_env.sh` | 一键推 GitHub Secrets/Variables(未来若启用 GHA 注入用) | 可选/未来 |
+| `.env.ec2.example` | 由 manifest 派生 | 参考 |
 
-值来自 `env-files/`(私有,已 gitignore)。用 `gh` 批量设置:
+## 5. 日常:改一个 env 值
 
-```bash
-# Secrets(敏感)——逐个 set,值从 env-files/ 取(示例)
-gh secret set ANTHROPIC_API_KEY     --body "$(grep '^ANTHROPIC_API_KEY='   env-files/frontend/.env | cut -d= -f2-)"
-gh secret set JWT_SECRET            --body "<生成的强密钥 openssl rand -base64 32>"
-gh secret set SESSION_SECRET        --body "..."
-gh secret set BILLING_INTERNAL_KEY  --body "..."
-gh secret set DATABASE_URL          --body "<生产 RDS 连接串>"
-gh secret set GALAXY_API_KEY        --body "..."
-gh secret set AWS_ACCESS_KEY_ID     --body "<应用 IAM 用户 key>"
-gh secret set AWS_SECRET_ACCESS_KEY --body "..."
-gh secret set LAGO_API_KEY          --body "<生产 Lago key>"
-gh secret set REDIS_URL             --body "<生产 ElastiCache URL>"
-# ... 其余 secret 同理(ENCRYPTION_KEY/CSRF_SECRET/GALAXY_JWT_SECRET/OPENAI/GEMINI)
+1. 改值的来源(`BIOMATE_ENV_SOURCE`,默认 `env-files/opt-biomate.env`)。
+2. `BIOMATE_PUSH_ENV=1 BIOMATE_RESYNC_GALAXY_ENV=1 bash scripts/sync_to_dev.sh`。
+3. 新增变量:先在 `deploy/biomate.env.manifest` 加一行。
 
-# Variables(非敏感)
-gh variable set GALAXY_URL              --body "https://..."
-gh variable set AWS_REGION              --body "us-west-2"
-gh variable set S3_BUCKET_NAME          --body "galaxy-cloud-data-1760241377"
-gh variable set LAGO_API_URL            --body "http://35.86.137.71:3000"
-gh variable set JAVA_BILLING_SERVICE_URL --body "http://35.86.137.71:8080"
-gh variable set JAVA_BILLING_ENABLED    --body "true"
-gh variable set NODE_ENV                --body "production"
-# ... CORS_ORIGINS / FORCE_HTTPS / ENABLE_HSTS / NEXTFLOW_* / POSTGRES_* 按需
-```
+## 6. 验证状态(本地 + 真实机器,未做破坏性操作)
 
-> 完整变量清单见 `deploy/biomate.env.manifest`(`required` 标记的必须配,否则部署 fail-fast)。
-> secret vs variable 的归类见 [ENV_REGISTRY.md](ENV_REGISTRY.md) §1/§2。
-
----
-
-## 4. 日常:新增一个变量
-
-1. 在 `deploy/biomate.env.manifest` 加一行(`NAME` 或 `NAME required`)。
-2. `gh secret set NAME` 或 `gh variable set NAME` 设值。
-3. 下次部署自动写入 `/opt/biomate/.env` 并注入容器。无需改 workflow。
-
-> `.env.ec2.example` 由 manifest 派生(供人工填主机 .env 参考)。改 manifest 后重新生成:
-> `awk '/^# ──/{print "";print;next} /^[[:space:]]*#/{next} /^[[:space:]]*$/{next} {printf "%s=\n",$1}' deploy/biomate.env.manifest`
-
----
-
-## 5. 改动的文件
-
-| 文件 | 改动 |
-|---|---|
-| `deploy/biomate.env.manifest` | 🆕 单一事实源:生产变量名清单 |
-| `scripts/render_env_manifest.sh` | 🆕 渲染 + 必需校验 + 向后兼容 |
-| `scripts/deploy.sh` | Step 2 改为消费预渲染文件 + 逐 key upsert(修 `sort -u` bug) |
-| `.github/workflows/deploy.yml` | deploy 步骤改 `toJSON` 透传 + OIDC 凭证 save/unset/restore |
-| `.env.ec2.example` | 由 manifest 派生,对齐 |
-| `.gitignore` | 加 `env-files/`(防真实密钥误提交) |
-
----
-
-## 6. 本地已验证(未部署)
-
-- `bash -n` 语法检查:deploy.sh / render_env_manifest.sh 通过
-- 渲染脚本三场景:完整必需→渲染14项 ✅ / 漏必需→fail-fast exit1 ✅ / 空→向后兼容 exit0 ✅
-- 空值变量(如未配 OPENAI)正确跳过,不写空行
-- 逐 key upsert:主机独有 key 保留、托管 key 替换无重复 ✅
-- deploy.yml YAML 合法
-
-> ⚠️ 尚未在真实 EC2 上跑过完整部署。首次实跑前:① 按 §3 配好 GitHub Secrets/Variables(至少全部 `required`)② 在 GitHub Actions 手动 `workflow_dispatch` 触发一次 test 环境部署观察。
-
----
-
-## 7. 已知遗留(后续单独处理,不在本次范围)
-
-- 代码内硬编码(`start_backend.sh` / `routes.ts` 的 Lago 兜底)仍在 → 见 [20260612_EXTERNAL_ENV_CONFIG_PLAN.md](20260612_EXTERNAL_ENV_CONFIG_PLAN.md) Phase 2/3。
-- 已泄漏密钥轮换(按你的决定)稍后做。
-- `frontend/.env` vs `backend/.env` 的值漂移(Lago/JWT/AWS)合并 → 见 [20260613_ENV_FILES_CONFLICT_AUDIT.md](20260613_ENV_FILES_CONFLICT_AUDIT.md)。
-</content>
+- 渲染三场景(完整/缺必需 fail-fast/空向后兼容)✅
+- sync_to_dev 推送:本地渲染 44 变量值全对、特殊字符安全 ✅
+- **what-if 对最新 live EC2 .env**:0 处变化(幂等)、4 个主机独有 key 全保留 ✅
+- GHA 标签修复:`tag:Env=test` 真实命中 biomate-deploy-test 实例 ✅
+- 尚未执行:真实 env 推送(scp 写 .env)、真实 GHA 部署

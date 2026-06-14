@@ -39,17 +39,17 @@ fi
 case "$ENVIRONMENT" in
   test)
     AWS_REGION="${AWS_REGION:-us-west-2}"
-    INSTANCE_TAG_KEY="biomate:env"
+    INSTANCE_TAG_KEY="Env"
     INSTANCE_TAG_VALUE="test"
     ;;
   staging)
     AWS_REGION="${AWS_REGION:-us-west-2}"
-    INSTANCE_TAG_KEY="biomate:env"
+    INSTANCE_TAG_KEY="Env"
     INSTANCE_TAG_VALUE="staging"
     ;;
   production)
     AWS_REGION="${AWS_REGION:-us-west-2}"
-    INSTANCE_TAG_KEY="biomate:env"
+    INSTANCE_TAG_KEY="Env"
     INSTANCE_TAG_VALUE="production"
     ;;
   *)
@@ -165,54 +165,22 @@ ssm_run "if [ -f /opt/biomate/.env ]; then cp /opt/biomate/.env /opt/biomate/.en
   "Backing up existing .env"
 echo ""
 
-# Step 2: Upsert pre-rendered managed env into /opt/biomate/.env
-echo "=== Step 2: Configure environment variables (manifest-driven) ==="
+# Step 2: Verify host-managed env is present
+echo "=== Step 2: Environment variables (host-managed) ==="
 #
-# The managed env file is rendered upstream (scripts/render_env_manifest.sh,
-# invoked by deploy.yml) from deploy/biomate.env.manifest, using the APP's
-# secret values. It is passed here via $MANAGED_ENV_FILE. This split is
-# deliberate: rendering needs the app's AWS_ACCESS_KEY_ID as a *value to write*,
-# while deploy.sh's own aws calls below must use the OIDC deploy-role creds —
-# same env var name, two identities, so they cannot share one process.
+# /opt/biomate/.env on the host is the source of truth for runtime env, injected
+# into the containers via `env_file:` in docker-compose.deploy.yml. It is managed
+# OUT OF BAND, not by this deploy:
+#   - edit it directly on the host, or
+#   - push it with: BIOMATE_PUSH_ENV=1 bash scripts/sync_to_dev.sh
+#     (manifest-driven, scp-based; see scripts/render_env_manifest.sh +
+#      deploy/biomate.env.manifest).
 #
-# We upsert per-key into the host .env (managed value overrides; host-only keys
-# NOT in the manifest — EMAIL_PASS, GALAXY_MASTER_API_KEY, LAGO_WEBHOOK_SECRET,
-# etc. — are preserved). Replaces the old `cat | sort -u` merge, which produced
-# duplicate keys and reordered the file.
-
-if [[ -z "${MANAGED_ENV_FILE:-}" || ! -s "${MANAGED_ENV_FILE:-}" ]]; then
-  # No managed env rendered (operator hasn't opted into GitHub Secrets yet, or
-  # render produced nothing) → preserve existing /opt/biomate/.env.
-  echo "No managed env file provided → keeping existing /opt/biomate/.env (backward compatible)."
-  echo "To manage env via CI/CD, set values in GitHub Secrets/Variables; see deploy/biomate.env.manifest."
-else
-  MANAGED_COUNT=$(grep -c '=' "$MANAGED_ENV_FILE" || true)
-  echo "Upserting $MANAGED_COUNT managed env var(s) into /opt/biomate/.env"
-
-  # Transport to EC2 via the deploy temp bucket (runner has no SSH path).
-  aws s3 cp "$MANAGED_ENV_FILE" "s3://biomate-deploy-temp/.env.managed" --region "$AWS_REGION"
-
-  ssm_run "
-    set -e
-    mkdir -p /opt/biomate
-    cd /opt/biomate
-    aws s3 cp s3://biomate-deploy-temp/.env.managed /tmp/.env.managed --region $AWS_REGION
-    touch .env
-
-    # Per-key upsert: drop any existing line for each managed key, then append
-    # the fresh managed block. Host-only keys (not in the managed file) survive.
-    while IFS='=' read -r k _; do
-      [ -n \"\$k\" ] && sed -i \"/^\${k}=/d\" .env
-    done < /tmp/.env.managed
-    cat /tmp/.env.managed >> .env
-
-    chmod 600 .env
-    rm -f /tmp/.env.managed
-    echo \"Upserted managed vars; .env now has \$(wc -l < .env) line(s)\"
-  " "Upserting managed env vars into /opt/biomate/.env"
-
-  aws s3 rm "s3://biomate-deploy-temp/.env.managed" --region "$AWS_REGION" 2>/dev/null || true
-fi
+# CI does NOT inject env here: the only SSM-reachable transport is S3, but the
+# EC2 instance role has no S3 read access and there is no deploy-temp bucket, so
+# an S3 hop would fail on the EC2 side. Step 1 already backed up the host .env.
+ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::warning:: /opt/biomate/.env missing — app may fail to start'; fi" \
+  "Checking host /opt/biomate/.env"
 echo ""
 
 # Step 3: Pull docker-compose.deploy.yml
