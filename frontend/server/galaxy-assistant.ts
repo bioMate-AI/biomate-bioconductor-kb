@@ -1574,10 +1574,17 @@ export class GalaxyAssistant {
     let rawResponse = '';
     if (messages.length === 0) return '';
 
-    const history = messages.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
+    // Gemini requires the conversation history to START with a `user` turn.
+    // If a session is restored mid-stream, or the client sends a leading
+    // assistant/welcome message, the first entry can be `model` — Gemini
+    // then throws "First content should be with role 'user', got model".
+    // Drop any leading model turns until we hit the first user message.
+    const rawHistory = messages.slice(0, -1).map(m => ({
+      role: m.role === 'assistant' ? 'model' as const : 'user' as const,
       parts: [{ text: m.content }],
     }));
+    let firstUserIdx = rawHistory.findIndex(h => h.role === 'user');
+    const history = firstUserIdx < 0 ? [] : rawHistory.slice(firstUserIdx);
     const chat = model.startChat({ history });
     const lastMessage = messages[messages.length - 1].content;
 
@@ -1639,7 +1646,16 @@ export class GalaxyAssistant {
           systemInstruction: 'Based on the code execution results, provide the final answer concisely. Print only the answer value, no explanation.',
           generationConfig: { maxOutputTokens: 512, temperature: 0 },
         });
-        const summaryHistory = await chat.getHistory();
+        const summaryHistoryRaw = await chat.getHistory();
+        // Defensive: Gemini requires history to start with a user turn —
+        // strip any leading model turns (can happen if tool-only turns
+        // re-ordered the conversation prefix).
+        const summaryFirstUser = summaryHistoryRaw.findIndex(
+          (h: any) => h.role === 'user',
+        );
+        const summaryHistory = summaryFirstUser < 0
+          ? []
+          : summaryHistoryRaw.slice(summaryFirstUser);
         const summaryChatObj = noToolModel.startChat({ history: summaryHistory });
         const summaryResult = await summaryChatObj.sendMessage(
           'Based on all the code results above, what is the final answer? Reply with ONLY the answer value.'
