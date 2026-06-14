@@ -81,7 +81,7 @@ RUN echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' \
 RUN Rscript -e " \
     install.packages( \
         c('Rcpp', 'RcppArmadillo', 'BH', 'lbfgsb3c'), \
-        dependencies = TRUE \
+        dependencies = c('Depends', 'Imports', 'LinkingTo') \
     ); \
     cat('Rcpp family install done\n') \
 " || true
@@ -95,15 +95,15 @@ RUN test -d /usr/local/lib/R/site-library/Rcpp \
 # 2026-06-13: split into one-package-at-a-time install so a single failed
 # subdep doesn't tank the whole layer silently under '|| true'. Each install
 # is its own cache key so a partial failure is visible per-package.
-RUN Rscript -e "install.packages('data.table', dependencies = TRUE); cat('data.table install done\n')" || true
-RUN Rscript -e "install.packages('nlme', dependencies = TRUE); cat('nlme install done\n')" || true
-RUN Rscript -e "install.packages('jsonlite', dependencies = TRUE); cat('jsonlite install done\n')" || true
-RUN Rscript -e "install.packages('ggplot2', dependencies = TRUE); cat('ggplot2 install done\n')" || true
-RUN Rscript -e "install.packages('rmarkdown', dependencies = TRUE); cat('rmarkdown install done\n')" || true
-RUN Rscript -e "install.packages('knitr', dependencies = TRUE); cat('knitr install done\n')" || true
-RUN Rscript -e "install.packages('DT', dependencies = TRUE); cat('DT install done\n')" || true
-RUN Rscript -e "install.packages('plotly', dependencies = TRUE); cat('plotly install done\n')" || true
-RUN Rscript -e "install.packages('tidyverse', dependencies = TRUE); cat('tidyverse install done\n')" || true
+RUN Rscript -e "install.packages('data.table', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('data.table install done\n')" || true
+RUN Rscript -e "install.packages('nlme', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('nlme install done\n')" || true
+RUN Rscript -e "install.packages('jsonlite', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('jsonlite install done\n')" || true
+RUN Rscript -e "install.packages('ggplot2', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('ggplot2 install done\n')" || true
+RUN Rscript -e "install.packages('rmarkdown', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('rmarkdown install done\n')" || true
+RUN Rscript -e "install.packages('knitr', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('knitr install done\n')" || true
+RUN Rscript -e "install.packages('DT', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('DT install done\n')" || true
+RUN Rscript -e "install.packages('plotly', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('plotly install done\n')" || true
+RUN Rscript -e "install.packages('tidyverse', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('tidyverse install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/tidyverse \
     && test -d /usr/local/lib/R/site-library/data.table \
     && test -d /usr/local/lib/R/site-library/nlme \
@@ -114,33 +114,33 @@ RUN test -d /usr/local/lib/R/site-library/tidyverse \
 
 # ── rxode2 (ODE solver — nlmixr2 dependency) ─────────────────────────────────
 # Installed separately before nlmixr2 so compilation errors surface clearly.
-RUN Rscript -e "install.packages('rxode2', dependencies = TRUE); cat('rxode2 install done\n')" || true
+RUN Rscript -e "install.packages('rxode2', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('rxode2 install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/rxode2 \
     || (echo "FATAL: rxode2 missing from site-library" && exit 1)
 
 # ── nlmixr2 (PopPK/PD — primary reason for this container) ───────────────────
-RUN Rscript -e "install.packages('nlmixr2', dependencies = TRUE); cat('nlmixr2 install done\n')" || true
+RUN Rscript -e "install.packages('nlmixr2', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('nlmixr2 install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/nlmixr2 \
     || (echo "FATAL: nlmixr2 missing from site-library" && exit 1)
 
 # ── PKNCA (non-compartmental analysis — replaces r-nca container) ─────────────
-RUN Rscript -e "install.packages('PKNCA', dependencies = TRUE); cat('PKNCA install done\n')" || true
+RUN Rscript -e "install.packages('PKNCA', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('PKNCA install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/PKNCA \
     || (echo "FATAL: PKNCA missing from site-library" && exit 1)
 
 # ── mrgsolve (clinical trial simulation via compiled ODEs) ────────────────────
-RUN Rscript -e "install.packages('mrgsolve', dependencies = TRUE); cat('mrgsolve install done\n')" || true
+RUN Rscript -e "install.packages('mrgsolve', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('mrgsolve install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/mrgsolve \
     || (echo "FATAL: mrgsolve missing from site-library" && exit 1)
 
 # ── PKPDsim (PK/PD simulation) ────────────────────────────────────────────────
-RUN Rscript -e "install.packages('PKPDsim', dependencies = TRUE); cat('PKPDsim install done\n')" || true
+RUN Rscript -e "install.packages('PKPDsim', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('PKPDsim install done\n')" || true
 RUN test -d /usr/local/lib/R/site-library/PKPDsim \
     || (echo "FATAL: PKPDsim missing from site-library" && exit 1)
 
 # ── xpose / xpose.nlmixr2 (GOF / VPC diagnostic plots) ───────────────────────
 RUN Rscript -e " \
-    install.packages(c('xpose', 'xpose.nlmixr2'), dependencies = TRUE); \
+    install.packages(c('xpose', 'xpose.nlmixr2'), dependencies = c('Depends', 'Imports', 'LinkingTo')); \
     cat('xpose family install done\n') \
 " || true
 RUN test -d /usr/local/lib/R/site-library/xpose \
