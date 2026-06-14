@@ -146,7 +146,10 @@ P_CREATE="$(POST /api/projects "$JWT" \
 PID="$(echo "$P_CREATE" | json project.id)"
 expect "POST /api/projects returns uuid id" "$PID" "^[0-9a-f-]{36}$"
 SESS2="uc2-$(date +%s)"
-TIMEOUT=60 POST /api/chat/stream "$JWT" \
+# 90s — workflow_generation with full memory-integration bootstrap
+# (LTM bridge + projectId + recovery query) can take 30-60s. 60s
+# previously caught the LLM mid-thinking and returned workflow_failed.
+TIMEOUT=90 POST /api/chat/stream "$JWT" \
   "{\"message\":\"Run DEG on the gse22055 microarray with limma, tumor vs normal\",\"stream\":true,\"context\":{\"sessionId\":\"$SESS2\",\"projectId\":\"$PID\",\"previousMessages\":[]}}" \
   > "$UC_LOG.stream"
 WT="$(grep -oE 'workflow_(ready|failed)' "$UC_LOG.stream" | head -1)"
@@ -250,7 +253,10 @@ for q in "MS proteomics differential abundance" \
          "phyloseq microbiome differential analysis" \
          "GPCR cryo-EM density map reconstruction"; do
   S="uc10-$(date +%s%N)"
-  R="$(TIMEOUT=45 POST /api/chat/stream "$J" \
+  # 90s — Bioc routing + chain composer can spend ~30-60s on the LLM
+  # call for queries that hit underspecified retrieval (e.g. GPCR
+  # cryo-EM). The previous 45s timeout produced flaky empty events.
+  R="$(TIMEOUT=90 POST /api/chat/stream "$J" \
     "{\"message\":\"$q\",\"stream\":true,\"context\":{\"sessionId\":\"$S\",\"previousMessages\":[]}}")"
   ST="$(echo "$R" | grep -oE '"state":"[a-z_]+"' | head -1)"
   log "  query: '$q' → state=$ST"

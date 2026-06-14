@@ -12175,6 +12175,12 @@ Respond ONLY with valid JSON (no markdown wrapper):
     try {
       const { session_id, title, messages, workflows, datasets } = req.body;
       if (!session_id) return res.status(400).json({ error: 'session_id required' });
+      // Cap incoming dataset list at MAX_DATASET_REFS (32, drop oldest)
+      // to match the same defense applied at the PUT site + the in-memory
+      // req.session.uploadedDatasets sites. Without this, a client can
+      // bypass the cap on first-write. See frontend/server/dataset-cap.ts
+      // and docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const cappedDatasets = capDatasetReferences(datasets || []);
       const rows = await pool.query(
         `INSERT INTO chat_sessions (session_id, user_id, title, messages, workflows, datasets)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -12184,7 +12190,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
            last_activity = NOW()
          RETURNING *`,
         [session_id, req.user.id, title || 'New Chat',
-         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(datasets || [])]
+         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(cappedDatasets)]
       );
       res.status(201).json(rows.rows[0]);
     } catch (err: any) {
