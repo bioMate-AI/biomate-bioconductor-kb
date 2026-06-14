@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: PCA plot, scree plot
+// QC: missing-value handling
+
 nextflow.enable.dsl = 2
 
 process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {

@@ -7,7 +7,7 @@
 // R packages: Biobase, GenomicRanges, MEAL, ggplot2
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, GenomicRanges, MEAL, ggplot2
-// Visualizations: volcano plot
+// Visualizations: volcano plot, Manhattan plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

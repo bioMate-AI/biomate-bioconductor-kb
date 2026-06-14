@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: profile plot, density plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_RCGH_ACGH_ANALYSIS_PIPELINE {

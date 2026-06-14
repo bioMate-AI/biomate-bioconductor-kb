@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, dplyr, ggplot2, muscat, patchwork, scater, scuttle, tidyr
-// Visualizations: heatmap
+// Visualizations: MDS plot, heatmap
 // QC: per-cell QC metrics, outlier detection, low-count filtering, cell QC metrics, count normalization
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

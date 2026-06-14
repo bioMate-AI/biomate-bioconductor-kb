@@ -7,7 +7,7 @@
 // R packages: TxDb.Hsapiens.UCSC.hg19.knownGene, org.Hs.eg.db, plotgardener, plotgardenerdata
 // Bioconductor: 3.20 | R: 4.4
 // Requires: TxDb.Hsapiens.UCSC.hg19.knownGene, org.Hs.eg.db, plotgardener
-// Visualizations: plot (ggplot/base)
+// Visualizations: Manhattan plot, gene track plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

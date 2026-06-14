@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: box plot, t-SNE plot
+// QC: low-count filtering, missing-value handling
+
 nextflow.enable.dsl = 2
 
 process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {

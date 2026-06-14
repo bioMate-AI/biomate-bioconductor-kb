@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, S4Vectors, SummarizedExperiment, megadepth
-// Visualizations: box plot
+// Visualizations: box plot, coverage plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

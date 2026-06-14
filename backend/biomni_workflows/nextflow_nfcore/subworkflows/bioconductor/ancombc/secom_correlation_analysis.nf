@@ -7,7 +7,7 @@
 // R packages: ANCOMBC, dplyr, phyloseq, readr
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ANCOMBC, dplyr, phyloseq, readr
-// Visualizations: plot (ggplot/base)
+// Visualizations: heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

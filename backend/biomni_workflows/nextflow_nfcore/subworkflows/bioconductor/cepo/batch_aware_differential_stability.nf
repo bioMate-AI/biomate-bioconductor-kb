@@ -7,8 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Cepo, SingleCellExperiment, scater
-// Visualizations: plot (ggplot/base)
-// QC: cell QC metrics, count normalization
+// Visualizations: density plot
+// QC: cell QC metrics, count normalization, normalization diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

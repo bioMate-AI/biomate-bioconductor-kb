@@ -7,7 +7,7 @@
 // R packages: karyoploteR, regioneR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: karyoploteR, regioneR
-// Visualizations: plot (ggplot/base)
+// Visualizations: karyotype plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

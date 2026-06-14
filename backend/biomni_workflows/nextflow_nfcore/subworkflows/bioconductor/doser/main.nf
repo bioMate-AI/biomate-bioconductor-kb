@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+// QC: diagnostic MA/PCA QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+
 nextflow.enable.dsl = 2
 
 process BIOC_MITOCLONE2_CLONAL_CLUSTERING_AND_TREE_BUILDING {

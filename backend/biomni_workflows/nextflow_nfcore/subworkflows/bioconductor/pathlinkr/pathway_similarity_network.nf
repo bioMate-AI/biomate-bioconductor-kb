@@ -7,7 +7,7 @@
 // R packages: dplyr, ggplot2, pathlinkR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: dplyr, ggplot2, pathlinkR
-// Visualizations: network plot
+// Visualizations: network plot, pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

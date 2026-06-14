@@ -7,7 +7,7 @@
 // R packages: DESeq2, pcaExplorer, scales
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DESeq2, pcaExplorer, scales
-// Visualizations: PCA plot, box plot
+// Visualizations: PCA plot, biplot, box plot
 // QC: count normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

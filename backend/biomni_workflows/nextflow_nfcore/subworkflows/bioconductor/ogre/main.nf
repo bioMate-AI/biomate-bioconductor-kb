@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocGenerics, GenomicRanges, IRanges, OGRE, S4Vectors, ggplot2
-// Visualizations: bar plot
+// Visualizations: bar plot, coverage plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

@@ -7,7 +7,7 @@
 // R packages: ape, clst, clstutils
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ape, clst, clstutils
-// Visualizations: plot (ggplot/base)
+// Visualizations: phylogenetic tree
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

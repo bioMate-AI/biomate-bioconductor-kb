@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DESeq2, PCAtools, ggplot2
-// Visualizations: PCA plot
+// Visualizations: scree plot, biplot, PCA plot
 // QC: count normalization
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

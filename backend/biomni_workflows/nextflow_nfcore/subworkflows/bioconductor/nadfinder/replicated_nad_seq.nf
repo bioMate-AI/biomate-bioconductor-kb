@@ -7,7 +7,7 @@
 // R packages: BSgenome.Mmusculus.UCSC.mm10, NADfinder
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Mmusculus.UCSC.mm10, NADfinder, SummarizedExperiment
-// Visualizations: plot (ggplot/base)
+// Visualizations: karyotype plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

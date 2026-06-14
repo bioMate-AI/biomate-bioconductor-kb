@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: RRHO, lattice
-// Visualizations: plot (ggplot/base)
+// Visualizations: level plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -7,7 +7,7 @@
 // R packages: systemPipeR, systemPipeTools
 // Bioconductor: 3.20 | R: 4.4
 // Requires: systemPipeR, systemPipeTools
-// Visualizations: volcano plot, heatmap, MA plot, t-SNE plot
+// Visualizations: volcano plot, MA plot, heatmap, t-SNE plot
 // QC: count normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: igraph, netZooR, pandaR, reshape2
-// Visualizations: bar plot, network plot
+// Visualizations: bar plot, heatmap, network plot
 // QC: count normalization
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

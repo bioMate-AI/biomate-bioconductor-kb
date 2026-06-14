@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// QC: missing-value handling
+
 nextflow.enable.dsl = 2
 
 process BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATION {

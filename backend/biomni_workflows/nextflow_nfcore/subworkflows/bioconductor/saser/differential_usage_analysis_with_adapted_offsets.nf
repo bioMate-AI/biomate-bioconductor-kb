@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: mean-difference plot
+// QC: dispersion/size-factor estimation, alignment/mapping QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {

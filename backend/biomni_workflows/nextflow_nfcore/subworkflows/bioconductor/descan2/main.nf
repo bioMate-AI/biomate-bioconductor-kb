@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: PCA plot, RLE plot
+// QC: dispersion/size-factor estimation, diagnostic MA/PCA QC, low-count filtering
+
 nextflow.enable.dsl = 2
 
 process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {

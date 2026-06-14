@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: box plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {

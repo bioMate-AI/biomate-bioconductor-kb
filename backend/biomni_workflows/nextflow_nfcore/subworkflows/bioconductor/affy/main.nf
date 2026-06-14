@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, affy
-// Visualizations: box plot
+// Visualizations: box plot, MA plot, matrix plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

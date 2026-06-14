@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dispersion plot
+// QC: dispersion/size-factor estimation, dispersion QC plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW {

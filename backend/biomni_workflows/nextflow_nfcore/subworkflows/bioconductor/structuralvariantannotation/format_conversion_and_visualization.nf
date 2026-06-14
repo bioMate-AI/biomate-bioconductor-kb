@@ -7,7 +7,7 @@
 // R packages: StructuralVariantAnnotation, VariantAnnotation, biovizBase, ggbio, rtracklayer
 // Bioconductor: 3.20 | R: 4.4
 // Requires: StructuralVariantAnnotation, VariantAnnotation, biovizBase, ggbio, rtracklayer
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic plot (ggbio), circos plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

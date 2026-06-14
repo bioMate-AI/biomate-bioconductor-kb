@@ -7,7 +7,7 @@
 // R packages: OmicCircos
 // Bioconductor: 3.20 | R: 4.4
 // Requires: OmicCircos
-// Visualizations: plot (ggplot/base)
+// Visualizations: circos plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

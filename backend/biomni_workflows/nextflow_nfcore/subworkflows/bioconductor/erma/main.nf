@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: AnnotationDbi, GenomicFeatures, GenomicRanges, Gviz, TxDb.Hsapiens.UCSC.hg19.knownGene, erma, org.Hs.eg.db
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic tracks (Gviz)
 // QC: missing-value handling
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

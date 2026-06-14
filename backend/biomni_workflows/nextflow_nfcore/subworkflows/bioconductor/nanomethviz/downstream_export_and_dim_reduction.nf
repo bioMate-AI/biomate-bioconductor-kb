@@ -7,7 +7,7 @@
 // R packages: NanoMethViz, dplyr, ggplot2
 // Bioconductor: 3.20 | R: 4.4
 // Requires: NanoMethViz, dplyr, ggplot2
-// Visualizations: PCA plot
+// Visualizations: MDS plot, PCA plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

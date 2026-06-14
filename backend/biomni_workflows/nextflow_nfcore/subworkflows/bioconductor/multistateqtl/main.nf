@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ComplexHeatmap, QTLExperiment, multistateQTL
-// Visualizations: cluster plot
+// Visualizations: UpSet plot, cluster plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

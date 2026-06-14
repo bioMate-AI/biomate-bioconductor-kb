@@ -7,7 +7,7 @@
 // R packages: e1071, pheatmap, RColorBrewer, sigFeature, SummarizedExperiment
 // Bioconductor: 3.20 | R: 4.4
 // Requires: RColorBrewer, SummarizedExperiment, e1071, pheatmap, sigFeature
-// Visualizations: heatmap, box plot, image plot
+// Visualizations: heatmap, box plot, image plot, strip chart
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

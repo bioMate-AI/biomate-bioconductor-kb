@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: cowplot, dplyr, ggplot2, spillR
-// Visualizations: scatter plot
+// Visualizations: diagnostic plot, scatter plot
 // QC: missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

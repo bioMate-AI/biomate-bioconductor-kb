@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ggplot2, rexposome
-// Visualizations: PCA plot
+// Visualizations: PCA plot, correlation plot, circos plot
 // QC: diagnostic MA/PCA QC, missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

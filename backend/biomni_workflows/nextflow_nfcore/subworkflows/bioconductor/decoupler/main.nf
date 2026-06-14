@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Seurat, decoupleR, dplyr, ggplot2, pheatmap, tibble, tidyr
-// Visualizations: heatmap, UMAP/t-SNE plot, feature plot
+// Visualizations: heatmap, UMAP/t-SNE plot, feature plot, pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

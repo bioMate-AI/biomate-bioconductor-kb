@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dot plot, enrichment plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {

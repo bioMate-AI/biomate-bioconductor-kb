@@ -7,6 +7,7 @@
 // R packages: GenomicRanges, Rsamtools, AnnotationHub, ComplexHeatmap, raer, raerdata, scater, SingleCellExperiment
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, Rsamtools, SingleCellExperiment, raer
+// QC: cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

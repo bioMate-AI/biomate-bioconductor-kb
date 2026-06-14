@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: enrichment plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_ASEB_SITE_SPECIFIC_PREDICTION {

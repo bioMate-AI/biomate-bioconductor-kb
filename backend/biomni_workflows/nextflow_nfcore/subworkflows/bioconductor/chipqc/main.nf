@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: coverage plot, heatmap
+
 nextflow.enable.dsl = 2
 
 process BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC {

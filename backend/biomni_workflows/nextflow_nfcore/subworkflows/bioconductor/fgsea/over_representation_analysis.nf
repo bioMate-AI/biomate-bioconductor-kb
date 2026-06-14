@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: data.table, fgsea, ggplot2
-// Visualizations: plot (ggplot/base)
+// Visualizations: pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

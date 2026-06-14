@@ -7,7 +7,7 @@
 // R packages: corrplot, retrofit
 // Bioconductor: 3.20 | R: 4.4
 // Requires: corrplot, retrofit
-// Visualizations: plot (ggplot/base)
+// Visualizations: correlation plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

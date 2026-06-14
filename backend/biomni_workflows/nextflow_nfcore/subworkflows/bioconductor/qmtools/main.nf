@@ -7,8 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SummarizedExperiment, ggplot2, patchwork, pls, qmtools, vsn
-// Visualizations: PCA plot
-// QC: missing-value handling
+// Visualizations: dendrogram, PCA plot
+// QC: missing-value handling, variance-stabilizing normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ctc
-// Visualizations: heatmap
+// Visualizations: heatmap, dendrogram
 // QC: missing-value handling
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================

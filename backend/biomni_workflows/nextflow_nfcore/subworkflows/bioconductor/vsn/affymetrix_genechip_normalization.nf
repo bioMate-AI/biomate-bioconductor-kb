@@ -7,7 +7,8 @@
 // R packages: Biobase, affy, vsn
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, affy, vsn
-// Visualizations: plot (ggplot/base)
+// Visualizations: mean-SD plot
+// QC: variance-stabilizing normalization, normalization diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

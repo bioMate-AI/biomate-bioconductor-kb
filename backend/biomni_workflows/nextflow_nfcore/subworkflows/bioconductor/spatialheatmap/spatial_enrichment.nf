@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: enrichment plot, UpSet plot, heatmap
+
 nextflow.enable.dsl = 2
 
 process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {

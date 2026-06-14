@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: volcano plot, Manhattan plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT {

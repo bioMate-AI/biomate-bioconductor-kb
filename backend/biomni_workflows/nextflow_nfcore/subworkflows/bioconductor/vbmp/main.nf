@@ -7,7 +7,7 @@
 // R packages: Biobase, vbmp
 // Bioconductor: 3.20 | R: 4.4
 // Requires: vbmp
-// Visualizations: plot (ggplot/base)
+// Visualizations: diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

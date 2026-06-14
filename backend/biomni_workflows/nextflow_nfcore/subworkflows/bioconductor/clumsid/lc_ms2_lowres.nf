@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: MDS plot, heatmap
+
 nextflow.enable.dsl = 2
 
 process BIOC_CLUMSID_LC_MS2_LOWRES {

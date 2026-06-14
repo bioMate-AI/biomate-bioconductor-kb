@@ -8,6 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BioNet, graph
 // Visualizations: plot (ggplot/base)
+// QC: missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

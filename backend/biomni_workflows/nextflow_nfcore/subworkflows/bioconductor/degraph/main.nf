@@ -7,7 +7,7 @@
 // R packages: R.utils, corpcor, DEGraph, fields, KEGGgraph, lattice, marray, RBGL, Rgraphviz
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DEGraph, KEGGgraph, R.utils, Rgraphviz, corpcor, fields, lattice, marray
-// Visualizations: plot (ggplot/base)
+// Visualizations: pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

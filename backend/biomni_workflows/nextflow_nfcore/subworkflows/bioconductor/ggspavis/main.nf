@@ -8,6 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SpatialExperiment, SummarizedExperiment, ggplot2, ggspavis, patchwork
 // Visualizations: plot (ggplot/base)
+// QC: cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

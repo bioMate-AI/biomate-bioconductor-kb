@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SummarizedExperiment, dplyr, pairkat
-// Visualizations: network plot
+// Visualizations: network plot, pathway diagram
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

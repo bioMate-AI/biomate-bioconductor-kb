@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dot plot, heatmap, Venn diagram
+
 nextflow.enable.dsl = 2
 
 process BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON {

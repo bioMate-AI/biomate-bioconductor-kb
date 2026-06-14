@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DirichletMultinomial, lattice
-// Visualizations: density plot, heatmap
+// Visualizations: density plot, scatter matrix, heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

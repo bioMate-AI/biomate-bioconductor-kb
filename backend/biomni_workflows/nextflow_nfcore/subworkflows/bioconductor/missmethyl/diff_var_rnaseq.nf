@@ -7,7 +7,7 @@
 // R packages: edgeR, limma, missMethyl
 // Bioconductor: 3.20 | R: 4.4
 // Requires: edgeR, limma, missMethyl
-// Visualizations: plot (ggplot/base)
+// Visualizations: strip chart
 // QC: TMM normalization, low-count filtering, count normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

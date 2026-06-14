@@ -7,7 +7,7 @@
 // R packages: DiffBind
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DiffBind
-// Visualizations: MA plot, PCA plot
+// Visualizations: MA plot, PCA plot, volcano plot
 // QC: diagnostic MA/PCA QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

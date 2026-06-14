@@ -8,7 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, scds
 // Visualizations: box plot
-// QC: doublet detection QC
+// QC: doublet detection QC, cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: ROC curve
+
 nextflow.enable.dsl = 2
 
 process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {

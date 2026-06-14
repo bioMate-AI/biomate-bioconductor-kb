@@ -7,8 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MatrixQCvis, SummarizedExperiment, ggplot2, limma
-// Visualizations: box plot, heatmap, PCA plot, volcano plot
-// QC: missing-value handling
+// Visualizations: UpSet plot, box plot, heatmap, PCA plot, volcano plot
+// QC: missing-value handling, variance-stabilizing normalization
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

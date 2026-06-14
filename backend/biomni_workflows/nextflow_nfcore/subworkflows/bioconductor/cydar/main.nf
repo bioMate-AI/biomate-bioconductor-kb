@@ -8,7 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, cydar, edgeR, flowCore, ncdfFlow
 // Visualizations: plot (ggplot/base)
-// QC: dispersion/size-factor estimation
+// QC: dispersion/size-factor estimation, expression-level QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

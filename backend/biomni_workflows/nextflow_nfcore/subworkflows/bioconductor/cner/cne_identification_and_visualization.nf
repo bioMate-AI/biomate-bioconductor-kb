@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: genomic tracks (Gviz)
+
 nextflow.enable.dsl = 2
 
 process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {

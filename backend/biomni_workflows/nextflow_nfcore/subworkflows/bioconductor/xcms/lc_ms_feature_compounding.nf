@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: bar plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING {

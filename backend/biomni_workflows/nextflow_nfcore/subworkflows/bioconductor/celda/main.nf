@@ -8,6 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, celda
 // Visualizations: heatmap
+// QC: cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

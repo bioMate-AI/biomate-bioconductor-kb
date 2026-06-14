@@ -7,7 +7,7 @@
 // R packages: BiocParallel, DT, ExperimentHub, HDF5Array, signatureSearch, SummarizedExperiment
 // Bioconductor: 3.20 | R: 4.4
 // Requires: signatureSearch
-// Visualizations: network plot
+// Visualizations: UpSet plot, network plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

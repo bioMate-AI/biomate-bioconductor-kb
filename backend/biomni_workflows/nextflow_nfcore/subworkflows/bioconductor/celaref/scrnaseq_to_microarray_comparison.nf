@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: violin plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON {

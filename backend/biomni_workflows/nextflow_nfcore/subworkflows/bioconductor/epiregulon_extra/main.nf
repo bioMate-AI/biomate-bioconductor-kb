@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: S4Vectors, SingleCellExperiment, epiregulon, epiregulon.extra, epiregulon_extra
-// Visualizations: box plot, violin plot, heatmap, network plot
+// Visualizations: box plot, heatmap, violin plot, network plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

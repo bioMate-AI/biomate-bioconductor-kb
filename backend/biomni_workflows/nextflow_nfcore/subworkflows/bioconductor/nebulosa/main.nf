@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: density plot
+// QC: per-cell QC metrics, low-count filtering, cell QC metrics, highly-variable feature selection, clustering QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {

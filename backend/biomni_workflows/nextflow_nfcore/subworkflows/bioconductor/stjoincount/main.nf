@@ -7,7 +7,7 @@
 // R packages: ggplot2, pheatmap, stJoincount
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ggplot2, pheatmap, stJoincount
-// Visualizations: heatmap
+// Visualizations: mosaic plot, heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

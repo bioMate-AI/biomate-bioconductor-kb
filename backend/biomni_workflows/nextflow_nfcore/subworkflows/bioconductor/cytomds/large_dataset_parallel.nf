@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, CytoMDS, flowCore, ggplot2
-// Visualizations: plot (ggplot/base)
+// Visualizations: MDS plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

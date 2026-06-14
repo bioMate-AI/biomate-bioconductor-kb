@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, GeneExpressionSignature
-// Visualizations: heatmap (ComplexHeatmap)
+// Visualizations: heatmap (ComplexHeatmap), heatmap
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

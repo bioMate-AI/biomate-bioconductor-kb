@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dot plot, network plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {

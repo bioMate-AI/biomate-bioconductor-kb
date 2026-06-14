@@ -7,7 +7,7 @@
 // R packages: lattice, pcaMethods
 // Bioconductor: 3.20 | R: 4.4
 // Requires: lattice, pcaMethods
-// Visualizations: bar plot, PCA plot
+// Visualizations: bar plot, scatter plot, PCA plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

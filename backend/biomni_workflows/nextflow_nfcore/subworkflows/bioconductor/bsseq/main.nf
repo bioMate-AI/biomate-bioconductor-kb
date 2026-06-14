@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocParallel, S4Vectors, bsseq
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic region plot
 // QC: low-count filtering
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================

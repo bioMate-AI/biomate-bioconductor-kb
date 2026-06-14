@@ -7,8 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biobase, affylmGUI, limma, tcltk
-// Visualizations: MA plot, volcano plot, box plot
-// QC: diagnostic MA/PCA QC
+// Visualizations: MA plot, volcano plot, box plot, density plot
+// QC: diagnostic MA/PCA QC, normalization diagnostic plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
