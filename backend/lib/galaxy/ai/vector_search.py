@@ -131,9 +131,17 @@ class VectorToolSearch:
             self.model = SentenceTransformer(self.model_name, device=self.device,
                                              local_files_only=True)
 
-            # Load or create embeddings
+            # Load or create embeddings.
+            # Staleness contract (added 2026-06-13 — same fix as the
+            # workflow side; see docs/20260613_DENSE_EMBEDDINGS_PATHS.md §6):
+            # after a load, compare the live DB's content signature to
+            # the one stamped into the .npz at build time. Mismatch →
+            # rebuild. Catches both row-count drift and in-place edits.
             if Path(self.embedding_path).exists():
                 self._load_embeddings()
+                if self.auto_create and self._embeddings_stale():
+                    log.info("[VectorSearch] .npz is stale vs DB — rebuilding")
+                    self._create_embeddings()
             elif self.auto_create:
                 self._create_embeddings()
             else:
@@ -212,15 +220,88 @@ class VectorToolSearch:
             convert_to_numpy=True
         )
 
+        # Compute the same signature _embeddings_stale will check
+        # against on load. Stored as a 0-dim object array.
+        try:
+            _, sig = self._compute_tools_db_signature()
+        except Exception as exc:
+            log.warning(f"[VectorSearch] signature compute on save failed: {exc}")
+            sig = ""
+
         # Save for reuse
         log.info(f"Saving embeddings to {self.embedding_path}")
         np.savez_compressed(
             self.embedding_path,
             tool_ids=np.array(self.tool_ids, dtype=object),
-            embeddings=self.embeddings
+            embeddings=self.embeddings,
+            tools_signature=np.array(sig, dtype=object),
         )
 
-        log.info(f"Created embeddings for {len(self.tool_ids)} tools")
+        log.info(f"Created embeddings for {len(self.tool_ids)} tools (sig={sig[:12] if sig else 'none'}..)")
+
+    # ------------------------------------------------------------------
+    # Staleness detection (mirror of unified_workflow_search's pattern)
+    # ------------------------------------------------------------------
+
+    def _compute_tools_db_signature(self) -> tuple:
+        """Compute (row_count, sha256_hex) over the DB's tools rows.
+
+        Hashes the same (tool_id, name, description, category,
+        help_text, tags, edam_operations, edam_topics) tuples
+        _create_embeddings reads, so any change that would affect the
+        encoded text shows up as a different signature.
+        """
+        import hashlib
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT tool_id, COALESCE(name,''), COALESCE(description,''), "
+            "COALESCE(category,''), COALESCE(help_text,''), COALESCE(tags,''), "
+            "COALESCE(edam_operations,''), COALESCE(edam_topics,'') "
+            "FROM tools ORDER BY tool_id"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        h = hashlib.sha256()
+        for r in rows:
+            h.update("\x1e".join(str(x) for x in r).encode("utf-8", errors="replace"))
+            h.update(b"\x1f")
+        return len(rows), h.hexdigest()
+
+    def _embeddings_stale(self) -> bool:
+        """True iff the loaded .npz no longer matches the live tools DB.
+
+        Same conservative policy as the workflow side: pre-signature
+        .npz files pass on row-count alone; the next rebuild lands the
+        signature so subsequent loads get the full check.
+        """
+        try:
+            db_count, db_sig = self._compute_tools_db_signature()
+        except Exception as exc:
+            log.warning(f"[VectorSearch] DB signature failed (treating as fresh): {exc}")
+            return False
+
+        if db_count != len(self.tool_ids):
+            log.info(
+                f"[VectorSearch] Row-count drift: DB={db_count} .npz={len(self.tool_ids)}"
+            )
+            return True
+
+        try:
+            data = np.load(self.embedding_path, allow_pickle=True)
+            stored = data.get("tools_signature")
+            if stored is not None:
+                stored_sig = stored.item() if hasattr(stored, "item") else str(stored)
+                if stored_sig != db_sig:
+                    log.info(
+                        f"[VectorSearch] Content signature mismatch "
+                        f"(stored={str(stored_sig)[:12]}.. live={db_sig[:12]}..)"
+                    )
+                    return True
+        except Exception as exc:
+            log.warning(f"[VectorSearch] Signature read failed: {exc}")
+
+        return False
 
     def search(
         self,
