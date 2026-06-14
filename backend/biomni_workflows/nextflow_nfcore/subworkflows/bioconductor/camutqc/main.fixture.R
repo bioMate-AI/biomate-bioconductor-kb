@@ -1,16 +1,25 @@
-# [biomate] structured fixture (rule: binary_example_data) — deterministic, no LLM
+# [biomate] structured fixture (rule: package_example_data) — deterministic, no LLM
+# The CaMutQC package ships the exact vignette example files this workflow reads:
+#   WES_EA_T_1_mutect2.vep.vcf  (VEP-annotated MuTect2 VCF — has the CSQ/Format header
+#                                that vcfToMAF requires)
+#   PON_test.txt                (panel-of-normals table)
+#   Pan-cancer-hg38.rds         (bed/regions object passed as bedFile= to mutFilterCom)
+# Copy them by their real names so the input contract is satisfied with real, valid data
+# (sourcing a generic VCF from VariantAnnotation lacks the CSQ annotation and breaks vcfToMAF).
 suppressMessages({if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")})
-# binary input "WES_EA_T_1_mutect2.vep.vcf": copy a real example from a Bioconductor ExperimentData pkg
-for (.dp in c("VariantAnnotation")) if (!requireNamespace(.dp, quietly=TRUE)) tryCatch(BiocManager::install(.dp, update=FALSE, ask=FALSE), error=function(e) NULL)
-.src <- NA_character_
-for (.dp in c("VariantAnnotation")) {
-  .d <- system.file("extdata", package=.dp)
-  if (nzchar(.d)) {
-    .f <- list.files(.d, pattern="(?i)\\.vcf(\\.gz)?$", recursive=TRUE, full.names=TRUE)
-    if (length(.f)) { .src <- .f[[1]]; break }
-  }
+if (!requireNamespace("CaMutQC", quietly=TRUE)) tryCatch(BiocManager::install("CaMutQC", update=FALSE, ask=FALSE), error=function(e) NULL)
+
+.ext <- system.file("extdata", package="CaMutQC")
+stopifnot("CaMutQC extdata not found"=nzchar(.ext))
+
+.copy_named <- function(fname) {
+  cand <- list.files(.ext, pattern=paste0("^", gsub("([.\\^$*+?()\\[\\]{}|])", "\\\\\\1", fname), "$"),
+                     recursive=TRUE, full.names=TRUE)
+  if (!length(cand)) cand <- list.files(.ext, pattern=fname, recursive=TRUE, full.names=TRUE)
+  if (!length(cand)) stop(paste0("CaMutQC example not found: ", fname))
+  file.copy(cand[[1]], fname, overwrite=TRUE)
 }
-stopifnot("no example WES_EA_T_1_mutect2.vep.vcf found in candidate data packages"=!is.na(.src))
-file.copy(.src, "WES_EA_T_1_mutect2.vep.vcf", overwrite=TRUE)
-# co-input "PON_test.txt": synthetic
-write.table(data.frame(id=paste0("f",1:50),s1=rpois(50,20),s2=rpois(50,20)), "PON_test.txt", sep="\t", row.names=FALSE, quote=FALSE)
+
+.copy_named("WES_EA_T_1_mutect2.vep.vcf")
+.copy_named("PON_test.txt")
+.copy_named("Pan-cancer-hg38.rds")
