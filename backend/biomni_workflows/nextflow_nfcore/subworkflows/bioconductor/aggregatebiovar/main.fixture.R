@@ -41,9 +41,9 @@ for (s in seq_len(nrow(subjects))) {
                     nrow = n_genes)
         rows[[length(rows) + 1]] <- m
         meta[[length(meta) + 1]] <- data.frame(
-            orig.ident = subjects$id[s],
-            Genotype = geno,
-            celltype = ct,
+            orig.ident = rep(subjects$id[s], cells_per_subject_type),
+            Genotype = rep(geno, cells_per_subject_type),
+            celltype = rep(ct, cells_per_subject_type),
             stringsAsFactors = FALSE
         )
     }
