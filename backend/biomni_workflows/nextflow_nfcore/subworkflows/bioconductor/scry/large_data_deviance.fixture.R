@@ -9,6 +9,7 @@ if (length(.fx_miss)) {
 }
 library(SingleCellExperiment)
 library(HDF5Array)
+library(DelayedArray)
 
 set.seed(101)
 # Create a synthetic counts matrix
@@ -16,13 +17,17 @@ counts_mat <- matrix(rpois(20000, lambda = 0.5), nrow=200, ncol=100)
 rownames(counts_mat) <- paste0("Gene", 1:200)
 colnames(counts_mat) <- paste0("Cell", 1:100)
 
-# Write to HDF5 and create HDF5Array
-h5counts <- writeHDF5Array(counts_mat, filepath="h5counts_data.h5", name="counts")
+# Wrap as a DelayedArray. NOTE: an HDF5Array serialized with saveRDS only stores a *pointer*
+# to its backing .h5 file, which the harness does not stage alongside the .rds — so readRDS in
+# the workflow would dereference a missing file. Use an in-memory DelayedArray seed instead so
+# the .rds is fully self-contained while still exercising scry's DelayedArray/devianceFeature
+# code path.
+h5counts <- DelayedArray(counts_mat)
 
-# Save h5counts object
+# Save h5counts object (portable, no external .h5 dependency)
 saveRDS(h5counts, "h5counts.rds")
 
-# Create SingleCellExperiment with HDF5 backend
+# Create SingleCellExperiment with the DelayedArray-backed counts
 sce <- SingleCellExperiment(assays = list(counts = h5counts))
 colData(sce)$phenoid <- sample(c("B-cells", "monocytes", "T-cells"), 100, replace=TRUE)
 
