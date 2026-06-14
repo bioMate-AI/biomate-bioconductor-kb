@@ -102,3 +102,25 @@ The pushed `metagenomics:3.20-deps` has `mia` still broken — but **no regressi
 `:3.20-deps` was equally broken for mia; everything else that loaded still loads). Box
 terminated, no orphans. This is the honest end of the incremental track; the base rebuild is
 the real fix and is a deliberate infra task.
+
+## 2026-06-13 (TRUE final) — it's upstream CRAN drift; even the official Bioc base fails
+Tested the recommended fix and it does NOT work: on the **official**
+`bioconductor/bioconductor_docker:RELEASE_3_20` (Bioc 3.20, R 4.4.2), a clean
+`BiocManager::install(c("mia","iSEEtree","miaViz"))` STILL yields all THREE = won't load.
+Reason: the official Bioc images are **continuously rebuilt against the latest CRAN**, so they
+carry the same drifted `rbiom`/`xfun`. The miaverse for Bioc 3.20 (`mia` 1.14.0) is **mutually
+incompatible with current CRAN** — `mia` requires `xfun >= 0.52` yet older miaverse code paths
+need the `rbiom` `unifrac` that the new `rbiom` dropped. This is an UPSTREAM Bioconductor/CRAN
+versioning problem, not a BioMate build bug.
+
+**The only real options (team decision):**
+1. **Date-pin the base by digest** — use a `bioconductor_docker:RELEASE_3_20` *digest* from the
+   Bioc-3.20 release week (~Oct 2024), when CRAN `rbiom`/`xfun` were still compatible, and freeze
+   it. (Find the digest via Docker Hub tag history / `docker buildx imagetools inspect`.)
+2. **Exclude the miaverse** (`mia`/`iSEEtree`/`miaViz`/`miaTime`) from the metagenomics image and
+   mark those ~13 workflows non-runnable until upstream stabilises. Everything else loads.
+3. **Move to Bioc 3.21/3.22**, where `mia` may already be aligned with current CRAN.
+
+imaging/metabolomics-core/genomics/etc. are NOT affected — only the miaverse subtree.
+This closes the incremental investigation definitively: it is not solvable in our pipeline; it
+needs a date-pinned base or an upstream version bump.
