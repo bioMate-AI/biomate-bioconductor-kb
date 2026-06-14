@@ -258,6 +258,29 @@ must be in a fully-committed state.
 Run within 10 minutes of sync. These are the same scenarios as Part
 2 but executed against `https://dev-public.biomate.ai`.
 
+**One-liner that runs all five**: `bash scripts/post_sync_check.sh`
+
+The wrapper:
+  - validates you're still on `integration/next-phase`;
+  - sources `EC2_HOST` / `KEY_FILE` / `INSTANCE_ID` / `AZ` from
+    `scripts/sync_to_dev.sh` if not already in env;
+  - refreshes the ephemeral SSH key the same way `sync_to_dev.sh`
+    does (EC2 Instance Connect with a 60-second TTL);
+  - runs S1 (health) → S2 (`audit_project_framework.sh`) → S3
+    (container log scan) → S4 (DB ↔ npz row-count + signature) → S5
+    (UC-2 + UC-7 API spot-check via curl + fixture login);
+  - exits non-zero with a specific code so a CI step can branch on
+    which gate failed;
+  - writes per-run timestamped logs to `docs/post_sync_logs/`.
+
+Skip the slower or flaky checks with env vars:
+  - `SKIP_S2=1` to skip the audit driver
+  - `SKIP_S5=1` to skip the chat-stream spot-check
+
+S5 covers the API surface only. The UI-level UC-2 / UC-7 walk
+through is still a 30-second human smoke at the actual chat UI —
+the wrapper prints a reminder.
+
 ### S1 — Health (P0)
 
 ```bash
