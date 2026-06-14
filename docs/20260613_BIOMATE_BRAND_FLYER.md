@@ -26,14 +26,18 @@ BioMate is an **evidence-grounded AI research environment for biomedicine**. It 
 
 ---
 
-## SECTION 4 — What it can do (services, icon list)
-1. **Biomedical database access** — query a large group of curated biomedical databases.
-2. **Literature search** — find and synthesize relevant publications.
-3. **Protocol generation** — design analysis and experimental protocols.
-4. **Data analysis** — run the analysis end to end.
-5. **Interactive visualization & analysis** — explore, slice, and re-interrogate outputs.
-6. **QC & auto-research** — automated quality control plus autonomous, iterative research.
-7. **Audit & reporting** — auditable reports with source citations.
+## SECTION 4 — What it can do (by research domain, grouped)
+**Omics & molecular analysis**
+- Bulk & single-cell RNA-seq · differential expression · variant calling & annotation · ChIP/ATAC & epigenomics · proteomics · metabolomics · methylation arrays · spatial.
+
+**Structural & imaging**
+- Cryo-EM reconstruction · bio-imaging · flow cytometry.
+
+**Drug discovery & translational**
+- ADMET screening · PBPK / PK modeling · clinical-trial dose simulation · target & pathway analysis.
+
+**Regulatory & evidence**
+- IND §2.6.1 narrative generation · 21 CFR Part 11-ready audit packages · CRO campaign evidence.
 
 ---
 
