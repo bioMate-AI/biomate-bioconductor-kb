@@ -5593,6 +5593,28 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       }> | undefined;
       if (!sd?.length) return '';
 
+      // Context-aware injection gate. The block is only useful when the
+      // chat round actually needs to reason about the user's data — see
+      // docs/20260613_DATASET_INJECTION_GATE_DESIGN.md. Default-on
+      // (false-skip cost > false-inject cost), but suppress on pure
+      // abstract-knowledge turns where no signal points at data.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { shouldInjectDatasets } = require('./dataset-injection-gate');
+      const _gate = shouldInjectDatasets({
+        message,
+        intentType: (intent as any)?.type,
+        datasets: sd as any,
+        history: (context as any)?.previousMessages,
+        runState: (context as any)?.runState,
+      });
+      if (!_gate.inject) {
+        // Audit log — counted in production traces for tuning.
+        console.log(`[sessionDatasetsBlock] gate=skip reason=${_gate.reason}`);
+        return '';
+      }
+      // Log injects too so the per-reason mix is visible.
+      console.log(`[sessionDatasetsBlock] gate=inject reason=${_gate.reason}`);
+
       // Split into direct (attached this conversation) vs recovered
       // (from a sister session in the same project — cold-refresh).
       // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
