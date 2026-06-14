@@ -52,11 +52,10 @@
       setup: () => { if (window.__tourFFTo) window.__tourFFTo(done); tab('[data-tour="link-view-results"]'); return { runState: 'completed' }; },
       },
 
-    { target: '.preview-modal', placement: 'left', icon: '🖼️',
-      title: sw.previewTitle,
-      body: sw.previewBody,
-      setup: () => { if (window.__tourFFTo) window.__tourFFTo(done); if (window.__openTourModal) window.__openTourModal('preview', { file: sw.preview }); return { runState: 'completed' }; },
-      },
+    // Preview/visualisation step removed for bioc: no SVG handlers exist for
+    // volcano/UMAP/Manhattan in Modals.jsx, so opening the modal landed on the
+    // "no visualization registered" fallback. Authoring those would be new
+    // design content — outside scope. Tour skips straight to Methods.
 
     { target: '[data-tour="after-run-body"]', placement: 'left', icon: '📝',
       title: 'Methods · paste-ready prose',
@@ -96,8 +95,8 @@
   {
     T['bioc-kb-routing'].steps = [
       { target: null, placement: 'center', icon: '🧬',
-        title: 'Bioconductor · DESeq2 chain',
-        body: (<>A differential-expression run, end to end. BioMate <b>matches</b> your request to a curated Bioconductor workflow, <b>routes</b> each step to the right package, runs the <b>six-phase chain</b>, then hands you a full report.<div className="hint">~3 min · match → route → run → report. Sit back — the tour drives every step.</div></>),
+        title: 'Bulk RNA-seq differential expression with Bioconductor',
+        body: (<>We're going to compare gene expression between a control group and a treated group, using the standard Bioconductor toolkit: <b>DESeq2</b> for the statistical test, <b>apeglm</b> to shrink noisy fold-changes, and <b>clusterProfiler</b> for pathway enrichment. No R experience needed — BioMate picks the right workflow from your request, runs it for you, and hands back a paste-ready report.<div className="hint">Sit back — the tour drives every step.</div></>),
         setup: () => { if (window.__tourReset) window.__tourReset(); return { scenario: 'bioc_kb', runState: 'idle' }; },
         },
 
@@ -185,7 +184,7 @@
     T['bioc-sc-routing'].steps = [
       { target: null, placement: 'center', icon: '🔬',
         title: 'Bioconductor · scRNA-seq chain',
-        body: (<>Same agent, a single-cell request. BioMate routes to the <b>OSCA</b> stack, clusters and annotates in parallel, then runs condition DE the statistically correct way — pseudobulk.<div className="hint">~3 min · route → cluster → annotate → pseudobulk DE → report.</div></>),
+        body: (<>Same agent, a single-cell request. BioMate routes to the <b>OSCA</b> stack, clusters and annotates in parallel, then runs condition DE the statistically correct way — pseudobulk.<div className="hint">Sit back — the tour drives every step.</div></>),
         setup: () => { if (window.__tourReset) window.__tourReset(); return { scenario: 'bioc_sc', runState: 'idle' }; },
         },
 
@@ -261,7 +260,7 @@
     T['bioc-methyl-routing'].steps = [
       { target: null, placement: 'center', icon: '🧫',
         title: 'Bioconductor · 450k methylation chain',
-        body: (<>A methylation-array request. This chain rides a <b>genomic backbone</b> object instead of a count matrix — probe coordinates travel with the data so region-level analysis is possible.<div className="hint">~3 min · IDAT → GenomicRatioSet → DMRs → CpG-corrected GO → report.</div></>),
+        body: (<>A methylation-array request. This chain rides a <b>genomic backbone</b> object instead of a count matrix — probe coordinates travel with the data so region-level analysis is possible.<div className="hint">Sit back — the tour drives every step.</div></>),
         setup: () => { if (window.__tourReset) window.__tourReset(); return { scenario: 'bioc_methyl', runState: 'idle' }; },
         },
 
