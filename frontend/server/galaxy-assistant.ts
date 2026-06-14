@@ -896,6 +896,17 @@ export async function groundInlineParameters(args: {
       optionalParams,
     });
     if (schema.params.length === 0) {
+      // Diagnostic: surface the shape we received so we can tell whether the
+      // caller passed nothing, bare strings, or rich entries.
+      console.warn(
+        '[groundInlineParameters] schema empty for', workflowName,
+        '— required:', Array.isArray(requiredParams)
+          ? `${requiredParams.length} items, first=${JSON.stringify(requiredParams[0])}`
+          : typeof requiredParams,
+        'optional:', Array.isArray(optionalParams)
+          ? `${optionalParams.length} items, first=${JSON.stringify(optionalParams[0])}`
+          : typeof optionalParams,
+      );
       onStatus?.('No schema metadata; using legacy parameter mapping', { stage: 'fallback' });
       const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
       return { params: remapped, path: 'legacy-alias' };
