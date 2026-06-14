@@ -124,3 +124,10 @@ versioning problem, not a BioMate build bug.
 imaging/metabolomics-core/genomics/etc. are NOT affected — only the miaverse subtree.
 This closes the incremental investigation definitively: it is not solvable in our pipeline; it
 needs a date-pinned base or an upstream version bump.
+
+## Impact scope (precise) — only the miaverse subtree is blocked
+The upstream miaverse drift blocks exactly **11 workflows across 4 packages**:
+`mia`, `iSEEtree`, `miaViz`, `philr` (philr pulls mia). That is **33 of 44 metagenomics
+workflows still fine**, plus all metabolomics-core / imaging / other domains unaffected.
+For option 2 (exclude the miaverse), drop just these 4 packages from `deps/metagenomics.txt`
+and mark those 11 workflows non-runnable until the upstream base is date-pinned (option 1).
