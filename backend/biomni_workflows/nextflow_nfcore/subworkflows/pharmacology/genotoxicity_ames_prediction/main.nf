@@ -104,10 +104,18 @@ ICH_S2_CATS = {
 }
 
 def ames_verdict(alerts):
-    '''Overall Ames prediction from alert list.'''
-    if any(a[3] == 'HIGH' for a in alerts):
+    '''Overall Ames prediction from alert list.
+
+    Tuple layout (set at line 153): (name, cat, severity, desc).
+    Severity is at index 2, NOT 3 — previous a[3] check was reading the
+    long description string ("Aromatic nitro -- DNA adduct former..."),
+    so the equality never held and every compound silently returned
+    NEGATIVE. Surfaced 2026-06-12 on canonical Ames+ positive control
+    4-nitroaniline.
+    '''
+    if any(a[2] == 'HIGH' for a in alerts):
         return 'POSITIVE', 'HIGH', 'Predicted Ames-positive: Cat A structural alert(s) found'
-    if any(a[3] == 'MEDIUM' for a in alerts):
+    if any(a[2] == 'MEDIUM' for a in alerts):
         return 'SUSPECT', 'MEDIUM', 'Predicted Ames-suspect: Cat B metabolic activation alert(s)'
     return 'NEGATIVE', 'LOW', 'No structural alerts detected -- predicted Ames-negative'
 
