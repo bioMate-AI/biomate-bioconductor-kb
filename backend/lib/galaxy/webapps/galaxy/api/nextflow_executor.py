@@ -998,6 +998,40 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         shutil.copy(str(Path(src).expanduser()), str(dest))
 
 
+def _resolve_read_filename(nf_text: str, base: str) -> str:
+    """Return the literal filename the workflow body reads for declared input `base`.
+
+    The `// Input:` declaration uses a logical base token (e.g. `sce2`), but the R body
+    often reads a specific filename with an extension (`readRDS("sce2.rds")`). The harness
+    stages by the declared token, so when the workflow reads `<base>.<ext>` we must stage
+    the file under that exact name. Strategy:
+      * If the workflow reads the bare `<base>` literally (readRDS/read.*/file.exists/loadDb),
+        keep the bare token (extension-agnostic readers work either way).
+      * Else, if it reads `<base>.<ext>`, stage under `<base>.<ext>` (prefer .rds, then the
+        first extension referenced).
+      * Else, fall back to the bare token unchanged.
+    A trailing slash (directory inputs like `sample_bams/`) is preserved as-is.
+    """
+    if base.endswith("/"):
+        return base
+    b = re.escape(base)
+    read_fn = r'(?:readRDS|loadDb|read\.csv|read\.table|read\.delim|file\.exists|readLines|gzfile)'
+    # bare literal read of the token -> already correct, keep as-is
+    if re.search(read_fn + r'\(\s*"' + b + r'"', nf_text) or \
+       re.search(r'<-\s*"' + b + r'"\s*$', nf_text, re.MULTILINE):
+        return base
+    # the token already carries an extension (e.g. Pan-cancer-hg38.rds, vV_newSamples.txt)
+    if re.search(r'\.[A-Za-z0-9]+$', base):
+        return base
+    # literal read of <base>.<ext>; prefer .rds, then the first referenced extension
+    exts = re.findall(read_fn + r'\(\s*"' + b + r'\.([A-Za-z0-9]+)"', nf_text)
+    exts += re.findall(r'<-\s*"' + b + r'\.([A-Za-z0-9]+)"', nf_text)
+    if not exts:
+        return base
+    ext = "rds" if "rds" in exts else exts[0]
+    return f"{base}.{ext}"
+
+
 def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                               run_id: str = "") -> Optional[Path]:
     """If `nf_path` is a regenerated Bioconductor subworkflow (named-only workflow with a
@@ -1036,7 +1070,14 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
         src = params.get(name)
         if not src:
             return None
-        dest = run_dir / name
+        # The `// Input:` declaration carries a *logical* base token (e.g. `sce2`, `fit2`),
+        # but the workflow body frequently reads a *literal* filename with an extension
+        # (`readRDS("sce2.rds")`, `file.exists("fit2.rds")`). If we stage under the bare
+        # token, the workflow's hard-coded `readRDS("<token>.<ext>")` cannot find the file.
+        # Resolve the literal filename the workflow actually reads and stage under THAT name
+        # so the input contract is satisfied without touching the workflow logic.
+        stage_name = _resolve_read_filename(text, name)
+        dest = run_dir / stage_name
         try:
             _stage_declared_input(src, dest)
         except Exception as exc:

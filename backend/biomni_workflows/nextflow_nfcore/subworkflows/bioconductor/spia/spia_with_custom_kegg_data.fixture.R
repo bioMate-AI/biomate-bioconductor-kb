@@ -20,8 +20,9 @@ DE_Colorectal=tg1$logFC
 names(DE_Colorectal)<-as.vector(tg1$ENTREZ)
 ALL_Colorectal=top$ENTREZ
 
-saveRDS(DE_Colorectal, file = "DE_Colorectal")
-saveRDS(ALL_Colorectal, file = "ALL_Colorectal")
+# The workflow reads "DE_Colorectal.rds" / "ALL_Colorectal.rds" — emit the exact names.
+saveRDS(DE_Colorectal, file = "DE_Colorectal.rds")
+saveRDS(ALL_Colorectal, file = "ALL_Colorectal.rds")
 
 source_mydir_path <- system.file("extdata/keggxml/hsa", package="SPIA")
 target_mydir_path <- "mydir"
