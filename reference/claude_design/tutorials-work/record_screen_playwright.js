@@ -55,8 +55,8 @@ const TOUR_ID = {
 // Capture resolution. 1920×1200 with DSF=2 → chromium renders internally at
 // 3840×2400 and downsamples — visibly sharper than 1280×800 without the
 // chromium-spawn / context-timeout issues we hit at 2560×1440 + DSF=2.
-const W = 1920;
-const H = 1200;
+const W = 2560;
+const H = 1440;
 const DSF = 2;
 
 (async () => {
@@ -136,7 +136,10 @@ const DSF = 2;
     await warm.waitForTimeout(2000);
     await startTour(warm, LABEL);
     console.log(`[${KEY}] warm pass OK · tour callout visible`);
-    await warmCtx.close();
+    await Promise.race([
+      warmCtx.close(),
+      new Promise(r => setTimeout(r, 5_000)),
+    ]).catch(err => console.log(`[${KEY}] warm close warning:`, err.message.slice(0, 100)));
 
     // ── Pass 2: record context. Same URL, same auto-tour, video ON.
     console.log(`[${KEY}] record pass (video on)…`);
@@ -181,9 +184,22 @@ const DSF = 2;
     }
 
     await page.waitForTimeout(TRAIL_MS);
-    await ctx.close();
+    // Save reference to the page-video before the context goes away — we need
+    // to await its path AFTER context.close() so playwright finalizes the file.
+    const vid = page.video();
+    // Some pages with lingering promises cause ctx.close() to hit the default
+    // 30s timeout. Swallow it — the video is still finalized inside the temp
+    // dir and we pick it up below.
+    await Promise.race([
+      ctx.close(),
+      new Promise(r => setTimeout(r, 8_000)),
+    ]).catch(err => console.log(`[${KEY}] ctx.close warning:`, err.message.slice(0, 100)));
+    // Best-effort path (won't throw if file isn't ready yet).
+    if (vid) {
+      try { await vid.path(); } catch { /* ignore */ }
+    }
   } finally {
-    await browser.close();
+    await browser.close().catch(() => {});
   }
 
   // Move the produced webm to the canonical name.
