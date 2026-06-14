@@ -2293,11 +2293,34 @@ def _evaluate_qc_from_s3(
             return gate_failures
 
         # ── ADMET path ─────────────────────────────────────────────────────
-        # Build a dummy handler just to reuse _check_qc_thresholds
+        # Real SSE callback — broadcasts to /internal/sse-inject so the
+        # AutoLoopPanel receives autoloop_gate_results / autoloop_update
+        # events. Previously this was a no-op which left the UI empty
+        # even when gates were correctly evaluated.
+        import os as _os, urllib.request as _urllib
+        _frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
+        _inject_url = f"{_frontend_url}/internal/sse-inject"
+
+        def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
+            try:
+                req = _urllib.Request(
+                    _inject_url,
+                    data=_json.dumps({
+                        "invocation_id": run_id,
+                        "event_type": event_type,
+                        "data": data,
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with _urllib.urlopen(req, timeout=5):
+                    pass
+            except Exception as exc:
+                log.debug("[autoloop SSE] inject failed for %s: %s", event_type, exc)
+
         handler = NextflowQCGateHandler(
             invocation_id=run_id,
             work_dir=Path("/tmp"),
-            sse_callback=lambda *a: None,
+            sse_callback=_sse_emit,
             app=None,
             workflow_domain=workflow_domain,
             qc_overrides=qc_overrides,
