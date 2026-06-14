@@ -7399,6 +7399,136 @@ def validate_workflow_profile(request: ValidateProfileRequest) -> Dict[str, Any]
 
 # ── Output Intelligence ──────────────────────────────────────────────────────────
 
+
+def _parse_number(value: Any) -> Optional[float]:
+    """Extract a number from a key_results `value` string (or scalar).
+
+    Strips thousand separators, trailing units (%, $, etc.). Returns None if
+    the value cannot be parsed as a clean numeric (e.g. "GeneA (score: -8.2)"
+    or "5.1e-3, 1.4e-4, ..." style multi-value strings).
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    s = value.strip().replace(",", "").rstrip("%").lstrip("$")
+    # Reject obviously composite strings (multiple tokens / parentheses)
+    if " " in s or "(" in s or "/" in s or ":" in s:
+        return None
+    try:
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
+    """Project structured key_results into FindingsFigure[] for the v2 panel.
+
+    Domain-agnostic. Emits at most one figure each of kind qc / composition /
+    bars, only when the underlying numbers are real. Returns [] when key_results
+    cannot be projected mechanically — never fabricates data.
+
+    Shapes (must match frontend/client/src/v2/AfterRunReport.tsx FindingsFigure):
+      - {kind:'qc',          title, unit?, kept, total}
+      - {kind:'composition', title, data: [[label, number], ...]}
+      - {kind:'bars',        title, unit?, highlight?, data: [[label, number], ...]}
+    """
+    if not isinstance(key_results, list) or not key_results:
+        return []
+
+    # Normalise to dicts with parsed numbers.
+    items: List[Dict[str, Any]] = []
+    for kr in key_results:
+        if not isinstance(kr, dict):
+            continue
+        metric = (kr.get("metric") or kr.get("label") or "").strip()
+        if not metric:
+            continue
+        num = _parse_number(kr.get("value"))
+        items.append({"metric": metric, "value_num": num, "value_raw": kr.get("value")})
+
+    numeric = [it for it in items if it["value_num"] is not None]
+    if not numeric:
+        return []
+
+    figures: List[Dict[str, Any]] = []
+
+    # ── QC kind ──
+    # Look for a (subset, total) pair: one metric matching /total|all/i and
+    # one matching /pass|kept|retained|passing/i (case-insensitive).
+    total_item = None
+    kept_item = None
+    for it in numeric:
+        m = it["metric"].lower()
+        if total_item is None and re.search(r"\btotal\b|\ball\b", m):
+            total_item = it
+        if kept_item is None and re.search(r"\bpass\b|kept|retained|passing", m):
+            kept_item = it
+    if total_item and kept_item and total_item is not kept_item:
+        total_n = total_item["value_num"]
+        kept_n = kept_item["value_num"]
+        if total_n > 0 and 0 <= kept_n <= total_n:
+            figures.append({
+                "kind": "qc",
+                "title": f"{kept_item['metric']} / {total_item['metric']}",
+                "kept": int(kept_n) if kept_n.is_integer() else kept_n,
+                "total": int(total_n) if total_n.is_integer() else total_n,
+            })
+
+    # ── Composition kind ──
+    # ≥2 numeric items sharing a trailing word (e.g. "HIGH impact",
+    # "MODERATE impact"; or "FAIL modules", "WARN modules"). Skip items
+    # already used by the QC figure and skip "total" rows.
+    def _last_word(metric: str) -> str:
+        parts = re.findall(r"[A-Za-z]+", metric.lower())
+        return parts[-1] if parts else ""
+
+    used_ids = {id(total_item), id(kept_item)} if (total_item and kept_item) else set()
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for it in numeric:
+        if id(it) in used_ids:
+            continue
+        if re.search(r"\btotal\b|\ball\b", it["metric"].lower()):
+            continue
+        if it["value_num"] < 0:
+            continue
+        key = _last_word(it["metric"])
+        if not key or key in {"variants", "compounds", "reads", "samples", "genes"}:
+            # generic plural — not a real shared category
+            pass
+        groups.setdefault(key, []).append(it)
+    comp_group: List[Dict[str, Any]] = []
+    for key, members in groups.items():
+        if len(members) >= 2 and sum(m["value_num"] for m in members) > 0:
+            comp_group = members
+            break
+    if comp_group:
+        figures.append({
+            "kind": "composition",
+            "title": " vs ".join(m["metric"] for m in comp_group[:3]) if len(comp_group) <= 3
+                     else f"{comp_group[0]['metric']} breakdown",
+            "data": [[m["metric"], m["value_num"]] for m in comp_group],
+        })
+        used_ids |= {id(m) for m in comp_group}
+
+    # ── Bars kind (fallback) ──
+    # Any remaining ≥2 numeric items (positive) that aren't the totals/kept row.
+    remaining = [it for it in numeric
+                 if id(it) not in used_ids
+                 and it["value_num"] >= 0
+                 and not re.search(r"\btotal\b|\ball\b", it["metric"].lower())]
+    if len(remaining) >= 2:
+        figures.append({
+            "kind": "bars",
+            "title": "Key metrics",
+            "data": [[it["metric"], it["value_num"]] for it in remaining],
+        })
+
+    return figures
+
+
 @router.post("/api/nextflow/analyze-outputs", summary="Analyze Nextflow run outputs and generate findings report")
 async def analyze_outputs(request: Request) -> Dict[str, Any]:
     """
@@ -7497,6 +7627,16 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         "caveats": analysis.caveats,
         "next_steps": analysis.next_steps,
     }
+    # Domain-agnostic projection of structured key_results into v2 FindingsFigure
+    # shapes (FigBars / FigComposition / FigQc). Hide-when-empty: when the
+    # key_results don't carry numbers that map cleanly, we omit `figures`
+    # rather than ship fake data (CLAUDE.md "no fabrication" rule).
+    try:
+        _figs = _build_figures_from_key_results(analysis.key_results)
+        if _figs:
+            structured_payload["figures"] = _figs
+    except Exception as _exc:
+        logger.warning("[analyze-outputs] figures adapter failed: %s", _exc)
     try:
         import json as _json
         os.makedirs(output_dir, exist_ok=True)
