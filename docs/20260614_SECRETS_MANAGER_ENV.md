@@ -10,14 +10,27 @@
 - 密钥出于安全不能进 GitHub。
 - AWS Secrets Manager 才是 AWS 上"GitLab CI/CD Variables"的对应物:控制台/CLI 配值、加密、审计、可轮换、按环境隔离、IAM 控权。
 
-## 1. 已就绪的基础设施(团队带外搭的)
+## 1. 各环境的 secret(已就绪)
 
-| 资源 | 说明 |
-|---|---|
-| Secret `test/biomate/galaxy-env` | JSON,运行时环境变量(当前 18 个核心:JWT_SECRET / DATABASE_URL / AWS 凭证 / LAGO_* / REDIS_URL / BILLING_INTERNAL_KEY / FIELD_ENCRYPTION_SECRET …) |
-| Secret `test/biomate/rds-galaxy` | RDS 数据库凭证(host/port/user/password/url) |
-| 实例角色 `BioMateEc2DeployRole` | 策略 `test-biomate-secrets-read` 已授 `secretsmanager:GetSecretValue` |
-| `test/` 前缀 | 按环境隔离(test/staging/prod) |
+| 环境 | 部署机 | env secret | 说明 |
+|---|---|---|---|
+| **dev** | i-06696b0d91f4346e0(sync_to_dev) | **`dev/biomate/galaxy-env`**(64 变量) | **2026-06-14 新建并加载** —— dev 机原本 env 主机手管,现已接入 Secrets Manager |
+| test | i-0482a6fa98c6f301a(GHA) | `test/biomate/galaxy-env`(18 变量) | 团队原有,值是 test 专属(**勿用别环境的值覆盖**) |
+| prod | — | `biomate/production/*`(us-east-1) | 团队原有 |
+
+共用:`test/biomate/rds-galaxy`(RDS 凭证)、`biomate/lago/api-key`。
+
+实例角色 `BioMateEc2DeployRole` 的读权限:
+- `test-biomate-secrets-read`(团队原有)→ test 系列
+- `dev-biomate-secrets-read`(**2026-06-14 新加**)→ `dev/biomate/galaxy-env-*`
+
+⚠️ **不同环境值不同(AWS key/DB/JWT 都不一样),灌值时务必用对应环境的源,切勿跨环境覆盖。**
+
+### dev 环境落地记录(2026-06-14)
+- 用 dev 机当前 .env(48)+ 本地独有(18)= 64 变量 `create-secret dev/biomate/galaxy-env`。
+- 给实例角色加 `dev-biomate-secrets-read`。
+- 在 dev 机实跑 `load_env_from_secrets.sh`(BIOMATE_ENV=dev):核对 0 值冲突、新增 18、保留 3 主机独有 → `/opt/biomate/.env` 从 49 → 67 变量。**之前"本地有、部署机缺"的变量已全部到位。**
+- ⏳ 需重启容器才生效(`docker --env-file` 启动时读)。
 
 ## 2. 流程
 
