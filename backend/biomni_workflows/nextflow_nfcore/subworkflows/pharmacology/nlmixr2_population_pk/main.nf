@@ -268,10 +268,21 @@ process NLMIXR2_POPULATION_PK {
     max_shrinkage_pct <- if (is.na(raw_shrink_max)) NA_real_ else
         if (raw_shrink_max <= 1.0) raw_shrink_max * 100 else raw_shrink_max
 
-    # Condition number from covariance matrix
-    cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
-    cond_number <- if (!is.null(cov_mat) && is.matrix(cov_mat) && nrow(cov_mat) > 0) {
-        eig <- eigen(cov_mat, only.values = TRUE)\$values
+    # Condition number from covariance matrix. nlmixr2's standard accessor is
+    # fit\$cov; older code looked at fit\$covMatrix which doesn't exist in 4.x
+    # (yielded a list that jsonlite then serialized as '{}'). Try fit\$cov →
+    # fit\$cov\$cov → fit\$covMatrix in order; coerce to a numeric matrix
+    # before eigen().
+    cov_mat <- tryCatch(fit\$cov, error = function(e) NULL)
+    if (!is.matrix(cov_mat)) {
+        cov_mat <- tryCatch(fit\$cov\$cov, error = function(e) NULL)
+    }
+    if (!is.matrix(cov_mat)) {
+        cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
+    }
+    cond_number <- if (is.matrix(cov_mat) && nrow(cov_mat) > 0) {
+        eig <- suppressWarnings(eigen(cov_mat, only.values = TRUE)\$values)
+        eig <- as.numeric(eig)
         eig <- eig[is.finite(eig) & abs(eig) > 1e-10]
         if (length(eig) > 0) max(abs(eig)) / min(abs(eig)) else NA_real_
     } else NA_real_
