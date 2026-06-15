@@ -231,8 +231,12 @@ export function ChatMessage({
     //   <WhyAnchor> renders nothing when either context is missing or when
     //   the rationale endpoint returns no curated row — safe to mount
     //   unconditionally.
-    const wfName = currentExecutionRun?.workflowName
     const tech = (message.metadata as any)?.technical as Record<string, any> | undefined
+    // Phase 2 design-faithful: prefer explicit rationale_id from the narrator
+    // when present (matches research_agents/research-data.js `rationaleId:'rnaseq:B'`).
+    // Falls back to legacy (workflow_name + phase_id) derivation otherwise.
+    const rationaleId = tech?.rationale_id as string | undefined
+    const wfName = currentExecutionRun?.workflowName
     const phaseId = (tech?.phase_id ?? tech?.phase_name ?? tech?.name) as string | undefined
     return (
       <div
@@ -252,7 +256,7 @@ export function ChatMessage({
         <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
         <span>{message.content}</span>
-        <WhyAnchor workflowName={wfName} phaseId={phaseId} />
+        <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} />
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
         )}
