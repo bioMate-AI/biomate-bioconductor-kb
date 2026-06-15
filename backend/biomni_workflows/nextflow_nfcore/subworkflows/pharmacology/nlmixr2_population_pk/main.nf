@@ -353,15 +353,46 @@ process NLMIXR2_POPULATION_PK {
     # ofv_delta_max NOT emitted because the workflow runs a single fit;
     # OFV-stability gate needs successive-iteration ΔOFV which would
     # require a refit pipeline. Gate skips with None — by design.
+    # Threshold + pass-band fields per qc_evidence.yaml.nlmixr2_poppk.*
+    # (added 2026-06-15 Track 2 batch 1+ for the 6 trailing gaps):
+    #   eta_shrinkage:    pass < 20%, advisory 20-30%, fail > 30%  (GOLD-anchored)
+    #   condition_number: pass < 100, advisory 100-1000, fail > 1000 (SILVER convention)
+    #   ofv_stability:    single-fit workflow can't compute ΔOFV — emit None +
+    #                     status to keep the gate row in audit ledger without
+    #                     fabricating a verdict.
+    ETA_SHRINKAGE_PASS_PCT      <- 20
+    ETA_SHRINKAGE_FAIL_PCT      <- 30
+    CONDITION_NUMBER_PASS_LIMIT <- 100
+    CONDITION_NUMBER_FAIL_LIMIT <- 1000
+
+    eta_v <- results_json\$max_eta_shrinkage_pct
+    cn_v  <- results_json\$condition_number
+
+    eta_passes <- if (!is.null(eta_v)) (eta_v < ETA_SHRINKAGE_PASS_PCT) else NULL
+    cn_passes  <- if (!is.null(cn_v))  (cn_v  < CONDITION_NUMBER_PASS_LIMIT) else NULL
+
     qc_metrics <- list(
-        eta_shrinkage_pct_max = results_json\$max_eta_shrinkage_pct,
-        condition_number      = results_json\$condition_number,
-        ofv                   = results_json\$ofv,
-        convergence_status    = results_json\$convergence_status,
-        n_subjects            = results_json\$n_subjects,
-        n_observations        = results_json\$n_observations,
-        model_type            = results_json\$model_type,
-        algorithm             = results_json\$algorithm
+        # nlmixr2_eta_shrinkage (GOLD-anchored Savic & Karlsson)
+        eta_shrinkage_pct_max                  = eta_v,
+        eta_shrinkage_pct_pass_threshold       = ETA_SHRINKAGE_PASS_PCT,
+        eta_shrinkage_pct_fail_threshold       = ETA_SHRINKAGE_FAIL_PCT,
+        nlmixr2_eta_shrinkage_passes           = eta_passes,
+        # nlmixr2_condition_number (SILVER, community convention)
+        condition_number                       = cn_v,
+        condition_number_pass_threshold        = CONDITION_NUMBER_PASS_LIMIT,
+        condition_number_fail_threshold        = CONDITION_NUMBER_FAIL_LIMIT,
+        nlmixr2_condition_number_passes        = cn_passes,
+        # nlmixr2_ofv_stability (BRONZE; needs multi-fit refit pipeline)
+        ofv                                    = results_json\$ofv,
+        ofv_delta_max                          = NULL,
+        nlmixr2_ofv_stability_passes           = NULL,
+        nlmixr2_ofv_stability_status           = "not_computed (single-fit workflow; ΔOFV gate needs refit pipeline)",
+        # context
+        convergence_status                     = results_json\$convergence_status,
+        n_subjects                             = results_json\$n_subjects,
+        n_observations                         = results_json\$n_observations,
+        model_type                             = results_json\$model_type,
+        algorithm                              = results_json\$algorithm
     )
     write_json(qc_metrics, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
     REOF
