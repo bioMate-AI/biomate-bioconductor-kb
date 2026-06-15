@@ -89,6 +89,18 @@ interface ChatInterfaceProps {
    *  so workflow UI lives exclusively in the panel. */
   isPanelOpen?: boolean
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
+  /**
+   * Registers a parent-triggered send. Useful for the
+   * IntentClarificationCard re-submit flow: when the user picks a
+   * candidate, chat-with-artifacts re-submits the original message with
+   * `context.intentOverride` set so the backend skips ambiguity detection.
+   */
+  onRegisterSendMessage?: (
+    sender: (
+      message: string,
+      contextOverride?: Record<string, unknown>,
+    ) => void,
+  ) => void
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -432,6 +444,7 @@ export function ChatInterface({
   panelWorkflowMessageId,
   isPanelOpen = false,
   onRegisterSetDraft,
+  onRegisterSendMessage,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const [workflowGeneratingPhase, setWorkflowGeneratingPhase] = useState<'thinking' | 'workflow'>('thinking')
@@ -612,6 +625,8 @@ export function ChatInterface({
     content: string
     sessionId: string
     placeholderId: string
+    /** Caller-supplied override merged into the chat context (e.g. intentOverride). */
+    contextOverride?: Record<string, unknown>
   }
 
   const updateMessageInSession = (sessionId: string, messageId: string, updates: Partial<Message>) => {
@@ -664,7 +679,7 @@ export function ChatInterface({
   // Galaxy Chat API integration with full hybrid intelligence
   // Uses /api/chat which provides: intent analysis, tool search, dataset RAG, workflow generation
   const chatMutation = useMutation({
-    mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
+    mutationFn: async ({ content, sessionId, placeholderId, contextOverride }: ChatRequestPayload) => {
       const session = chatHistoryService.getSession(sessionId)
       // Thread the active project id (if any) into chat-stream context.
       // Server policy: null/missing → chat stays project-less; non-null
@@ -715,6 +730,10 @@ export function ChatInterface({
             ...(sessionId && { memorySessionId: sessionId, sessionId }),
             ...(_activeProjectId && { projectId: _activeProjectId }),
             assistantMessageId: placeholderId,
+            // Caller-supplied override (e.g. intentOverride from
+            // IntentClarificationCard re-submit). Spread LAST so it can
+            // augment but not be clobbered by defaults above.
+            ...(contextOverride || {}),
           }
         })
       })
@@ -1443,7 +1462,11 @@ export function ChatInterface({
     }
   }
 
-  const handleSendMessage = async (content: string, files?: File[]) => {
+  const handleSendMessage = async (
+    content: string,
+    files?: File[],
+    contextOverride?: Record<string, unknown>,
+  ) => {
     // Handle attached files: upload to backend and include dataset IDs in prompt context.
     if (files && files.length > 0) {
       console.log('[ChatInterface] Files attached:', files.map((f) => f.name))
@@ -1558,10 +1581,22 @@ export function ChatInterface({
     analytics.track('query_sent', { query_length: content.length })
 
     // Call Galaxy API (always, regardless of session)
-    chatMutation.mutate({ content, sessionId, placeholderId })
+    chatMutation.mutate({ content, sessionId, placeholderId, contextOverride })
 
     onSendMessage(content)
   }
+
+  // Stable bridge between handleSendMessage (recreated each render) and the
+  // parent-registered sender (registered once on mount). The ref points at
+  // the latest handleSendMessage; the registered closure reads through it.
+  const handleSendMessageRef = useRef(handleSendMessage)
+  handleSendMessageRef.current = handleSendMessage
+  useEffect(() => {
+    if (!onRegisterSendMessage) return
+    onRegisterSendMessage((message, contextOverride) => {
+      void handleSendMessageRef.current(message, undefined, contextOverride)
+    })
+  }, [onRegisterSendMessage])
 
   /**
    * Soft-queue wrapper around handleSendMessage.
