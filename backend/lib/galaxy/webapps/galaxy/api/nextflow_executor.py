@@ -2293,11 +2293,34 @@ def _evaluate_qc_from_s3(
             return gate_failures
 
         # ── ADMET path ─────────────────────────────────────────────────────
-        # Build a dummy handler just to reuse _check_qc_thresholds
+        # Real SSE callback — broadcasts to /internal/sse-inject so the
+        # AutoLoopPanel receives autoloop_gate_results / autoloop_update
+        # events. Previously this was a no-op which left the UI empty
+        # even when gates were correctly evaluated.
+        import os as _os, urllib.request as _urllib
+        _frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
+        _inject_url = f"{_frontend_url}/internal/sse-inject"
+
+        def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
+            try:
+                req = _urllib.Request(
+                    _inject_url,
+                    data=_json.dumps({
+                        "invocation_id": run_id,
+                        "event_type": event_type,
+                        "data": data,
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with _urllib.urlopen(req, timeout=5):
+                    pass
+            except Exception as exc:
+                log.debug("[autoloop SSE] inject failed for %s: %s", event_type, exc)
+
         handler = NextflowQCGateHandler(
             invocation_id=run_id,
             work_dir=Path("/tmp"),
-            sse_callback=lambda *a: None,
+            sse_callback=_sse_emit,
             app=None,
             workflow_domain=workflow_domain,
             qc_overrides=qc_overrides,
@@ -4428,10 +4451,20 @@ def _steps_from_db_metadata(nextflow_path: str) -> Dict[str, Any]:
             return out
         for i, s in enumerate(meta):
             nm = (s.get("step") or f"Step {i + 1}").strip()
+            # Per-step params: the enricher (enrich_bioc_step_params.py) stores a rich
+            # `params` LIST [{name,type,default,description,options}] on each step. The UI
+            # (nextflow-workflow-viewer `step.parameters`, step-adjust-modal) consumes a FLAT
+            # `Record<string, value>` — name -> current/default value — and sources widget
+            # type/description from the workflow-level required/optional params by name. So
+            # flatten the list to {name: default} here; keep the rich list under `param_meta`
+            # for any consumer that wants type/options without the workflow-level lookup.
+            _plist = s.get("params") or []
+            _params = {p.get("name"): p.get("default")
+                       for p in _plist if isinstance(p, dict) and p.get("name")}
             out[str(i)] = {
                 "id": str(i), "name": nm, "annotation": nm, "description": nm,
                 "tool_id": _re.sub(r"[^A-Za-z0-9]+", "_", nm).upper()[:48],
-                "type": "tool", "parameters": {}, "inputs": {},
+                "type": "tool", "parameters": _params, "param_meta": _plist, "inputs": {},
                 "phase_group": s.get("phase", "") or "", "phase_label": s.get("phase", "") or "",
                 "visualizations": s.get("visualizations", []) or [],
                 "qc": s.get("qc", []) or [], "outputs": s.get("outputs", []) or [],

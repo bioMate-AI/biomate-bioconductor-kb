@@ -1665,7 +1665,16 @@ export class GalaxyAssistant {
           systemInstruction: 'Based on the code execution results, provide the final answer concisely. Print only the answer value, no explanation.',
           generationConfig: { maxOutputTokens: 512, temperature: 0 },
         });
-        const summaryHistory = await chat.getHistory();
+        const summaryHistoryRaw = await chat.getHistory();
+        // Defensive: Gemini requires history to start with a user turn —
+        // strip any leading model turns (can happen if tool-only turns
+        // re-ordered the conversation prefix).
+        const summaryFirstUser = summaryHistoryRaw.findIndex(
+          (h: any) => h.role === 'user',
+        );
+        const summaryHistory = summaryFirstUser < 0
+          ? []
+          : summaryHistoryRaw.slice(summaryFirstUser);
         const summaryChatObj = noToolModel.startChat({ history: summaryHistory });
         const summaryResult = await summaryChatObj.sendMessage(
           'Based on all the code results above, what is the final answer? Reply with ONLY the answer value.'

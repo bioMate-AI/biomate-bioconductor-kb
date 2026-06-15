@@ -96,6 +96,25 @@ async function shot(page: Page, name: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// expectAutoloopAssertions — hard-fail on autoloop SSE assertions so a
+// silent regression (like the 2026-06-14 ADMET _evaluate_qc_from_s3 no-op
+// sse_callback that left the AutoLoopPanel empty) cannot ship green.
+//
+// We deliberately only hard-fail assertions whose name mentions SSE or
+// autoloop wiring — orthogonal flakes (slow Batch runs, 7-min timeouts)
+// stay as audit-JSON notes so the test isn't environment-brittle.
+// ---------------------------------------------------------------------------
+function expectAutoloopAssertions(testId: string, assertions: ADMETAssertion[]): void {
+  const HARD = /autoloop_gate_results|autoloop_update|autoloop_started|AutoLoopPanel rendered|Remediation block/i;
+  const sseAssertions = assertions.filter(a => HARD.test(a.name));
+  const failures = sseAssertions.filter(a => !a.passed);
+  if (failures.length > 0) {
+    const lines = failures.map(f => `  - ${f.name}${f.note ? ` (${f.note})` : ""}`).join("\n");
+    throw new Error(`[${testId}] ${failures.length} autoloop SSE assertion(s) failed:\n${lines}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Auth helper — API-based login using pre-created fixture account.
 //
 // Root cause (2026-05-27 investigation): dev's /api/auth/register endpoint
@@ -442,6 +461,7 @@ test.describe("AD-1 ADMET full journey", () => {
     for (const a of assertions) console.log(`[AD-1] ${a.passed ? "PASS" : "FAIL"}: ${a.name}${a.note ? ` (${a.note})` : ""}`);
     const critical = assertions.find(a => a.name === "Registration + home loaded");
     expect(critical?.passed).toBe(true);
+    expectAutoloopAssertions("AD-1", assertions);
   });
 });
 
@@ -553,6 +573,7 @@ test.describe("AD-2 RemediationCard renders was→now diff", () => {
       writeAudit();
     }
     for (const a of assertions) console.log(`[AD-2] ${a.passed ? "PASS" : "FAIL"}: ${a.name}${a.note ? ` (${a.note})` : ""}`);
+    expectAutoloopAssertions("AD-2", assertions);
   });
 });
 
@@ -736,6 +757,7 @@ test.describe("AD-4 Multi-attempt auto-loop progression", () => {
       writeAudit();
     }
     for (const a of assertions) console.log(`[AD-4] ${a.passed ? "PASS" : "FAIL"}: ${a.name}${a.note ? ` (${a.note})` : ""}`);
+    expectAutoloopAssertions("AD-4", assertions);
   });
 });
 
