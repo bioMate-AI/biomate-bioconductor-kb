@@ -33,20 +33,7 @@ All **200 packages** — with category, description, and the workflows each one 
 
 ### Packages per domain
 
-```
-transcriptomics  ██████████████████████████████████ 97
-genomics         ████████████ 33
-general          ███████ 19
-proteomics       ██████ 16
-epigenomics      ████ 10
-single-cell      ███ 8
-variant-calling  █ 4
-metagenomics     █ 4
-imaging          █ 4
-enrichment       █ 2
-annotation       █ 2
-metabolomics     █ 1
-```
+![Packages per domain](assets/packages_per_domain.png)
 
 ### Workflows per domain
 
@@ -54,20 +41,7 @@ A package with multiple analyses contributes one `### ` recipe subsection per wo
 workflows across the 200 packages; 45 packages are multi-workflow** (e.g. DESeq2 → standard /
 multi-factor / LRT; crisprScore → 6 scoring recipes).
 
-```
-transcriptomics  ██████████████████████████████████ 157
-genomics         ██████████ 48
-general          ████ 19
-proteomics       ███ 16
-epigenomics      ███ 13
-single-cell      ██ 9
-imaging          █ 5
-variant-calling  █ 4
-metagenomics     █ 4
-annotation       █ 3
-enrichment       █ 2
-metabolomics     █ 1
-```
+![Workflows per domain](assets/workflows_per_domain.png)
 
 ## How these 200 were selected
 
