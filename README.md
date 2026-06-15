@@ -73,34 +73,33 @@ volume**.
 
 ## How this compares
 
-Among the public Claude-Code / agent **skill libraries** surveyed in 2026, this is the **deepest
-R / Bioconductor coverage by a wide margin** — the others are Python-centric or general-science and
-carry only a handful of R packages:
+Public Claude-Code / agent **skill libraries** are almost all **Python-centric or general-science**.
+This is the only one built **for R / Bioconductor** — and the deepest by a wide margin:
 
-| Skill library | R / Bioconductor pkgs | Total skills | Focus |
-|---|--:|--:|---|
-| **BioMate-KB** (this bundle) | **200** | 200 | R / Bioconductor — vignette-grounded, per-package workflow recipes, executable on [BioMate Cloud](https://www.biomate.ai) |
-| GPTomics/bioSkills | ~50–100 | 497 | mixed bioinformatics |
-| jaechang-hits/SciAgent-Skills | ~0 (Python) | 197 | Python agents — holds the BixBench task-accuracy SOTA |
-| K-Dense-AI/scientific-agent-skills | minimal | 138 | general science |
-| ClawBio | 67 | — | adjacent bio domains |
-| wolf5996/agentic-skills | ~10 | — | general agentic |
+| Skill library | Language | R / Bioconductor pkgs | Total skills |
+|---|---|--:|--:|
+| **BioMate-KB** (this bundle) | **R / Bioconductor** | **200** | 200 |
+| GPTomics/bioSkills | mixed | ~50–100 | 497 |
+| jaechang-hits/SciAgent-Skills | Python | ~0 | 197 |
+| K-Dense-AI/scientific-agent-skills | Python | a handful | 138 |
+| ClawBio | mixed | 67 | — |
+| wolf5996/agentic-skills | Python | ~10 | — |
 
-*Public-skill landscape as surveyed in 2026 — it moves fast; the column counts **R/Bioconductor**
+*Public-skill landscape as surveyed in 2026 (it moves fast); the third column counts **R/Bioconductor**
 packages specifically, not total skills.*
 
-**What makes this bundle distinct** — beyond raw coverage:
+**Our contribution** — what no other public skill set offers for R / Bioconductor at this depth:
 
-1. **Vignette-grounded & fact-verified** — every R function named in a skill is verified to appear
+1. **R / Bioconductor depth** — **200** packages here, **1,818** in the full KB — vs a handful in
+   any other library; the rest target Python tooling or general science.
+2. **Vignette-grounded & fact-verified** — every R function named in a skill is verified to appear
    in that package's own Bioconductor vignette (mean verify **0.91**), not free-form LLM prose.
-2. **Per-package workflow recipes** — a package's distinct analyses are explicit `### ` recipes
-   (**390** across the 200), so an agent learns *how to run it*, not just *what it is*.
-3. **Executable backing** — the same knowledge drives runnable workflows on BioMate Cloud for
-   **1,818** packages, so a skill is a starting point for real execution, not a dead end.
+3. **Per-package workflow recipes** — a package's distinct analyses are explicit `### ` recipes
+   (**390** across the 200) — *how to run it*, not just *what it is*.
+4. **Executable backing** — the same knowledge runs as managed, validated workflows on
+   [BioMate Cloud](https://www.biomate.ai) for **1,818** packages — a skill is a starting point for
+   real execution, not a dead end.
 
-We deliberately **don't** compete on agent task-completion benchmarks (e.g. BixBench — SciAgent-Skills
-leads there). This bundle competes on **R/Bioconductor coverage, vignette grounding, and downstream
-execution**.
 
 ## Want the full collection?
 
