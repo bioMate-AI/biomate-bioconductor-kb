@@ -57,6 +57,7 @@ import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
+import { WhyAnchor } from "./why-anchor"
 import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
@@ -221,6 +222,17 @@ export function ChatMessage({
     const kind = (message.metadata as any)?.kind as string | undefined
     const speaker = deriveSpeaker(kind)
     const pillLabel = SPEAKER_LABELS[speaker] ?? 'WF'
+    // L week-3: thread workflow_name + phase_id through to <WhyAnchor>.
+    //   workflow_name comes from the active execution run's chain.
+    //   phase_id is whichever the backend narrator surfaces — it uses
+    //   `phase_name` on workflow.phase_* events (per workflow_chat_narrator.py
+    //   :12 docstring), but older paths sometimes emit `phase_id` or `name`.
+    //   <WhyAnchor> renders nothing when either context is missing or when
+    //   the rationale endpoint returns no curated row — safe to mount
+    //   unconditionally.
+    const wfName = currentExecutionRun?.workflowName
+    const tech = (message.metadata as any)?.technical as Record<string, any> | undefined
+    const phaseId = (tech?.phase_id ?? tech?.phase_name ?? tech?.name) as string | undefined
     return (
       <div
         className={cn("msg progress px-4 py-1")}
@@ -239,6 +251,7 @@ export function ChatMessage({
         <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
         <span>{message.content}</span>
+        <WhyAnchor workflowName={wfName} phaseId={phaseId} />
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
         )}
