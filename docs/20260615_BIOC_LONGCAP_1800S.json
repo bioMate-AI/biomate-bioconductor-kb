@@ -1,0 +1,513 @@
+[
+  {
+    "pkg": "ropls",
+    "wf": "supervised_pls_opls.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "ERROR ~ Error executing process > 'BIOC_ROPLS_SUPERVISED_PLS_OPLS (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "ropls",
+    "wf": "multi_assay_experiment_workflow.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "alabaster_mae",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "ERROR ~ Error executing process > 'BIOC_ALABASTER_MAE_MAE_SERIALIZATION_AND_ROUNDTRIP (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "ropls",
+    "wf": "summarized_experiment_workflow.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 4,
+    "err": "ERROR ~ Error executing process > 'BIOC_ROPLS_SUMMARIZED_EXPERIMENT_WORKFLOW (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "ropls",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "ERROR ~ Error executing process > 'BIOC_ROPLS_PCA_ANALYSIS (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "raer",
+    "wf": "bulk_differential_editing.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RAER_BULK_DIFFERENTIAL_EDITING (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "iseehex",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_ISEEHEX (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "raer",
+    "wf": "alu_editing_index.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "ERROR ~ Error executing process > 'BIOC_RAER_ALU_EDITING_INDEX (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "raer",
+    "wf": "novel_editing_detection.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RAER_NOVEL_EDITING_DETECTION (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "variantannotation",
+    "wf": "genotype_to_snpmatrix.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 8
+  },
+  {
+    "pkg": "variantannotation",
+    "wf": "vcf_filtering.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 4
+  },
+  {
+    "pkg": "raer",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RAER_SINGLE_CELL_EDITING (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "spia",
+    "wf": "spia_with_custom_kegg_data.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 14
+  },
+  {
+    "pkg": "variantannotation",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "ERROR ~ Error executing process > 'BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "quasispecies_diversity_analysis.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 5,
+    "err": "ERROR ~ Error executing process > 'BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "strand_intersection.nf",
+    "status": "ran_empty_output",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "CPU hours   : 0.1 | Succeeded   : 1 | \u001b[K | Nextflow 26.04.3 is available - Please consider updating your version to it\u001b(B"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "genotyping_unknown_haplotypes.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_QSUTILS_GENOTYPING_UNKNOWN_HAPLOTYPES (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "complexity_and_diversity_analysis.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 16
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "strand_haplotype_intersection.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 4
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "genotyping.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 6
+  },
+  {
+    "pkg": "msbackendsql",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 6
+  },
+  {
+    "pkg": "spia",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
+  },
+  {
+    "pkg": "degcre",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 28
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 5,
+    "err": "ERROR ~ Error executing process > 'BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "expressionset_to_plate_map.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "delayeddataframe",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_DELAYEDDATAFRAME (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "summarizedexperiment_to_plate_map.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_WPM_SUMMARIZEDEXPERIMENT_TO_PLATE_MAP (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "ERROR ~ Error executing process > 'BIOC_WPM_CSV_TO_PLATE_MAP (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "eset_msnset_to_plate_map.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "wpm",
+    "wf": "summarized_experiment_to_plate_map.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 6
+  },
+  {
+    "pkg": "nanomethviz",
+    "wf": "downstream_export_and_dim_reduction.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_NANOMETHVIZ_DOWNSTREAM_EXPORT_AND_DIM_REDUCTION (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "nanomethviz",
+    "wf": "modbam_direct_plotting.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_NANOMETHVIZ_MODBAM_DIRECT_PLOTTING (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "nanomethviz",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_NANOMETHVIZ_TABULAR_DATA_IMPORT_AND_PLOTTING (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "mixed_reference_import.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_TXIMETA_MIXED_REFERENCE_IMPORT (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "omnipathr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_OMNIPATHR (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "linked_transcriptomes.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_TXIMETA_LINKED_TRANSCRIPTOMES (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "aspli",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 14
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "mixed_reference_oarfish_import.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "gg4way",
+    "wf": "gg4way_with_deseq2.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_GG4WAY_GG4WAY_WITH_DESEQ2 (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "gg4way",
+    "wf": "gg4way_with_edger.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "ERROR ~ Error executing process > 'BIOC_GG4WAY_GG4WAY_WITH_EDGER (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "diggit",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 28
+  },
+  {
+    "pkg": "gg4way",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_GG4WAY_GG4WAY_WITH_LIMMA (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "mumosa",
+    "wf": "feature_correlation_analysis.nf",
+    "status": "skip_input_type",
+    "input": "sce2.rds"
+  },
+  {
+    "pkg": "mumosa",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_MUMOSA_MULTIMODAL_INTEGRATION_AND_CLUSTERING (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0"
+  },
+  {
+    "pkg": "metabolomicsworkbenchr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "mgnifyr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_MGNIFYR (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "binned_methylation_calling.nf",
+    "status": "ran_empty_output",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "CPU hours   : (a few seconds) | Succeeded   : 1 | \u001b[K | Nextflow 26.04.3 is available - Please consider updating your version to it\u001b(B"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "interacting_context_calling.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "fgga",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "ERROR ~ Error executing process > 'BIOC_FGGA_FGGA_ANNOTATION_WORKFLOW (sample)'\u001b[K | \u001b[K | Caused by:\u001b[K"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "enrichment_analysis.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "individual_cytosines_interacting_context.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "cnordt",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 14
+  }
+]
