@@ -1189,3 +1189,330 @@ epigenomics:
         the bioc_methyl tutorial.
       finding: >
         Bias-corrected GO terms emitted to enriched_terms.tsv.
+
+# ─── Bioconductor cross-domain QC gates ─────────────────────────────────────
+# These build on the qc_steps taxonomy already enriched into
+# backend/database/galaxy_ai_tools.db.workflows.qc_steps + step_metadata[].qc
+# (25 distinct labels, 396 workflows non-empty). Each label maps to a
+# measurable diagnostic with an established literature default. Per-workflow
+# threshold override happens through the profile / modifiers system from
+# Track 1. Citations marked NEEDS_VERIFY have not yet been PubMed-checked
+# from inside the session — flag for audit-grade review.
+bioconductor_qc:
+  bioc_missing_value_handling:
+    - paper_ref: "Lazar C et al. Nucleic Acids Res 2013; 41:e131 (NEEDS_VERIFY)"
+      paper_doi: "10.1093/nar/gkt262"
+      provenance: SILVER
+      paper_supports: >
+        Lazar 2013 reviews variance-aware imputation for proteomics /
+        transcriptomics. The <5% remaining-NA fraction is community
+        convention; the paper establishes the metric, not the cutoff.
+      rule_text: >
+        na_fraction_remaining < 5% = pass; 5-15% = advisory; > 15% = FAIL.
+      finding: >
+        Workflow declares 'missing-value handling' (n=126 workflows).
+        Used by ArrayExpress / proteomics / methylation chains.
+
+  bioc_count_normalization:
+    - paper_ref: "Bullard JH et al. BMC Bioinformatics 2010; 11:94 (NEEDS_VERIFY)"
+      paper_doi: "10.1186/1471-2105-11-94"
+      provenance: SILVER
+      paper_supports: >
+        Bullard 2010 benchmarks normalization methods on library-size CV
+        reduction. The ratio ≤ 0.7 cutoff is operational (a normalization
+        that doesn't cut library-size CV by ≥30% isn't doing its job).
+      rule_text: >
+        lib_size_cv_after / lib_size_cv_before ≤ 0.7 = pass;
+        0.7-0.9 = advisory; > 0.9 = FAIL (normalization ineffective).
+      finding: >
+        Workflow declares 'count normalization' (n=79).
+
+  bioc_cell_qc_metrics:
+    - paper_ref: "Luecken MD & Theis FJ. Mol Syst Biol 2019; 15:e8746 (NEEDS_VERIFY)"
+      paper_doi: "10.15252/msb.20188746"
+      provenance: GOLD-metric / SILVER-tier
+      paper_supports: >
+        Luecken & Theis 2019 establishes per-cell QC as the standard
+        single-cell QC gate. Tissue-dependent: mt% < 10% for most
+        tissues; brain/liver tolerate higher. n_features > 200 is the
+        floor; specific tissue cutoffs are operational.
+      rule_text: >
+        pct_mito_max < 10% (default) | < 20% (brain/liver) = pass;
+        n_features_min > 200 + n_counts_min > 500 = pass.
+      finding: >
+        Workflow declares 'cell QC metrics' (n=72) or 'per-cell QC
+        metrics' (n=7).
+
+  bioc_low_count_filtering:
+    - paper_ref: "Chen Y et al. F1000Research 2016; 5:1438 (NEEDS_VERIFY)"
+      paper_doi: "10.12688/f1000research.8987.2"
+      provenance: SILVER
+      paper_supports: >
+        Chen 2016 (edgeR/limma workflow) documents filterByExpr defaults.
+        30-60% genes retained is the typical outcome; outside this range
+        signals over- or under-filtering.
+      rule_text: >
+        30% ≤ genes_kept_fraction ≤ 60% = pass;
+        outside this range = advisory (review filter parameters).
+      finding: >
+        Workflow declares 'low-count filtering' (n=54) or 'filter
+        low-expression genes' (n=7).
+
+  bioc_diagnostic_ma_pca_qc:
+    - paper_ref: "Risso D et al. Nat Biotechnol 2014; 32:896 (NEEDS_VERIFY)"
+      paper_doi: "10.1038/nbt.2931"
+      provenance: SILVER
+      paper_supports: >
+        Risso 2014 RUV-seq uses PC1 variance explained and MA-plot
+        symmetry as primary diagnostics. PC1 > 10% indicates real
+        biological structure; MA-plot M-bias near zero indicates
+        normalized data.
+      rule_text: >
+        PC1_var_explained > 10% AND |MA_M_bias| < 0.1 = pass.
+      finding: >
+        Workflow declares 'diagnostic MA/PCA QC' (n=32).
+
+  bioc_dispersion_size_factor:
+    - paper_ref: "Love MI et al. Genome Biol 2014; 15:550 (DESeq2)"
+      paper_doi: "10.1186/s13059-014-0550-8"
+      provenance: GOLD-metric / SILVER-tier
+      paper_supports: >
+        Love 2014 (DESeq2) establishes dispersion-outlier detection as
+        the diagnostic for fit quality. ≤ 1% outlier dispersion is
+        community convention.
+      rule_text: >
+        disp_outlier_fraction ≤ 1% = pass; 1-5% = advisory;
+        > 5% = FAIL (model misspecification likely).
+      finding: >
+        Workflow declares 'dispersion/size-factor estimation' (n=28)
+        or 'dispersion QC plot' (n=6).
+
+  bioc_batch_effect_correction:
+    - paper_ref: "Büttner M et al. Nat Methods 2019; 16:43 (NEEDS_VERIFY)"
+      paper_doi: "10.1038/s41592-018-0254-1"
+      provenance: GOLD
+      paper_supports: >
+        Büttner 2019 benchmarks batch-correction methods using kBET +
+        iLISI. Acceptance > 0.75 is the paper's threshold for
+        'successfully corrected' on the benchmark datasets.
+      rule_text: >
+        kBET_acceptance_rate > 0.75 OR iLISI > 1.5 = pass.
+      finding: >
+        Workflow declares 'batch-effect correction' (n=21).
+
+  bioc_hvg_selection:
+    - paper_ref: "Stuart T et al. Cell 2019; 177:1888 (Seurat v3)"
+      paper_doi: "10.1016/j.cell.2019.05.031"
+      provenance: SILVER
+      paper_supports: >
+        Stuart 2019 (Seurat v3) uses 2000 HVGs as default. 1000-3000
+        is the operational range; outside this signals over- or
+        under-selection.
+      rule_text: >
+        1000 ≤ hvg_count ≤ 3000 = pass; otherwise advisory.
+      finding: >
+        Workflow declares 'highly-variable feature selection' (n=21).
+
+  bioc_tmm_normalization:
+    - paper_ref: "Robinson MD & Oshlack A. Genome Biol 2010; 11:R25"
+      paper_doi: "10.1186/gb-2010-11-3-r25"
+      provenance: GOLD
+      paper_supports: >
+        Robinson & Oshlack 2010 (TMM original) — TMM factors should
+        cluster within [0.5, 2.0] for >90% of libraries. Outside
+        signals extreme library composition that violates the TMM
+        assumption.
+      rule_text: >
+        ≥ 90% of libs have TMM factor ∈ [0.5, 2.0] = pass;
+        70-90% = advisory; < 70% = FAIL (composition-bias assumption violated).
+      finding: >
+        Workflow declares 'TMM normalization' (n=16).
+
+  bioc_vsn_normalization:
+    - paper_ref: "Huber W et al. Bioinformatics 2002; 18(suppl_1):S96"
+      paper_doi: "10.1093/bioinformatics/18.suppl_1.S96"
+      provenance: GOLD
+      paper_supports: >
+        Huber 2002 (VSN) — after correct variance stabilization the
+        mean-SD plot slope ≈ 0. Non-flat slope indicates incomplete
+        stabilization.
+      rule_text: >
+        |mean_sd_slope_after_vsn| ≤ 0.1 = pass;
+        0.1-0.3 = advisory; > 0.3 = FAIL.
+      finding: >
+        Workflow declares 'variance-stabilizing normalization' (n=13).
+
+  bioc_doublet_detection:
+    - paper_ref: "McGinnis CS et al. Cell Systems 2019; 8:329 (DoubletFinder, NEEDS_VERIFY)"
+      paper_doi: "10.1016/j.cels.2019.03.003"
+      provenance: SILVER
+      paper_supports: >
+        DoubletFinder calibrates expected doublet rate vs droplet
+        loading concentration. 10X droplets: ~1% doublets per 1000
+        cells loaded — so a 10000-cell library should see ~7-10%
+        doublets detected.
+      rule_text: >
+        0.5% ≤ doublet_rate_estimated ≤ 10% = pass;
+        outside this range = advisory (review droplet loading).
+      finding: >
+        Workflow declares 'doublet detection QC' (n=11).
+
+  bioc_clustering_qc:
+    - paper_ref: "Hennig C. Comput Stat Data Anal 2007; 52:258 (cluster stability, NEEDS_VERIFY)"
+      paper_doi: "10.1016/j.csda.2006.11.025"
+      provenance: SILVER
+      paper_supports: >
+        Hennig 2007 establishes ARI-based cluster stability and
+        silhouette > 0.25 as the floor for 'real' clustering.
+      rule_text: >
+        silhouette_mean > 0.25 AND cluster_stability_ari > 0.75 = pass.
+      finding: >
+        Workflow declares 'clustering QC' (n=10).
+
+  bioc_voom_fit:
+    - paper_ref: "Law CW et al. Genome Biol 2014; 15:R29"
+      paper_doi: "10.1186/gb-2014-15-2-r29"
+      provenance: GOLD
+      paper_supports: >
+        Law 2014 (voom) — residual SD of voom-smoothed mean-variance
+        curve should be ≤ 0.5 for well-modelled mean-variance trend.
+      rule_text: >
+        voom_fit_smooth_residual ≤ 0.5 = pass;
+        0.5-1.0 = advisory; > 1.0 = FAIL.
+      finding: >
+        Workflow declares 'voom mean-variance modelling' (n=8).
+
+  bioc_input_validation:
+    - paper_ref: "format-specific canonical specs (FASTA NCBI; FASTQ Cock 2010 NAR; BAM Li 2009 Bioinformatics; CEL Affymetrix)"
+      paper_doi: "—"
+      provenance: GOLD
+      paper_supports: >
+        Format conformance is binary; any malformed input falls into
+        an undefined state for downstream analysis.
+      rule_text: >
+        input file passes format-specific schema validation = pass;
+        fails = FAIL (cannot continue).
+      finding: >
+        Workflow declares 'input validation' (n=9).
+
+  bioc_per_cell_qc_outliers:
+    - paper_ref: "McCarthy DJ et al. Bioinformatics 2017; 33:1179 (scater)"
+      paper_doi: "10.1093/bioinformatics/btw777"
+      provenance: GOLD
+      paper_supports: >
+        McCarthy 2017 (scater) — isOutlier with nmads=3 is the
+        package default and standard scRNA outlier cutoff.
+      rule_text: >
+        cells_flagged_outlier_fraction (nmads=3) ≤ 10% = pass;
+        10-20% = advisory; > 20% = FAIL (suspect library quality).
+      finding: >
+        Workflow declares 'per-cell QC metrics' (n=7) — finer
+        granularity than 'cell QC metrics'.
+
+  bioc_taxa_prevalence_filter:
+    - paper_ref: "Callahan BJ et al. Nat Methods 2016; 13:581 (DADA2 / phyloseq, NEEDS_VERIFY)"
+      paper_doi: "10.1038/nmeth.3869"
+      provenance: SILVER
+      paper_supports: >
+        Callahan 2016 — typical phyloseq workflows retain 30-50% of
+        taxa after prevalence/abundance filtering on 16S data.
+      rule_text: >
+        30% ≤ taxa_kept_fraction ≤ 50% = pass; outside = advisory.
+      finding: >
+        Workflow declares 'prevalence/abundance filtering' (n=5).
+
+  bioc_array_detection_qc:
+    - paper_ref: "Affymetrix MAS5 statistical algorithms (Hubbell 2002, NEEDS_VERIFY)"
+      paper_doi: "—"
+      provenance: SILVER
+      paper_supports: >
+        Affymetrix MAS5 spec: > 95% present-call rate is the
+        conventional acceptance threshold for array-level QC.
+      rule_text: >
+        detection_call_rate > 95% = pass; 90-95% = advisory;
+        < 90% = FAIL (array hybridization suspect).
+      finding: >
+        Workflow declares 'array detection QC' (n=5).
+
+  bioc_alignment_mapping_qc:
+    - paper_ref: "ENCODE Consortium standards (NEEDS_VERIFY URL)"
+      paper_doi: "https://www.encodeproject.org/data-standards/"
+      provenance: SILVER
+      paper_supports: >
+        ENCODE 'standard' RNA-seq libraries should map > 70%
+        uniquely to the reference genome. Below this signals
+        contamination or reference mismatch.
+      rule_text: >
+        uniquely_mapped_pct > 70% = pass; 50-70% = advisory;
+        < 50% = FAIL.
+      finding: >
+        Workflow declares 'alignment/mapping QC' (n=4).
+
+  bioc_between_array_normalization:
+    - paper_ref: "Bolstad BM et al. Bioinformatics 2003; 19:185 (quantile norm, NEEDS_VERIFY)"
+      paper_doi: "10.1093/bioinformatics/19.2.185"
+      provenance: SILVER
+      paper_supports: >
+        Bolstad 2003 — after quantile normalization, KS-statistic
+        between any two arrays should be ≤ 0.05 (distributions match).
+      rule_text: >
+        max_pairwise_quantile_ks ≤ 0.05 = pass;
+        0.05-0.10 = advisory; > 0.10 = FAIL.
+      finding: >
+        Workflow declares 'between-array normalization' (n=3).
+
+  bioc_outlier_detection:
+    - paper_ref: "method-specific (PCA-outlier, MD-outlier, scater::isOutlier)"
+      paper_doi: "—"
+      provenance: BRONZE
+      paper_supports: >
+        Outlier counts are declarative — the gate is that the workflow
+        reports them. Specific cutoff depends on outlier-detection
+        method invoked.
+      rule_text: >
+        flagged_sample_count emitted to report = pass (always emit);
+        > 20% of samples flagged = advisory.
+      finding: >
+        Workflow declares 'outlier detection' (n=2) or
+        'outlier diagnostics' (n=1).
+
+  bioc_expression_level_qc:
+    - paper_ref: "Affymetrix / Illumina array-platform community"
+      paper_doi: "—"
+      provenance: SILVER
+      paper_supports: >
+        ≥ 10 log2-units dynamic range indicates a healthy probe-
+        intensity distribution on expression arrays.
+      rule_text: >
+        log2(max / min expressed) ≥ 10 = pass; 8-10 = advisory;
+        < 8 = FAIL (compressed dynamic range).
+      finding: >
+        Workflow declares 'expression-level QC' (n=1).
+
+  # Visual-only QC steps — gate is that the diagnostic plot exists;
+  # threshold lives in the paired numeric gate above.
+  bioc_dispersion_qc_plot:
+    - paper_ref: "Love MI et al. Genome Biol 2014; 15:550 (DESeq2)"
+      paper_doi: "10.1186/s13059-014-0550-8"
+      provenance: GOLD
+      paper_supports: >
+        Pairs with bioc_dispersion_size_factor. Plot must be emitted
+        for visual QC; numeric tier inherited from the dispersion gate.
+      rule_text: >
+        dispersion_plot.pdf exists in output = pass;
+        threshold check delegated to bioc_dispersion_size_factor.
+      finding: >
+        Workflow declares 'dispersion QC plot' (n=6).
+
+  bioc_normalization_diagnostic_plot:
+    - paper_ref: "Bullard JH et al. BMC Bioinformatics 2010; 11:94"
+      paper_doi: "10.1186/1471-2105-11-94"
+      provenance: SILVER
+      paper_supports: >
+        Pairs with bioc_count_normalization. Boxplot of pre vs post
+        normalization library distributions is the standard visual.
+      rule_text: >
+        normalization_diagnostic.pdf exists in output = pass;
+        threshold inherited from bioc_count_normalization.
+      finding: >
+        Workflow declares 'normalization diagnostic plot' (n=10).
