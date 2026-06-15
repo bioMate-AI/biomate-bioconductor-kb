@@ -58,6 +58,28 @@ _runs_lock = threading.Lock()
 
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
 
+
+def _run_lookup(run_id: str) -> Optional[Dict[str, Any]]:
+    """Read a run record, with cross-worker fallback to RunStateStore.
+
+    Stage 2c of the persistence refactor (docs/20260615_RUNS_PERSISTENCE_DESIGN.md).
+    Worker A (which launched the run) holds the Popen handle in _runs[];
+    Worker B (after gunicorn recycle) sees an empty _runs[] but can recover
+    serializable state (status, outdir, qc_overrides, etc.) from the store.
+
+    Returns None if neither source has the record.
+    """
+    with _runs_lock:
+        info = _runs.get(run_id)
+    if info is not None:
+        return info
+    try:
+        snap = get_run_state_store().get_run(run_id)
+        return snap if snap else None
+    except Exception as _store_exc:
+        log.debug("[runs] store.get_run fallback failed for %s: %s", run_id, _store_exc)
+        return None
+
 # Concurrency throttle for Nextflow head-process launches.
 # Each NF head JVM is ~500MB–1GB resident. Without a cap, parallel-fired
 # workflow submissions OOM-kill the Galaxy container (observed 2026-06-07
