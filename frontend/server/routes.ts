@@ -5539,6 +5539,7 @@ ${paramLines || '(none recorded)'}`;
           intentType: assistantResponse.intentType,
           inlineParameters: assistantResponse.inlineParameters,
           paramClarifications: assistantResponse.paramClarifications,
+          intentClarification: assistantResponse.intentClarification,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: false,
