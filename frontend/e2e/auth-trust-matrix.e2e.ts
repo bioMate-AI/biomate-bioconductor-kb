@@ -74,25 +74,14 @@ test.describe("Auth trust matrix (C6)", () => {
     expect(typeof r.body).toBe("object");
   });
 
-  test("C6.05 register-or-login idempotency", async ({ page }) => {
-    await page.goto(BASE_URL);
-    const calls = await page.evaluate(
-      async ({ base, token, email, password }) => {
-        const out: number[] = [];
-        for (let i = 0; i < 2; i++) {
-          const resp = await fetch(`${base}/api/auth/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-E2E-Test-Token": token },
-            credentials: "include",
-            body: JSON.stringify({ name: "BioMate E2E", email, password, terms_accepted: true }),
-          });
-          out.push(resp.status);
-        }
-        return out;
-      },
-      { base: BASE_URL, token: E2E_TOKEN, email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD }
-    );
-    expect(calls[0]).toBeLessThan(500);
-    expect(calls[1]).toBeLessThan(500);
-  });
+  // C6.05 register-or-login idempotency — COVERAGE NOTE:
+  //
+  // Per CLAUDE.md §"E2E plan discipline" rule 3 (NEVER call
+  // /api/auth/register from an e2e harness) and rule 7 (Coverage map >
+  // coverage maximalism), this case has been moved out of the e2e
+  // matrix. Registration round-trip behaviour is unit-tested at
+  // `server/auth-fixes-20260612.test.ts` and `server/auth-service.test.ts`
+  // — running it here would only burn registerLimiter credit and slow
+  // the matrix down with zero added confidence.
+  test.skip("C6.05 register-idempotency — covered by server/auth-fixes-20260612.test.ts", async () => {});
 });
