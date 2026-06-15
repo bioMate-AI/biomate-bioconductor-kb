@@ -36,6 +36,15 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("qsea", "GenomicRanges", "BSgenome.Hsapiens.UCSC.hg19")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     library(BSgenome.Hsapiens.UCSC.hg19)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input files...")
@@ -117,7 +126,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     }
     
     # ==========================================
-    # Stage 2: Initialize and Populate qseaSet
+    # --- Initialize and Populate qseaSet ---
     # ==========================================
     
     message("Initializing qseaSet...")
@@ -139,7 +148,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     qseaSet@libraries\$lib_size <- colSums(count_matrix)
     
     # ==========================================
-    # Stage 3: Normalization & Parameter Estimation
+    # --- Normalization & Parameter Estimation ---
     # ==========================================
     
     message("Estimating library factors and pattern density...")
@@ -166,7 +175,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     }
     
     # ==========================================
-    # Stage 4: Differential Methylation Analysis
+    # --- Differential Methylation Analysis ---
     # ==========================================
     
     message("Fitting Negative Binomial GLM...")
@@ -197,7 +206,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     message("Results successfully written to 'differential_methylation_results.csv'.")
     
     # ==========================================
-    # Stage 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic plots...")

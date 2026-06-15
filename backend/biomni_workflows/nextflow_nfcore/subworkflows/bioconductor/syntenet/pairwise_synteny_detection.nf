@@ -69,7 +69,7 @@ process BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION {
     }
     
     # ==========================================
-    # 1. Preprocess inputs using process_input()
+    # --- Preprocess inputs using process_input() ---
     # ==========================================
     message("Reading FASTA files from the working directory...")
     all_seqs <- fasta2AAStringSetlist(".")
@@ -106,13 +106,13 @@ process BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION {
     )
     
     # ==========================================================
-    # 2. Detect intraspecies synteny using intraspecies_synteny()
+    # --- Detect intraspecies synteny using intraspecies_synteny() ---
     # ==========================================================
     message("Detecting intraspecies synteny for S. cerevisiae...")
     intra_syn <- intraspecies_synteny(scerevisiae_diamond, scerevisiae_annot)
     
     # ==========================================================
-    # 3. Parse intraspecies collinearity files using parse_collinearity()
+    # --- Parse intraspecies collinearity files using ---
     # ==========================================================
     message("Parsing intraspecies collinearity...")
     anchors <- parse_collinearity(intra_syn)
@@ -120,7 +120,7 @@ process BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION {
     intrasyn_all <- parse_collinearity(intra_syn, as = "all")
     
     # ==========================================================
-    # 4. Set up bidirectional comparisons using make_bidirectional()
+    # --- Set up bidirectional comparisons using ---
     # ==========================================================
     message("Setting up bidirectional comparisons...")
     comp <- data.frame(
@@ -130,13 +130,13 @@ process BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION {
     comp_bi <- make_bidirectional(comp)
     
     # ==========================================================
-    # 5. Detect interspecies synteny using interspecies_synteny()
+    # --- Detect interspecies synteny using interspecies_synteny() ---
     # ==========================================================
     message("Detecting interspecies synteny...")
     intersyn <- interspecies_synteny(algae_inter, pdata\$annotation)
     
     # ==========================================================
-    # 6. Parse interspecies collinearity files using parse_collinearity()
+    # --- Parse interspecies collinearity files using ---
     # ==========================================================
     message("Parsing interspecies collinearity...")
     algae_anchors <- parse_collinearity(intersyn)

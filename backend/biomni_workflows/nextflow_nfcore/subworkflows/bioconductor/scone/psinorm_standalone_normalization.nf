@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run PsiNorm on the SingleCellExperiment object to compute size factors. 2. Compute log-normalized counts using logNormCounts. 3. (
+//  * 1. [Core Analysis] Read User Input
+//  * 2. [Core Analysis] Run PsiNorm and logNormCounts (Documented Code)
+//  * 3. [Core Analysis] Optional Seurat conversion (Documented Code)
+//  * 4. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scone", "scater", "HDF5Array", "DelayedArray", "rhdf5", "Seurat")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +66,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
     library(DelayedArray)
     library(rhdf5)
     
-    # 1. Read User Input
+    # --- Read User Input ---
     if (file.exists("raw_counts.h5")) {
       message("Reading HDF5-backed raw counts...")
       h5_content <- h5ls("raw_counts.h5")
@@ -85,7 +97,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
       colnames(sce) <- paste0("Cell", seq_len(ncol(sce)))
     }
     
-    # 2. Run PsiNorm and logNormCounts (Documented Code)
+    # --- Run PsiNorm and logNormCounts (Documented Code) ---
     message("Running PsiNorm...")
     sce<-PsiNorm(sce)
     message("Running logNormCounts...")
@@ -93,7 +105,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
     message("Printing head of size factors:")
     head(sizeFactors(sce))
     
-    # 3. Optional Seurat conversion (Documented Code)
+    # --- Optional Seurat conversion (Documented Code) ---
     if (requireNamespace("Seurat", quietly = TRUE)) {
       message("Converting to Seurat object...")
       library(Seurat)
@@ -105,7 +117,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
       message("Seurat package not installed. Skipping Seurat conversion.")
     }
     
-    # 4. Save Outputs
+    # --- Save Outputs ---
     sf <- sizeFactors(sce)
     cell_names <- names(sf)
     if (is.null(cell_names)) {

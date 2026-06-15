@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read the VCF file into a VCF object. 2. Align chromosome naming styles (seqlevels) between the VCF and the transcript database. 3.
+//  * 1. [Input & Preparation] Read the VCF file into a VCF object
+//  * 2. [Input & Preparation] Align chromosome naming styles (seqlevels) between the
+//  * 3. [Input & Preparation] Locate variants in coding regions using locateVariants
+//  * 4. [Input & Preparation] Predict amino acid coding changes for the variants using
+//  * 5. [Input & Preparation] Query the PolyPhen database to retrieve functional impact
 
 nextflow.enable.dsl = 2
 
@@ -38,7 +42,7 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "PolyPhen.Hsapiens.dbSNP131", "TxDb.Hsapiens.UCSC.hg19.knownGene", "AnnotationHub", "GenomicRanges", "ggplot2", "microbenchmark", "rjsoncons", "VariantAnnotation")
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "PolyPhen.Hsapiens.dbSNP131", "TxDb.Hsapiens.UCSC.hg19.knownGene", "AnnotationHub", "GenomicRanges", "ggplot2", "microbenchmark", "rjsoncons", "VariantAnnotation", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -57,6 +61,7 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
     
     # Load required libraries
     library(VariantAnnotation)
+    library(SummarizedExperiment)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(BSgenome.Hsapiens.UCSC.hg19)
     library(PolyPhen.Hsapiens.dbSNP131)
@@ -68,21 +73,21 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
       stop(paste("Required input file missing in the working directory:", fl))
     }
     
-    # 1. Read the VCF file into a VCF object
+    # --- Read the VCF file into a VCF object ---
     message("Reading VCF file...")
     vcf <- readVcf(fl, "hg19")
     
-    # 2. Align chromosome naming styles (seqlevels) between the VCF and the transcript database
+    # --- Align chromosome naming styles (seqlevels) between the ---
     message("Aligning seqlevels...")
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
     seqlevels(vcf) <- "chr22"
     rd <- rowRanges(vcf)
     
-    # 3. Locate variants in coding regions using locateVariants
+    # --- Locate variants in coding regions using locateVariants ---
     message("Locating variants...")
     loc <- locateVariants(rd, txdb, CodingVariants())
     
-    # 4. Predict amino acid coding changes for the variants using predictCoding
+    # --- Predict amino acid coding changes for the variants using ---
     message("Predicting coding changes...")
     coding <- predictCoding(vcf, txdb, seqSource=Hsapiens)
     
@@ -93,7 +98,7 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
     names(nonsyn) <- nms[idx]
     rsids <- unique(names(nonsyn)[grep("rs", names(nonsyn), fixed=TRUE)])
     
-    # 5. Query the PolyPhen database to retrieve functional impact predictions
+    # --- Query the PolyPhen database to retrieve functional impact ---
     message("Querying PolyPhen database...")
     pp <- select(PolyPhen.Hsapiens.dbSNP131, keys=rsids,
                  cols=c("TRAININGSET", "PREDICTION", "PPH2PROB"))

@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fuse multiple affinity matrices using `ANF`. 2. Perform spectral clustering on the fused affinity matrix using `spectral_clusterin
+//  * 1. [Core Analysis] Fuse multiple affinity matrices using ANF
+//  * 2. [Core Analysis] Perform spectral clustering on the fused affinity matrix
+//  * 3. [Core Analysis] Evaluate the clustering results against true classes
 
 nextflow.enable.dsl = 2
 
@@ -78,13 +80,13 @@ process BIOC_ANF_MULTI_VIEW_AFFINITY_NETWORK_FUSION {
       stop("Error: The input 'Wall' object must be a list of affinity matrices.")
     }
     
-    # 1. Fuse multiple affinity matrices using ANF
+    # --- Fuse multiple affinity matrices using ANF ---
     fused.mat <- ANF(Wall = Wall)
     
-    # 2. Perform spectral clustering on the fused affinity matrix
+    # --- Perform spectral clustering on the fused affinity matrix ---
     labels <- spectral_clustering(A = fused.mat, k = 2)
     
-    # 3. Evaluate the clustering results against true classes
+    # --- Evaluate the clustering results against true classes ---
     res <- eval_clu(true_class = project_ids[rownames(fused.mat)], w = fused.mat)
     
     # Save meaningful results to output files

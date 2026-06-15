@@ -134,6 +134,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://biomate.ai/blog-auto-discovery.html</loc>
     <lastmod>2026-04-18</lastmod>
     <changefreq>yearly</changefreq>

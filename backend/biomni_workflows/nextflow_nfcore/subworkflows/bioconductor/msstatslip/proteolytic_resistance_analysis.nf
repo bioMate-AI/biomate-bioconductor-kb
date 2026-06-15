@@ -57,17 +57,17 @@ process BIOC_MSSTATSLIP_PROTEOLYTIC_RESISTANCE_ANALYSIS {
     library(tidyverse)
     library(data.table)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # Spectronaut exports are typically comma- or tab-separated. 
     # data.table::fread is highly robust for reading both formats.
     raw_lip <- data.table::fread("raw_lip", data.table = FALSE)
     raw_prot <- data.table::fread("raw_prot", data.table = FALSE)
     fasta_file <- "fasta_file"
     
-    # 2. Convert raw data to MSstatsLiP format
+    # --- Convert raw data to MSstatsLiP format ---
     msstats_data <- SpectronauttoMSstatsLiPFormat(raw_lip, fasta_file, raw_prot)
     
-    # 3. Select only fully tryptic (FT) peptides in both LiP and TrP datasets
+    # --- Select only fully tryptic (FT) peptides in both LiP and ---
     FullyTrP <- msstats_data[["LiP"]] %>% 
       distinct(ProteinName, PeptideSequence) %>% 
       calculateTrypticity(fasta_file) %>% 
@@ -81,20 +81,20 @@ process BIOC_MSSTATSLIP_PROTEOLYTIC_RESISTANCE_ANALYSIS {
     msstats_data[["TrP"]] <- msstats_data[["TrP"]] %>% 
       select(-ProteinName) %>% inner_join(FullyTrP, by = "PeptideSequence")
     
-    # 4. Align condition and BioReplicate nomenclature
+    # --- Align condition and BioReplicate nomenclature ---
     msstats_data[["LiP"]] = msstats_data[["LiP"]] %>% 
       mutate(BioReplicate = paste0(Condition,".",BioReplicate))
     
     msstats_data[["TrP"]] = msstats_data[["TrP"]] %>% 
       mutate(BioReplicate = paste0(Condition,".",BioReplicate))
     
-    # 5. Summarize data
+    # --- Summarize data ---
     MSstatsLiP_Summarized <- dataSummarizationLiP(msstats_data, normalization.LiP = "equalizeMedians")
     
     # Save summarized data
     saveRDS(MSstatsLiP_Summarized, file = "MSstatsLiP_Summarized.rds")
     
-    # 6. Model differential abundance
+    # --- Model differential abundance ---
     MSstatsLiP_model = groupComparisonLiP(MSstatsLiP_Summarized)
     
     # Save modeling results
@@ -109,7 +109,7 @@ process BIOC_MSSTATSLIP_PROTEOLYTIC_RESISTANCE_ANALYSIS {
       write.csv(MSstatsLiP_model[["Adjusted.LiP.Model"]], "MSstatsLiP_model_Adjusted.csv", row.names = FALSE)
     }
     
-    # 7. Calculate proteolytic resistance ratios and perform differential analysis
+    # --- Calculate proteolytic resistance ratios and perform ---
     Accessibility = calculateProteolyticResistance(MSstatsLiP_Summarized, 
                                                    fasta_file, 
                                                    differential_analysis = TRUE)
@@ -123,7 +123,7 @@ process BIOC_MSSTATSLIP_PROTEOLYTIC_RESISTANCE_ANALYSIS {
       write.csv(Accessibility\$groupComparison, "Accessibility_groupComparison.csv", row.names = FALSE)
     }
     
-    # 8. Plot proteolytic resistance results as barcodes
+    # --- Plot proteolytic resistance results as barcodes ---
     # We wrap the plotting functions in pdf() to save the outputs as files.
     pdf("ResistanceBarcodePlot_F1.pdf", width = 10, height = 6)
     tryCatch({

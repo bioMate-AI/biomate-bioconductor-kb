@@ -58,7 +58,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     library(FastqCleaner)
     
     # ==========================================
-    # 1. Load FASTQ data into a ShortReadQ object
+    # --- Load FASTQ data into a ShortReadQ object ---
     # ==========================================
     input_file <- "example_fastq.gz"
     
@@ -79,7 +79,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     )
     
     # ==========================================
-    # 2. Filter adapters using adapter_filter
+    # --- Filter adapters using adapter_filter ---
     # ==========================================
     # Trim 5' adapter (Lpattern) and 3' adapter (Rpattern)
     adapter_seq <- "ATCGACT"
@@ -94,7 +94,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 3. Filter low complexity sequences using complex_filter
+    # --- Filter low complexity sequences using complex_filter ---
     # ==========================================
     my_read <- complex_filter(my_read)
     
@@ -105,7 +105,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 4. Trim fixed bases using fixed_filter
+    # --- Trim fixed bases using fixed_filter ---
     # ==========================================
     # Trim 5 bases from 5' end and 10 bases from 3' end
     my_read <- fixed_filter(my_read, trim3 = 10, trim5 = 5)
@@ -117,7 +117,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 5. Filter by length using length_filter
+    # --- Filter by length using length_filter ---
     # ==========================================
     # Remove sequences with length < 10 or length > 150
     my_read <- length_filter(my_read, rm.min = 10, rm.max = 150)
@@ -129,7 +129,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 6. Filter by Ns using n_filter
+    # --- Filter by Ns using n_filter ---
     # ==========================================
     # Remove sequences with more than 3 Ns
     my_read <- n_filter(my_read, rm.N = 3)
@@ -141,7 +141,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 7. Filter by average quality using qmean_filter
+    # --- Filter by average quality using qmean_filter ---
     # ==========================================
     # Remove sequences with average Phred quality < 20
     my_read <- qmean_filter(my_read, minq = 20)
@@ -153,7 +153,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 8. Filter specific matching sequences using seq_filter
+    # --- Filter specific matching sequences using seq_filter ---
     # ==========================================
     # Remove sequences containing specific unwanted patterns
     unwanted_patterns <- c("TGGTC", "CGGT", "GTTCT", "ATA")
@@ -166,7 +166,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 9. Trim low quality 3' tails using trim3q_filter
+    # --- Trim low quality 3' tails using trim3q_filter ---
     # ==========================================
     # Trim 3' nucleotides with quality score < 20
     my_read <- trim3q_filter(my_read, rm.3qual = 20)
@@ -178,7 +178,7 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     ))
     
     # ==========================================
-    # 10. Remove duplicate sequences using unique_filter
+    # --- Remove duplicate sequences using unique_filter ---
     # ==========================================
     my_read <- unique_filter(my_read)
     

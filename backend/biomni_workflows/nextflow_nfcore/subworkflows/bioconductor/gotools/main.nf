@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the goTools package and the probe ID dataset. 2. Load the GO.db annotation database. 3. Define the subset of probe lists to c
+//  * 1. [Visualization & Output] Load the goTools package
+//  * 2. [Visualization & Output] Load the GO.db annotation database
+//  * 3. [Visualization & Output] Define the subset of probe lists to compare by reading
+//  * 4. [Visualization & Output] Run ontoCompare to map probes, calculate percentages, and
+//  * 5. [Visualization & Output] Save the meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -56,13 +60,13 @@ process BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS {
           }
         }
     
-    # 1. Load the goTools package
+    # --- Load the goTools package ---
     library("goTools", verbose=FALSE)
     
-    # 2. Load the GO.db annotation database
+    # --- Load the GO.db annotation database ---
     library(GO.db)
     
-    # 3. Define the subset of probe lists to compare by reading the user input file.
+    # --- Define the subset of probe lists to compare by reading ---
     # The pipeline expects 'subset.rds' (a serialized R list of probe ID vectors)
     # or 'subset.csv' (where each column represents a probe list) in the working directory.
     if (file.exists("subset.rds")) {
@@ -84,7 +88,7 @@ process BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS {
       stop("Error: The input 'subset' must be a list of character vectors containing probe IDs.")
     }
     
-    # 4. Run ontoCompare to map probes, calculate percentages, and plot the comparison.
+    # --- Run ontoCompare to map probes, calculate percentages, and ---
     # We wrap the call in a PDF device to capture the plot generated when plot=TRUE.
     pdf("ontoCompare_plot.pdf", width = 10, height = 8)
     
@@ -92,7 +96,7 @@ process BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS {
     
     dev.off()
     
-    # 5. Save the meaningful results to output files
+    # --- Save the meaningful results to output files ---
     # Save the raw results object as an RDS file
     saveRDS(res, "ontoCompare_results.rds")
     

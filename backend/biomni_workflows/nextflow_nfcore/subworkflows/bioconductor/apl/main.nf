@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run runAPL on the SingleCellExperiment object specifying the assay, top genes, and target cell group
+//  * 1. [Core Analysis] Read the user-provided input file
+//  * 2. [Core Analysis] Run the documented runAPL workflow exactly as specified
+//  * 3. [Core Analysis] Save the resulting plot to a PDF file
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_APL_QUICK_START_APL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("APL", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +62,7 @@ process BIOC_APL_QUICK_START_APL {
     library(APL)
     library(ggplot2)
     
-    # 1. Read the user-provided input file
+    # --- Read the user-provided input file ---
     if (file.exists("darmanis")) {
       darmanis <- readRDS("darmanis")
     } else if (file.exists("darmanis.rds")) {
@@ -60,7 +71,7 @@ process BIOC_APL_QUICK_START_APL {
       stop("Required input file 'darmanis' or 'darmanis.rds' not found in the working directory.")
     }
     
-    # 2. Run the documented runAPL workflow exactly as specified
+    # --- Run the documented runAPL workflow exactly as specified ---
     association_plot <- runAPL(
       darmanis,
       assay = "logcounts",
@@ -69,7 +80,7 @@ process BIOC_APL_QUICK_START_APL {
       type = "ggplot"
     )
     
-    # 3. Save the resulting plot to a PDF file
+    # --- Save the resulting plot to a PDF file ---
     ggsave(
       filename = "oligodendrocytes_association_plot.pdf",
       plot = association_plot,

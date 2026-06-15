@@ -73,7 +73,7 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     }
     
     # ==========================================
-    # Stage 1: Read training sequences and optional taxid file
+    # --- Read training sequences and optional taxid file ---
     # ==========================================
     cat("Reading training sequences...\n")
     seqs <- readDNAStringSet(seqs_path)
@@ -93,14 +93,14 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     }
     
     # ==========================================
-    # Stage 2: Remove gaps and orient nucleotides
+    # --- Remove gaps and orient nucleotides ---
     # ==========================================
     cat("Cleaning and orienting training sequences...\n")
     seqs <- RemoveGaps(seqs)
     seqs <- OrientNucleotides(seqs)
     
     # ==========================================
-    # Stage 3: Extract taxonomic group labels and subsample
+    # --- Extract taxonomic group labels and subsample ---
     # ==========================================
     cat("Extracting taxonomic group labels...\n")
     groups <- names(seqs) # sequence names
@@ -120,7 +120,7 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     cat("Eliminated", sum(remove), "sequences during initial group size normalization.\n")
     
     # ==========================================
-    # Stage 4: Iteratively train the classifier and remove problem sequences
+    # --- Iteratively train the classifier and remove problem ---
     # ==========================================
     maxIterations <- 3 # must be >= 1
     allowGroupRemoval <- FALSE
@@ -170,14 +170,14 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     cat("Trained classifier saved to 'trained_classifier.rds'.\n")
     
     # ==========================================
-    # Stage 5: Read and clean query sequences
+    # --- Read and clean query sequences ---
     # ==========================================
     cat("Reading and cleaning query sequences...\n")
     test <- readDNAStringSet(fas)
     test <- RemoveGaps(test)
     
     # ==========================================
-    # Stage 6: Classify query sequences using IdTaxa
+    # --- Classify query sequences using IdTaxa ---
     # ==========================================
     cat("Classifying query sequences...\n")
     ids <- IdTaxa(test,
@@ -192,7 +192,7 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     cat("Raw classification results saved to 'classification_results.rds'.\n")
     
     # ==========================================
-    # Stage 7: Plot and analyze taxonomic assignments
+    # --- Plot and analyze taxonomic assignments ---
     # ==========================================
     cat("Generating taxonomic assignment plots and reports...\n")
     

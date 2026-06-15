@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map probe identifiers to chromosome coordinates using makeChrStrandData. 2. Plot the chromosome heatmap using plotChrMap with opti
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Map Probe Identifiers to Coordinates
+//  * 3. [Visualization & Output] Plot Chromosome Heatmaps
+//  * 4. [Visualization & Output] Extract Probe Identifiers and Map to Genes
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ChromHeatMap", "AnnotationDbi", "anno_pkg")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +64,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         library(AnnotationDbi)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         if (!file.exists("expression_matrix.csv")) {
           stop("Error: 'expression_matrix.csv' not found in the working directory.")
@@ -80,7 +92,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         library(anno_pkg, character.only = TRUE)
         
         # ==========================================
-        # 2. Map Probe Identifiers to Coordinates
+        # --- Map Probe Identifiers to Coordinates ---
         # ==========================================
         # Adapt the documented call: chrdata<-makeChrStrandData(exprs(ALLs), lib='hgu95av2')
         chrdata <- makeChrStrandData(expr_matrix, lib = gsub("\\\\.db\$", "", anno_pkg))
@@ -89,7 +101,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         saveRDS(chrdata, file = "chrdata.rds")
         
         # ==========================================
-        # 3. Plot Chromosome Heatmaps
+        # --- Plot Chromosome Heatmaps ---
         # ==========================================
         # Generate sample annotation colors matching the number of samples
         groupcol <- rep(c("red", "green"), length.out = ncol(expr_matrix))
@@ -113,7 +125,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         })
         
         # ==========================================
-        # 4. Extract Probe Identifiers and Map to Genes
+        # --- Extract Probe Identifiers and Map to Genes ---
         # ==========================================
         # Set up the symbol environment alias to match the exact documented code variable name
         symbol_env_name <- paste0(gsub("\\\\.db\$", "", anno_pkg), "SYMBOL")

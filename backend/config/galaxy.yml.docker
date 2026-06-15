@@ -1,0 +1,38 @@
+galaxy:
+  admin_users: admin@galaxy.org
+  ai_llm_api_key: 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
+  ai_llm_model: claude-sonnet-4-5
+  ai_llm_provider: anthropic
+  check_migrate_tools: false
+  database_connection: sqlite:///./database/universe.sqlite?isolation_level=IMMEDIATE
+  enable_ai_assistant: true
+  file_path: database/files
+  master_api_key: f17c618a6d8a9b0c397d6cc847a7f658
+  new_file_path: database/tmp
+  preload_tool_panel: false
+  tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml
+  tool_dependency_dir: database/dependencies
+gravity:
+  galaxy_user: galaxy
+  gunicorn:
+    bind: 0.0.0.0:8080
+    max_requests: 1000
+    max_requests_jitter: 50
+    preload: false
+    timeout: 300
+    worker_class: sync
+    # Stays at 1 for now. With workers > 1 and `preload: false`, every worker
+    # independently loads ~600 tools, writes integrated_tool_panel.xml, and
+    # initializes the SQLite DB — they race on shared init and never bind
+    # port 8080. To raise concurrency safely we need either:
+    #   (a) preload: true (master loads everything, workers fork with CoW)
+    #   (b) move SQLite → Postgres so multi-worker DB init doesn't deadlock
+    #   (c) refactor /api/nextflow/execute to Celery so 1 worker is enough
+    # See docs/20260609_GUNICORN_WORKERS_ROLLBACK.md.
+    workers: 1
+  process_manager: supervisor
+  # The new image installs deps directly to system Python (/usr/local/lib/...)
+  # so we point Gravity's virtualenv at /usr/local. This makes Gravity exec
+  # /usr/local/bin/gunicorn and /usr/local/bin/celery instead of /app/.venv/bin/*
+  # which doesn't exist in the new image.
+  virtualenv: /usr/local

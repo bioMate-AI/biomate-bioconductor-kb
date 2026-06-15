@@ -56,7 +56,7 @@ process BIOC_NORMR_CNV_DETECTION_AND_FILTERING {
     library("normr")
     library("GenomicRanges")
     
-    # 1. Declare and verify input files
+    # --- Declare and verify input files ---
     treatmentInputBamfile <- "treatmentInput.bam"
     controlInputBamfile <- "controlInput.bam"
     diffFitPath <- "diffFit"
@@ -76,10 +76,10 @@ process BIOC_NORMR_CNV_DETECTION_AND_FILTERING {
       }
     }
     
-    # 2. Load the pre-calculated differential ChIP-seq fit object
+    # --- Load the pre-calculated differential ChIP-seq fit object ---
     diffFit <- readRDS(diffFitPath)
     
-    # 3. Extract genome information from the pre-calculated fit object
+    # --- Extract genome information from the pre-calculated fit ---
     # This ensures the genome specification matches the coordinates of the diffFit object.
     seq_info <- seqinfo(getRanges(diffFit))
     genome <- data.frame(
@@ -90,21 +90,21 @@ process BIOC_NORMR_CNV_DETECTION_AND_FILTERING {
     # Filter out any chromosomes with unresolved sizes
     genome <- genome[!is.na(genome\$size), ]
     
-    # 4. Call differences between the two input control tracks to detect CNVs
+    # --- Call differences between the two input control tracks to ---
     cnvs <- diffR(treatment   = treatmentInputBamfile,
                   control     = controlInputBamfile,
                   genome      = genome,
                   countConfig = countConfigSingleEnd(binsize = 2.5e4))
     
-    # 5. Export the CNV calls
+    # --- Export the CNV calls ---
     exportR(cnvs, "CNVs.bed")
     
-    # 6. Filter previous ChIP-seq difference calls for CNVs
+    # --- Filter previous ChIP-seq difference calls for CNVs ---
     ov <- countOverlaps(getRanges(diffFit, fdr = .05), getRanges(cnvs, fdr = .05))
     idx <- which(ov == 0)
     cnvCleanedGR <- getRanges(diffFit, fdr = .05)[idx]
     
-    # 7. Save meaningful outputs
+    # --- Save meaningful outputs ---
     saveRDS(cnvs, "cnvs_fit.rds")
     saveRDS(cnvCleanedGR, "cnvCleanedGR.rds")
     write.csv(as.data.frame(cnvCleanedGR), "cnvCleanedGR.csv", row.names = FALSE)

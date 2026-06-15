@@ -60,7 +60,7 @@ process BIOC_GMOVIZ_FEATURE_DIAGRAM {
     library(Rsamtools)
     
     # -----------------------------------------------------------------------------
-    # 1. Read Ideogram Data and Define Sectors
+    # --- Read Ideogram Data and Define Sectors ---
     # -----------------------------------------------------------------------------
     if (!file.exists("ideogram_data.gff")) {
       stop("Required input file 'ideogram_data.gff' is missing.")
@@ -105,7 +105,7 @@ process BIOC_GMOVIZ_FEATURE_DIAGRAM {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Read Features and Align with Ideograms
+    # --- Read Features and Align with Ideograms ---
     # -----------------------------------------------------------------------------
     if (!file.exists("features.gff3")) {
       stop("Required input file 'features.gff3' is missing.")
@@ -160,7 +160,7 @@ process BIOC_GMOVIZ_FEATURE_DIAGRAM {
     exon_label <- GRanges("Gene X", IRanges(exon_start, exon_end), label = "Exon 2")
     
     # -----------------------------------------------------------------------------
-    # 3. Read Coverage Data
+    # --- Read Coverage Data ---
     # -----------------------------------------------------------------------------
     coverage <- NULL
     if (file.exists("coverage.bam")) {
@@ -207,7 +207,7 @@ process BIOC_GMOVIZ_FEATURE_DIAGRAM {
     )
     
     # -----------------------------------------------------------------------------
-    # 4. Generate Feature Diagrams and Save Outputs
+    # --- Generate Feature Diagrams and Save Outputs ---
     # -----------------------------------------------------------------------------
     
     # Plot 1: Plasmid Feature Diagram

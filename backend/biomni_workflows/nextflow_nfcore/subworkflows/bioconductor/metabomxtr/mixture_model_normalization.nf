@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define target metabolite names. 2. Run mixture model normalization using mixnorm, specifying batch-specific thresholds and outlier
+//  * 1. [Input & Preparation] Read user input files from the working directory
+//  * 2. [Input & Preparation] Run mixture model normalization using mixnorm, specifying
+//  * 3. [Input & Preparation] Assess normalization performance and identify outliers
+//  * 4. [Input & Preparation] Run normalization preserving biological covariates (e.g.,
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_METABOMXTR_MIXTURE_MODEL_NORMALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("metabomxtr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +63,7 @@ process BIOC_METABOMXTR_MIXTURE_MODEL_NORMALIZATION {
         library(metabomxtr)
         library(ggplot2)
         
-        # 1. Read user input files from the working directory
+        # --- Read user input files from the working directory ---
         # - experimental_samples.csv: raw experimental metabolite abundances and batch/phenotype covariates
         # - control_samples.csv: raw quality control pool metabolite abundances, batch, and run order/phenotype covariates
         euMetabData <- read.csv("experimental_samples.csv", row.names = 1, check.names = FALSE)
@@ -74,7 +86,7 @@ process BIOC_METABOMXTR_MIXTURE_MODEL_NORMALIZATION {
           mxtr_formula <- ~batch|batch
         }
         
-        # 2. Run mixture model normalization using mixnorm, specifying batch-specific thresholds and outlier criteria
+        # --- Run mixture model normalization using mixnorm, specifying ---
         euMetabNorm <- mixnorm(ynames, batch="batch", mxtrModel=mxtr_formula, 
                                cData=euMetabCData, data=euMetabData, qc.sd.outliers=2)
         
@@ -88,7 +100,7 @@ process BIOC_METABOMXTR_MIXTURE_MODEL_NORMALIZATION {
         # Start PDF device to capture diagnostic plots
         pdf("normalization_plots.pdf", width = 11, height = 8.5)
         
-        # 3. Assess normalization performance and identify outliers using metabplot
+        # --- Assess normalization performance and identify outliers ---
         if (length(covariates) > 0) {
           plot.list <- lapply(ynames, metabplot, batch="batch", raw.obs.data=euMetabData, raw.cont.data=euMetabCData, 
                               norm.obs.data=euMetabNorm\$obsNorm, norm.cont.data=euMetabNorm\$ctlNorm,
@@ -104,7 +116,7 @@ process BIOC_METABOMXTR_MIXTURE_MODEL_NORMALIZATION {
           print(p)
         }
         
-        # 4. Run normalization preserving biological covariates (e.g., phenotype) using the removeCorrection parameter
+        # --- Run normalization preserving biological covariates (e.g., ---
         if (length(covariates) > 0) {
           euMetabNormRC <- mixnorm(ynames, batch="batch", mxtrModel=mxtr_formula, 
                                    cData=euMetabCData, removeCorrection=covariates, data=euMetabData)

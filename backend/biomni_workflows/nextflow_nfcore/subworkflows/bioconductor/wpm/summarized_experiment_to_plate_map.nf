@@ -41,7 +41,7 @@ process BIOC_WPM_SUMMARIZED_EXPERIMENT_TO_PLATE_MAP {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ggplot2", "wpm")
+    .bm_deps <- c("ggplot2", "wpm", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_WPM_SUMMARIZED_EXPERIMENT_TO_PLATE_MAP {
         
     # Load required libraries
     library(wpm)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # Read the user input file 'se' from the working directory

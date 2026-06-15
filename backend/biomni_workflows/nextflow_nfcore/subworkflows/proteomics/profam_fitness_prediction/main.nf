@@ -44,7 +44,7 @@ process PROFAM_PREDICT {
     path("profam_logits.npy"), emit: logits, optional: true
 
     script:
-    def input_arg = variants_csv.name != 'NO_FILE'
+    def input_arg = variants_csv.name != 'NO_VARIANTS'
         ? "--variants ${variants_csv}"
         : "--fasta ${input_fasta}"
     def wt_arg = params.wildtype ? "--wildtype '${params.wildtype}'" : ""
@@ -99,13 +99,16 @@ EOF
 }
 
 workflow {
+    // Each optional input needs a unique placeholder filename, else Nextflow
+    // raises "input file name collision -- multiple input files for NO_FILE"
+    // when both default to the same stub. Fixed 2026-06-08.
     fasta_ch = params.input_fasta
         ? Channel.fromPath(params.input_fasta)
-        : Channel.fromPath('NO_FILE').ifEmpty(file('NO_FILE'))
+        : Channel.fromPath('NO_FASTA').ifEmpty(file("${projectDir}/NO_FASTA"))
 
     variants_ch = params.variants_csv
         ? Channel.fromPath(params.variants_csv)
-        : Channel.fromPath('NO_FILE').ifEmpty(file('NO_FILE'))
+        : Channel.fromPath('NO_VARIANTS').ifEmpty(file("${projectDir}/NO_VARIANTS"))
 
     PROFAM_PREDICT(fasta_ch, variants_ch)
     FITNESS_REPORT(PROFAM_PREDICT.out.scores)

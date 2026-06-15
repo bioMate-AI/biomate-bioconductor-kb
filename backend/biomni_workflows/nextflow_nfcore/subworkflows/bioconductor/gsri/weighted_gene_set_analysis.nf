@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load expression data and phenotype information. 2. Define a numeric vector of weights corresponding to the genes in the expression
+//  * 1. [Input & Preparation] Load expression data and phenotype information
+//  * 2. [Input & Preparation] Define a numeric vector of weights corresponding to the
+//  * 3. [Input & Preparation] Run the GSRI analysis with the weight parameter specified
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GSRI", "GSEABase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +63,7 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     library(GSRI)
     library(GSEABase)
     
-    # 1. Load expression data and phenotype information
+    # --- Load expression data and phenotype information ---
     load("expression_data.RData")
     
     # Find the ExpressionSet or matrix in the loaded workspace
@@ -103,7 +114,7 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     rownames(phenotypes) <- sampleNames(eset)
     pData(eset) <- phenotypes
     
-    # 2. Define a numeric vector of weights corresponding to the genes in the expression dataset
+    # --- Define a numeric vector of weights corresponding to the ---
     gene_weights <- read.csv("gene_weights.csv", stringsAsFactors=FALSE)
     
     # Find gene and evidence/weight columns in the user-provided CSV
@@ -124,7 +135,7 @@ process BIOC_GSRI_WEIGHTED_GENE_SET_ANALYSIS {
     goWeight <- rep(0.5, length.out=length(expInd))
     goWeight[expInd] <- 1
     
-    # 3. Run the GSRI analysis with the weight parameter specified
+    # --- Run the GSRI analysis with the weight parameter specified ---
     gCol5go <- gsri(eset, phenotypes\$type, weight=goWeight)
     
     # Construct a GeneSetCollection (gmt) from the actual genes in eset to avoid system.file

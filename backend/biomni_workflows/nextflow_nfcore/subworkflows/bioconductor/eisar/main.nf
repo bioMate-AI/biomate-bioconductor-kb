@@ -58,10 +58,10 @@ process BIOC_EISAR_REFERENCE_GENERATION {
     library(BSgenome.Hsapiens.UCSC.hg38)
     library(Biostrings)
     
-    # 1. Define input file path (replacing system.file)
+    # --- Define input file path (replacing system.file) ---
     gtf <- "gencode.v28.annotation.sub.gtf"
     
-    # 2. Extract genomic ranges for spliced transcripts and introns
+    # --- Extract genomic ranges for spliced transcripts and introns ---
     grl <- getFeatureRanges(
         gtf = gtf,
         featureType = c("spliced", "intron"),
@@ -71,7 +71,7 @@ process BIOC_EISAR_REFERENCE_GENERATION {
         verbose = TRUE
     )
     
-    # 3. Extract nucleotide sequences
+    # --- Extract nucleotide sequences ---
     seqs <- GenomicFeatures::extractTranscriptSeqs(
         x = BSgenome.Hsapiens.UCSC.hg38,
         transcripts = grl
@@ -80,7 +80,7 @@ process BIOC_EISAR_REFERENCE_GENERATION {
     # Save extracted sequences to the working directory
     Biostrings::writeXStringSet(seqs, "extracted_seqs.fa")
     
-    # 4. Export the expanded features to a GTF file (exact call preserved)
+    # --- Export the expanded features to a GTF file (exact call ---
     exportToGtf(
         grl,
         filepath = file.path(tempdir(), "exported.gtf")
@@ -89,7 +89,7 @@ process BIOC_EISAR_REFERENCE_GENERATION {
     # Copy the exported GTF to the working directory for user access
     file.copy(file.path(tempdir(), "exported.gtf"), "exported.gtf", overwrite = TRUE)
     
-    # 5. Generate a transcript-to-gene mapping table
+    # --- Generate a transcript-to-gene mapping table ---
     df <- getTx2Gene(grl)
     head(df)
     tail(df)

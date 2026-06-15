@@ -34,6 +34,15 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tRNAdbImport", "GenomicRanges", "Biostrings", "rtracklayer", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,7 +52,7 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries and read input files
+    # --- Load required libraries and read input files ---
     library(tRNAdbImport)
     library(GenomicRanges)
     library(Biostrings)
@@ -57,7 +66,7 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Parse tRNA types/amino acids from the count matrix row names
+    # --- Parse tRNA types/amino acids from the count matrix row ---
     # We look for standard 3-letter amino acid codes to query the database
     aa_codes <- c("Ala", "Arg", "Asn", "Asp", "Cys", "Gln", "Glu", "Gly", "His", "Ile", 
                   "Leu", "Lys", "Met", "Phe", "Pro", "Ser", "Thr", "Trp", "Tyr", "Val")
@@ -77,7 +86,7 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
     
     message("Querying tRNAdb for amino acids: ", paste(found_aas, collapse = ", "))
     
-    # Stage 3: Query tRNAdb with robust fallback mechanism
+    # --- Query tRNAdb with robust fallback mechanism ---
     # Since the tRNAdb server can experience downtime, we use a tryCatch block.
     # If the server is unreachable, we construct a valid tRNAdb GRanges object manually.
     gr <- tryCatch({
@@ -115,20 +124,20 @@ process BIOC_TRNADBIMPORT_TRNADB_ANNOTATION_PIPELINE {
       return(fallback_gr)
     })
     
-    # Stage 4: Validate the GRanges object structure
+    # --- Validate the GRanges object structure ---
     is_valid <- istRNAdbGRanges(gr)
     message("Is the imported GRanges object valid according to tRNAdb schema? ", is_valid)
     
-    # Stage 5: Convert tRNAdb annotations to GFF format and export
+    # --- Convert tRNAdb annotations to GFF format and export ---
     gff_features <- tRNAdb2GFF(gr)
     rtracklayer::export.gff3(gff_features, con = "trna_annotations.gff3")
     message("Exported tRNA annotations to 'trna_annotations.gff3'")
     
-    # Stage 6: Export tRNA sequences to FASTA
+    # --- Export tRNA sequences to FASTA ---
     Biostrings::writeXStringSet(gr\$tRNA_seq, filepath = "trna_sequences.fa")
     message("Exported tRNA sequences to 'trna_sequences.fa'")
     
-    # Stage 7: Integrate tRNA annotations with the count matrix
+    # --- Integrate tRNA annotations with the count matrix ---
     # Map each gene ID in the count matrix to its corresponding tRNA type
     annotation_mapping <- data.frame(
       gene_id = rownames(counts),

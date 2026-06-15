@@ -12,6 +12,8 @@ import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES } from "../shared/schema";
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
+import { selectChatHistoryUnderBudget } from "./chat-history-selector";
+import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -1234,10 +1236,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await parameterRepository.initialize();
   await workflowRepository.initialize();
 
+  // Project CRUD — list/create/fetch/update/archive/delete user projects.
+  // Provides the path by which client-sent projectId in chat-stream
+  // context comes to exist. See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+  const { registerProjectRoutes } = await import("./project-routes");
+  registerProjectRoutes(app);
+
   // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
   // a missing module doesn't crash the rest of the app at boot. The route
-  // file ships from this same topic branch alongside this registration.
+  // file ships from a parallel work stream alongside this registration.
   try {
+    // @ts-ignore — module may not exist yet
     const { registerRegulatoryTrainingRoutes } = await import(
       "./regulatory-training-routes.js"
     );
@@ -1867,10 +1876,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await authService.register(registerData);
 
-      // Send verification email (non-blocking — don't fail registration if email fails)
-      authService.sendVerificationEmail(result.user.id).catch((err) =>
-        console.error('[Auth] Failed to send verification email:', err)
-      );
+      // Issue the verification token here (not fire-and-forget) so we can
+      // return it to the client in dev / no-SMTP environments. The
+      // registration UI surfaces a "use this link to verify" affordance
+      // when SMTP isn't configured — without this token in the response,
+      // that link rendered as `/verify-email?token=null` and 404'd into
+      // the React error path. See 2026-06-12 auth audit.
+      let _verificationToken: string | null = null;
+      try {
+        _verificationToken = await authService.sendVerificationEmail(result.user.id, { returnToken: true });
+      } catch (err) {
+        console.error('[Auth] Failed to send verification email:', err);
+      }
+
+      // Notify the admin of every new registration (fire-and-forget; never fails the signup)
+      try {
+        const _adminNotifyEmail = process.env.ADMIN_NOTIFY_EMAIL || 'contact@biomate.ai';
+        const _regSummary =
+          `Email: ${result.user.email}\n` +
+          `Name: ${result.user.fullName || '(none)'}\n` +
+          `Plan: ${result.user.subscriptionTier || 'base'}\n` +
+          `User ID: ${result.user.id}\n` +
+          `Time: ${new Date().toISOString()}`;
+        emailService.sendEmail({
+          to: _adminNotifyEmail,
+          subject: `New BioMate registration: ${result.user.email}`,
+          html: `<h3>New BioMate registration</h3><pre>${_regSummary.replace(/</g, '&lt;')}</pre>`,
+          text: `A new user registered.\n\n${_regSummary}`,
+        }).catch((err) => console.error('[Auth] Failed to send admin registration notice:', err));
+      } catch (err) {
+        console.error('[Auth] admin registration notice error:', err);
+      }
 
       // Register user in Lago for usage-based billing (fire-and-forget)
       const _galaxyUrlReg = process.env.GALAXY_URL || 'http://localhost:8081';
@@ -1899,7 +1935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json({
         success: true,
-        user: result.user,
+        user: { ...result.user, verificationToken: _verificationToken },
         token: result.token,
         expiresIn: result.expiresIn,
       });
@@ -3073,6 +3109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           file_size: file.size,
           file_path: file.path,
         });
+        req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
       }
 
       // Return dataset information with local, Galaxy, and S3 IDs
@@ -3128,6 +3165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           file_path: serverPath,    // the real path passed to workflow params
           param_name: paramName || null,  // optional explicit param mapping
         });
+        req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets as any[]);
       }
 
       return res.json({
@@ -3211,6 +3249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             file_size: 0, // Size unknown until Galaxy fetches it
             source_url: url,  // Nextflow can fetch HTTP/S3 URLs directly
           });
+          req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
         }
 
         res.json({
@@ -5017,6 +5056,11 @@ ${paramLines || '(none recorded)'}`;
     let accumulatedContent = "";
     let workflowMetadata: any = null;
     let persisted = false;
+    // Hoisted so the persistAssistantMessage closure can read it. The
+    // actual resolution happens further down (Q4 ensureDefaultProject
+    // path); until that point this stays undefined and the persistence
+    // path falls back to ctx.projectId or null.
+    let _resolvedProjectId: string | undefined;
 
     const persistAssistantMessage = async (opts: { partial: boolean }): Promise<void> => {
       if (persisted) return;
@@ -5039,17 +5083,27 @@ ${paramLines || '(none recorded)'}`;
       try {
         // UPSERT: ensure session row exists, then merge the assistant message by
         // message_id (replace existing entry with same id, else append).
+        // project_id is set on insert AND backfilled on update if the row
+        // pre-dates Q4 (had a NULL project_id). The COALESCE preserves any
+        // existing non-null value so reassignment via a future UI selector
+        // doesn't get clobbered by the auto-resolved default project.
+        // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+        // Prefer the server-resolved projectId (Q4 ensureDefaultProject)
+        // over a client-sent value, so a buggy client can't dissociate a
+        // session from the project we just resolved for it.
+        const projectIdForUpsert = _resolvedProjectId || ctx.projectId || null;
         await pool.query(
-          `INSERT INTO chat_sessions (session_id, user_id, title, messages)
-             VALUES ($1, $2, 'New Chat', $3::jsonb)
+          `INSERT INTO chat_sessions (session_id, user_id, title, messages, project_id)
+             VALUES ($1, $2, 'New Chat', $3::jsonb, $5)
              ON CONFLICT (session_id) DO UPDATE SET
                messages = (
                  SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
                  FROM jsonb_array_elements(chat_sessions.messages) elem
                  WHERE elem->>'message_id' IS DISTINCT FROM $4
                ),
+               project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
                last_activity = NOW()`,
-          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId]
+          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId, projectIdForUpsert]
         );
         persisted = true;
         console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${opts.partial}, len=${accumulatedContent.length})`);
@@ -5180,26 +5234,170 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // -----------------------------------------------------------------
+      // History + dataset rehydration from chat_sessions, then a hard
+      // token-budget cap. See:
+      //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
+      //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q3)
+      // Backfill when the client sent an empty/short payload (page
+      // refresh, cross-device). Then run selectChatHistoryUnderBudget so
+      // the assembled payload stays ≤16 KB regardless of where it came
+      // from — defense in depth.
+      // -----------------------------------------------------------------
+      const _resolvedSessionId = (context?.sessionId || context?.memorySessionId) || undefined;
+      let _historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> | undefined =
+        Array.isArray(context?.previousMessages) && context.previousMessages.length > 0
+          ? context.previousMessages
+          : undefined;
+      let _historyDatasets: Array<{ id: string; name: string; type?: string; file_path?: string | null; param_name?: string | null }> | undefined;
+
+      if (_resolvedSessionId && (!_historyMessages || !req.session?.uploadedDatasets?.length)) {
+        try {
+          const _row = await pool.query(
+            'SELECT messages, datasets FROM chat_sessions WHERE session_id = $1 LIMIT 1',
+            [_resolvedSessionId]
+          );
+          const _r = _row.rows?.[0];
+          if (_r) {
+            if (!_historyMessages && Array.isArray(_r.messages)) {
+              _historyMessages = _r.messages
+                .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+                .map((m: any) => ({ role: m.role, content: m.content }));
+              if (_historyMessages && _historyMessages.length === 0) _historyMessages = undefined;
+            }
+            if (Array.isArray(_r.datasets) && _r.datasets.length > 0) {
+              // Cap rehydrated entries too — defends against a stale row
+              // that pre-dates the cap from blowing up the prompt budget.
+              const _capped = capDatasetReferences(_r.datasets);
+              _historyDatasets = _capped.map((d: any) => ({
+                id: d.id || d.galaxy_dataset_id || d.dataset_id,
+                name: d.name || d.filename || 'unknown',
+                type: d.type || d.file_type || 'unknown',
+                file_path: d.file_path || null,
+                param_name: d.param_name || null,
+              })).filter((d: any) => d.id);
+              if (_historyDatasets && _historyDatasets.length === 0) _historyDatasets = undefined;
+            }
+          }
+        } catch (e: any) {
+          console.warn('[chat-stream] history rehydration failed:', e?.message ?? e);
+        }
+      }
+
+      // Apply token-budget cap to whatever we ended up with. This runs
+      // for both the rehydrated path and the client-sent path so a stale
+      // or oversized client payload can't blow up the prompt either.
+      if (_historyMessages && _historyMessages.length > 0) {
+        const _before = _historyMessages.length;
+        _historyMessages = selectChatHistoryUnderBudget(_historyMessages as any) as any;
+        if ((_historyMessages?.length ?? 0) !== _before) {
+          console.log('[chat-stream] history selector trimmed:', _before, '→', _historyMessages?.length);
+        }
+      }
+
+      // Project framework — Q4 (re-enabled 2026-06-12).
+      //
+      // Policy (docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md):
+      // NOT every chat lives in a project. A chat is project-scoped only
+      // when the client explicitly sends projectId. Standalone "ask
+      // BioMate a quick question" chats stay project-less. We do NOT
+      // auto-create a Default Workspace — that's surprising pollution.
+      //
+      // What we always do (regardless of project): ensure the ltm_users
+      // row exists, so user-scoped memory (preferences, corrections,
+      // episodes attached to the user not a project) can write.
+      // Bridge chat-stream's text sessionId to an LTM uuid sessionId so
+      // recordEpisode / project_episodes writes can land. Without this,
+      // memory-integration's episode + correction writes silently fail
+      // against the uuid FK constraint. See 2026-06-13 audit.
+      let _ltmSessionUuid: string | null = null;
+      let _recoveredDatasets: Array<{ id: string; name: string; type: string; recovered: true; sourceSessionId: string; lastActivity: string }> = [];
+      if (req.user) {
+        try {
+          const { memoryService } = await import('./memory-repository');
+          const _u = req.user as any;
+          await memoryService.ensureLtmUser(String(_u.id), _u.email, _u.fullName ?? _u.name);
+          _resolvedProjectId = (await memoryService.resolveProjectForChat(context?.projectId)) ?? undefined;
+          if (_resolvedSessionId) {
+            _ltmSessionUuid = await memoryService.ensureChatLtmSession(
+              String(_u.id),
+              _resolvedSessionId,
+              _resolvedProjectId ?? null,
+            );
+            // Cold-refresh recovery: pull datasets attached to OTHER
+            // sessions in the same project (last 14 days, capped 20).
+            // Only runs when the chat is project-scoped — project-less
+            // sessions have no scope to recover within. See
+            // docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+            if (_resolvedProjectId) {
+              _recoveredDatasets = await memoryService.recoverProjectDatasets(
+                _resolvedProjectId,
+                _resolvedSessionId,
+              );
+              if (_recoveredDatasets.length > 0) {
+                console.log(`[chat-stream] recovered ${_recoveredDatasets.length} project-scoped dataset(s)`);
+              }
+            }
+          }
+        } catch (e: any) {
+          // Defensive — never break chat on a memory-system error.
+          console.warn('[chat-stream] memory bootstrap failed:', e?.message ?? e);
+        }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
         // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
-        sessionId: (context?.sessionId || context?.memorySessionId) || undefined,
+        sessionId: _resolvedSessionId,
+        projectId: _resolvedProjectId,
+        // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
+        // project_episodes.session_id FK is satisfied. If the bridge call
+        // failed (no LTM session created), leave it undefined and let
+        // memory-integration's gates skip the episode write.
+        memorySessionId: _ltmSessionUuid ?? undefined,
+        previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
         // Inject integer userId so memory-integration can load user preferences/corrections
         userId: req.user ? Number((req.user as any).id) : (context?.userId),
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
-        // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input)
-        sessionDatasets: req.session?.uploadedDatasets?.length
-          ? req.session.uploadedDatasets.map((d: any) => ({
-              id: d.galaxy_dataset_id || d.dataset_id,
-              name: d.name,
-              type: d.file_type || 'unknown',
-              file_path: d.file_path || null,
-              param_name: d.param_name || null,  // explicit param mapping from register-path
-            }))
-          : undefined,
+        // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input).
+        // When the in-memory Express session has none (e.g. cross-device, post-refresh), fall back to
+        // the persisted chat_sessions.datasets jsonb we just hydrated.
+        //
+        // Cold-refresh recovery: when this session has no attached datasets
+        // but we resolved sister sessions in the same project that DO have
+        // datasets, surface those as "recovered" entries below the
+        // direct ones. The sessionDatasetsBlock in galaxy-assistant.ts
+        // labels recovered ones distinctly so the LLM doesn't claim the
+        // user just attached them.
+        sessionDatasets: (() => {
+          const direct: Array<any> = req.session?.uploadedDatasets?.length
+            ? req.session.uploadedDatasets.map((d: any) => ({
+                id: d.galaxy_dataset_id || d.dataset_id,
+                name: d.name,
+                type: d.file_type || 'unknown',
+                file_path: d.file_path || null,
+                param_name: d.param_name || null,
+              }))
+            : (_historyDatasets ?? []);
+          // Dedupe: a recovered entry whose id is already in direct is dropped.
+          const seen = new Set(direct.map((d: any) => d.id));
+          const recovered = _recoveredDatasets
+            .filter((r) => !seen.has(r.id))
+            .map((r) => ({
+              id: r.id,
+              name: r.name,
+              type: r.type,
+              file_path: null,
+              param_name: null,
+              recovered: true,
+              sourceSessionId: r.sourceSessionId,
+            }));
+          const combined = [...direct, ...recovered];
+          return combined.length > 0 ? combined : undefined;
+        })(),
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
         credentialMap: credentialMap || undefined,
         // Per-request Galaxy proxy scoped to the authenticated user's own
@@ -5340,6 +5538,7 @@ ${paramLines || '(none recorded)'}`;
         metadata: {
           intentType: assistantResponse.intentType,
           inlineParameters: assistantResponse.inlineParameters,
+          paramClarifications: assistantResponse.paramClarifications,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: false,
@@ -6467,8 +6666,9 @@ ${paramLines || '(none recorded)'}`;
   app.post("/api/memory/interactions", authenticateToken, async (req, res) => {
     const { sessionId, projectId, userMessage, assistantResponse, userIntent, toolsUsed, workflowGenerated, workflowId } = req.body ?? {};
 
-    // Bug #58 fix — validate before hitting the DB so malformed payloads
-    // and FK violations don't all collapse to a generic 500.
+    // Bug #58 fix — validate required fields + UUID shape BEFORE hitting the DB.
+    // Previously this endpoint returned 500 for both malformed payloads and
+    // missing-session FK violations; now it 400s with a precise diagnostic.
     const missing: string[] = [];
     if (!sessionId)         missing.push("sessionId");
     if (!userMessage)       missing.push("userMessage");
@@ -6494,8 +6694,8 @@ ${paramLines || '(none recorded)'}`;
       res.json(result);
     } catch (error: any) {
       console.error('[API] Record interaction failed:', error);
+      // Foreign-key violation = session row doesn't exist yet → 404 is more honest than 500
       const msg = String(error?.message ?? "");
-      // Foreign-key violation = the session row doesn't exist yet → 404 is more honest than 500
       if (msg.includes("violates foreign key constraint") && msg.includes("session_id")) {
         return res.status(404).json({ error: "session_not_found", sessionId });
       }
@@ -11975,6 +12175,12 @@ Respond ONLY with valid JSON (no markdown wrapper):
     try {
       const { session_id, title, messages, workflows, datasets } = req.body;
       if (!session_id) return res.status(400).json({ error: 'session_id required' });
+      // Cap incoming dataset list at MAX_DATASET_REFS (32, drop oldest)
+      // to match the same defense applied at the PUT site + the in-memory
+      // req.session.uploadedDatasets sites. Without this, a client can
+      // bypass the cap on first-write. See frontend/server/dataset-cap.ts
+      // and docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const cappedDatasets = capDatasetReferences(datasets || []);
       const rows = await pool.query(
         `INSERT INTO chat_sessions (session_id, user_id, title, messages, workflows, datasets)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -11984,7 +12190,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
            last_activity = NOW()
          RETURNING *`,
         [session_id, req.user.id, title || 'New Chat',
-         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(datasets || [])]
+         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(cappedDatasets)]
       );
       res.status(201).json(rows.rows[0]);
     } catch (err: any) {
@@ -11995,6 +12201,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
   app.put("/api/sessions/:sessionId", authenticateToken, express.json(), async (req: any, res) => {
     try {
       const { title, status, messages, workflows, datasets } = req.body;
+      const cappedDatasets = datasets ? capDatasetReferences(datasets) : null;
       const rows = await pool.query(
         `UPDATE chat_sessions SET
            title = COALESCE($3, title),
@@ -12008,7 +12215,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
         [req.params.sessionId, req.user.id, title, status,
          messages ? JSON.stringify(messages) : null,
          workflows ? JSON.stringify(workflows) : null,
-         datasets ? JSON.stringify(datasets) : null]
+         cappedDatasets ? JSON.stringify(cappedDatasets) : null]
       );
       if (!rows.rows.length) return res.status(404).json({ error: 'Session not found' });
       res.json(rows.rows[0]);

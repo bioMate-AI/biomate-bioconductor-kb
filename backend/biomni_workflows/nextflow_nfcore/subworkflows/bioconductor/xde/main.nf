@@ -13,7 +13,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Create and validate the ExpressionSetList. 2. Initialize the XdeParameter object with the phenotype label. 3. (Optional) Generate 
+//  * 1. [Visualization & Output] Read and Validate User Input
+//  * 2. [Visualization & Output] Initialize XdeParameter Object
+//  * 3. [Visualization & Output] Generate Empirical Starting Values
+//  * 4. [Visualization & Output] Configure and Run Burn-in MCMC Chains
+//  * 5. [Visualization & Output] Configure and Run Production MCMC Chain
+//  * 6. [Visualization & Output] Calculate Posterior Averages & Effect Sizes
+//  * 7. [Visualization & Output] MCMC Diagnostics and Visualization
+//  * 8. [Visualization & Output] Save Meaningful Results
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +69,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     library(Biobase)
     
     # ==========================================
-    # 1. Read and Validate User Input
+    # --- Read and Validate User Input ---
     # ==========================================
     
     input_file <- "expressionSetList.rds"
@@ -111,7 +118,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     message("Using phenotype label: ", phenotype_label)
     
     # ==========================================
-    # 2. Initialize XdeParameter Object
+    # --- Initialize XdeParameter Object ---
     # ==========================================
     
     params <- new("XdeParameter", esetList = xlist, phenotypeLabel = phenotype_label)
@@ -121,14 +128,14 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     params <- new("XdeParameter", esetList = xlist, phenotypeLabel = phenotype_label, one.delta = FALSE)
     
     # ==========================================
-    # 3. Generate Empirical Starting Values
+    # --- Generate Empirical Starting Values ---
     # ==========================================
     
     empirical <- empiricalStart(xlist, phenotypeLabel = phenotype_label)
     firstMcmc(params) <- empirical
     
     # ==========================================
-    # 4. Configure and Run Burn-in MCMC Chains
+    # --- Configure and Run Burn-in MCMC Chains ---
     # ==========================================
     
     iterations(params) <- 3
@@ -141,7 +148,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     fit2 <- xde(params, xlist)
     
     # ==========================================
-    # 5. Configure and Run Production MCMC Chain
+    # --- Configure and Run Production MCMC Chain ---
     # ==========================================
     
     burnin(params) <- FALSE
@@ -164,7 +171,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     xmcmc <- xde(params, xlist)
     
     # ==========================================
-    # 6. Calculate Posterior Averages & Effect Sizes
+    # --- Calculate Posterior Averages & Effect Sizes ---
     # ==========================================
     
     postAvg <- calculatePosteriorAvg(xmcmc, NCONC = 2, NDIFF = 1)
@@ -176,7 +183,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     save(BES, file = file.path("logFiles", "BES.rda"))
     
     # ==========================================
-    # 7. MCMC Diagnostics and Visualization
+    # --- MCMC Diagnostics and Visualization ---
     # ==========================================
     
     pathToLogFiles <- "logFiles"
@@ -209,7 +216,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 8. Save Meaningful Results
+    # --- Save Meaningful Results ---
     # ==========================================
     
     write.csv(postAvg, "posterior_averages.csv", row.names = TRUE)

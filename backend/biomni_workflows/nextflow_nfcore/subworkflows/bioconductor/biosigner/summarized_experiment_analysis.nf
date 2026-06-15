@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run feature selection using biosign, specifying the column name of the response variable in colData. 2. Extract the updated rowDat
+//  * 1. [Visualization & Output] Read the user input SummarizedExperiment object
+//  * 2. [Visualization & Output] Run feature selection using biosign, specifying the
+//  * 3. [Visualization & Output] Extract the updated rowData containing the assigned
+//  * 4. [Visualization & Output] Retrieve the trained biosign models from the metadata
+//  * 5. [Visualization & Output] Plot the feature tiers for the selected classifiers and
+//  * 6. [Visualization & Output] Write meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_BIOSIGNER_SUMMARIZED_EXPERIMENT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biosigner", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,32 +62,33 @@ process BIOC_BIOSIGNER_SUMMARIZED_EXPERIMENT_ANALYSIS {
         }
         
     # Load required libraries
-    library(biosigner)
+        library(SummarizedExperiment)
+library(biosigner)
     
-    # 1. Read the user input SummarizedExperiment object
+    # --- Read the user input SummarizedExperiment object ---
     dia.se <- readRDS("dia.se")
     
     # Dynamically determine the response variable (assuming it is the first column in colData)
     response_var <- colnames(colData(dia.se))[1]
     
-    # 2. Run feature selection using biosign, specifying the column name of the response variable in colData
+    # --- Run feature selection using biosign, specifying the ---
     # Removed 'bootI = 5' to use the default 50 bootstraps for stable signatures
     dia.se <- biosign(dia.se, response_var)
     
-    # 3. Extract the updated rowData containing the assigned feature tiers
+    # --- Extract the updated rowData containing the assigned ---
     feat.DF <- SummarizedExperiment::rowData(dia.se)
     
-    # 4. Retrieve the trained biosign models from the metadata slot of the SummarizedExperiment
+    # --- Retrieve the trained biosign models from the metadata ---
     dia_type.biosign <- getBiosign(dia.se)
     
-    # 5. Plot the feature tiers for the selected classifiers and save to PDF
+    # --- Plot the feature tiers for the selected classifiers and ---
     pdf("feature_tiers_plot.pdf", width = 7, height = 7)
     # Dynamically extract the model name to avoid hardcoding
     model_name <- names(dia_type.biosign)[1]
     plot(dia_type.biosign[[model_name]], typeC = "tier")
     dev.off()
     
-    # 6. Write meaningful results to output files
+    # --- Write meaningful results to output files ---
     # Save the updated SummarizedExperiment object
     saveRDS(dia.se, "dia_se_updated.rds")
     

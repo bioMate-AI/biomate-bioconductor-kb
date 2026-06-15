@@ -110,7 +110,7 @@ process BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA {
     pdata_preview <- pData(exampleProbeLevelSet)[1:3,]
     write.csv(pdata_preview, "pdata_preview.csv", row.names = TRUE)
     
-    # Stage 1: Plot median probe expression along the gene
+    # --- Plot median probe expression along the gene ---
     pdf("plot_basic.pdf", width = 8, height = 6)
     plotOnGene(exampleProbeLevelSet, mrna)
     dev.off()
@@ -121,7 +121,7 @@ process BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA {
     exonStructure(mrna, genomic)
     dev.off()
     
-    # Stage 4: Test for group differences (Wilcoxon) and highlight significant probes
+    # --- Test for group differences (Wilcoxon) and highlight ---
     pdf("plot_gender_exon.pdf", width = 8, height = 6)
     plotOnGene(exampleProbeLevelSet, mrna, label="gender", testType="wilcoxon", verbose=FALSE)
     exonStructure(mrna, genomic)
@@ -133,7 +133,7 @@ process BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA {
     exonStructure(mrna, genomic)
     dev.off()
     
-    # Stage 5: Analyze probe coexpression
+    # --- Analyze probe coexpression ---
     mrna_subset<-mrna[[1]]
     mrna_subset<-mrna_subset[500:1000]
     
@@ -141,7 +141,7 @@ process BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA {
     plotCoexpression(exampleProbeLevelSet, gene=mrna_subset, correlationCutoff=0.5, probeLevelInfo=c("probeid","sequence"), verbose=FALSE)
     dev.off()
     
-    # Stage 6: Perform a comprehensive region scan across multiple genes
+    # --- Perform a comprehensive region scan across multiple genes ---
     pdf("gene_region_scan.pdf", width = 10, height = 8)
     geneRegionScan(exampleProbeLevelSet, gene=mrna, genomicData=genomic, label="genotype3", testType="linear model", correlationCutoff=0.5, probeLevelInfo=c("probeid","sequence"), verbose=FALSE)
     dev.off()

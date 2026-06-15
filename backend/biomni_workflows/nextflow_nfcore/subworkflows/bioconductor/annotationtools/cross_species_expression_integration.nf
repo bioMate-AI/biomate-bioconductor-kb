@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Select top differentially expressed probe sets from the source species. 2. Retrieve orthologous probe sets in the target species u
+//  * 1. [Input & Preparation] Select top differentially expressed probe sets from the
+//  * 2. [Input & Preparation] Retrieve orthologous probe sets in the target species
+//  * 3. [Input & Preparation] Create a modified target species data frame containing
+//  * 4. [Input & Preparation] Resolve multi-mapping probe sets by selecting the one
+//  * 5. [Input & Preparation] Extract and compare the matched expression values between
 
 nextflow.enable.dsl = 2
 
@@ -88,22 +92,22 @@ process BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_EXPRESSION_INTEGRATION {
     # Ensure ortho columns are character vectors to prevent matching issues
     ortho[] <- lapply(ortho, as.character)
     
-    # 1. Select top differentially expressed probe sets from the source species
+    # --- Select top differentially expressed probe sets from the ---
     selection <- 1:8
     ps_mouse <- table_mouse\$Probe.Set.ID[selection]
     
-    # 2. Retrieve orthologous probe sets in the target species using getOrthologousProbesets
+    # --- Retrieve orthologous probe sets in the target species ---
     orthops <- getOrthologousProbesets(ps_mouse, table_human, ortho)
     
-    # 3. Create a modified target species data frame containing absolute values of the selection statistic
+    # --- Create a modified target species data frame containing ---
     table_human_absM <- data.frame(I(table_human[, 1]), I(abs(table_human[, 2])))
     
-    # 4. Resolve multi-mapping probe sets by selecting the one with the maximum absolute statistic
+    # --- Resolve multi-mapping probe sets by selecting the one ---
     # using getOrthologousProbesets with forceProbesetSelection=TRUE
     orthops_maxAbsM <- getOrthologousProbesets(ps_mouse, table_human_absM,
                                                ortho, max, forceProbesetSelection = TRUE)
     
-    # 5. Extract and compare the matched expression values between the two species
+    # --- Extract and compare the matched expression values between ---
     orthops_maxAbsM_ind <- match(unlist(orthops_maxAbsM[[1]]), table_human[, 1])
     matched_target_values <- table_human[orthops_maxAbsM_ind, 2]
     

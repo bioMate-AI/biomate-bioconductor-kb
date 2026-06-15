@@ -80,7 +80,7 @@ process BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON {
     message("Detected cohorts: ", paste(order, collapse = ", "))
     
     # ==========================================
-    # Stage 1: Calculate and plot median size metrics across cohorts
+    # --- Calculate and plot median size metrics across cohorts ---
     # ==========================================
     message("Stage 1: Calculating and plotting median size metrics...")
     
@@ -115,7 +115,7 @@ process BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON {
     
     
     # ==========================================
-    # Stage 2: Calculate and plot modal fragment sizes
+    # --- Calculate and plot modal fragment sizes ---
     # ==========================================
     message("Stage 2: Calculating and plotting modal fragment sizes...")
     
@@ -141,7 +141,7 @@ process BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON {
     
     
     # ==========================================
-    # Stage 3: Calculate and plot inter-peak distances
+    # --- Calculate and plot inter-peak distances ---
     # ==========================================
     message("Stage 3: Calculating and plotting inter-peak distances...")
     
@@ -162,7 +162,7 @@ process BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON {
     
     
     # ==========================================
-    # Stage 4: Calculate and plot inter-valley distances
+    # --- Calculate and plot inter-valley distances ---
     # ==========================================
     message("Stage 4: Calculating and plotting inter-valley distances...")
     

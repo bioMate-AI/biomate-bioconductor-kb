@@ -69,7 +69,7 @@ process BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION {
     }
     
     # ==========================================
-    # Stage 1: Read raw data and filter spectra
+    # --- Read raw data and filter spectra ---
     # ==========================================
     
     message("Reading and filtering spectra using delta score...")
@@ -93,7 +93,7 @@ process BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION {
     saveRDS(ib_phospho, "ib_phospho.rds")
     
     # ==========================================
-    # Stage 2: Estimate peptide ratios using a noise model
+    # --- Estimate peptide ratios using a noise model ---
     # ==========================================
     
     message("Creating noise model...")
@@ -131,7 +131,7 @@ process BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION {
     write.csv(peptide.ratios, "peptide_ratios.csv", row.names=FALSE)
     
     # ==========================================
-    # Stage 3: Fit a Cauchy distribution to peptide ratios
+    # --- Fit a Cauchy distribution to peptide ratios ---
     # ==========================================
     
     message("Fitting Cauchy distribution to peptide ratios...")
@@ -158,7 +158,7 @@ process BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION {
     })
     
     # ==========================================
-    # Stage 4: Retrieve PTM annotations from external databases
+    # --- Retrieve PTM annotations from external databases ---
     # ==========================================
     
     message("Retrieving PTM annotations from PhosphoSitePlus...")

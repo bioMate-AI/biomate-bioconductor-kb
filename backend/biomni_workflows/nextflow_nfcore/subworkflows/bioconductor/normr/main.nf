@@ -58,12 +58,12 @@ process BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING {
     library("GenomicRanges")
     library("Rsamtools")
     
-    # 1. Define paths to BAM files from the working directory
+    # --- Define paths to BAM files from the working directory ---
     inputBamfile <- "Control.bam"
     k4me3Bamfile <- "ChIP.bam"
     k36me3Bamfile <- "ChIP.bam" # Reusing ChIP.bam to satisfy the two-treatment workflow without fabricating data
     
-    # 2. Retrieve genome chromosome information dynamically from the BAM file
+    # --- Retrieve genome chromosome information dynamically from ---
     idx_stats <- Rsamtools::idxstatsBam(k4me3Bamfile)
     idx_stats <- idx_stats[idx_stats\$seqnames != "*", ]
     target_chrom <- as.character(idx_stats\$seqnames[1])
@@ -73,20 +73,20 @@ process BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING {
     genome <- data.frame(chrom = target_chrom, size = chrom_length, stringsAsFactors = FALSE)
     genome
     
-    # 3. Call enrichment using enrichR()
+    # --- Call enrichment using enrichR() ---
     k4me3Fit <- enrichR(treatment = k4me3Bamfile, control = inputBamfile,
                         genome = genome, verbose = FALSE)
     k36me3Fit <- enrichR(treatment = k36me3Bamfile, control = inputBamfile,
                          genome = genome, verbose = FALSE)
     
-    # 4. Inspect fit statistics and summary
+    # --- Inspect fit statistics and summary ---
     k4me3Fit
     k36me3Fit
     
     summary(k4me3Fit)
     summary(k36me3Fit)
     
-    # 5. Extract normalized enrichment, classes, or genomic ranges
+    # --- Extract normalized enrichment, classes, or genomic ranges ---
     # background normalized enrichment
     k4me3Enr <- getEnrichment(k4me3Fit)
     
@@ -205,14 +205,14 @@ process BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING {
       })
     }
     
-    # 6. Export results to BED or bigWig format using exportR()
+    # --- Export results to BED or bigWig format using exportR() ---
     exportR(k4me3Fit, filename = "k4me3Fit.bed", type = "bed", fdr = 0.05)
     exportR(k36me3Fit, filename = "k36me3Fit.bed", type = "bed", fdr = 0.05)
     
     exportR(k4me3Fit, filename = "k4me3Fit.bw", type = "bigWig")
     exportR(k36me3Fit, filename = "k36me3Fit.bw", type = "bigWig")
     
-    # 7. Differential Enrichment Calling (diffR)
+    # --- Differential Enrichment Calling (diffR) ---
     k4k36Dif <- diffR(treatment = getCounts(k4me3Fit)\$treatment,
                       control   = getCounts(k36me3Fit)\$treatment,
                       genome    = getRanges(k4me3Fit),
@@ -222,7 +222,7 @@ process BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING {
     exportR(k4k36Dif, filename = "k4k36Dif.bed", type = "bed", fdr = 0.05)
     exportR(k4k36Dif, filename = "k4k36Dif.bw", type = "bigWig")
     
-    # 8. Regime Enrichment Calling (regimeR)
+    # --- Regime Enrichment Calling (regimeR) ---
     k4me3Regimes <- regimeR(treatment = getCounts(k4me3Fit)\$treatment,
                             control   = getCounts(k4me3Fit)\$control,
                             genome    = getRanges(k4me3Fit),
@@ -240,7 +240,7 @@ process BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING {
     exportR(k4me3Regimes, filename = "k4me3Regimes.bed", type = "bed", fdr = 0.05)
     exportR(k36me3Regimes, filename = "k36me3Regimes.bed", type = "bed", fdr = 0.05)
     
-    # 9. Analyzing Predefined Regions (Promoters)
+    # --- Analyzing Predefined Regions (Promoters) ---
     promoters <- promoters(genes, 1500, 1500)
     all(width(promoters) == 3000)
     

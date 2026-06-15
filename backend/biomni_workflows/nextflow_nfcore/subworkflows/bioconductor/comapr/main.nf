@@ -60,7 +60,7 @@ process BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS {
     # Set up parallel backend to serial to avoid issues
     register(SerialParam())
     
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     progeny_df <- read.csv("progeny_genotypes.csv", check.names = FALSE)
     parents_geno <- read.csv("parental_alleles.csv", check.names = FALSE)
     
@@ -78,7 +78,7 @@ process BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS {
     meta_cols <- setdiff(colnames(progeny_df), c("chr", "seqnames", "start", "end", "strand", "pos"))
     mcols(snp_geno_gr) <- as(progeny_df[, meta_cols, drop = FALSE], "DataFrame")
     
-    # 2. Correct and format genotypes using correctGT
+    # --- Correct and format genotypes using correctGT ---
     corrected_geno <- correctGT(gt_matrix = mcols(snp_geno_gr),
                                 ref = parents_geno\$ref,
                                 alt = parents_geno\$alt,
@@ -87,7 +87,7 @@ process BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS {
     
     mcols(snp_geno_gr) <- corrected_geno
     
-    # 3. Count genotypes per marker and sample using countGT
+    # --- Count genotypes per marker and sample using countGT ---
     genotype_counts <- countGT(mcols(snp_geno_gr))
     
     # Save genotype counts plot if available
@@ -97,28 +97,28 @@ process BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS {
       dev.off()
     }
     
-    # 4. Filter out low-quality markers and samples using filterGT
+    # --- Filter out low-quality markers and samples using filterGT ---
     corrected_geno <- filterGT(snp_geno_gr,
                                min_markers = 30,
                                min_samples = 2)
     
-    # 5. Identify and remove duplicate samples using findDupSamples
+    # --- Identify and remove duplicate samples using findDupSamples ---
     dups <- findDupSamples(mcols(corrected_geno),
                            threshold = 0.99)
     
     # Remove duplicate sample "X98" as documented
     mcols(corrected_geno) <- mcols(corrected_geno)[,colnames(mcols(corrected_geno))!="X98"]
     
-    # 6. Count crossovers across marker intervals using countCOs
+    # --- Count crossovers across marker intervals using countCOs ---
     marker_gr_cos <- countCOs(corrected_geno)
     
-    # 7. Calculate genetic distances for marker intervals or equally sized bins using calGeneticDist
+    # --- Calculate genetic distances for marker intervals or ---
     dist_gr <- calGeneticDist(marker_gr_cos,
                               mapping_fun = "k")
     
     dist_bin_gr <- calGeneticDist(marker_gr_cos,bin_size = 1e6)
     
-    # 8. Plot genetic distances and cumulative distances
+    # --- Plot genetic distances and cumulative distances ---
     pdf("genetic_distance_plots.pdf", width = 10, height = 8)
     
     p1 <- plotGeneticDist(dist_bin_gr,chr = "1")

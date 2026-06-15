@@ -69,7 +69,7 @@ process BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_PROFILING {
         stop(paste("Metadata file does not exist:", metadata_file))
     }
     
-    # 1. Read multiple proteome FASTA files into a named list of AAStringSet objects
+    # --- Read multiple proteome FASTA files into a named list of ---
     fasta_files <- list.files(proteomes_dir, pattern = "\\\\.(fa|fasta|faa|pep)\$", full.names = TRUE, ignore.case = TRUE)
     if (length(fasta_files) == 0) {
         stop(paste("No FASTA files found in", proteomes_dir))
@@ -78,7 +78,7 @@ process BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_PROFILING {
     proteomes <- lapply(fasta_files, Biostrings::readAAStringSet)
     names(proteomes) <- tools::file_path_sans_ext(basename(fasta_files))
     
-    # 2. Create a species metadata data frame with row names matching the list names
+    # --- Create a species metadata data frame with row names ---
     species_metadata <- read.csv(metadata_file, row.names = 1, stringsAsFactors = FALSE)
     
     # Align proteomes and metadata to ensure exact match of names
@@ -89,14 +89,14 @@ process BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_PROFILING {
     proteomes <- proteomes[common_species]
     species_metadata <- species_metadata[common_species, , drop = FALSE]
     
-    # 3. Run HMMER annotation and TF family counting across all proteomes
+    # --- Run HMMER annotation and TF family counting across all ---
     if (!planttfhunter::hmmer_is_installed()) {
         stop("HMMER is not installed or not in the system PATH. planttfhunter requires HMMER to run.")
     }
     
     tf_counts <- get_tf_counts(proteomes, species_metadata)
     
-    # 4. Extract the TF count matrix and metadata from the resulting SummarizedExperiment
+    # --- Extract the TF count matrix and metadata from the ---
     counts_matrix <- SummarizedExperiment::assay(tf_counts)
     metadata_extracted <- SummarizedExperiment::colData(tf_counts)
     

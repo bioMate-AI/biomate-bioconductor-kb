@@ -63,7 +63,7 @@ process BIOC_STRUCT_STRUCT_PCA_PIPELINE {
     ontology_online(FALSE)
     
     # ==========================================
-    # 1. Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Error: input.csv not found in the working directory.")
@@ -126,7 +126,7 @@ process BIOC_STRUCT_STRUCT_PCA_PIPELINE {
     )
     
     # ==========================================
-    # 2. Define Custom Struct Models
+    # --- Define Custom Struct Models ---
     # ==========================================
     
     # Define Mean Centering Model
@@ -220,7 +220,7 @@ process BIOC_STRUCT_STRUCT_PCA_PIPELINE {
     )
     
     # ==========================================
-    # 3. Define Custom Chart Object
+    # --- Define Custom Chart Object ---
     # ==========================================
     set_struct_obj(
       class_name = 'pca_scores_plot',
@@ -259,7 +259,7 @@ process BIOC_STRUCT_STRUCT_PCA_PIPELINE {
     )
     
     # ==========================================
-    # 4. Build and Run the Workflow Sequence
+    # --- Build and Run the Workflow Sequence ---
     # ==========================================
     # Determine optimal number of components (max 2 for visualization)
     n_comp <- min(2, ncol(data_matrix), nrow(data_matrix))
@@ -271,7 +271,7 @@ process BIOC_STRUCT_STRUCT_PCA_PIPELINE {
     MS <- model_apply(MS, DE)
     
     # ==========================================
-    # 5. Extract and Export Results
+    # --- Extract and Export Results ---
     # ==========================================
     # Extract PCA scores (default predicted output of the sequence)
     scores_de <- predicted(MS)

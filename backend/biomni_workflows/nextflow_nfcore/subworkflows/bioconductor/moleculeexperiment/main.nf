@@ -56,7 +56,7 @@ process BIOC_MOLECULEEXPERIMENT_IMPORT_FROM_VENDOR_DIRECTORIES {
     library(MoleculeExperiment)
     library(ggplot2)
     
-    # 1. Identify the path to the vendor output directory
+    # --- Identify the path to the vendor output directory ---
     # The pipeline reads the user input directory 'repoDir' from the working directory
     repoDir <- "repoDir"
     
@@ -64,14 +64,14 @@ process BIOC_MOLECULEEXPERIMENT_IMPORT_FROM_VENDOR_DIRECTORIES {
       stop(paste("Input directory 'repoDir' does not exist at:", repoDir))
     }
     
-    # 2. Read the data into a MoleculeExperiment object using the platform-specific reader function
+    # --- Read the data into a MoleculeExperiment object using the ---
     # Keeping the documented function call and argument names exactly as specified
     me <- readXenium(repoDir, keepCols = "essential", addBoundaries = "cell")
     
     # Print the constructed MoleculeExperiment object to console
     print(me)
     
-    # 3. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     
     # Save the MoleculeExperiment object as an RDS file
     saveRDS(me, file = "molecule_experiment.rds")

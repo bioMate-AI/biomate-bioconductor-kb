@@ -62,14 +62,14 @@ process BIOC_RMASSBANK_MASSBANK_RECORD_GENERATION {
     # This RData file must contain the workspace object 'w'
     load("processed_workspace.RData")
     
-    # 1. Initialize a MassBank workspace from the processed MS/MS workspace
+    # --- Initialize a MassBank workspace from the processed MS/MS ---
     mb <- newMbWorkspace(w)
     
-    # 2. Load existing incomplete infolists from the user-provided directory
+    # --- Load existing incomplete infolists from the user-provided ---
     mb <- resetInfolists(mb)
     mb <- loadInfolists(mb, "infolists_incomplete")
     
-    # 3. Run mbWorkflow to fetch missing annotations from online databases (CTS)
+    # --- Run mbWorkflow to fetch missing annotations from online ---
     # and write them to the specified CSV file.
     # Wrapped in a tryCatch to handle potential network/CTS service downtime gracefully.
     tryCatch({
@@ -78,7 +78,7 @@ process BIOC_RMASSBANK_MASSBANK_RECORD_GENERATION {
       warning("First mbWorkflow call encountered an issue (e.g., CTS offline): ", e\$message)
     })
     
-    # 4. Handle the completed CSV infolist.
+    # --- Handle the completed CSV infolist ---
     # To reload the completed 'Narcotics_infolist.csv' using loadInfolists,
     # we place it into a dedicated directory.
     completed_dir <- "./infolists_completed"
@@ -92,7 +92,7 @@ process BIOC_RMASSBANK_MASSBANK_RECORD_GENERATION {
       stop("Expected './Narcotics_infolist.csv' to exist but it was not found.")
     }
     
-    # 5. Reload the completed infolists and re-run mbWorkflow to compile records,
+    # --- Reload the completed infolists and re-run mbWorkflow to ---
     # generate molfiles, and export MassBank record text files.
     mb <- resetInfolists(mb)
     mb <- loadInfolists(mb, completed_dir)

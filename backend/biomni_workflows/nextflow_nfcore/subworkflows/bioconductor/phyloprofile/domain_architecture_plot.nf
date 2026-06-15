@@ -85,10 +85,10 @@ process BIOC_PHYLOPROFILE_DOMAIN_ARCHITECTURE_PLOT {
     
     info <- c(seedID, orthoID)
     
-    # 1. Parse domain input file using parseDomainInput
+    # --- Parse domain input file using parseDomainInput ---
     domainDf <- parseDomainInput(seedID, domainFile, "file")
     
-    # 2. Modify feature IDs
+    # --- Modify feature IDs ---
     domainDf\$feature_id_mod <- domainDf\$feature_id
     domainDf\$feature_id_mod <- gsub("SINGLE", "LCR", domainDf\$feature_id_mod)
     domainDf\$feature_id_mod[domainDf\$feature_type == "coils"] <- "Coils"
@@ -98,7 +98,7 @@ process BIOC_PHYLOPROFILE_DOMAIN_ARCHITECTURE_PLOT {
     # Save the processed domain dataframe
     write.csv(domainDf, "domain_architecture_data.csv", row.names = FALSE)
     
-    # 3. Generate the domain plot using createArchiPlot and draw it
+    # --- Generate the domain plot using createArchiPlot and draw it ---
     plot <- createArchiPlot(info, domainDf, 9, 9)
     
     # Save the plot to a PDF file

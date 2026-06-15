@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter low-expression and low-variance probes. 2. Compute gene-wise p-values for differential expression. 3. Define a selection fu
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Filter low-expression and low-variance probes
+//  * 3. [Visualization & Output] Compute gene-wise p-values for differential expression
+//  * 4. [Visualization & Output] Define a selection function to identify significant genes
+//  * 5. [Visualization & Output] Initialize the topGOdata object using a Bioconductor chip
+//  * 6. [Visualization & Output] Run multiple enrichment tests (classic Fisher, classic
+//  * 7. [Visualization & Output] Generate a comparative summary table of the results
+//  * 8. [Visualization & Output] Visualize gene score distributions and the significant GO
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +69,7 @@ process BIOC_TOPGO_SCORE_BASED_EXPRESSION_ENRICHMENT {
     library(Biobase)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # Read ALL (ExpressionSet)
     if (file.exists("ALL.rds")) {
@@ -95,25 +102,25 @@ process BIOC_TOPGO_SCORE_BASED_EXPRESSION_ENRICHMENT {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Filter low-expression and low-variance probes
+    # --- Filter low-expression and low-variance probes ---
     # -----------------------------------------------------------------------------
     selProbes <- genefilter(ALL, filterfun(pOverA(0.20, log2(100)), function(x) (IQR(x) > 0.25)))
     eset <- ALL[selProbes, ]
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Compute gene-wise p-values for differential expression
+    # --- Compute gene-wise p-values for differential expression ---
     # -----------------------------------------------------------------------------
     geneList <- getPvalues(exprs(eset), classlabel = y, alternative = "greater")
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Define a selection function to identify significant genes based on p-values
+    # --- Define a selection function to identify significant genes ---
     # -----------------------------------------------------------------------------
     topDiffGenes <- function(allScore) {
       return(allScore < 0.01)
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Initialize the topGOdata object using a Bioconductor chip annotation package
+    # --- Initialize the topGOdata object using a Bioconductor chip ---
     # -----------------------------------------------------------------------------
     affyLib <- paste(annotation(ALL), "db", sep = ".")
     library(package = affyLib, character.only = TRUE)
@@ -128,20 +135,20 @@ process BIOC_TOPGO_SCORE_BASED_EXPRESSION_ENRICHMENT {
                   affyLib = affyLib)
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Run multiple enrichment tests (classic Fisher, classic KS, and elim KS)
+    # --- Run multiple enrichment tests (classic Fisher, classic ---
     # -----------------------------------------------------------------------------
     resultFis <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
     resultKS <- runTest(GOdata, algorithm = "classic", statistic = "ks")
     resultKS.elim <- runTest(GOdata, algorithm = "elim", statistic = "ks")
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Generate a comparative summary table of the results
+    # --- Generate a comparative summary table of the results ---
     # -----------------------------------------------------------------------------
     allRes <- GenTable(GOdata, classic = resultFis, KS = resultKS, elim = resultKS.elim, orderBy = "elim", topNodes = 20)
     write.csv(allRes, file = "GO_enrichment_results.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 7: Visualize gene score distributions and the significant GO subgraphs
+    # --- Visualize gene score distributions and the significant GO ---
     # -----------------------------------------------------------------------------
     goID <- allRes[1, "GO.ID"]
     

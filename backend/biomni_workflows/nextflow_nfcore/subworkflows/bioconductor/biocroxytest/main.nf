@@ -43,7 +43,7 @@ process BIOC_BIOCROXYTEST_BIOCROXYTEST_LONGTESTS_PIPELINE {
           }
         }
     
-    # Stage 1: Read input and validate
+    # --- Read input and validate ---
     if (!file.exists("input.csv")) {
       stop("Required input file 'input.csv' is missing.")
     }
@@ -52,7 +52,7 @@ process BIOC_BIOCROXYTEST_BIOCROXYTEST_LONGTESTS_PIPELINE {
     input_data <- read.csv("input.csv", row.names = 1, check.names = FALSE)
     message("Successfully loaded input.csv with ", nrow(input_data), " features and ", ncol(input_data), " samples.")
     
-    # Stage 2: Setup mock package structure
+    # --- Setup mock package structure ---
     # biocroxytest operates on R package structures, so we initialize a minimal one in the working directory.
     message("Setting up mock package structure...")
     writeLines(c(
@@ -92,15 +92,15 @@ process BIOC_BIOCROXYTEST_BIOCROXYTEST_LONGTESTS_PIPELINE {
       "}"
     ), "R/analyze.R")
     
-    # Stage 3: Initialize biocroxytest
+    # --- Initialize biocroxytest ---
     message("Initializing biocroxytest infrastructure...")
     biocroxytest::use_longtests()
     
-    # Stage 4: Generate long tests via roxygenise
+    # --- Generate long tests via roxygenise ---
     message("Running roxygenise to generate long tests...")
     roxygen2::roxygenise()
     
-    # Stage 5: Execute and validate the generated tests
+    # --- Execute and validate the generated tests ---
     # Locate the generated test file
     test_files <- list.files("longtests/testthat", pattern = "^test-.*\\\\.R\$", full.names = TRUE)
     
@@ -135,7 +135,7 @@ process BIOC_BIOCROXYTEST_BIOCROXYTEST_LONGTESTS_PIPELINE {
     # Write execution log
     writeLines(log_messages, "test_execution_log.txt")
     
-    # Stage 6: Write BBS options output
+    # --- Write BBS options output ---
     if (file.exists(".BBSoptions")) {
       file.copy(".BBSoptions", "bbs_options.txt", overwrite = TRUE)
     } else {

@@ -68,16 +68,16 @@ process BIOC_RSUBREAD_BULK_RNA_SEQ_ALIGNMENT_AND_QUANTIFICATION {
       stop(paste("Missing required input file(s):", paste(missing_files, collapse=", ")))
     }
     
-    # 1. Build reference genome index
+    # --- Build reference genome index ---
     buildindex(basename="reference_index",reference=ref)
     
-    # 2. Align single-end reads
+    # --- Align single-end reads ---
     align.stat <- align(index="reference_index",readfile1=reads,output_file="alignResults.BAM",phredOffset=64)
     
-    # 3. Align paired-end reads
+    # --- Align paired-end reads ---
     align.stat2 <- align(index="reference_index",readfile1=reads1,readfile2=reads2,output_file="alignResultsPE.BAM",phredOffset=64)
     
-    # 4. Define annotation (exactly as documented)
+    # --- Define annotation (exactly as documented) ---
     ann <- data.frame(
       GeneID=c("gene1","gene1","gene2","gene2"),
       Chr="chr_dummy",
@@ -87,10 +87,10 @@ process BIOC_RSUBREAD_BULK_RNA_SEQ_ALIGNMENT_AND_QUANTIFICATION {
       stringsAsFactors=FALSE
     )
     
-    # 5. Quantify gene-level expression for single-end alignment
+    # --- Quantify gene-level expression for single-end alignment ---
     fc_SE <- featureCounts("alignResults.BAM",annot.ext=ann)
     
-    # 6. Quantify gene-level expression for paired-end alignment
+    # --- Quantify gene-level expression for paired-end alignment ---
     fc_PE <- featureCounts("alignResultsPE.BAM",annot.ext=ann,isPairedEnd=TRUE)
     
     # Save outputs to disk

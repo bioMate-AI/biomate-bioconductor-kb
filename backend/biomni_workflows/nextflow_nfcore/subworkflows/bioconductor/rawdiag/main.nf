@@ -69,7 +69,7 @@ process BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS {
     }
     
     # ==========================================
-    # Stage 1: Check and install rawrr assembly dependencies
+    # --- Check and install rawrr assembly dependencies ---
     # ==========================================
     rawDiag::checkRawrr()
     
@@ -79,7 +79,7 @@ process BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS {
     rawrr::rawrrAssemblyPath() |> list.files()
     
     # ==========================================
-    # Stage 2: Read raw file headers
+    # --- Read raw file headers ---
     # ==========================================
     (rawfile |>
       lapply(FUN = rawrr::readFileHeader) -> rawFileHeader)
@@ -88,7 +88,7 @@ process BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS {
     saveRDS(rawFileHeader, file = "raw_file_headers.rds")
     
     # ==========================================
-    # Stage 3: Read and merge scan-level metadata from raw files
+    # --- Read and merge scan-level metadata from raw files ---
     # ==========================================
     rawfile |>
       lapply(FUN = rawDiag::readRaw) |>
@@ -99,7 +99,7 @@ process BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS {
     saveRDS(x, file = "scan_metadata.rds")
     
     # ==========================================
-    # Stage 4: Generate diagnostic plots
+    # --- Generate diagnostic plots ---
     # ==========================================
     library(rawDiag)
     ls("package:rawDiag") |>

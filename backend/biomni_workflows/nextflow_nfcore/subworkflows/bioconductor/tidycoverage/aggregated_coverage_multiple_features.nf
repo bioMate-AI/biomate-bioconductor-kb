@@ -59,13 +59,13 @@ process BIOC_TIDYCOVERAGE_AGGREGATED_COVERAGE_MULTIPLE_FEATURES {
     library(rtracklayer)
     library(ggplot2)
     
-    # 1. Import genomic features and filter by strand
+    # --- Import genomic features and filter by strand ---
     features <- list(
         TSSs = "TSSs.bed",
         `Convergent transcription` = "conv_transcription_loci.bed"
     ) |> map(import) |> map(filter, strand == '+') 
     
-    # 2. Import genomic tracks as Rle objects
+    # --- Import genomic tracks as Rle objects ---
     tracks <- list(
         Scc1 = "Scc1.bw", 
         RNA_fwd = "RNA.fwd.bw",
@@ -74,16 +74,16 @@ process BIOC_TIDYCOVERAGE_AGGREGATED_COVERAGE_MULTIPLE_FEATURES {
         MNase = "MNase.bw"
     ) |> map(import, as = 'Rle')
     
-    # 3. Create a CoverageExperiment object with scaling and centering enabled
+    # --- Create a CoverageExperiment object with scaling and ---
     CE <- CoverageExperiment(tracks, features, width = 5000, scale = TRUE, center = TRUE)
     
-    # 4. Aggregate the coverage across features using aggregate()
+    # --- Aggregate the coverage across features using aggregate() ---
     AC <- aggregate(CE)
     
-    # 5. Coerce the AggregatedCoverage object to a tibble using as_tibble()
+    # --- Coerce the AggregatedCoverage object to a tibble using ---
     ac_tibble <- as_tibble(AC)
     
-    # 6. Plot the aggregated coverage profiles using ggplot2 and geom_aggrcoverage()
+    # --- Plot the aggregated coverage profiles using ggplot2 and ---
     p <- ac_tibble |> 
         ggplot(aes(col = track, linetype = track %in% c('RNA_fwd', 'RNA_rev'))) + 
         geom_aggrcoverage() + 

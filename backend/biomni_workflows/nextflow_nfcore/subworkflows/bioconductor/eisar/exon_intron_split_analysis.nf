@@ -55,7 +55,7 @@ process BIOC_EISAR_EXON_INTRON_SPLIT_ANALYSIS {
     # Load required libraries
     library(eisaR)
     
-    # 1. Load exonic and intronic count tables from the working directory
+    # --- Load exonic and intronic count tables from the working ---
     cntEx <- readRDS("Fig3abc_GSE33252_rawcounts_exonic.rds")
     cntIn <- readRDS("Fig3abc_GSE33252_rawcounts_intronic.rds")
     
@@ -63,10 +63,10 @@ process BIOC_EISAR_EXON_INTRON_SPLIT_ANALYSIS {
     rEx <- cntEx[, colnames(cntEx) != "width"]
     rIn <- cntIn[, colnames(cntIn) != "width"]
     
-    # 2. Define the experimental condition factor
+    # --- Define the experimental condition factor ---
     cond <- factor(c("ES", "ES", "TN", "TN"))
     
-    # 3. Run EISA using runEISA() to perform filtering, normalization, model fitting, and contrast calculation
+    # --- Run EISA using runEISA() to perform filtering, ---
     res <- runEISA(rEx, rIn, cond)
     
     # Save the EISA results object to an RDS file
@@ -77,7 +77,7 @@ process BIOC_EISAR_EXON_INTRON_SPLIT_ANALYSIS {
         write.csv(res\$tab.ExIn, "eisa_results_table.csv", row.names = TRUE)
     }
     
-    # 4. Visualize the results using plotEISA() and save to a PDF file
+    # --- Visualize the results using plotEISA() and save to a PDF ---
     pdf("eisa_plot.pdf", width = 7, height = 7)
     plotEISA(res)
     dev.off()

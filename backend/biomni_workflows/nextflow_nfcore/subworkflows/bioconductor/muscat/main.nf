@@ -36,6 +36,15 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scater", "scuttle", "muscat", "dplyr", "tidyr", "ggplot2", "patchwork")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     library(ggplot2)
     library(patchwork)
     
-    # 1. Load data
+    # --- Load data ---
     counts <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts)) {
       rownames(counts) <- counts\$gene_id
@@ -83,14 +92,14 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     # Create SingleCellExperiment
     sce <- SingleCellExperiment(assays = list(counts = as.matrix(counts)), colData = coldata)
     
-    # 2. QC and Filtering
+    # --- QC and Filtering ---
     sce <- sce[rowSums(counts(sce) > 0) > 0, ]
     qc <- perCellQCMetrics(sce)
     ol <- isOutlier(metric = qc\$detected, nmads = 2, log = TRUE)
     sce <- sce[, !ol]
     sce <- sce[rowSums(counts(sce) > 1) >= 5, ]
     
-    # 3. Normalization & Clustering (to get cluster_id)
+    # --- Normalization & Clustering (to get cluster_id) ---
     sce <- logNormCounts(sce)
     sce <- runPCA(sce, ncomponents = 10)
     
@@ -108,13 +117,13 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     # Prepare SCE for muscat
     sce <- prepSCE(sce, kid = "cluster_id", sid = "sample_id", gid = "group_id", drop = TRUE)
     
-    # 4. Pseudobulk Aggregation
+    # --- Pseudobulk Aggregation ---
     # For DS (sum of counts)
     pb_sum <- aggregateData(sce, assay = "counts", fun = "sum", by = c("cluster_id", "sample_id"))
     # For DD (number of detected cells)
     pb_det <- aggregateData(sce, assay = "counts", fun = "num.detected", by = c("cluster_id", "sample_id"))
     
-    # 5. MDS Plot
+    # --- MDS Plot ---
     pdf("pb_mds_plot.pdf", width = 8, height = 6)
     tryCatch({
       p_mds_sum <- pbMDS(pb_sum) + ggtitle("MDS: Sum of Counts")
@@ -126,7 +135,7 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     })
     dev.off()
     
-    # 6. Differential State (DS) Analysis
+    # --- Differential State (DS) Analysis ---
     res_DS <- pbDS(pb_sum, min_cells = 0, filter = "none", verbose = FALSE)
     tbl_DS <- tryCatch({
       resDS(sce, res_DS, bind = "row")
@@ -135,7 +144,7 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     })
     write.csv(tbl_DS, "ds_results.csv", row.names = FALSE)
     
-    # 7. Differential Detection (DD) Analysis
+    # --- Differential Detection (DD) Analysis ---
     res_DD <- pbDD(pb_det, min_cells = 0, filter = "none", verbose = FALSE)
     tbl_DD <- tryCatch({
       resDS(sce, res_DD, bind = "row")
@@ -144,7 +153,7 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
     })
     write.csv(tbl_DD, "dd_results.csv", row.names = FALSE)
     
-    # 8. Stagewise DS-DD Analysis
+    # --- Stagewise DS-DD Analysis ---
     res_stage <- tryCatch({
       stagewise_DS_DD(res_DS, res_DD, verbose = FALSE)
     }, error = function(e) {
@@ -167,7 +176,7 @@ process BIOC_MUSCAT_DIFFERENTIAL_STATE_AND_DETECTION {
       write.csv(data.frame(Status = "Stagewise analysis skipped or failed"), "stagewise_results.csv", row.names = FALSE)
     }
     
-    # 9. Visualization: Heatmap of top DS genes
+    # --- Visualization: Heatmap of top DS genes ---
     pdf("top_genes_heatmap.pdf", width = 10, height = 8)
     tryCatch({
       p_heat <- pbHeatmap(sce, res_DS, top_n = 5)

@@ -55,7 +55,7 @@ process BIOC_SEQGSEA_DE_ONLY_GSEA {
     library(SeqGSEA)
     library(doParallel)
     
-    # 1. Register parallel backend
+    # --- Register parallel backend ---
     cl <- makeCluster(2)
     registerDoParallel(cl)
     perm.times <- 20
@@ -63,33 +63,33 @@ process BIOC_SEQGSEA_DE_ONLY_GSEA {
     count.file <- "count.file"
     geneset.file <- "geneset.file"
     
-    # 2. Load gene read count data
+    # --- Load gene read count data ---
     geneCounts <- read.table(count.file, header=TRUE, row.names=1, sep="\t")
     
     # Determine labels dynamically based on the number of samples in the input file
     n_samples <- ncol(geneCounts)
     label <- as.factor(c(rep(1, n_samples/2), rep(0, n_samples - n_samples/2)))
     
-    # 3. Calculate DE NB statistics on real and permuted datasets
+    # --- Calculate DE NB statistics on real and permuted datasets ---
     dds <- runDESeq(geneCounts, label)
     DEGres <- DENBStat4GSEA(dds)
     permuteMat <- genpermuteMat(label, times=perm.times)
     DEpermNBstat <- DENBStatPermut4GSEA(dds, permuteMat)
     
-    # 4. Normalize DE scores
+    # --- Normalize DE scores ---
     DEscore.normFac <- normFactor(DEpermNBstat)
     DEscore <- scoreNormalization(DEGres\$NBstat, DEscore.normFac)
     DEscore.perm <- scoreNormalization(DEpermNBstat, DEscore.normFac)
     
-    # 5. Integrate scores with DEweight=1
+    # --- Integrate scores with DEweight=1 ---
     gene.score <- geneScore(DEscore, DEweight=1)
     gene.score.perm <- genePermuteScore(DEscore.perm, DEweight=1)
     
-    # 6. Load gene sets
+    # --- Load gene sets ---
     geneIDs <- rownames(geneCounts)
     gene.set <- loadGenesets(geneset.file, geneIDs, geneID.type="ensembl", genesetsize.min = 5, genesetsize.max = 1000)
     
-    # 7. Run GSEA and format results
+    # --- Run GSEA and format results ---
     gene.set <- GSEnrichAnalyze(gene.set, gene.score, gene.score.perm, weighted.type=1)
     GSEAres <- GSEAresultTable(gene.set, TRUE)
     

@@ -55,7 +55,7 @@ process BIOC_KATDETECTR_NON_STANDARD_SEQUENCE_DETECTION {
     # Load required libraries
     library(katdetectr)
     
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     # Read the VRanges object containing variants on non-standard sequences
     if (file.exists("syndata.rds")) {
         syndata <- readRDS("syndata.rds")
@@ -72,10 +72,10 @@ process BIOC_KATDETECTR_NON_STANDARD_SEQUENCE_DETECTION {
         stop("Error: Required input file 'sequenceLength.csv' or 'sequenceLength.rds' not found in the working directory.")
     }
     
-    # 2. Run detectKataegis specifying the refSeq argument
+    # --- Run detectKataegis specifying the refSeq argument ---
     kdNonStandard <- detectKataegis(genomicVariants = syndata, refSeq = sequenceLength)
     
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # Save the complete KatDetect object
     saveRDS(kdNonStandard, "kdNonStandard.rds")
     

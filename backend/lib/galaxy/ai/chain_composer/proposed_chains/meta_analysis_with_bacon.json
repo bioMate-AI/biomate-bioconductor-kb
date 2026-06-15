@@ -1,0 +1,88 @@
+{
+  "name": "meta_analysis_with_bacon",
+  "display_name": "Cross-Cohort Meta-Analysis with Bacon Bias Correction",
+  "domain": "genomics",
+  "description": "Per-cohort association analysis (or per-cohort DE) \u2192 bacon bias-and-inflation correction across cohorts \u2192 fixed-effect meta-analysis. Designed for cross-cohort replication studies where each cohort runs the same DAG independently and results are pooled. Bacon handles the genomic-control / lambda inflation properly across cohorts.",
+  "source": "curated",
+  "steps": [
+    {
+      "order": 1,
+      "workflow_name": "nf-core/rnaseq",
+      "role": "per_cohort_quantification",
+      "params_template": {
+        "genome": "GRCh38"
+      }
+    },
+    {
+      "order": 2,
+      "workflow_name": "BIOC_DESeq2",
+      "role": "per_cohort_de",
+      "params_template": {}
+    },
+    {
+      "order": 3,
+      "workflow_name": "bacon_multiple_sets_and_meta_analysis",
+      "role": "cross_cohort_meta_analysis",
+      "params_template": {
+        "correction": "bias_and_inflation"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from_step": 1,
+      "from_output": "counts_matrix",
+      "to_step": 2,
+      "to_input": "counts"
+    },
+    {
+      "from_step": 2,
+      "from_output": "effect_sizes_and_se",
+      "to_step": 3,
+      "to_input": "es_and_se_matrices"
+    }
+  ],
+  "required_inputs": [
+    {
+      "name": "cohort_fastq_dirs",
+      "type": "directory_list",
+      "description": "FASTQ directories per cohort"
+    },
+    {
+      "name": "cohort_sample_sheets",
+      "type": "csv_list"
+    },
+    {
+      "name": "common_contrast",
+      "type": "string",
+      "description": "Shared experimental contrast across all cohorts"
+    }
+  ],
+  "expected_outputs": [
+    {
+      "name": "per_cohort_de_tables",
+      "type": "tsv"
+    },
+    {
+      "name": "meta_analysis_table",
+      "type": "tsv",
+      "description": "Fixed-effect meta with bias-corrected p-values"
+    },
+    {
+      "name": "forest_plots",
+      "type": "pdf"
+    }
+  ],
+  "example_queries": [
+    "validate biomarkers from TCGA discovery on UK Biobank",
+    "meta-analysis of RNA-seq DE across TCGA GTEx ICGC",
+    "cross-cohort replication of differential expression",
+    "pool results across multiple cohorts with bias correction"
+  ],
+  "tags": [
+    "cross-cohort",
+    "meta-analysis",
+    "replication",
+    "bacon"
+  ]
+}

@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Generate basic legacy heatmap using heatmap_2. 2. Generate annotated legacy heatmap using heatmap_plus
+//  * 1. [Visualization & Output] Generate basic legacy heatmap using heatmap_2
+//  * 2. [Visualization & Output] Generate annotated legacy heatmap using heatmap_plus
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +39,15 @@ process BIOC_HEATPLUS_LEGACY_HEATMAP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Heatplus")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -57,7 +67,7 @@ process BIOC_HEATPLUS_LEGACY_HEATMAP {
     # sample_metadata.csv: data frame of sample annotations (rows = samples, columns = annotations)
     addvar <- read.csv("sample_metadata.csv", row.names = 1, check.names = FALSE)
     
-    # Stage 1: Generate basic legacy heatmap using heatmap_2
+    # --- Generate basic legacy heatmap using heatmap_2 ---
     pdf("heatmap_2_basic.pdf")
     heatmap_2(mm)
     dev.off()
@@ -66,7 +76,7 @@ process BIOC_HEATPLUS_LEGACY_HEATMAP {
     heatmap_2(mm, do.dendro=c(FALSE, TRUE), legend=1, legfrac=12)
     dev.off()
     
-    # Stage 2: Generate annotated legacy heatmap using heatmap_plus
+    # --- Generate annotated legacy heatmap using heatmap_plus ---
     pdf("heatmap_plus_basic.pdf")
     heatmap_plus(mm)
     dev.off()

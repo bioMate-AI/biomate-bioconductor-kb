@@ -67,20 +67,20 @@ process BIOC_TRANSMOGR_SPLICE_JUNCTION_EXTRACTION {
     sq <- seqinfo(chr1)
     genome(sq) <- "GRCh38"
     
-    # 1. Import GTF annotations from user input file
+    # --- Import GTF annotations from user input file ---
     f <- "annotations.gtf.gz"
     gtf <- import.gff(f, which = GRanges(sq))
     seqinfo(gtf) <- sq
     gtf <- splitAsList(gtf, gtf\$type)
     
-    # 2. Extract splice junctions using sjFromExons()
+    # --- Extract splice junctions using sjFromExons() ---
     ec <- c("transcript_id", "transcript_name", "gene_id", "gene_name")
     sj <- sjFromExons(gtf\$exon, extra_cols = ec)
     
     # Save GRanges splice junctions
     saveRDS(sj, "sj_granges.rds")
     
-    # 3. Simplify shared junctions using chopMC()
+    # --- Simplify shared junctions using chopMC() ---
     sj_chopped <- chopMC(sj)
     saveRDS(sj_chopped, "sj_chopped.rds")
     

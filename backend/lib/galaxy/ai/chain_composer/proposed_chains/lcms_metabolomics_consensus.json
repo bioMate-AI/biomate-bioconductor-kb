@@ -1,0 +1,33 @@
+{
+  "name": "lcms_metabolomics_consensus",
+  "display_name": "LC-MS Metabolomics → Multi-Method Differential Abundance",
+  "domain": "metabolomics",
+  "description": "LC-MS metabolomics processing via xcms (peak picking + grouping + retention time correction), camera (isotope and adduct annotation), biosigner (multi-method feature selection: PLS-DA + Random Forest + SVM), and clumsid (clustering of similar fragmentation spectra). The camera_*, biosigner, clumsid family are part of a 43-member alternative-substitution cluster — each step's role can be substituted by another cluster member when the experimental design calls for it.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "xcms", "role": "peak_picking_and_alignment", "params_template": {"method": "centWave"}},
+    {"order": 2, "workflow_name": "camera", "role": "isotope_adduct_annotation", "params_template": {}},
+    {"order": 3, "workflow_name": "biosigner", "role": "feature_selection_consensus", "params_template": {"methods": ["plsda", "rf", "svm"]}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "xcms_set", "to_step": 2, "to_input": "xcms_set"},
+    {"from_step": 2, "from_output": "annotated_features", "to_step": 3, "to_input": "feature_table"}
+  ],
+  "required_inputs": [
+    {"name": "mzml_files", "type": "mzml"},
+    {"name": "sample_metadata", "type": "csv"},
+    {"name": "phenotype_column", "type": "string"}
+  ],
+  "expected_outputs": [
+    {"name": "differential_features", "type": "tsv"},
+    {"name": "feature_selection_consensus", "type": "rds"},
+    {"name": "annotation_report", "type": "html"}
+  ],
+  "example_queries": [
+    "LC-MS metabolomics differential analysis",
+    "mass spec metabolomics with consensus feature selection",
+    "xcms camera biosigner pipeline for metabolomics",
+    "untargeted metabolomics multi-method analysis"
+  ],
+  "tags": ["LC-MS", "metabolomics", "xcms", "camera", "biosigner", "consensus_candidates"]
+}

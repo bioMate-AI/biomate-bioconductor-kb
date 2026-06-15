@@ -93,22 +93,22 @@ process BIOC_VARIANTTOOLS_SINGLE_SAMPLE_CALLING {
     targets <- bam_header[[1]]\$targets
     which_ranges <- GenomicRanges::GRanges(names(targets), IRanges::IRanges(1, targets))
     
-    # 1. Define tally parameters using TallyVariantsParam
+    # --- Define tally parameters using TallyVariantsParam ---
     tally.param <- TallyVariantsParam(genome, 
                                       high_base_quality = 23L,
                                       which = which_ranges,
                                       indels = TRUE, read_length = 75L)
     
-    # 2. Tally variants from BAM using tallyVariants
+    # --- Tally variants from BAM using tallyVariants ---
     tallies_H1993 <- tallyVariants(bam_file, tally.param)
     
-    # 3. Apply QA filters using qaVariants
+    # --- Apply QA filters using qaVariants ---
     qa.variants <- qaVariants(tallies_H1993)
     
-    # 4. Call variants using callVariants
+    # --- Call variants using callVariants ---
     called.variants <- callVariants(qa.variants)
     
-    # 5. Post-filter variants using postFilterVariants
+    # --- Post-filter variants using postFilterVariants ---
     pf.variants <- postFilterVariants(called.variants)
     
     # Save intermediate and final R objects
@@ -121,7 +121,7 @@ process BIOC_VARIANTTOOLS_SINGLE_SAMPLE_CALLING {
     write.csv(as.data.frame(called.variants), "called_variants.csv", row.names = FALSE)
     write.csv(as.data.frame(pf.variants), "pf_variants.csv", row.names = FALSE)
     
-    # 6. Export called variants to VCF using asVCF and writeVcf
+    # --- Export called variants to VCF using asVCF and writeVcf ---
     sampleNames(called.variants) <- "H1993"
     mcols(called.variants) <- NULL
     vcf <- asVCF(called.variants)

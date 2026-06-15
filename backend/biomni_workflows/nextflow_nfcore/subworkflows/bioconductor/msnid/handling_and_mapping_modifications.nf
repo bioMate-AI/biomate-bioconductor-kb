@@ -57,7 +57,7 @@ process BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS {
     library(dplyr)
     library(Biostrings)
     
-    # 1. Load modified PSM data
+    # --- Load modified PSM data ---
     # Initialize MSnID object with the current directory as the cache directory
     m <- MSnID(".")
     
@@ -68,11 +68,11 @@ process BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS {
     # Read mzIdentML search results
     m <- read_mzIDs(m, mzid_path)
     
-    # 2. Report present modification masses
+    # --- Report present modification masses ---
     reported_mods <- report_mods(m)
     write.csv(as.data.frame(reported_mods), "reported_modifications.csv", row.names = TRUE)
     
-    # 3. Encode modifications with symbols
+    # --- Encode modifications with symbols ---
     # Encode phosphorylation (79.966330925) with "*"
     m <- add_mod_symbol(m, mod_mass="79.966330925", symbol="*")
     x1 <- psms(m) %>% 
@@ -86,7 +86,7 @@ process BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS {
         distinct(modification, peptide, peptide_mod)
     write.csv(x2, "encoded_mods_step2.csv", row.names = FALSE)
     
-    # 4. Map modification sites to FASTA sequences
+    # --- Map modification sites to FASTA sequences ---
     fst <- readAAStringSet(fasta_path)
     names(fst) <- sub("(^[^ ]*) .*\$", "\\1", names(fst))
     
@@ -100,7 +100,7 @@ process BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS {
       distinct(peptide_mod, SiteID)
     write.csv(x3, "mapped_sites_uniprot.csv", row.names = FALSE)
     
-    # 5. Remap accession IDs and FASTA entry names to gene symbols
+    # --- Remap accession IDs and FASTA entry names to gene symbols ---
     # Wrap in tryCatch in case of network/AnnotationHub issues
     tryCatch({
       conv_tab <- fetch_conversion_table("Homo sapiens", "UNIPROT", "SYMBOL")
@@ -112,7 +112,7 @@ process BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS {
       # Remap FASTA entry names
       fst_path_2 <- remap_fasta_entry_names(fasta_path, conv_tab, "\\|([^|-]+)(-\\d+)?\\|")
       
-      # 6. Re-map modification sites using updated gene symbols
+      # --- Re-map modification sites using updated gene symbols ---
       fst_mapped <- readAAStringSet(fst_path_2)
       m <- map_mod_sites(m, fst_mapped, 
                          accession_col = "accession", 

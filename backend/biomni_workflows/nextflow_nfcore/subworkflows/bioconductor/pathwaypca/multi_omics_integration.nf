@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create separate Omics S4 data containers for each omics platform using CreateOmics. 2. Run AES-PCA pathway significance testing on
+//  * 1. [Input & Preparation] Read User Input Files from the Working Directory
+//  * 2. [Input & Preparation] Create separate Omics S4 data containers for each omics
+//  * 3. [Input & Preparation] Run AES-PCA pathway significance testing on both omics
+//  * 4. [Input & Preparation] Extract significant pathways for both platforms
+//  * 5. [Input & Preparation] Find the intersection of significant pathways using an
+//  * 6. [Input & Preparation] Extract and compare gene loadings for the intersecting
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_PATHWAYPCA_MULTI_OMICS_INTEGRATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("pathwayPCA", "tidyverse")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,27 +65,27 @@ process BIOC_PATHWAYPCA_MULTI_OMICS_INTEGRATION {
     library(pathwayPCA)
     library(tidyverse)
     
-    # 1. Read User Input Files from the Working Directory
+    # --- Read User Input Files from the Working Directory ---
     wikipathways_PC <- read_gmt("wikipathways_human_symbol.gmt", description = TRUE)
     ovSurv_df <- readRDS("ovarian_PNNL_survival.RDS")
     copyNumberClean_df <- readRDS("OV_surv_x_CNV2.RDS")
     
-    # 2. Create separate Omics S4 data containers for each omics platform
+    # --- Create separate Omics S4 data containers for each omics ---
     ov_OmicsSurv <- CreateOmics ( assayData_df = ovSurv_df[, - ( 2 : 3 )], pathwayCollection_ls = wikipathways_PC, response = ovSurv_df[, 1 : 3 ], respType = "survival" , minPathSize = 5 )
     ovCNV_Surv <- CreateOmics ( assayData_df = copyNumberClean_df[, - ( 2 : 3 )], pathwayCollection_ls = wikipathways_PC, response = copyNumberClean_df[, 1 : 3 ], respType = "survival" , minPathSize = 5 )
     
-    # 3. Run AES-PCA pathway significance testing on both omics containers
+    # --- Run AES-PCA pathway significance testing on both omics ---
     ovarian_aespcOut <- AESPCA_pVals ( object = ov_OmicsSurv, numPCs = 1 , parallel = TRUE , numCores = 2 , numReps = 0 , adjustment = "BH" )
     ovCNV_aespcOut <- AESPCA_pVals ( object = ovCNV_Surv, numPCs = 1 , parallel = TRUE , numCores = 20 , numReps = 0 , adjustment = "BH" )
     
-    # 4. Extract significant pathways for both platforms
+    # --- Extract significant pathways for both platforms ---
     CNVpvals_df <- getPathpVals (ovCNV_aespcOut, alpha = 0.05 ) %>% mutate ( rawp_CNV = rawp) %>% select (description, rawp_CNV)
     PROTpvals_df <- getPathpVals (ovarian_aespcOut, alpha = 0.05 ) %>% mutate ( rawp_PROT = rawp) %>% select (description, rawp_PROT)
     
-    # 5. Find the intersection of significant pathways using an inner join
+    # --- Find the intersection of significant pathways using an ---
     SigBoth_df <- inner_join (PROTpvals_df, CNVpvals_df, by = "description" )
     
-    # 6. Extract and compare gene loadings for the intersecting pathways (e.g., WP195)
+    # --- Extract and compare gene loadings for the intersecting ---
     CNVwp195_ls <- getPathPCLs (ovCNV_aespcOut, "WP195" )
     PROTwp195_ls <- getPathPCLs (ovarian_aespcOut, "WP195" )
     

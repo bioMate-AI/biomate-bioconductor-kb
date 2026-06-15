@@ -11,7 +11,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Construct the metabolic graph with atom-level topology using makeMetabolicGraph. 2. Score the graph nodes and edges based on p-val
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Download the required network and annotation databases
+//  * 3. [Visualization & Output] Construct the metabolic graph with atom-level topology
+//  * 4. [Visualization & Output] Score the graph nodes and edges
+//  * 5. [Visualization & Output] Initialize the solver
+//  * 6. [Visualization & Output] Solve the maximum weight connected subgraph problem
+//  * 7. [Visualization & Output] Visualize and save the module
+//  * 8. [Visualization & Output] Downstream pathway enrichment analysis
 
 nextflow.enable.dsl = 2
 
@@ -65,11 +72,11 @@ process BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE {
     library(mwcsr)
     library(fgsea)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     gene.de.rawEx <- data.table::fread("gene.de.rawEx")
     met.de.rawEx <- data.table::fread("met.de.rawEx")
     
-    # 2. Download the required network and annotation databases
+    # --- Download the required network and annotation databases ---
     networkEx <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.kegg.rds"))
     met.kegg.dbEx <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.kegg.db.rds"))
     org.Mm.eg.gatom.annoEx <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/org.Mm.eg.gatom.anno.rds"))
@@ -77,7 +84,7 @@ process BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE {
     # Define aliases to match the exact documented code variables for downstream analysis
     org.Mm.eg.gatom.anno <- org.Mm.eg.gatom.annoEx
     
-    # 3. Construct the metabolic graph with atom-level topology
+    # --- Construct the metabolic graph with atom-level topology ---
     g <- makeMetabolicGraph(network=networkEx, 
                             topology="atoms",
                             org.gatom.anno=org.Mm.eg.gatom.annoEx, 
@@ -87,20 +94,20 @@ process BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE {
     
     kg <- g # Alias for downstream ORA universe
     
-    # 4. Score the graph nodes and edges
+    # --- Score the graph nodes and edges ---
     gs <- scoreGraph(g, k.gene = 25, k.met = 25)
     
-    # 5. Initialize the solver
+    # --- Initialize the solver ---
     solver <- rnc_solver()
     
-    # 6. Solve the maximum weight connected subgraph problem
+    # --- Solve the maximum weight connected subgraph problem ---
     set.seed(42)
     res <- solve_mwcsp(solver, gs)
     m <- res\$graph
     
     km <- m # Alias for downstream ORA genes
     
-    # 7. Visualize and save the module
+    # --- Visualize and save the module ---
     createShinyCyJSWidget(m)
     
     write_graph(m, file = file.path(tempdir(), "M0.vs.M1.graphml"), format = "graphml")
@@ -119,7 +126,7 @@ process BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE {
     file.copy(file.path(tempdir(), "M0.vs.M1.dot"), "./M0.vs.M1.dot", overwrite = TRUE)
     file.copy(file.path(tempdir(), "M0.vs.M1.pdf"), "./M0.vs.M1.pdf", overwrite = TRUE)
     
-    # 8. Downstream pathway enrichment analysis
+    # --- Downstream pathway enrichment analysis ---
     foraRes <- fgsea::fora(pathways=org.Mm.eg.gatom.anno\$pathways,
                            genes=E(km)\$gene,
                            universe=unique(E(kg)\$gene),

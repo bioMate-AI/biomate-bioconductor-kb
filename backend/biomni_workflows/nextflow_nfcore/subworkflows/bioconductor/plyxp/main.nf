@@ -35,6 +35,15 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("plyxp", "dplyr", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,9 +55,10 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     
     # Load required libraries
     library(plyxp)
+    library(SummarizedExperiment)
     library(dplyr)
     
-    # Stage 1: Read input files
+    # --- Read input files ---
     # counts.csv: gene_id as the first column, followed by sample columns
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
@@ -62,14 +72,14 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     counts_mat <- as.matrix(counts_df[, common_samples, drop = FALSE])
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
-    # Stage 2: Initialize SummarizedExperiment and wrap with plyxp
+    # --- Initialize SummarizedExperiment and wrap with plyxp ---
     se_obj <- SummarizedExperiment(
       assays = list(counts = counts_mat),
       colData = coldata_df
     )
     xp <- new_plyxp(se_obj)
     
-    # Stage 3: Normalization and Feature Engineering
+    # --- Normalization and Feature Engineering ---
     # Calculate size factors based on library sizes and add to colData
     lib_sizes <- colSums(assay(se(xp), "counts"))
     xp\$size_factor <- lib_sizes / mean(lib_sizes)
@@ -87,7 +97,7 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
         rows(expr_class = ifelse(mean_scaled > median(mean_scaled), "High", "Low"))
       )
     
-    # Stage 4: Filtering and Grouped Summarization
+    # --- Filtering and Grouped Summarization ---
     # Filter out low-abundance genes using the row context
     xp_filtered <- xp |>
       filter(rows(mean_scaled > 0.5))
@@ -104,7 +114,7 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
     final_se <- se(xp_filtered)
     summary_se <- se(summary_xp)
     
-    # Stage 5: Save Outputs
+    # --- Save Outputs ---
     # 1. Save the filtered SummarizedExperiment object
     saveRDS(final_se, "filtered_se.rds")
     

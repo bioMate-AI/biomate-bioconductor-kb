@@ -67,37 +67,37 @@ process BIOC_TRASER_GWAS_SNP_ENRICHMENT_ANALYSIS {
     # Ensure the columns are correctly named for traseR compatibility
     colnames(Tcell)[1:3] <- c("chr", "start", "end")
     
-    # 1. Run enrichment analysis using traseR with default background
+    # --- Run enrichment analysis using traseR with default ---
     x=traseR(taSNP,Tcell)
     print(x)
     saveRDS(x, "traseR_results_default.rds")
     
-    # 2. Run enrichment analysis using traseR with LD SNPs
+    # --- Run enrichment analysis using traseR with LD SNPs ---
     x=traseR(snpdb=taSNPLD,region=Tcell)
     print(x)
     saveRDS(x, "traseR_results_LD.rds")
     
-    # 3. Run enrichment analysis using traseR with CEU background
+    # --- Run enrichment analysis using traseR with CEU background ---
     x=traseR(snpdb=taSNP,region=Tcell,snpdb.bg=CEU)
     print(x)
     saveRDS(x, "traseR_results_CEU.rds")
     
-    # 4. Visualize SNP functional class distribution using plotContext
+    # --- Visualize SNP functional class distribution using ---
     pdf("plot_context.pdf")
     plotContext(snpdb=taSNP,region=Tcell,keyword="Autoimmune")
     dev.off()
     
-    # 5. Visualize p-value distribution using plotPvalue
+    # --- Visualize p-value distribution using plotPvalue ---
     pdf("plot_pvalue.pdf")
     plotPvalue(snpdb=taSNP,region=Tcell,keyword="autoimmune",plot.type="densityplot")
     dev.off()
     
-    # 6. Plot SNPs/genes in a specific genomic interval using plotInterval
+    # --- Plot SNPs/genes in a specific genomic interval using ---
     pdf("plot_interval.pdf")
     plotInterval(snpdb=taSNP,data.frame(chr="chrX",start=152633780,end=152737085))
     dev.off()
     
-    # 7. Query the database by keyword, gene, or SNP ID
+    # --- Query the database by keyword, gene, or SNP ID ---
     x=queryKeyword(snpdb=taSNP,region=Tcell,keyword="autoimmune",returnby="SNP")
     print(head(x))
     write.csv(x, "query_keyword_results.csv", row.names = FALSE)

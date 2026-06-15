@@ -62,6 +62,7 @@ process BIOC_LEFSER_METAGENOMIC_BIOMARKER_DISCOVERY {
     # Load required libraries
     library(lefser)
     
+    library(SummarizedExperiment)
     # Define input file path (expected in the working directory)
     input_file <- "taxonomic_counts_se.rds"
     

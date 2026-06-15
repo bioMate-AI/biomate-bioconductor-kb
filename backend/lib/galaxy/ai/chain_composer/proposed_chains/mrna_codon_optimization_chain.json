@@ -1,0 +1,29 @@
+{
+  "name": "mrna_codon_optimization_chain",
+  "display_name": "mRNA Therapeutic Design — Codon Optimization + Synthesizability",
+  "domain": "drug_discovery",
+  "description": "Full mRNA therapeutic design from protein sequence: codon optimization (CAI > 0.8, CpG minimization) via mrna_therapeutic_design, then LLM-guided synthesizability check on candidate constructs via syncraft. Used for mRNA vaccine and protein replacement therapy programs.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "mrna_therapeutic_design", "role": "codon_optimization_and_utr_design", "params_template": {"cai_target": 0.85}},
+    {"order": 2, "workflow_name": "syncraft_synthesizability", "role": "synthesizability_check", "params_template": {}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "optimized_mrna_constructs", "to_step": 2, "to_input": "candidate_constructs"}
+  ],
+  "required_inputs": [
+    {"name": "target_protein_sequence", "type": "fasta"},
+    {"name": "host_organism", "type": "string"}
+  ],
+  "expected_outputs": [
+    {"name": "optimized_mrna_sequences", "type": "fasta"},
+    {"name": "synthesizability_report", "type": "json"}
+  ],
+  "example_queries": [
+    "mRNA therapeutic design with codon optimization and IVT",
+    "design optimized mRNA from protein sequence",
+    "codon optimization for mRNA vaccine",
+    "mRNA construct design with synthesizability check"
+  ],
+  "tags": ["drug_discovery", "mRNA_therapeutic", "codon_optimization", "syncraft"]
+}

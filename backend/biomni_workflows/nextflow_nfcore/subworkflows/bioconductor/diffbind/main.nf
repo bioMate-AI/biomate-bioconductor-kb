@@ -68,17 +68,17 @@ process BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING {
     tamoxifen.DB <- dba.report(tamoxifen)
     
     # Save the results to output files
-    # 1. Save the complete DBA object
+    # --- Save the complete DBA object ---
     saveRDS(tamoxifen, file="tamoxifen_dba_object.rds")
     
-    # 2. Save the differential binding report as a CSV
+    # --- Save the differential binding report as a CSV ---
     if (!is.null(tamoxifen.DB) && length(tamoxifen.DB) > 0) {
       write.csv(as.data.frame(tamoxifen.DB), file="tamoxifen_differential_binding_report.csv", row.names=FALSE)
     } else {
       write.csv(data.frame(Message="No significantly differentially bound sites found."), file="tamoxifen_differential_binding_report.csv", row.names=FALSE)
     }
     
-    # 3. Generate diagnostic and results plots
+    # --- Generate diagnostic and results plots ---
     pdf("tamoxifen_differential_binding_plots.pdf", width=8, height=8)
     
     tryCatch({

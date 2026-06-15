@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate local z-scores across a defined window and step size using multiLocalZscore(). 2. Extract evaluation metrics and summary
+//  * 1. [Visualization & Output] Calculate local z-scores across a defined window and step
+//  * 2. [Visualization & Output] Extract evaluation metrics and summary tables
+//  * 3. [Visualization & Output] Generate a local z-score matrix and cluster the profiles
+//  * 4. [Visualization & Output] Plot the clustered local z-score matrix
+//  * 5. [Visualization & Output] Plot individual or multiple local z-score profiles
 
 nextflow.enable.dsl = 2
 
@@ -86,7 +90,7 @@ process BIOC_REGIONERELOADED_MULTI_LOCAL_ZSCORE {
         # 2. RUN WORKFLOW (FAITHFUL TO DOCUMENTED CODE)
         # ==========================================
         
-        # Step 1: Calculate local z-scores across a defined window and step size
+        # --- Calculate local z-scores across a defined window and step ---
         mlz_Alien_ReG <- multiLocalZscore(
           A = A, 
           Blist = Blist, 
@@ -105,12 +109,12 @@ process BIOC_REGIONERELOADED_MULTI_LOCAL_ZSCORE {
         params <- getParameters(mLZ_regA_ReG)
         write.csv(params, "mlz_parameters.csv", row.names = FALSE)
         
-        # Step 2: Extract evaluation metrics and summary tables
+        # --- Extract evaluation metrics and summary tables ---
         mlz_Me <- getMultiEvaluation(rR = mLZ_regA_ReG)
         write.csv(mlz_Me\$resumeTable, "mlz_resume_table.csv", row.names = FALSE)
         print(head(mlz_Me\$resumeTable))
         
-        # Step 3: Generate a local z-score matrix and cluster the profiles
+        # --- Generate a local z-score matrix and cluster the profiles ---
         mLZ_regA_ReG <- makeLZMatrix(mLZ_regA_ReG)
         saveRDS(mLZ_regA_ReG, "mLZ_regA_ReG.rds")
         
@@ -126,7 +130,7 @@ process BIOC_REGIONERELOADED_MULTI_LOCAL_ZSCORE {
           warning("Could not plot hclust: ", e\$message)
         })
         
-        # Step 4: Plot the clustered local z-score matrix
+        # --- Plot the clustered local z-score matrix ---
         tryCatch({
           p_mat <- plotLocalZScoreMatrix(mLZ_regA_ReG, maxVal = "max")
           if (inherits(p_mat, "ggplot")) print(p_mat)
@@ -134,7 +138,7 @@ process BIOC_REGIONERELOADED_MULTI_LOCAL_ZSCORE {
           warning("Could not plot local Z-score matrix: ", e\$message)
         })
         
-        # Step 5: Plot individual or multiple local z-score profiles
+        # --- Plot individual or multiple local z-score profiles ---
         # Dynamically extract region set names from the evaluation results
         rs_names <- as.character(mlz_Me\$resumeTable\$name)
         

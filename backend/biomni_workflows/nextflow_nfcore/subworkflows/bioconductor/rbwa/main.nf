@@ -55,7 +55,7 @@ process BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT {
     # Load required library
     library(Rbwa)
     
-    # 1. Locate input files in the working directory
+    # --- Locate input files in the working directory ---
     fasta_files <- list.files(pattern = "\\\\.(fa|fasta)\$")
     fastq_files_list <- list.files(pattern = "\\\\.(fq|fastq)\$")
     
@@ -77,19 +77,19 @@ process BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT {
     }
     index_prefix <- file.path(index_dir, "ref_index")
     
-    # 2. Build reference genome index
+    # --- Build reference genome index ---
     message("Building BWA index...")
     bwa_build_index(fasta,
                     index_prefix=index_prefix)
     
-    # 3. Align reads to the index to generate intermediate SAI file
+    # --- Align reads to the index to generate intermediate SAI file ---
     sai_file <- "output.sai"
     message("Aligning reads (bwa_aln)...")
     bwa_aln(index_prefix=index_prefix,
             fastq_files=fastq,
             sai_files=sai_file)
     
-    # 4. Convert SAI file to SAM format
+    # --- Convert SAI file to SAM format ---
     sam_file <- "output.sam"
     message("Converting SAI to SAM (bwa_sam)...")
     bwa_sam(index_prefix=index_prefix,
@@ -97,13 +97,13 @@ process BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT {
             sai_files=sai_file,
             sam_file=sam_file)
     
-    # 5. Expand secondary alignments from XA tags
+    # --- Expand secondary alignments from XA tags ---
     multi_sam_file <- "output.multi.sam"
     message("Expanding secondary alignments (xa2multi)...")
     xa2multi(sam_file,
              multi_sam_file)
     
-    # 6. Generate a summary report of the alignments
+    # --- Generate a summary report of the alignments ---
     message("Generating alignment summary report...")
     if (file.exists(sam_file)) {
       sam_lines <- readLines(sam_file)

@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Extract common features across replicates using commonFeatureNames. 2. Fit Gaussian processes to marker profiles using fitGPmatern
+//  * 1. [Visualization & Output] Load User Input and Extract Common Features
+//  * 2. [Visualization & Output] Fit Gaussian Processes to Marker Profiles
+//  * 3. [Visualization & Output] Set Up and Check Dirichlet Prior
+//  * 4. [Visualization & Output] Run the Main MCMC Model (bandle)
+//  * 5. [Visualization & Output] Assess MCMC Convergence
+//  * 6. [Visualization & Output] Extract Differential Localisation Probabilities
+//  * 7. [Visualization & Output] Visualize Translocations and Generate Summary Table
+//  * 8. [Visualization & Output] Estimate Uncertainty and Expected False Discovery Rate
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +69,7 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         library(MSnbase)
         
         # -----------------------------------------------------------------------------
-        # Stage 1: Load User Input and Extract Common Features
+        # --- Load User Input and Extract Common Features ---
         # -----------------------------------------------------------------------------
         
         # Load control replicates
@@ -86,7 +93,7 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         thplopit <- commonFeatureNames(all_reps)
         
         # -----------------------------------------------------------------------------
-        # Stage 2: Fit Gaussian Processes to Marker Profiles
+        # --- Fit Gaussian Processes to Marker Profiles ---
         # -----------------------------------------------------------------------------
         
         K <- length(getMarkerClasses(thplopit[[1]], fcol = "markers"))
@@ -100,7 +107,7 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         dev.off()
         
         # -----------------------------------------------------------------------------
-        # Stage 3: Set Up and Check Dirichlet Prior
+        # --- Set Up and Check Dirichlet Prior ---
         # -----------------------------------------------------------------------------
         
         set.seed(1)
@@ -108,7 +115,7 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         predDirPrior <- prior_pred_dir(object = thplopit[[1]], dirPrior = dirPrior, q = 15)
         
         # -----------------------------------------------------------------------------
-        # Stage 4: Run the Main MCMC Model (bandle)
+        # --- Run the Main MCMC Model (bandle) ---
         # -----------------------------------------------------------------------------
         
         # Reconstruct control and treatment lists from the harmonized thplopit object
@@ -132,7 +139,7 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         bandleres <- params
         
         # -----------------------------------------------------------------------------
-        # Stage 5: Assess MCMC Convergence
+        # --- Assess MCMC Convergence ---
         # -----------------------------------------------------------------------------
         
         gelman_diag <- calculateGelman(params)
@@ -173,14 +180,14 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         saveRDS(res_12h, "res_treatment_processed.rds")
         
         # -----------------------------------------------------------------------------
-        # Stage 10: Extract Differential Localisation Probabilities
+        # --- Extract Differential Localisation Probabilities ---
         # -----------------------------------------------------------------------------
         
         dl <- diffLocalisationProb(params_converged)
         write.csv(as.data.frame(dl), "diff_localisation_probabilities.csv")
         
         # -----------------------------------------------------------------------------
-        # Stage 11: Visualize Translocations and Generate Summary Table
+        # --- Visualize Translocations and Generate Summary Table ---
         # -----------------------------------------------------------------------------
         
         # Prepare datasets for translocation plotting
@@ -215,7 +222,7 @@ process BIOC_BANDLE_DIFFERENTIAL_LOCALISATION_ANALYSIS {
         write.csv(tbl, "translocations_table.csv", row.names = FALSE)
         
         # -----------------------------------------------------------------------------
-        # Stage 12: Estimate Uncertainty and Expected False Discovery Rate
+        # --- Estimate Uncertainty and Expected False Discovery Rate ---
         # -----------------------------------------------------------------------------
         
         top_val <- min(100, length(dl))

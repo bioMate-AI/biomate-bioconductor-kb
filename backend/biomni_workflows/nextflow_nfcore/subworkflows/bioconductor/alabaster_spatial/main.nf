@@ -35,6 +35,15 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SpatialExperiment", "alabaster.base", "alabaster.spatial", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,11 +55,12 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     
     # Load required libraries
     library(SpatialExperiment)
+    library(SummarizedExperiment)
     library(alabaster.base)
     library(alabaster.spatial)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Preprocess
+    # --- Read Input Data & Preprocess ---
     # ==========================================
     
     # Read counts matrix
@@ -80,7 +90,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
     # ==========================================
-    # STAGE 2: Construct SpatialExperiment
+    # --- Construct SpatialExperiment ---
     # ==========================================
     
     # Extract or generate spatial coordinates
@@ -105,7 +115,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: Serialize using alabaster.spatial
+    # --- Serialize using alabaster.spatial ---
     # ==========================================
     
     # Define output directory for the serialized object
@@ -119,7 +129,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     alabaster.base::saveObject(se, save_dir)
     
     # ==========================================
-    # STAGE 4: Deserialize (Load) the Object
+    # --- Deserialize (Load) the Object ---
     # ==========================================
     
     # Read the object back to verify round-trip integrity
@@ -127,7 +137,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     se_loaded <- alabaster.base::readObject(save_dir)
     
     # ==========================================
-    # STAGE 5: Downstream Analysis & QC
+    # --- Downstream Analysis & QC ---
     # ==========================================
     
     # Calculate basic QC metrics

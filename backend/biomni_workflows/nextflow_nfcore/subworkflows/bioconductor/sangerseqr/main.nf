@@ -71,7 +71,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     }
     
     # ==========================================
-    # 1. Load Chromatogram Data
+    # --- Load Chromatogram Data ---
     # ==========================================
     message("Loading chromatogram data...")
     hetab1 <- read.abif(ab1_file)
@@ -86,7 +86,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     saveRDS(hetsangerseq, "hetsangerseq.rds")
     
     # ==========================================
-    # 2. Extract and Manipulate Sequences
+    # --- Extract and Manipulate Sequences ---
     # ==========================================
     message("Extracting and manipulating sequences...")
     Seq1 <- primarySeq(homosangerseq)
@@ -100,7 +100,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     writeLines(prim_seq_str, "homo_primary_seq.txt")
     
     # ==========================================
-    # 3. Plot Chromatograms
+    # --- Plot Chromatograms ---
     # ==========================================
     # Saving to PDF to prevent graphics device dimension errors
     message("Plotting initial chromatogram to PDF...")
@@ -110,7 +110,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 4. Make Primary and Secondary Basecalls
+    # --- Make Primary and Secondary Basecalls ---
     # ==========================================
     message("Making basecalls with ratio cutoff...")
     hetcalls <- makeBaseCalls(hetsangerseq, ratio=0.33)
@@ -123,7 +123,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 5. Phase Alleles Against a Reference
+    # --- Phase Alleles Against a Reference ---
     # ==========================================
     message("Phasing alleles against reference sequence...")
     ref <- subseq(primarySeq(homosangerseq, string=TRUE), start=30, width=500)
@@ -131,7 +131,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     saveRDS(hetseqalleles, "hetseqalleles.rds")
     
     # ==========================================
-    # 6. Align and Compare Phased Alleles
+    # --- Align and Compare Phased Alleles ---
     # ==========================================
     message("Aligning phased alleles...")
     pa <- pairwiseAlignment(primarySeq(hetseqalleles)[1:400], 

@@ -17,7 +17,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("spaSim", "EBImage")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     # Set seed for reproducibility
     set.seed(42)
     
-    # Stage 1: Read input microscopy image to extract spatial dimensions
+    # --- Read input microscopy image to extract spatial dimensions ---
     img_width <- 2000
     img_height <- 2000
     
@@ -67,7 +76,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
       warning("Could not read image.tif or extract dimensions. Using default dimensions 2000x2000.")
     })
     
-    # Stage 2: Simulate Background Cells (Hardcore Process)
+    # --- Simulate Background Cells (Hardcore Process) ---
     message("Simulating background cells...")
     bg <- simulate_background_cells(
       n_cells = 3000,
@@ -80,7 +89,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     write.csv(bg, "simulated_background_cells.csv", row.names = FALSE)
     
-    # Stage 3: Simulate Mixed Background
+    # --- Simulate Mixed Background ---
     message("Simulating mixed background...")
     mix_bg <- simulate_mixing(
       bg_sample = bg,
@@ -90,7 +99,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     write.csv(mix_bg, "simulated_mixed_background.csv", row.names = FALSE)
     
-    # Stage 4: Simulate Clusters (Tumour and Immune Clusters)
+    # --- Simulate Clusters (Tumour and Immune Clusters) ---
     message("Simulating clusters...")
     cluster_properties <- list(
       C1 = list(
@@ -120,7 +129,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     write.csv(clusters, "simulated_clusters.csv", row.names = FALSE)
     
-    # Stage 5: Simulate Immune Rings
+    # --- Simulate Immune Rings ---
     message("Simulating immune rings...")
     immune_ring_properties <- list(
       I1 = list(
@@ -146,7 +155,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     write.csv(rings, "simulated_immune_rings.csv", row.names = FALSE)
     
-    # Stage 6: Simulate Double Rings
+    # --- Simulate Double Rings ---
     message("Simulating double rings...")
     double_ring_properties <- list(
       D1 = list(
@@ -176,7 +185,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     write.csv(double_rings, "simulated_double_rings.csv", row.names = FALSE)
     
-    # Stage 7: Simulate Vessels (Stripes)
+    # --- Simulate Vessels (Stripes) ---
     message("Simulating vessels...")
     properties_of_stripes <- list(
       S1 = list(
@@ -196,7 +205,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     write.csv(vessels, "simulated_vessels.csv", row.names = FALSE)
     
-    # Stage 8: Sequential Construction using TIS (Tissue Image Simulator)
+    # --- Sequential Construction using TIS (Tissue Image Simulator) ---
     message("Running sequential tissue simulation (TIS)...")
     tis_cluster_properties <- list(
       C1 = list(
@@ -240,7 +249,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     saveRDS(simulated_sce, "simulated_tissue_sce.rds")
     
-    # Stage 9: Simulate Multiple Images (Batch Simulation)
+    # --- Simulate Multiple Images (Batch Simulation) ---
     message("Simulating batch variations...")
     # 1. Multiple background images with varying proportions
     idents_batch <- c("Tumour", "Immune", "Others")
@@ -285,7 +294,7 @@ process BIOC_SPASIM_SPASIM_SPATIAL_SIMULATION {
     )
     saveRDS(ring_batch, "batch_immune_ring_images.rds")
     
-    # Stage 10: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     message("Generating diagnostic PDF plots...")
     pdf("simulated_spatial_patterns.pdf", width = 10, height = 10)
     

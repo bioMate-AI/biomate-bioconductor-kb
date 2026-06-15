@@ -59,7 +59,7 @@ process BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION {
     library(edgeR)
     
     # ==========================================
-    # 1. Prepare sample table (coldata)
+    # --- Prepare sample table (coldata) ---
     # ==========================================
     
     # Locate and read the coldata file from the working directory
@@ -121,7 +121,7 @@ process BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION {
     }
     
     # ==========================================
-    # 2. Link custom transcriptome
+    # --- Link custom transcriptome ---
     # ==========================================
     
     # Locate GTF path in the working directory
@@ -168,32 +168,32 @@ process BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION {
     )
     
     # ==========================================
-    # 3. Import data using tximeta
+    # --- Import data using tximeta ---
     # ==========================================
     se <- tximeta(coldata)
     
     # ==========================================
-    # 4. Retrieve database using retrieveDb
+    # --- Retrieve database using retrieveDb ---
     # ==========================================
     edb <- retrieveDb(se)
     
     # ==========================================
-    # 5. Add exons using addExons
+    # --- Add exons using addExons ---
     # ==========================================
     se.exons <- addExons(se)
     
     # ==========================================
-    # 6. Summarize to gene-level
+    # --- Summarize to gene-level ---
     # ==========================================
     gse <- summarizeToGene(se)
     
     # ==========================================
-    # 7. Add alternative identifiers
+    # --- Add alternative identifiers ---
     # ==========================================
     gse <- addIds(gse, "REFSEQ", gene = TRUE)
     
     # ==========================================
-    # 8. Convert to downstream analysis objects
+    # --- Convert to downstream analysis objects ---
     # ==========================================
     y <- DGEListFromTximeta(gse)
     

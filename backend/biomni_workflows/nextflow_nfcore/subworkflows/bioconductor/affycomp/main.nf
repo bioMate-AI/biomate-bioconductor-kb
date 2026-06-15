@@ -35,6 +35,15 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("affycomp")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     library(affycomp)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ----------------------------------------------------------------------
     message("Reading input expression matrix and metadata...")
     expr_matrix <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -74,7 +83,7 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     rownames(expr_matrix) <- make.unique(row_names)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Format Data for Dilution and Spike-in Benchmarks
+    # --- Format Data for Dilution and Spike-in Benchmarks ---
     # ----------------------------------------------------------------------
     message("Formatting expression matrices for dilution and spike-in benchmarks...")
     
@@ -114,13 +123,13 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     unlink(c(dil_file, spike_file))
     
     # ----------------------------------------------------------------------
-    # Stage 3: Run Benchmark Assessments
+    # --- Run Benchmark Assessments ---
     # ----------------------------------------------------------------------
     message("Running benchmark assessments...")
     assessment <- assessAll(d, s, method.name = "UserMethod")
     
     # ----------------------------------------------------------------------
-    # Stage 4: Export Assessment Table
+    # --- Export Assessment Table ---
     # ----------------------------------------------------------------------
     message("Exporting assessment summary table...")
     tryCatch({
@@ -137,7 +146,7 @@ process BIOC_AFFYCOMP_AFFYCOMP_BENCHMARK_ASSESSMENT {
     })
     
     # ----------------------------------------------------------------------
-    # Stage 5: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ----------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

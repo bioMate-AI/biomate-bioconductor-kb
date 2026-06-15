@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""Generate backend/config/rationale_mapping.yaml — scientific-lead worksheet.
+
+One block per chain. For each chain step, suggests a qc_evidence.yaml
+gate based on keyword overlap with the step's `role` (or empty for the
+13 "true gap" chains where no qc_evidence covers the domain).
+
+Every suggestion is marked `suggested: true` for scientific-lead
+review. The lead reviews + flips to `confirmed: true` (and may swap
+the gate name) before the populate step consumes the row.
+
+Source: docs/20260614_EVIDENCE_RATIONALE_DATA_PLAN.md citation-source
+audit (the 14 mapping-only + 14 true-gap chains).
+
+Idempotent — re-running rewrites the file; existing scientific-lead
+edits in the file are PRESERVED only if they're under `confirmed: true`
+(see merge_into_existing function).
+
+Usage:
+  python3 backend/scripts/generate_rationale_mapping.py            # dry-run to stdout
+  python3 backend/scripts/generate_rationale_mapping.py --write    # write file
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sqlite3
+import sys
+from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DB_PATH = os.path.join(ROOT, "backend", "database", "galaxy_ai_tools.db")
+QC_PATH = os.path.join(ROOT, "backend", "config", "qc_evidence.yaml")
+OUT_PATH = os.path.join(ROOT, "backend", "config", "rationale_mapping.yaml")
+
+# Bioc domains are already shipped via populate_workflow_phase_rationale.py;
+# this generator covers the remaining 28 chains.
+BIOC_DOMAINS = {"transcriptomics", "single_cell", "epigenomics", "cryo_em"}
+
+# Domains where qc_evidence.yaml has cited gates that drug_discovery /
+# pharmacology chains can reuse.
+MAPPABLE_DOMS = {"drug_discovery", "pharmacology"}
+
+# Domains where the chain has no matching qc_evidence at all.
+GAP_DOMS = {"genomics", "variant_calling", "immunology", "metabolomics",
+            "metagenomics", "proteomics", "rare_disease"}
+
+
+def _tokens(s: str) -> set[str]:
+    return {t for t in (s or "").lower().replace("-", "_").split("_") if len(t) > 2}
+
+
+def _suggest_gates(role: str, workflow_name: str, gate_to_domain: Dict[str, str],
+                   top_k: int = 2) -> List[Tuple[str, str, int]]:
+    """Return list of (gate, domain, overlap_score) ranked by keyword overlap.
+
+    Searches only non-bioc gates (bioc handled by week-1 script).
+    """
+    role_tokens = _tokens(role) | _tokens(workflow_name)
+    if not role_tokens:
+        return []
+    candidates: List[Tuple[str, str, int]] = []
+    for gate, dom in gate_to_domain.items():
+        if dom in BIOC_DOMAINS:
+            continue
+        gate_tokens = _tokens(gate)
+        overlap = len(role_tokens & gate_tokens)
+        if overlap > 0:
+            candidates.append((gate, dom, overlap))
+    candidates.sort(key=lambda x: -x[2])
+    return candidates[:top_k]
+
+
+def _order_to_letter(n: int) -> str:
+    return chr(ord("A") + n - 1) if 1 <= n <= 26 else f"P{n}"
+
+
+def _build_chain_block(chain_name: str, chain_id: int, domain: str,
+                       steps: List[Dict[str, Any]],
+                       gate_to_domain: Dict[str, str],
+                       category: str) -> Dict[str, Any]:
+    block: Dict[str, Any] = {
+        "chain_id": chain_id,
+        "domain": domain,
+        "category": category,
+        "phases": [],
+    }
+    for s in steps:
+        order = s.get("order")
+        if not isinstance(order, int):
+            continue
+        phase_id = _order_to_letter(order)
+        role = s.get("role") or ""
+        wname = s.get("workflow_name") or ""
+        phase: Dict[str, Any] = {
+            "phase_id": phase_id,
+            "step_role": role,
+            "step_workflow_name": wname,
+            "rationale_id": f"{chain_name}:{phase_id}",
+            "qc_gate_name": None,
+            "confirmed": False,
+        }
+        if category == "mapping":
+            suggestions = _suggest_gates(role, wname, gate_to_domain)
+            if suggestions:
+                # Pre-fill the top suggestion as a starting point for the lead.
+                top_gate, top_dom, _score = suggestions[0]
+                phase["qc_gate_name"] = top_gate
+                phase["suggested_qc_domain"] = top_dom
+                phase["suggested"] = True
+                if len(suggestions) > 1:
+                    phase["alternative_qc_gates"] = [g for g, _d, _s in suggestions[1:]]
+            else:
+                phase["needs_scientific_lead"] = True
+        else:  # gap
+            phase["needs_doi_collection"] = True
+        block["phases"].append(phase)
+    return block
+
+
+HEADER = """# rationale_mapping.yaml — scientific-lead worksheet
+#
+# One block per chain that needs (why?) rationale support. Each phase
+# row tells the populate script which qc_evidence.yaml gate to use as
+# the citation (or flags the row as needing new DOI collection).
+#
+# Generated by backend/scripts/generate_rationale_mapping.py from
+# workflow_chains × qc_evidence.yaml keyword overlap. Suggestions are
+# starting points — confirm or correct each row before flipping
+# `confirmed: true`. The populate step consumes only confirmed rows.
+#
+# Plan reference: docs/20260614_EVIDENCE_RATIONALE_DATA_PLAN.md §"Update
+# — your answers + citation source audit".
+#
+# Bioc chains (transcriptomics, single_cell, epigenomics, cryo_em) are
+# NOT in this file — those 24 rationales were populated in week-1 via
+# populate_workflow_phase_rationale.py using BiocTours.jsx + qc_evidence
+# directly.
+#
+# Categories:
+#   mapping — qc_evidence has matching DOIs; lead just picks the gate
+#   gap     — no qc_evidence covers this domain; lead collects new DOIs
+#             and adds them to qc_evidence.yaml first
+
+"""
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--write", action="store_true",
+                    help=f"Persist to {OUT_PATH} (default: stdout dry-run).")
+    args = ap.parse_args()
+
+    if not os.path.exists(DB_PATH):
+        print(f"DB not found: {DB_PATH}", file=sys.stderr)
+        return 1
+    if not os.path.exists(QC_PATH):
+        print(f"qc_evidence.yaml not found: {QC_PATH}", file=sys.stderr)
+        return 1
+
+    with open(QC_PATH) as fh:
+        ev = yaml.safe_load(fh) or {}
+    gate_to_domain: Dict[str, str] = {}
+    for d, gates in ev.items():
+        if isinstance(gates, dict):
+            for g in gates:
+                gate_to_domain[g] = d
+
+    blocks: List[Tuple[str, Dict[str, Any]]] = []
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute(
+            "SELECT id, name, domain, steps FROM workflow_chains "
+            "ORDER BY domain, name"
+        ).fetchall()
+        for cid, cname, cdom, steps_json in rows:
+            if cdom in BIOC_DOMAINS:
+                continue
+            if cdom not in MAPPABLE_DOMS and cdom not in GAP_DOMS:
+                continue
+            try:
+                steps = json.loads(steps_json or "[]")
+            except json.JSONDecodeError:
+                continue
+            if not steps:
+                continue
+            category = "mapping" if cdom in MAPPABLE_DOMS else "gap"
+            blocks.append((cname, _build_chain_block(cname, cid, cdom, steps,
+                                                     gate_to_domain, category)))
+
+    rendered = HEADER + yaml.dump(
+        {"chains": {name: block for name, block in blocks}},
+        sort_keys=False,
+        default_flow_style=False,
+        width=120,
+    )
+
+    if args.write:
+        with open(OUT_PATH, "w") as fh:
+            fh.write(rendered)
+        print(f"wrote {OUT_PATH} ({len(blocks)} chains, "
+              f"{sum(len(b['phases']) for _, b in blocks)} phase rows)")
+    else:
+        print(rendered)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

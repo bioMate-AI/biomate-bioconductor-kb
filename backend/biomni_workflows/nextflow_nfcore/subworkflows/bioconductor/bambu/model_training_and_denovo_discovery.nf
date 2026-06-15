@@ -34,7 +34,7 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("bambu")
+    .bm_deps <- c("bambu", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -52,6 +52,8 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
       }
     }
     
+    
+    library(SummarizedExperiment)
     library(bambu)
     
     # Define input files exactly as specified
@@ -64,7 +66,7 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
     # Prepare annotations from the input file
     annotations <- prepareAnnotations(annotations_file)
     
-    # 1. Train the model on the annotated sample using bambu with returnModel = TRUE
+    # --- Train the model on the annotated sample using bambu with ---
     se = bambu(reads = sample1.bam, annotations = annotations, genome = fa.file, discovery = FALSE, quant = FALSE, opt.discovery = list(returnModel = TRUE))
     newDefaultModel = metadata(se[[1]])\$model
     
@@ -76,7 +78,7 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
     rcFile <- readRDS(pathToRcFile)
     newDefaultModel = trainBambu(rcFile)
     
-    # 2. Run bambu on the target sample with annotations = NULL, providing the trained model
+    # --- Run bambu on the target sample with annotations = NULL, ---
     se <- bambu(reads = sample2.bam, annotations = NULL, genome = fa.file2, opt.discovery = list(defaultModels = newDefaultModel, fitReadClassModel = FALSE))
     
     # Write outputs

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the GaGa model to pilot data using fitGG and parest. 2. Calculate expected discoveries for fixed additional sample sizes using
+//  * 1. [Core Analysis] Fit the GaGa model to pilot data
+//  * 2. [Core Analysis] Calculate expected discoveries for fixed additional
+//  * 3. [Core Analysis] Run forward simulations for sequential design
+//  * 4. [Core Analysis] Determine optimal sequential stopping boundaries
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_GAGA_SAMPLE_SIZE_CALCULATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gaga")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -75,17 +87,17 @@ process BIOC_GAGA_SAMPLE_SIZE_CALCULATION {
         # Define sampling cost as specified in the vignette
         samplingCost <- 0.01
         
-        # 1. Fit the GaGa model to pilot data
+        # --- Fit the GaGa model to pilot data ---
         gg1 <- fitGG(x, groups = raw_groups, method = 'EM')
         gg1 <- parest(gg1, x = x, groups = raw_groups)
         
-        # 2. Calculate expected discoveries for fixed additional sample sizes
+        # --- Calculate expected discoveries for fixed additional ---
         pow1 <- powfindgenes(gg1, x = x, groups = raw_groups, batchSize = 1, fdrmax = 0.05, B = 1000)
         
-        # 3. Run forward simulations for sequential design
+        # --- Run forward simulations for sequential design ---
         fs1 <- forwsimDiffExpr(gg1, x = x, groups = raw_groups, maxBatch = 3, batchSize = 1, fdrmax = 0.05, B = 100, Bsummary = 100, randomSeed = 1)
         
-        # 4. Determine optimal sequential stopping boundaries
+        # --- Determine optimal sequential stopping boundaries ---
         b0seq <- seq(0, 20, length = 200)
         b1seq <- seq(0, 40, length = 200)
         bopt <- seqBoundariesGrid(b0 = b0seq, b1 = b1seq, forwsim = fs1, samplingCost = samplingCost, powmin = 0)

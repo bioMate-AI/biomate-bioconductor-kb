@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the package and expression data. 2. Define chronological age data frame. 3. Predict age using predict_age. 4. Visualize resul
+//  * 1. [Visualization & Output] Load the package and expression data
+//  * 2. [Visualization & Output] Define chronological age data frame
+//  * 3. [Visualization & Output] Predict age using predict_age
+//  * 4. [Visualization & Output] Visualize results using makeplot
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RNAAgeCalc")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +59,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
           }
         }
         
-        # 1. Load the package and expression data
+        # --- Load the package and expression data ---
         library(RNAAgeCalc)
         
         # Helper function to robustly read the fpkm input file
@@ -68,7 +80,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
         
         fpkm <- read_fpkm()
         
-        # 2. Define chronological age data frame
+        # --- Define chronological age data frame ---
         # Helper function to robustly read the chronage input file
         read_chronage <- function() {
           files <- c("chronage", "chronage.csv", "chronage.tsv", "chronage.txt")
@@ -87,7 +99,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
         
         chronage <- read_chronage()
         
-        # 3. Predict age using predict_age
+        # --- Predict age using predict_age ---
         res <- predict_age(exprdata = fpkm, exprtype = "FPKM", 
                           chronage = chronage)
         
@@ -95,7 +107,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
         write.csv(res, "rna_age_results.csv", row.names = TRUE)
         saveRDS(res, "rna_age_results.rds")
         
-        # 4. Visualize results using makeplot
+        # --- Visualize results using makeplot ---
         pdf("rna_age_plot.pdf", width = 7, height = 7)
         print(makeplot(res))
         dev.off()

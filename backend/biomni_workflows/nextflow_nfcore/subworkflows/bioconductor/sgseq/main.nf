@@ -41,7 +41,7 @@ process BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomeInfoDb", "GenomicFeatures", "Rsamtools", "knitr", "SGSeq")
+    .bm_deps <- c("GenomeInfoDb", "GenomicFeatures", "Rsamtools", "knitr", "SGSeq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS {
     
     # Load required libraries
     library(SGSeq)
+    library(SummarizedExperiment)
     library(GenomeInfoDb)
     library(GenomicFeatures)
     library(Rsamtools)

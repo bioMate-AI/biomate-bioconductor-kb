@@ -57,7 +57,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     library(igraph)
     
     # ==========================================
-    # STAGE 1: Read Input and Preprocess
+    # --- Read Input and Preprocess ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Error: input.csv not found in the working directory.")
@@ -90,7 +90,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     n_nodes <- length(genes)
     
     # ==========================================
-    # STAGE 2: Compute Correlation & Define Edges
+    # --- Compute Correlation & Define Edges ---
     # ==========================================
     cor_mat <- cor(t(df), use = "pairwise.complete.obs")
     cor_mat[lower.tri(cor_mat, diag = TRUE)] <- NA
@@ -110,7 +110,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: Create RCX Core Aspects
+    # --- Create RCX Core Aspects ---
     # ==========================================
     # Create Nodes
     nodes <- createNodes(name = genes)
@@ -171,7 +171,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Layout Generation using igraph
+    # --- Layout Generation using igraph ---
     # ==========================================
     rcx_temp <- createRCX(nodes = nodes, edges = edges)
     ig <- toIgraph(rcx_temp)
@@ -187,7 +187,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 5: Visual Properties and Mappings
+    # --- Visual Properties and Mappings ---
     # ==========================================
     cyMapping <- createCyVisualPropertyMappings(
       name = "NODE_LABEL",
@@ -201,7 +201,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 6: Assemble and Validate RCX
+    # --- Assemble and Validate RCX ---
     # ==========================================
     rcx <- createRCX(
       nodes = nodes,
@@ -218,7 +218,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     message("RCX Validation Status: ", validation_status)
     
     # ==========================================
-    # STAGE 7: Network Analysis & Export Metrics
+    # --- Network Analysis & Export Metrics ---
     # ==========================================
     deg <- igraph::degree(ig)
     pr <- igraph::page_rank(ig)\$vector
@@ -233,7 +233,7 @@ process BIOC_RCX_RCX_COEXPRESSION_PIPELINE {
     write.csv(metrics_df, "network_metrics.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 8: Save CX and HTML Visualization
+    # --- Save CX and HTML Visualization ---
     # ==========================================
     writeCX(rcx, "network.cx")
     writeHTML(rcx, "network_visualization.html")

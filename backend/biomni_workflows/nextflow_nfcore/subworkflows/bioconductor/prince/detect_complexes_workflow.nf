@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Filter low-information chromatograms using filter_profiles. 2. Clean and smooth chromatograms using clean_profiles. 3. Calculate s
+//  * 1. [Core Analysis] CSV table of Z-scores
+//  * 2. [Core Analysis] RDS object of Z-scores
+//  * 3. [Core Analysis] PDF plot of Z-scores distribution
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +41,15 @@ process BIOC_PRINCE_DETECT_COMPLEXES_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PrInCE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -85,7 +96,7 @@ process BIOC_PRINCE_DETECT_COMPLEXES_WORKFLOW {
     print(head(sort(z_scores, decreasing = TRUE)))
     
     # Write outputs
-    # 1. CSV table of Z-scores
+    # --- CSV table of Z-scores ---
     z_scores_df <- data.frame(
       Complex = names(z_scores),
       Z_Score = as.numeric(z_scores),
@@ -93,10 +104,10 @@ process BIOC_PRINCE_DETECT_COMPLEXES_WORKFLOW {
     )
     write.csv(z_scores_df, "z_scores_results.csv", row.names = FALSE)
     
-    # 2. RDS object of Z-scores
+    # --- RDS object of Z-scores ---
     saveRDS(z_scores, "z_scores_results.rds")
     
-    # 3. PDF plot of Z-scores distribution
+    # --- PDF plot of Z-scores distribution ---
     pdf("z_scores_distribution.pdf", width = 7, height = 5)
     hist(z_scores, 
          breaks = 20, 

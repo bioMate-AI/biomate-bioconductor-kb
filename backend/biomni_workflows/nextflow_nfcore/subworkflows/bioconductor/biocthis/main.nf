@@ -62,7 +62,7 @@ process BIOC_BIOCTHIS_BIOC_PACKAGE_AUTOMATION {
     library(styler)
     
     # ==========================================
-    # STAGE 1: Read and Process Input Data Defensively
+    # --- Read and Process Input Data Defensively ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -88,7 +88,7 @@ process BIOC_BIOCTHIS_BIOC_PACKAGE_AUTOMATION {
     }
     
     # ==========================================
-    # STAGE 2: Initialize Bioconductor Package Structure
+    # --- Initialize Bioconductor Package Structure ---
     # ==========================================
     pkg_name <- "biocfeatures"
     pkg_path <- file.path(getwd(), pkg_name)
@@ -105,7 +105,7 @@ process BIOC_BIOCTHIS_BIOC_PACKAGE_AUTOMATION {
     usethis::proj_set(pkg_path, force = TRUE)
     
     # ==========================================
-    # STAGE 3: Write Package Code Using Input Features
+    # --- Write Package Code Using Input Features ---
     # ==========================================
     r_dir <- file.path(pkg_path, "R")
     if (!dir.exists(r_dir)) {
@@ -133,7 +133,7 @@ process BIOC_BIOCTHIS_BIOC_PACKAGE_AUTOMATION {
     writeLines(func_content, file.path(r_dir, "get_features.R"))
     
     # ==========================================
-    # STAGE 4: Apply biocthis Bioconductor-friendly Templates
+    # --- Apply biocthis Bioconductor-friendly Templates ---
     # ==========================================
     message("Applying biocthis templates...")
     
@@ -194,7 +194,7 @@ process BIOC_BIOCTHIS_BIOC_PACKAGE_AUTOMATION {
     }, error = function(e) warning("use_bioc_badges failed: ", e\$message))
     
     # ==========================================
-    # STAGE 5: Style Package Code to Bioconductor Standards
+    # --- Style Package Code to Bioconductor Standards ---
     # ==========================================
     message("Styling package code using bioc_style...")
     tryCatch({
@@ -202,7 +202,7 @@ process BIOC_BIOCTHIS_BIOC_PACKAGE_AUTOMATION {
     }, error = function(e) warning("styler failed: ", e\$message))
     
     # ==========================================
-    # STAGE 6: Export Outputs and Structure Summary
+    # --- Export Outputs and Structure Summary ---
     # ==========================================
     message("Writing output files...")
     

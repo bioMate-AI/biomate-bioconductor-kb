@@ -59,24 +59,24 @@ process BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT {
     
     library(SBMLR)
     
-    # 1. Import the SBML model from the declared user input file "model.xml"
+    # --- Import the SBML model from the declared user input file ---
     # (Replacing system.file demo-data setup with the required user input file)
     curto <- readSBML("model.xml")
     
-    # 2. Inspect the model structure and reaction laws using summary
+    # --- Inspect the model structure and reaction laws using ---
     model_summary <- summary(curto)
     reactions_head <- head(model_summary\$reactions)
     
     # Save the summary head to a CSV file
     write.csv(reactions_head, "reactions_summary_head.csv", row.names = TRUE)
     
-    # 3. Run a baseline simulation to establish steady state using sim
+    # --- Run a baseline simulation to establish steady state using ---
     out1 <- sim(curto, seq(-20, 0, 1))
     
-    # 4. Modify initial concentrations of specific species directly in the model list
+    # --- Modify initial concentrations of specific species ---
     curto\$species\$PRPP\$ic <- 50
     
-    # 5. Run a perturbation simulation using sim
+    # --- Run a perturbation simulation using sim ---
     out2 <- sim(curto, 0:70)
     
     # Combine baseline and perturbation simulations
@@ -93,7 +93,7 @@ process BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT {
     par(mfrow = c(1, 1))
     dev.off()
     
-    # 6. Apply reaction rate modulators to simulate enzyme level changes using the modulator argument in sim
+    # --- Apply reaction rate modulators to simulate enzyme level ---
     # Return PRPP IC to its original value
     curto\$species\$PRPP\$ic <- 5
     
@@ -105,7 +105,7 @@ process BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT {
     out_mod_nonuniform <- sim(curto, (-10):10, modulator = c(rep(1.1, 20), rep(0.9, 17)))
     write.csv(out_mod_nonuniform, "simulation_nonuniform_modulator.csv", row.names = FALSE)
     
-    # 7. Export the model to XML format using saveSBML or to an editable R script using saveSBMLR
+    # --- Export the model to XML format using saveSBML or to an ---
     saveSBML(curto, "curto_modified.xml")
     saveSBMLR(curto, "curto_modified.r")
     

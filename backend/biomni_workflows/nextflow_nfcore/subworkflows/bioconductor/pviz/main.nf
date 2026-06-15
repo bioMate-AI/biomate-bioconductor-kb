@@ -35,6 +35,15 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Pviz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     library(Pviz)
     
     # ==========================================
-    # STAGE 1: Read and Validate Input Data
+    # --- Read and Validate Input Data ---
     # ==========================================
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
@@ -77,7 +86,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     }
     
     # ==========================================
-    # STAGE 2: Reconstruct Reference Sequence & Align
+    # --- Reconstruct Reference Sequence & Align ---
     # ==========================================
     # Create a synthetic reference protein sequence by concatenating unique peptides
     unique_peps <- unique(peptides)
@@ -93,7 +102,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     })
     
     # ==========================================
-    # STAGE 3: Aggregate Intensities by Condition
+    # --- Aggregate Intensities by Condition ---
     # ==========================================
     conds <- unique(coldata_df\$condition)
     if (length(conds) < 1) {
@@ -124,7 +133,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     }
     
     # ==========================================
-    # STAGE 4: Construct Clade and Aggregate Tables
+    # --- Construct Clade and Aggregate Tables ---
     # ==========================================
     # Simulate/assign clades "A" and "B" to demonstrate comparative clade tracks
     restab_A <- data.frame(
@@ -157,7 +166,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     write.csv(restab_aggregate, "restab_aggregate.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Build Pviz Tracks
+    # --- Build Pviz Tracks ---
     # ==========================================
     # 1. Protein Axis Track
     pat <- ProteinAxisTrack(addNC = TRUE, littleTicks = TRUE)
@@ -193,7 +202,7 @@ process BIOC_PVIZ_PVIZ_PEPTIDE_VISUALIZATION {
     ctB <- CladeTrack(restab, clade = "B", type = "l", legend = TRUE)
     
     # ==========================================
-    # STAGE 6: Generate and Save Visualizations
+    # --- Generate and Save Visualizations ---
     # ==========================================
     # Define plotting range (focus on a region with high peptide density)
     plot_from <- 1

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the goTools package and the probe ID dataset. 2. Load the GO.db annotation database. 3. Define the subset of probe lists to c
+//  * 1. [Input & Preparation] Save the comparison matrix as a CSV file
+//  * 2. [Input & Preparation] Save the comparison matrix as an RDS object
+//  * 3. [Input & Preparation] Generate and save the comparison plot as a PDF
 
 nextflow.enable.dsl = 2
 
@@ -77,13 +79,13 @@ process BIOC_GOTOOLS_CUSTOM_ENDNODE_COMPARISON {
     res <- ontoCompare(subset, probeType="hgu133a", endnode=MFendnode, goType="MF")
     
     # Write the meaningful results to output files
-    # 1. Save the comparison matrix as a CSV file
+    # --- Save the comparison matrix as a CSV file ---
     write.csv(res, file="ontoCompare_results.csv", row.names=TRUE)
     
-    # 2. Save the comparison matrix as an RDS object
+    # --- Save the comparison matrix as an RDS object ---
     saveRDS(res, file="ontoCompare_results.rds")
     
-    # 3. Generate and save the comparison plot as a PDF
+    # --- Generate and save the comparison plot as a PDF ---
     pdf("ontoCompare_plot.pdf", width=10, height=8)
     tryCatch({
       ontoPlot(res)

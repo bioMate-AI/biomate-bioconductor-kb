@@ -59,7 +59,7 @@ process BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING {
     library(MsFeatures)
     library(pheatmap)
     
-    # 1. Load preprocessed data
+    # --- Load preprocessed data ---
     # The pipeline expects a preprocessed XcmsExperiment or XCMSnExp object named 'xmse' in the working directory.
     if (!file.exists("xmse")) {
       stop("Input file 'xmse' not found in the working directory.")
@@ -67,13 +67,13 @@ process BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING {
     
     xmse <- readRDS("xmse")
     
-    # 2. Group features by similar retention time
+    # --- Group features by similar retention time ---
     xmse <- groupFeatures(xmse, SimilarRtimeParam(20))
     
-    # 3. Refine feature groups by abundance correlation across samples
+    # --- Refine feature groups by abundance correlation across ---
     xmse <- groupFeatures(xmse, AbundanceSimilarityParam(threshold = 0.7, transform = log2), filled = TRUE)
     
-    # 4. Refine feature groups by EIC similarity
+    # --- Refine feature groups by EIC similarity ---
     # This step requires access to the original raw MS files. We wrap it in a tryCatch
     # to ensure the pipeline remains robust if raw files are missing or paths have changed.
     tryCatch({
@@ -82,7 +82,7 @@ process BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING {
       warning("EIC similarity grouping skipped or failed: ", e\$message)
     })
     
-    # 5. Access feature groups
+    # --- Access feature groups ---
     fgrps <- featureGroups(xmse)
     
     # Save the compounded XcmsExperiment/XCMSnExp object

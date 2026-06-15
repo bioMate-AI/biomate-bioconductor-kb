@@ -55,7 +55,7 @@ process BIOC_TEQC_CUSTOM_QC_ANALYSIS {
     # Load required library
     library(TEQC)
     
-    # 1. Load targets and reads data
+    # --- Load targets and reads data ---
     # Reading user input files from the working directory
     targets_file <- "ExampleSet_Targets.bed"
     reads_file <- "ExampleSet_Reads.bed"
@@ -75,14 +75,14 @@ process BIOC_TEQC_CUSTOM_QC_ANALYSIS {
     # Load reads
     reads <- get.reads(reads_file, chrcol = 1, startcol = 2, endcol = 3, idcol = 4, zerobased = F, skip = 0)
     
-    # 2. Convert reads to pairs for paired-end data and plot insert sizes
+    # --- Convert reads to pairs for paired-end data and plot ---
     readpairs <- reads2pairs(reads)
     
     pdf("plot1_insert_size.pdf")
     insert.size.hist(readpairs, breaks=10)
     dev.off()
     
-    # 3. Calculate specificity, enrichment, and plot chromosome distribution
+    # --- Calculate specificity, enrichment, and plot chromosome ---
     pdf("plot2_chrom_barplot.pdf")
     chrom.barplot(reads, targets)
     dev.off()
@@ -99,7 +99,7 @@ process BIOC_TEQC_CUSTOM_QC_ANALYSIS {
     )
     write.csv(spec_stats, "specificity_enrichment_stats.csv", row.names = FALSE)
     
-    # 4. Calculate coverage statistics and plot coverage distribution, uniformity, and GC bias
+    # --- Calculate coverage statistics and plot coverage ---
     Coverage <- coverage.target(reads, targets, perTarget=T, perBase=T)
     saveRDS(Coverage, "Coverage_object.rds")
     
@@ -143,7 +143,7 @@ process BIOC_TEQC_CUSTOM_QC_ANALYSIS {
     })
     dev.off()
     
-    # 5. Analyze and plot read duplicates
+    # --- Analyze and plot read duplicates ---
     pdf("plot8_duplicates_barplot.pdf")
     duplicates.barplot(reads, targets)
     dev.off()
@@ -168,7 +168,7 @@ process BIOC_TEQC_CUSTOM_QC_ANALYSIS {
     )
     write.csv(collapsed_stats, "collapsed_coverage_stats.csv", row.names = FALSE)
     
-    # 6. Assess reproducibility across samples
+    # --- Assess reproducibility across samples ---
     set.seed(123) # For reproducibility of sampling
     r <- sample(length(reads), 0.1 * length(reads))
     reads2 <- reads[-r,,drop=T]

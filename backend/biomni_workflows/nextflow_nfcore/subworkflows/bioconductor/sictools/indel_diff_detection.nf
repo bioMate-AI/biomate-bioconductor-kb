@@ -56,7 +56,7 @@ process BIOC_SICTOOLS_INDEL_DIFF_DETECTION {
     library(SICtools)
     library(Rsamtools)
     
-    # 1. Define file paths to BAMs and reference FASTA from the working directory
+    # --- Define file paths to BAMs and reference FASTA from the ---
     bam1 <- "bam1.bam"
     bam2 <- "bam2.bam"
     refFsa <- "ref.fasta"
@@ -77,7 +77,7 @@ process BIOC_SICTOOLS_INDEL_DIFF_DETECTION {
       Rsamtools::indexFa(refFsa)
     }
     
-    # 2. Run indelDiff to calculate p-values and d-values for Indels in the target region
+    # --- Run indelDiff to calculate p-values and d-values for ---
     # Using the exact function call and arguments from the documented workflow
     indelDiffDf <- tryCatch({
       indelDiff(bam1, bam2, refFsa, 'chr07', 828514, 828914, pValueCutOff=1, gtDistCutOff=0)
@@ -99,7 +99,7 @@ process BIOC_SICTOOLS_INDEL_DIFF_DETECTION {
       }
     })
     
-    # 3. Sort the resulting data frame by p-value and d-value to identify candidate variants
+    # --- Sort the resulting data frame by p-value and d-value to ---
     if (!is.null(indelDiffDf) && nrow(indelDiffDf) > 0) {
       indelDiffDfSort <- indelDiffDf[order(indelDiffDf\$p.value, indelDiffDf\$d.value), ]
       

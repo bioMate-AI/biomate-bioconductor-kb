@@ -106,20 +106,20 @@ process BIOC_YAMSS_LCMS_PREPROCESSING_AND_DIFFERENTIAL_ANALYSIS {
     # 2. Preprocessing and Analysis (yamss Workflow)
     # ==========================================
     
-    # Step 1: Read raw mass spectrometry data
+    # --- Read raw mass spectrometry data ---
     cmsRaw <- readMSdata(files = files, colData = colData, mzsubset = c(500, 520), verbose = TRUE)
     
-    # Step 2: Preprocess raw data and estimate bivariate kernel density
+    # --- Preprocess raw data and estimate bivariate kernel density ---
     cmsProc <- bakedpi(cmsRaw, dbandwidth = c(0.01, 10), dgridstep = c(0.01, 1),
                        outfileDens = NULL, dortalign = TRUE, mzsubset = c(500, 520), verbose = TRUE)
     
-    # Step 3: Call peak bounds and quantify peaks
+    # --- Call peak bounds and quantify peaks ---
     cmsSlice <- slicepi(cmsProc, cutoff = NULL, verbose = TRUE)
     
-    # Step 4: Perform differential abundance analysis
+    # --- Perform differential abundance analysis ---
     dr <- diffrep(cmsSlice, classes = classes)
     
-    # Step 5: Extract peak bounds and identify top peaks
+    # --- Extract peak bounds and identify top peaks ---
     num_peaks <- min(10, nrow(dr))
     if (num_peaks > 0) {
       topPeaks <- as.numeric(rownames(dr)[1:num_peaks])
@@ -132,7 +132,7 @@ process BIOC_YAMSS_LCMS_PREPROCESSING_AND_DIFFERENTIAL_ANALYSIS {
       top_bounds <- bounds[0, , drop = FALSE]
     }
     
-    # Step 6: Density estimation and visualization
+    # --- Density estimation and visualization ---
     dmat <- densityEstimate(cmsProc)
     
     if (length(topPeaks) > 0 && !is.na(idx[1])) {
@@ -149,7 +149,7 @@ process BIOC_YAMSS_LCMS_PREPROCESSING_AND_DIFFERENTIAL_ANALYSIS {
       dev.off()
     }
     
-    # Step 7: Alternative peak slicing thresholds
+    # --- Alternative peak slicing thresholds ---
     cmsSlice2 <- slicepi(cmsProc, densityCutoff(cmsSlice) * 0.99)
     dqs <- densityQuantiles(cmsProc)
     cmsSlice3 <- slicepi(cmsProc, dqs["98.5%"])

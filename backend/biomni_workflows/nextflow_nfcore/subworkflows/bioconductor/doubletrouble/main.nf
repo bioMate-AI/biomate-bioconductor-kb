@@ -36,6 +36,15 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("doubletrouble", "syntenet", "Biostrings", "rtracklayer", "ggplot2", "patchwork")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +63,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     library(patchwork)
     
     # ==========================================
-    # STAGE 1: Input Import & Data Preparation
+    # --- Input Import & Data Preparation ---
     # ==========================================
     message("Stage 1: Importing genomic intervals and preparing data...")
     
@@ -109,7 +118,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     pdata <- syntenet::process_input(seq_list, annotation_list)
     
     # ==========================================
-    # STAGE 2: Simulating Intraspecies BLAST/DIAMOND Results
+    # --- Simulating Intraspecies BLAST/DIAMOND Results ---
     # ==========================================
     message("Stage 2: Generating sequence similarity search results...")
     
@@ -143,7 +152,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     blast_list[[paste0(species_name, "_", species_name)]] <- blast_df
     
     # ==========================================
-    # STAGE 3: Classifying Duplicated Gene Pairs and Genes
+    # --- Classifying Duplicated Gene Pairs and Genes ---
     # ==========================================
     message("Stage 3: Classifying duplicated gene pairs...")
     
@@ -162,7 +171,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     write.csv(c_genes[[species_name]], "gene_classifications.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Calculating Substitution Rates (Ka/Ks)
+    # --- Calculating Substitution Rates (Ka/Ks) ---
     # ==========================================
     message("Stage 4: Calculating substitution rates...")
     
@@ -193,7 +202,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     write.csv(kaks[[species_name]], "kaks_rates.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Identifying Ks Peaks and Age Grouping
+    # --- Identifying Ks Peaks and Age Grouping ---
     # ==========================================
     message("Stage 5: Identifying Ks peaks and classifying by age groups...")
     
@@ -248,7 +257,7 @@ process BIOC_DOUBLETROUBLE_DOUBLETROUBLE_DUPLICATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Data Visualization
+    # --- Data Visualization ---
     # ==========================================
     message("Stage 6: Generating publication-ready visualizations...")
     

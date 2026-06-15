@@ -80,7 +80,7 @@ process BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION {
       cl.paral = 1
     )
     
-    # 1. Supervised classification using pooling consensus method (QDA)
+    # --- Supervised classification using pooling consensus method ---
     classification.optimalFlow <- 
       optimalFlowClassification(
         test.cytometry[, 1:10], database, templates.optimalFlow, 
@@ -90,7 +90,7 @@ process BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION {
     scoreF1.optimalFlow <- optimalFlow::f1Score(classification.optimalFlow\$cluster,
                                                 test.cytometry, noise.types)
     
-    # 2. Supervised classification using k-barycenter consensus method
+    # --- Supervised classification using k-barycenter consensus ---
     classification.optimalFlow.barycenter <-
       optimalFlowClassification(
         test.cytometry[, 1:10],
@@ -104,7 +104,7 @@ process BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION {
         1.01, noise.types
         )
     
-    # 3. Supervised classification using hierarchical consensus method
+    # --- Supervised classification using hierarchical consensus ---
     classification.optimalFlow.hdbscan <-
       optimalFlowClassification(
         test.cytometry[, 1:10],
@@ -118,7 +118,7 @@ process BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION {
         1.01, noise.types
       )
     
-    # 4. Supervised classification using matching (label-transfer)
+    # --- Supervised classification using matching (label-transfer) ---
     classification.optimalFlow.2 <-
       optimalFlowClassification(
         test.cytometry[, 1:10],
@@ -133,7 +133,7 @@ process BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION {
         1.01, noise.types
         )
     
-    # 5. Supervised classification using random forest
+    # --- Supervised classification using random forest ---
     classification.optimalFlow.3 <-
       optimalFlowClassification(
         test.cytometry[, 1:10],

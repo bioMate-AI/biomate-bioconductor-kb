@@ -63,17 +63,17 @@ process BIOC_ASICS_CUSTOM_REFERENCE_LIBRARY_CREATION {
       stop(paste("Required input directory does not exist:", pure_spectra_directory))
     }
     
-    # 1. Import pure spectra using importSpectraBruker
+    # --- Import pure spectra using importSpectraBruker ---
     pure_spectra <- importSpectraBruker(pure_spectra_directory)
     
     # Determine the number of protons for each imported spectrum to match the input size
     num_spectra <- ncol(pure_spectra)
     protons <- rep(1, num_spectra)
     
-    # 2. Create a new PureLibrary object using createPureLibrary
+    # --- Create a new PureLibrary object using createPureLibrary ---
     new_pure_library <- createPureLibrary(pure_spectra, nb.protons = protons)
     
-    # 3. Combine the new library with the default library using c()
+    # --- Combine the new library with the default library using c() ---
     merged_pure_library <- c(pure_library[1:10], new_pure_library)
     
     # Save the merged library object as an RDS file

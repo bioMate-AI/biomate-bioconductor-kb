@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare the input data as a SingleCellExperiment object containing raw counts and batch indicators. 2. Fit the BUSseq model using 
+//  * 1. [Visualization & Output] Read user input files
+//  * 2. [Visualization & Output] Fit the BUSseq model using MCMC sampling
+//  * 3. [Visualization & Output] Extract the imputed read counts, estimated cell types,
+//  * 4. [Visualization & Output] Identify intrinsic genes that drive cell-type differences
+//  * 5. [Visualization & Output] Compute and incorporate batch-corrected read counts
+//  * 6. [Visualization & Output] Visualize the raw, imputed, and corrected expression data
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BUSseq", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,9 +62,10 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
         }
     
     # Load required libraries
-    library(BUSseq)
+     library(SummarizedExperiment)
+   library(BUSseq)
     
-    # 1. Read user input files
+    # --- Read user input files ---
     CountData <- as.matrix(read.csv("raw_counts.csv", row.names = 1, check.names = FALSE))
     
     batch_meta <- read.csv("batch_metadata.csv", stringsAsFactors = FALSE)
@@ -67,12 +82,12 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
     sce_input <- SingleCellExperiment(assays = list(counts = CountData),
                               colData = DataFrame(Batch_ind = factor(batch_ind)))
     
-    # 2. Fit the BUSseq model using MCMC sampling
+    # --- Fit the BUSseq model using MCMC sampling ---
     BUSseqfits_res <- BUSseq_MCMC(ObservedData = sce_input, 
                               seed = 1234, n.cores = 2,
                               n.celltypes = 4, n.iterations = 500)
     
-    # 3. Extract the imputed read counts, estimated cell types, batch effects, cell-specific effects, and cell-type effects
+    # --- Extract the imputed read counts, estimated cell types, ---
     Imputed_count <- assay(BUSseqfits_res, "imputed_data")
     write.csv(as.matrix(Imputed_count), "imputed_counts.csv")
     
@@ -97,11 +112,11 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
     celltype_effects_est <- celltype_effects(BUSseqfits_res)
     write.csv(celltype_effects_est, "celltype_effects.csv")
     
-    # 4. Identify intrinsic genes that drive cell-type differences
+    # --- Identify intrinsic genes that drive cell-type differences ---
     intrinsic_gene_indicators <- intrinsic_genes_BUSseq(BUSseqfits_res)
     write.csv(as.data.frame(intrinsic_gene_indicators), "intrinsic_genes.csv")
     
-    # 5. Compute and incorporate batch-corrected read counts
+    # --- Compute and incorporate batch-corrected read counts ---
     BUSseqfits_res <- corrected_read_counts(BUSseqfits_res)
     corrected_counts <- assay(BUSseqfits_res, "corrected_data")
     write.csv(as.matrix(corrected_counts), "corrected_counts.csv")
@@ -109,7 +124,7 @@ process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
     # Save the final SingleCellExperiment object
     saveRDS(BUSseqfits_res, "BUSseqfits_res.rds")
     
-    # 6. Visualize the raw, imputed, and corrected expression data using heatmaps
+    # --- Visualize the raw, imputed, and corrected expression data ---
     dir.create("./heatmap", showWarnings = FALSE, recursive = TRUE)
     
     heatmap_data_BUSseq(BUSseqfits_res, data_type = "Raw", 

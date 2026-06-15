@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate individual gene t-statistics for visualization. 2. Perform multivariate testing on each network using testOneGraph with 
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Calculate Individual Gene t-statistics for Visualization
+//  * 3. [Visualization & Output] Perform Multivariate Testing on Each Network
+//  * 4. [Visualization & Output] Filter Out NULL Results (no connected component of size >
+//  * 5. [Visualization & Output] Extract p-values and Identify Significant Networks
+//  * 6. [Visualization & Output] Translate Gene IDs and Visualize Significant Networks
 
 nextflow.enable.dsl = 2
 
@@ -69,7 +74,7 @@ process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
         verbose <- TRUE
         
         # -------------------------------------------------------------------------
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # -------------------------------------------------------------------------
         # The pipeline reads exactly these files from the working directory
         exprData  <- readRDS("exprData.rds")
@@ -78,7 +83,7 @@ process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
         annData   <- readRDS("annData.rds")
         
         # -------------------------------------------------------------------------
-        # 2. Calculate Individual Gene t-statistics for Visualization
+        # --- Calculate Individual Gene t-statistics for Visualization ---
         # -------------------------------------------------------------------------
         classes <- unique(classData)
         X1 <- t(exprData[, classData == classes[1]])
@@ -102,7 +107,7 @@ process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
         write.csv(gene_stats, "gene_level_stats.csv", row.names = FALSE)
         
         # -------------------------------------------------------------------------
-        # 3. Perform Multivariate Testing on Each Network
+        # --- Perform Multivariate Testing on Each Network ---
         # -------------------------------------------------------------------------
         prop <- 0.2
         resList <- NULL
@@ -115,7 +120,7 @@ process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
         pLabels <- sapply(grList, attr, "label")
         
         # -------------------------------------------------------------------------
-        # 4. Filter Out NULL Results (no connected component of size > 1)
+        # --- Filter Out NULL Results (no connected component of size > ---
         # -------------------------------------------------------------------------
         isNULL <- sapply(resList, is.null)
         if (sum(isNULL)) {
@@ -129,7 +134,7 @@ process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
         saveRDS(resList, "resList.rds")
         
         # -------------------------------------------------------------------------
-        # 5. Extract p-values and Identify Significant Networks
+        # --- Extract p-values and Identify Significant Networks ---
         # -------------------------------------------------------------------------
         resL <- sapply(resList, length)
         graphNames <- rep(resNames, times=resL)
@@ -166,7 +171,7 @@ process BIOC_DEGRAPH_NETWORK_DIFFERENTIAL_EXPRESSION_TESTING {
         write.csv(pKEGG, "pathway_pvalues.csv", row.names = TRUE)
         
         # -------------------------------------------------------------------------
-        # 6. Translate Gene IDs and Visualize Significant Networks
+        # --- Translate Gene IDs and Visualize Significant Networks ---
         # -------------------------------------------------------------------------
         if (exists("maPalette", mode="function")) {
           pal <- maPalette(low="red", high="green", mid="black", k=100)

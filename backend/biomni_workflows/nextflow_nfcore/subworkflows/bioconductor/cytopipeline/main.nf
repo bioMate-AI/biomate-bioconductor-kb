@@ -57,7 +57,7 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
     library(ggplot2)
     library(reshape2)
     
-    # 1. Handle User Input
+    # --- Handle User Input ---
     # The pipeline expects a vector of paths to raw .fcs files named 'sampleFiles'
     if (!exists("sampleFiles")) {
         sampleFiles <- list.files(path = ".", pattern = "\\\\.fcs\$", full.names = TRUE)
@@ -73,12 +73,12 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
     if (!dir.exists(workDir)) dir.create(workDir, recursive = TRUE)
     if (!dir.exists(outputDir)) dir.create(outputDir, recursive = TRUE)
     
-    # 2. Initialize CytoPipeline
+    # --- Initialize CytoPipeline ---
     experimentName <- "OMIP021_PeacoQC"
     pipL_PeacoQC <- CytoPipeline(experimentName = experimentName,
                                  sampleFiles = sampleFiles)
     
-    # 3. Add Scale Transformation Steps
+    # --- Add Scale Transformation Steps ---
     pipL_PeacoQC <- addProcessingStep(
         pipL_PeacoQC,
         whichQueue = "scale transform",
@@ -140,7 +140,7 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
         )
     )
     
-    # 4. Add Pre-processing Steps
+    # --- Add Pre-processing Steps ---
     pipL_PeacoQC <- addProcessingStep(
         pipL_PeacoQC,
         whichQueue = "pre-processing",
@@ -238,11 +238,11 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
         )
     )
     
-    # 5. Execute Pipeline
+    # --- Execute Pipeline ---
     message("Executing PeacoQC pipeline...")
     execute(pipL_PeacoQC, path = workDir)
     
-    # 6. Visualize and Inspect Intermediate Results
+    # --- Visualize and Inspect Intermediate Results ---
     
     # Plot workflow graphs
     message("Saving workflow graphs...")

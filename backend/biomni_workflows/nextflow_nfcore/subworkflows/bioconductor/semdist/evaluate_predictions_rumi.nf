@@ -67,12 +67,12 @@ process BIOC_SEMDIST_EVALUATE_PREDICTIONS_RUMI {
       stop(paste("Required predicted annotations file not found:", predfile))
     }
     
-    # 1. Load true and predicted annotation files
+    # --- Load true and predicted annotation files ---
     predictions <- read.table(predfile, colClasses = "character")
     message("First few rows of predictions:")
     print(head(predictions))
     
-    # 2. Calculate RU and MI at a single threshold using findRUMI
+    # --- Calculate RU and MI at a single threshold using findRUMI ---
     message("Calculating RU and MI at threshold 0.75...")
     rumiTable <- findRUMI("MF", "human", 0.75, truefile, predfile)
     avgRU <- mean(rumiTable\$RU)
@@ -84,7 +84,7 @@ process BIOC_SEMDIST_EVALUATE_PREDICTIONS_RUMI {
     # Save single threshold results
     write.csv(rumiTable, "rumiTable_threshold_0.75.csv", row.names = TRUE)
     
-    # 3. Generate a RU-MI curve across multiple thresholds using RUMIcurve
+    # --- Generate a RU-MI curve across multiple thresholds using ---
     message("Generating RU-MI curve with step 0.05...")
     avgRUMIvals <- RUMIcurve("MF", "human", 0.05, truefile, predfile)
     firstset <- avgRUMIvals[[1]]
@@ -97,12 +97,12 @@ process BIOC_SEMDIST_EVALUATE_PREDICTIONS_RUMI {
     plot(firstset\$RU, firstset\$MI, xlab="Remaining Uncertainty (RU)", ylab="Misinformation (MI)", main="RU-MI Curve")
     dev.off()
     
-    # 4. Calculate semantic distance from the RU-MI curve
+    # --- Calculate semantic distance from the RU-MI curve ---
     semdist <- min(sqrt(firstset\$MI^2 + firstset\$RU^2))
     message(paste("Semantic Distance:", semdist))
     writeLines(as.character(semdist), "semantic_distance.txt")
     
-    # 5. Generate weighted metrics and precision/recall curves using RUMIcurve with additional flags
+    # --- Generate weighted metrics and precision/recall curves ---
     message("Generating weighted metrics and precision/recall curves...")
     rumiout <- RUMIcurve("MF", "human", 0.05, truefile, predfile,
                          add.prec.rec=TRUE, add.weighted=TRUE)

@@ -23,7 +23,7 @@ galaxy:
   check_migrate_tools: false
   # Include standard Galaxy tools, Biomni tools, and Biomate AI tools
   # Use absolute paths for custom tools
-  tool_config_file: tool_conf.xml.sample,/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml,/home/yzhang/biomate/backend/tools/biomate_ai_tools/tool_conf.xml
+  tool_config_file: tool_conf.xml.sample,/app/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml,/app/tools/biomate_ai_tools/tool_conf.xml
 
   # Memory optimization - load tools on demand instead of preloading
   preload_tool_panel: false
@@ -38,8 +38,13 @@ gravity:
     # Binding to 8081 here causes the port-forward to receive "Connection reset"
     # because gunicorn isn't listening on 8080.
     bind: 0.0.0.0:8080
-    # Reduce workers to prevent OOM
-    workers: 1
+    # 4 workers keeps API responsive while one is doing a long synchronous
+    # operation (LLM routing call, NF subprocess launch, S3 staging in
+    # /api/nextflow/execute). With workers=1 a single slow request blocked
+    # /api/version and Docker marked the container unhealthy. The 512MB
+    # heap cap added to NXF_OPTS keeps total memory ~2GB for 4 workers,
+    # well within dev's 8GB. Bump to 8 on a 16GB+ host.
+    workers: 4
     # Increase timeout for AI operations
     timeout: 300
     # Limit memory per worker
@@ -50,10 +55,10 @@ gravity:
     preload: false
     # Environment variables for AI Assistant
     environment:
-      PYTHONPATH: '/home/yzhang/biomate/backend/lib'
+      PYTHONPATH: '/app/lib'
       ANTHROPIC_API_KEY: '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'
       GITHUB_TOKEN: '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'
   celery:
     environment:
-      PYTHONPATH: '/home/yzhang/biomate/backend/lib'
+      PYTHONPATH: '/app/lib'
       ANTHROPIC_API_KEY: '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'

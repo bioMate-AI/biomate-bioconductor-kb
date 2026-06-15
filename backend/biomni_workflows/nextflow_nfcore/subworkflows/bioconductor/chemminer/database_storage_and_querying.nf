@@ -67,16 +67,16 @@ process BIOC_CHEMMINER_DATABASE_STORAGE_AND_QUERYING {
     }
     sdfsample <- readRDS("sdfsample")
     
-    # 1. Initialize SQLite database
+    # --- Initialize SQLite database ---
     conn <- initDb("test.db")
     
-    # 2. Load compounds and extract custom features (ring counts)
+    # --- Load compounds and extract custom features (ring counts) ---
     ids<-loadSdf(conn,sdfsample, function(sdfset) data.frame(rings(sdfset,type="count",upper=6, arom=TRUE)) )
     
-    # 3. Query compounds based on feature criteria (compounds with 0 or 1 rings)
+    # --- Query compounds based on feature criteria (compounds with ---
     results = findCompounds(conn,"rings",c("rings <= 1"))
     
-    # 4. Retrieve matching compounds as an SDFset
+    # --- Retrieve matching compounds as an SDFset ---
     compounds = getCompounds(conn,results)
     
     # Write outputs

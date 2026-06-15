@@ -36,6 +36,15 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EpiTxDb", "GenomicRanges", "S4Vectors", "BiocGenerics", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read input files from the working directory
@@ -110,7 +119,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     tx_ids <- top_tx\$transcript_id
     
     # ==========================================
-    # STAGE 2: Build Custom EpiTxDb Object
+    # --- Build Custom EpiTxDb Object ---
     # ==========================================
     
     # Generate mock RNA modification sites on the selected transcripts
@@ -154,7 +163,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: Query and Access EpiTxDb
+    # --- Query and Access EpiTxDb ---
     # ==========================================
     
     # Retrieve all modifications from the database
@@ -174,7 +183,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Coordinate Shifting & Rescaling
+    # --- Coordinate Shifting & Rescaling ---
     # ==========================================
     
     # Construct a mock GRangesList representing genomic exons for the transcripts
@@ -215,7 +224,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     genomic_df\$rescaled_position <- start(rescaled_mods)
     
     # ==========================================
-    # STAGE 5: Integration & Visualization
+    # --- Integration & Visualization ---
     # ==========================================
     
     # Merge genomic modifications with expression data

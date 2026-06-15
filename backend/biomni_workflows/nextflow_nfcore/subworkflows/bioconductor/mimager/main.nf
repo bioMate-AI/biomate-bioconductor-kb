@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the microarray data; 2. Visualize a single array or multiple arrays in a grid layout; 3. Customize probe selection and row-fi
+//  * 1. [Visualization & Output] Load the microarray data
+//  * 2. [Visualization & Output] Visualize a single array
+//  * 3. [Visualization & Output] Visualize multiple arrays in a grid layout
+//  * 4. [Visualization & Output] Customize probe selection and row-filling options
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mimager", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +63,7 @@ process BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION {
     library(mimager)
     library(Biobase)
     
-    # 1. Load the microarray data
+    # --- Load the microarray data ---
     load("raw_microarray_data.RData")
     
     # Identify the loaded microarray object dynamically
@@ -69,17 +81,17 @@ process BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION {
       Dilution <- get(objs[1])
     }
     
-    # 2. Visualize a single array
+    # --- Visualize a single array ---
     pdf("mimage_single.pdf", width = 7, height = 7)
     mimage(Dilution, select = 1)
     dev.off()
     
-    # 3. Visualize multiple arrays in a grid layout
+    # --- Visualize multiple arrays in a grid layout ---
     pdf("mimage_all.pdf", width = 10, height = 10)
     mimage(Dilution)
     dev.off()
     
-    # 4. Customize probe selection and row-filling options
+    # --- Customize probe selection and row-filling options ---
     pdf("mimage_grid.pdf", width = 12, height = 4)
     mimage(Dilution, probes = "all", empty.rows = "ignore", nrow = 1)
     dev.off()

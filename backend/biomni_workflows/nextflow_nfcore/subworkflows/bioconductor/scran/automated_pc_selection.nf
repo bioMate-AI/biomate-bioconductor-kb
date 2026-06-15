@@ -41,7 +41,7 @@ process BIOC_SCRAN_AUTOMATED_PC_SELECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "scran")
+    .bm_deps <- c("SingleCellExperiment", "scran", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,6 +59,7 @@ process BIOC_SCRAN_AUTOMATED_PC_SELECTION {
         }
     
     # Load required libraries
+    library(SummarizedExperiment)
     library(scran)
     
     # Read the input SingleCellExperiment object from the working directory

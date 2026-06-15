@@ -42,5 +42,23 @@ for k, v in results.items():
 if failures:
     print(f"\nFailed: {failures}")
     sys.exit(1)
-else:
-    print(f"\nAll {len(results)} checks passed.")
+
+# Aizynthfinder runtime sanity: the expansion policy MUST be configured.
+# Without this assertion the image happily ships with a stock-only config,
+# and every aizynthcli call crashes at policy.items[0] (IndexError).
+config_path = "/opt/aizynthfinder/config.yml"
+try:
+    with open(config_path) as f:
+        cfg = f.read()
+    assert "expansion:" in cfg, "config.yml is missing the expansion: block"
+    onnx = "/opt/aizynthfinder/models/uspto_model.onnx"
+    import os.path as _op
+    assert _op.exists(onnx) and _op.getsize(onnx) > 1_000_000, (
+        f"USPTO ONNX model missing or truncated: {onnx}"
+    )
+    print(f"  [OK] aizynthfinder runtime: expansion policy + USPTO model present")
+except Exception as e:
+    print(f"  [FAIL] aizynthfinder runtime: {e}")
+    sys.exit(1)
+
+print(f"\nAll {len(results) + 1} checks passed.")

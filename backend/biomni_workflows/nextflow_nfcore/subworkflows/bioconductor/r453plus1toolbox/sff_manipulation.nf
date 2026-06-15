@@ -55,7 +55,7 @@ process BIOC_R453PLUS1TOOLBOX_SFF_MANIPULATION {
     # Load the required Bioconductor library
     library(R453Plus1Toolbox)
     
-    # 1. Read the binary SFF file into an SFFContainer
+    # --- Read the binary SFF file into an SFFContainer ---
     # The pipeline reads EXACTLY "example.sff" from the working directory
     file <- "example.sff"
     sffContainer <- readSFF(file)
@@ -63,16 +63,16 @@ process BIOC_R453PLUS1TOOLBOX_SFF_MANIPULATION {
     # Save the imported container as an RDS object for downstream utility
     saveRDS(sffContainer, file = "sffContainer.rds")
     
-    # 2. Subset the SFFContainer by read indices
+    # --- Subset the SFFContainer by read indices ---
     subSffContainer <- sffContainer[1:5]
     
     # Save the subsetted container as an RDS object
     saveRDS(subSffContainer, file = "subSffContainer.rds")
     
-    # 3. Write the subsetted SFFContainer back to a binary SFF file
+    # --- Write the subsetted SFFContainer back to a binary SFF file ---
     writeSFF(subSffContainer, "subSffFile.sff")
     
-    # 4. Generate quality control plots (position quality boxplot and dinucleotide odds ratio)
+    # --- Generate quality control plots (position quality boxplot ---
     # Save the position quality boxplot to a PDF file
     pdf("position_quality_boxplot.pdf")
     positionQualityBoxplot(sffContainer)

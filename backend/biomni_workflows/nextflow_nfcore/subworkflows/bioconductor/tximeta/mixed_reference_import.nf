@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Import un-ranged data using importData(). 2. Inspect sequence digests using inspectDigests(). 3. Define novel transcript metadata 
+//  * 1. [Input & Preparation] Read user input files from the working directory
+//  * 2. [Input & Preparation] Import un-ranged data using importData()
+//  * 3. [Input & Preparation] Inspect sequence digests using inspectDigests()
+//  * 4. [Input & Preparation] Update metadata (without ranges first)
+//  * 5. [Input & Preparation] Define novel transcript metadata as a GRanges object
+//  * 6. [Input & Preparation] Update metadata and attach ranges using updateMetadata()
 
 nextflow.enable.dsl = 2
 
@@ -57,9 +62,10 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
     
     # Load required libraries
     library(tximeta)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     sample_table_path <- "sample_table.csv"
     quant_file_path <- "experiment_rep1.quant.gz"
     
@@ -85,12 +91,12 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
       coldata\$names <- "rep1"
     }
     
-    # 2. Import un-ranged data using importData()
+    # --- Import un-ranged data using importData() ---
     se <- importData(coldata, type = "oarfish")
     class(se)
     rowData(se)
     
-    # 3. Inspect sequence digests using inspectDigests()
+    # --- Inspect sequence digests using inspectDigests() ---
     digests <- inspectDigests(se)
     print(digests)
     
@@ -101,14 +107,14 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
     write.csv(as.data.frame(digests), "digests.csv", row.names = FALSE)
     write.csv(as.data.frame(digests_full), "digests_full.csv", row.names = FALSE)
     
-    # 4. Update metadata (without ranges first)
+    # --- Update metadata (without ranges first) ---
     se_update <- updateMetadata(se)
     mcols(se_update)
     
     # Save metadata columns to output file
     write.csv(as.data.frame(mcols(se_update)), "mcols_se_update.csv", row.names = FALSE)
     
-    # 5. Define novel transcript metadata as a GRanges object
+    # --- Define novel transcript metadata as a GRanges object ---
     novel <- data.frame(
       seqnames = paste0("chr", rep(1:22, each = 500)),
       start = 1e6 + 1 + 0:499 * 1000,
@@ -123,7 +129,7 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
     novel_gr <- as(novel, "GRanges")
     names(novel_gr) <- novel\$tx_name
     
-    # 6. Update metadata and attach ranges using updateMetadata()
+    # --- Update metadata and attach ranges using updateMetadata() ---
     se_with_ranges <- updateMetadata(se, txpData = novel_gr, ranges = TRUE)
     rowRanges(se_with_ranges)
     

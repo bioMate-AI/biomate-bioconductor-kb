@@ -57,12 +57,12 @@ process BIOC_LFA_LOGISTIC_FACTOR_ANALYSIS {
     library(genio)
     library(ggplot2)
     
-    # 1. Read the PLINK files from the working directory
+    # --- Read the PLINK files from the working directory ---
     # genio::read_plink expects the prefix of the files (genotypes.bed, genotypes.bim, genotypes.fam)
     plink_data <- genio::read_plink("genotypes")
     hgdp_subset <- as.matrix(plink_data\$X)
     
-    # 2. Estimate logistic factors using lfa
+    # --- Estimate logistic factors using lfa ---
     LF <- lfa(hgdp_subset, 4)
     
     # Save logistic factors to a CSV file
@@ -85,7 +85,7 @@ process BIOC_LFA_LOGISTIC_FACTOR_ANALYSIS {
     
     ggsave("logistic_factors_plot.pdf", plot = p, width = 6, height = 5)
     
-    # 3. Compute individual-specific allele frequencies using af
+    # --- Compute individual-specific allele frequencies using af ---
     allele_freqs <- af(hgdp_subset, LF)
     saveRDS(allele_freqs, "allele_frequencies.rds")
     
@@ -93,7 +93,7 @@ process BIOC_LFA_LOGISTIC_FACTOR_ANALYSIS {
     subset <- af(hgdp_subset[15:25, ], LF)
     saveRDS(subset, "allele_frequencies_subset.rds")
     
-    # 4. Compute log-likelihood for each SNP
+    # --- Compute log-likelihood for each SNP ---
     ll <- function(snp, af) {
         -sum(snp * log(af) + (2 - snp) * log(1 - af))
     }

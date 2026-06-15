@@ -35,6 +35,15 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Spectra", "MsBackendRawFileReader", "BiocParallel", "protViz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
           }
         }
     
-    # Stage 1: Load required libraries and initialize environment
+    # --- Load required libraries and initialize environment ---
     library(Spectra)
     library(MsBackendRawFileReader)
     library(BiocParallel)
@@ -60,7 +69,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
       stop("The 'rawrr' package is required but not installed.")
     }
     
-    # Stage 2: Read input files from the working directory
+    # --- Read input files from the working directory ---
     intensity_df <- read.csv("intensity.csv", check.names = FALSE)
     coldata_df <- read.csv("coldata.csv")
     
@@ -83,14 +92,14 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
       peptides <- "LGGNEQVTR"
     }
     
-    # Stage 3: Locate Thermo RAW files
+    # --- Locate Thermo RAW files ---
     raw_files <- list.files(pattern = "\\\\.raw\$", full.names = TRUE, ignore.case = TRUE)
     if (length(raw_files) == 0) {
       message("No .raw files found in working directory. Falling back to rawrr sample file.")
       raw_files <- rawrr::sampleFilePath()
     }
     
-    # Stage 4: Initialize MsBackendRawFileReader and extract spectra
+    # --- Initialize MsBackendRawFileReader and extract spectra ---
     message("Initializing MsBackendRawFileReader with files: ", paste(raw_files, collapse = ", "))
     beRaw <- Spectra::backendInitialize(
       MsBackendRawFileReader::MsBackendRawFileReader(),
@@ -116,7 +125,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
       beMS2 <- beRaw[beRaw\$msLevel == 2]
     }
     
-    # Stage 5: Define and apply filterIons method for targeted peptide matching
+    # --- Define and apply filterIons method for targeted peptide ---
     setGeneric("filterIons", function(object, ...) standardGeneric("filterIons"))
     setMethod("filterIons", "MsBackend", function(object, mZ=numeric(), tol=0.005, ...) {
       keep <- lapply(peaksData(object, BPPARAM = bpparam()), FUN=function(x){
@@ -154,7 +163,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
       }
     }
     
-    # Stage 6: Apply processing queue (Top-N filtering) and generate mirror plot
+    # --- Apply processing queue (Top-N filtering) and generate ---
     pdf("spectra_mirror_plot.pdf", width = 10, height = 6)
     if (length(matched_results) > 0) {
       pep_name <- names(matched_results)[1]
@@ -182,7 +191,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
     }
     dev.off()
     
-    # Stage 7: Export matched spectra to Mascot Generic Format (MGF)
+    # --- Export matched spectra to Mascot Generic Format (MGF) ---
     if (requireNamespace("MsBackendMgf", quietly = TRUE) && length(matched_results) > 0) {
       pep_name <- names(matched_results)[1]
       target_backend <- matched_results[[pep_name]]\$backend
@@ -214,7 +223,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
       writeLines("# No matched spectra or MsBackendMgf not available", "exported_spectra.mgf")
     }
     
-    # Stage 8: Create matched spectra summary table
+    # --- Create matched spectra summary table ---
     summary_rows <- list()
     if (length(matched_results) > 0) {
       for (pep in names(matched_results)) {
@@ -244,7 +253,7 @@ process BIOC_MSBACKENDRAWFILEREADER_RAW_FILE_SPECTRA_EXTRACTION {
     }
     write.csv(summary_df, "matched_spectra_summary.csv", row.names = FALSE)
     
-    # Stage 9: Run I/O performance benchmark
+    # --- Run I/O performance benchmark ---
     if (length(raw_files) > 0) {
       tryCatch({
         bm_res <- ioBenchmark(n = 100, size = c(32, 64), rawfile = raw_files[1])

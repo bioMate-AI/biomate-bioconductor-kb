@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run the cumulative binomial test on HiCUP output using GOTHiChicup
+//  * 1. [Visualization & Output] Save the full data frame as a CSV table
+//  * 2. [Visualization & Output] Save the results as an RDS object for downstream R
+//  * 3. [Visualization & Output] Generate and save the p-value density plot to assess
 
 nextflow.enable.dsl = 2
 
@@ -78,13 +80,13 @@ process BIOC_GOTHIC_GOTHIC_HICUP_PIPELINE {
     restrictionFile, cistrans='all', parallel=FALSE, cores=NULL)
     
     # Save the meaningful results to output files
-    # 1. Save the full data frame as a CSV table
+    # --- Save the full data frame as a CSV table ---
     write.csv(binom, file = "gothic_hicup_results.csv", row.names = FALSE)
     
-    # 2. Save the results as an RDS object for downstream R analysis
+    # --- Save the results as an RDS object for downstream R ---
     saveRDS(binom, file = "gothic_hicup_results.rds")
     
-    # 3. Generate and save the p-value density plot to assess experiment quality
+    # --- Generate and save the p-value density plot to assess ---
     pdf("gothic_pvalue_density.pdf", width = 6, height = 6)
     if (!is.null(binom) && nrow(binom) > 0) {
       # Determine the correct p-value column name (typically "pvalue" or "p-value")

@@ -66,7 +66,7 @@ process BIOC_GROHMM_GROHMM_TRANSCRIPT_CALLING_AND_METAGENE {
     options(mc.cores = getCores(4))
     
     # ==========================================
-    # STAGE 1: Read Input and Setup Annotations
+    # --- Read Input and Setup Annotations ---
     # ==========================================
     message("Stage 1: Reading input and setting up annotations...")
     
@@ -132,7 +132,7 @@ process BIOC_GROHMM_GROHMM_TRANSCRIPT_CALLING_AND_METAGENE {
     
     
     # ==========================================
-    # STAGE 2: Simulate GRO-seq Reads
+    # --- Simulate GRO-seq Reads ---
     # ==========================================
     message("Stage 2: Simulating GRO-seq reads based on target annotations...")
     
@@ -185,7 +185,7 @@ process BIOC_GROHMM_GROHMM_TRANSCRIPT_CALLING_AND_METAGENE {
     
     
     # ==========================================
-    # STAGE 3: Transcript Calling (HMM)
+    # --- Transcript Calling (HMM) ---
     # ==========================================
     message("Stage 3: Running HMM transcript calling...")
     
@@ -203,7 +203,7 @@ process BIOC_GROHMM_GROHMM_TRANSCRIPT_CALLING_AND_METAGENE {
     
     
     # ==========================================
-    # STAGE 4: Evaluation and Repair
+    # --- Evaluation and Repair ---
     # ==========================================
     message("Stage 4: Evaluating and repairing called transcripts...")
     
@@ -223,7 +223,7 @@ process BIOC_GROHMM_GROHMM_TRANSCRIPT_CALLING_AND_METAGENE {
     
     
     # ==========================================
-    # STAGE 5: Pausing Index Calculation
+    # --- Pausing Index Calculation ---
     # ==========================================
     message("Stage 5: Calculating pausing indices...")
     
@@ -247,7 +247,7 @@ process BIOC_GROHMM_GROHMM_TRANSCRIPT_CALLING_AND_METAGENE {
     
     
     # ==========================================
-    # STAGE 6: Metagene Analysis
+    # --- Metagene Analysis ---
     # ==========================================
     message("Stage 6: Running metagene analysis...")
     

@@ -48,6 +48,7 @@ process ANTIBODY_DEVELOPABILITY {
     tuple val(meta), path("ab_dev_output.txt"),            emit: output
     tuple val(meta), path("developability_scores.json"),   emit: scores
     tuple val(meta), path("liability_scan.csv"),           emit: liability
+    tuple val(meta), path("qc_metrics.json"),              emit: qc_metrics
     path "versions.yml",                                   emit: versions
 
     script:
@@ -325,6 +326,30 @@ for h in oxid_hits:
 
 with open('developability_scores.json', 'w') as f:
     json.dump(scores, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# antibody_developability gates (Raybould 2019 GOLD).
+# tap_total_cdr_length is computed exactly from the CDR sequences
+# (no approximation).  tap_psh_score is NOT emitted because this
+# workflow uses a CamSol-inspired patch score whose scale is not
+# directly comparable to Raybould 2019 TAP PSH (gate would mis-fire).
+# camsol_intrinsic_score is also skipped for the same reason: the
+# workflow's agg_score has inverted semantics (high = aggregation-prone)
+# vs Raybould's CamSol intrinsic_score (high = soluble).  Both await
+# a true CamSol/TAP-PSH implementation upstream.
+qc_metrics = {
+    'tap_total_cdr_length':       len(cdrs_combined),
+    'cdr_lengths_per_region':     {k: len(v) for k, v in cdr_seqs.items()},
+    'aggregation_score_camsol_proxy': agg_score,
+    'aggregation_risk':           agg_risk,
+    'pI':                         pI,
+    'pI_source':                  pI_source,
+    'deamidation_liabilities_high': n_high_deamid,
+    'oxidation_liabilities_high':   n_high_oxid,
+    'overall_developability_risk':  overall_risk,
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
 with open('liability_scan.csv', 'w', newline='') as f:
     csv.writer(f).writerows(csv_rows)
 with open('ab_dev_results.json', 'w') as f:

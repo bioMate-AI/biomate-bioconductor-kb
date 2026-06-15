@@ -1,0 +1,3043 @@
+[
+  {
+    "pkg": "clusterjudge",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_CLUSTERJUDGE (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "sitepath",
+    "wf": "main.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 180s",
+    "image": "quay.io/biocontainers/bioconductor-sitepath:1.26.0--r45ha27e39d_0"
+  },
+  {
+    "pkg": "slalom",
+    "wf": "main.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 180s",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+  },
+  {
+    "pkg": "treekor",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+  },
+  {
+    "pkg": "mbcb",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
+  },
+  {
+    "pkg": "peca",
+    "wf": "peca_microarray_affy.nf",
+    "status": "skip_input_type",
+    "input": "SpikeIn133.rds"
+  },
+  {
+    "pkg": "cogeqc",
+    "wf": "main.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 180s",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+  },
+  {
+    "pkg": "deepsnv",
+    "wf": "shearwater_ml.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 180s",
+    "image": "quay.io/biocontainers/bioconductor-deepsnv:1.56.0--r45ha27e39d_0"
+  },
+  {
+    "pkg": "assessorf",
+    "wf": "main.nf",
+    "status": "harness_error",
+    "err": "TimeoutExpired: Command '['docker', 'run', '--rm', '--platform', 'linux/amd64', '-v', '/tmp/realrun_rlib:/rlib', '-e', 'R_LIBS_USER=/rlib', '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-d"
+  },
+  {
+    "pkg": "cogeqc",
+    "wf": "comparative_genomics_qc.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+  },
+  {
+    "pkg": "peca",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+  },
+  {
+    "pkg": "deepsnv",
+    "wf": "shearwater_bayes_factor.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 180s",
+    "image": "quay.io/biocontainers/bioconductor-deepsnv:1.56.0--r45ha27e39d_0"
+  },
+  {
+    "pkg": "vsclust",
+    "wf": "standard_matrix_workflow.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 900s",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+  },
+  {
+    "pkg": "vsclust",
+    "wf": "main.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 900s",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+  },
+  {
+    "pkg": "dominoeffect",
+    "wf": "main.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 900s",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+  },
+  {
+    "pkg": "dominoeffect",
+    "wf": "hotspot_step_by_step.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 900s",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+  },
+  {
+    "pkg": "matter",
+    "wf": "nonuniform_spectral_signal_processing.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in get_sparse_arr_elts(x, i) : | linear indexing for sparse arrays is not supported yet | Calls: [ -> [ -> get_sparse_arr_elts"
+  },
+  {
+    "pkg": "matter",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps",
+    "declared_out": 3,
+    "produced": 24
+  },
+  {
+    "pkg": "matter",
+    "wf": "image_processing_and_alignment.nf",
+    "status": "fixture_failed",
+    "err": "Error: unexpected end of input | Execution halted"
+  },
+  {
+    "pkg": "acgh",
+    "wf": "acgh_sproc_import.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_ACGH_ACGH_SPROC_IMPORT (1)' | Caused by: | Not a valid path value type: java.util.LinkedList ([/tmp/real_acgh_hlhrtblf/sprocCR40.txt, /tmp/real_acgh_hlhrtblf/sprocCR43.txt, /tmp/real_acgh_hlhrtblf/sproc*.txt])"
+  },
+  {
+    "pkg": "bandle",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "deepsnv",
+    "wf": "shearwater_bayes_variant_calling.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in bam2R(f, regions$chr[j], regions$start[j], regions$stop[j], ...) : | BAM/CRAM index file is not available. | Calls: loadAllData -> mclapply -> lapply -> FUN -> bam2R"
+  },
+  {
+    "pkg": "deepsnv",
+    "wf": "shearwater_ml_variant_calling.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error: object 'es' not found | Execution halted"
+  },
+  {
+    "pkg": "deepsnv",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-deepsnv:1.56.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in bam2R(test, regions$chr[j], regions$start[j], regions$stop[j],  : | BAM/CRAM index file is not available. | Calls: deepSNV -> deepSNV -> .local -> bam2R"
+  },
+  {
+    "pkg": "acgh",
+    "wf": "acgh_clustering.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps",
+    "declared_out": 3,
+    "produced": 2
+  },
+  {
+    "pkg": "acgh",
+    "wf": "acgh_association_testing.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps",
+    "declared_out": 3,
+    "produced": 22
+  },
+  {
+    "pkg": "acgh",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-acgh:1.88.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 5,
+    "err": "b=1\tb=2\tError in if (any(maxT <= threshold)) min(teststat[maxT <= threshold]) else NA : | missing value where TRUE/FALSE needed | Calls: plotFreqStat -> sapply -> lapply -> FUN"
+  },
+  {
+    "pkg": "htsfilter",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 16
+  },
+  {
+    "pkg": "htsfilter",
+    "wf": "deseq2_pipeline.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "acgh",
+    "wf": "read_sproc_files.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-acgh:1.88.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 4,
+    "err": "Error in packageVersion(\"acgh\") : there is no package called \u2018acgh\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "htsfilter",
+    "wf": "edger_pipeline.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 18
+  },
+  {
+    "pkg": "qtlizer",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: Error: No matching samples found between counts.csv and coldata.csv | Execution halted"
+  },
+  {
+    "pkg": "htsfilter",
+    "wf": "external_normalization.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 14
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "mixed_reference_import.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in importData(coldata, type = \"oarfish\") : | could not find function \"importData\" | Execution halted"
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "linked_transcriptomes.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in file(con, \"w\") : cannot open the connection | Calls: writeLines -> file | In addition: Warning message:"
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "mixed_reference_oarfish_import.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in FUN(X[[i]], ...) : | the quantification files exist, but the metadata files are missing. | tximeta (and other downstream software) require the entire output directory"
+  },
+  {
+    "pkg": "sampleclassifier",
+    "wf": "rnaseq_classification.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in new.mat[markers.list[[i]], , drop = FALSE] : | subscript out of bounds | Calls: classifyProfile.rnaseq -> lapply -> apply -> FUN -> apply"
+  },
+  {
+    "pkg": "sampleclassifier",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in find_and_read(\"micro_refmat\") : | Error: Could not find input file for micro_refmat with supported extensions (.rds, .csv, .tsv, .txt) in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "methylkit",
+    "wf": "large_data_tabix_db.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in library(methylKit) : there is no package called \u2018methylKit\u2019 | Execution halted"
+  },
+  {
+    "pkg": "methylkit",
+    "wf": "regional_and_tiling_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "(empty) | Command error: | .command.run: line 108: promoters: unbound variable"
+  },
+  {
+    "pkg": "nanomethviz",
+    "wf": "modbam_direct_plotting.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
+  },
+  {
+    "pkg": "methylkit",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in library(methylKit) : there is no package called \u2018methylKit\u2019 | Execution halted"
+  },
+  {
+    "pkg": "methylkit",
+    "wf": "methylation_profile_segmentation.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in library(methylKit) : there is no package called \u2018methylKit\u2019 | Execution halted"
+  },
+  {
+    "pkg": "mnem",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: Wrong R type for mapped matrix | Execution halted"
+  },
+  {
+    "pkg": "nanomethviz",
+    "wf": "downstream_export_and_dim_reduction.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"nmr\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "mnem",
+    "wf": "discrete_data_pipeline.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in if (max(ll0) - llold > 0) { : | missing value where TRUE/FALSE needed | Calls: mnem -> lapply -> FUN -> getProbs"
+  },
+  {
+    "pkg": "nanomethviz",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in guess_methy_source(element$file) : Format not recognised. | Calls: create_tabix_file -> convert_methy_format -> guess_methy_source | Execution halted"
+  },
+  {
+    "pkg": "celda",
+    "wf": "decontx_decontamination.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "dose",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in get_anno_data(ontology) : ontology not supported yet... | Calls: enrichDO -> enrichDisease -> get_anno_data | Execution halted"
+  },
+  {
+    "pkg": "dose",
+    "wf": "gene_set_enrichment_analysis.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 4
+  },
+  {
+    "pkg": "tximeta",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0"
+  },
+  {
+    "pkg": "nucler",
+    "wf": "tiling_array_nucleosome_calling.nf",
+    "status": "fixture_failed",
+    "err": "In data(\"nucleosome_tiling\") : data set \u2018nucleosome_tiling\u2019 not found | Error in get(\"nucleosome_tiling\") : object 'nucleosome_tiling' not found | Execution halted"
+  },
+  {
+    "pkg": "nucler",
+    "wf": "mnase_bias_correction.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-nucler:2.42.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in packageVersion(\"nucler\") : there is no package called \u2018nucler\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "nucler",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-nucler:2.42.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in h(simpleError(msg, call)) : | error in evaluating the argument 'x' in selecting a method for function 'width': subscript contains out-of-bounds indices | Calls: filterFFT ... normalizeSingleBracketSubscript -> NSBS -> NSBS -> .subscript_error"
+  },
+  {
+    "pkg": "muscle",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-muscle:3.52.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 2
+  },
+  {
+    "pkg": "wpm",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in `ggplot2::ggsave()`: | ! Can't save to my file name. | \u2139 Either supply `filename` with a file extension or supply `device`."
+  },
+  {
+    "pkg": "biodbchebi",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "summarizedexperiment_to_plate_map.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in readRDS(se_path) : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "celda",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+  },
+  {
+    "pkg": "dose",
+    "wf": "semantic_similarity_analysis.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
+  },
+  {
+    "pkg": "msbackendsql",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_MSBACKENDSQL (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "hoodscanr",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "spe.rds"
+  },
+  {
+    "pkg": "a4core",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: No common samples found between counts.csv and coldata.csv | Execution halted"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "eset_msnset_to_plate_map.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(input_file) : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "spotclean",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-spotclean:1.12.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 11,
+    "err": "Error in packageVersion(\"spotclean\") : | there is no package called \u2018spotclean\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "summarized_experiment_to_plate_map.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 'raries' not found | Execution halted"
+  },
+  {
+    "pkg": "spotclean",
+    "wf": "spatial_experiment_workflow.nf",
+    "status": "harness_error",
+    "err": "TimeoutExpired: Command '['docker', 'run', '--rm', '--platform', 'linux/amd64', '-v', '/tmp/realrun_rlib:/rlib', '-e', 'R_LIBS_USER=/rlib', 'quay.io/biocontainers/bioconductor-spotclean:1.12.0--r45hdf"
+  },
+  {
+    "pkg": "ribosomeprofilingqc",
+    "wf": "differential_analysis_rpf_only.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error: This workflow requires at least 4 BAM files (2 for KD, 2 for WT) in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "ribosomeprofilingqc",
+    "wf": "translational_efficiency_and_rrs.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: At least 2 RPF BAM files are required in the working directory to run this pipeline (due to sample=2 plotting constraints). | Execution halted"
+  },
+  {
+    "pkg": "metabcombiner",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in selectMZ(table = table, col = mzCol) : | m/z column undefined or used more than once | Calls: metabData -> detectFields -> selectMZ"
+  },
+  {
+    "pkg": "ribosomeprofilingqc",
+    "wf": "floss_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "(empty) | Command error: | .command.run: line 107: protein: unbound variable"
+  },
+  {
+    "pkg": "biobase",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_BIOBASE (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "sigsquared",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "dataSet.RData"
+  },
+  {
+    "pkg": "ribosomeprofilingqc",
+    "wf": "rpf_only_differential_analysis.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in `[[<-`(`*tmp*`, name, value = \"CDS\") : | 1 elements in value to replace 0 elements | Calls: countReads ... assignReadingFrame -> prepareCDS -> $<- -> $<- -> [[<- -> [[<-"
+  },
+  {
+    "pkg": "soggi",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in bed$thickStart : $ operator is invalid for atomic vectors | Calls: <Anonymous> -> <Anonymous> -> import -> import -> .local | Execution halted"
+  },
+  {
+    "pkg": "biodbhmdb",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: No matching samples found between intensity matrix columns and coldata 'sample' column. | Execution halted"
+  },
+  {
+    "pkg": "cytoviewer",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "image.tif"
+  },
+  {
+    "pkg": "methrix",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: Error: No bedGraph or bedGraph.gz files found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "panr",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in .subset2(x, i, exact = exact) : subscript out of bounds | Calls: setNames -> [[ -> [[.data.frame -> <Anonymous> | Execution halted"
+  },
+  {
+    "pkg": "glimma",
+    "wf": "limma_voom_glimma.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in DGEList.default(counts = counts_matrix, samples = coldata_df,  : | 'counts' must contain at least one value | Calls: DGEList -> DGEList.default"
+  },
+  {
+    "pkg": "glimma",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: object 'ies' not found | Execution halted"
+  },
+  {
+    "pkg": "aspli",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: 'sample_bams/' directory not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "synmut",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in validObject(.Object) : | invalid class \u201cregioned_dna\u201d object: dnaseq and region must have the same length. | Calls: input_seq ... gernerate_rgd -> new -> initialize -> initialize -> validObject"
+  },
+  {
+    "pkg": "lute",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: No common samples found between counts.csv and coldata.csv | Execution halted"
+  },
+  {
+    "pkg": "doppelgangr",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: No overlapping samples found between counts.csv and coldata.csv! | Execution halted"
+  },
+  {
+    "pkg": "dmrscan",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in bed$thickStart : $ operator is invalid for atomic vectors | Calls: <Anonymous> -> <Anonymous> -> import -> import -> .local | Execution halted"
+  },
+  {
+    "pkg": "pviz",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
+  },
+  {
+    "pkg": "ribosomeprofilingqc",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0"
+  },
+  {
+    "pkg": "missrows",
+    "wf": "tune_imputations.nf",
+    "status": "skip_input_type",
+    "input": "midt.RData"
+  },
+  {
+    "pkg": "musicatk",
+    "wf": "predict_known_signatures.nf",
+    "status": "fixture_timeout",
+    "err": "fixture exceeded 180s",
+    "image": "quay.io/biocontainers/bioconductor-musicatk:2.4.0--r45h1f0d9b5_0"
+  },
+  {
+    "pkg": "missrows",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 9,
+    "err": "Error: object 's' not found | Execution halted"
+  },
+  {
+    "pkg": "wpm",
+    "wf": "expressionset_to_plate_map.nf",
+    "status": "harness_error",
+    "err": "TimeoutExpired: Command '['docker', 'run', '--rm', '--platform', 'linux/amd64', '-v', '/tmp/realrun_rlib:/rlib', '-e', 'R_LIBS_USER=/rlib', 'quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_"
+  },
+  {
+    "pkg": "fella",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
+  },
+  {
+    "pkg": "absseq",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 14
+  },
+  {
+    "pkg": "absseq",
+    "wf": "complex_design_analysis.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 14
+  },
+  {
+    "pkg": "musicatk",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-musicatk:2.4.0--r45h1f0d9b5_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in .check_headers(data.table::as.data.table(mat), chromosome = chromosome_col,  : | Some required columns are missing in the maf: Tumor_Seq_Allele1 | Calls: extract_variants_from_maf_file ... extract_variants_from_maf -> extract_variants_from_matrix -> .check_headers"
+  },
+  {
+    "pkg": "musicatk",
+    "wf": "count_table_workflow.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-musicatk:2.4.0--r45h1f0d9b5_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in discover_signatures(musica = musica_from_counts, modality = \"SBS96\",  : | The 'musica' object inputted must contain at least two samples. | Execution halted"
+  },
+  {
+    "pkg": "absseq",
+    "wf": "single_replicate_de_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: The input count matrix must contain exactly two columns for single-replicate analysis. | Execution halted"
+  },
+  {
+    "pkg": "absseq",
+    "wf": "variance_stabilization_and_pca.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "mgnifyr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20-deps",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_MGNIFYR (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "nipalsmcia",
+    "wf": "out_of_sample_prediction.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 'es' not found | Execution halted"
+  },
+  {
+    "pkg": "ssize",
+    "wf": "power_calculation.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "ssize",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "nipalsmcia",
+    "wf": "single_cell_cite_seq_mcia.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: Required input files 'obj.rds' and/or 'metadata_sc.csv' are missing from the working directory. | Execution halted"
+  },
+  {
+    "pkg": "affycoretools",
+    "wf": "interactive_venn_diagram_generation.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Required input files (fit2.rds, contrast.rds, design.rds) not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "affycoretools",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in load(\"eset\", envir = env) : | bad restore file magic number (file may be corrupted) -- no data loaded | Calls: tryCatch -> tryCatchList -> tryCatchOne -> <Anonymous> -> load"
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-rfastp:1.20.1--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in trimSummary(se_json_report) : | \"adapter_cutting\" %in% names(json) is not TRUE | Calls: trimSummary -> stopifnot"
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "paired_end_qc_trimming_merging.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-rfastp:1.20.1--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in packageVersion(\"rfastp\") : there is no package called \u2018rfastp\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "umi_processing.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-rfastp:1.20.1--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 8,
+    "err": "Error in packageVersion(\"rfastp\") : there is no package called \u2018rfastp\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "fastq_concatenation.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 4
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "umi_preprocessing.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "clst",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in partition(dmat, groups) : ncol(dmat) == N is not TRUE | Calls: findThreshold -> partition -> stopifnot | Execution halted"
+  },
+  {
+    "pkg": "branchpointer",
+    "wf": "snp_effect_evaluation.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: subscript contains invalid names | Execution halted"
+  },
+  {
+    "pkg": "nipalsmcia",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "paired_end_qc_and_merging.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 8
+  },
+  {
+    "pkg": "rfastp",
+    "wf": "custom_trimming_and_filtering.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in `$<-.data.frame`(`*tmp*`, \"readtype\", value = 1L) : | replacement has 1 row, data has 0 | Calls: curvePlot -> $<- -> $<-.data.frame"
+  },
+  {
+    "pkg": "ancombc",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: package or namespace load failed for \u2018ANCOMBC\u2019: | object \u2018solve\u2019 is not exported by 'namespace:CVXR' | Execution halted"
+  },
+  {
+    "pkg": "ancombc",
+    "wf": "ancombc2_advanced_da.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: package or namespace load failed for \u2018ANCOMBC\u2019: | object \u2018solve\u2019 is not exported by 'namespace:CVXR' | Execution halted"
+  },
+  {
+    "pkg": "ancombc",
+    "wf": "ancombc_bias_corrected_da.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: package or namespace load failed for \u2018ANCOMBC\u2019: | object \u2018solve\u2019 is not exported by 'namespace:CVXR' | Execution halted"
+  },
+  {
+    "pkg": "ancombc",
+    "wf": "secom_correlation_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: package or namespace load failed for \u2018ANCOMBC\u2019: | object \u2018solve\u2019 is not exported by 'namespace:CVXR' | Execution halted"
+  },
+  {
+    "pkg": "rnasense",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 's' not found | Execution halted"
+  },
+  {
+    "pkg": "ggpa",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "pmat.rds"
+  },
+  {
+    "pkg": "illuminaio",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: unexpected symbol in \"    l    library\" | Execution halted"
+  },
+  {
+    "pkg": "cnordt",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Required input file 'CNOlistPB.rds' not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "branchpointer",
+    "wf": "snp_effect_prediction.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-branchpointer:1.32.0--r44hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: subscript contains invalid names | Execution halted"
+  },
+  {
+    "pkg": "branchpointer",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-branchpointer:1.32.0--r44hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: subscript contains invalid names | Execution halted"
+  },
+  {
+    "pkg": "rtcgatoolbox",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 7,
+    "err": "Error in isEmpty(tcga_data) : | isEmpty() is not defined for objects of class FirehoseData | Calls: isEmpty -> isEmpty"
+  },
+  {
+    "pkg": "bandits",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 18
+  },
+  {
+    "pkg": "ggpa",
+    "wf": "graph_gpa_with_prior.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: Error: 'pgraph' must be a square adjacency matrix. | Execution halted"
+  },
+  {
+    "pkg": "discordant",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: No matching samples found between counts.csv and coldata.csv. | Execution halted"
+  },
+  {
+    "pkg": "raer",
+    "wf": "novel_editing_detection.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: file is not a database | In addition: Warning messages: | 1: Couldn't set cache size: file is not a database"
+  },
+  {
+    "pkg": "raer",
+    "wf": "alu_editing_index.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error in readRDS(\"alus.gr\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "gostag",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in performGOEnrichment(gene_lists, go_terms) : | Zero significant GO terms (try less stringent signficance threshold) | Execution halted"
+  },
+  {
+    "pkg": "raer",
+    "wf": "bulk_differential_editing.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(sites_file) : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "raer",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 'aries' not found | Execution halted"
+  },
+  {
+    "pkg": "enrichviewnet",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in library(enrichViewNet) : | there is no package called \u2018enrichViewNet\u2019 | Execution halted"
+  },
+  {
+    "pkg": "qdnaseq",
+    "wf": "generate_custom_bin_annotations.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Control BAM directory not found: control-set/bam/files | Please create this directory and populate it with control BAM files. | Execution halted"
+  },
+  {
+    "pkg": "singler",
+    "wf": "annotation_with_single_cell_reference_and_diagnostics.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "singler",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "plgem",
+    "wf": "step_by_step_mode.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: Input file ExpressionSet.rds not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "plgem",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in gzfile(file, \"rb\") : cannot open the connection | Calls: readRDS -> gzfile | In addition: Warning message:"
+  },
+  {
+    "pkg": "chicago",
+    "wf": "peak_enrichment_analysis.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-chicago:1.38.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error in fread(input = bed, sep = sep, header = header, stringsAsFactors = FALSE) : | File '/rlib/PCHiCdata/extdata/hg19TestDesign/h19_chr20and21.rmap' does not exist or is non-readable. getwd()=='/tmp/real_chicago_h3kh8f9e/work/f4/2ed5052b86fd62ab4d3406998efacb' | Calls: peakEnrichment4Features ... .readBedList -> fread -> stopf -> raise_condition -> signal"
+  },
+  {
+    "pkg": "zitools",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "phyloseq.rds"
+  },
+  {
+    "pkg": "olin",
+    "wf": "statistical_bias_assessment.nf",
+    "status": "skip_input_type",
+    "input": "microarray_data.RData"
+  },
+  {
+    "pkg": "olin",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "raw_microarray_data.RData"
+  },
+  {
+    "pkg": "olin",
+    "wf": "between_array_scaling.nf",
+    "status": "fixture_failed",
+    "err": "In data(\"sw.olin\") : data set \u2018sw.olin\u2019 not found | Error in get(\"sw.olin\") : object 'sw.olin' not found | Execution halted"
+  },
+  {
+    "pkg": "alabaster_base",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error in packageVersion(\"alabaster_base\") : | there is no package called \u2018alabaster_base\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "geodiff",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in library(GeoDiff) : there is no package called \u2018GeoDiff\u2019 | Execution halted"
+  },
+  {
+    "pkg": "ddpcrclust",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ddpcrclust:1.30.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: No CSV files found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "classifyr",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in allFolds[[whichFolds[sampleIndex]]] <- c(allFolds[[whichFolds[sampleIndex]]],  : | attempt to select more than one element in integerOneIndex | Calls: crossValidate ... runTests -> .local -> samplesSplits -> lapply -> FUN"
+  },
+  {
+    "pkg": "classifyr",
+    "wf": "advanced_modelling_and_evaluation.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: unable to find an inherited method for function \u2018runTests\u2019 for signature \u2018measurements = \"data.frame\"\u2019 | Execution halted"
+  },
+  {
+    "pkg": "hdxmsqc",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 12,
+    "err": "Error in strsplit(HDExaminerFile$Actual.RT, fixed = TRUE, split = \"-\") : | non-character argument | Calls: processHDE -> t -> vapply -> strsplit"
+  },
+  {
+    "pkg": "classifyr",
+    "wf": "parameter_tuning.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in allFolds[[whichFolds[sampleIndex]]] <- c(allFolds[[whichFolds[sampleIndex]]],  : | attempt to select more than one element in integerOneIndex | Calls: runTests ... runTests -> .local -> samplesSplits -> lapply -> FUN"
+  },
+  {
+    "pkg": "scfa",
+    "wf": "risk_score_prediction.nf",
+    "status": "skip_input_type",
+    "input": "trainList.rds"
+  },
+  {
+    "pkg": "scfa",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "dataList.rds"
+  },
+  {
+    "pkg": "ggcyto",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "image.tif"
+  },
+  {
+    "pkg": "classifyr",
+    "wf": "multi_view_integration.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: 'classes.rds' file not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "scale4c",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in stop_if_wrong_length(what, ans_len) : | 'ranges' must have the length of the object to construct (1) or length | 1"
+  },
+  {
+    "pkg": "lpsymphony",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_LPSYMPHONY (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "kegglincs",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in .getUrl(url, .textParser) : Bad Request (HTTP 400). | Calls: get_KGML ... withCallingHandlers -> <Anonymous> -> .getUrl -> stop_for_status | Execution halted"
+  },
+  {
+    "pkg": "aims",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in data.frame(Sample = names(mcgill.subtypes$cl), Subtype = as.character(mcgill.subtypes$cl),  : | arguments imply differing number of rows: 0, 321 | Execution halted"
+  },
+  {
+    "pkg": "kegglincs",
+    "wf": "overlay_experimental_edge_data.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in .getUrl(url, .textParser) : Bad Request (HTTP 400). | Calls: get_KGML ... withCallingHandlers -> <Anonymous> -> .getUrl -> stop_for_status | Execution halted"
+  },
+  {
+    "pkg": "gg4way",
+    "wf": "gg4way_with_deseq2.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"dds\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "mumosa",
+    "wf": "feature_correlation_analysis.nf",
+    "status": "skip_input_type",
+    "input": "sce2.rds"
+  },
+  {
+    "pkg": "chicago",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-chicago:1.38.0--r45hdfd78af_0"
+  },
+  {
+    "pkg": "flowtrans",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "qdnaseq",
+    "wf": "generate_bin_annotations.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-qdnaseq:1.46.0--r45hdfd78af_0"
+  },
+  {
+    "pkg": "gg4way",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(input_file) : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "gg4way",
+    "wf": "gg4way_with_edger.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(rfit_path) : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "uniprot_ws",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: No valid identifiers found in the input file. | Execution halted"
+  },
+  {
+    "pkg": "rols",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: No valid feature identifiers found in the input file. | Execution halted"
+  },
+  {
+    "pkg": "mumosa",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in gzfile(file, \"rb\") : cannot open the connection | Calls: readRDS -> gzfile | In addition: Warning message:"
+  },
+  {
+    "pkg": "chicago",
+    "wf": "genomic_interactions_downstream.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-chicago:1.38.0--r45hdfd78af_0"
+  },
+  {
+    "pkg": "isobar",
+    "wf": "ptm_localization_quant.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "reading id file identifications.id.csv [type: ibspectra] ...Error in read.table(x, header = TRUE, sep = sep, stringsAsFactors = FALSE,  : | unused argument (id.format = \"ibspectra.csv\") | Calls: writePhosphoRSInput -> <Anonymous> -> lapply -> FUN -> <Anonymous>"
+  },
+  {
+    "pkg": "isobar",
+    "wf": "ptm_localization_quantification.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-isobar:1.56.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in getClass(Class, where = topenv(parent.frame())) : | \u201cidentifications.id.csv\u201d is not a defined class | Calls: readIBSpectra -> readIBSpectra -> .local -> new -> getClass"
+  },
+  {
+    "pkg": "isobar",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-isobar:1.56.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in apply(result[, seq(from = 2, to = ncol(result), by = 2)], 2,  : | dim(X) must have a positive length | Calls: readIBSpectra ... readIBSpectra -> .local -> .read.peaklist -> .read.mgf -> apply"
+  },
+  {
+    "pkg": "vasp",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in load(\"rice.bg\", envir = tmp_env) : | bad restore file magic number (file may be corrupted) -- no data loaded | Calls: tryCatch -> tryCatchList -> tryCatchOne -> <Anonymous> -> load"
+  },
+  {
+    "pkg": "qdnaseq",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qdnaseq:1.46.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in getBinAnnotations(binSize = 15) : | Package not installed: QDNAseq.hg19 | Calls: tryCatch ... tryCatchList -> tryCatchOne -> <Anonymous> -> getBinAnnotations"
+  },
+  {
+    "pkg": "marr",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 16
+  },
+  {
+    "pkg": "spia",
+    "wf": "spia_with_custom_kegg_data.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: Required input file missing: DE_Colorectal.rds | Execution halted"
+  },
+  {
+    "pkg": "hicool",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "Error: package or namespace load failed for \u2018HiCExperiment\u2019 in dyn.load(file, DLLpath = DLLpath, ...): | unable to load shared object '/rlib/Matrix/libs/Matrix.so': | /rlib/Matrix/libs/Matrix.so: undefined symbol: NO_REFERENCES"
+  },
+  {
+    "pkg": "chromdraw",
+    "wf": "bed_file_karyotype.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-chromdraw:2.40.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in packageVersion(\"chromdraw\") : | there is no package called \u2018chromdraw\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "chromdraw",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-chromdraw:2.40.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in packageVersion(\"chromdraw\") : | there is no package called \u2018chromdraw\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "chromdraw",
+    "wf": "genomic_ranges_karyotype.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-chromdraw:2.40.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: Error: Required input file missing: genomic_ranges_object.rds | Execution halted"
+  },
+  {
+    "pkg": "spia",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in plotP(res, threshold = 0.05) : | The threshold value should be 0.999902567215445 or higher!!! | Execution halted"
+  },
+  {
+    "pkg": "meal",
+    "wf": "methylation_expression_integration.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 'aries' not found | Execution halted"
+  },
+  {
+    "pkg": "meal",
+    "wf": "regional_rda.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 'aries' not found | Execution halted"
+  },
+  {
+    "pkg": "meal",
+    "wf": "expression_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in load(\"brge_gexp\", envir = env) : | bad restore file magic number (file may be corrupted) -- no data loaded | Calls: tryCatch -> tryCatchList -> tryCatchOne -> <Anonymous> -> load"
+  },
+  {
+    "pkg": "doubletrouble",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in bed$thickStart : $ operator is invalid for atomic vectors | Calls: <Anonymous> -> <Anonymous> -> import -> import -> .local | Execution halted"
+  },
+  {
+    "pkg": "crisprscore",
+    "wf": "cas13d_on_target_scoring.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in getCasRxRFScores(mrnaSequence) : | mrnaSequence must be of length 1. | Execution halted"
+  },
+  {
+    "pkg": "crisprscore",
+    "wf": "off_target_specificity_scoring.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error: Input CSV is missing required columns: spacer, protospacer, pam | Execution halted"
+  },
+  {
+    "pkg": "crisprscore",
+    "wf": "cas12a_on_target_scoring.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 4
+  },
+  {
+    "pkg": "fishalyser",
+    "wf": "manual_threshold_and_particle_cleaning.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readJPEG(x, ...) : | JPEG decompression error: Not a JPEG file: starts with 0x67 0x65 | Calls: readImage -> .loadFun -> .readFun -> readJPEG"
+  },
+  {
+    "pkg": "phantasuslite",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in split.default(coldata$sample, coldata$condition) : | first argument must be a vector | Calls: split -> split.default"
+  },
+  {
+    "pkg": "mosclip",
+    "wf": "multi_omic_survival_pathway_analysis.nf",
+    "status": "skip_input_type",
+    "input": "multiOmicsTopo_data.RData"
+  },
+  {
+    "pkg": "mosclip",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "multiOmics_data.RData"
+  },
+  {
+    "pkg": "plsdabatch",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "ad.count.rds"
+  },
+  {
+    "pkg": "profilescoredist",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in pwmFormatCheck(motif) : | First argument must be a matrix with 4 rows, corresponding to | A, C, G, and T"
+  },
+  {
+    "pkg": "meal",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 's' not found | Execution halted"
+  },
+  {
+    "pkg": "iterativebmasurv",
+    "wf": "cross_validation.nf",
+    "status": "skip_input_type",
+    "input": "trainData.rds"
+  },
+  {
+    "pkg": "crisprscore",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-crisprscore:1.14.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in getRuleSet1Scores(input) : | Provided sequences must have length 30nt ([4nt][20nt-spacer][PAM][3nt]). | Execution halted"
+  },
+  {
+    "pkg": "spotlight",
+    "wf": "two_step_deconvolution.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Required input files 'sce.rds' and/or 'spe.rds' not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "fishalyser",
+    "wf": "automated_fish_quantification.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-fishalyser:1.44.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in transpose(y) : object is NULL | Calls: processFISH -> readImage -> transpose | In addition: Warning message:"
+  },
+  {
+    "pkg": "crisprscore",
+    "wf": "indel_frameshift_prediction.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-crisprscore:1.14.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error running getLindelScores: unused argument (condaEnv = condaEnv) | Please ensure that the conda environment at '/Users/fortin946/miniforge3/envs/lindel-env' is correctly configured with Python and Lindel dependencies. | Error in getLindelScores(input, condaEnv = condaEnv) :"
+  },
+  {
+    "pkg": "spotlight",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in gzfile(file, \"rb\") : cannot open the connection | Calls: readRDS -> gzfile | In addition: Warning message:"
+  },
+  {
+    "pkg": "fishalyser",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-fishalyser:1.44.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in packageVersion(\"fishalyser\") : | there is no package called \u2018fishalyser\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "variantannotation",
+    "wf": "genotype_to_snpmatrix.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in scanBcfHeader(bf) : [internal] _hts_rewind() failed | Calls: readVcf ... mapply -> <Anonymous> -> scanBcfHeader -> scanBcfHeader | Execution halted"
+  },
+  {
+    "pkg": "crisprscore",
+    "wf": "off_target_specificity_prediction.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-crisprscore:1.14.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error in packageVersion(\"crisprscore\") : | there is no package called \u2018crisprscore\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "variantannotation",
+    "wf": "vcf_filtering.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: unexpected symbol in \"        library(Vari        library\" | Execution halted"
+  },
+  {
+    "pkg": "iterativebmasurv",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in UseMethod(\"bic.surv\") : | no applicable method for 'bic.surv' applied to an object of class \"character\" | Calls: iterateBMAsurv.train.wrapper -> iterateBMAsurv.train -> bic.surv"
+  },
+  {
+    "pkg": "metagenomeseq",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 9,
+    "err": "Error in subjects[i] <- as.character(dat2[1, i + 1]) : | replacement has length zero | Calls: loadPhenoData"
+  },
+  {
+    "pkg": "ibbig",
+    "wf": "bicluster_comparison.nf",
+    "status": "skip_input_type",
+    "input": "res.rds"
+  },
+  {
+    "pkg": "metagenomeseq",
+    "wf": "longitudinal_time_series.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"mouseData\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "sights",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error in `$<-.data.frame`(`*tmp*`, \"Columns\", value = c(1L, 1L, 1L, 1L,  : | replacement has 384 rows, data has 16 | Calls: <Anonymous> -> plotHeatmap -> $<- -> $<-.data.frame"
+  },
+  {
+    "pkg": "iterativebmasurv",
+    "wf": "automated_survival_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in model.frame.default(formula = mySurvObj ~ trainData[, i]) : | variable lengths differ (found for 'trainData[, i]') | Calls: iterateBMAsurv.train.predict.assess ... coxph -> eval -> eval -> <Anonymous> -> model.frame.default"
+  },
+  {
+    "pkg": "geneplotter",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 1,
+    "err": "Error: C stack usage  7971428 is too close to the limit | Execution halted"
+  },
+  {
+    "pkg": "geneplotter",
+    "wf": "single_chromosome_expression_plotting.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"chrObj\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "ibbig",
+    "wf": "expression_data_preprocessing.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in library(iBBiG) : there is no package called \u2018iBBiG\u2019 | Execution halted"
+  },
+  {
+    "pkg": "ibbig",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in library(iBBiG) : there is no package called \u2018iBBiG\u2019 | Execution halted"
+  },
+  {
+    "pkg": "fithic",
+    "wf": "fithic_hicpro_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in read.table(gzfile(infilename), header = FALSE, col.names = c(\"chr\",  : | more columns than column names | Calls: FitHiC -> parse_Fragsfile -> data.table -> read.table"
+  },
+  {
+    "pkg": "precisetad",
+    "wf": "cross_cell_type_prediction.nf",
+    "status": "skip_input_type",
+    "input": "CHR22_GM12878_5kb_Peakachu.rds"
+  },
+  {
+    "pkg": "precisetad",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "arrowhead_gm12878_5kb.rds"
+  },
+  {
+    "pkg": "fithic",
+    "wf": "fithic_normalized_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : | line 1 did not have 5 elements | Calls: FitHiC ... parse_Fragsfile -> data.table -> read.table -> scan"
+  },
+  {
+    "pkg": "fithic",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : | line 1 did not have 5 elements | Calls: FitHiC ... parse_Fragsfile -> data.table -> read.table -> scan"
+  },
+  {
+    "pkg": "rawrr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RAWRR (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "widgettools",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_WIDGETTOOLS (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "scry",
+    "wf": "sce_null_residuals_pca.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: unexpected symbol in \"    suppressPackageStartupMessage      library\" | Execution halted"
+  },
+  {
+    "pkg": "scry",
+    "wf": "large_data_deviance.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(h5counts_file) : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "ssrch",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_SSRCH (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "somaticsignatures",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-somaticsignatures:2.46.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in mutationContext(sca_vr, ref_genome) : | Only SNV substitutions are currently supported. | Execution halted"
+  },
+  {
+    "pkg": "scry",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: unexpected symbol in \"    suppressPackageStartupMessage      library\" | Execution halted"
+  },
+  {
+    "pkg": "switchbox",
+    "wf": "legacy_ktsp_workflow.nf",
+    "status": "skip_input_type",
+    "input": "matTraining.rds"
+  },
+  {
+    "pkg": "msmseda",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_MSMSEDA (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "switchbox",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in read_input(\"matTraining\") : | Required input file not found in working directory: matTraining | Execution halted"
+  },
+  {
+    "pkg": "lrcell",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "example_gene_pvals.RData"
+  },
+  {
+    "pkg": "consensusclusterplus",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in cutree(this_cluster, k) : | elements of 'k' must be between 1 and 4 | Calls: ConsensusClusterPlus -> ccRun -> cutree"
+  },
+  {
+    "pkg": "consensusclusterplus",
+    "wf": "custom_distance_consensus_clustering.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 27
+  },
+  {
+    "pkg": "ropls",
+    "wf": "supervised_pls_opls.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: No common samples found between dataMatrix and sampleMetadata. | Execution halted"
+  },
+  {
+    "pkg": "regionalst",
+    "wf": "analysis_with_cell_type_labels.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-regionalst:1.8.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error in readVisium(\"path/to/spaceranger/outs/\") : | Matrix directory does not exist: | path/to/spaceranger/outs//filtered_feature_bc_matrix"
+  },
+  {
+    "pkg": "ropls",
+    "wf": "multi_assay_experiment_workflow.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Input file nci_mae.rds not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "ropls",
+    "wf": "summarized_experiment_workflow.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Input file summarized_experiment.rds not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "clusterstab",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"fibroEset\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "planet",
+    "wf": "preeclampsia_prediction.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "planet",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "In data(\"plBetas\") : data set \u2018plBetas\u2019 not found | Error in get(\"plBetas\") : object 'plBetas' not found | Execution halted"
+  },
+  {
+    "pkg": "planet",
+    "wf": "gestational_age_prediction.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in gzfile(file, \"rb\") : cannot open the connection | Calls: readRDS -> gzfile | In addition: Warning message:"
+  },
+  {
+    "pkg": "planet",
+    "wf": "ethnicity_prediction.nf",
+    "status": "fixture_failed",
+    "err": "In data(\"ethnicityCpGs\") : data set \u2018ethnicityCpGs\u2019 not found | Error in get(\"ethnicityCpGs\") : object 'ethnicityCpGs' not found | Execution halted"
+  },
+  {
+    "pkg": "mgsa",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in goa[, go.id.col] : incorrect number of dimensions | Calls: readGAF -> na.omit -> data.frame | Execution halted"
+  },
+  {
+    "pkg": "mgsa",
+    "wf": "mgsa_custom_sets.nf",
+    "status": "skip_input_type",
+    "input": "custom_sets.rds"
+  },
+  {
+    "pkg": "regionalst",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-regionalst:1.8.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in BayesSpace::readVisium(\"path/to/spaceranger/outs/\") : | Matrix directory does not exist: | path/to/spaceranger/outs//filtered_feature_bc_matrix"
+  },
+  {
+    "pkg": "variantannotation",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: unexpected symbol in \"    lib    library\" | Execution halted"
+  },
+  {
+    "pkg": "omnipathr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_OMNIPATHR (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "aggregatebiovar",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"small_airway\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "demuxmix",
+    "wf": "pooling_non_labeled_with_labeled_cells.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in matrix(csf$HTO, dimnames = list(rownames(csf), \"HTO\")) : | 'data' must be of a vector type, was 'NULL' | Calls: t -> matrix"
+  },
+  {
+    "pkg": "metabolomicsworkbenchr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: unexpected symbol in \"    library(metab    library\" | Execution halted"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "complexity_and_diversity_analysis.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 16
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "genotyping_unknown_haplotypes.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in packageVersion(\"qsutils\") : there is no package called \u2018qsutils\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "regionalst",
+    "wf": "cell_type_labels_workflow.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "quasispecies_diversity_analysis.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 5,
+    "err": "Error in data.frame(Haplotype = names(lst$nr), Original_Count = lst$nr,  : | arguments imply differing number of rows: 0, 10 | Execution halted"
+  },
+  {
+    "pkg": "alabaster_mae",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: unexpected symbol in \"    librar    library\" | Execution halted"
+  },
+  {
+    "pkg": "redseq",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
+  },
+  {
+    "pkg": "ropls",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error: 'parAsColFcVn' vector length must be equal to the number of 'x' rows | Execution halted"
+  },
+  {
+    "pkg": "rmagpie",
+    "wf": "nsc_classification.nf",
+    "status": "skip_input_type",
+    "input": "ExpressionSet.rds"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "strand_haplotype_intersection.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in packageVersion(\"qsutils\") : there is no package called \u2018qsutils\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "bioqc",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in load(file) : | bad restore file magic number (file may be corrupted) -- no data loaded | In addition: Warning message:"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "strand_intersection.nf",
+    "status": "ran_empty_output",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Duration    : 1m 15s | CPU hours   : (a few seconds) | Succeeded   : 1 | Nextflow 26.04.3 is available - Please consider updating your version to it"
+  },
+  {
+    "pkg": "readqpcr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in .readLC480txt(file = file, colNames = colNames, cycleThreshold = cycleThreshold,  : | Number of non-empty columns not equal to length of 'colNames'! | Calls: read.LC480 -> .readLC480txt"
+  },
+  {
+    "pkg": "rmagpie",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Error: ExpressionSet.rds not found in the working directory. | Execution halted"
+  },
+  {
+    "pkg": "sseq",
+    "wf": "paired_experimental_design.nf",
+    "status": "skip_input_type",
+    "input": "countsTable.rds"
+  },
+  {
+    "pkg": "sseq",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "countsTable.rds"
+  },
+  {
+    "pkg": "readqpcr",
+    "wf": "taqman_sds_loading.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in .read.TaqBatch(filenames, verbose) : | Problems with Taqman file, Summary info not found | Calls: read.taqman -> .read.TaqBatch"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "genotyping.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in .Call2(\"fasta_index\", filexp_list, nrec, skip, seek.first.rec,  : | reading FASTA file GenotypeStandards_A-H.fas: \">\" expected at beginning of line 1 | Calls: ReadAmplSeqs ... readDNAStringSet -> .read_XStringSet -> fasta.index -> .Call2"
+  },
+  {
+    "pkg": "peco",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 4,
+    "err": "Error: unexpected symbol in: | \"      } | }    library\""
+  },
+  {
+    "pkg": "demuxmix",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
+  },
+  {
+    "pkg": "basicstarrseq",
+    "wf": "peak_calling_from_granges.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-basicstarrseq:1.38.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in data.frame(nrSuccess = summits$sampleCov, nrTrials = cntSample,  : | arguments imply differing number of rows: 0, 1 | Calls: getPeaks -> getPeaks -> data.frame"
+  },
+  {
+    "pkg": "appreci8r",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in `[.data.frame`(targetRegions, , 2) : undefined columns selected | Calls: filterTarget -> [ -> [.data.frame | Execution halted"
+  },
+  {
+    "pkg": "basicstarrseq",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-basicstarrseq:1.38.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in data.frame(nrSuccess = summits$sampleCov, nrTrials = cntSample,  : | arguments imply differing number of rows: 0, 1 | Calls: getPeaks -> getPeaks -> data.frame"
+  },
+  {
+    "pkg": "camutqc",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-camutqc:1.6.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Required input file not found in working directory: Pan-cancer-hg38.rds | Execution halted"
+  },
+  {
+    "pkg": "camutqc",
+    "wf": "cancer_or_reference_specific_filtering.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-camutqc:1.6.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in strsplit(infoFrame[which(infoFrame$ID == \"CSQ\"), 4], split = \"Format: \")[[1]] : | subscript out of bounds | Calls: vcfToMAF -> vcfhelper"
+  },
+  {
+    "pkg": "degcre",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: Required input files 'subDegGR.rds' and/or 'subCreGR.rds' are missing from the working directory. | Execution halted"
+  },
+  {
+    "pkg": "ribodipa",
+    "wf": "step_by_step_pipeline.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RIBODIPA_STEP_BY_STEP_PIPELINE (1)' | Caused by: | Not a valid path value type: java.util.LinkedList ([])"
+  },
+  {
+    "pkg": "ribodipa",
+    "wf": "exon_level_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RIBODIPA_EXON_LEVEL_ANALYSIS (1)' | Caused by: | Not a valid path value type: java.util.LinkedList ([])"
+  },
+  {
+    "pkg": "seqvartools",
+    "wf": "variant_iteration.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in openfn.gds(gds.fn, readonly = readonly, allow.fork = TRUE, allow.duplicate = allow.duplicate) : | Invalid magic number! | Calls: seqOpen -> openfn.gds"
+  },
+  {
+    "pkg": "camutqc",
+    "wf": "multi_caller_integration.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-camutqc:1.6.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in strsplit(infoFrame[which(infoFrame$ID == \"CSQ\"), 4], split = \"Format: \")[[1]] : | subscript out of bounds | Calls: vcfToMAF -> vcfhelper"
+  },
+  {
+    "pkg": "genetonic",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "org.Hs.eg.db"
+  },
+  {
+    "pkg": "sparsesignatures",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "ssm560_reduced.rds"
+  },
+  {
+    "pkg": "diggit",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in gzfile(file, \"rb\") : cannot open the connection | Calls: readRDS -> gzfile | In addition: Warning message:"
+  },
+  {
+    "pkg": "hicaggr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in bed$thickStart : $ operator is invalid for atomic vectors | Calls: import -> import -> import -> import -> .local | Execution halted"
+  },
+  {
+    "pkg": "generecommender",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "geneData.rds"
+  },
+  {
+    "pkg": "randpack",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in validObject(.Object) : | invalid class \u201cPatientData\u201d object: 1: invalid object for slot \"name\" in class \"PatientData\": got class \"NULL\", should be or extend class \"character\" | invalid class \u201cPatientData\u201d object: 2: invalid object for slot \"strata\" in class \"PatientData\": got class \"NULL\", should be or extend class \"character\""
+  },
+  {
+    "pkg": "seqvartools",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-seqvartools:1.48.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in seqVCF_SampID(vcf.fn[i]) : Error VCF format: invalid sample id! | Calls: seqVCF2GDS -> seqVCF_SampID | Execution halted"
+  },
+  {
+    "pkg": "ribodipa",
+    "wf": "ribodipa_exon_level_pipeline.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ribodipa:1.18.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE (1)' | Caused by: | Not a valid path value type: java.util.LinkedList ([])"
+  },
+  {
+    "pkg": "ribodipa",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ribodipa:1.18.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE (1)' | Caused by: | Not a valid path value type: java.util.LinkedList ([])"
+  },
+  {
+    "pkg": "ribodipa",
+    "wf": "ribodipa_step_by_step_pipeline.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ribodipa:1.18.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_RIBODIPA_RIBODIPA_STEP_BY_STEP_PIPELINE (1)' | Caused by: | Not a valid path value type: java.util.LinkedList ([])"
+  },
+  {
+    "pkg": "qsutils",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 5,
+    "err": "Error in packageVersion(\"qsutils\") : there is no package called \u2018qsutils\u2019 | Calls: writeLines -> paste0 -> packageVersion | Execution halted"
+  },
+  {
+    "pkg": "seqvartools",
+    "wf": "iterative_variant_processing.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-seqvartools:1.48.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 5,
+    "err": "Error in packageVersion(\"seqvartools\") : | there is no package called \u2018seqvartools\u2019 | Calls: writeLines -> paste0 -> packageVersion"
+  },
+  {
+    "pkg": "gsgalgor",
+    "wf": "custom_callback_execution.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error: No matching samples found between expression matrix columns and survival data rows. | Execution halted"
+  },
+  {
+    "pkg": "promise",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 9,
+    "err": "Error in `$<-.data.frame`(`*tmp*`, stat.coef, value = numeric(0)) : | replacement has 0 rows, data has 300 | Calls: $<- -> $<-.data.frame"
+  },
+  {
+    "pkg": "standr",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-standr:1.14.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "^ | 1 error | -- Check script 'wrap.nf' at line: 2 or see '.nextflow.log' file for more details | Nextflow 26.04.3 is available - Please consider updating your version to it"
+  },
+  {
+    "pkg": "gdrutils",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "mae.rds"
+  },
+  {
+    "pkg": "ggtreespace",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "tree_file.nwk"
+  },
+  {
+    "pkg": "ggtreespace",
+    "wf": "annotated_phylomorphospace_heatmap.nf",
+    "status": "skip_input_type",
+    "input": "tree_file.nwk"
+  },
+  {
+    "pkg": "icheck",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in `[.data.frame`(coldata, common_samples, drop = FALSE) : | undefined columns selected | Calls: [ -> [.data.frame"
+  },
+  {
+    "pkg": "epistasisga",
+    "wf": "main.nf",
+    "status": "skip_input_type",
+    "input": "size3_res/null.mean.sd.info.rds"
+  },
+  {
+    "pkg": "gsgalgor",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in library(genefu) : there is no package called \u2018genefu\u2019 | Execution halted"
+  },
+  {
+    "pkg": "cogaps",
+    "wf": "distributed_sc_cogaps_workflow.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 3,
+    "err": "Error in checkDataMatrix(data, uncertainty, allParams$gaps) : | nPatterns must be less than dimensions of data | Calls: CoGAPS -> checkInputs -> checkDataMatrix"
+  },
+  {
+    "pkg": "cogaps",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "scdblfinder",
+    "wf": "find_doublet_clusters.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "lola",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-lola:1.40.1--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readCollectionAnnotation(dbLocation, collections) : | No collections in LOLACore/hg19. Check your path. | Calls: loadRegionDB -> readCollectionAnnotation"
+  },
+  {
+    "pkg": "scdblfinder",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "scdblfinder",
+    "wf": "compute_doublet_density.nf",
+    "status": "fixture_failed",
+    "err": "Error: Bioconductor version '3.22' requires R version '4.5'; use `version = '3.20'` | with R version 4.4; see https://bioconductor.org/install | Execution halted"
+  },
+  {
+    "pkg": "saigegds",
+    "wf": "main.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+  },
+  {
+    "pkg": "mantelcorr",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "delayeddataframe",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_DELAYEDDATAFRAME (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "shinymethyl",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in MatrixGenerics:::.load_next_suggested_package_to_search(x) : | Failed to find a colQuantiles() method for NULL objects. | Calls: shinySummarize ... .local -> t -> colQuantiles -> colQuantiles -> <Anonymous>"
+  },
+  {
+    "pkg": "zfpkm",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: object 'ries' not found | Execution halted"
+  },
+  {
+    "pkg": "bcrank",
+    "wf": "main.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-bcrank:1.72.0--r45h01b2380_0",
+    "declared_out": 3,
+    "produced": 2,
+    "err": "Error in pwm(topMotif, normalize = FALSE) : | unused argument (normalize = FALSE) | Execution halted"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Reading file arabidopsis_bsseeker.txt.gz ...Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : | line 1 did not have 8 elements | Calls: importBSSeeker ... tryCatchList -> tryCatchOne -> <Anonymous> -> <Anonymous> -> scan"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "individual_cytosines_interacting_context.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Reading file bsseeker_file.txt.gz ...Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : | line 1 did not have 8 elements | Calls: importBSSeeker ... tryCatchList -> tryCatchOne -> <Anonymous> -> <Anonymous> -> scan"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "binned_methylation_calling.nf",
+    "status": "ran_empty_output",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "[f1/91ea49] BIO\u2026THYLATION_CALLING (sample) | 0 of 1 | executor >  local (1) | [f1/91ea49] BIO\u2026THYLATION_CALLING (sample) | 1 of 1 \u2714 | Nextflow 26.04.3 is available - Please consider updating your version to it"
+  },
+  {
+    "pkg": "fgga",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in load_input(\"dxCf\") : Required input file not found for: dxCf | Execution halted"
+  },
+  {
+    "pkg": "iseehex",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "ERROR ~ Error executing process > 'BIOC_ISEEHEX (1)' | Caused by: | Path value cannot be null"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "interacting_context_calling.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0",
+    "declared_out": 3,
+    "produced": 10
+  },
+  {
+    "pkg": "ldblock",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in names(lddf) <- c(\"pos1\", \"pos2\", \"pop\", \"rs1\", \"rs2\", \"Dprime\",  : | 'names' attribute [9] must be the same length as the vector [1] | Calls: hmld"
+  },
+  {
+    "pkg": "methimpute",
+    "wf": "enrichment_analysis.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in readRDS(\"model\") : unknown input format | Execution halted"
+  },
+  {
+    "pkg": "clumsid",
+    "wf": "lc_ms_ms_external_peaklist.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in mzR::openMSfile(MSfile, backend = \"pwiz\") : | File file1.mzML not found | Calls: extractMS2spectra -> <Anonymous>"
+  },
+  {
+    "pkg": "easyrnaseq",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "spiky",
+    "wf": "cfmedip_analysis_bedpe.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error: TabixFile: file(s) do not exist: | \u2018genomic_bedpe.bed.gz.tbi\u2019 | Execution halted"
+  },
+  {
+    "pkg": "clumsid",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": "Error: package or namespace load failed for \u2018CluMSID\u2019 in dyn.load(file, DLLpath = DLLpath, ...): | unable to load shared object '/rlib/dbscan/libs/dbscan.so': | /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by /rlib/dbscan/libs/dbscan.so)"
+  },
+  {
+    "pkg": "clumsid",
+    "wf": "lc_ms2_lowres.nf",
+    "status": "fixture_failed",
+    "err": "Error: package or namespace load failed for \u2018CluMSID\u2019 in dyn.load(file, DLLpath = DLLpath, ...): | unable to load shared object '/rlib/dbscan/libs/dbscan.so': | /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by /rlib/dbscan/libs/dbscan.so)"
+  },
+  {
+    "pkg": "spiky",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "quay.io/biocontainers/bioconductor-spiky:1.16.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 12
+  },
+  {
+    "pkg": "vbmp",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "(empty) | Command error: | .command.run: line 107: t: unbound variable"
+  },
+  {
+    "pkg": "ledpred",
+    "wf": "main.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ledpred:1.44.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in mapFeaturesToCRMs(URL = \"http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php\",  : | This URL does not exist. | Execution halted"
+  },
+  {
+    "pkg": "ledpred",
+    "wf": "all_in_one_svm_prediction.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-ledpred:1.44.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in mapFeaturesToCRMs(URL = \"http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php\",  : | This URL does not exist. | Execution halted"
+  },
+  {
+    "pkg": "crisprvariants",
+    "wf": "main.nf",
+    "status": "fixture_failed",
+    "err": ""
+  },
+  {
+    "pkg": "sigfeature",
+    "wf": "main.nf",
+    "status": "ok",
+    "rc": 0,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 26
+  },
+  {
+    "pkg": "clumsid",
+    "wf": "lc_ms2_multi_file_external_peaks.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "quay.io/biocontainers/bioconductor-clumsid:1.26.0--r45hdfd78af_0",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in mzR::openMSfile(MSfile, backend = \"pwiz\") : | File YH1_GA7_01_10463.mzML not found | Calls: extractMS2spectra -> <Anonymous>"
+  },
+  {
+    "pkg": "sigfeature",
+    "wf": "cross_validation_and_frequency_profiling.nf",
+    "status": "ok_warnings",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20",
+    "declared_out": 3,
+    "produced": 6,
+    "err": "Error in t.test.default(clsA[, i], clsB[, i]) : | not enough 'x' observations | Calls: sigFeature.enfold ... sigFeature -> lapply -> FUN -> t.test -> t.test.default"
+  },
+  {
+    "pkg": "ledpred",
+    "wf": "all_in_one_ledpred.nf",
+    "status": "exec_error",
+    "rc": 1,
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20",
+    "declared_out": 3,
+    "produced": 0,
+    "err": "Error in data[, -cl] : incorrect number of dimensions | Calls: LedPred | Execution halted"
+  },
+  {
+    "pkg": "vbmp",
+    "wf": "high_dimensional_cross_validation.nf",
+    "status": "timeout",
+    "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
+  },
+  {
+    "pkg": "clumsid",
+    "wf": "gc_ei_ms_lowres.nf",
+    "status": "timeout",
+    "image": "quay.io/biocontainers/bioconductor-clumsid:1.26.0--r45hdfd78af_0"
+  }
+]

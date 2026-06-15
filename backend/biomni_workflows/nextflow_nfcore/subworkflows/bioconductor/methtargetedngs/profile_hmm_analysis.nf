@@ -68,7 +68,7 @@ process BIOC_METHTARGETEDNGS_PROFILE_HMM_ANALYSIS {
     msa <- "msa.fasta"
     tumor <- "Tumor.fasta"
     
-    # Step 1: Build Profile HMM using hmmbuild (if the external HMMER binary is available)
+    # --- Build Profile HMM using hmmbuild (if the external HMMER ---
     if (file.exists("/usr/bin/hmmbuild")) {
       message("Building Profile HMM from MSA...")
       hmmbuild(file_seq=msa, file_out="hmm", pathHMMER = "/usr/bin/")
@@ -77,7 +77,7 @@ process BIOC_METHTARGETEDNGS_PROFILE_HMM_ANALYSIS {
       warning("HMMER binary '/usr/bin/hmmbuild' not found. Skipping HMM construction.")
     }
     
-    # Step 2: Calculate sequence likelihoods against the HMM using nhmmer
+    # --- Calculate sequence likelihoods against the HMM using ---
     if (file.exists("/usr/bin/nhmmer")) {
       if (file.exists("hmm")) {
         message("Calculating sequence likelihoods against the HMM...")

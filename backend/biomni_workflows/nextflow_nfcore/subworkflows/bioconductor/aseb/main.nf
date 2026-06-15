@@ -67,13 +67,13 @@ process BIOC_ASEB_SITE_SPECIFIC_PREDICTION {
       }
     }
     
-    # 1. Load sequences using readSequence
+    # --- Load sequences using readSequence ---
     message("Loading sequences...")
     backgroundSites <- readSequence(background_file)
     prodefinedSites <- readSequence(predefined_file)
     testSites       <- readSequence(test_file)
     
-    # 2. Run site-specific prediction using asebSites
+    # --- Run site-specific prediction using asebSites ---
     message("Running site-specific prediction (asebSites)...")
     resultList <- asebSites(backgroundSites, prodefinedSites, testSites, permutationTimes=100)
     
@@ -84,7 +84,7 @@ process BIOC_ASEB_SITE_SPECIFIC_PREDICTION {
     # Save the complete result list object as an RDS file for downstream analysis
     saveRDS(resultList, file = "aseb_results.rds")
     
-    # 3. Draw enrichment score curves using drawEScurve and save to a PDF file
+    # --- Draw enrichment score curves using drawEScurve and save ---
     message("Generating enrichment score curve plots...")
     pdf("enrichment_score_curves.pdf", width = 8, height = 6)
     tryCatch({

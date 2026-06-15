@@ -70,11 +70,11 @@ process BIOC_MADSEQ_MOSAIC_ANEUPLOIDY_DETECTION {
       stop(paste("Required VCF file not found in working directory:", vcf_file))
     }
     
-    # Step 1: Prepare coverage bins
+    # --- Prepare coverage bins ---
     message("Preparing coverage bins...")
     md <- prepareCoverageBin(bam_file = bam_file, bin_size = 100000, genome = "hg19")
     
-    # Step 2: Run the mosaic aneuploidy detection model
+    # --- Run the mosaic aneuploidy detection model ---
     message("Running MadSeq model...")
     res <- runMadSeq(
       bam_file = bam_file,
@@ -93,13 +93,13 @@ process BIOC_MADSEQ_MOSAIC_ANEUPLOIDY_DETECTION {
     show(res)
     sink()
     
-    # Step 3: Plot the posterior distribution of the mosaic fraction
+    # --- Plot the posterior distribution of the mosaic fraction ---
     message("Generating fraction plot...")
     pdf("plot_fraction.pdf", width = 7, height = 5)
     plotFraction(res)
     dev.off()
     
-    # Step 4: Plot the coverage and BAF data with the model fit
+    # --- Plot the coverage and BAF data with the model fit ---
     message("Generating MadSeq plot...")
     pdf("plot_madseq.pdf", width = 10, height = 7)
     plotMadSeq(res)

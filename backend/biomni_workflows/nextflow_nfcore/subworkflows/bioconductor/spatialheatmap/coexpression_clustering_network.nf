@@ -63,26 +63,26 @@ process BIOC_SPATIALHEATMAP_COEXPRESSION_CLUSTERING_NETWORK {
     }
     se.fil.mus <- readRDS(input_file)
     
-    # Stage 1: Identify biomolecules with similar profiles to a query gene using submatrix
+    # --- Identify biomolecules with similar profiles to a query ---
     sub.mat <- submatrix(data=se.fil.mus, ID='Kif5c', p=0.15)
     saveRDS(sub.mat, "submatrix_results.rds")
     write.csv(as.matrix(assay(sub.mat)), "submatrix_assay.csv", row.names = TRUE)
     
-    # Stage 2: Perform hierarchical clustering and plot a matrix heatmap using matrix_hm
+    # --- Perform hierarchical clustering and plot a matrix heatmap ---
     pdf("matrix_heatmap.pdf", width = 10, height = 10)
     res.hc <- matrix_hm(ID=c('Kif5c'), data=sub.mat, angleCol=60, angleRow=60, cexRow=0.8, cexCol=0.8, margin=c(10, 6), static=TRUE, arg.lis1=list(offsetRow=0.01, offsetCol=0.01))
     dev.off()
     saveRDS(res.hc, "matrix_hm_results.rds")
     
-    # Stage 3: Extract specific clusters from the dendrogram using cut_dendro
+    # --- Extract specific clusters from the dendrogram using ---
     cut.genes <- cut_dendro(res.hc\$rowDendrogram, h=15, 'Kif5c')
     writeLines(cut.genes, "dendrogram_cut_genes.txt")
     
-    # Stage 4: Construct an adjacency matrix and identify network modules using adj_mod
+    # --- Construct an adjacency matrix and identify network ---
     adj.mod <- adj_mod(data=sub.mat)
     saveRDS(adj.mod, "adjacency_modules.rds")
     
-    # Stage 5: Visualize the co-expression network module using network
+    # --- Visualize the co-expression network module using network ---
     pdf("coexpression_network.pdf", width = 10, height = 10)
     network(ID="Kif5c", data=sub.mat, adj.mod=adj.mod, adj.min=0, vertex.label.cex=1.2, vertex.cex=3, edge.cex=3, mar.key=c(3, 10, 1, 10), static=TRUE)
     dev.off()

@@ -56,7 +56,7 @@ process BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING {
     library(msa)
     library(Biostrings)
     
-    # 1. Read sequences using Biostrings from the working directory
+    # --- Read sequences using Biostrings from the working directory ---
     mySequenceFile <- "exampleAA.fasta"
     if (!file.exists(mySequenceFile)) {
       stop(paste("Required input file", mySequenceFile, "not found in the working directory."))
@@ -65,17 +65,17 @@ process BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING {
     mySequences <- readAAStringSet(mySequenceFile)
     mySequences
     
-    # 2. Perform multiple sequence alignment using msa
+    # --- Perform multiple sequence alignment using msa ---
     myFirstAlignment <- msa(mySequences)
     myFirstAlignment
     
     # Save the alignment object as an RDS file for downstream analysis
     saveRDS(myFirstAlignment, file = "myFirstAlignment.rds")
     
-    # 3. Print the complete alignment to the console
+    # --- Print the complete alignment to the console ---
     print(myFirstAlignment, show="complete")
     
-    # 4. Generate a pretty-printed PDF visualization using msaPrettyPrint
+    # --- Generate a pretty-printed PDF visualization using ---
     # Wrapped in tryCatch because msaPrettyPrint requires a local LaTeX installation with texshade.sty
     tryCatch({
       msaPrettyPrint(myFirstAlignment, output="pdf", showNames="none", showLogo="none", askForOverwrite=FALSE, verbose=FALSE)

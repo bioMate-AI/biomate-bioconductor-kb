@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
+import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 import { ChatInput } from "./chat-input"
@@ -665,9 +666,35 @@ export function ChatInterface({
   const chatMutation = useMutation({
     mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
       const session = chatHistoryService.getSession(sessionId)
-      const previousMessages = (session?.messages || [])
+      // Thread the active project id (if any) into chat-stream context.
+      // Server policy: null/missing → chat stays project-less; non-null
+      // → chat becomes project-scoped and cross-session recovery
+      // (within the same project) is in scope. See
+      // docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const _activeProjectId = (() => {
+        try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
+        catch { return null }
+      })()
+      // Build the history payload. See:
+      //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
+      //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md
+      // Previously `.slice(-4)` — dropped early `[Galaxy dataset: ...]`
+      // attachment lines after 2 turns, so the LLM kept asking for files
+      // the user had already attached. Now: include the last 8 turns plus
+      // any earlier message carrying a dataset/attachment block. The
+      // server then runs selectChatHistoryUnderBudget over this payload
+      // (≤16 KB cap, dataset blocks verbatim, long assistant replies
+      // head/tail-clipped) — that's the authoritative budget. Keep the
+      // client payload modest so we don't pay for redundant network
+      // transfer of content the server will discard anyway.
+      const _DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:/i
+      const _allMsgs = (session?.messages || [])
         .filter((m) => (m.role === "user" || m.role === "assistant") && !!m.content?.trim())
-        .slice(-4)
+      const _recent = _allMsgs.slice(-8)
+      const _earlierAttachments = _allMsgs
+        .slice(0, Math.max(0, _allMsgs.length - 8))
+        .filter((m) => _DATASET_BLOCK_RE.test(m.content || ""))
+      const previousMessages = [..._earlierAttachments, ..._recent]
         .map((m) => ({ role: m.role, content: m.content }))
       abortControllerRef.current = new AbortController()
       const response = await fetch('/api/chat/stream', {
@@ -686,6 +713,7 @@ export function ChatInterface({
             // The server UPSERTs by assistantMessageId so client + server writes
             // are idempotent (no duplicate messages).
             ...(sessionId && { memorySessionId: sessionId, sessionId }),
+            ...(_activeProjectId && { projectId: _activeProjectId }),
             assistantMessageId: placeholderId,
           }
         })
@@ -744,6 +772,14 @@ export function ChatInterface({
               updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
             } else if (eventName === 'tool_event') {
               const event = payload as AgentToolEvent
+              // 'status' events are observability-only (e.g. schema-grounded
+              // extraction stage progress) — they share the SSE 'tool_event'
+              // channel but should NOT render as tool calls in the chat UI.
+              // Skip without registering a tool block.
+              if (event.type === 'status') {
+                // Future: surface in a dedicated status strip / timeline.
+                break
+              }
               const id = event.tool_use_id
               if (!toolBlocksMap.has(id)) {
                 toolBlocksMap.set(id, { tool_use_id: id, name: event.name })
@@ -1773,67 +1809,89 @@ export function ChatInterface({
           <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
         )}
         <div className="space-y-4">
-          {displayMessages
-            .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
-            .map((message) => (
-            <div key={message.id}>
-              <ChatMessage
-                message={message}
-                sessionId={chatSession?.id}
-                onToolClick={handleToolClick}
-                onDatasetClick={handleDatasetClick}
-                onCreateWorkflow={() => {
-                  if (message.metadata?.workflow) {
-                    onWorkflowGenerated(message.metadata.workflow);
+          {(() => {
+            const visible = displayMessages.filter(
+              msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal))
+            )
+            // Render a single message exactly as before (used for un-folded
+            // singles AND for the "latest" line of a folded group AND inside
+            // the expanded hidden block).
+            const renderOne = (message: Message) => (
+              <div key={message.id}>
+                <ChatMessage
+                  message={message}
+                  sessionId={chatSession?.id}
+                  onToolClick={handleToolClick}
+                  onDatasetClick={handleDatasetClick}
+                  onCreateWorkflow={() => {
+                    if (message.metadata?.workflow) {
+                      onWorkflowGenerated(message.metadata.workflow);
+                    }
+                  }}
+                  // Workflow execution props for inline artifacts
+                  onRunWorkflow={onRunWorkflow}
+                  onRunChain={onRunChain}
+                  onRunPipeline={onRunPipeline}
+                  onApprovePipelineStep={onApprovePipelineStep}
+                  onStopWorkflow={onStopWorkflow}
+                  onPauseWorkflow={onPauseWorkflow}
+                  onResumeWorkflow={onResumeWorkflow}
+                  onParameterChange={onParameterChange}
+                  onSuggestionClick={handleSuggestionClick}
+                  onWorkflowProgress={handleWorkflowProgress}
+                  isWorkflowRunning={isWorkflowRunning}
+                  workflowProgress={workflowProgress}
+                  currentExecutionRun={currentExecutionRun}
+                  isLatestAssistantMessage={message.id === latestAssistantMessageId}
+                  isRunAnchorFocused={focusedAnchorMessageId === message.id}
+                  isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
+                  isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+                  onOpenInPanel={
+                    message.metadata?.type === 'workflow' && message.metadata?.workflow
+                      ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
+                      : undefined
                   }
-                }}
-                // Workflow execution props for inline artifacts
-                onRunWorkflow={onRunWorkflow}
-                onRunChain={onRunChain}
-                onRunPipeline={onRunPipeline}
-                onApprovePipelineStep={onApprovePipelineStep}
-                onStopWorkflow={onStopWorkflow}
-                onPauseWorkflow={onPauseWorkflow}
-                onResumeWorkflow={onResumeWorkflow}
-                onParameterChange={onParameterChange}
-                onSuggestionClick={handleSuggestionClick}
-                onWorkflowProgress={handleWorkflowProgress}
-                isWorkflowRunning={isWorkflowRunning}
-                workflowProgress={workflowProgress}
-                currentExecutionRun={currentExecutionRun}
-                isLatestAssistantMessage={message.id === latestAssistantMessageId}
-                isRunAnchorFocused={focusedAnchorMessageId === message.id}
-                isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-                isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
-                onOpenInPanel={
-                  message.metadata?.type === 'workflow' && message.metadata?.workflow
-                    ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
-                    : undefined
-                }
-              />
-              {/* Inline file analysis cards — shown below user messages after async analysis */}
-              {message.role === 'user' && fileAnalysisMap[message.id] && (
-                <div className="ml-10 mt-1 space-y-1">
-                  {fileAnalysisMap[message.id].map((result, i) => (
-                    <DataAnalysisCard key={i} result={result} />
-                  ))}
-                </div>
-              )}
-              {/* FindingsCard — shown below completed workflow messages */}
-              {message.role === 'assistant' &&
-                message.metadata?.type === 'workflow' &&
-                currentExecutionRun?.id &&
-                (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
-                message.id === latestAssistantMessageId && (
-                <div className="ml-10 mt-1">
-                  <FindingsCard
-                    runId={currentExecutionRun.id}
-                    onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                />
+                {/* Inline file analysis cards — shown below user messages after async analysis */}
+                {message.role === 'user' && fileAnalysisMap[message.id] && (
+                  <div className="ml-10 mt-1 space-y-1">
+                    {fileAnalysisMap[message.id].map((result, i) => (
+                      <DataAnalysisCard key={i} result={result} />
+                    ))}
+                  </div>
+                )}
+                {/* FindingsCard — shown below completed workflow messages */}
+                {message.role === 'assistant' &&
+                  message.metadata?.type === 'workflow' &&
+                  currentExecutionRun?.id &&
+                  (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
+                  message.id === latestAssistantMessageId && (
+                  <div className="ml-10 mt-1">
+                    <FindingsCard
+                      runId={currentExecutionRun.id}
+                      onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+            // Collapse consecutive same-speaker progress runs (wf/qc/loop/plan)
+            // into a caret-able "WF — N updates" summary; agent/find never fold.
+            const groups = groupProgressMessages(visible, 2)
+            return groups.map((g) => {
+              if (g.kind === 'single') return renderOne(g.message)
+              return (
+                <div key={g.key}>
+                  <FoldedProgressGroup
+                    speaker={g.speaker}
+                    hidden={g.hidden}
+                    renderMessage={renderOne}
                   />
+                  {renderOne(g.latest)}
                 </div>
-              )}
-            </div>
-          ))}
+              )
+            })
+          })()}
           {displayTyping && <TypingIndicator phase={showWorkflowCue ? 'workflow' : workflowGeneratingPhase} />}
           {/* Auto-scroll anchor */}
           <div ref={messagesEndRef} />
@@ -1979,6 +2037,10 @@ export function ChatInterface({
           isStreaming={displayTyping}
           onStop={stopStreaming}
           onRegisterSetDraft={onRegisterSetDraft}
+          /* Surface session-wide attached-dataset count so the
+             X / MAX_DATASET_REFS indicator in the input strip reflects
+             the server-side cap (frontend/server/dataset-cap.ts). */
+          sessionDatasetCount={chatSession?.datasets?.length ?? 0}
         />
       </div>
       {/* chat-analysis-status kept for E2E selectors but visually hidden — TypingIndicator in message list handles the visual */}
@@ -1999,6 +2061,11 @@ export function ChatInterface({
         isCompressing={isCompressing}
         onCompress={handleCompress}
         onCancel={handleCancelCompression}
+        onStartNewChat={() => {
+          setShowCompressionDialog(false)
+          const newSession = chatHistoryService.createNewSession()
+          if (newSession && onChatUpdated) onChatUpdated(newSession)
+        }}
       />
     </div>
   )

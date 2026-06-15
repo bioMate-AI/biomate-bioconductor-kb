@@ -34,7 +34,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("AnnotationDbi", "dplyr", "ggplot2", "gridExtra", "proActiv", "Rtsne")
+    .bm_deps <- c("AnnotationDbi", "dplyr", "ggplot2", "gridExtra", "proActiv", "Rtsne", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     
     # Load required libraries
     library(proActiv)
+    library(SummarizedExperiment)
     library(AnnotationDbi)
     library(ggplot2)
     library(dplyr)
@@ -63,7 +64,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     message("Starting proActiv alternative promoter analysis pipeline...")
     
     # ==========================================
-    # 1. Prepare Promoter Annotations
+    # --- Prepare Promoter Annotations ---
     # ==========================================
     
     # Search for GTF or TxDb files in the current working directory
@@ -91,7 +92,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     }
     
     # ==========================================
-    # 2. Quantify Promoter Activity
+    # --- Quantify Promoter Activity ---
     # ==========================================
     
     # Search for STAR/TopHat2 junction files or BAM files in the working directory
@@ -130,7 +131,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     saveRDS(result, "proactiv_raw_result.rds")
     
     # ==========================================
-    # 3. Filter Single-Exon Transcripts
+    # --- Filter Single-Exon Transcripts ---
     # ==========================================
     message("Filtering out single-exon transcripts/promoters with NA counts...")
     result <- result[complete.cases(assays(result)\$promoterCounts),]
@@ -139,7 +140,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     saveRDS(result, "proactiv_filtered_result.rds")
     
     # ==========================================
-    # 4. Identify Alternative Promoters
+    # --- Identify Alternative Promoters ---
     # ==========================================
     referenceCondition <- unique(condition)[1]
     message("Identifying alternative promoters using reference condition: ", referenceCondition)
@@ -163,7 +164,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     }
     
     # ==========================================
-    # 5. Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating visualization plots...")
     

@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read the VCF file. 2. Convert called genotypes (GT) to a SnpMatrix using genotypeToSnpMatrix. 3. Convert genotype likelihoods (GL)
+//  * 1. [Input & Preparation] Read the VCF file with GT calls from the working directory
+//  * 2. [Input & Preparation] Convert called genotypes (GT) to a SnpMatrix
+//  * 3. [Input & Preparation] Read the VCF file with GL likelihoods from the working
+//  * 4. [Input & Preparation] Convert genotype likelihoods (GL) to a SnpMatrix using
 
 nextflow.enable.dsl = 2
 
@@ -57,11 +60,11 @@ process BIOC_VARIANTANNOTATION_GENOTYPE_TO_SNPMATRIX {
         
     library(VariantAnnotation)
     
-    # 1. Read the VCF file with GT calls from the working directory
+    # --- Read the VCF file with GT calls from the working directory ---
     fl <- "chr22.vcf.gz"
     vcf <- readVcf(fl, "hg19")
     
-    # 2. Convert called genotypes (GT) to a SnpMatrix
+    # --- Convert called genotypes (GT) to a SnpMatrix ---
     res <- genotypeToSnpMatrix(vcf)
     
     # Save the GT results
@@ -71,11 +74,11 @@ process BIOC_VARIANTANNOTATION_GENOTYPE_TO_SNPMATRIX {
     gt_map\$allele.2 <- vapply(as.list(res\$map\$allele.2), function(x) paste(as.character(x), collapse=","), character(1))
     write.csv(gt_map, "gt_map.csv", row.names=TRUE)
     
-    # 3. Read the VCF file with GL likelihoods from the working directory
+    # --- Read the VCF file with GL likelihoods from the working ---
     fl.gl <- "gl_chr1.vcf"
     vcf.gl <- readVcf(fl.gl, "hg19")
     
-    # 4. Convert genotype likelihoods (GL) to a SnpMatrix using uncertain=TRUE
+    # --- Convert genotype likelihoods (GL) to a SnpMatrix using ---
     res <- genotypeToSnpMatrix(vcf.gl, uncertain=TRUE)
     
     # Save the GL results

@@ -52,22 +52,22 @@ process BIOC_PREBS_MANUFACTURER_CDF_EXPRESSION {
       }
     }
     
-    # 1. Load the prebs and prebsdata libraries
+    # --- Load the prebs and prebsdata libraries ---
     library(prebs)
     library(prebsdata)
     library(Biobase)
     
-    # 2. Define paths to BAM files and the manufacturer's CDF mapping file
+    # --- Define paths to BAM files and the manufacturer's CDF ---
     bam_file1 <- "input1.bam"
     bam_file2 <- "input2.bam"
     bam_files <- c(bam_file1, bam_file2)
     manufacturer_cdf_mapping <- "HGU133Plus2_mapping.txt"
     
-    # 3. Run calc_prebs specifying the manufacturer's mapping file and the CDF package name
+    # --- Run calc_prebs specifying the manufacturer's mapping file ---
     prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping, 
                                cdf_name="hgu133plus2cdf")
     
-    # 4. Extract and view the probe set expression matrix using exprs()
+    # --- Extract and view the probe set expression matrix using ---
     expression_matrix <- exprs(prebs_values)
     print(head(expression_matrix))
     

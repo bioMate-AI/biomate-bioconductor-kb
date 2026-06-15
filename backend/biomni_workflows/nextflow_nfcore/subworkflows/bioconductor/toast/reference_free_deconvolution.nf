@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Select the most variable features using findRefinx(). 2. Subset the bulk data to the selected features. 3. Perform reference-free 
+//  * 1. [Core Analysis] Select the most variable features using findRefinx()
+//  * 2. [Core Analysis] Subset the bulk data to the selected features
+//  * 3. [Core Analysis] Perform reference-free deconvolution
+//  * 4. [Core Analysis] Align estimated cell types to a reference (if available)
 
 nextflow.enable.dsl = 2
 
@@ -113,19 +116,19 @@ process BIOC_TOAST_REFERENCE_FREE_DECONVOLUTION {
     # 2. WORKFLOW: REFERENCE-FREE DECONVOLUTION
     # ==========================================
     
-    # Stage 1: Select the most variable features using findRefinx()
+    # --- Select the most variable features using findRefinx() ---
     nmarker_val <- min(1000, nrow(Y_raw))
     refinx <- findRefinx(Y_raw, nmarker = nmarker_val)
     
-    # Stage 2: Subset the bulk data to the selected features
+    # --- Subset the bulk data to the selected features ---
     Y <- Y_raw[refinx,]
     
-    # Stage 3: Perform reference-free deconvolution
+    # --- Perform reference-free deconvolution ---
     # 3a. Standard reference-free deconvolution using myRefFreeCellMix()
     outT <- myRefFreeCellMix(Y, mu0=myRefFreeCellMixInitialize(Y, K = K))
     estProp_RF <- outT\$Omega
     
-    # Stage 4: Align estimated cell types to a reference (if available) using assignCellType()
+    # --- Align estimated cell types to a reference (if available) ---
     if (!is.null(estProp_RB)) {
       estProp_RF <- assignCellType(input=estProp_RF, reference=estProp_RB)
     } else {

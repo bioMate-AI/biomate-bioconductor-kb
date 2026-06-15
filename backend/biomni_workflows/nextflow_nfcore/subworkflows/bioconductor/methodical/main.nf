@@ -35,6 +35,15 @@ process BIOC_METHODICAL_METHODICAL_METHYLATION_EXPRESSION_ASSOCIATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("methodical", "GenomicRanges", "bsseq", "ggplot2", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,13 +53,14 @@ process BIOC_METHODICAL_METHODICAL_METHYLATION_EXPRESSION_ASSOCIATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
+    library(SummarizedExperiment)
     library(methodical)
     library(GenomicRanges)
     library(bsseq)
     library(ggplot2)
     
-    # Stage 2: Read and preprocess expression data
+    # --- Read and preprocess expression data ---
     message("Reading expression data...")
     counts <- read.csv("counts.csv", check.names = FALSE)
     coldata <- read.csv("coldata.csv", check.names = FALSE)
@@ -80,7 +90,7 @@ process BIOC_METHODICAL_METHODICAL_METHYLATION_EXPRESSION_ASSOCIATION {
       colData = DataFrame(coldata)
     )
     
-    # Stage 3: Generate matching mock DNA methylation data
+    # --- Generate matching mock DNA methylation data ---
     # To run methodical, we need DNA methylation data matching the samples.
     # We generate 5 CpG sites per gene within 5000 bp of the TSS.
     message("Generating matching DNA methylation data...")
@@ -129,7 +139,7 @@ process BIOC_METHODICAL_METHODICAL_METHYLATION_EXPRESSION_ASSOCIATION {
       colData = DataFrame(coldata)
     )
     
-    # Stage 4: Calculate correlations between methylation and expression
+    # --- Calculate correlations between methylation and expression ---
     message("Calculating correlations...")
     cor_res <- tryCatch({
       calculateCorrelations(
@@ -181,7 +191,7 @@ process BIOC_METHODICAL_METHODICAL_METHYLATION_EXPRESSION_ASSOCIATION {
     write.csv(cor_df, "correlations.csv", row.names = FALSE)
     message("Saved correlations to correlations.csv")
     
-    # Stage 5: Identify consistently associated genomic regions
+    # --- Identify consistently associated genomic regions ---
     message("Identifying associated regions...")
     regions_res <- tryCatch({
       findRegions(
@@ -211,7 +221,7 @@ process BIOC_METHODICAL_METHODICAL_METHYLATION_EXPRESSION_ASSOCIATION {
     write.csv(regions_df, "associated_regions.csv", row.names = FALSE)
     message("Saved associated regions to associated_regions.csv")
     
-    # Stage 6: Visualize the association around TSS
+    # --- Visualize the association around TSS ---
     message("Generating TSS association plot...")
     p <- tryCatch({
       # Try plotting with a specific gene first

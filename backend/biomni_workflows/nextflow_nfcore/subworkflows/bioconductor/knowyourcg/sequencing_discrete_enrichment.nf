@@ -59,7 +59,7 @@ process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {
     ref_cr <- "cpg_nocontig.cr"
     out_file <- "input_cpgs.cg"
     
-    # 1. Convert BED file to YAME-compressed binary vector ('.cg', format 'b').
+    # --- Convert BED file to YAME-compressed binary vector ('.cg', ---
     # NOTE: the bedToCg() convenience wrapper is only available in newer knowYourCG
     # releases; this container ships an earlier version where it does not exist.
     # We therefore run the documented underlying pipeline directly (the same commands
@@ -94,7 +94,7 @@ process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {
     # Set the query to the generated YAME file
     query <- out_file
     
-    # 2. Run enrichment testing using testEnrichment()
+    # --- Run enrichment testing using testEnrichment() ---
     res <- NULL
     tryCatch({
       res = testEnrichment(query, knowledgebase)
@@ -102,7 +102,7 @@ process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {
       message("Error running testEnrichment: ", e\$message)
     })
     
-    # 3. Plot results using KYCG_plotDot() and save outputs
+    # --- Plot results using KYCG_plotDot() and save outputs ---
     if (!is.null(res)) {
       # Save tabular results
       write.csv(res, "enrichment_results.csv", row.names = FALSE)

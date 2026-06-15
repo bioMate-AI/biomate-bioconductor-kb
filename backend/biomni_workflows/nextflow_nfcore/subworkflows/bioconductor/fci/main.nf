@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Normalize data (optional, e.g., total library size or trimmed sum normalization); 2. Initialize NPCI object; 3. Find DEGs using co
+//  * 1. [Visualization & Output] Normalize data
+//  * 2. [Visualization & Output] Initialize NPCI object and find targets using control and
+//  * 3. [Visualization & Output] Extract and display identified DEGs
+//  * 4. [Visualization & Output] Plot kernel density distributions to a PDF file
+//  * 5. [Visualization & Output] Find targets with a subset of samples
+//  * 6. [Visualization & Output] Alternative shortcut function to find DEGs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_FCI_SINGLE_OMIC_DEG_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("fCI")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -77,17 +91,17 @@ process BIOC_FCI_SINGLE_OMIC_DEG_ANALYSIS {
     })
     fci.data <- as.data.frame(fci.data)
     
-    # 1. Normalize data
+    # --- Normalize data ---
     fci.data = total.library.size.normalization(fci.data)
     
     # Save the normalized data frame
     write.csv(fci.data, "normalized_fci_data.csv", row.names = TRUE)
     
-    # 2. Initialize NPCI object and find targets using control and case column indices
+    # --- Initialize NPCI object and find targets using control and ---
     fci = new("NPCI")
     fci = find.fci.targets(fci, c(1,2,3), c(4,5,6), fci.data)
     
-    # 3. Extract and display identified DEGs
+    # --- Extract and display identified DEGs ---
     Diff.Expr.Genes = show.targets(fci)
     print("Differentially Expressed Genes (Full Set):")
     print(head(Diff.Expr.Genes))
@@ -100,12 +114,12 @@ process BIOC_FCI_SINGLE_OMIC_DEG_ANALYSIS {
     # Save the NPCI object
     saveRDS(fci, "fci_object.rds")
     
-    # 4. Plot kernel density distributions to a PDF file
+    # --- Plot kernel density distributions to a PDF file ---
     pdf("fci_kernel_density_plots.pdf")
     figures(fci)
     dev.off()
     
-    # 5. Find targets with a subset of samples
+    # --- Find targets with a subset of samples ---
     fci = find.fci.targets(fci, c(1,2), 5, fci.data)
     Diff.Expr.Genes_subset = show.targets(fci)
     print("Differentially Expressed Genes (Subset):")
@@ -115,7 +129,7 @@ process BIOC_FCI_SINGLE_OMIC_DEG_ANALYSIS {
       write.csv(Diff.Expr.Genes_subset, "Diff_Expr_Genes_subset.csv", row.names = FALSE)
     }
     
-    # 6. Alternative shortcut function to find DEGs
+    # --- Alternative shortcut function to find DEGs ---
     Diff.Expr.Genes = fCI.call.by.index(c(1,2,3), c(4,5,6), filename)
     print("Differentially Expressed Genes (Call by Index):")
     print(head(Diff.Expr.Genes))

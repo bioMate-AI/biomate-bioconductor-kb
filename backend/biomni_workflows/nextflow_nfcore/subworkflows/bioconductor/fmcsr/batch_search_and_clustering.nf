@@ -56,26 +56,26 @@ process BIOC_FMCSR_BATCH_SEARCH_AND_CLUSTERING {
     library("ChemmineR")
     library("fmcsR")
     
-    # 1. Load a collection of compounds from the user-provided SDF file
+    # --- Load a collection of compounds from the user-provided SDF ---
     input_file <- "sdfsample.sdf"
     if (!file.exists(input_file)) {
       stop(paste("Required input file", input_file, "not found in the working directory."))
     }
     sdf <- read.SDFset(input_file)
     
-    # 2. Perform batch FMCS search of a query compound against the collection
+    # --- Perform batch FMCS search of a query compound against the ---
     # (Using the exact documented call)
     batch_result <- fmcsBatch(sdf[1], sdf[1:30], au=0, bu=0)
     write.csv(batch_result, "batch_fmcs_result.csv", row.names = TRUE)
     
-    # 3. Compute an all-against-all similarity matrix
+    # --- Compute an all-against-all similarity matrix ---
     # (Using the exact documented call on the first 7 compounds)
     sdf <- sdf[1:7]
     d <- sapply(cid(sdf), function(x) fmcsBatch(sdf[x], sdf, au=0, bu=0, matching.mode="aromatic")[,"Overlap_Coefficient"])
     write.csv(d, "similarity_matrix.csv", row.names = TRUE)
     saveRDS(d, "similarity_matrix.rds")
     
-    # 4. Perform hierarchical clustering and plot the dendrogram
+    # --- Perform hierarchical clustering and plot the dendrogram ---
     hc <- hclust(as.dist(1-d), method="complete")
     saveRDS(hc, "hc_model.rds")
     
@@ -83,7 +83,7 @@ process BIOC_FMCSR_BATCH_SEARCH_AND_CLUSTERING {
     plot(as.dendrogram(hc), edgePar=list(col=4, lwd=2), horiz=TRUE)
     dev.off()
     
-    # 5. Visualize the MCS of the two most similar compounds (sdf[3] and sdf[7])
+    # --- Visualize the MCS of the two most similar compounds ---
     pdf("mcs_plot.pdf", width = 10, height = 8)
     plotMCS(fmcs(sdf[3], sdf[7], au=0, bu=0, matching.mode="aromatic"))
     dev.off()

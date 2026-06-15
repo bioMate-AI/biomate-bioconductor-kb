@@ -64,10 +64,10 @@ process BIOC_PANOMIR_CUSTOM_PATHWAY_TABLE_FROM_GMT {
       stop(paste("Required input file", gmt_file, "does not exist in the working directory."))
     }
     
-    # 1. Read GMT file into a GeneSetCollection using GSEABase::getGmt
+    # --- Read GMT file into a GeneSetCollection using ---
     yourGeneSetCollection <- getGmt(gmt_file)
     
-    # 2. Convert the GeneSetCollection to a pathway-gene association table using tableFromGSC
+    # --- Convert the GeneSetCollection to a pathway-gene ---
     newPathGeneTable      <- tableFromGSC(yourGeneSetCollection)
     
     # Write the meaningful results to output files

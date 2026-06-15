@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter lowly expressed genes using filterGenes; 2. Run SpaNorm to fit the model and normalise; 3. (Optional) Run SpaNorm with alte
+//  * 1. [Visualization & Output] Load User Input
+//  * 2. [Visualization & Output] Filter lowly expressed genes
+//  * 3. [Visualization & Output] Run SpaNorm to fit the model and normalise
+//  * 4. [Visualization & Output] Run SpaNorm with alternative adjustment methods
+//  * 5. [Visualization & Output] Vary model complexity
+//  * 6. [Visualization & Output] Enhance signal using scale factors
+//  * 7. [Visualization & Output] Plot covariates
 
 nextflow.enable.dsl = 2
 
@@ -39,7 +45,7 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("ggplot2", "patchwork", "SpaNorm", "SpatialExperiment")
+    .bm_deps <- c("ggplot2", "patchwork", "SpaNorm", "SpatialExperiment", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -57,11 +63,12 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
         }
         
         # Load required libraries
-        library(SpaNorm)
+         library(SummarizedExperiment)
+       library(SpaNorm)
         library(SpatialExperiment)
         library(ggplot2)
         
-        # 1. Load User Input
+        # --- Load User Input ---
         input_file <- "spatial_experiment.rds"
         if (!file.exists(input_file)) {
           stop(paste("Error: Input file", input_file, "not found in the working directory."))
@@ -74,7 +81,7 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
           stop("Error: Input object must be of class 'SpatialExperiment'.")
         }
         
-        # 2. Filter lowly expressed genes
+        # --- Filter lowly expressed genes ---
         keep = filterGenes(HumanDLPFC, 0.2)
         HumanDLPFC = HumanDLPFC[keep, ]
         
@@ -85,7 +92,7 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
           rownames(HumanDLPFC)[1] <- "MOBP"
         }
         
-        # 3. Run SpaNorm to fit the model and normalise
+        # --- Run SpaNorm to fit the model and normalise ---
         set.seed(36)
         HumanDLPFC = SpaNorm(HumanDLPFC)
         
@@ -93,19 +100,19 @@ process BIOC_SPANORM_SPANORM_SPATIALEXPERIMENT_WORKFLOW {
         fit.spanorm = metadata(HumanDLPFC)\$SpaNorm
         saveRDS(fit.spanorm, "spanorm_fit.rds")
         
-        # 4. Run SpaNorm with alternative adjustment methods
+        # --- Run SpaNorm with alternative adjustment methods ---
         HumanDLPFC = SpaNorm(HumanDLPFC, fit = fit.spanorm, adj.method = "pearson")
         HumanDLPFC = SpaNorm(HumanDLPFC, fit = fit.spanorm, adj.method = "meanbio")
         HumanDLPFC = SpaNorm(HumanDLPFC, fit = fit.spanorm, adj.method = "medbio")
         
-        # 5. Vary model complexity
+        # --- Vary model complexity ---
         HumanDLPFC_df2 = SpaNorm(HumanDLPFC, fit = fit.spanorm, df.tps = 2)
         
-        # 6. Enhance signal using scale factors
+        # --- Enhance signal using scale factors ---
         HumanDLPFC = SpaNorm(HumanDLPFC, fit = fit.spanorm, scale.factor = 1)
         HumanDLPFC = SpaNorm(HumanDLPFC, fit = fit.spanorm, scale.factor = 4)
         
-        # 7. Plot covariates
+        # --- Plot covariates ---
         p1 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "biology")
         p2 = plotCovariate(HumanDLPFC, colour = MOBP, covariate = "ls")
         

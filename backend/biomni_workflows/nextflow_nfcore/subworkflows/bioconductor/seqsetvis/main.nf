@@ -79,16 +79,16 @@ process BIOC_SEQSETVIS_PEAK_SET_OVERLAP_ANALYSIS {
     # 2. Execute Documented Workflow
     # -----------------------------------------------------------------------------
     
-    # Stage 1: Load peak files into a list of GRanges
+    # --- Load peak files into a list of GRanges ---
     np_grs = easyLoad_narrowPeak(np_files)
     
-    # Stage 2: Overlap the interval sets to create a consensus GRanges object with membership metadata
+    # --- Overlap the interval sets to create a consensus GRanges ---
     olaps = ssvOverlapIntervalSets(np_grs)
     
-    # Stage 3: Extract the logical membership table
+    # --- Extract the logical membership table ---
     memb_table = ssvMakeMembTable(olaps)
     
-    # Stage 4: Visualize the overlaps
+    # --- Visualize the overlaps ---
     p_bars = ssvFeatureBars(olaps)
     p_pie = ssvFeaturePie(olaps)
     

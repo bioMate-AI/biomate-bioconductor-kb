@@ -56,7 +56,7 @@ process BIOC_KNOWYOURCG_CONTINUOUS_ENRICHMENT_SEA {
     library(knowYourCG)
     library(sesame)
     
-    # Stage 1: Retrieve continuous query (TSS) and run Set Enrichment Analysis against seqContextN
+    # --- Retrieve continuous query (TSS) and run Set Enrichment ---
     message("Running Set Enrichment Analysis for TSS query...")
     query <- getDBs("KYCG.MM285.designGroup")[["TSS"]]
     sesameDataCache(data_titles = c("KYCG.MM285.seqContextN.20210630"))
@@ -66,7 +66,7 @@ process BIOC_KNOWYOURCG_CONTINUOUS_ENRICHMENT_SEA {
     write.csv(res, "enrichment_sea_tss_seqContextN.csv", row.names = TRUE)
     saveRDS(res, "enrichment_sea_tss_seqContextN.rds")
     
-    # Stage 2: Retrieve continuous query (beta values) from user input and run Set Enrichment Analysis against chromHMM
+    # --- Retrieve continuous query (beta values) from user input ---
     message("Loading user-provided beta values...")
     if (file.exists("beta_values")) {
       beta_values <- tryCatch({

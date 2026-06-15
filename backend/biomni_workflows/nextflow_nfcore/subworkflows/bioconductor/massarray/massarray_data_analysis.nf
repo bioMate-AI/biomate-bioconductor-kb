@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define the amplicon sequence with primer boundaries and required sites. 2. Import the EpiTyper data file and sequence into a MassA
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Import EpiTyper data and sequence into a MassArrayData
+//  * 3. [Visualization & Output] Visualize methylation levels and save to a PDF file
+//  * 4. [Visualization & Output] Evaluate potential SNPs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_MASSARRAY_MASSARRAY_DATA_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MassArray")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +62,7 @@ process BIOC_MASSARRAY_MASSARRAY_DATA_ANALYSIS {
     # Load required library
     library(MassArray)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     if (!file.exists("sequence")) {
       stop("Error: Required input file 'sequence' not found in the working directory.")
     }
@@ -63,17 +75,17 @@ process BIOC_MASSARRAY_MASSARRAY_DATA_ANALYSIS {
     sequence <- paste(sequence_lines, collapse = "")
     sequence <- gsub("[ \t\r\n]", "", sequence)
     
-    # 2. Import EpiTyper data and sequence into a MassArrayData object
+    # --- Import EpiTyper data and sequence into a MassArrayData ---
     data <- new("MassArrayData", sequence, file = "Example.txt")
     
-    # 3. Visualize methylation levels and save to a PDF file
+    # --- Visualize methylation levels and save to a PDF file ---
     pdf("methylation_plots.pdf", width = 11, height = 8.5)
     plot(data, collapse = FALSE, bars = FALSE, scale = FALSE)
     plot(data, collapse = TRUE, bars = TRUE, scale = FALSE)
     plot(data, collapse = TRUE, bars = FALSE, scale = TRUE)
     dev.off()
     
-    # 4. Evaluate potential SNPs
+    # --- Evaluate potential SNPs ---
     SNP.results <- evaluateSNPs(data)
     
     # Save the complete SNP results object

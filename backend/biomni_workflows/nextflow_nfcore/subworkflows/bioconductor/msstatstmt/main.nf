@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Convert raw search engine output and annotation into the standardized MSstatsTMT format using the appropriate converter function (
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Convert raw search engine output and annotation into
+//  * 3. [Visualization & Output] Perform protein-level summarization, missing value
+//  * 4. [Visualization & Output] Generate diagnostic profile plots
+//  * 5. [Visualization & Output] Test for significant changes in protein abundance
+//  * 6. [Visualization & Output] Test for significant changes using a custom contrast
 
 nextflow.enable.dsl = 2
 
@@ -58,16 +63,16 @@ process BIOC_MSSTATSTMT_TMT_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     # Load required package
     library(MSstatsTMT)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # raw.pd is typically a tab-separated Proteome Discoverer PSM export
     raw.pd <- read.delim("raw.pd", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     annotation.pd <- read.csv("annotation.pd", header = TRUE, stringsAsFactors = FALSE)
     
-    # 2. Convert raw search engine output and annotation into standardized MSstatsTMT format
+    # --- Convert raw search engine output and annotation into ---
     input.pd <- PDtoMSstatsTMTFormat(raw.pd, annotation.pd, 
                                      which.proteinid = "Protein.Accessions")
     
-    # 3. Perform protein-level summarization, missing value imputation, and normalization
+    # --- Perform protein-level summarization, missing value ---
     quant.msstats <- proteinSummarization(input.pd,
                                           method="msstats",
                                           global_norm=TRUE,
@@ -81,14 +86,14 @@ process BIOC_MSSTATSTMT_TMT_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
       write.csv(quant.msstats\$ProteinLevelData, "quant_msstats_protein_level.csv", row.names = FALSE)
     }
     
-    # 4. Generate diagnostic profile plots
+    # --- Generate diagnostic profile plots ---
     # This function automatically saves PDF files (e.g., "ProfilePlot.pdf") in the working directory
     dataProcessPlotsTMT(data=quant.msstats,
                          type = 'ProfilePlot',
                          width = 21, # adjust the figure width since there are 15 TMT runs.
                          height = 7)
     
-    # 5. Test for significant changes in protein abundance (pairwise)
+    # --- Test for significant changes in protein abundance ---
     test.pairwise <- groupComparisonTMT(quant.msstats, moderated = TRUE)
     
     # Save pairwise comparison results
@@ -96,7 +101,7 @@ process BIOC_MSSTATSTMT_TMT_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
       write.csv(test.pairwise\$ComparisonResult, "test_pairwise_results.csv", row.names = FALSE)
     }
     
-    # 6. Test for significant changes using a custom contrast matrix
+    # --- Test for significant changes using a custom contrast ---
     # Note: This specific contrast matrix assumes conditions "0.125", "0.5", "0.667", and "1" are present.
     # We wrap this in a tryCatch block to ensure the pipeline remains robust if the user's annotation
     # contains different condition names, while strictly preserving the documented code.

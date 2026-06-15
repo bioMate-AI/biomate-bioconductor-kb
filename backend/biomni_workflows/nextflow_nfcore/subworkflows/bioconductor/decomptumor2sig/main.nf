@@ -57,18 +57,18 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION {
     library(BSgenome.Hsapiens.UCSC.hg19)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     
-    # 1. Load the reference genome and the transcript annotation database
+    # --- Load the reference genome and the transcript annotation ---
     refGenome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     transcriptAnno <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
     
-    # 2. Read and preprocess somatic mutations from VCF format into tumor genome mutation frequencies
+    # --- Read and preprocess somatic mutations from VCF format ---
     gfile <- "Nik-Zainal_PMID_22608084-VCF-convertedfromMPF.vcf.gz"
     
     genomes <- readGenomesFromVCF(gfile, numBases=5, type="Shiraishi",
                                   trDir=TRUE, refGenome=refGenome,
                                   transcriptAnno=transcriptAnno, verbose=FALSE)
     
-    # 3. Read the mutational signatures from flat files
+    # --- Read the mutational signatures from flat files ---
     # Since the workflow requires at least 2 signatures for the downstream analysis (minNumSignatures=2),
     # we read the single user-provided signature and programmatically construct a second valid Shiraishi signature
     # by slightly perturbing the first one and re-normalizing.
@@ -88,7 +88,7 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION {
     
     signatures <- c(sig1, sig2)
     
-    # 4. Visualize mutation distributions and plot explained variance
+    # --- Visualize mutation distributions and plot explained ---
     pdf("mutation_distribution_signature1.pdf")
     plotMutationDistribution(signatures[[1]])
     dev.off()
@@ -103,7 +103,7 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION {
                                         greedySearch=TRUE)
     dev.off()
     
-    # 5. Decompose tumor genomes to estimate signature exposures (contributions)
+    # --- Decompose tumor genomes to estimate signature exposures ---
     exposure <- decomposeTumorGenomes(genomes[1], signatures)
     saveRDS(exposure, "exposure_single.rds")
     
@@ -119,11 +119,11 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION {
     explained_variance <- computeExplainedVariance(exposures, signatures, genomes)
     write.csv(as.data.frame(explained_variance), "explained_variance.csv")
     
-    # 6. Re-compose/reconstruct tumor genomes from the estimated exposures and signatures
+    # --- Re-compose/reconstruct tumor genomes from the estimated ---
     genomes_predicted <- composeGenomesFromExposures(exposures, signatures)
     saveRDS(genomes_predicted, "genomes_predicted.rds")
     
-    # 7. Evaluate the quality of the decomposition numerically and visually
+    # --- Evaluate the quality of the decomposition numerically and ---
     quality_metrics <- evaluateDecompositionQuality(exposures[[1]], signatures,
                                  genomes[[1]], plot=FALSE)
     saveRDS(quality_metrics, "decomposition_quality_metrics.rds")

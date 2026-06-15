@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Scale the expression matrix using robust linear scaling. 2. Prepare the survival object using the survival package. 3. Run the Gal
+//  * 1. [Visualization & Output] Read User Input Files and Prepare Data
+//  * 2. [Visualization & Output] Execute Documented Workflow
+//  * 3. [Visualization & Output] Save Outputs to Working Directory
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GSgalgoR", "Biobase", "genefu", "survival")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +65,7 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
     library(survival)
     
     # ==========================================
-    # 1. Read User Input Files and Prepare Data
+    # --- Read User Input Files and Prepare Data ---
     # ==========================================
     
     # Read expression matrix (genes as rows, samples as columns)
@@ -112,7 +123,7 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
     Test <- Biobase::ExpressionSet(assayData = test_expr_raw, phenoData = Biobase::AnnotatedDataFrame(test_clinic))
     
     # ==========================================
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # ==========================================
     
     # Robust linear scaling of expression matrix
@@ -187,7 +198,7 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
                                     distancetype = distancetype)
     
     # ==========================================
-    # 3. Save Outputs to Working Directory
+    # --- Save Outputs to Working Directory ---
     # ==========================================
     
     write.csv(outputDF, "galgo_solutions.csv", row.names = TRUE)

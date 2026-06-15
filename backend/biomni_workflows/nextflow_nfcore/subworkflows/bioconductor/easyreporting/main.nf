@@ -36,6 +36,15 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("easyreporting")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -58,15 +67,15 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
       author = "Bioconductor easyreporting Pipeline"
     )
     
-    # 1. Introduction Section
+    # --- Introduction Section ---
     mkdTitle(er, title = "Introduction", level = 1)
     mkdGeneralMsg(er, message = "This report presents an automated exploratory data analysis (EDA) of the input dataset. It dynamically detects whether the input is a feature-by-sample matrix or a single-column list, and performs appropriate summary statistics and visualizations.")
     
-    # 2. Variable Assignment (setting analysis parameters)
+    # --- Variable Assignment (setting analysis parameters) ---
     mkdTitle(er, title = "Analysis Parameters", level = 2)
     mkdVariableAssignment(er, name = "log_transform", value = TRUE, show = TRUE)
     
-    # 3. Data Loading and Preprocessing Chunk
+    # --- Data Loading and Preprocessing Chunk ---
     mkdTitle(er, title = "Data Loading and Preprocessing", level = 1)
     
     load_code <- "
@@ -89,7 +98,7 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
     "
     mkdCodeChunkComplete(er, code = load_code)
     
-    # 4. Summary Statistics Chunk
+    # --- Summary Statistics Chunk ---
     mkdTitle(er, title = "Summary Statistics", level = 1)
     
     stats_code <- "
@@ -115,7 +124,7 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
       code = stats_code
     )
     
-    # 5. Visualizations Chunk
+    # --- Visualizations Chunk ---
     mkdTitle(er, title = "Data Visualizations", level = 1)
     
     viz_code <- "
@@ -153,7 +162,7 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
     "
     mkdCodeChunkComplete(er, code = viz_code)
     
-    # 6. Compile the report with robust error handling
+    # --- Compile the report with robust error handling ---
     message("Compiling the easyreporting Rmarkdown report...")
     tryCatch({
       compile(er)

@@ -58,7 +58,7 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
     library(clstutils)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # The pipeline reads exactly these files from the working directory:
     # - seqs.rds: DNAbin object representing a multiple sequence alignment
@@ -67,7 +67,7 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
     seqdat <- readRDS("seqdat.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Calculate pairwise DNA distances using ape::dist.dna
+    # --- Calculate pairwise DNA distances using ape::dist.dna ---
     # -----------------------------------------------------------------------------
     # Prepare taxonomic groupings
     seqdat\$i <- 1:nrow(seqdat)
@@ -88,7 +88,7 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
     saveRDS(dmat, "distance_matrix.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Identify outlier sequences using findOutliers
+    # --- Identify outlier sequences using findOutliers ---
     # -----------------------------------------------------------------------------
     outliers <- clstutils::findOutliers(dmat, cutoff=0.015)
     
@@ -104,7 +104,7 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
     write.csv(outliers_df, "outliers.csv", row.names=FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Visualize outliers on a phylogenetic tree using prettyTree
+    # --- Visualize outliers on a phylogenetic tree using prettyTree ---
     # -----------------------------------------------------------------------------
     pdf("outliers_tree.pdf", width=10, height=10)
     with(seqdat[Efaecium,], {
@@ -114,7 +114,7 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Select a diverse subset of sequences using maxDists
+    # --- Select a diverse subset of sequences using maxDists ---
     # -----------------------------------------------------------------------------
     # We will capture the selected indices to write them to a file
     selected_indices <- NULL
@@ -125,7 +125,7 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
                                       N=10, exclude=outlier, include.center=TRUE)
       
       # ---------------------------------------------------------------------------
-      # Stage 5: Visualize the selected subset on the tree using prettyTree
+      # --- Visualize the selected subset on the tree using prettyTree ---
       # ---------------------------------------------------------------------------
       prettyTree(nj(dmat), groups=ifelse(outlier,'outlier','non-outlier'),
                  X=outlier,

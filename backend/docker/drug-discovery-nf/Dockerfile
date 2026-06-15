@@ -68,18 +68,41 @@ RUN python3 -c "from vina import Vina; print('vina: OK')" || true
 RUN python3 -c "import RNA; print('ViennaRNA: OK')" || true
 RUN echo "Drug discovery layer complete (verify on real x86)"
 
-# ── Layer 4: USPTO expansion model + templates (download during build) ─────
-# Downloads ~100 MB of USPTO ONNX model + templates for real retrosynthesis.
-# Non-fatal: if download fails (network unavailable, QEMU crash), the workflow
-# falls back to template-only expansion at runtime.
-RUN mkdir -p /opt/aizynthfinder/models
-COPY backend/docker/drug-discovery-nf/download_models.py /tmp/download_models.py
-RUN python3 /tmp/download_models.py || true
-RUN rm -f /tmp/download_models.py
+# ── Layer 4: USPTO expansion model + templates (canonical Zenodo URLs) ─────
+# Pulls ~90 MB of USPTO ONNX model + templates straight from Zenodo, the
+# canonical source named in aizynthfinder.tools.download_public_data.
+# (That module is a CLI entry-point — not importable — so the prior
+# Dockerfile's `from ... import download_public_data` always failed and was
+# masked by `|| true`, leaving the image with no expansion policy.) Curl is
+# pinned to the same Zenodo records used by the upstream package.
+# Fail loudly if either file fails to download — a broken image is worse
+# than a failed build.
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Re-run setup with models present (non-fatal)
+RUN mkdir -p /opt/aizynthfinder/models \
+    && curl -fSL --retry 3 --retry-delay 5 \
+        -o /opt/aizynthfinder/models/uspto_model.onnx \
+        https://zenodo.org/record/7797465/files/uspto_model.onnx \
+    && curl -fSL --retry 3 --retry-delay 5 \
+        -o /opt/aizynthfinder/models/uspto_templates.csv.gz \
+        https://zenodo.org/record/7341155/files/uspto_unique_templates.csv.gz \
+    && test -s /opt/aizynthfinder/models/uspto_model.onnx \
+    && test -s /opt/aizynthfinder/models/uspto_templates.csv.gz
+
+# Re-run setup so config.yml picks up the now-present model + templates.
+# The script ends with a smoke-import of aizynthfinder which segfaults under
+# QEMU x86-on-ARM emulation — file outputs are written first, so a non-fatal
+# || true here is fine. The hard gate is the structural shell check below
+# (pure file existence + grep, no native-extension imports) which always
+# runs and aborts the build on real failure.
 COPY backend/docker/drug-discovery-nf/setup_aizynthfinder.py /tmp/setup_aizynthfinder2.py
 RUN python3 /tmp/setup_aizynthfinder2.py || true
+RUN test -s /opt/aizynthfinder/models/uspto_model.onnx \
+    && test -s /opt/aizynthfinder/models/uspto_templates.csv.gz \
+    && test -s /opt/aizynthfinder/config.yml \
+    && grep -q "^expansion:" /opt/aizynthfinder/config.yml \
+    || (echo "FATAL: aizynthfinder runtime not staged — model or expansion: block missing" && exit 1)
 RUN rm -f /tmp/setup_aizynthfinder2.py
 
 # ── Layer 5: Copy BioMate drug discovery Python modules ────────────────────
@@ -92,6 +115,10 @@ RUN echo '# BioMate drug discovery package' > /opt/biomate/__init__.py && \
 ENV PYTHONPATH="/opt/biomate:${PYTHONPATH}"
 
 # ── Verify complete stack ───────────────────────────────────────────────────
+# verify_stack.py imports rdkit / vina / pydeseq2 etc. — every one of those
+# native extensions segfaults under QEMU x86-on-ARM emulation. Keep it
+# non-fatal so ARM builds succeed; the structural model+config assertion
+# above is the real hard gate (file checks, no imports, emulation-safe).
 COPY backend/docker/drug-discovery-nf/verify_stack.py /tmp/verify_stack.py
 RUN python3 /tmp/verify_stack.py || true
 RUN rm -f /tmp/verify_stack.py

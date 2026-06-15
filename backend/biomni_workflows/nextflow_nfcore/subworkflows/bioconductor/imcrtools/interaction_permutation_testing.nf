@@ -34,7 +34,7 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BiocParallel", "RColorBrewer", "SingleCellExperiment", "SpatialExperiment", "data.table", "ggplot2", "ggraph", "imcRtools")
+    .bm_deps <- c("BiocParallel", "RColorBrewer", "SingleCellExperiment", "SpatialExperiment", "data.table", "ggplot2", "ggraph", "imcRtools", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     
     # Load required libraries
     library(imcRtools)
+    library(SummarizedExperiment)
     library(SingleCellExperiment)
     library(SpatialExperiment)
     library(data.table)
@@ -62,14 +63,14 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     library(BiocParallel)
     library(RColorBrewer)
     
-    # 1. Load the user-provided SingleCellExperiment/SpatialExperiment object
+    # --- Load the user-provided ---
     if (!file.exists("SingleCellExperiment.rds")) {
       stop("Error: 'SingleCellExperiment.rds' not found in the working directory.")
     }
     
     pancreasSCE <- readRDS("SingleCellExperiment.rds")
     
-    # 2. Count interactions using countInteractions (classic method)
+    # --- Count interactions using countInteractions (classic ---
     out_classic_count <- countInteractions(
       pancreasSCE, 
       group_by = "ImageNb", 
@@ -81,7 +82,7 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     # Save classic interaction counts
     write.csv(as.data.frame(out_classic_count), "classic_interaction_counts.csv", row.names = FALSE)
     
-    # 3. Test interactions via permutation using testInteractions (classic method)
+    # --- Test interactions via permutation using testInteractions ---
     out <- testInteractions(
       pancreasSCE, 
       group_by = "ImageNb", 
@@ -94,13 +95,13 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     # Save classic interaction test results
     write.csv(as.data.frame(out), "classic_interaction_tests.csv", row.names = FALSE)
     
-    # 4. Visualize interaction networks using plotInteractions
+    # --- Visualize interaction networks using plotInteractions ---
     pdf("classic_interactions_network.pdf", width = 8, height = 6)
     p1 <- plotInteractions(out, pancreasSCE, group_by = "ImageNb", label = "CellType")
     print(p1)
     dev.off()
     
-    # 5. Perform conditional cell ratio (CCR) analysis for conditional normalization
+    # --- Perform conditional cell ratio (CCR) analysis for ---
     out <- testInteractions(
       pancreasSCE, 
       group_by = "ImageNb", 
@@ -137,7 +138,7 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
     # Save conditional interaction results with CCR
     write.csv(out_cr, "conditional_interactions_with_ccr.csv", row.names = FALSE)
     
-    # 6. Visualize conditional results (z-score and CCR)
+    # --- Visualize conditional results (z-score and CCR) ---
     p_data <- out_cr[!is.na(zscore) & !is.na(cond_ratio) & sig == TRUE]
     if (nrow(p_data) > 0) {
       pdf("conditional_interactions_dotplot.pdf", width = 10, height = 8)

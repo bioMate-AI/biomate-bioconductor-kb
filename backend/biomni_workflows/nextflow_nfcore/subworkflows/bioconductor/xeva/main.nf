@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the XevaSet dataset. 2. Retrieve model metadata and individual experiment time-volume data. 3. Retrieve batch design informat
+//  * 1. [Visualization & Output] Metadata retrieval
+//  * 2. [Visualization & Output] Visualize PDX tumor growth curves
+//  * 3. [Visualization & Output] Summarizing response
+//  * 4. [Visualization & Output] Generate waterfall plots
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Xeva", "Biobase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -56,7 +68,7 @@ process BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS {
     brca <- readRDS("brca")
     repdx <- readRDS("repdx")
     
-    # Stage 1: Metadata retrieval
+    # --- Metadata retrieval ---
     brca.mod <- modelInfo(brca)
     
     # Planned Stage 2: Retrieve individual experiment time-volume data
@@ -68,7 +80,7 @@ process BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS {
     brca_batch1 <- brca_batches[1]
     batch.info <- batchInfo(brca, batch = brca_batch1)
     
-    # Stage 2: Visualize PDX tumor growth curves
+    # --- Visualize PDX tumor growth curves ---
     repdx_batches <- batchInfo(repdx)
     repdx_batch1 <- repdx_batches[1]
     
@@ -77,13 +89,13 @@ process BIOC_XEVA_PDX_GROWTH_AND_RESPONSE_ANALYSIS {
     print(plotPDX(repdx, vol.normal = TRUE, batch = repdx_batch1))
     dev.off()
     
-    # Stage 3: Summarizing response
+    # --- Summarizing response ---
     brca.mr <- summarizeResponse(brca, response.measure = "mRECIST")
     
     # Planned Stage 5: Summarize drug response using angle or linear mixed-effects models
     repdx_response <- response(repdx, batch = repdx_batch1, res.measure = "angle")
     
-    # Stage 4: Generate waterfall plots
+    # --- Generate waterfall plots ---
     drug_name <- rownames(brca.mr)[1]
     pdf("waterfall_plots.pdf")
     print(waterfall(brca, drug=drug_name, res.measure="best.average.response"))

@@ -35,6 +35,15 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BioTIP", "cluster", "GenomicRanges", "MASS", "stringr", "psych", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -54,7 +63,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     library(igraph)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (probe/gene-by-sample)
@@ -89,7 +98,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     message("Successfully loaded ", nrow(df), " genes and ", ncol(df), " samples across ", length(samplesL), " states.")
     
     # ==========================================
-    # Stage 2: Gene Pre-selection
+    # --- Gene Pre-selection ---
     # ==========================================
     
     # Select highly oscillating transcripts using standard deviation selection
@@ -114,7 +123,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 3: Network Partitioning
+    # --- Network Partitioning ---
     # ==========================================
     
     # Build co-expression networks for each state
@@ -124,7 +133,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     cluster <- getCluster_methods(igraphL)
     
     # ==========================================
-    # Stage 4: Identify Putative Critical Transition Signals (CTS)
+    # --- Identify Putative Critical Transition Signals (CTS) ---
     # ==========================================
     
     # Calculate Module-Criticality Index (MCI) for each module
@@ -154,7 +163,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # Stage 5: Tipping Point Evaluation (Ic Score)
+    # --- Tipping Point Evaluation (Ic Score) ---
     # ==========================================
     
     if (length(CTS) > 0 && length(CTS[[1]]) > 0) {

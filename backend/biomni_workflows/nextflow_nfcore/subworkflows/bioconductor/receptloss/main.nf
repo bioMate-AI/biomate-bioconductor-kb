@@ -52,7 +52,7 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
       }
     }
     
-    # 1. Install and load the required packages
+    # --- Install and load the required packages ---
     if (!requireNamespace("receptLoss", quietly = TRUE)) {
       if (!requireNamespace("BiocManager", quietly = TRUE)) {
         install.packages("BiocManager", repos = "https://cloud.r-project.org")
@@ -70,7 +70,7 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
     library(receptLoss)
     library(SummarizedExperiment)
     
-    # 2. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # The pipeline expects either:
     #   - A single 'summarized_experiment.rds' file containing a SummarizedExperiment object, OR
     #   - 'expression_matrix.csv' (genes as rows, samples as columns) and 'sample_metadata.csv' (samples as rows)
@@ -96,7 +96,7 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
       stop("Error: Missing input files. Please provide 'summarized_experiment.rds' or both 'expression_matrix.csv' and 'sample_metadata.csv' in the working directory.")
     }
     
-    # 3. Auto-detect grouping column and tumor/normal values
+    # --- Auto-detect grouping column and tumor/normal values ---
     col_names <- colnames(colData(se))
     group_col <- NULL
     for (col in c("group", "status", "type", "condition", col_names)) {
@@ -134,7 +134,7 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
       }
     }
     
-    # 4. Run the expression loss identification workflow
+    # --- Run the expression loss identification workflow ---
     message("Running receptLoss analysis...")
     results <- receptLoss(
       se = se, 
@@ -143,7 +143,7 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
       tumorGroup = tumor_val
     )
     
-    # 5. Save meaningful results
+    # --- Save meaningful results ---
     message("Saving results...")
     saveRDS(results, "recept_loss_results.rds")
     
@@ -160,7 +160,7 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
       })
     }
     
-    # 6. Generate visualization for the top gene with expression loss
+    # --- Generate visualization for the top gene with expression ---
     tryCatch({
       top_gene <- NULL
       if (is.data.frame(results) && nrow(results) > 0) {

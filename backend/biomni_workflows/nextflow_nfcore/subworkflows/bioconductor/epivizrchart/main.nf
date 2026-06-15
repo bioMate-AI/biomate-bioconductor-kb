@@ -52,12 +52,13 @@ process BIOC_EPIVIZRCHART_EPIVIZ_GENOMIC_DASHBOARD {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(epivizrChart)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(htmltools)
     
-    # Stage 2: Read and parse input data defensively
+    # --- Read and parse input data defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop(paste("Required input file missing:", input_file))
@@ -88,7 +89,7 @@ process BIOC_EPIVIZRCHART_EPIVIZ_GENOMIC_DASHBOARD {
       df <- data.frame(Value = seq_len(nrow(df)), row.names = rownames(df))
     }
     
-    # Stage 3: Parse genomic coordinates or generate dummy coordinates
+    # --- Parse genomic coordinates or generate dummy coordinates ---
     feature_ids <- rownames(df)
     chrs <- rep("chr11", nrow(df))
     starts <- seq(118000000, 120900000, length.out = nrow(df))
@@ -106,7 +107,7 @@ process BIOC_EPIVIZRCHART_EPIVIZ_GENOMIC_DASHBOARD {
       }
     }
     
-    # Stage 4: Normalize and prepare the numeric matrix
+    # --- Normalize and prepare the numeric matrix ---
     mat <- as.matrix(df)
     # Handle missing values
     mat[is.na(mat)] <- 0
@@ -119,11 +120,11 @@ process BIOC_EPIVIZRCHART_EPIVIZ_GENOMIC_DASHBOARD {
     # Perform basic log2 transformation to stabilize variance
     mat_norm <- log2(mat + 1)
     
-    # Stage 5: Construct Bioconductor objects
+    # --- Construct Bioconductor objects ---
     gr <- GRanges(seqnames = chrs, ranges = IRanges(start = starts, end = ends))
     se <- SummarizedExperiment(assays = list(counts = mat_norm), rowRanges = gr)
     
-    # Stage 6: Initialize Epiviz Environment and add interactive charts
+    # --- Initialize Epiviz Environment and add interactive charts ---
     # Determine the target region based on the first chromosome
     target_chr <- chrs[1]
     idx <- which(chrs == target_chr)
@@ -148,7 +149,7 @@ process BIOC_EPIVIZRCHART_EPIVIZ_GENOMIC_DASHBOARD {
     # Add LineTrack of the first 5 samples
     line_chart <- epivizEnv\$plot(se, datasource_name = "Line_Track", columns = heatmap_cols, chart = "LineTrack")
     
-    # Stage 7: Export Outputs
+    # --- Export Outputs ---
     # Save the processed data table
     output_df <- data.frame(
       feature_id = feature_ids,

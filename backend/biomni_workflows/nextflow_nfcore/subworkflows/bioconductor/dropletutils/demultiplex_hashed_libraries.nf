@@ -72,7 +72,7 @@ process BIOC_DROPLETUTILS_DEMULTIPLEX_HASHED_LIBRARIES {
     # Ensure y is a matrix
     y <- as.matrix(y)
     
-    # Stage 1: Identify cell-containing barcodes using emptyDrops with an adjusted lower threshold
+    # --- Identify cell-containing barcodes using emptyDrops with ---
     hto.calls <- emptyDrops(y, lower=500)
     has.cell <- hto.calls\$FDR <= 0.001
     
@@ -84,14 +84,14 @@ process BIOC_DROPLETUTILS_DEMULTIPLEX_HASHED_LIBRARIES {
     saveRDS(hto.calls, "hto_calls.rds")
     write.csv(as.data.frame(hto.calls), "hto_calls.csv", row.names = TRUE)
     
-    # Stage 2: Demultiplex the cell-containing barcodes using hashedDrops
+    # --- Demultiplex the cell-containing barcodes using hashedDrops ---
     demux <- hashedDrops(y[,which(has.cell)], ambient=metadata(hto.calls)\$ambient)
     
     # Save demultiplexing results
     saveRDS(demux, "demux_results.rds")
     write.csv(as.data.frame(demux), "demux_results.csv", row.names = TRUE)
     
-    # Stage 3: Identify confident singlets and doublets
+    # --- Identify confident singlets and doublets ---
     # Print table of confident calls
     conf_table <- table(demux\$Best[demux\$Confident])
     cat("\nTable of confident calls by sample of origin:\n")

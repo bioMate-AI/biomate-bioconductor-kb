@@ -36,6 +36,15 @@ process BIOC_LUTE_LUTE_CELL_SIZE_DECONVOLUTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("lute")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_LUTE_LUTE_CELL_SIZE_DECONVOLUTION {
     library(lute)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", check.names = FALSE)
@@ -73,7 +82,7 @@ process BIOC_LUTE_LUTE_CELL_SIZE_DECONVOLUTION {
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
     # ==========================================
-    # STAGE 2: Quality Control and Normalization
+    # --- Quality Control and Normalization ---
     # ==========================================
     message("Performing QC and normalization...")
     # Filter out genes with very low counts (keep genes expressed in at least 20% of samples)
@@ -87,7 +96,7 @@ process BIOC_LUTE_LUTE_CELL_SIZE_DECONVOLUTION {
     counts_cpm <- sweep(counts_filtered, 2, lib_sizes, "/") * 1e6
     
     # ==========================================
-    # STAGE 3: Construct Reference Signature and Cell Size Factors
+    # --- Construct Reference Signature and Cell Size Factors ---
     # ==========================================
     message("Constructing reference signature matrix and cell size scale factors...")
     # Generate a mock reference matrix Z matching the filtered genes for 3 cell types
@@ -117,7 +126,7 @@ process BIOC_LUTE_LUTE_CELL_SIZE_DECONVOLUTION {
     s <- c(TypeA = 1.5, TypeB = 0.8, TypeC = 2.5)
     
     # ==========================================
-    # STAGE 4: Deconvolution with Cell Size Adjustment
+    # --- Deconvolution with Cell Size Adjustment ---
     # ==========================================
     message("Running lute deconvolution...")
     results <- tryCatch({
@@ -171,7 +180,7 @@ process BIOC_LUTE_LUTE_CELL_SIZE_DECONVOLUTION {
     message("Saved proportions to cell_type_proportions.csv")
     
     # ==========================================
-    # STAGE 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("deconvolution_plots.pdf", width = 10, height = 6)

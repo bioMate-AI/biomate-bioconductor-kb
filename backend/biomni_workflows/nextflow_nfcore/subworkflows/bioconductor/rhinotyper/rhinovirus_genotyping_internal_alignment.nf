@@ -57,10 +57,10 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_INTERNAL_ALIGNMENT {
     library(Biostrings)
     library(msa)
     
-    # 1. Read user sequences from the working directory
+    # --- Read user sequences from the working directory ---
     user_seqs <- Biostrings::readDNAStringSet("user_sequences.fasta")
     
-    # 2. Align user sequences and packaged prototypes in R
+    # --- Align user sequences and packaged prototypes in R ---
     aln <- alignToRefs(
       seqData   = user_seqs,
       method    = "ClustalW",           # or "ClustalOmega", "Muscle"
@@ -71,18 +71,18 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_INTERNAL_ALIGNMENT {
     # Save alignment object
     saveRDS(aln, "alignment_results.rds")
     
-    # 3. Assign genotypes
+    # --- Assign genotypes ---
     res <- assignTypes(aln, model = "IUPAC", deleteGapsGlobally = FALSE, threshold = 0.105)
     
     # Save genotype assignments table
     write.csv(res, "genotype_assignments.csv", row.names = FALSE)
     
-    # 4. Plot genotype frequencies
+    # --- Plot genotype frequencies ---
     pdf("genotype_frequencies.pdf", width = 8, height = 6)
     plotFrequency(res)
     dev.off()
     
-    # 5. Translate DNA sequences and visualize amino acid alignments
+    # --- Translate DNA sequences and visualize amino acid ---
     aln_no_gaps <- Biostrings::DNAStringSet(
       gsub("-", "", as.character(user_seqs))
     )

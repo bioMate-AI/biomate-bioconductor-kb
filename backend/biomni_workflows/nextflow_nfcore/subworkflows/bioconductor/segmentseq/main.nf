@@ -65,27 +65,27 @@ process BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS {
     libnames <- c("SL9", "SL10", "SL26", "SL32")
     replicates <- c("AGO6", "AGO6", "AGO4", "AGO4")
     
-    # 1. Read alignment files using readGeneric
+    # --- Read alignment files using readGeneric ---
     message("Reading generic alignment files...")
     aD <- readGeneric(files = libfiles, dir = datadir, replicates = replicates, libnames = libnames, polyLength = 10, header = TRUE, gap = 200)
     saveRDS(aD, "alignment_data.rds")
     
-    # 2. Process alignment data to find candidate loci using processAD
+    # --- Process alignment data to find candidate loci using ---
     message("Processing alignment data...")
     sD <- processAD(aD, cl = cl)
     saveRDS(sD, "processed_alignment_data.rds")
     
-    # 3. Perform heuristic segmentation using heuristicSeg
+    # --- Perform heuristic segmentation using heuristicSeg ---
     message("Running heuristic segmentation...")
     hS <- heuristicSeg(sD = sD, aD = aD, RKPM = 1000, largeness = 1e8, getLikes = TRUE, cl = cl)
     saveRDS(hS, "heuristic_segmentation.rds")
     
-    # 4. Perform empirical Bayesian segmentation using classifySeg
+    # --- Perform empirical Bayesian segmentation using classifySeg ---
     message("Running empirical Bayesian classification...")
     cS <- classifySeg(sD = sD, aD = aD, cD = hS, cl = cl)
     saveRDS(cS, "classified_segmentation.rds")
     
-    # 5. Plot the segmented genome using plotGenome
+    # --- Plot the segmented genome using plotGenome ---
     message("Plotting segmented genome...")
     pdf("segmented_genome_plots.pdf", width = 10, height = 8)
     par(mfrow = c(2,1), mar = c(2,6,2,2))
@@ -93,7 +93,7 @@ process BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS {
     plotGenome(aD, cS, chr = ">Chr1", limits = c(1, 1e5), showNumber = FALSE, cap = 50)
     dev.off()
     
-    # 6. Select high-confidence loci using selectLoci
+    # --- Select high-confidence loci using selectLoci ---
     message("Selecting high-confidence loci...")
     loci <- selectLoci(cS, FDR = 0.05)
     saveRDS(loci, "selected_loci.rds")
@@ -101,20 +101,20 @@ process BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS {
       write.csv(as.data.frame(loci), "selected_loci.csv", row.names = FALSE)
     }
     
-    # 7. Define experimental groups using groups
+    # --- Define experimental groups using groups ---
     message("Defining experimental groups...")
     groups(cS) <- list(NDE = c(1,1,1,1), DE = c("AGO6", "AGO6", "AGO4", "AGO4"))
     
-    # 8. Estimate priors using getPriors
+    # --- Estimate priors using getPriors ---
     message("Estimating priors...")
     cS <- getPriors(cS, cl = cl)
     
-    # 9. Estimate posterior likelihoods using getLikelihoods
+    # --- Estimate posterior likelihoods using getLikelihoods ---
     message("Estimating posterior likelihoods...")
     cS <- getLikelihoods(cS, nullData = TRUE, cl = cl)
     saveRDS(cS, "final_classified_seg_with_likelihoods.rds")
     
-    # 10. Retrieve top differentially expressed loci using topCounts
+    # --- Retrieve top differentially expressed loci using topCounts ---
     message("Retrieving top counts and saving results...")
     top_null <- topCounts(cS, NULL, number = 3)
     top_nde <- topCounts(cS, "NDE", number = 3)

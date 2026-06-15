@@ -63,7 +63,7 @@ process BIOC_ROAR_STANDARD_APA_ANALYSIS {
     library(rtracklayer)
     
     # ------------------------------------------------------------------------------
-    # 1. Locate and Validate User Input Files
+    # --- Locate and Validate User Input Files ---
     # ------------------------------------------------------------------------------
     cat("Scanning working directory for input files...\n")
     
@@ -92,31 +92,31 @@ process BIOC_ROAR_STANDARD_APA_ANALYSIS {
     print(bamControl)
     
     # ------------------------------------------------------------------------------
-    # 2. Initialize the RoarDataset Object
+    # --- Initialize the RoarDataset Object ---
     # ------------------------------------------------------------------------------
     cat("\nInitializing RoarDataset object...\n")
     rds <- RoarDatasetFromFiles(bamTreatment, bamControl, gtf)
     
     # ------------------------------------------------------------------------------
-    # 3. Count Reads Overlapping PRE and POST Portions
+    # --- Count Reads Overlapping PRE and POST Portions ---
     # ------------------------------------------------------------------------------
     cat("Counting reads overlapping PRE and POST portions (stranded = FALSE)...\n")
     rds <- countPrePost(rds, FALSE)
     
     # ------------------------------------------------------------------------------
-    # 4. Compute the Ratio of Prevalence (m/M) and Roar Values
+    # --- Compute the Ratio of Prevalence (m/M) and Roar Values ---
     # ------------------------------------------------------------------------------
     cat("Computing m/M ratios and roar values...\n")
     rds <- computeRoars(rds)
     
     # ------------------------------------------------------------------------------
-    # 5. Compute P-values Using Fisher's Exact Test
+    # --- Compute P-values Using Fisher's Exact Test ---
     # ------------------------------------------------------------------------------
     cat("Computing p-values...\n")
     rds <- computePvals(rds)
     
     # ------------------------------------------------------------------------------
-    # 6. Extract and Filter Results
+    # --- Extract and Filter Results ---
     # ------------------------------------------------------------------------------
     cat("Extracting total results...\n")
     results <- totalResults(rds)
@@ -135,7 +135,7 @@ process BIOC_ROAR_STANDARD_APA_ANALYSIS {
     }
     
     # ------------------------------------------------------------------------------
-    # 7. Export Outputs
+    # --- Export Outputs ---
     # ------------------------------------------------------------------------------
     cat("\nExporting results to output files...\n")
     

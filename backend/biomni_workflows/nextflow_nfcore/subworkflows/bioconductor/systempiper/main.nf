@@ -36,6 +36,15 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("systemPipeR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
     # Initialize systemPipeR project (creates default directory structure)
     sal <- SPRproject(overwrite = TRUE)
     
-    # Stage 1: Load and Preprocess Data
+    # --- Load and Preprocess Data ---
     appendStep(sal) <- LineWise(code = {
       # Read input files
       counts <- read.csv("counts.csv", row.names = 1)
@@ -68,7 +77,7 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
       save(counts, coldata, file = "step1_loaded.RData")
     }, step_name = "load_data")
     
-    # Stage 2: Normalization
+    # --- Normalization ---
     appendStep(sal) <- LineWise(code = {
       load("step1_loaded.RData")
       
@@ -82,7 +91,7 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
       save(log2_cpm, coldata, file = "step2_normalized.RData")
     }, step_name = "normalize", dependency = "load_data")
     
-    # Stage 3: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     appendStep(sal) <- LineWise(code = {
       load("step2_normalized.RData")
       
@@ -121,7 +130,7 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
       save(deg_table, file = "step3_deg.RData")
     }, step_name = "deg_analysis", dependency = "normalize")
     
-    # Stage 4: Filter DEGs using systemPipeR's filterDEGs
+    # --- Filter DEGs using systemPipeR's filterDEGs ---
     appendStep(sal) <- LineWise(code = {
       load("step3_deg.RData")
       
@@ -155,7 +164,7 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
       save(filtered_list, file = "step4_filtered.RData")
     }, step_name = "filter_degs", dependency = "deg_analysis")
     
-    # Stage 5: Visualization (Volcano & PCA Plots)
+    # --- Visualization (Volcano & PCA Plots) ---
     appendStep(sal) <- LineWise(code = {
       load("step2_normalized.RData")
       load("step3_deg.RData")
@@ -180,7 +189,7 @@ process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
       dev.off()
     }, step_name = "visualization", dependency = "filter_degs")
     
-    # Stage 6: Workflow Report & Topology
+    # --- Workflow Report & Topology ---
     appendStep(sal) <- LineWise(code = {
       # Plot workflow topology
       pdf("workflow_topology.pdf", width = 8, height = 8)

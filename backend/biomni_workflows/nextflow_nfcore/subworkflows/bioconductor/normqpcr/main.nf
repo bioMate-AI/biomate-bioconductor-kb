@@ -56,17 +56,17 @@ process BIOC_NORMQPCR_REFERENCE_GENE_SELECTION {
     library(ReadqPCR)
     library(NormqPCR)
     
-    # 1. Read raw qPCR data with technical replicates
+    # --- Read raw qPCR data with technical replicates ---
     qPCR.example.techReps <- "qPCR.techReps.txt"
     qPCRBatch.qPCR.techReps <- read.qPCR(qPCR.example.techReps)
     
-    # 2. Combine technical replicates
+    # --- Combine technical replicates ---
     combinedTechReps <- combineTechReps(qPCRBatch.qPCR.techReps)
     
     # Write combined technical replicates to output
     write.csv(exprs(combinedTechReps), file = "combined_tech_reps.csv", row.names = TRUE)
     
-    # 3. Handle undetermined values and NAs using TaqMan qPCR data
+    # --- Handle undetermined values and NAs using TaqMan qPCR data ---
     taqman.example <- "example.txt"
     qPCRBatch.taqman <- read.taqman(taqman.example)
     
@@ -92,7 +92,7 @@ process BIOC_NORMQPCR_REFERENCE_GENE_SELECTION {
     # Write processed TaqMan expression matrix to output
     write.csv(exprs(qPCRBatch.taqman.replaced), file = "taqman_processed.csv", row.names = TRUE)
     
-    # 4. Rank reference genes using geNorm and NormFinder
+    # --- Rank reference genes using geNorm and NormFinder ---
     # To ensure ranking algorithms run without NA errors, we replace remaining NAs with 40
     qPCRBatch.for_ranking <- replaceNAs(qPCRBatch.taqman.replaced, newNA = 40)
     

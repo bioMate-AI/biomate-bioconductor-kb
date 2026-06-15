@@ -17,7 +17,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -35,6 +35,15 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BioCartaImage")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,14 +53,14 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(BioCartaImage)
     library(grid)
     if (!requireNamespace("EBImage", quietly = TRUE)) {
         stop("EBImage package is required to read the input microscopy image.")
     }
     
-    # Stage 2: Read and process the input microscopy image
+    # --- Read and process the input microscopy image ---
     message("Reading input microscopy image...")
     img <- EBImage::readImage("image.tif")
     img_arr <- as.array(img)
@@ -63,7 +72,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
         img_mat <- img_arr
     }
     
-    # Stage 3: Retrieve BioCarta Pathway Information
+    # --- Retrieve BioCarta Pathway Information ---
     pathway_id <- "h_RELAPathway"
     message(paste("Retrieving pathway information for:", pathway_id))
     p <- get_pathway(pathway_id)
@@ -73,7 +82,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
         stop("No genes found in the specified pathway.")
     }
     
-    # Stage 4: Map Image Intensities to Pathway Genes
+    # --- Map Image Intensities to Pathway Genes ---
     # Divide the microscopy image into sub-regions to simulate distinct gene expression levels
     dims <- dim(img_mat)
     rows <- seq(1, dims[1], length.out = 5)
@@ -122,7 +131,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     write.csv(df_out, "gene_pathway_mapping.csv", row.names = FALSE)
     message("Saved gene-to-pathway mapping to gene_pathway_mapping.csv")
     
-    # Stage 5: Standard Pathway Visualization
+    # --- Standard Pathway Visualization ---
     message("Generating standard pathway visualization...")
     pdf("biocarta_pathway_analysis.pdf", width = 10, height = 10)
     grid.newpage()
@@ -130,7 +139,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     dev.off()
     message("Saved standard pathway visualization to biocarta_pathway_analysis.pdf")
     
-    # Stage 6: Advanced Custom Pathway Visualization
+    # --- Advanced Custom Pathway Visualization ---
     message("Generating advanced custom pathway visualization...")
     pdf("biocarta_custom_annotations.pdf", width = 10, height = 10)
     grid.newpage()

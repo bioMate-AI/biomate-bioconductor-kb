@@ -75,16 +75,16 @@ process BIOC_CHICAGO_GENOMIC_INTERACTIONS_DOWNSTREAM {
     # 2. Execute Documented Workflow
     # -----------------------------------------------------------------------------
     
-    # Stage 1: Convert the chicagoData object to a GenomicInteractions object
+    # --- Convert the chicagoData object to a GenomicInteractions ---
     gi <- exportToGI(cd)
     
-    # Stage 2: Extract the other end coordinates
+    # --- Extract the other end coordinates ---
     otherEnds <- anchorTwo(gi)
     
-    # Stage 3: Standardize chromosome naming
+    # --- Standardize chromosome naming ---
     otherEnds <- renameSeqlevels(otherEnds, c("chr20","chr21"))
     
-    # Stage 4: Find overlaps between interaction ends and genomic features
+    # --- Find overlaps between interaction ends and genomic ---
     overlaps <- findOverlaps(otherEnds, enhancerTrack)
     
     # -----------------------------------------------------------------------------

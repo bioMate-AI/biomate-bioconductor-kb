@@ -36,6 +36,15 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Glimma", "edgeR", "limma", "htmlwidgets")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     library(htmlwidgets)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read counts and coldata
@@ -96,7 +105,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     dge <- calcNormFactors(dge)
     
     # ==========================================
-    # Stage 2: Interactive MDS Plotting
+    # --- Interactive MDS Plotting ---
     # ==========================================
     
     # Generate and save interactive MDS plot
@@ -104,7 +113,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     htmlwidgets::saveWidget(mds_plot, "glimma_mds_limma.html", selfcontained = TRUE)
     
     # ==========================================
-    # Stage 3: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     
     # Create design matrix
@@ -119,7 +128,7 @@ process BIOC_GLIMMA_LIMMA_VOOM_GLIMMA {
     coef_idx <- ncol(design)
     
     # ==========================================
-    # Stage 4: Interactive MA and Volcano Plots
+    # --- Interactive MA and Volcano Plots ---
     # ==========================================
     
     # Generate and save interactive MA plot

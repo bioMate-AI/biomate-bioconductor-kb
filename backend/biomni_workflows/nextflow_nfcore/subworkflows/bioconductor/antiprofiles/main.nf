@@ -35,6 +35,15 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("antiProfiles")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,10 +53,10 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(antiProfiles)
     
-    # Stage 2: Load and preprocess input data
+    # --- Load and preprocess input data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -71,7 +80,7 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
       exprs_mat <- log2(exprs_mat + 1)
     }
     
-    # Stage 3: Define binary status (0 = Normal/Control, 1 = Cancer/Case)
+    # --- Define binary status (0 = Normal/Control, 1 = Cancer/Case) ---
     status <- rep(1, nrow(coldata))
     normal_idx <- grep("normal|control|ctrl", coldata\$condition, ignore.case = TRUE)
     if (length(normal_idx) > 0) {
@@ -84,7 +93,7 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
                      levels_cond[1], "' to 0 (Normal) and others to 1 (Cancer)."))
     }
     
-    # Stage 4: Partition data into Training and Testing sets
+    # --- Partition data into Training and Testing sets ---
     # Anti-profiles must be trained on a subset and tested on independent samples
     set.seed(123)
     normal_samples <- which(status == 0)
@@ -107,7 +116,7 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
       message("Sample size too small for independent split; using all samples for both training and testing.")
     }
     
-    # Stage 5: Compute variance statistics (apStats)
+    # --- Compute variance statistics (apStats) ---
     # minL is the minimum number of normal samples required
     n_normal_train <- sum(status[train_idx] == 0)
     minL_val <- max(2, n_normal_train)
@@ -120,7 +129,7 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
     probe_stats <- getProbeStats(colonStats)
     write.csv(probe_stats, "probe_stats.csv", row.names = TRUE)
     
-    # Stage 6: Build the Anti-Profile
+    # --- Build the Anti-Profile ---
     # Select the most hyper-variable probesets (defaulting to 100 or total features if less)
     sigsize_val <- max(5, min(100, nrow(exprs_mat)))
     message(paste("Building anti-profile with signature size:", sigsize_val))
@@ -133,7 +142,7 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
     normal_regions <- getNormalRegions(ap)
     write.csv(as.data.frame(normal_regions), "normal_regions.csv", row.names = TRUE)
     
-    # Stage 7: Compute Anti-Profile Scores for Test Samples
+    # --- Compute Anti-Profile Scores for Test Samples ---
     message("Computing anti-profile scores for test samples...")
     counts_score <- apCount(ap, exprs_mat[, test_idx, drop = FALSE])
     
@@ -145,7 +154,7 @@ process BIOC_ANTIPROFILES_ANTI_PROFILES_ANALYSIS {
     )
     write.csv(results, "antiprofile_scores.csv", row.names = FALSE)
     
-    # Stage 8: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     message("Generating diagnostic plots...")
     pdf("antiprofiles_plots.pdf", width = 12, height = 6)
     par(mfrow = c(1, 2))

@@ -34,7 +34,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const BASE_URL = process.env.BIOMATE_URL || "https://dev-public.biomate.ai";
-const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "test-e2e-token-12345";
+const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
+// Shared registered fixture (CLAUDE.md §"E2E test user"): a real, deliverable account.
+// NEVER per-test / made-up @e2e.test emails — those 400 on register (undeliverable) and
+// degrade quota. Reuse this one account; register-or-login on first use.
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 const SS_DIR = path.join(__dirname, "screenshots", "bioconductor-domains-comprehensive");
 if (!fs.existsSync(SS_DIR)) fs.mkdirSync(SS_DIR, { recursive: true });
 
@@ -97,25 +102,28 @@ const EXEC_PACKAGES: Array<{
 ];
 
 // ---------------------------------------------------------------------------
-// Per-test fresh user (matches sibling test conventions)
+// Shared registered fixture auth (CLAUDE.md): register-or-login the ONE real account,
+// set the biomate_token cookie. No per-test users, no fake emails.
 // ---------------------------------------------------------------------------
 
-async function registerFreshUser(page: Page, prefix: string): Promise<string> {
-  const email = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@e2e.biomate.test`;
-  const resp = await page.request.post(`${BASE_URL}/api/auth/register`, {
+async function loginFixture(page: Page): Promise<void> {
+  // register is idempotent-ish: ignore failure if the account already exists.
+  await page.request.post(`${BASE_URL}/api/auth/register`, {
     headers: { "X-E2E-Test-Token": E2E_TOKEN, "Content-Type": "application/json" },
-    data: { email, password: "TestPass123!", displayName: "BCD E2E" },
+    data: { name: "BCD Fixture", email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD, termsAccepted: true },
+  }).catch(() => null);
+  const r = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: { "X-E2E-Test-Token": E2E_TOKEN, "Content-Type": "application/json" },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
   });
-  expect(resp.ok(), `register ${email}: ${resp.status()}`).toBeTruthy();
-  return email;
-}
-
-async function login(page: Page, email: string): Promise<void> {
-  await page.goto(`${BASE_URL}/login`);
-  await page.fill('input[name="email"], input[type="email"]', email);
-  await page.fill('input[name="password"], input[type="password"]', "TestPass123!");
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/chat|\/dashboard|\/$/, { timeout: 15_000 });
+  expect(r.ok(), `login fixture ${FIXTURE_EMAIL}: HTTP ${r.status()}`).toBeTruthy();
+  const token = (await r.json()).token;
+  await page.context().addCookies([{
+    name: "biomate_token", value: token, url: BASE_URL,
+    httpOnly: false, secure: true, sameSite: "Lax",
+  }]);
+  await page.goto(BASE_URL);
+  await page.waitForLoadState("domcontentloaded");
 }
 
 async function sendChatMessage(page: Page, message: string): Promise<void> {
@@ -143,8 +151,7 @@ test.describe("BCD-DOM: bioconductor routing must succeed for every domain we se
 
   for (const rep of DOMAIN_REPS) {
     test(`BCD-DOM-${rep.domain}: ${rep.pkg}/${rep.wf} — chat routes to a workflow card`, async ({ page }) => {
-      const email = await registerFreshUser(page, `bcd-${rep.domain}`);
-      await login(page, email);
+      await loginFixture(page);
       await sendChatMessage(page, rep.query);
 
       const carded = await waitForWorkflowCard(page);
@@ -179,8 +186,7 @@ test.describe("BCD-EXEC: marquee packages must run end-to-end and produce non-tr
 
   for (const ex of EXEC_PACKAGES) {
     test(`${ex.id}: ${ex.pkg} — chat → card → execute → outputs non-empty`, async ({ page }) => {
-      const email = await registerFreshUser(page, `bcd-exec-${ex.pkg}`);
-      await login(page, email);
+      await loginFixture(page);
       await sendChatMessage(page, ex.query);
 
       const carded = await waitForWorkflowCard(page);

@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the network and construct a Computational Causal Graph (CCG) using CreateCCG. 2. Load the experimental data using ReadExperim
+//  * 1. [Visualization & Output] Load the network and construct a Computational Causal
+//  * 2. [Visualization & Output] Load the experimental data
+//  * 3. [Visualization & Output] Run the SCAN algorithm to find common top-scoring nodes
+//  * 4. [Visualization & Output] Generate SIF and annotation files for the explained nodes
 
 nextflow.enable.dsl = 2
 
@@ -58,15 +61,15 @@ process BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_OF_NETWORKS_SCAN {
     # Load the required library
     library(CausalR)
     
-    # 1. Load the network and construct a Computational Causal Graph (CCG)
+    # --- Load the network and construct a Computational Causal ---
     # Reading directly from the user-provided 'testNetwork1.sif' in the working directory
     ccg <- CreateCCG("testNetwork1.sif")
     
-    # 2. Load the experimental data
+    # --- Load the experimental data ---
     # Reading directly from the user-provided 'testData1.txt' in the working directory
     experimentalData <- ReadExperimentalData("testData1.txt", ccg)
     
-    # 3. Run the SCAN algorithm to find common top-scoring nodes across multiple deltas
+    # --- Run the SCAN algorithm to find common top-scoring nodes ---
     scanResults <- runSCANR(
       ccg, 
       experimentalData, 
@@ -81,7 +84,7 @@ process BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_OF_NETWORKS_SCAN {
     # Save the scan results object to an RDS file for downstream analysis
     saveRDS(scanResults, "scanResults.rds")
     
-    # 4. Generate SIF and annotation files for the explained nodes of specific hypotheses
+    # --- Generate SIF and annotation files for the explained nodes ---
     # Wrap in tryCatch to ensure robust execution even if specific nodes are missing
     tryCatch({
       WriteExplainedNodesToSifFile("Node1", +1, ccg, experimentalData, delta = 2)

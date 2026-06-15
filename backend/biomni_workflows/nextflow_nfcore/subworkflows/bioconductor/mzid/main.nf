@@ -35,6 +35,15 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mzID", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -46,10 +55,11 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     
     # Load required libraries
     library(mzID)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # ==========================================
-    # Stage 1: Read User Inputs & Prepare Data
+    # --- Read User Inputs & Prepare Data ---
     # ==========================================
     
     # Read intensity matrix and coldata
@@ -87,7 +97,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     protein_accessions[is_decoy] <- paste0("DECOY_", protein_accessions[is_decoy])
     
     # ==========================================
-    # Stage 2: Generate mzIdentML File Dynamically
+    # --- Generate mzIdentML File Dynamically ---
     # ==========================================
     
     # Construct a valid minimal mzIdentML XML structure matching the user's peptides
@@ -173,7 +183,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     writeLines(xml_lines, "generated_identifications.mzid")
     
     # ==========================================
-    # Stage 3: Parse mzIdentML & Extract Metadata
+    # --- Parse mzIdentML & Extract Metadata ---
     # ==========================================
     
     mzResults <- tryCatch({
@@ -212,7 +222,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     sink()
     
     # ==========================================
-    # Stage 4: Filter Decoys and Flatten Results
+    # --- Filter Decoys and Flatten Results ---
     # ==========================================
     
     if (!is.null(mzResults)) {
@@ -247,7 +257,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     write.csv(flatResults, "peptide_identifications.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Integrate Identifications with Abundance Data
+    # --- Integrate Identifications with Abundance Data ---
     # ==========================================
     
     # Merge flattened peptide identifications with the intensity matrix
@@ -279,7 +289,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     )
     
     # ==========================================
-    # Stage 6: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     # ==========================================
     
     conditions <- unique(coldata_filtered\$condition)
@@ -316,7 +326,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     write.csv(diff_df, "differential_proteins.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 7: Visualizations
+    # --- Visualizations ---
     # ==========================================
     
     pdf("differential_abundance_plots.pdf", width = 8, height = 6)

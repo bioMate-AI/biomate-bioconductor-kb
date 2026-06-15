@@ -54,7 +54,7 @@ process BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW {
     
     library(RMassBank)
     
-    # 1. Initialize default settings and define the spectra list
+    # --- Initialize default settings and define the spectra list ---
     RmbDefaultSettings()
     getOption("RMassBank")\$multiplicityFilter
     rmbo <- getOption("RMassBank")
@@ -65,7 +65,7 @@ process BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW {
     )
     options(RMassBank = rmbo)
     
-    # 2. Load the compound list and initialize the workspace
+    # --- Load the compound list and initialize the workspace ---
     loadList("NarcoticsDataset.csv")
     
     w <- newMsmsWorkspace()
@@ -82,7 +82,7 @@ process BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW {
     }
     w@files <- files
     
-    # 3. Run msmsWorkflow steps 1 to 7 for the primary spectra
+    # --- Run msmsWorkflow steps 1 to 7 for the primary spectra ---
     w1 <- msmsWorkflow(w, mode="pH", steps=c(1))
     w1@spectra <- as(lapply(w1@spectra, function(s)
         {
@@ -91,7 +91,7 @@ process BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW {
         }),"SimpleList")
     w1 <- msmsWorkflow(w1, mode="pH", steps=c(2:7))
     
-    # 4. Run msmsWorkflow steps 1 to 7 for the confirmation spectra (using confirmMode = 1)
+    # --- Run msmsWorkflow steps 1 to 7 for the confirmation ---
     w2 <- msmsWorkflow(w, mode="pH", steps=c(1), confirmMode = 1)
     w2@spectra <- as(lapply(w2@spectra, function(s)
         {
@@ -100,10 +100,10 @@ process BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW {
         }),"SimpleList")
     w2 <- msmsWorkflow(w2, mode="pH", steps=c(2:7))
     
-    # 5. Combine the workspaces using combineMultiplicities
+    # --- Combine the workspaces using combineMultiplicities ---
     wTotal <- combineMultiplicities(c(w1, w2))
     
-    # 6. Run msmsWorkflow step 8 on the combined workspace to apply multiplicity filtering
+    # --- Run msmsWorkflow step 8 on the combined workspace to ---
     wTotal <- msmsWorkflow(wTotal, steps=8, mode="pH", archivename = "output")
     
     # Save the final workspace object

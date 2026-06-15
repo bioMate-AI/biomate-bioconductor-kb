@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define intergenic genomic ranges using defIgRanges(). 2. Extract intergenic RNA-seq alignments using prepIgBam(). 3. Build transcr
+//  * 1. [Input & Preparation] Define intergenic genomic ranges
+//  * 2. [Input & Preparation] Extract intergenic RNA-seq alignments
+//  * 3. [Input & Preparation] Build transcript models
+//  * 4. [Input & Preparation] Select transcript models
+//  * 5. [Input & Preparation] Evaluate transcript models
 
 nextflow.enable.dsl = 2
 
@@ -81,7 +85,7 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_ANALYSIS {
         if (!file.exists(ftgt)) stop("Required input file missing: ", ftgt)
         
         # ==========================================
-        # Step 1: Define intergenic genomic ranges
+        # --- Define intergenic genomic ranges ---
         # ==========================================
         message("Step 1: Defining intergenic genomic ranges...")
         iggrs <- pram::defIgRanges(in_gtf, genome = 'hg38')
@@ -92,7 +96,7 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_ANALYSIS {
         
         
         # ==========================================
-        # Step 2: Extract intergenic RNA-seq alignments
+        # --- Extract intergenic RNA-seq alignments ---
         # ==========================================
         message("Step 2: Extracting intergenic RNA-seq alignments...")
         foutbam <- "intergenic_alignments.bam"
@@ -102,7 +106,7 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_ANALYSIS {
         
         
         # ==========================================
-        # Step 3: Build transcript models
+        # --- Build transcript models ---
         # ==========================================
         message("Step 3: Building transcript models...")
         fbams <- c(foutbam)
@@ -118,7 +122,7 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_ANALYSIS {
         
         
         # ==========================================
-        # Step 4: Select transcript models
+        # --- Select transcript models ---
         # ==========================================
         message("Step 4: Selecting transcript models...")
         
@@ -137,7 +141,7 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_ANALYSIS {
         
         
         # ==========================================
-        # Step 5: Evaluate transcript models
+        # --- Evaluate transcript models ---
         # ==========================================
         message("Step 5: Evaluating transcript models...")
         

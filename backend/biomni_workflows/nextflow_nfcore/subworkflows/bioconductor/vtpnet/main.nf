@@ -57,7 +57,7 @@ process BIOC_VTPNET_VTP_NETWORK_CONSTRUCTION {
     library(GenomicRanges)
     library(gwascat)
     
-    # 1. Load GWAS variants and TF binding sites from user input files
+    # --- Load GWAS variants and TF binding sites from user input ---
     # Read the GRanges objects
     maurGWAS <- readRDS("gwas_variants.GRanges")
     pax4 <- readRDS("tf_binding_sites.GRanges")
@@ -78,18 +78,18 @@ process BIOC_VTPNET_VTP_NETWORK_CONSTRUCTION {
       stop("The disease_map.RData file is empty or could not be loaded properly.")
     }
     
-    # 2. Find overlaps between GWAS variants and TF binding sites using overlapsAny
+    # --- Find overlaps between GWAS variants and TF binding sites ---
     vp_pax4_85 = maurGWAS[ overlapsAny(maurGWAS, pax4_85) ]
     length(vp_pax4_85)
     
     vp_pax4_75 = maurGWAS[ overlapsAny(maurGWAS, pax4_75) ]
     length(vp_pax4_75)
     
-    # 3. Filter the GWAS variants by a disease map using filterGWASbyMap
+    # --- Filter the GWAS variants by a disease map using ---
     gwrngs19 <- maurGWAS
     cangw = filterGWASbyMap( gwrngs19, cancerMap )
     
-    # 4. Identify specific hits using getOneHits
+    # --- Identify specific hits using getOneHits ---
     hits = getOneHits( pax4, cangw, "fimo" )
     
     # Save the results to output files
