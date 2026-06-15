@@ -3108,7 +3108,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         except Exception:
             pass
         with _runs_lock:
-            _run_snap = dict(_runs.get(run_id) or {})
+            _run_snap = _run_lookup(run_id) or {}
         _duration_s: Optional[int] = None
         _started = _run_snap.get("started_at")
         if _started:
@@ -3177,7 +3177,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _runs[run_id]["status"] = final_status
                 _runs[run_id]["returncode"] = returncode
                 _runs[run_id]["completed_at"] = _completed_at_now
-            _inv_id = _runs.get(run_id, {}).get("invocation_id")
+            _inv_id = (_run_lookup(run_id) or {}).get("invocation_id")
         # Stage 2b mirror write — completion path
         try:
             get_run_state_store().update_run(
@@ -4008,7 +4008,7 @@ def execute_nextflow(
     # Nextflow -resume: reuse cached work from a prior run if requested.
     if request.resume_from_run_id:
         with _runs_lock:
-            prev = _runs.get(request.resume_from_run_id, {})
+            prev = _run_lookup(request.resume_from_run_id) or {}
         prev_work = prev.get("work_dir")
         # Fallback: reconstruct S3 work dir from the known naming pattern.
         # This works even after gunicorn restarts when _runs is empty.
@@ -4573,7 +4573,7 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
     execution panel of nextflow-workflow-viewer.tsx.
     """
     with _runs_lock:
-        prev = dict(_runs.get(run_id, {}))
+        prev = _run_lookup(run_id) or {}
 
     if not prev:
         nextflow_path = body.nextflow_path
@@ -4791,8 +4791,7 @@ def get_nextflow_status(
     run_id: str,
 ) -> Dict[str, Any]:
     """Return current status of a Nextflow run."""
-    with _runs_lock:
-        info = _runs.get(run_id)
+    info = _run_lookup(run_id)
 
     if info is not None:
         info = _apply_disk_timing_terminal_state(info, run_id)
@@ -5305,8 +5304,7 @@ def download_s3_output(
     """
     from starlette.responses import RedirectResponse
 
-    with _runs_lock:
-        info = _runs.get(run_id)
+    info = _run_lookup(run_id)
     if info is None:
         # Same multi-worker fallback as get_nextflow_status: reconstruct from disk
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
@@ -5352,8 +5350,7 @@ def list_run_output_files(run_id: str) -> Any:
     List all output files for a completed run, with presigned S3 download URLs.
     Returns [{name, s3_uri, size, extension, download_url}].
     """
-    with _runs_lock:
-        info = _runs.get(run_id)
+    info = _run_lookup(run_id)
     if info is None:
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
         output_dir = work_base / run_id / "output"
@@ -5630,7 +5627,7 @@ def get_invocation_software(invocation_id: str) -> Dict[str, Any]:
     import glob as _glob
     import yaml as _yaml
 
-    run = _runs.get(invocation_id) or {}
+    run = _run_lookup(invocation_id) or {}
     workdir = run.get("nextflowOutputDir") or run.get("work_dir") or \
         os.path.join("/tmp/nextflow_runs", invocation_id)
 
@@ -8104,8 +8101,8 @@ async def get_reproducibility_bundle(run_id: str):
             except Exception:
                 pass
 
-    # Add parameter summary if run is in memory
-    run = _runs.get(run_id)
+    # Add parameter summary if run is in memory (or recoverable via store)
+    run = _run_lookup(run_id)
     if run:
         files["run_params.json"] = _json.dumps({
             "run_id": run_id,
