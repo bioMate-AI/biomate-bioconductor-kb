@@ -195,8 +195,8 @@ cv_neg      = round(100 * np.std(neg_signals) / mu_neg, 2) if mu_neg > 0 else No
 # captures that as the operational cutoff.
 SIGNAL_WINDOW_THRESHOLD = 2.0
 
-z_prime_pass     = z_prime is not None and z_prime >= min_z_prime
-signal_win_pass  = signal_win is not None and signal_win >= SIGNAL_WINDOW_THRESHOLD
+z_prime_pass     = bool(z_prime is not None and z_prime >= min_z_prime)
+signal_win_pass  = bool(signal_win is not None and signal_win >= SIGNAL_WINDOW_THRESHOLD)
 qc_pass          = z_prime_pass and signal_win_pass
 
 failures = []
