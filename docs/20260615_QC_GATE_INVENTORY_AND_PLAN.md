@@ -13,7 +13,7 @@ Companion to:
 - **Total documented gates:** 58 metric entries × 23 categories in
   `backend/config/qc_evidence.yaml`.
 - **Wired end-to-end on dev (live `[QC-S3]` + `[QC Gate]` proof):** 20.
-- **Documented but unwired in pharma/structural:** 38.
+- **Documented but unwired in pharma/structural:** 20 (was 38; Track 2 batches 1, 2, 4 closed 18, including all 8 imaging/structural rows in batch 2 on 2026-06-15).
 - **Bioconductor coverage:** the corpus already carries a 25-label QC
   taxonomy in `qc_steps` (396 workflows non-empty) + per-step
   `step_metadata[].qc`. That's the **scaffolding** for gates; the
@@ -65,10 +65,10 @@ in `_S3_REPORT_PATHS`.
 - admet: `admet_dili_probability` (the verified row gates the combined `admet` shape; DILI alone is its own row)
 - polymorph: 3 entries
 
-**Imaging / structural (8):**
-- cryo_em (3): `cryo_em_fsc_resolution`, `cryo_em_motion_drift`, `cryo_em_particle_count`
-- cryo_et (3): `cryo_et_sta_fsc_resolution`, `cryo_et_tilt_residual`, `cryo_et_defocus_range`
-- structure_prediction: `struct_pred_confident_fraction`, `struct_pred_max_pae` (Boltz emits both but only `mean_plddt` is currently part of the active gate)
+**Imaging / structural (0):** all 8 imaging/structural gates wired in Track 2 batch 2 (2026-06-15) — verification runs pending on dev:
+- cryo_em (3): `cryo_em_fsc_resolution`, `cryo_em_motion_drift`, `cryo_em_particle_count` wired in `794726dc0` (cryosparc_standard_spa)
+- cryo_et (3): `cryo_et_sta_fsc_resolution`, `cryo_et_tilt_residual`, `cryo_et_defocus_range` wired in `23b523ea5` across subtomogram_averaging / tilt_alignment / import_tiltseries (the IMPORT_TILTSERIES standalone + embedded copy in et_full_pipeline both got a fresh `qc_metrics.json` emit — needs a real-data run to confirm MDOC defocus aggregation lands)
+- structure_prediction (2): `struct_pred_confident_fraction`, `struct_pred_max_pae` wired in `161ccea49` (boltz_structure_prediction; pass-band fields layered on top of the pre-existing extractor)
 
 **HTS (0):** `hts_signal_window` wired in `f516fd12` Track 2 batch 4; verified by run `193c34ca` 2026-06-15 17:49 UTC, qc_metrics.json emits z_prime_passes + signal_window_passes (both true on default fixture).
 
