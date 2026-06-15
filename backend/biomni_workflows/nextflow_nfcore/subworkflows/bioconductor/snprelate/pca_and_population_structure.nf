@@ -56,7 +56,7 @@ process BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE {
     library(gdsfmt)
     library(SNPRelate)
     
-    # 1. Open the GDS file
+    # --- Open the GDS file ---
     # The pipeline expects the user input file "genofile" or "genofile.gds" in the working directory
     input_file <- "genofile"
     if (!file.exists(input_file) && file.exists("genofile.gds")) {
@@ -67,16 +67,16 @@ process BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE {
     
     set.seed(1000)
     
-    # 2. Perform LD-based SNP pruning
+    # --- Perform LD-based SNP pruning ---
     snpset <- snpgdsLDpruning(genofile, ld.threshold=0.2)
     
-    # 3. Extract pruned SNP IDs
+    # --- Extract pruned SNP IDs ---
     snpset.id <- unlist(unname(snpset))
     
     # Save pruned SNP IDs to a CSV file
     write.csv(data.frame(snp.id = snpset.id), "pruned_snp_ids.csv", row.names = FALSE)
     
-    # 4. Run PCA
+    # --- Run PCA ---
     pca <- snpgdsPCA(genofile, snp.id=snpset.id, num.thread=2)
     
     # Calculate variance proportion (%)
@@ -101,7 +101,7 @@ process BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE {
     plot(tab\$EV2, tab\$EV1, xlab="eigenvector 2", ylab="eigenvector 1")
     dev.off()
     
-    # 5. Calculate PC-correlated SNPs
+    # --- Calculate PC-correlated SNPs ---
     chr <- read.gdsn(index.gdsn(genofile, "snp.chromosome"))
     CORR <- snpgdsPCACorr(pca, genofile, eig.which=1:4)
     
@@ -118,7 +118,7 @@ process BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE {
     par(savepar)
     dev.off()
     
-    # 6. Close the GDS file
+    # --- Close the GDS file ---
     snpgdsClose(genofile)
 
     writeLines(c(

@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Extract adjusted segments using getadjustedsegments. 2. Link mutations to copy number segments and calculate mutant copies using l
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Extract adjusted segments using getadjustedsegments
+//  * 3. [Core Analysis] Link mutations to copy number segments and calculate
+//  * 4. [Core Analysis] Query specific genomic locations using
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +40,15 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ACE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +62,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     library(ACE)
     
     # -----------------------------------------------------------------------------
-    # Stage 0: Read User Input Files
+    # --- Read User Input Files ---
     # -----------------------------------------------------------------------------
     # The pipeline expects 'template.csv' (segmented template data frame)
     # and 'variants.csv' (variant/mutation data frame) in the working directory.
@@ -72,7 +84,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Extract adjusted segments using getadjustedsegments
+    # --- Extract adjusted segments using getadjustedsegments ---
     # -----------------------------------------------------------------------------
     segmentdf <- getadjustedsegments(template, cellularity = 0.38)
     head(segmentdf)
@@ -81,7 +93,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     write.csv(segmentdf, "adjusted_segments.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Link mutations to copy number segments and calculate mutant copies
+    # --- Link mutations to copy number segments and calculate ---
     # -----------------------------------------------------------------------------
     # The documented function call uses:
     # chrindex = 2 (Chromosome), posindex = 3 (Position), freqindex = 4 (Frequency)
@@ -93,7 +105,7 @@ process BIOC_ACE_VARIANT_AND_SEGMENT_ANNOTATION {
     write.csv(linked_variants, "linked_variants.csv", row.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Query specific genomic locations using analyzegenomiclocations
+    # --- Query specific genomic locations using ---
     # -----------------------------------------------------------------------------
     # Query 1: Single location
     loc_query1 <- analyzegenomiclocations(segmentdf, Chromosome = 1, Position = 26365569)

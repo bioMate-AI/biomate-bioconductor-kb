@@ -36,6 +36,15 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("netZooR", "igraph", "reshape2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     library(reshape2)
     
     # ==========================================
-    # STAGE 1: Data Loading and Preprocessing
+    # --- Data Loading and Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing expression data...")
     
@@ -91,7 +100,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     tfs <- top_genes[1:min(3, length(top_genes))]
     
     # ==========================================
-    # STAGE 2: Constructing Prior Networks (Motif and PPI)
+    # --- Constructing Prior Networks (Motif and PPI) ---
     # ==========================================
     message("Stage 2: Constructing Motif and PPI prior networks...")
     
@@ -116,7 +125,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: Aggregate Network Reconstruction (PANDA)
+    # --- Aggregate Network Reconstruction (PANDA) ---
     # ==========================================
     message("Stage 3: Reconstructing aggregate network using PANDA...")
     
@@ -135,7 +144,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Single-Sample Network Reconstruction (LIONESS)
+    # --- Single-Sample Network Reconstruction (LIONESS) ---
     # ==========================================
     message("Stage 4: Reconstructing single-sample networks using LIONESS...")
     
@@ -166,7 +175,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Differential Network Analysis (MONSTER)
+    # --- Differential Network Analysis (MONSTER) ---
     # ==========================================
     message("Stage 5: Estimating network transition states using MONSTER...")
     
@@ -197,7 +206,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Differential Community Detection (ALPACA)
+    # --- Differential Community Detection (ALPACA) ---
     # ==========================================
     message("Stage 6: Detecting differential communities using ALPACA...")
     
@@ -242,7 +251,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     write.csv(alpaca_df, "alpaca_communities.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Stage 7: Generating diagnostic plots...")
     

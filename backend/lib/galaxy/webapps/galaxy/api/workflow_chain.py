@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import sqlite3
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -560,22 +561,54 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
 _DB_PATH = Path(os.environ.get("GALAXY_AI_DB", "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"))
 
 
-def resolve_workflow_name_to_path(workflow_name: str) -> Optional[str]:
-    """Resolve a curated chain step workflow_name to an indexed nextflow_path (filename)."""
+def resolve_workflow_name_to_path(workflow_name: str, workflow_id: Optional[int] = None) -> Optional[str]:
+    """Resolve a curated chain step to an indexed nextflow_path (filename).
+
+    Determinism order:
+      0) If workflow_id is supplied (chain step pinned to a specific row),
+         look up that row's filename directly. This is the only path that
+         survives re-indexing without surprise — the cascade below picks
+         by SQLite rowid order, which is stable per DB but not across
+         re-runs of index_all_workflows.py.
+      1-6) Name-based cascade (legacy behaviour for unpinned chain steps).
+    """
+    if workflow_id is not None:
+        try:
+            conn = sqlite3.connect(str(_DB_PATH))
+            row = conn.execute(
+                "SELECT filename FROM workflows WHERE id=? AND executable=1 LIMIT 1",
+                (int(workflow_id),),
+            ).fetchone()
+            conn.close()
+            if row and row[0]:
+                return str(row[0])
+        except Exception as exc:
+            log.debug("workflow_chain: workflow_id resolve failed for %s: %s", workflow_id, exc)
+        # workflow_id missed (row deleted / non-executable) — fall through
+        # to the name cascade rather than returning None outright.
     if not workflow_name or not str(workflow_name).strip():
         return None
     name = str(workflow_name).strip()
+    # Curated chain templates reference steps as BIOC_<PKG> (the original atomic-wrapper
+    # convention), but the regenerated bioc workflows are indexed under their bare package
+    # name (e.g. 'minfi', 'dss', 'missmethyl'). Strip a leading BIOC_ so the chain resolves
+    # to the indexed row instead of returning 0 rows.
+    bare = re.sub(r'^bioc[_-]', '', name, flags=re.IGNORECASE).strip()
     slug = name.lower().replace(" ", "_").replace("-", "_")
+    bare_slug = bare.lower().replace(" ", "_").replace("-", "_")
     try:
         conn = sqlite3.connect(str(_DB_PATH))
         queries = [
             ("SELECT filename FROM workflows WHERE lower(name)=lower(?) AND executable=1 LIMIT 1", (name,)),
+            # BIOC_<PKG> -> bare package-name row (the dominant chain-resolution gap)
+            ("SELECT filename FROM workflows WHERE lower(name)=lower(?) AND executable=1 LIMIT 1", (bare,)),
             ("SELECT filename FROM workflows WHERE name LIKE ? AND executable=1 LIMIT 1", (f"%{name}%",)),
             (
                 "SELECT filename FROM workflows WHERE replace(lower(name),' ','') "
                 "= replace(lower(?),' ','') AND executable=1 LIMIT 1",
                 (name,),
             ),
+            ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%/{bare_slug}/%",)),
             ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%{slug}%",)),
             ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%{name.lower()}%",)),
         ]

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Preprocess and filter the raw count matrix using standard deviation cutoffs with DeMixT_preprocessing. 2. Create SummarizedExperim
+//  * 1. [Visualization & Output] Load Input Data
+//  * 2. [Visualization & Output] Preprocess and Filter Data
+//  * 3. [Visualization & Output] Create SummarizedExperiment Objects
+//  * 4. [Visualization & Output] Run DeMixT Deconvolution across Parameter Grid
+//  * 5. [Visualization & Output] Identify Optimal Parameters and Extract Results
+//  * 6. [Visualization & Output] Save Outputs and Generate Plots
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DeMixT", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,6 +63,7 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         
         # Load required libraries
         library(DeMixT)
+        library(SummarizedExperiment)
         
         # Helper function to load user input files robustly
         load_input <- function(name) {
@@ -84,7 +99,7 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         }
         
         # ----------------------------------------------------------------------
-        # Step 1: Load Input Data
+        # --- Load Input Data ---
         # ----------------------------------------------------------------------
         if (file.exists("PRAD.RData")) {
           message("Loading data from PRAD.RData...")
@@ -106,7 +121,7 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         PRAD <- PRAD[, c(Normal.id, Tumor.id)]
         
         # ----------------------------------------------------------------------
-        # Step 2: Preprocess and Filter Data
+        # --- Preprocess and Filter Data ---
         # ----------------------------------------------------------------------
         selected.genes = 9000
         cutoff_normal_range = c(0.1, 1.0)
@@ -119,14 +134,14 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         sd_cutoff_tumor = preprocessed_data\$sd_cutoff_tumor
         
         # ----------------------------------------------------------------------
-        # Step 3: Create SummarizedExperiment Objects
+        # --- Create SummarizedExperiment Objects ---
         # ----------------------------------------------------------------------
         set.seed(1234)
         data.Y = SummarizedExperiment(assays = list(counts = PRAD_filter[, Tumor.id]))
         data.N1 <- SummarizedExperiment(assays = list(counts = PRAD_filter[, Normal.id]))
         
         # ----------------------------------------------------------------------
-        # Step 4: Run DeMixT Deconvolution across Parameter Grid
+        # --- Run DeMixT Deconvolution across Parameter Grid ---
         # ----------------------------------------------------------------------
         nspikesin_list = c(0, 5, 10)
         ngene.selected_list = c(500, 1000, 1500, 2500)
@@ -169,7 +184,7 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         }
         
         # ----------------------------------------------------------------------
-        # Step 5: Identify Optimal Parameters and Extract Results
+        # --- Identify Optimal Parameters and Extract Results ---
         # ----------------------------------------------------------------------
         PiT_GS_PRAD <- as.data.frame(PiT_GS_PRAD)
         Spearman_correlations <- list()
@@ -195,7 +210,7 @@ process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
         load(best_file)
         
         # ----------------------------------------------------------------------
-        # Step 6: Save Outputs and Generate Plots
+        # --- Save Outputs and Generate Plots ---
         # ----------------------------------------------------------------------
         # Save estimated proportions
         write.csv(res_run\$pi, file = "estimated_proportions.csv", row.names = TRUE)

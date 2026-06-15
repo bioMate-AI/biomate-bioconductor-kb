@@ -72,14 +72,14 @@ process BIOC_MUNGESUMSTATS_IMPORT_OPEN_GWAS {
     # 2. Execute Documented Workflow
     # ------------------------------------------------------------------------------
     
-    # Stage 1: Search for datasets of interest using find_sumstats() with trait and sample size filters
+    # --- Search for datasets of interest using find_sumstats() ---
     message("Searching for GWAS datasets...")
     metagwas <- MungeSumstats::find_sumstats(traits = c("parkinson","alzheimer"), min_sample_size = 1000)
     
     # Sort and extract IDs
     ids <- (dplyr::arrange(metagwas, nsnp))\$id
     
-    # Stage 2: Import and format the selected datasets using import_sumstats()
+    # --- Import and format the selected datasets using ---
     message("Importing and standardising selected GWAS summary statistics...")
     datasets <- MungeSumstats::import_sumstats(ids = "ieu-a-298", ref_genome = "GRCH37")
     

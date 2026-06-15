@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define the biological variables to randomize across batches. 2. Create a well mask to reserve specific wells for control samples. 
+//  * 1. [Visualization & Output] Load the input sample list
+//  * 2. [Visualization & Output] Define the biological variables to randomize across
+//  * 3. [Visualization & Output] Create a well mask to reserve specific wells for control
+//  * 4. [Visualization & Output] Run multivariate randomization using omixerRand to find
+//  * 5. [Visualization & Output] Recreate the exact randomized layout using the saved
+//  * 6. [Visualization & Output] Generate lab-friendly PDF sample sheets using omixerSheet
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Omixer", "tibble", "forcats", "stringr", "dplyr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -55,20 +69,20 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
     library(dplyr)
     library(ggplot2)
     
-    # 1. Load the input sample list
+    # --- Load the input sample list ---
     # The file 'sampleList.Rdata' must exist in the working directory and contain the 'sampleList' object.
     if (!file.exists("sampleList.Rdata")) {
       stop("Error: 'sampleList.Rdata' not found in the working directory.")
     }
     load("sampleList.Rdata")
     
-    # 2. Define the biological variables to randomize across batches
+    # --- Define the biological variables to randomize across ---
     randVars <- c("tissue", "sex", "age", "bmi", "date")
     
-    # 3. Create a well mask to reserve specific wells for control samples
+    # --- Create a well mask to reserve specific wells for control ---
     mask <- rep(c(rep(0, 88), rep(1, 8)), 7)
     
-    # 4. Run multivariate randomization using omixerRand to find the optimal layout
+    # --- Run multivariate randomization using omixerRand to find ---
     omixerLayout <- omixerRand(sampleList, sampleId="sampleId", 
         block="block", iterNum=100, wells=96, div="col", plateNum=7, 
         randVars=randVars, mask=mask)
@@ -77,7 +91,7 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
     write.csv(omixerLayout, "omixer_layout_rand.csv", row.names = FALSE)
     saveRDS(omixerLayout, "omixer_layout_rand.rds")
     
-    # 5. Recreate the exact randomized layout using the saved random seed with omixerSpecific
+    # --- Recreate the exact randomized layout using the saved ---
     if (file.exists("randomSeed.Rdata")) {
       load("randomSeed.Rdata")
       .GlobalEnv\$.Random.seed <- randomSeed
@@ -93,7 +107,7 @@ process BIOC_OMIXER_MULTIVARIATE_SAMPLE_RANDOMIZATION {
       warning("randomSeed.Rdata was not found; skipping omixerSpecific step.")
     }
     
-    # 6. Generate lab-friendly PDF sample sheets using omixerSheet
+    # --- Generate lab-friendly PDF sample sheets using omixerSheet ---
     # This function automatically writes a PDF file (typically 'sampleSheet.pdf') to the working directory.
     omixerSheet(omixerLayout, group="tissue")
 

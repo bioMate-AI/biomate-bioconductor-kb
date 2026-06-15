@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the package and prepare the expression matrix and design vector. 2. Run the single time point analysis using stp (optionally 
+//  * 1. [Visualization & Output] Load the package and prepare the expression matrix and
+//  * 2. [Visualization & Output] Run the single time point analysis using stp (enabling
+//  * 3. [Visualization & Output] Print the summary of results (achieved FDR, number of
+//  * 4. [Visualization & Output] Plot the estimated FDR curve and the genes on the
+//  * 5. [Visualization & Output] Write named output files for the meaningful results
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("acde")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,7 +60,7 @@ process BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS {
           }
         }
     
-    # 1. Load the package and prepare the expression matrix and design vector
+    # --- Load the package and prepare the expression matrix and ---
     library(acde)
     
     # Read the expression matrix (dat) from the working directory
@@ -70,13 +83,13 @@ process BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS {
       stop("Error: Design vector file (des.csv or des.txt) not found in the working directory.")
     }
     
-    # 2. Run the single time point analysis using stp (enabling BCa bootstrap confidence bounds)
+    # --- Run the single time point analysis using stp (enabling ---
     stpPI <- stp(dat, des, BCa=TRUE)
     
-    # 3. Print the summary of results (achieved FDR, number of up/down-regulated genes)
+    # --- Print the summary of results (achieved FDR, number of ---
     stpPI
     
-    # 4. Plot the estimated FDR curve and the genes on the artificial plane using plot
+    # --- Plot the estimated FDR curve and the genes on the ---
     # Save the default plots to a PDF file
     pdf("stp_plots.pdf", width = 7, height = 9)
     plot(stpPI)
@@ -96,7 +109,7 @@ process BIOC_ACDE_SINGLE_TIME_POINT_ANALYSIS {
     plot(stpPI, FDR = FALSE)
     invisible(dev.off())
     
-    # 5. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete STP object
     saveRDS(stpPI, file = "stp_results.rds")
     

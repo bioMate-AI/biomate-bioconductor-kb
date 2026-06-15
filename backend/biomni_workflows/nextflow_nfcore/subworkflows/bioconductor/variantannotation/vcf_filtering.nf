@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define prefilter functions using fast string matching (grepl). 2. Define filter functions evaluating parsed VCF objects (e.g., che
+//  * 1. [Visualization & Output] Define prefilter functions using fast string matching
+//  * 2. [Visualization & Output] Define filter functions evaluating parsed VCF objects
+//  * 3. [Visualization & Output] Combine prefilters and filters using FilterRules
+//  * 4. [Visualization & Output] Set up a TabixFile with a specified yieldSize for
+//  * 5. [Visualization & Output] Execute filtering and write the output to a destination
 
 nextflow.enable.dsl = 2
 
@@ -38,7 +42,7 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("VariantAnnotation")
+    .bm_deps <- c("VariantAnnotation", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -57,8 +61,9 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         
         # Load required library
         library(VariantAnnotation)
+        library(SummarizedExperiment)
         
-        # 1. Define prefilter functions using fast string matching (grepl)
+        # --- Define prefilter functions using fast string matching ---
         isGermlinePrefilter <- function(x) {
           grepl("Germline", x, fixed=TRUE)
         }
@@ -67,16 +72,26 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
           !(grepl("dbsnp", x, fixed=TRUE))
         }
         
-        # 2. Define filter functions evaluating parsed VCF objects (checking allelic depth)
+        # --- Define filter functions evaluating parsed VCF objects ---
+        # AD (FORMAT Number=R) is parsed by VariantAnnotation as a samples-by-
+        # variants matrix of per-allele depth vectors (each cell = c(ref, alt, ...)),
+        # NOT a 3-D numeric array. Keep variants where the tumour (sample 1) OR the
+        # normal (sample 2) shows an alternate-allele fraction > 0.1.
         allelicDepth <- function(x) {
-          ad <- geno(x)\$AD
-          tumorPct <- ad[,1,2,drop=FALSE] / rowSums(ad[,1,,drop=FALSE])
-          normPct <- ad[,2,1, drop=FALSE] / rowSums(ad[,2,,drop=FALSE])
-          test <- (tumorPct > 0.1) | (normPct > 0.1)
-          as.vector(!is.na(test) & test)
+          ad <- geno(x)\$AD                       # dim: [variants x samples], list cells
+          altFrac <- function(cell) {
+            v <- as.numeric(unlist(cell))
+            if (length(v) < 2 || all(is.na(v)) || sum(v, na.rm=TRUE) == 0) return(NA_real_)
+            sum(v[-1], na.rm=TRUE) / sum(v, na.rm=TRUE)   # alt depth / total depth
+          }
+          tumorPct <- vapply(ad[, 1], altFrac, numeric(1))
+          normPct  <- if (ncol(ad) >= 2) vapply(ad[, 2], altFrac, numeric(1))
+                      else rep(NA_real_, nrow(ad))
+          test <- (!is.na(tumorPct) & tumorPct > 0.1) | (!is.na(normPct) & normPct > 0.1)
+          as.vector(test)
         }
         
-        # 3. Combine prefilters and filters using FilterRules
+        # --- Combine prefilters and filters using FilterRules ---
         prefilters <- FilterRules(list(germline=isGermlinePrefilter, dbsnp=notInDbsnpPrefilter))
         filters <- FilterRules(list(isSNV=isSNV, AD=allelicDepth))
         
@@ -87,10 +102,10 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         # Define output destination file
         destination.file <- "filtered_chr7-sub.vcf"
         
-        # 4. Set up a TabixFile with a specified yieldSize for chunk-wise processing
+        # --- Set up a TabixFile with a specified yieldSize for ---
         tabix.file <- TabixFile(file.gz, yieldSize=10000)
         
-        # 5. Execute filtering and write the output to a destination file using filterVcf
+        # --- Execute filtering and write the output to a destination ---
         filterVcf(tabix.file, "hg19", destination.file, prefilters=prefilters, filters=filters, verbose=TRUE)
         
         # Read the filtered VCF back to verify and save as a meaningful RDS output

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Predict preeclampsia status using predictPreeclampsia on the transposed, normalized beta matrix
+//  * 1. [Core Analysis] Read the user input file
+//  * 2. [Core Analysis] Predict preeclampsia status using predictPreeclampsia
+//  * 3. [Core Analysis] Save the meaningful results
+//  * 4. [Core Analysis] Visualize the results and save as PDF
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +65,7 @@ process BIOC_PLANET_PREECLAMPSIA_PREDICTION {
     library(ggplot2)
     library(tidyr)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     # The input is a BMIQ-normalized matrix of DNA methylation beta values with samples as rows and CpGs as columns.
     input_file <- "DNAm_betas_normalized.rds"
     
@@ -77,18 +80,18 @@ process BIOC_PLANET_PREECLAMPSIA_PREDICTION {
       x_test <- as.matrix(x_test)
     }
     
-    # 2. Predict preeclampsia status using predictPreeclampsia
+    # --- Predict preeclampsia status using predictPreeclampsia ---
     # Keep the documented function call and argument names exactly as shown in the vignette.
     preds <- x_test %>% predictPreeclampsia()
     
-    # 3. Save the meaningful results
+    # --- Save the meaningful results ---
     # Save predictions as a CSV table
     write.csv(preds, "preeclampsia_predictions.csv", row.names = FALSE)
     
     # Save predictions as an RDS object
     saveRDS(preds, "preeclampsia_predictions.rds")
     
-    # 4. Visualize the results and save as PDF
+    # --- Visualize the results and save as PDF ---
     # Since true class metadata is not provided in the input, we visualize the distribution of predicted probabilities and statuses.
     pdf("preeclampsia_predictions_plots.pdf", width = 8, height = 6)
     

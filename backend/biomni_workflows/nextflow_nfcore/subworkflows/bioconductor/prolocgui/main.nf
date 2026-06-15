@@ -35,6 +35,15 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_EXPLORER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MSnbase", "pRolocGUI")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,11 +53,11 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_EXPLORER {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(MSnbase)
     library(pRolocGUI)
     
-    # Stage 2: Read and align input files
+    # --- Read and align input files ---
     intensity <- read.csv("intensity.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
     
@@ -64,7 +73,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_EXPLORER {
     intensity <- intensity[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, , drop = FALSE]
     
-    # Stage 3: Construct MSnSet object
+    # --- Construct MSnSet object ---
     exprs_mat <- as.matrix(intensity)
     
     # Create feature metadata with a default 'markers' column required by pRolocVis
@@ -82,7 +91,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_EXPLORER {
     # Create the MSnSet container
     msnset <- new("MSnSet", exprs = exprs_mat, featureData = fd_annotated, phenoData = pd_annotated)
     
-    # Stage 4: Normalize profiles (standard sum normalization for spatial proteomics)
+    # --- Normalize profiles (standard sum normalization for ---
     row_sums <- rowSums(exprs(msnset), na.rm = TRUE)
     row_sums[row_sums == 0] <- 1
     exprs(msnset) <- exprs(msnset) / row_sums
@@ -90,7 +99,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_EXPLORER {
     # Save the processed MSnSet object
     saveRDS(msnset, "processed_msnset.rds")
     
-    # Stage 5: Generate static PCA preview
+    # --- Generate static PCA preview ---
     pdf("pca_preview.pdf", width = 7, height = 7)
     row_vars <- apply(exprs(msnset), 1, var, na.rm = TRUE)
     valid_rows <- !is.na(row_vars) & row_vars > 0
@@ -107,7 +116,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_EXPLORER {
     }
     dev.off()
     
-    # Stage 6: Write launcher script for interactive visualization
+    # --- Write launcher script for interactive visualization ---
     writeLines(c(
       "library(pRolocGUI)",
       "msnset <- readRDS('processed_msnset.rds')",

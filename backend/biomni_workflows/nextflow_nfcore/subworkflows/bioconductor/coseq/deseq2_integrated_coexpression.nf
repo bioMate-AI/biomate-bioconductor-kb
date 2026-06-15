@@ -40,7 +40,7 @@ process BIOC_COSEQ_DESEQ2_INTEGRATED_COEXPRESSION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "coseq", "ggplot2")
+    .bm_deps <- c("DESeq2", "coseq", "ggplot2", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -58,6 +58,7 @@ process BIOC_COSEQ_DESEQ2_INTEGRATED_COEXPRESSION {
         }
         
         # Load required libraries
+        library(SummarizedExperiment)
         library(DESeq2)
         library(coseq)
         library(ggplot2)

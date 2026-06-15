@@ -55,7 +55,7 @@ process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
     # Load the required library
     library(ACME)
     
-    # 1. Read GFF files from the working directory
+    # --- Read GFF files from the working directory ---
     # Identify GFF files in the current working directory
     fnames <- list.files(pattern = "\\\\.gff\$", ignore.case = TRUE)
     
@@ -67,10 +67,10 @@ process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
     example.agff <- read.resultsGFF(fnames, path = ".")
     print(example.agff)
     
-    # 2. Calculate enrichment probabilities
+    # --- Calculate enrichment probabilities ---
     calc <- do.aGFF.calc(example.agff, window = 1000, thresh = 0.95)
     
-    # 3. Plot results for a specific chromosome and sample
+    # --- Plot results for a specific chromosome and sample ---
     # Save the plot to a PDF file.
     # A tryCatch block is used to handle cases where 'chr1' might not be present in the user's GFF files.
     pdf("acme_plot.pdf")
@@ -81,7 +81,7 @@ process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
     })
     dev.off()
     
-    # 4. Identify significant regions of enrichment
+    # --- Identify significant regions of enrichment ---
     regs <- findRegions(calc)
     if (!is.null(regs) && nrow(regs) > 0) {
       print(regs[1:min(5, nrow(regs)), , drop = FALSE])
@@ -90,7 +90,7 @@ process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
       message("No regions of enrichment found.")
     }
     
-    # 5. Export results to SGR and bedGraph formats
+    # --- Export results to SGR and bedGraph formats ---
     # Write both calculated values and raw data
     write.sgr(calc)
     

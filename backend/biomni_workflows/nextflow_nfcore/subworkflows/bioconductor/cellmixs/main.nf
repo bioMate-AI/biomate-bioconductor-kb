@@ -41,7 +41,7 @@ process BIOC_CELLMIXS_QUANTIFY_AND_VISUALIZE_BATCH_EFFECTS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "CellMixS", "cowplot", "dplyr", "ggplot2", "magrittr", "purrr")
+    .bm_deps <- c("SingleCellExperiment", "CellMixS", "cowplot", "dplyr", "ggplot2", "magrittr", "purrr", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_CELLMIXS_QUANTIFY_AND_VISUALIZE_BATCH_EFFECTS {
         
     # Load required packages
     suppressPackageStartupMessages({
+      library(SummarizedExperiment)
       library(CellMixS)
       library(cowplot)
       library(ggplot2)

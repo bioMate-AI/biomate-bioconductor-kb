@@ -95,16 +95,16 @@ process BIOC_CLSTUTILS_TAXONOMIC_CLASSIFICATION {
       }
     }
     
-    # 1. Calculate tree distances using treeDists
+    # --- Calculate tree distances using treeDists ---
     treedists <- treeDists(distfile=distfile, placefile=placefile)
     
-    # 2. Retrieve taxonomic information from the reference package using taxonomyFromRefpkg
+    # --- Retrieve taxonomic information from the reference package ---
     taxdata <- taxonomyFromRefpkg(refpkg, seqnames=rownames(treedists\$dmat), lowest_rank='species')
     
-    # 3. Define query placement data
+    # --- Define query placement data ---
     placetab <- data.frame(at=49, edge=5.14909e-07, branch=5.14909e-07)
     
-    # 4. Classify placements using classifyPlacements
+    # --- Classify placements using classifyPlacements ---
     cdata <- classifyPlacements(taxdata, treedists, placetab)
     
     # Write meaningful output files

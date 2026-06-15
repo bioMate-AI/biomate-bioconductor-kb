@@ -69,15 +69,15 @@ process BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING {
     # Start PDF device to capture all diagnostic plots
     pdf("atacseq_qc_plots.pdf", width=10, height=8)
     
-    # 1. Estimate library complexity
+    # --- Estimate library complexity ---
     lib_complexity <- estimateLibComplexity(readsDupFreq(bamfile))
     write.csv(as.data.frame(lib_complexity), "library_complexity.csv", row.names=FALSE)
     
-    # 2. Generate fragment size distribution
+    # --- Generate fragment size distribution ---
     fragSize <- fragSizeDist(bamfile, bamfile.labels)
     saveRDS(fragSize, "fragment_size_distribution.rds")
     
-    # 3. Read BAM file and shift coordinates to adjust for Tn5 transposase dimer insertion
+    # --- Read BAM file and shift coordinates to adjust for Tn5 ---
     possibleTag <- list("integer"=c("AM", "AS", "CM", "CP", "FI", "H0", "H1", "H2", "HI", "IH", "MQ", "NH", "NM", "OP", "PQ", "SM", "TC", "UQ"), "character"=c("BC", "BQ", "BZ", "CB", "CC", "CO", "CQ", "CR", "CS", "CT", "CY", "E2", "FS", "LB", "MC", "MD", "MI", "OA", "OC", "OQ", "OX", "PG", "PT", "PU", "Q2", "QT", "QX", "R2", "RG", "RX", "SA", "TS", "U2"))
     bamTop100 <- scanBam(BamFile(bamfile, yieldSize = 100), param = ScanBamParam(tag=unlist(possibleTag)))[[1]]\$tag
     tags <- names(bamTop100)[lengths(bamTop100)>0]
@@ -94,30 +94,30 @@ process BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING {
     shiftedBamfile <- file.path(outPath, "shifted.bam")
     gal1 <- shiftGAlignmentsList(gal, outbam=shiftedBamfile)
     
-    # 4. Calculate Promoter/Transcript body (PT) score
+    # --- Calculate Promoter/Transcript body (PT) score ---
     txs <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
     pt <- PTscore(gal1, txs)
     plot(pt\$log2meanCoverage, pt\$PT_score, xlab="log2 mean coverage", ylab="Promoter vs Transcript")
     write.csv(as.data.frame(pt), "pt_score.csv", row.names=FALSE)
     
-    # 5. Calculate Nucleosome Free Regions (NFR) score
+    # --- Calculate Nucleosome Free Regions (NFR) score ---
     nfr <- NFRscore(gal1, txs)
     plot(nfr\$log2meanCoverage, nfr\$NFR_score, xlab="log2 mean coverage", ylab="Nucleosome Free Regions score", main="NFRscore for 200bp flanking TSSs", xlim=c(-10, 0), ylim=c(-5, 5))
     write.csv(as.data.frame(nfr), "nfr_score.csv", row.names=FALSE)
     
-    # 6. Calculate Transcription Start Site (TSS) Enrichment Score
+    # --- Calculate Transcription Start Site (TSS) Enrichment Score ---
     tsse <- TSSEscore(gal1, txs)
     plot(100*(-9:10-.5), tsse\$values, type="b", xlab="distance to TSS", ylab="aggregate TSS score")
     write.csv(as.data.frame(tsse\$values), "tsse_score_values.csv", row.names=FALSE)
     saveRDS(tsse, "tsse_score.rds")
     
-    # 7. Split shifted reads into nucleosome-free and nucleosome-bound fractions
+    # --- Split shifted reads into nucleosome-free and ---
     txs <- txs[seqnames(txs) %in% "chr1"]
     genome <- Hsapiens
     objs <- splitGAlignmentsByCut(gal1, txs=txs, genome=genome, outPath = outPath, conservation=phastCons100way.UCSC.hg19)
     saveRDS(objs, "split_alignments.rds")
     
-    # 8. Plot cumulative percentage and TSS enrichment of split fractions
+    # --- Plot cumulative percentage and TSS enrichment of split ---
     bamfiles <- file.path(outPath, c("NucleosomeFree.bam", "mononucleosome.bam", "dinucleosome.bam", "trinucleosome.bam"))
     cumulativePercentage(bamfiles[1:2], as(seqinformation["chr1"], "GRanges"))
     TSS <- promoters(txs, upstream=0, downstream=1)
@@ -136,14 +136,14 @@ process BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING {
     abline(v=seq(0, 100, by=10)+1, lty=2, col="gray")
     write.csv(as.data.frame(out), "tss_enrichment_distribution.csv", row.names=FALSE)
     
-    # 9. Generate transcription factor footprints
+    # --- Generate transcription factor footprints ---
     CTCF <- query(MotifDb, c("CTCF"))
     CTCF <- as.list(CTCF)
     sigs <- factorFootprints(shiftedBamfile, pfm=CTCF[[1]], genome=genome, min.score="90%", seqlev=seqlev, upstream=100, downstream=100)
     featureAlignedHeatmap(sigs\$signal, feature.gr=reCenterPeaks(sigs\$bindingSites, width=200+width(sigs\$bindingSites[1])), annoMcols="score", sortBy="score", n.tile=ncol(sigs\$signal[[1]]))
     saveRDS(sigs, "ctcf_footprints.rds")
     
-    # 10. Generate V-plots
+    # --- Generate V-plots ---
     vp <- vPlot(shiftedBamfile, pfm=CTCF[[1]], genome=genome, min.score="90%", seqlev=seqlev, upstream=200, downstream=200, ylim=c(30, 250), bandwidth=c(2, 1))
     distanceDyad(vp, pch=20, cex=.5)
     saveRDS(vp, "ctcf_vplot.rds")

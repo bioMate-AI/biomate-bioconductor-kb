@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate effect size d for each study using getdF. 2. Adjust d values using dstar. 3. Calculate variance of adjusted d using sigm
+//  * 1. [Core Analysis] Calculate effect size d for each study using getdF
+//  * 2. [Core Analysis] Adjust d values using dstar
+//  * 3. [Core Analysis] Calculate variance of adjusted d using sigmad
+//  * 4. [Core Analysis] Compute Cochran's Q statistic using f.Q to test for
+//  * 5. [Core Analysis] Fit Fixed Effects Model (FEM) using mu.tau2 and var.tau2
+//  * 6. [Core Analysis] Estimate between-study variance tau^2 using tau2.DL and
 
 nextflow.enable.dsl = 2
 
@@ -69,13 +74,13 @@ process BIOC_GENEMETA_MANUAL_META_ANALYSIS {
     # Define number of studies
     num.studies <- 2
     
-    # 1. Calculate effect size d for each study using getdF
+    # --- Calculate effect size d for each study using getdF ---
     d.Split1     <- getdF(Split1, Split1.ER)
     
-    # 2. Adjust d values using dstar
+    # --- Adjust d values using dstar ---
     d.adj.Split1    <- dstar(d.Split1, length(Split1.ER))
     
-    # 3. Calculate variance of adjusted d using sigmad
+    # --- Calculate variance of adjusted d using sigmad ---
     var.d.adj.Spli1 <- sigmad(d.adj.Split1, sum(Split1.ER==0), sum(Split1.ER==1))
     
     # Repeat for Split2
@@ -87,15 +92,15 @@ process BIOC_GENEMETA_MANUAL_META_ANALYSIS {
     mymns  <- cbind(d.adj.Split1, d.adj.Split2)
     myvars <- cbind(var.d.adj.Spli1,var.d.adj.Split2)
     
-    # 4. Compute Cochran's Q statistic using f.Q to test for heterogeneity
+    # --- Compute Cochran's Q statistic using f.Q to test for ---
     my.Q   <- f.Q(mymns, myvars)
     
-    # 5. Fit Fixed Effects Model (FEM) using mu.tau2 and var.tau2
+    # --- Fit Fixed Effects Model (FEM) using mu.tau2 and var.tau2 ---
     muFEM = mu.tau2(mymns, myvars)
     sdFEM = var.tau2(myvars)
     ZFEM = muFEM/sqrt(sdFEM)
     
-    # 6. Estimate between-study variance tau^2 using tau2.DL and fit Random Effects Model (REM)
+    # --- Estimate between-study variance tau^2 using tau2.DL and ---
     my.tau2.DL<-tau2.DL(my.Q, num.studies, my.weights=1/myvars)
     myvarsDL <- myvars + my.tau2.DL
     muREM <- mu.tau2(mymns, myvarsDL)

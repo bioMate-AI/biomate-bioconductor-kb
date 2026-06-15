@@ -56,17 +56,17 @@ process BIOC_VARIANTTOOLS_WILDTYPE_CALLING {
     library(VariantTools)
     library(GenomicRanges)
     
-    # 1. Read the declared user input files from the working directory
+    # --- Read the declared user input files from the working ---
     bam <- "sample.bam"
     called.variants <- readRDS("called_variants.GRanges")
     
-    # 2. Execute the documented workflow steps exactly as specified
+    # --- Execute the documented workflow steps exactly as specified ---
     called.variants <- called.variants[!isIndel(called.variants)]
     pos <- c(called.variants, shift(called.variants, 3))
     wildtype <- callWildtype(bam, called.variants, VariantCallingFilters(), 
                              pos = pos, power = 0.85)
     
-    # 3. Write meaningful output files
+    # --- Write meaningful output files ---
     # Save the raw wildtype results as an RDS object
     saveRDS(wildtype, "wildtype_results.rds")
     

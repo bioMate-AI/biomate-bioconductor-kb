@@ -17,7 +17,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -53,12 +53,12 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(EBImage)
     library(flowCore)
     library(ncdfFlow)
     
-    # Stage 2: Read and preprocess the microscopy image
+    # --- Read and preprocess the microscopy image ---
     message("Reading input image...")
     img <- EBImage::readImage("image.tif")
     img_data <- as.array(img)
@@ -78,7 +78,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
       dims <- dim(img_data)
     }
     
-    # Stage 3: Convert image slices into flowFrames and write to FCS files
+    # --- Convert image slices into flowFrames and write to FCS ---
     # We split the image into 3 horizontal slices to represent 3 distinct samples
     num_samples <- 3
     slice_width <- floor(dims[1] / num_samples)
@@ -116,7 +116,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
       fcs_files <- c(fcs_files, fcs_file)
     }
     
-    # Stage 4: Create HDF5-backed ncdfFlowSet
+    # --- Create HDF5-backed ncdfFlowSet ---
     message("Creating ncdfFlowSet from FCS files...")
     nc <- read.ncdfFlowSet(files = fcs_files, ncdfFile = "image_flow.nc")
     
@@ -128,7 +128,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     )
     pData(nc) <- sample_metadata
     
-    # Stage 5: Compensation
+    # --- Compensation ---
     message("Applying compensation...")
     # Create a dummy diagonal compensation matrix for the 3 fluorescent channels
     comp_mat <- diag(3)
@@ -137,7 +137,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     comp_obj <- compensation(comp_mat)
     nc_comp <- compensate(nc, comp_obj)
     
-    # Stage 6: Gating and Subsetting
+    # --- Gating and Subsetting ---
     message("Gating and subsetting background pixels...")
     # Define a rectangle gate to filter out low-intensity background pixels
     rect_gate <- rectangleGate(filterId = "SignalGate", "FL1-H" = c(0.1, Inf))
@@ -146,12 +146,12 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     # Subset the ncdfFlowSet to keep only signal-positive pixels
     nc_subset <- Subset(nc_comp, rect_gate)
     
-    # Stage 7: Transformation
+    # --- Transformation ---
     message("Applying arcsinh transformation...")
     asinh_trans <- arcsinhTransform(transformationId = "arcsinh-transform", a = 1, b = 1, c = 1)
     nc_trans <- transform(nc_subset, `FL1-H` = asinh_trans(`FL1-H`), `FL2-H` = asinh_trans(`FL2-H`))
     
-    # Stage 8: Splitting
+    # --- Splitting ---
     message("Splitting dataset by quad gate...")
     # Define a quad gate based on spatial coordinates and intensity
     mean_fsc <- mean(range(nc_trans[[1]])[, "FSC-H"])
@@ -159,7 +159,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     split_results <- filter(nc_trans, q_gate)
     nc_list <- split(nc_trans, split_results)
     
-    # Stage 9: Exporting Results and Visualisation
+    # --- Exporting Results and Visualisation ---
     message("Exporting summary statistics and diagnostic plots...")
     
     # Extract summary statistics
@@ -198,7 +198,7 @@ process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     }
     save_ncfs(nc_trans, outdir = "ncfs_output")
     
-    # Stage 10: Cleanup temporary files
+    # --- Cleanup temporary files ---
     message("Cleaning up temporary files...")
     unlink(nc)
     unlink(nc_comp)

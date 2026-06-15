@@ -35,6 +35,15 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tidytof", "dplyr", "tidyr", "readr", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -52,7 +61,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read and Format Input Data
+    # --- Read and Format Input Data ---
     # ==========================================
     message("Reading input files...")
     intensity <- readr::read_csv("intensity.csv")
@@ -78,7 +87,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
       dplyr::mutate(across(dplyr::all_of(protein_cols), ~dplyr::if_else(is.na(.x), 0, .x)))
     
     # ==========================================
-    # STAGE 2: Preprocessing (Arcsinh Transformation)
+    # --- Preprocessing (Arcsinh Transformation) ---
     # ==========================================
     message("Applying arcsinh transformation...")
     # tidytof provides tof_arcsinh for transforming cytometry/proteomics intensity values
@@ -86,7 +95,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
       dplyr::mutate(across(dplyr::all_of(protein_cols), ~tidytof::tof_arcsinh(.x, cofactor = 5)))
     
     # ==========================================
-    # STAGE 3: Dimensionality Reduction (PCA)
+    # --- Dimensionality Reduction (PCA) ---
     # ==========================================
     message("Performing dimensionality reduction...")
     num_samples <- nrow(df_preprocessed)
@@ -112,7 +121,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Clustering (K-means)
+    # --- Clustering (K-means) ---
     # ==========================================
     message("Clustering samples...")
     if (num_samples > 2) {
@@ -145,7 +154,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     message("Saved processed data to tidy_proteomics_processed.csv")
     
     # ==========================================
-    # STAGE 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("diagnostic_plots.pdf", width = 10, height = 8)

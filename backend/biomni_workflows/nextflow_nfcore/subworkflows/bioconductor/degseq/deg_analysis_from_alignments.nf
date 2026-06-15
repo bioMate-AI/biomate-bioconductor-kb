@@ -55,7 +55,7 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_ALIGNMENTS {
     # Load the required Bioconductor library
     library(DEGseq)
     
-    # 1. Define paths to mapped read files and the refFlat annotation file
+    # --- Define paths to mapped read files and the refFlat ---
     # (Reading directly from the working directory as specified)
     kidneyR1L1 <- "kidneyChr21.bed.txt"
     liverR1L2  <- "liverChr21.bed.txt"
@@ -71,11 +71,11 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_ALIGNMENTS {
       dir.create(outputDir, recursive = TRUE)
     }
     
-    # 2. Run DEGseq to count reads mapped to each gene and perform differential expression analysis using the LRT method
+    # --- Run DEGseq to count reads mapped to each gene and perform ---
     DEGseq(mapResultBatch1, mapResultBatch2, fileFormat="bed", refFlat=refFlat,
            outputDir=outputDir, method="LRT")
     
-    # 3. Process and write named output files for the meaningful results
+    # --- Process and write named output files for the meaningful ---
     # DEGseq writes output files (including a tab-delimited text file and HTML reports) to the outputDir.
     # We locate the generated expression and differential analysis text file, then export it as CSV and RDS.
     output_files <- list.files(outputDir, full.names = TRUE)

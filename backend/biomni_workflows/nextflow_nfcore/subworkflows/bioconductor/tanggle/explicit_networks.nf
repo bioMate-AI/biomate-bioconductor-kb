@@ -59,7 +59,7 @@ process BIOC_TANGGLE_EXPLICIT_NETWORKS {
     library(phangorn)
     library(tanggle)
     
-    # 1. Read the explicit network from the user input file 'network_text'
+    # --- Read the explicit network from the user input file ---
     input_file <- "network_text"
     if (!file.exists(input_file)) {
       stop("Error: Required input file 'network_text' not found in the working directory.")
@@ -74,13 +74,13 @@ process BIOC_TANGGLE_EXPLICIT_NETWORKS {
     # Save the parsed network object as an RDS file
     saveRDS(z, file = "evonet_object.rds")
     
-    # 2. Plot the network using ggevonet with a rectangular layout and add tip and node labels
+    # --- Plot the network using ggevonet with a rectangular layout ---
     p_rect <- ggevonet(z, layout = "rectangular") + geom_tiplab() + geom_nodelab()
     
     # Save the rectangular layout plot
     ggsave("network_rectangular.pdf", plot = p_rect, width = 8, height = 6)
     
-    # 3. Plot the network using a slanted layout and customize tip label colors and node point aesthetics
+    # --- Plot the network using a slanted layout and customize tip ---
     p <- ggevonet(z, layout = "slanted") + geom_tiplab() + geom_nodelab()
     
     # Save the base slanted layout plot

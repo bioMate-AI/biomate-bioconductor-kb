@@ -58,14 +58,14 @@ process BIOC_MSNBASE_CHROMATOGRAPHIC_SRM_IMPORT {
     # Define the input file as specified by the user
     fl <- "MRM_file.mzML"
     
-    # 1. Import SRM data
+    # --- Import SRM data ---
     srm <- readSRMData(fl)
     
-    # 2. Extract precursor and product m/z values
+    # --- Extract precursor and product m/z values ---
     prec_mz <- precursorMz(srm)
     prod_mz <- productMz(srm)
     
-    # 3. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     # Save the imported SRM object as an RDS file
     saveRDS(srm, file = "srm_object.rds")
     

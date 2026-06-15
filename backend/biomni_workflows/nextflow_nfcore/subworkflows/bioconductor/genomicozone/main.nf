@@ -35,6 +35,15 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicOZone", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     library(rtracklayer)
     library(GenomicRanges)
     
-    # Stage 1: Load Inputs
+    # --- Load Inputs ---
     message("Loading input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' not found.")
@@ -85,7 +94,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
       coldata\$Condition <- factor(coldata\$Condition)
     }
     
-    # Stage 2: Generate Expression Matrix
+    # --- Generate Expression Matrix ---
     # Since GenomicOZone requires an expression matrix corresponding to the genomic intervals,
     # we generate a synthetic expression matrix based on the input intervals and sample metadata.
     message("Preparing expression matrix...")
@@ -106,7 +115,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
       expr_matrix[diff_genes, treatment_samples] <- expr_matrix[diff_genes, treatment_samples] * 4
     }
     
-    # Stage 3: Create GOZDataSet and Run GenomicOZone
+    # --- Create GOZDataSet and Run GenomicOZone ---
     message("Initializing GOZDataSet...")
     GOZ.ds <- GOZDataSet(data = expr_matrix,
                          colData = coldata,
@@ -116,7 +125,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     message("Running GenomicOZone analysis...")
     GOZ.ds <- GenomicOZone(GOZ.ds)
     
-    # Stage 4: Extract Results
+    # --- Extract Results ---
     message("Extracting results...")
     
     # 1. Genes and their assigned zones
@@ -147,7 +156,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     zone_exp <- extract_zone_expression(GOZ.ds)
     write.csv(as.data.frame(zone_exp), "zone_expression.csv", row.names = TRUE)
     
-    # Stage 5: Visualization
+    # --- Visualization ---
     message("Generating plots...")
     
     tryCatch({

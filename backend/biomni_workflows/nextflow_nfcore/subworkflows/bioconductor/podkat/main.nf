@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load phenotype data and train a linear null model. 2. Load genomic regions and partition them into overlapping windows. 3. Load th
+//  * 1. [Visualization & Output] Load phenotype data and train a linear null model
+//  * 2. [Visualization & Output] Load genomic regions and partition them into overlapping
+//  * 3. [Visualization & Output] Load the genotype matrix from the VCF file
+//  * 4. [Visualization & Output] Perform the association test
+//  * 5. [Visualization & Output] Adjust p-values for multiple testing
+//  * 6. [Visualization & Output] Visualize adjusted p-values using a Manhattan plot and
 
 nextflow.enable.dsl = 2
 
@@ -64,25 +69,25 @@ process BIOC_PODKAT_CONTINUOUS_TRAIT_ASSOCIATION_TESTING {
     phenoFileLin <- "phenoFileLin.csv"
     vcfFile <- "example1.vcf.gz"
     
-    # 1. Load phenotype data and train a linear null model
+    # --- Load phenotype data and train a linear null model ---
     pheno.c <- read.table(phenoFileLin, header=TRUE, sep=",")
     model.c <- nullModel(y ~ ., pheno.c)
     
-    # 2. Load genomic regions and partition them into overlapping windows
+    # --- Load genomic regions and partition them into overlapping ---
     # Extract the bounding genomic regions directly from the VCF file to generalize to any user data
     vInfo <- readVariantInfo(vcfFile)
     windows <- partitionRegions(range(vInfo))
     
-    # 3. Load the genotype matrix from the VCF file
+    # --- Load the genotype matrix from the VCF file ---
     geno <- readGenotypeMatrix(vcfFile)
     
-    # 4. Perform the association test
+    # --- Perform the association test ---
     res.c <- assocTest(geno, model.c, windows)
     
-    # 5. Adjust p-values for multiple testing
+    # --- Adjust p-values for multiple testing ---
     res.c <- p.adjust(res.c)
     
-    # 6. Visualize adjusted p-values using a Manhattan plot and save to PDF
+    # --- Visualize adjusted p-values using a Manhattan plot and ---
     pdf("manhattan_plot.pdf", width=9, height=4.5)
     plot(res.c, which="p.value.adj")
     dev.off()

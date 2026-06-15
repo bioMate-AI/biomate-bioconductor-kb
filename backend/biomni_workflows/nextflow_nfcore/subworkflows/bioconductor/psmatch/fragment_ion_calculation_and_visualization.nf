@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load raw MS data and identification data. 2. Filter identification data and merge with raw spectra. 3. Extract a specific precurso
+//  * 1. [Visualization & Output] Load raw MS data and identification data
+//  * 2. [Visualization & Output] Filter identification data and merge with raw spectra
+//  * 3. [Visualization & Output] Extract a specific precursor scan and its MS2 scan
+//  * 4. [Visualization & Output] Calculate theoretical fragment ions for the matched
+//  * 5. [Visualization & Output] Plot the annotated MS2 spectrum with PTM modifications
 
 nextflow.enable.dsl = 2
 
@@ -64,14 +68,14 @@ process BIOC_PSMATCH_FRAGMENT_ION_CALCULATION_AND_VISUALIZATION {
     spf <- "file.mzML.gz"
     idf <- "file.mzid"
     
-    # 1. Load raw MS data and identification data
+    # --- Load raw MS data and identification data ---
     sp <- Spectra(spf)
     id <- PSM(idf) |> filterPSMs()
     
-    # 2. Filter identification data and merge with raw spectra
+    # --- Filter identification data and merge with raw spectra ---
     sp <- joinSpectraData(sp, id, by.x = "spectrumId", by.y = "spectrumID")
     
-    # 3. Extract a specific precursor scan and its MS2 scan
+    # --- Extract a specific precursor scan and its MS2 scan ---
     # Dynamically find the first scan with a matched peptide sequence
     target_scan <- sp\$scanIndex[!is.na(sp\$sequence)][1]
     sp_target <- filterPrecursorScan(sp, target_scan)
@@ -85,7 +89,7 @@ process BIOC_PSMATCH_FRAGMENT_ION_CALCULATION_AND_VISUALIZATION {
     
     target_seq <- sp_target\$sequence[ms2_idx]
     
-    # 4. Calculate theoretical fragment ions for the matched peptide sequence
+    # --- Calculate theoretical fragment ions for the matched ---
     frags <- calculateFragments(target_seq, addCarbamidomethyl = FALSE)
     
     # Save calculated fragments to CSV
@@ -100,7 +104,7 @@ process BIOC_PSMATCH_FRAGMENT_ION_CALCULATION_AND_VISUALIZATION {
         write.csv(as.data.frame(var_frags), "calculated_fragments_variable_mods.csv", row.names = FALSE)
     }
     
-    # 5. Plot the annotated MS2 spectrum with PTM modifications
+    # --- Plot the annotated MS2 spectrum with PTM modifications ---
     dataOrigin(sp_target)[ms2_idx] <- basename(spf)
     
     # Open PDF device to save the visualizations

@@ -35,6 +35,15 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("iSEE", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,8 +53,9 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
           }
         }
     
-    # Stage 1: Load libraries and read input data
+    # --- Load libraries and read input data ---
     library(iSEE)
+    library(SummarizedExperiment)
     
     # Read counts.csv (gene-by-cell count matrix, column 'gene_id' contains row names)
     counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
@@ -71,7 +81,7 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     counts_matrix <- counts_matrix[, common_cells, drop = FALSE]
     coldata_df <- coldata_df[common_cells, , drop = FALSE]
     
-    # Stage 2: Normalization and Dimensionality Reduction (PCA)
+    # --- Normalization and Dimensionality Reduction (PCA) ---
     # Compute log-normalized counts (log2 CPM-like values)
     libsizes <- colSums(counts_matrix)
     libsizes[libsizes == 0] <- 1  # Prevent division by zero
@@ -87,7 +97,7 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     coldata_df\$PC1 <- pca_res\$x[, 1]
     coldata_df\$PC2 <- pca_res\$x[, 2]
     
-    # Stage 3: Construct SummarizedExperiment and compute metadata
+    # --- Construct SummarizedExperiment and compute metadata ---
     se <- SummarizedExperiment(
       assays = list(counts = counts_matrix, logcounts = logcounts_matrix),
       colData = coldata_df
@@ -97,7 +107,7 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     rowData(se)\$mean_log <- rowMeans(logcounts_matrix)
     rowData(se)\$var_log <- gene_vars
     
-    # Stage 4: Configure Custom Colormaps (ExperimentColorMap)
+    # --- Configure Custom Colormaps (ExperimentColorMap) ---
     col_list <- list()
     if ("group" %in% colnames(coldata_df)) {
       unique_groups <- unique(coldata_df\$group)
@@ -117,7 +127,7 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
       colData = col_list
     )
     
-    # Stage 5: Programmatically configure initial iSEE panels
+    # --- Programmatically configure initial iSEE panels ---
     # 1. ColumnDataPlot to visualize PCA coordinates computed manually
     cdp <- ColumnDataPlot(
       XAxis = "Column data",
@@ -149,11 +159,11 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     
     initial_panels <- list(cdp, fap, rdt, chp)
     
-    # Stage 6: Build and Save the iSEE App Configuration
+    # --- Build and Save the iSEE App Configuration ---
     app <- iSEE(se, initial = initial_panels, colormap = ecm)
     saveRDS(app, "isee_app.rds")
     
-    # Stage 7: Generate static diagnostic outputs
+    # --- Generate static diagnostic outputs ---
     # Save static PCA plot
     pdf("pca_summary.pdf", width = 7, height = 6)
     if ("group" %in% colnames(coldata_df)) {

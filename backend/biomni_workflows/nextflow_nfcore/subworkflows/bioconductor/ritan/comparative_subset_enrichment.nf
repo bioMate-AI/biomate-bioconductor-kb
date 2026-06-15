@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run comparative enrichment across all subsets simultaneously using term_enrichment_by_subset(). 2. Generate a heatmap of the enric
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Run comparative enrichment across all subsets
+//  * 3. [Visualization & Output] Generate a heatmap of the enrichment results (without
+//  * 4. [Visualization & Output] Generate a heatmap of the enrichment results (with
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +63,7 @@ process BIOC_RITAN_COMPARATIVE_SUBSET_ENRICHMENT {
         library(RITANdata)
         library(RITAN)
         
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         if (!file.exists("study_set.rds")) {
           stop("Error: 'study_set.rds' not found in the working directory.")
         }
@@ -74,20 +77,20 @@ process BIOC_RITAN_COMPARATIVE_SUBSET_ENRICHMENT {
         # Define resources to use (standard RITAN resources)
         resources <- c("ReactomePathways", "MSigDB_Hallmarks")
         
-        # 2. Run comparative enrichment across all subsets simultaneously
+        # --- Run comparative enrichment across all subsets ---
         e <- term_enrichment_by_subset ( study_set, q_value_threshold = 1e-5 , resources = resources, all_symbols = cached_coding_genes )
         
         # Save enrichment results
         saveRDS(e, "enrichment_results.rds")
         write.csv(as.data.frame(e), "enrichment_results.csv", row.names = TRUE)
         
-        # 3. Generate a heatmap of the enrichment results (without annotation)
+        # --- Generate a heatmap of the enrichment results (without ---
         pdf("enrichment_heatmap_simple.pdf", width = 10, height = 8)
         p1 <- plot ( e, show_values = FALSE , label_size_y = 7 , label_size_x = 7 , cap= 10 )
         print(p1)
         dev.off()
         
-        # 4. Generate a heatmap of the enrichment results (with annotation, if available)
+        # --- Generate a heatmap of the enrichment results (with ---
         if (!is.null(mat)) {
           pdf("enrichment_heatmap_annotated.pdf", width = 10, height = 8)
           p2 <- plot ( e, show_values = TRUE , label_size_y = 7 , label_size_x = 7 , cap= 10 , annotation_matrix = mat, grid_line_color = 'black' )

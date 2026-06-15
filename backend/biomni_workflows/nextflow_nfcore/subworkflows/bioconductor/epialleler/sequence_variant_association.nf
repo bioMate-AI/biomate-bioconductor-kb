@@ -68,7 +68,7 @@ process BIOC_EPIALLELER_SEQUENCE_VARIANT_ASSOCIATION {
       }
     }
     
-    # Stage 1: Generate VCF report using generateVcfReport with specified mapping/base quality thresholds and style
+    # --- Generate VCF report using generateVcfReport with ---
     message("Generating VCF report...")
     vcf.report <- generateVcfReport(
       bam=bam_input,
@@ -79,7 +79,7 @@ process BIOC_EPIALLELER_SEQUENCE_VARIANT_ASSOCIATION {
       vcf.style="NCBI"
     )
     
-    # Stage 2: Sort the report by Fisher's exact test p-values (FEp- and FEp+)
+    # --- Sort the report by Fisher's exact test p-values (FEp- and ---
     message("Sorting reports by Fisher's exact test p-values...")
     sorted_fep_minus <- vcf.report[order(`FEp-`, na.last=TRUE)]
     sorted_fep_plus  <- vcf.report[order(`FEp+`, na.last=TRUE)]
@@ -91,7 +91,7 @@ process BIOC_EPIALLELER_SEQUENCE_VARIANT_ASSOCIATION {
     message("Top records sorted by FEp+:")
     print(head(sorted_fep_plus))
     
-    # Stage 3: Write output files for the meaningful results
+    # --- Write output files for the meaningful results ---
     message("Writing output files...")
     # Save the full report as an RDS object
     saveRDS(vcf.report, file="vcf_report.rds")

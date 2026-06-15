@@ -36,6 +36,15 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GWASTools", "SNPRelate")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -62,13 +71,13 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     if (file.exists(gds_clean)) file.remove(gds_clean)
     
     # ==========================================
-    # STAGE 1: Convert VCF to GDS Format
+    # --- Convert VCF to GDS Format ---
     # ==========================================
     message("Stage 1: Converting VCF to GDS...")
     SNPRelate::snpgdsVCF2GDS(vcf_in, gds_temp, verbose = FALSE)
     
     # ==========================================
-    # STAGE 2: Load GDS and Build Annotations
+    # --- Load GDS and Build Annotations ---
     # ==========================================
     message("Stage 2: Loading GDS and building annotations...")
     gds <- GdsGenotypeReader(gds_temp)
@@ -126,7 +135,7 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     genoData <- GenotypeData(gds, snpAnnot = snpAnnot, scanAnnot = scanAnnot)
     
     # ==========================================
-    # STAGE 3: Quality Control (QC)
+    # --- Quality Control (QC) ---
     # ==========================================
     message("Stage 3: Performing Quality Control...")
     
@@ -175,7 +184,7 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     close(genoData)
     
     # ==========================================
-    # STAGE 4: Subsetting and Association Testing
+    # --- Subsetting and Association Testing ---
     # ==========================================
     message("Stage 4: Subsetting GDS and running association testing...")
     
@@ -226,7 +235,7 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     write.csv(assoc_results, "gwas_association_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     

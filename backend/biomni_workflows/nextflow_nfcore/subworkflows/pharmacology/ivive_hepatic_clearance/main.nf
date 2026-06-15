@@ -36,6 +36,9 @@ params.species       = 'human'
 params.scaling_model = 'well_stirred'
 // Optional: SMILES string(s) for compound identification in output
 params.smiles        = ''
+// Optional: observed in vivo CLh (mL/min/kg). When provided, ivive_fold_error
+// is computed = max(pred/obs, obs/pred). Obach 1999 GOLD gate: fold_error ≤ 2.
+params.clh_observed_ml_min_kg = null
 params.mock_mode     = false   // CI smoke testing only — bypasses required-input guards. NEVER set true in production unless explicitly requested by the user.
 
 process IVIVE_HEPATIC_CLEARANCE {
@@ -53,6 +56,7 @@ process IVIVE_HEPATIC_CLEARANCE {
     output:
     tuple val(meta), path("ivive_results.json"),        emit: results
     tuple val(meta), path("ivive_output.txt"),          emit: output
+    tuple val(meta), path("qc_metrics.json"),           emit: qc_metrics
     path "versions.yml",                                emit: versions
 
     script:
@@ -71,6 +75,7 @@ process IVIVE_HEPATIC_CLEARANCE {
     export PARAM_SPECIES="${params.species}"
     export PARAM_SCALING_MODEL="${params.scaling_model}"
     export PARAM_SMILES="${_smiles_iv_eff?.toString()?.replace('"', '\\"') ?: ''}"
+    export PARAM_CLH_OBSERVED="${params.clh_observed_ml_min_kg ?: ''}"
 
     python3 << 'PYEOF'
 import json
@@ -325,6 +330,36 @@ else:
 
 with open("ivive_results.json", "w") as f:
     json.dump(output_data, f, indent=2, default=str)
+
+# ── Emit qc_metrics.json for QC-gate consumption ──────────────────────────────
+# Gate: Obach 1999 (GOLD) — |predicted/observed| ≤ 2 passes for ~50%, ≤3 for ~80%.
+qc_metrics = {
+    "success": success,
+    "process": "IVIVE_HEPATIC_CLEARANCE",
+    "domain": "pharmacology",
+}
+if success and result:
+    qc_metrics["clh_predicted_ml_min_kg"] = result["clh_predicted_ml_min_kg"]
+    qc_metrics["clh_fraction_of_qh"]      = result["clh_fraction_of_qh"]
+    qc_metrics["extraction_class"]        = result["extraction_class"]
+    qc_metrics["scaling_model"]           = result["scaling_model"]
+    qc_metrics["species"]                 = result["species"]
+    clh_obs_raw = os.environ.get("PARAM_CLH_OBSERVED", "")
+    if clh_obs_raw and clh_obs_raw not in ("", "null", "None"):
+        try:
+            clh_obs = float(clh_obs_raw)
+            clh_pred = result["clh_predicted_ml_min_kg"]
+            if clh_obs > 0 and clh_pred > 0:
+                fold_error = max(clh_pred / clh_obs, clh_obs / clh_pred)
+                qc_metrics["clh_observed_ml_min_kg"] = clh_obs
+                qc_metrics["ivive_fold_error"]      = round(fold_error, 3)
+                qc_metrics["evidence_tier"]         = "GOLD"
+                qc_metrics["citation"]              = "Obach 1999 Drug Metab Dispos 27:1350"
+        except (ValueError, ZeroDivisionError):
+            pass
+
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2, default=str)
 
 # ── Save human-readable output ────────────────────────────────────────────────
 NL = chr(10)

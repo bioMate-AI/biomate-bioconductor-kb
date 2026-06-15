@@ -36,6 +36,15 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("msmsTests", "MSnbase")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     library(MSnbase)
     
     # ==========================================
-    # Stage 1: Load and Pre-process Input Data
+    # --- Load and Pre-process Input Data ---
     # ==========================================
     
     # Read intensity/count matrix
@@ -94,7 +103,7 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     colnames(coldata)[colnames(coldata) == "condition"] <- "treat"
     
     # ==========================================
-    # Stage 2: Create MSnSet Object
+    # --- Create MSnSet Object ---
     # ==========================================
     
     fd <- data.frame(row.names = rownames(counts))
@@ -114,7 +123,7 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     message(sprintf("Comparing condition '%s' vs '%s'", cond1, cond2))
     
     # ==========================================
-    # Stage 3: Define Models and Normalization
+    # --- Define Models and Normalization ---
     # ==========================================
     
     null.f <- "y~1"
@@ -122,7 +131,7 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     div <- apply(exprs(e), 2, sum)
     
     # ==========================================
-    # Stage 4: Run Differential Expression Tests
+    # --- Run Differential Expression Tests ---
     # ==========================================
     
     # 1. Poisson GLM (indicated for low number of replicates)
@@ -153,7 +162,7 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     })
     
     # ==========================================
-    # Stage 5: Post-test Filtering & Reproducibility
+    # --- Post-test Filtering & Reproducibility ---
     # ==========================================
     
     alpha.cut <- 0.05
@@ -182,7 +191,7 @@ process BIOC_MSMSTESTS_MSMS_TESTS_DIFFERENTIAL_EXPRESSION {
     write.csv(nb.tbl, "nb_results.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 6: Diagnostics and Visualization
+    # --- Diagnostics and Visualization ---
     # ==========================================
     
     # Generate p-value by fold change frequency table for Quasi-likelihood

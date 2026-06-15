@@ -94,6 +94,7 @@ export function ParameterDialog({
   const [loading, setLoading] = useState(false)
   const [appliedRecs, setAppliedRecs] = useState<Set<string>>(new Set())
   const [browsingForParam, setBrowsingForParam] = useState<{ name: string; label: string } | null>(null)
+  const [missingRequired, setMissingRequired] = useState<Set<string>>(new Set())
 
   // Get recommendation for a parameter
   const getRecommendation = (paramName: string): ParameterRecommendation | undefined => {
@@ -194,13 +195,32 @@ export function ParameterDialog({
 
   const handleChange = (name: string, value: any) => {
     setParameters(prev => ({ ...prev, [name]: value }))
+    // Clear the missing-required flag for this field once the user types.
+    if (missingRequired.has(name)) {
+      setMissingRequired(prev => {
+        const next = new Set(prev)
+        next.delete(name)
+        return next
+      })
+    }
   }
 
+  // A required value is "missing" if it's null/undefined/empty-string/empty-array.
+  // Booleans count as filled even when false (the user made a choice).
+  const isEmpty = (v: any) =>
+    v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
+
   const handleSave = () => {
-    if (step) {
-      onSave(step.id, parameters)
-      onOpenChange(false)
+    if (!step) return
+    const missing = parameterSchema
+      .filter(p => p.required && isEmpty(parameters[p.name]))
+      .map(p => p.name)
+    if (missing.length > 0) {
+      setMissingRequired(new Set(missing))
+      return // block save until required fields are filled
     }
+    onSave(step.id, parameters)
+    onOpenChange(false)
   }
 
   // Separate required and optional parameters
@@ -246,6 +266,16 @@ export function ParameterDialog({
           ) : (
             <div className="space-y-4">
               {/* Required Parameters */}
+              {missingRequired.size > 0 && (
+                <div
+                  role="alert"
+                  data-testid="param-dialog-missing-required"
+                  className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded p-2"
+                >
+                  Fill in {missingRequired.size} required field{missingRequired.size > 1 ? 's' : ''} before saving:{' '}
+                  <span className="font-mono">{Array.from(missingRequired).join(', ')}</span>
+                </div>
+              )}
               {requiredParams.length > 0 && (
                 <>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -262,6 +292,7 @@ export function ParameterDialog({
                       recommendation={getRecommendation(param.name)}
                       onApplyRecommendation={(value) => applyRecommendation(param.name, value)}
                       isRecommendationApplied={appliedRecs.has(param.name)}
+                      isMissing={missingRequired.has(param.name)}
                     />
                   ))}
                 </>
@@ -324,7 +355,8 @@ function ParameterInput({
   onBrowse,
   recommendation,
   onApplyRecommendation,
-  isRecommendationApplied = false
+  isRecommendationApplied = false,
+  isMissing = false,
 }: {
   param: Parameter
   value: any
@@ -333,7 +365,9 @@ function ParameterInput({
   recommendation?: ParameterRecommendation
   onApplyRecommendation?: (value: any) => void
   isRecommendationApplied?: boolean
+  isMissing?: boolean
 }) {
+  const inputClass = isMissing ? "h-9 border-destructive focus-visible:ring-destructive" : "h-9"
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -366,7 +400,7 @@ function ParameterInput({
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={param.format ? `Dataset (${param.format})` : 'Dataset path or ID'}
-            className="h-9"
+            className={inputClass}
           />
           <Button type="button" variant="outline" size="sm" className="h-9 flex-shrink-0" onClick={onBrowse}>
             Browse
@@ -379,7 +413,7 @@ function ParameterInput({
           id={param.name}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9"
+          className={inputClass}
         />
       )}
 
@@ -391,7 +425,7 @@ function ParameterInput({
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
           min={param.min}
           max={param.max}
-          className="h-9"
+          className={inputClass}
         />
       )}
 

@@ -2,7 +2,7 @@
 // ============================================================
 // Bioconductor workflow: camutqc — single_vcf_filtering_and_tmb
 // Convert a single VEP-annotated VCF to MAF, apply comprehensive quality control and candidate selection filters, and calculate Tumor Mutational Burden (TMB).
-// Input: WES_EA_T_1_mutect2.vep.vcf, PON_test.txt, Pan-cancer-hg38.rds
+// Input: WES_EA_T_1_mutect2.vep.vcf, PON_test.txt, Pan-cancer-hg38.bed
 // Container: quay.io/biocontainers/bioconductor-camutqc:1.6.0--r45hdfd78af_0
 // R packages: CaMutQC
 // Bioconductor: 3.21 | R: 4.5
@@ -57,7 +57,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
     
     # Define input file paths (expected in the working directory)
     vcf_file <- "WES_EA_T_1_mutect2.vep.vcf"
-    bed_file <- "Pan-cancer-hg38.rds"
+    bed_file <- "Pan-cancer-hg38.bed"
     pon_file <- "PON_test.txt"
     
     # Verify input files exist before running the pipeline
@@ -71,7 +71,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
       stop(paste("Required input file not found in working directory:", pon_file))
     }
     
-    # 1. Convert VEP-annotated VCF to MAF format
+    # --- Convert VEP-annotated VCF to MAF format ---
     message("Converting VEP-annotated VCF to MAF...")
     MAFdat <- vcfToMAF(vcf_file)
     
@@ -79,7 +79,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
     write.csv(MAFdat, "MAFdat_converted.csv", row.names = FALSE)
     saveRDS(MAFdat, "MAFdat_converted.rds")
     
-    # 2. Apply combined technical and candidate selection filters, and calculate TMB
+    # --- Apply combined technical and candidate selection filters, ---
     message("Applying combined filters and calculating TMB...")
     MAFCom_tmb <- mutFilterCom(
       MAFdat, 
@@ -105,7 +105,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
 
     writeLines(c(
         '"BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB":',
-        paste0('        camutqc: ', as.character(packageVersion("camutqc")))
+        paste0('        camutqc: ', as.character(packageVersion("CaMutQC")))
     ), "versions.yml")
     """
 

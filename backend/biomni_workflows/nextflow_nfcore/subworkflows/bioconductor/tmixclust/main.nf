@@ -63,38 +63,38 @@ process BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING {
       stop(paste("Error: Input file", toy_data_file, "not found in the working directory."))
     }
     
-    # 1. Load the time series data from the text file
+    # --- Load the time series data from the text file ---
     toy_data <- get_time_series_df(toy_data_file)
     
     # Open a PDF device to save all generated plots
     pdf_output_file <- "TMixClust_plots.pdf"
     pdf(pdf_output_file, width = 8, height = 6)
     
-    # 2. Visualize the raw time series data
+    # --- Visualize the raw time series data ---
     plot_time_series_df(toy_data)
     
-    # 3. Perform initial clustering (K = 3)
+    # --- Perform initial clustering (K = 3) ---
     cluster_obj <- TMixClust(toy_data, nb_clusters = 3)
     
-    # 4. Run stability analysis to find the global optimum
+    # --- Run stability analysis to find the global optimum ---
     # (Runs the clustering 10 times using 3 cores)
     best_clust_toy_obj <- analyse_stability(toy_data, nb_clusters = 3,
                                            nb_clustering_runs = 10,
                                            nb_cores = 3)
     
-    # 5. Plot the time series for each identified cluster
+    # --- Plot the time series for each identified cluster ---
     for (i in 1:3) {
         c_df = toy_data[which(best_clust_toy_obj\$em_cluster_assignment == i), ]
         plot_time_series_df(c_df, plot_title = paste("cluster", i))
     }
     
-    # 6. Generate a silhouette plot to validate cluster quality
+    # --- Generate a silhouette plot to validate cluster quality ---
     plot_silhouette(best_clust_toy_obj)
     
     # Close the PDF device
     dev.off()
     
-    # 7. Generate a comprehensive HTML/PDF report
+    # --- Generate a comprehensive HTML/PDF report ---
     # This will create a folder named "TMixClust_report/" in the working directory
     generate_TMixClust_report(cluster_obj)
     

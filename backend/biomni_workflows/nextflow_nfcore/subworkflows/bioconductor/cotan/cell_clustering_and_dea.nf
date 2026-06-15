@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calibrate the COTAN model without full COEX calculation to save time. 2. Load or establish cell clusterizations. 3. Run Differenti
+//  * 1. [Visualization & Output] Load User Inputs
+//  * 2. [Visualization & Output] Establish Helper Variables and Metadata
+//  * 3. [Visualization & Output] Execute Documented Workflow
+//  * 4. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -68,7 +71,7 @@ process BIOC_COTAN_CELL_CLUSTERING_AND_DEA {
             options(parallelly.fork.enable = TRUE)
             
             # -----------------------------------------------------------------------------
-            # 1. Load User Inputs
+            # --- Load User Inputs ---
             # -----------------------------------------------------------------------------
             
             # Read the cleaned COTAN object from the working directory
@@ -93,7 +96,7 @@ process BIOC_COTAN_CELL_CLUSTERING_AND_DEA {
             vignette.split.clusters <- asClusterization(vignette.split.clusters, allCells = getCells(obj))
             
             # -----------------------------------------------------------------------------
-            # 2. Establish Helper Variables and Metadata
+            # --- Establish Helper Variables and Metadata ---
             # -----------------------------------------------------------------------------
             
             # Define marker genes for cortical layers
@@ -124,7 +127,7 @@ process BIOC_COTAN_CELL_CLUSTERING_AND_DEA {
             splitClusters <- vignette.split.clusters
             
             # -----------------------------------------------------------------------------
-            # 3. Execute Documented Workflow
+            # --- Execute Documented Workflow ---
             # -----------------------------------------------------------------------------
             
             # Calibrate the COTAN model without full COEX calculation to save time
@@ -160,7 +163,7 @@ process BIOC_COTAN_CELL_CLUSTERING_AND_DEA {
             c(mergedClusters, mergedCoexDF) %<-% mergeUniformCellsClusters( obj, clusters = splitClusters, optimizeForSpeed = TRUE, deviceStr = "cuda", cores = 6L, useDEA = TRUE, saveObj = TRUE, outDir = outDir )
             
             # -----------------------------------------------------------------------------
-            # 4. Save Outputs
+            # --- Save Outputs ---
             # -----------------------------------------------------------------------------
             
             # Save updated COTAN object

@@ -35,6 +35,15 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mygene", "rtracklayer", "GenomicRanges", "BiocGenerics", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +60,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
     library(BiocGenerics)
     library(S4Vectors)
     
-    # Stage 1: Import Input Data
+    # --- Import Input Data ---
     message("Stage 1: Importing input genomic regions...")
     if (!file.exists("regions.bed")) {
       stop("Input file 'regions.bed' is missing.")
@@ -76,7 +85,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
       message("Optional metadata 'coldata.csv' loaded.")
     }
     
-    # Stage 2: ID Mapping & Annotation Retrieval via MyGene.info
+    # --- ID Mapping & Annotation Retrieval via MyGene.info ---
     message("Stage 2: Querying MyGene.info API...")
     annotations_df <- data.frame()
     mapping_summary <- list(matched = 0, missing = 0, duplicates = 0)
@@ -109,7 +118,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
       }
     }
     
-    # Stage 3: Merge Annotations with Original Genomic Regions
+    # --- Merge Annotations with Original Genomic Regions ---
     message("Stage 3: Merging annotations with genomic regions...")
     if (nrow(annotations_df) > 0) {
       # Convert GRanges to data frame for merging
@@ -125,7 +134,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
       message("No annotations retrieved. Saved original regions to 'annotated_regions.csv'.")
     }
     
-    # Stage 4: Dynamic Transcript Model Construction
+    # --- Dynamic Transcript Model Construction ---
     message("Stage 4: Building TxDb transcript models from mapped genes...")
     tx_df <- data.frame(
       seqnames = character(), 
@@ -158,7 +167,7 @@ process BIOC_MYGENE_MYGENE_ANNOTATION_PIPELINE {
     write.csv(tx_df, "retrieved_transcripts.csv", row.names = FALSE)
     message("Saved transcript models to 'retrieved_transcripts.csv'.")
     
-    # Stage 5: Diagnostic Visualization
+    # --- Diagnostic Visualization ---
     message("Stage 5: Generating diagnostic plots...")
     pdf("query_summary.pdf", width = 8, height = 6)
     

@@ -71,13 +71,13 @@ process BIOC_KNOWYOURCG_GENOMIC_PROXIMITY_AND_LINKAGE {
     query_probes <- trimws(query_probes)
     query_probes <- query_probes[query_probes != ""]
     
-    # 1. Link query probes to proximal genes
+    # --- Link query probes to proximal genes ---
     genes <- linkProbesToProximalGenes (query_probes, platform = "MM285" ) \$ gene_name
     
     # Save linked genes output
     write.table(genes, file = "linked_genes.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
     
-    # 2. Perform Gene Ontology enrichment on the linked genes
+    # --- Perform Gene Ontology enrichment on the linked genes ---
     gostres <- gprofiler2 :: gost (genes, organism = "mmusculus" )
     
     # Save GO enrichment results
@@ -86,7 +86,7 @@ process BIOC_KNOWYOURCG_GENOMIC_PROXIMITY_AND_LINKAGE {
       write.csv(gostres\$result, file = "gost_results.csv", row.names = FALSE)
     }
     
-    # 3. Test for genomic proximity and co-localization
+    # --- Test for genomic proximity and co-localization ---
     probes <- query_probes
     res <- testProbeProximity ( probeIDs= probes)
     

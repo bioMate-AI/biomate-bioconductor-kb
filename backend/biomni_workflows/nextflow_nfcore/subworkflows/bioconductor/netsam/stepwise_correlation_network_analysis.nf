@@ -68,7 +68,7 @@ process BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS {
     }
     
     # ==========================================
-    # Step 1: Construct Correlation Networks
+    # --- Construct Correlation Networks ---
     # ==========================================
     
     # 1a. Construct correlation network using MatNet
@@ -117,7 +117,7 @@ process BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS {
     
     
     # ==========================================
-    # Step 2: Run NetSAM on the Constructed Network
+    # --- Run NetSAM on the Constructed Network ---
     # ==========================================
     message("Running NetSAM on the constructed MatNet network...")
     netsam_output_file <- paste(getwd(), "/NetSAM_output", sep = "")
@@ -148,7 +148,7 @@ process BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS {
     
     
     # ==========================================
-    # Step 3: Calculate Feature Associations
+    # --- Calculate Feature Associations ---
     # ==========================================
     message("Calculating associations between sample features and modules...")
     outputHtmlFile_feat <- paste(getwd(), "/featureAsso_HTML", sep = "")
@@ -171,7 +171,7 @@ process BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS {
     
     
     # ==========================================
-    # Step 4: Identify Associated GO Terms
+    # --- Identify Associated GO Terms ---
     # ==========================================
     message("Identifying associated GO terms for modules...")
     outputHtmlFile_go <- paste(getwd(), "/GOAsso_HTML", sep = "")

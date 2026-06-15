@@ -72,31 +72,31 @@ process BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT {
     axtDir <- "axt_output"
     dir.create(axtDir, showWarnings = FALSE, recursive = TRUE)
     
-    # 1. Run LASTZ alignment to generate LAV files
+    # --- Run LASTZ alignment to generate LAV files ---
     lavs <- lastz(assemblyTarget, assemblyQuery, outputDir=axtDir, chrsTarget=c("chr1", "chr2", "chr3"), chrsQuery=c("chr1", "chr2", "chr3"), distance="far", mc.cores=4)
     saveRDS(lavs, file=file.path(axtDir, "lavs.rds"))
     
-    # 2. Convert LAV files to PSL files
+    # --- Convert LAV files to PSL files ---
     psls <- lavToPsl(lavs, removeLav=FALSE, binary="lavToPsl")
     saveRDS(psls, file=file.path(axtDir, "psls.rds"))
     
-    # 3. Join close alignments into chains
+    # --- Join close alignments into chains ---
     chains <- axtChain(psls, assemblyTarget=assemblyTarget, assemblyQuery=assemblyQuery, distance="far", removePsl=FALSE, binary="axtChain")
     saveRDS(chains, file=file.path(axtDir, "chains.rds"))
     
-    # 4. Sort and combine chains
+    # --- Sort and combine chains ---
     allChain <- chainMergeSort(chains, assemblyTarget, assemblyQuery, allChain=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case=TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case=TRUE), ".all.chain")), removeChains=FALSE, binary="chainMergeSort")
     saveRDS(allChain, file=file.path(axtDir, "allChain.rds"))
     
-    # 5. Filter chains
+    # --- Filter chains ---
     allPreChain <- chainPreNet(allChain, assemblyTarget, assemblyQuery, allPreChain=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".all.pre.chain")), removeAllChain=FALSE, binary="chainPreNet")
     saveRDS(allPreChain, file=file.path(axtDir, "allPreChain.rds"))
     
-    # 6. Net chains and add synteny information
+    # --- Net chains and add synteny information ---
     netSyntenicFile <- chainNetSyntenic(allPreChain, assemblyTarget, assemblyQuery, netSyntenicFile=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".noClass.net")), binaryChainNet="chainNet", binaryNetSyntenic="netSyntenic")
     saveRDS(netSyntenicFile, file=file.path(axtDir, "netSyntenicFile.rds"))
     
-    # 7. Create net.axt files
+    # --- Create net.axt files ---
     netToAxt(netSyntenicFile, allPreChain, assemblyTarget, assemblyQuery, axtFile=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".net.axt")), removeFiles=FALSE, binaryNetToAxt="netToAxt", binaryAxtSort="axtSort")
 
     writeLines(c(

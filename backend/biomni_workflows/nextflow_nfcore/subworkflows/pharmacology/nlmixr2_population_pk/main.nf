@@ -69,6 +69,7 @@ process NLMIXR2_POPULATION_PK {
     tuple val(meta), path("vpc_plot.pdf"),                emit: vpc,            optional: true
     tuple val(meta), path("goodness_of_fit.pdf"),         emit: gof,            optional: true
     tuple val(meta), path("nlmixr2_results.json"),        emit: results
+    tuple val(meta), path("qc_metrics.json"),             emit: qc_metrics
     path "versions.yml",                                  emit: versions
 
     script:
@@ -178,52 +179,85 @@ process NLMIXR2_POPULATION_PK {
     }
 
     # ── Fit model ────────────────────────────────────────────────────────────
+    # Pick the control function that matches the chosen estimation algorithm —
+    # do.call(saemControl, ...) was used regardless of algorithm, which broke
+    # FOCEI runs.
+    algo_lc <- tolower("${params.algorithm}")
+    control_fn <- switch(algo_lc,
+        saem  = saemControl,
+        focei = foceiControl,
+        saemControl
+    )
     control_args <- list(maxOuterIterations = ${params.max_iter})
+    fit_err <- NULL
     fit <- tryCatch(
         nlmixr2(pk_model, pk_data, est = "${params.algorithm}",
-                control = do.call(saemControl, control_args)),
+                control = do.call(control_fn, control_args)),
         error = function(e) {
-            cat("ERROR: nlmixr2 fitting failed:", conditionMessage(e), "\\n")
+            msg <- conditionMessage(e)
+            fit_err <<- msg
+            cat("ERROR: nlmixr2 fitting failed:", msg, "\\n")
             NULL
         }
     )
 
     if (is.null(fit)) {
-        # Write minimal failed-state JSON for QC gate
+        # Persist failure state so the QC monitor still has a qc_metrics.json
+        # to read instead of silently going dark.
         results_json <- list(
             convergence_status = "failed",
             model_type         = "${params.model_type}",
             algorithm          = "${params.algorithm}",
             n_subjects         = n_subjects,
-            n_observations     = n_obs
+            n_observations     = n_obs,
+            error_message      = fit_err
         )
         write_json(results_json, "nlmixr2_results.json", pretty = TRUE, auto_unbox = TRUE)
         fwrite(data.frame(), "parameter_estimates.csv")
         fwrite(data.frame(), "individual_estimates.csv")
-        stop("nlmixr2 model fitting failed — see log above.")
+        qc_failed <- list(
+            success            = FALSE,
+            process            = "NLMIXR2_POPULATION_PK",
+            domain             = "pharmacology",
+            convergence_status = "failed",
+            model_type         = "${params.model_type}",
+            algorithm          = "${params.algorithm}",
+            n_subjects         = n_subjects,
+            n_observations     = n_obs,
+            error_message      = fit_err,
+            evidence_tier      = "GOLD",
+            citation           = "Savic & Karlsson 2007 AAPS J 9:E251"
+        )
+        write_json(qc_failed, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
+        # Exit 0 so publishDir copies all declared outputs (including the
+        # qc_metrics.json failure record) — the QC monitor will then read the
+        # convergence_status="failed" and the gate will TRIGGER. Aborting here
+        # would suppress publishDir and leave the run silently dark.
+        cat("nlmixr2 fit failed; failure-state outputs published. Exiting 0.\\n")
+        quit(save = "no", status = 0)
     }
 
     # ── Extract QC metrics ───────────────────────────────────────────────────
-    params_df <- as.data.frame(fit$parFixed)
-    etas       <- fit$eta
+    params_df <- as.data.frame(fit\$parFixed)
+    etas       <- fit\$eta
 
     # ETA shrinkage (per random effect)
-    shrinkage_vals <- tryCatch(fit$shrink, error = function(e) NULL)
+    shrinkage_vals <- tryCatch(fit\$shrink, error = function(e) NULL)
     max_shrinkage  <- if (!is.null(shrinkage_vals)) max(shrinkage_vals, na.rm = TRUE) else NA
 
     # Condition number from covariance matrix
-    cov_mat <- tryCatch(fit$covMatrix, error = function(e) NULL)
+    cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
     cond_number <- if (!is.null(cov_mat) && nrow(cov_mat) > 0) {
-        eig <- eigen(cov_mat, only.values = TRUE)$values
+        eig <- eigen(cov_mat, only.values = TRUE)\$values
         max(abs(eig)) / min(abs(eig[abs(eig) > 1e-10]))
     } else NA
 
     # OFV (objective function value)
-    ofv <- tryCatch(fit$ofv, error = function(e) NA)
+    ofv <- tryCatch(fit\$ofv, error = function(e) NA)
 
-    # Convergence: nlmixr2 sets fit$message; SAEM converged if no warning keyword
+    # Convergence: nlmixr2 sets fit\$message; SAEM converged if no warning keyword
     converged <- tryCatch({
-        msg <- fit$message
+        msg <- fit\$message
         !grepl("not converge|failed|warning", msg, ignore.case = TRUE)
     }, error = function(e) TRUE)  # assume converged if message not accessible
 
@@ -270,6 +304,25 @@ process NLMIXR2_POPULATION_PK {
     )
     write_json(results_json, "nlmixr2_results.json", pretty = TRUE, auto_unbox = TRUE)
     cat("\\nResults written to nlmixr2_results.json\\n")
+
+    # qc_metrics.json — gate metrics consumed by the QC monitor's
+    # pop-PK gates. Key names normalized to what qc_gate_reader expects:
+    #   eta_shrinkage_pct_max — Savic & Karlsson 2007 (GOLD <20%, SILVER <30%)
+    #   condition_number      — community Pop-PK convention (SILVER <100, BRONZE <1000)
+    # ofv_delta_max NOT emitted because the workflow runs a single fit;
+    # OFV-stability gate needs successive-iteration ΔOFV which would
+    # require a refit pipeline. Gate skips with None — by design.
+    qc_metrics <- list(
+        eta_shrinkage_pct_max = results_json\$max_eta_shrinkage_pct,
+        condition_number      = results_json\$condition_number,
+        ofv                   = results_json\$ofv,
+        convergence_status    = results_json\$convergence_status,
+        n_subjects            = results_json\$n_subjects,
+        n_observations        = results_json\$n_observations,
+        model_type            = results_json\$model_type,
+        algorithm             = results_json\$algorithm
+    )
+    write_json(qc_metrics, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
     REOF
 
     cat <<-END_VERSIONS > versions.yml

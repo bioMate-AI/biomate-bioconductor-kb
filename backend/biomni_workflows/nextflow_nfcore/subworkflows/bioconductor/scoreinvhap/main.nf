@@ -35,6 +35,15 @@ process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scoreInvHap", "VariantAnnotation")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -58,7 +67,7 @@ process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
     message("Inversion ID: ", inversion_id)
     message("Genome Build: ", genome_build)
     
-    # Stage 1: Load and preprocess input VCF
+    # --- Load and preprocess input VCF ---
     if (!file.exists("input.vcf")) {
       stop("Required input file 'input.vcf' not found in the working directory.")
     }
@@ -66,7 +75,7 @@ process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
     message("Reading input VCF file...")
     vcf <- VariantAnnotation::readVcf("input.vcf", genome_build)
     
-    # Stage 2: Quality Control and SNP Filtering
+    # --- Quality Control and SNP Filtering ---
     message("Checking SNPs against scoreInvHap references...")
     check <- checkSNPs(vcf)
     
@@ -77,7 +86,7 @@ process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
     vcf_clean <- check\$genos
     message("Number of SNPs retained for analysis: ", nrow(vcf_clean))
     
-    # Stage 3: Inversion Genotyping
+    # --- Inversion Genotyping ---
     message("Running scoreInvHap genotyping...")
     # Check if genotype probabilities (GP) are available to use the probabilistic classifier
     has_gp <- "GP" %in% names(VariantAnnotation::geno(vcf_clean))
@@ -95,7 +104,7 @@ process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
       NULL
     })
     
-    # Stage 4: Extract Results and Apply QC Filters
+    # --- Extract Results and Apply QC Filters ---
     if (!is.null(res)) {
       message("Extracting classifications and scores...")
       samples <- colnames(vcf_clean)
@@ -142,7 +151,7 @@ process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
       write.csv(results_df, "inversion_genotypes.csv", row.names = FALSE)
       message("Genotyping results written to 'inversion_genotypes.csv'.")
       
-      # Stage 5: Generate Diagnostic Plots
+      # --- Generate Diagnostic Plots ---
       message("Generating diagnostic QC plots...")
       pdf("qc_plots.pdf", width = 10, height = 5)
       par(mfrow = c(1, 2))

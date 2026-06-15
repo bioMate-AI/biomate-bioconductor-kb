@@ -59,7 +59,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
     idat_dir <- "path/to/idats"
     pheno_file <- "pheno_data"
     
-    # 1. Import raw data using readEPIC
+    # --- Import raw data using readEPIC ---
     message("Reading EPIC IDAT files...")
     mlumi <- readEPIC(idat_dir)
     melon <- mlumi
@@ -101,7 +101,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
       pData(melon)\$sex <- rep("F", ncol(melon))
     }
     
-    # 2. Detect multivariate outliers using outlyx
+    # --- Detect multivariate outliers using outlyx ---
     message("Detecting outliers...")
     pdf("outliers_plot.pdf")
     outliers <- outlyx(melon, plot=TRUE)
@@ -115,7 +115,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
       melon <- melon[, !outliers\$out]
     }
     
-    # 3. Check bisulfite conversion efficiency using bscon
+    # --- Check bisulfite conversion efficiency using bscon ---
     message("Checking bisulfite conversion efficiency...")
     bsc <- bscon(melon)
     write.csv(data.frame(Sample = names(bsc), BS_Conversion = bsc), "bisulfite_conversion.csv", row.names = FALSE)
@@ -123,11 +123,11 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
     hist(bsc, xlab = c(0, 100))
     dev.off()
     
-    # 4. Filter poorly performing probes and samples using pfilter
+    # --- Filter poorly performing probes and samples using pfilter ---
     message("Filtering poorly performing probes and samples...")
     melon.pf <- pfilter(melon)
     
-    # 5. Predict epigenetic age using agep
+    # --- Predict epigenetic age using agep ---
     message("Predicting epigenetic age...")
     age_all <- tryCatch({
       res <- agep(melon, method='all')
@@ -147,7 +147,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
       NULL
     })
     
-    # 6. Predict sample sex using estimateSex
+    # --- Predict sample sex using estimateSex ---
     message("Predicting sample sex...")
     pdf("sex_prediction_plot.pdf")
     predicted_sex <- tryCatch({
@@ -160,7 +160,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
     })
     dev.off()
     
-    # 7. Estimate blood cell-type proportions using estimateCellCounts.wateRmelon
+    # --- Estimate blood cell-type proportions using ---
     message("Estimating cell counts...")
     cell_counts_450k <- tryCatch({
       res <- estimateCellCounts.wateRmelon(melon, referencePlatform = "IlluminaHumanMethylation450k")
@@ -180,12 +180,12 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
       NULL
     })
     
-    # 8. Normalize data using dasen
+    # --- Normalize data using dasen ---
     message("Normalizing data...")
     dasen.melon <- dasen(melon)
     das <- dasen(melon)
     
-    # 9. Estimate normalization violence using qual
+    # --- Estimate normalization violence using qual ---
     message("Estimating normalization violence...")
     qu <- qual(betas(melon), betas(das))
     write.csv(as.data.frame(qu), "normalization_violence.csv", row.names = TRUE)
@@ -193,7 +193,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
     plot(qu[,1], qu[,2])
     dev.off()
     
-    # 10. Calculate performance metrics using dmrse_row, genki, and seabi
+    # --- Calculate performance metrics using dmrse_row, genki, and ---
     message("Calculating performance metrics...")
     melon.dasen.pf <- dasen(melon.pf)
     
@@ -264,7 +264,7 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
       write.csv(as.data.frame(genki_norm_val), "genki_norm.csv", row.names = FALSE)
     }
     
-    # 11. Perform final probe-wise outlier detection sweep using pwod
+    # --- Perform final probe-wise outlier detection sweep using ---
     message("Performing final probe-wise outlier detection sweep...")
     bet <- betas(melon)
     pwod_bet <- pwod(bet)

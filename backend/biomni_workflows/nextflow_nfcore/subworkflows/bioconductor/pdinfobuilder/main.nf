@@ -34,6 +34,15 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("pdInfoBuilder", "RSQLite", "DBI")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     library(RSQLite)
     library(DBI)
     
-    # Stage 1: Read input files and extract feature IDs
+    # --- Read input files and extract feature IDs ---
     message("Stage 1: Reading input files...")
     matrix_file <- "matrix.csv"
     coldata_file <- "coldata.csv"
@@ -73,7 +82,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     
     message("Found ", length(feature_ids), " features.")
     
-    # Stage 2: Generate mock NimbleGen NDF and XYS files based on feature IDs
+    # --- Generate mock NimbleGen NDF and XYS files based on ---
     message("Stage 2: Generating mock NimbleGen NDF and XYS files...")
     probes_per_feature <- 3
     total_probes <- length(feature_ids) * probes_per_feature
@@ -123,7 +132,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     )
     write.table(xys_data, file = xys_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE, append = TRUE)
     
-    # Stage 3: Build Platform Design Info Package
+    # --- Build Platform Design Info Package ---
     message("Stage 3: Building Platform Design Info Package...")
     seed <- new("NgsExpressionPDInfoPkgSeed",
                 ndfFile = normalizePath(ndf_file),
@@ -154,7 +163,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     # Run package builder
     makePdInfoPackage(seed, destDir = ".")
     
-    # Stage 4: Verify and Query the SQLite Database
+    # --- Verify and Query the SQLite Database ---
     message("Stage 4: Verifying and Querying the SQLite Database...")
     pkg_dir <- "pd.mock.expr"
     if (!dir.exists(pkg_dir)) {

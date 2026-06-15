@@ -13,7 +13,16 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Filter low-count genes and align gene metadata. 2. Create a SeqExpressionSet object. 3. Perform exploratory plotting (boxplot, MDP
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Filter and Align Gene Metadata
+//  * 3. [Visualization & Output] Create SeqExpressionSet Object
+//  * 4. [Visualization & Output] Exploratory Plotting
+//  * 5. [Visualization & Output] Normalization (Within-lane and Between-lane)
+//  * 6. [Visualization & Output] Generate Normalization Offsets
+//  * 7. [Visualization & Output] Differential Expression Analysis: edgeR
+//  * 8. [Visualization & Output] Differential Expression Analysis: DESeq2
+//  * 9. [Visualization & Output] Unrounded Normalization & Verification
+//  * 10. [Visualization & Output] Optional: Retrieve Gene Length and GC Content
 
 nextflow.enable.dsl = 2
 
@@ -69,7 +78,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
                         rep(rgb(0,1,1,alpha=0.7),2))
             
             # ==========================================
-            # 1. Load User Input Files
+            # --- Load User Input Files ---
             # ==========================================
             
             load_input <- function(var_name) {
@@ -126,7 +135,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             yeastLength <- load_input("yeastLength")
             
             # ==========================================
-            # 2. Filter and Align Gene Metadata
+            # --- Filter and Align Gene Metadata ---
             # ==========================================
             
             message("Filtering low-count genes and aligning metadata...")
@@ -138,7 +147,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             message(paste("Number of common genes:", length(common)))
             
             # ==========================================
-            # 3. Create SeqExpressionSet Object
+            # --- Create SeqExpressionSet Object ---
             # ==========================================
             
             message("Creating SeqExpressionSet...")
@@ -164,7 +173,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             print(head(offst(data)))
             
             # ==========================================
-            # 4. Exploratory Plotting
+            # --- Exploratory Plotting ---
             # ==========================================
             
             message("Generating exploratory plots...")
@@ -189,7 +198,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             biasBoxplot(lfc, fData(data)\$gc)
             
             # ==========================================
-            # 5. Normalization (Within-lane and Between-lane)
+            # --- Normalization (Within-lane and Between-lane) ---
             # ==========================================
             
             message("Performing within-lane and between-lane normalization...")
@@ -205,7 +214,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             saveRDS(dataNorm, "dataNorm.rds")
             
             # ==========================================
-            # 6. Generate Normalization Offsets
+            # --- Generate Normalization Offsets ---
             # ==========================================
             
             message("Generating normalization offsets...")
@@ -214,7 +223,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             saveRDS(dataOffset, "dataOffset.rds")
             
             # ==========================================
-            # 7. Differential Expression Analysis: edgeR
+            # --- Differential Expression Analysis: edgeR ---
             # ==========================================
             
             message("Running edgeR analysis...")
@@ -233,7 +242,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             write.csv(as.data.frame(topTags(lrt, n = Inf)), "edgeR_results.csv", row.names = TRUE)
             
             # ==========================================
-            # 8. Differential Expression Analysis: DESeq2
+            # --- Differential Expression Analysis: DESeq2 ---
             # ==========================================
             
             message("Running DESeq2 analysis...")
@@ -253,7 +262,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             write.csv(as.data.frame(res), "DESeq2_results.csv", row.names = TRUE)
             
             # ==========================================
-            # 9. Unrounded Normalization & Verification
+            # --- Unrounded Normalization & Verification ---
             # ==========================================
             
             message("Verifying unrounded normalization and offset calculations...")
@@ -270,7 +279,7 @@ process BIOC_EDASEQ_GENE_LEVEL_NORMALIZATION_AND_DE {
             message("Plots saved to 'EDASeq_plots.pdf'")
             
             # ==========================================
-            # 10. Optional: Retrieve Gene Length and GC Content
+            # --- Optional: Retrieve Gene Length and GC Content ---
             # ==========================================
             
             message("Running optional gene length and GC content retrieval steps...")

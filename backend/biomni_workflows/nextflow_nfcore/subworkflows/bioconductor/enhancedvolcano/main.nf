@@ -36,6 +36,15 @@ process BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DESeq2", "EnhancedVolcano", "ggplot2", "gridExtra")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,14 +54,14 @@ process BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(DESeq2)
     library(EnhancedVolcano)
     library(ggplot2)
     library(gridExtra)
     library(grid)
     
-    # Stage 2: Load and preprocess input data
+    # --- Load and preprocess input data ---
     # Read counts and coldata from the working directory
     counts <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
     coldata <- read.csv("coldata.csv", row.names = "sample", check.names = FALSE)
@@ -72,7 +81,7 @@ process BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS {
       stop("The 'condition' column must have at least two levels for differential analysis.")
     }
     
-    # Stage 3: Differential Expression Analysis with DESeq2
+    # --- Differential Expression Analysis with DESeq2 ---
     dds <- DESeqDataSetFromMatrix(countData = counts, colData = coldata, design = ~ condition)
     
     # Filter out low-count genes to improve power
@@ -100,7 +109,7 @@ process BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS {
     top_genes <- rownames(res_shrunk)[order(res_shrunk\$pvalue, na.last = TRUE)][1:10]
     top_genes <- top_genes[!is.na(top_genes)]
     
-    # Stage 4: Generate EnhancedVolcano Plots
+    # --- Generate EnhancedVolcano Plots ---
     
     # Plot 1: Basic Volcano Plot
     pdf("volcano_basic.pdf", width = 8, height = 9)

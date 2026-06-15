@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the plate and extract raw droplet amplitudes. 2. Apply a custom classification function to the droplet data. 3. Relabel the c
+//  * 1. [Input & Preparation] Load the plate and extract raw droplet amplitudes
+//  * 2. [Input & Preparation] Apply a custom classification function to the droplet data
+//  * 3. [Input & Preparation] Relabel the custom classes to match the package's
+//  * 4. [Input & Preparation] Assign the custom classification back to the ddpcrPlate
 
 nextflow.enable.dsl = 2
 
@@ -69,7 +72,7 @@ process BIOC_TWODDPCR_CUSTOM_CLASSIFICATION_INTEGRATION {
       dir.create("output", recursive = TRUE)
     }
     
-    # 1. Load the plate and extract raw droplet amplitudes
+    # --- Load the plate and extract raw droplet amplitudes ---
     plate <- ddpcrPlate(well="data/amplitudes")
     
     allDrops <- amplitudes(plate)
@@ -78,7 +81,7 @@ process BIOC_TWODDPCR_CUSTOM_CLASSIFICATION_INTEGRATION {
     amplitudes <- allDrops
     allDrops <- do.call(rbind, amplitudes)
     
-    # 2. Apply a custom classification function to the droplet data
+    # --- Apply a custom classification function to the droplet data ---
     someClassificationMethod <- function(df) {
       # Simple threshold-based classification for demonstration
       # We use the median of Ch1 and Ch2 amplitudes as thresholds
@@ -95,10 +98,10 @@ process BIOC_TWODDPCR_CUSTOM_CLASSIFICATION_INTEGRATION {
     
     allDrops\$class <- someClassificationMethod(allDrops)
     
-    # 3. Relabel the custom classes to match the package's expected factor levels
+    # --- Relabel the custom classes to match the package's ---
     allDrops <- relabelClasses(allDrops, classCol="class")
     
-    # 4. Assign the custom classification back to the ddpcrPlate object
+    # --- Assign the custom classification back to the ddpcrPlate ---
     plateClassification(plate, cMethod="nameOfCMethod") <- allDrops\$class
     
     # --- Save Outputs ---

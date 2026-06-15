@@ -41,6 +41,7 @@ process LNP_FORMULATION_OPTIMIZATION {
     tuple val(meta), path("lipid_properties.csv"),                emit: lipid_props
     tuple val(meta), path("formulation_predictions.csv"),         emit: formulation
     tuple val(meta), path("recommended_formulation.json"),        emit: recommended
+    tuple val(meta), path("qc_metrics.json"),                     emit: qc_metrics
     path "versions.yml",                                          emit: versions
 
     script:
@@ -252,6 +253,25 @@ summary = {'status':'completed', 'ionizable_lipid_pKa': il_pka,
            'best_formulation': best, 'recommended': recommended}
 with open('lnp_results.json','w') as f:
     json.dump(summary, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's LNP
+# gates. z_avg_nm proxied by predicted_size_nm (in vitro size predicted
+# from formulation composition; the gate's GOLD-anchor in qc_evidence
+# corresponds to measured DLS Z-average so the predicted value should
+# be interpreted as a design target, not a measurement). pdi is not
+# computed by this workflow — gate skips with None.
+qc_metrics = {
+    "z_avg_nm":              float(best.get("predicted_size_nm")) if best.get("predicted_size_nm") is not None else None,
+    "pdi":                   None,
+    "encapsulation_efficiency_pct": float(best.get("predicted_EE_pct")) if best.get("predicted_EE_pct") is not None else None,
+    "ionizable_lipid_pKa":   il_pka,
+    "pKa_status":            pka_status,
+    "endosomal_escape_score": il_ee_score,
+    "tissue":                tissue,
+    "cargo":                 cargo,
+}
+with open('qc_metrics.json','w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 report = ["=== LNP FORMULATION OPTIMIZATION REPORT ===",
           f"Cargo: {cargo} | Target tissue: {tissue}",

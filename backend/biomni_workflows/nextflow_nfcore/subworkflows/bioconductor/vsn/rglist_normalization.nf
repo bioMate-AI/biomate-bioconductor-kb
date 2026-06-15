@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run justvsn on the RGList object (optionally with background subtraction or strata)
+//  * 1. [Core Analysis] Run justvsn on the RGList object
+//  * 2. [Core Analysis] Run justvsn with background subtraction on a subset of
+//  * 3. [Core Analysis] Run justvsn with print-tip strata on the first array
 
 nextflow.enable.dsl = 2
 
@@ -74,14 +76,14 @@ process BIOC_VSN_RGLIST_NORMALIZATION {
               pin = rep(1:(ngr * ngc), length.out = n_features)
             )
             
-            # 1. Run justvsn on the RGList object
+            # --- Run justvsn on the RGList object ---
             lymNCS = justvsn(lymRG)
             
-            # 2. Run justvsn with background subtraction on a subset of arrays
+            # --- Run justvsn with background subtraction on a subset of ---
             num_arrays <- min(3, ncol(lymRGwbg))
             lymESwbg = justvsn(lymRGwbg[, 1:num_arrays], backgroundsubtract=TRUE)
             
-            # 3. Run justvsn with print-tip strata on the first array
+            # --- Run justvsn with print-tip strata on the first array ---
             EconStr = justvsn(lymRG[, 1], strata = arrayGeometry\$pin)
             
             # Save the processed NChannelSet objects to RDS files

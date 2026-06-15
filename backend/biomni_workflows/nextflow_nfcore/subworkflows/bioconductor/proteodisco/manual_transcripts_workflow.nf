@@ -59,7 +59,7 @@ process BIOC_PROTEODISCO_MANUAL_TRANSCRIPTS_WORKFLOW {
     library(S4Vectors)
     library(Biostrings)
     
-    # 1. Read the user input file from the working directory
+    # --- Read the user input file from the working directory ---
     # The user input is 'manualSeq', an S4Vectors DataFrame containing mutant sequences and metadata.
     # We read this object from 'manualSeq.rds' in the working directory.
     if (!file.exists("manualSeq.rds")) {
@@ -67,27 +67,27 @@ process BIOC_PROTEODISCO_MANUAL_TRANSCRIPTS_WORKFLOW {
     }
     manualSeq <- readRDS("manualSeq.rds")
     
-    # 2. Generate the ProteoDiscography reference database
+    # --- Generate the ProteoDiscography reference database ---
     ProteoDiscography.hg19 <- ProteoDisco::generateProteoDiscography(
       TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene, 
       genomeSeqs = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     )
     
-    # 3. Import manual transcript sequences
+    # --- Import manual transcript sequences ---
     ProteoDiscography.hg19 <- ProteoDisco::importTranscriptSequences(
       ProteoDiscography.hg19, 
       transcripts = manualSeq,
       removeExisting = TRUE
     )
     
-    # 4. Export the customized database to FASTA
+    # --- Export the customized database to FASTA ---
     ProteoDisco::exportProteoDiscography(
       ProteoDiscography = ProteoDiscography.hg19, 
       outFile = 'example.fasta', 
       aggregateSamples = TRUE
     )
     
-    # 5. Save meaningful results and outputs
+    # --- Save meaningful results and outputs ---
     # Save the final ProteoDiscography object as RDS
     saveRDS(ProteoDiscography.hg19, file = "ProteoDiscography_final.rds")
     

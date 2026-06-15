@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map E-genes to their corresponding S-genes based on prior knowledge. 2. Initialize the network state. 3. Run B-NEM optimization wi
+//  * 1. [Visualization & Output] Map E-genes to their corresponding S-genes based on prior
+//  * 2. [Visualization & Output] Initialize the network state
+//  * 3. [Visualization & Output] Run B-NEM optimization with the egenes parameter
+//  * 4. [Visualization & Output] Calculate network residuals to evaluate E-gene fit
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_BNEM_INFERENCE_WITH_PREATTACHED_EGENES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bnem", "mnem", "CellNOptR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -62,16 +74,16 @@ process BIOC_BNEM_INFERENCE_WITH_PREATTACHED_EGENES {
     expression <- NULL
     parallel <- NULL
     
-    # 1. Map E-genes to their corresponding S-genes based on prior knowledge
+    # --- Map E-genes to their corresponding S-genes based on prior ---
     egenes <- list()
     for (i in PKN\$namesSpecies) {
         egenes[[i]] <- rownames(fc)[grep(i, rownames(fc))]
     }
     
-    # 2. Initialize the network state
+    # --- Initialize the network state ---
     initBstring <- reduceGraph(rep(0, length(model\$reacID)), model, CNOlist)
     
-    # 3. Run B-NEM optimization with the egenes parameter
+    # --- Run B-NEM optimization with the egenes parameter ---
     greedy2b <- bnem(search = "greedy",
                      CNOlist=CNOlist,
                      fc=fc,
@@ -87,7 +99,7 @@ process BIOC_BNEM_INFERENCE_WITH_PREATTACHED_EGENES {
                      )
     resString3 <- greedy2b\$bString
     
-    # 4. Calculate network residuals to evaluate E-gene fit
+    # --- Calculate network residuals to evaluate E-gene fit ---
     residuals <- findResiduals(resString3, CNOlist, model, fc, verbose = FALSE)
     
     # Save results to RDS files

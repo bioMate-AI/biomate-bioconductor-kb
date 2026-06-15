@@ -35,6 +35,15 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicPlot", "GenomicRanges", "GenomicFeatures", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +62,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Read Input Data & Metadata
+    # --- Read Input Data & Metadata ---
     # ==========================================
     message("Stage 1: Reading input counts and metadata...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -71,7 +80,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     gene_ids <- head(gene_ids, 50)
     
     # ==========================================
-    # STAGE 2: Generate Mock GTF and BED Files
+    # --- Generate Mock GTF and BED Files ---
     # ==========================================
     message("Stage 2: Generating mock GTF and BED files based on input data...")
     
@@ -149,7 +158,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     center_files <- c("TSS" = "tss_centers.bed")
     
     # ==========================================
-    # STAGE 3: Set Import Parameters
+    # --- Set Import Parameters ---
     # ==========================================
     message("Stage 3: Setting import parameters...")
     importParams <- setImportParams(
@@ -164,7 +173,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Peak Annotation Analysis
+    # --- Peak Annotation Analysis ---
     # ==========================================
     message("Stage 4: Running peak annotation...")
     pdf("peak_annotation_plots.pdf", width = 8, height = 8)
@@ -193,7 +202,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 5: Peak Overlap Analysis
+    # --- Peak Overlap Analysis ---
     # ==========================================
     message("Stage 5: Running peak overlap analysis...")
     pdf("overlap_plots.pdf", width = 8, height = 8)
@@ -218,7 +227,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Locus Profile Plotting
+    # --- Locus Profile Plotting ---
     # ==========================================
     message("Stage 6: Plotting locus profiles around TSS...")
     pdf("locus_profiles.pdf", width = 8, height = 8)
@@ -253,7 +262,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 7: Region Profile Plotting
+    # --- Region Profile Plotting ---
     # ==========================================
     message("Stage 7: Plotting region profiles across TSS regions...")
     pdf("region_profiles.pdf", width = 8, height = 8)

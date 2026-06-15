@@ -59,7 +59,7 @@ process BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION {
     # Set reference genome
     BSGenome = Hsapiens
     
-    # 1. Inject common SNPs (MAF > 0.01) into the reference genome
+    # --- Inject common SNPs (MAF > 0.01) into the reference genome ---
     message("Injecting SNPs into chr22...")
     genome = list()
     genome[["chr22"]] = injectSNPsMAF(
@@ -68,7 +68,7 @@ process BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION {
       MAF = 0.01
     )
     
-    # 2. Identify all potential CpG sites in the SNP-injected genome
+    # --- Identify all potential CpG sites in the SNP-injected ---
     message("Identifying potential CpG sites...")
     cpgset = getCpGsetALL(genome)
     
@@ -76,7 +76,7 @@ process BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION {
     filecpgset = "cpgset_initial.rds"
     saveRDS(cpgset, file = filecpgset)
     
-    # 3. Generate artificial FASTQ reads from the reference genome for the alignment experiment
+    # --- Generate artificial FASTQ reads from the reference genome ---
     message("Generating in silico FASTQ reads...")
     insilicoFASTQ(
       con = "chr1.fastq.gz",
@@ -95,7 +95,7 @@ process BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION {
     }
     chrset = gsub("\\\\.bam\$", "", bam_files)
     
-    # 4. Define parameters for scanning the simulated BAM files
+    # --- Define parameters for scanning the simulated BAM files ---
     message("Setting up RaMWAS parameters...")
     param = ramwasParameters(
       dirproject = ".",
@@ -115,14 +115,14 @@ process BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION {
     # Preprocess parameters
     param1 = parameterPreprocess(param)
     
-    # 5. Scan the simulated BAMs and calculate normalized coverage
+    # --- Scan the simulated BAMs and calculate normalized coverage ---
     message("Scanning BAM files...")
     ramwas1scanBams(param)
     
     message("Calculating normalized coverage...")
     ramwas3normalizedCoverage(param)
     
-    # 6. Filter the CpG set by keeping only the sites that fall within the expected coverage tolerance
+    # --- Filter the CpG set by keeping only the sites that fall ---
     message("Filtering CpG set by in silico coverage...")
     # Preprocess parameters to learn the location of coverage matrix
     param1 = parameterPreprocess(param)

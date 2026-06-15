@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load VCF data and convert to breakend-centric GRanges. 2. Identify retrotransposed transcripts using rtDetect. 3. Format the detec
+//  * 1. [Visualization & Output] Load VCF data and convert to breakend-centric GRanges
+//  * 2. [Visualization & Output] Load Transcript Database
+//  * 3. [Visualization & Output] Identify retrotransposed transcripts using rtDetect
+//  * 4. [Visualization & Output] Format the detected breakends into pairs using
+//  * 5. [Visualization & Output] Visualize the breakpoint pairs using circlize
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("StructuralVariantAnnotation", "VariantAnnotation", "svaRetro", "dplyr", "circlize", "GenomeInfoDb", "S4Vectors", "TxDb.Hsapiens.UCSC.hg19.knownGene")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -56,7 +69,7 @@ process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
     library(GenomeInfoDb)
     library(S4Vectors)
     
-    # 1. Load VCF data and convert to breakend-centric GRanges
+    # --- Load VCF data and convert to breakend-centric GRanges ---
     # Read exactly the user-provided VCF file from the working directory
     vcf_file <- "diploidSV.vcf"
     if (!file.exists(vcf_file)) {
@@ -69,7 +82,7 @@ process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
     )
     head(RT_gr)
     
-    # 2. Load Transcript Database
+    # --- Load Transcript Database ---
     # Read the user-provided TxDb from the working directory if present,
     # otherwise fall back to loading the installed package.
     txdb_file <- "TxDb.Hsapiens.UCSC.hg19.knownGene"
@@ -86,7 +99,7 @@ process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
       hg19.genes <- TxDb.Hsapiens.UCSC.hg19.knownGene
     }
     
-    # 3. Identify retrotransposed transcripts using rtDetect
+    # --- Identify retrotransposed transcripts using rtDetect ---
     RT <- rtDetect(RT_gr, hg19.genes, maxgap = 10, minscore = 0.8)
     
     # Save the complete detected retrotransposed transcripts object
@@ -122,7 +135,7 @@ process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
       write.csv(as.data.frame(rt_target\$insSite), paste0(target_gene, "_insertion_sites.csv"), row.names = FALSE)
     }
     
-    # 4. Format the detected breakends into pairs using breakpointgr2pairs
+    # --- Format the detected breakends into pairs using ---
     rt_chr_prefix <- c(rt_target\$junctions, rt_target\$insSite)
     
     if (length(rt_chr_prefix) > 0) {
@@ -135,7 +148,7 @@ process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
       message("No junctions or insertion sites to pair.")
     }
     
-    # 5. Visualize the breakpoint pairs using circlize
+    # --- Visualize the breakpoint pairs using circlize ---
     # Save the visualization to a PDF file
     pdf("retrotransposition_circos_plot.pdf", width = 8, height = 8)
     

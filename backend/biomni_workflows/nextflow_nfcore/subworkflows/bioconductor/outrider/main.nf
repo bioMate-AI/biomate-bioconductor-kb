@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create the OutriderDataSet object. 2. Filter out non-expressed genes using FPKM values. 3. Estimate size factors. 4. Find the opti
+//  * 1. [Input & Preparation] Read User Input Files
+//  * 2. [Input & Preparation] OUTRIDER Analysis Pipeline
+//  * 3. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +63,7 @@ process BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION {
     library(OUTRIDER)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     # The pipeline expects 'ctsTable.csv' (or .tsv) and 'annoTable.csv' (or .tsv)
     # in the current working directory.
@@ -86,7 +88,7 @@ process BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION {
     ctsTable <- as.matrix(ctsTable)
     
     # ==========================================
-    # 2. OUTRIDER Analysis Pipeline
+    # --- OUTRIDER Analysis Pipeline ---
     # ==========================================
     
     # create OutriderDataSet object
@@ -120,7 +122,7 @@ process BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION {
     res <- results(ods)
     
     # ==========================================
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save the significant results table

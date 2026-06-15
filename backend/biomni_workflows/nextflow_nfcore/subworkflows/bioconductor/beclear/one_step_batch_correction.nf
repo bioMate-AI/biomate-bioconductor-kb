@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run the overall batch correction wrapper function correctBatchEffect
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run the Overall Batch Correction Wrapper Function
+//  * 3. [Core Analysis] Save Results
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +39,15 @@ process BIOC_BECLEAR_ONE_STEP_BATCH_CORRECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BEclear")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +60,7 @@ process BIOC_BECLEAR_ONE_STEP_BATCH_CORRECTION {
     # Load required libraries
     library(BEclear)
     
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # The pipeline expects 'beta_values.csv' and 'sample_metadata.csv' in the working directory.
     if (!file.exists("beta_values.csv")) {
       stop("Error: 'beta_values.csv' not found in the working directory.")
@@ -71,12 +82,12 @@ process BIOC_BECLEAR_ONE_STEP_BATCH_CORRECTION {
     }
     colnames(ex.samples)[1:2] <- c("sample_id", "batch_id")
     
-    # 2. Run the Overall Batch Correction Wrapper Function
+    # --- Run the Overall Batch Correction Wrapper Function ---
     # This performs batch effect detection, clearing, and imputation in a single call.
     message("Running BEclear batch correction...")
     result <- correctBatchEffect(data = ex.data, samples = ex.samples)
     
-    # 3. Save Results
+    # --- Save Results ---
     message("Saving results...")
     
     # Save the complete result object as an RDS file

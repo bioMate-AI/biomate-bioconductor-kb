@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Preprocess the label matrix to convert 0 (negative) values to -1. 2. Run cross-validation using `cosnet.cross.validation` with or 
+//  * 1. [Visualization & Output] Load user input files
+//  * 2. [Visualization & Output] Preprocess the label matrix
+//  * 3. [Visualization & Output] Run cross-validation using cosnet.cross.validation
+//  * 4. [Visualization & Output] Extract predictions, scores, and labels from the output
+//  * 5. [Visualization & Output] Evaluate performance using PerfMeas
+//  * 6. [Visualization & Output] Write outputs to files
 
 nextflow.enable.dsl = 2
 
@@ -93,11 +98,11 @@ process BIOC_COSNET_COSNET_CROSS_VALIDATION {
       stop(paste("Failed to parse file:", filename))
     }
     
-    # 1. Load user input files
+    # --- Load user input files ---
     Yeast.STRING.data <- load_data("Yeast.STRING.data")
     Yeast.STRING.FunCat <- load_data("Yeast.STRING.FunCat")
     
-    # 2. Preprocess the label matrix
+    # --- Preprocess the label matrix ---
     # Excluding the dummy "00" root if present
     to.be.excl <- which(colnames(Yeast.STRING.FunCat) == "00")
     if (length(to.be.excl) > 0) {
@@ -112,11 +117,11 @@ process BIOC_COSNET_COSNET_CROSS_VALIDATION {
     Yeast.STRING.FunCat[Yeast.STRING.FunCat == 0] <- -1
     labeling[labeling <= 0] <- -1
     
-    # 3. Run cross-validation using cosnet.cross.validation (unregularized and regularized)
+    # --- Run cross-validation using cosnet.cross.validation ---
     out <- cosnet.cross.validation(labeling, Yeast.STRING.data, 5, cost=0)
     out.r <- cosnet.cross.validation(labeling, Yeast.STRING.data, 5, cost=0.0001)
     
-    # 4. Extract predictions, scores, and labels from the output
+    # --- Extract predictions, scores, and labels from the output ---
     predictions <- out\$predictions
     scores <- out\$scores
     labels <- out\$labels
@@ -124,7 +129,7 @@ process BIOC_COSNET_COSNET_CROSS_VALIDATION {
     scores.r <- out.r\$scores
     labels.r <- out.r\$labels
     
-    # 5. Evaluate performance using PerfMeas
+    # --- Evaluate performance using PerfMeas ---
     # F-score
     Fs <- F.measure.single.over.classes(labels, predictions)
     Fs.r <- F.measure.single.over.classes(labels.r, predictions.r)
@@ -142,7 +147,7 @@ process BIOC_COSNET_COSNET_CROSS_VALIDATION {
     PXR <- precision.at.multiple.recall.level.over.classes(labels_auc, scores, seq(from=0.1, to=1, by=0.1))
     PXR.r <- precision.at.multiple.recall.level.over.classes(labels_r_auc, scores.r, seq(from=0.1, to=1, by=0.1))
     
-    # 6. Write outputs to files
+    # --- Write outputs to files ---
     # Save predictions and scores as CSV
     write.csv(predictions, "predictions_unregularized.csv", row.names = TRUE)
     write.csv(scores, "scores_unregularized.csv", row.names = TRUE)

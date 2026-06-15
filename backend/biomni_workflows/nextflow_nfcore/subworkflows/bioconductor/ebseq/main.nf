@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate sample normalization factors using MedianNorm. 2. Run the empirical Bayes test for two conditions using EBTest. 3. Extra
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Calculate Sample Normalization Factors
+//  * 3. [Core Analysis] Run Empirical Bayes Test (Two Conditions)
+//  * 4. [Core Analysis] Extract DE Results and Posterior Probabilities
+//  * 5. [Core Analysis] Calculate Posterior Fold Changes
+//  * 6. [Core Analysis] Check EM Convergence and Model Fit Diagnostics
+//  * 7. [Core Analysis] Write Output Files
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +44,15 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EBSeq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +66,7 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     library(EBSeq)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     if (!file.exists("gene_counts.csv")) {
@@ -80,27 +95,27 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     }
     
     # ==========================================
-    # 2. Calculate Sample Normalization Factors
+    # --- Calculate Sample Normalization Factors ---
     # ==========================================
     Sizes=MedianNorm(GeneMat)
     
     # ==========================================
-    # 3. Run Empirical Bayes Test (Two Conditions)
+    # --- Run Empirical Bayes Test (Two Conditions) ---
     # ==========================================
     EBOut=EBTest(Data=GeneMat, Conditions=Conditions_factor, sizeFactors=Sizes, maxround=5)
     
     # ==========================================
-    # 4. Extract DE Results and Posterior Probabilities
+    # --- Extract DE Results and Posterior Probabilities ---
     # ==========================================
     EBDERes=GetDEResults(EBOut, FDR=0.05)
     
     # ==========================================
-    # 5. Calculate Posterior Fold Changes
+    # --- Calculate Posterior Fold Changes ---
     # ==========================================
     GeneFC=PostFC(EBOut)
     
     # ==========================================
-    # 6. Check EM Convergence and Model Fit Diagnostics
+    # --- Check EM Convergence and Model Fit Diagnostics ---
     # ==========================================
     # Print EM convergence parameters to console
     cat("=== EM Convergence Parameters ===\n")
@@ -137,7 +152,7 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     dev.off()
     
     # ==========================================
-    # 7. Write Output Files
+    # --- Write Output Files ---
     # ==========================================
     # Save RDS objects for downstream analysis
     saveRDS(EBOut, "EBOut.rds")

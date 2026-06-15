@@ -58,7 +58,7 @@ process BIOC_GEMINI_GEMINI_PAIRWISE_KNOCKOUT_PIPELINE {
     library(magrittr)
     
     # ==========================================
-    # STAGE 1: Defensive Input Loading & Parsing
+    # --- Defensive Input Loading & Parsing ---
     # ==========================================
     message("Stage 1: Loading and parsing input data...")
     
@@ -161,7 +161,7 @@ process BIOC_GEMINI_GEMINI_PAIRWISE_KNOCKOUT_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 2: Create GEMINI Input & Pre-process
+    # --- Create GEMINI Input & Pre-process ---
     # ==========================================
     message("Stage 2: Creating GEMINI input object and calculating LFC...")
     
@@ -179,7 +179,7 @@ process BIOC_GEMINI_GEMINI_PAIRWISE_KNOCKOUT_PIPELINE {
     Input %<>% gemini_calculate_lfc(normalize = TRUE, CONSTANT = 32)
     
     # ==========================================
-    # STAGE 3: Model Initialization & Inference
+    # --- Model Initialization & Inference ---
     # ==========================================
     message("Stage 3: Initializing model and running variational inference...")
     
@@ -196,7 +196,7 @@ process BIOC_GEMINI_GEMINI_PAIRWISE_KNOCKOUT_PIPELINE {
     Model %<>% gemini_inference(cores = 1, verbose = TRUE)
     
     # ==========================================
-    # STAGE 4: Diagnostics & Visualization
+    # --- Diagnostics & Visualization ---
     # ==========================================
     message("Stage 4: Generating diagnostic plots...")
     
@@ -210,7 +210,7 @@ process BIOC_GEMINI_GEMINI_PAIRWISE_KNOCKOUT_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 5: Scoring Interactions
+    # --- Scoring Interactions ---
     # ==========================================
     message("Stage 5: Scoring genetic interactions...")
     
@@ -230,7 +230,7 @@ process BIOC_GEMINI_GEMINI_PAIRWISE_KNOCKOUT_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Visualizing Top Interaction
+    # --- Visualizing Top Interaction ---
     # ==========================================
     message("Stage 6: Plotting top genetic interaction...")
     

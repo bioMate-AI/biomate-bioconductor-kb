@@ -55,7 +55,7 @@ process BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION {
     # Load required libraries
     library(Cardinal)
     
-    # 1. Read raw MSI data using readMSIData()
+    # --- Read raw MSI data using readMSIData() ---
     # Reading the user-provided continuous and processed imzML files
     path_continuous <- "continuous.imzML"
     mse_tiny <- readMSIData(path_continuous)
@@ -63,14 +63,14 @@ process BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION {
     path_processed <- "processed.imzML"
     msa <- readMSIData(path_processed)
     
-    # 2. Queue preprocessing steps: normalize(), smooth(), reduceBaseline(), and peakPick()
+    # --- Queue preprocessing steps: normalize(), smooth(), ---
     mse_queue <- msa |>
     	normalize() |>
     	smooth() |>
     	reduceBaseline() |>
     	peakPick(SNR=6)
     
-    # 3. Preview queued processing using plot()
+    # --- Preview queued processing using plot() ---
     # Saving the preview plot to a PDF file
     pdf("preprocessing_preview.pdf", width=9, height=6)
     tryCatch({
@@ -81,13 +81,13 @@ process BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION {
     })
     dev.off()
     
-    # 4. Apply processing and align peaks across spectra using peakAlign()
+    # --- Apply processing and align peaks across spectra using ---
     mse_proc <- peakAlign(mse_queue)
     
-    # 5. Filter peaks by frequency using subsetFeatures()
+    # --- Filter peaks by frequency using subsetFeatures() ---
     mse_proc <- subsetFeatures(mse_proc, freq > 0.1)
     
-    # 6. Export the processed dataset to imzML using writeMSIData()
+    # --- Export the processed dataset to imzML using writeMSIData() ---
     imzfile <- "processed_output.imzML"
     if (file.exists(imzfile)) {
     	unlink(imzfile, recursive = TRUE)

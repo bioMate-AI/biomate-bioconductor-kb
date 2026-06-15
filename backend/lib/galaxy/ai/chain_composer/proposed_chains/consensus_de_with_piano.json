@@ -1,0 +1,92 @@
+{
+  "name": "consensus_de_with_piano",
+  "display_name": "Consensus Gene-Set Enrichment via Piano",
+  "domain": "transcriptomics",
+  "description": "Standard RNA-seq processing followed by per-method DE (DESeq2, edgeR, limma via ExpHunterSuite), then Piano runs multiple gene-set-analysis methods (mean, median, sum, GSEA, page, fgsea) on the consensus gene-level statistics and produces a consensus heatmap. Use when robustness across method choice is required (publication-grade studies, regulatory submissions).",
+  "source": "curated",
+  "steps": [
+    {
+      "order": 1,
+      "workflow_name": "nf-core/rnaseq",
+      "role": "primary_processing",
+      "params_template": {
+        "aligner": "star_salmon"
+      }
+    },
+    {
+      "order": 2,
+      "workflow_name": "BIOC_ExpHunterSuite",
+      "role": "per_method_de",
+      "params_template": {
+        "methods": [
+          "deseq2",
+          "edger",
+          "limma"
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "workflow_name": "piano_consensus_gsa_scoring",
+      "role": "consensus_gsa",
+      "params_template": {}
+    }
+  ],
+  "connections": [
+    {
+      "from_step": 1,
+      "from_output": "counts_matrix",
+      "to_step": 2,
+      "to_input": "counts"
+    },
+    {
+      "from_step": 2,
+      "from_output": "gene_level_stats",
+      "to_step": 3,
+      "to_input": "myTval"
+    }
+  ],
+  "required_inputs": [
+    {
+      "name": "fastq_files",
+      "type": "fastq"
+    },
+    {
+      "name": "sample_sheet",
+      "type": "csv"
+    },
+    {
+      "name": "contrast",
+      "type": "string"
+    },
+    {
+      "name": "gene_set_db",
+      "type": "string",
+      "description": "GO, KEGG, Reactome, or MSigDB"
+    }
+  ],
+  "expected_outputs": [
+    {
+      "name": "consensus_de_table",
+      "type": "tsv",
+      "description": "Genes with intersection of DESeq2+edgeR+limma calls"
+    },
+    {
+      "name": "piano_consensus_heatmap",
+      "type": "pdf",
+      "description": "Heatmap of consensus gene-set scores"
+    }
+  ],
+  "example_queries": [
+    "robust differential expression with DESeq2, edgeR, and limma",
+    "consensus DE across multiple methods",
+    "ensemble gene set enrichment",
+    "defensible pathway analysis for publication"
+  ],
+  "tags": [
+    "consensus",
+    "DE",
+    "GSA",
+    "piano"
+  ]
+}

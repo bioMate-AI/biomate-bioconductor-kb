@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the VSN model on the reference arrays using vsn2. 2. Fit the VSN model on the new arrays using vsn2 with the reference paramet
+//  * 1. [Core Analysis] Read User Input
+//  * 2. [Core Analysis] Run Documented Workflow: Reference Normalization
+//  * 3. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +63,7 @@ process BIOC_VSN_REFERENCE_NORMALIZATION {
     library("Biobase")
     
     # ------------------------------------------------------------------------------
-    # 1. Read User Input
+    # --- Read User Input ---
     # ------------------------------------------------------------------------------
     # The pipeline expects the 'lymphoma' ExpressionSet to be saved as an RDS file
     # in the working directory, named either 'lymphoma.rds' or 'lymphoma'.
@@ -77,7 +79,7 @@ process BIOC_VSN_REFERENCE_NORMALIZATION {
     N <- ncol(lymphoma)
     
     # ------------------------------------------------------------------------------
-    # 2. Run Documented Workflow: Reference Normalization
+    # --- Run Documented Workflow: Reference Normalization ---
     # ------------------------------------------------------------------------------
     # Fit the VSN model on the reference arrays (first N-1 samples)
     ref = vsn2(lymphoma[, 1:(N-1)])
@@ -89,7 +91,7 @@ process BIOC_VSN_REFERENCE_NORMALIZATION {
     fall = vsn2(lymphoma)
     
     # ------------------------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # ------------------------------------------------------------------------------
     # Save the fitted VSN objects as RDS
     saveRDS(ref, "vsn_ref_fit.rds")

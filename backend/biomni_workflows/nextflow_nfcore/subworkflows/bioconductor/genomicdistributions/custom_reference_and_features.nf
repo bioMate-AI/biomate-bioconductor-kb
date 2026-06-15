@@ -70,18 +70,18 @@ process BIOC_GENOMICDISTRIBUTIONS_CUSTOM_REFERENCE_AND_FEATURES {
       stop(paste("Required input GTF file not found:", gtfSource))
     }
     
-    # 1. Extract chromosome sizes from FASTA and generate genome bins
+    # --- Extract chromosome sizes from FASTA and generate genome ---
     message("Extracting chromosome sizes from FASTA...")
     CEelegansChromSizes = getChromSizesFromFasta(source=fastaSource)
     
     message("Generating genome bins...")
     bins = getGenomeBins(CEelegansChromSizes)
     
-    # 2. Extract TSS locations from GTF
+    # --- Extract TSS locations from GTF ---
     message("Extracting TSS locations from GTF...")
     CEelegansTSSs = getTssFromGTF(source=gtfSource, convertEnsemblUCSC=TRUE)
     
-    # 3. Extract gene models from GTF and build a partition list
+    # --- Extract gene models from GTF and build a partition list ---
     message("Extracting gene models from GTF...")
     features = c("gene", "exon", "three_prime_utr", "five_prime_utr")
     CEelegansGeneModels = getGeneModelsFromGTF(source=gtfSource, features=features, convertEnsemblUCSC=TRUE)
@@ -100,7 +100,7 @@ process BIOC_GENOMICDISTRIBUTIONS_CUSTOM_REFERENCE_AND_FEATURES {
     saveRDS(partitionList, "partitionList_CEelegans.rds")
     message("C. elegans custom reference files saved successfully.")
     
-    # 4. Fetch custom features (enhancers) using biomaRt and append to standard hg19 partition list
+    # --- Fetch custom features (enhancers) using biomaRt and ---
     message("Fetching custom enhancer features and building hg19 partition list...")
     tryCatch({
       funcgen = biomaRt::useMart("ENSEMBL_MART_FUNCGEN", host="grch37.ensembl.org")

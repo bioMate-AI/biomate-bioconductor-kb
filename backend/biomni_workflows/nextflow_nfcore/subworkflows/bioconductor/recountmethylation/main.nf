@@ -35,6 +35,15 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("recountmethylation")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     library(recountmethylation)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ----------------------------------------------------------------------
     message("Loading input datasets...")
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
@@ -81,7 +90,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
     # ----------------------------------------------------------------------
-    # Stage 2: Filter Cross-Reactive Probes
+    # --- Filter Cross-Reactive Probes ---
     # ----------------------------------------------------------------------
     message("Identifying and filtering cross-reactive CpG probes...")
     cross_reactive_probes <- tryCatch({
@@ -107,7 +116,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     message("Saved filtered beta matrix to 'filtered_beta_matrix.csv'.")
     
     # ----------------------------------------------------------------------
-    # Stage 3: Variance and ANOVA-based Differential Analysis
+    # --- Variance and ANOVA-based Differential Analysis ---
     # ----------------------------------------------------------------------
     message("Calculating probe-wise summary statistics and performing ANOVA...")
     
@@ -142,7 +151,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     message("Saved probe statistics to 'high_variance_probes.csv'.")
     
     # ----------------------------------------------------------------------
-    # Stage 4: Diagnostic and Quality Control Visualizations
+    # --- Diagnostic and Quality Control Visualizations ---
     # ----------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

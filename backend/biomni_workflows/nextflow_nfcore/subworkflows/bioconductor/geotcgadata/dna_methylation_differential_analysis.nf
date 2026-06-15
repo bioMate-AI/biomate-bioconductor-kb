@@ -58,6 +58,7 @@ process BIOC_GEOTCGADATA_DNA_METHYLATION_DIFFERENTIAL_ANALYSIS {
     
     # Load required libraries
     library(GeoTcgaData)
+    library(SummarizedExperiment)
     library(ChAMP)
     library(S4Vectors)
     

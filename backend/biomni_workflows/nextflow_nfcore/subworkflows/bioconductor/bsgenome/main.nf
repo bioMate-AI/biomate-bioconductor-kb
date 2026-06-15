@@ -57,7 +57,7 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
     library(Biostrings)
     library(BSgenome.Celegans.UCSC.ce2)
     
-    # 1. Read the input query patterns from the FASTA file in the working directory
+    # --- Read the input query patterns from the FASTA file in the ---
     # (Replacing the demo-data system.file setup with direct file reading)
     ce2dict0_file <- "ce2dict0.fa"
     if (!file.exists(ce2dict0_file)) {
@@ -65,7 +65,7 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
     }
     ce2dict0 <- readDNAStringSet(ce2dict0_file, "fasta")
     
-    # 2. Define the documented writeHits function exactly as shown in the vignette
+    # --- Define the documented writeHits function exactly as shown ---
     writeHits <- function(seqname, matches, strand, file="", append=FALSE)
     {
         if (file.exists(file) && !append)
@@ -82,7 +82,7 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
                     row.names=FALSE, col.names=!append)
     }
     
-    # 3. Define the documented runAnalysis1 function exactly as shown in the vignette
+    # --- Define the documented runAnalysis1 function exactly as ---
     runAnalysis1 <- function(dict0, outfile="")
     {
         library(BSgenome.Celegans.UCSC.ce2)
@@ -111,11 +111,11 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
         }
     }
     
-    # 4. Run the analysis and write hits to the output file
+    # --- Run the analysis and write hits to the output file ---
     output_file <- "ce2dict0_ana1.txt"
     runAnalysis1(ce2dict0, outfile=output_file)
     
-    # 5. Post-analysis: Read results and generate summary statistics
+    # --- Post-analysis: Read results and generate summary ---
     if (file.exists(output_file)) {
         hits1 <- read.table(output_file, header=TRUE)
         
@@ -130,7 +130,7 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
         print(table(hits1\$patternID))
         cat("\n")
         
-        # 6. Define the documented plotGenomeHits function
+        # --- Define the documented plotGenomeHits function ---
         plotGenomeHits <- function(bsgenome, seqnames, hits)
         {
             chrlengths <- seqlengths(bsgenome)[seqnames]

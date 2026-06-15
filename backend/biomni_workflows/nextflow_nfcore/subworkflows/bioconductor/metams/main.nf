@@ -17,7 +17,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -56,11 +56,11 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
     # Load required libraries
     library(metaMS)
     
-    # Stage 1: Read user input files
+    # --- Read user input files ---
     intensity <- read.csv("intensity.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv")
     
-    # Stage 2: Parse or generate feature metadata (mz and rt)
+    # --- Parse or generate feature metadata (mz and rt) ---
     features <- rownames(intensity)
     mz <- rep(NA, length(features))
     rt <- rep(NA, length(features))
@@ -103,7 +103,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       rt[na_idx] <- round(sort(runif(length(na_idx), 1, 30)), 2)
     }
     
-    # Stage 3: Group features into pseudospectra based on retention time
+    # --- Group features into pseudospectra based on retention time ---
     if (length(rt) > 1) {
       hc <- hclust(dist(rt))
       groups <- cutree(hc, h = 0.1) # Group features within 0.1 min (6 seconds)
@@ -111,7 +111,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       groups <- rep(1, length(rt))
     }
     
-    # Stage 4: Construct the allSamples.msp object (nested list of pseudospectra)
+    # --- Construct the allSamples.msp object (nested list of ---
     samples <- colnames(intensity)
     allSamples.msp <- list()
     
@@ -135,7 +135,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       allSamples.msp[[sam]] <- sam_msp
     }
     
-    # Stage 5: Construct a custom Database of Standards (DB) from top features
+    # --- Construct a custom Database of Standards (DB) from top ---
     group_avg_int <- sapply(unique(groups), function(g) {
       mean(as.matrix(intensity[groups == g, , drop = FALSE]), na.rm = TRUE)
     })
@@ -169,7 +169,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       )
     }
     
-    # Stage 6: Define metaMS settings
+    # --- Define metaMS settings ---
     settings <- metaMSsettings(
       protocol = "GC",
       PeakPicking = list(method = "matchedFilter", step = 0.5, steps = 2, mzdiff = 0.5, fwhm = 5, snthresh = 2, max = 500),
@@ -179,7 +179,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       betweenSamples = list(rttol = 0.5, mztol = 0.5, rtdiff = 0.5, mzdiff = 0.5, minfeat = 1, simthresh = 0.7)
     )
     
-    # Stage 7: Run the annotation and matching pipeline
+    # --- Run the annotation and matching pipeline ---
     DB.treated <- treat.DB(DB)
     
     # Match samples to the database of standards
@@ -199,7 +199,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       settings = metaSetting(settings, "betweenSamples")
     )
     
-    # Stage 8: Extract feature information and construct the annotation matrix
+    # --- Extract feature information and construct the annotation ---
     features.df <- getFeatureInfo(
       stdDB = DB,
       allMatches = allSam.matches,
@@ -224,7 +224,7 @@ process BIOC_METAMS_METAMS_GCMS_ANNOTATION_PIPELINE {
       FUN = "*"
     )
     
-    # Stage 9: Write outputs and generate diagnostic plots
+    # --- Write outputs and generate diagnostic plots ---
     write.csv(features.df, "features_info.csv", row.names = FALSE)
     write.csv(ann.df2, "annotation_matrix.csv", row.names = TRUE)
     

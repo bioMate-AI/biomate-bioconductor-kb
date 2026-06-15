@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read targets metadata using readTargets(). 2. Read raw intensities and apply spot quality weights using read.maimages(). 3. Perfor
+//  * 1. [Input & Preparation] Read targets metadata
+//  * 2. [Input & Preparation] Read raw intensities and apply spot quality weights
+//  * 3. [Input & Preparation] Perform background correction
+//  * 4. [Input & Preparation] Perform within-array normalization
+//  * 5. [Input & Preparation] Fit gene-wise linear models
+//  * 6. [Input & Preparation] Apply empirical Bayes smoothing
+//  * 7. [Input & Preparation] Extract top differentially expressed genes
 
 nextflow.enable.dsl = 2
 
@@ -112,28 +118,28 @@ process BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS {
         # -----------------------------------------------------------------
         library(limma)
         
-        # 1. Read targets metadata
+        # --- Read targets metadata ---
         targets <- readTargets("targets.txt")
         
-        # 2. Read raw intensities and apply spot quality weights
+        # --- Read raw intensities and apply spot quality weights ---
         f <- function(x) as.numeric(x\$Flags > -99)
         RG <- read.maimages(targets, source="genepix", wt.fun=f)
         
-        # 3. Perform background correction
+        # --- Perform background correction ---
         RG <- backgroundCorrect(RG, method="normexp", offset=50)
         
-        # 4. Perform within-array normalization
+        # --- Perform within-array normalization ---
         MA <- normalizeWithinArrays(RG)
         
-        # 5. Fit gene-wise linear models
+        # --- Fit gene-wise linear models ---
         # Dynamically create the design vector based on the dye-swap layout in the targets file
         design <- as.numeric(targets\$Cy5 == targets\$Cy5[1]) - as.numeric(targets\$Cy3 == targets\$Cy5[1])
         fit <- lmFit(MA, design=design)
         
-        # 6. Apply empirical Bayes smoothing
+        # --- Apply empirical Bayes smoothing ---
         fit <- eBayes(fit)
         
-        # 7. Extract top differentially expressed genes
+        # --- Extract top differentially expressed genes ---
         top_genes <- topTable(fit)
         
         # -----------------------------------------------------------------

@@ -56,7 +56,7 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     library(SummarizedExperiment)
     
     # ==========================================
-    # 1. Read User Input Files Robustly
+    # --- Read User Input Files Robustly ---
     # ==========================================
     
     # Read counts matrix
@@ -103,7 +103,7 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     }
     
     # ==========================================
-    # 2. Prepare Metadata and Design
+    # --- Prepare Metadata and Design ---
     # ==========================================
     
     # Infer replicate structure (Treatment) from column names
@@ -139,7 +139,7 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     annotxn\$ZA <- factor(ifelse(chromosome == z_chrom, "Z", "A"), levels = c("A", "Z"))
     
     # ==========================================
-    # 3. Construct SummarizedExperiment Object
+    # --- Construct SummarizedExperiment Object ---
     # ==========================================
     
     colData <- S4Vectors::DataFrame(Treatment=as.factor(reps), 
@@ -151,7 +151,7 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
                                 colData=colData, rowData=rowData)
     
     # ==========================================
-    # 4. Normalization & RPKM Calculation
+    # --- Normalization & RPKM Calculation ---
     # ==========================================
     
     SummarizedExperiment::colData(se2)\$Libsizes <- getLibsizes3(se2, estimationType = "total")
@@ -164,14 +164,14 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     saveRDS(se, "unfiltered_se.rds")
     
     # ==========================================
-    # 5. Filtering "Unexpressed" Loci
+    # --- Filtering "Unexpressed" Loci ---
     # ==========================================
     
     f_se <- simpleFilter(se, mean_cutoff = 0.01, counts = FALSE)
     saveRDS(f_se, "filtered_se.rds")
     
     # ==========================================
-    # 6. Visualization and Statistical Analysis
+    # --- Visualization and Statistical Analysis ---
     # ==========================================
     
     # Open PDF device for all plots
@@ -227,7 +227,7 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 7. Statistical Testing on Ratios
+    # --- Statistical Testing on Ratios ---
     # ==========================================
     
     za.ratios.test <- test_diffs(f_se, groupings = "annotation.ZA", 

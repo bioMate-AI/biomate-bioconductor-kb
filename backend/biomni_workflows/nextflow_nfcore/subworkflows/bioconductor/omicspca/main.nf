@@ -65,7 +65,7 @@ process BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS {
     anno <- "annofile.bed"
     list <- "annolist.txt"
     
-    # 1. Prepare dataset from BED files
+    # --- Prepare dataset from BED files ---
     all_cells <- prepare_dataset(factdir = fact, annofile = anno, annolist = list)
     
     # Robustness check: Ensure we have enough rows and columns to satisfy downstream grouping
@@ -93,7 +93,7 @@ process BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS {
       }
     }
     
-    # 2. Create a MultiAssayExperiment object
+    # --- Create a MultiAssayExperiment object ---
     library(MultiAssayExperiment)
     assaylist <- list("demofactor" = all_cells)
     demoMultiAssay <- MultiAssayExperiment(experiments = assaylist)
@@ -106,11 +106,11 @@ process BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS {
       "CAGE" = all_cells
     ))
     
-    # 3. Subgroup genomic features based on a grouping factor
+    # --- Subgroup genomic features based on a grouping factor ---
     groupinfo <- create_group(name = multi_assay, group_names = c("WE" , "RE" ,"NE" ,"IntE"), grouping_factor = "CAGE", comparison = c(">=" ,"%in%" ,"==" ,"%in%"), condition = c("25" ,"1:5" ,"0" ,"6:24"))
     saveRDS(groupinfo, "groupinfo.rds")
     
-    # 4. Perform exploratory data analysis (EDA)
+    # --- Perform exploratory data analysis (EDA) ---
     pdf("descriptor_plots.pdf")
     descriptor(name = multi_assay, factors = c("H2az", "H3k4me1","H3k9ac"), groups = c("WE","RE"), choice = 1, title = "Distribution of percentage of cell types overlapping with various factors", groupinfo = groupinfo)
     descriptor(name = multi_assay, factors = c("H2az", "H3k4me1","H3k9ac"), groups = c("WE","RE"), choice = 2, choice2group = "WE", title = "Distribution of percentage of cell types overlapping with a factor in various combinations of epigenetic marks in the selected group", groupinfo = groupinfo)
@@ -125,11 +125,11 @@ process BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS {
     cor_table <- chart_correlation(name = multi_assay, Assay = "H2az", groups = "WE", choice = "table", groupinfo = groupinfo)
     write.csv(cor_table, "chart_correlation_table.csv", row.names = TRUE)
     
-    # 5. Integrate cell lines/variables for individual assays using PCA
+    # --- Integrate cell lines/variables for individual assays ---
     PCAlist <- integrate_variables(Assays = c("H2az","H3k4me1", "H3k9ac"), name = multi_assay, groups = c("WE","RE", "NE", "IntE"), groupinfo = groupinfo, scale.unit = FALSE, graph = FALSE)
     saveRDS(PCAlist, "PCAlist.rds")
     
-    # 6. Analyze single-assay PCA results
+    # --- Analyze single-assay PCA results ---
     pdf("analyse_variables_plots.pdf")
     analyse_variables(name = PCAlist, Assay = "H2az", choice = 1, title = "variance barplot", addlabels = TRUE)
     analyse_variables(name = PCAlist, Assay = "H3k4me1",choice = 2, title = "Loadings of cell lines on PC1 and PC2", xlab = "PCs")

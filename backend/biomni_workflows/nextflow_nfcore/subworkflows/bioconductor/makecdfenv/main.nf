@@ -35,6 +35,15 @@ process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("makecdfenv", "affy")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
     library(makecdfenv)
     library(affy)
     
-    # Stage 1: Read input files
+    # --- Read input files ---
     message("Stage 1: Reading input files...")
     matrix_data <- read.csv("matrix.csv", stringsAsFactors = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -56,7 +65,7 @@ process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
     message("Loaded matrix with ", nrow(matrix_data), " features.")
     message("Loaded coldata with ", nrow(coldata), " samples.")
     
-    # Stage 2: Extract and sanitize feature IDs
+    # --- Extract and sanitize feature IDs ---
     message("Stage 2: Extracting and sanitizing feature IDs...")
     if ("feature_id" %in% colnames(matrix_data)) {
       feature_ids <- matrix_data\$feature_id
@@ -73,7 +82,7 @@ process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
     sanitized_features <- sanitized_features[1:max_features]
     message("Using ", max_features, " features for custom CDF generation.")
     
-    # Stage 3: Generate ASCII CDF file
+    # --- Generate ASCII CDF file ---
     message("Stage 3: Generating ASCII CDF file...")
     cdf_filename <- "CustomChip.cdf"
     grid_size <- as.integer(ceiling(sqrt(max_features * 2)) + 5) # Ensure enough space for coordinates
@@ -119,12 +128,12 @@ process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
     close(con)
     message("ASCII CDF file written to ", cdf_filename)
     
-    # Stage 4: Create CDF Environment
+    # --- Create CDF Environment ---
     message("Stage 4: Creating CDF environment...")
     custom_env <- make.cdf.env(cdf_filename)
     message("CDF environment successfully created.")
     
-    # Stage 5: Create CDF Package
+    # --- Create CDF Package ---
     message("Stage 5: Creating CDF package...")
     # Clean package name using cleancdfname
     pkg_name <- cleancdfname("CustomChip")
@@ -136,7 +145,7 @@ process BIOC_MAKECDFENV_MAKECDFENV_CUSTOM_CHIP {
                      version = "1.0.0")
     message("CDF package directory created: ", pkg_name)
     
-    # Stage 6: Export Summary and Diagnostics
+    # --- Export Summary and Diagnostics ---
     message("Stage 6: Exporting summary and diagnostics...")
     env_list <- as.list(custom_env)
     probe_sets <- names(env_list)

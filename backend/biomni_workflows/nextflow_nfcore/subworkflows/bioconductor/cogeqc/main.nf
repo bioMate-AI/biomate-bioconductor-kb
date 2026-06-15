@@ -35,6 +35,15 @@ process BIOC_COGEQC_GENOME_ASSEMBLY_QC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cogeqc", "rtracklayer", "GenomicRanges")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_COGEQC_GENOME_ASSEMBLY_QC {
     library(rtracklayer)
     library(GenomicRanges)
     
-    # 1. Read input files
+    # --- Read input files ---
     message("Reading input files...")
     gr <- rtracklayer::import("regions.bed", format = "BED")
     
@@ -76,7 +85,7 @@ process BIOC_COGEQC_GENOME_ASSEMBLY_QC {
       stringsAsFactors = FALSE
     )
     
-    # 2. Query NCBI genome statistics
+    # --- Query NCBI genome statistics ---
     message("Querying NCBI genome statistics for taxon: ", taxon)
     ncbi_stats <- tryCatch({
       get_genome_stats(taxon = taxon)
@@ -93,7 +102,7 @@ process BIOC_COGEQC_GENOME_ASSEMBLY_QC {
       )
     })
     
-    # 3. Compare custom stats with NCBI stats
+    # --- Compare custom stats with NCBI stats ---
     message("Comparing custom stats with NCBI stats...")
     comparison <- tryCatch({
       compare_genome_stats(ncbi_stats = ncbi_stats, user_stats = user_stats)
@@ -103,7 +112,7 @@ process BIOC_COGEQC_GENOME_ASSEMBLY_QC {
     })
     write.csv(comparison, "genome_stats_comparison.csv", row.names = FALSE)
     
-    # 4. Plot genome stats
+    # --- Plot genome stats ---
     message("Plotting genome stats...")
     pdf("genome_stats_plot.pdf", width = 10, height = 5)
     tryCatch({
@@ -113,7 +122,7 @@ process BIOC_COGEQC_GENOME_ASSEMBLY_QC {
     })
     dev.off()
     
-    # 5. BUSCO assessment visualization
+    # --- BUSCO assessment visualization ---
     message("Visualizing BUSCO assessment...")
     # Create a mock BUSCO summary data frame representing high-quality genome assembly
     busco_summary <- data.frame(

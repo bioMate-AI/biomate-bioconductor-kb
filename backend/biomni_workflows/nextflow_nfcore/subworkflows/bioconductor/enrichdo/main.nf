@@ -35,6 +35,15 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rtracklayer", "GenomicRanges", "EnrichDO")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,12 +53,12 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(rtracklayer)
     library(GenomicRanges)
     library(EnrichDO)
     
-    # Stage 2: Import and preprocess genomic intervals
+    # --- Import and preprocess genomic intervals ---
     message("Importing genomic regions from BED file...")
     gr <- rtracklayer::import("regions.bed")
     
@@ -65,7 +74,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
     
     message(paste("Successfully loaded", length(interest_genes), "unique Entrez IDs for enrichment analysis."))
     
-    # Stage 3: Disease Ontology Enrichment Analysis
+    # --- Disease Ontology Enrichment Analysis ---
     message("Running double-weighted Disease Ontology enrichment analysis...")
     weighted_res <- doEnrich(
       interestGenes = interest_genes,
@@ -79,7 +88,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
       traditional = FALSE
     )
     
-    # Stage 4: Extract and Export Results
+    # --- Extract and Export Results ---
     message("Extracting and writing results...")
     # Extract detailed results
     detail_res <- viewDetailResult(weighted_res)
@@ -97,7 +106,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
       P = 1
     )
     
-    # Stage 5: Visualization of Enrichment Results
+    # --- Visualization of Enrichment Results ---
     message("Generating diagnostic and enrichment plots...")
     
     # 1. Bar Graph
@@ -151,7 +160,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
     })
     dev.off()
     
-    # Stage 6: Convenient Drawing from Saved Text File (Demonstrating convDraw)
+    # --- Convenient Drawing from Saved Text File (Demonstrating ---
     message("Demonstrating convDraw functionality from saved text results...")
     tryCatch({
       saved_data <- read.delim("enrichdo_results.txt")

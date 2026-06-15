@@ -58,27 +58,27 @@ process BIOC_EBIMAGE_IMAGE_THRESHOLDING_AND_OBJECT_MANIPULATION {
     # Set display option to raster to avoid opening a web browser in non-interactive sessions
     options(EBImage.display = "raster")
     
-    # 1. Load images from the working directory
+    # --- Load images from the working directory ---
     nuc = readImage("nuclei.tif")
     shapes = readImage("shapes.png")
     
-    # 2. Calculate optimal global threshold using Otsu's method
+    # --- Calculate optimal global threshold using Otsu's method ---
     threshold = otsu(nuc)
     
-    # 3. Apply threshold to split frames and combine back
+    # --- Apply threshold to split frames and combine back ---
     nuc_th = combine( mapply(function(frame, th) frame > th, getFrames(nuc), threshold, SIMPLIFY=FALSE) )
     display(nuc_th, all=TRUE)
     
-    # 4. Label connected components
+    # --- Label connected components ---
     logo = shapes[110:512,1:130]
     logo_label = bwlabel(logo)
     display( colorLabels(logo_label) )
     
-    # 5. Separate touching objects using distance transform and watershed
+    # --- Separate touching objects using distance transform and ---
     nmask = watershed( distmap(nuc_th), 2 )
     display(colorLabels(nmask), all=TRUE)
     
-    # 6. Remove specific objects from the mask
+    # --- Remove specific objects from the mask ---
     objects = list(
         seq.int(from = 2, to = max(logo_label), by = 2),
         seq.int(from = 1, to = max(logo_label), by = 2)

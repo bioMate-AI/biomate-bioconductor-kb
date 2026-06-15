@@ -163,6 +163,97 @@ SOURCE_PRIORITY = {
 }
 
 
+# ------------------------------------------------------------------
+# Execution-quality bonus (B-4: "Routing prefers runnable")
+# ------------------------------------------------------------------
+# The workflows table carries per-workflow execution-status columns produced
+# by the Bioconductor exec-verification harness. Ranking historically ignored
+# them, so a workflow that *fails to execute* could outrank an equally-relevant
+# one that runs cleanly. This helper turns those columns into a SMALL additive
+# bonus that is folded into _calculate_score.
+#
+# DESIGN INVARIANTS (why this is safe):
+#   * The bonus is capped at ±2.0. The semantic signals dominate by 1-2 orders
+#     of magnitude (FTS×1.5 ≈ 30-60, exact-name +15, prefix-name +8, phrase
+#     +5..+8, domain ±4). A runnable-but-IRRELEVANT workflow can therefore never
+#     out-rank a relevant one — the bonus only re-orders near-ties.
+#   * Null / unknown status AND null verdict → 0.0 (neutral, NEVER a penalty).
+#     The DB has ~1671 workflows with NULL real_exec_status; they must not be
+#     pushed below scored-bad ones for lack of data.
+#   * `real_exec_provisional == 1` (~860 rows) means the status was assumed, not
+#     observed. POSITIVE bonuses are halved in that case; PENALTIES stay full
+#     (a provisional failure is still evidence of breakage).
+#   * Status is authoritative; the correctness verdict is only consulted as a
+#     fallback when status is absent.
+_EXEC_BONUS_CAP = 2.0
+
+# Observed-execution status → bonus (positive = runs cleanly, negative = breaks).
+_EXEC_STATUS_BONUS = {
+    "ok":               2.0,   # executed cleanly
+    "ok_warnings":      1.5,   # executed with non-fatal warnings
+    "ran_empty_output": 0.5,   # ran but produced no output — weakly positive
+    "runnable_assumed": 0.5,   # static analysis says runnable, not yet executed
+    "exec_error":      -2.0,   # crashed at runtime
+    "timeout":         -1.5,   # exceeded wall-clock limit
+    "fixture_failed":  -1.5,   # test fixture / inputs could not be staged
+    # "skip_input_type" / None → 0.0 (no execution signal, neutral)
+}
+
+# Correctness verdict → bonus. Only used as a FALLBACK when status is absent.
+_EXEC_VERDICT_BONUS = {
+    "executable":    1.0,
+    "correct":       1.0,
+    "pass":          0.5,
+    "minor_issues":  0.0,
+    "major_issues": -1.0,
+    "parse_error":  -1.5,
+}
+
+
+def _exec_quality_bonus(status: Optional[str],
+                        verdict: Optional[str],
+                        provisional: Optional[Any]) -> float:
+    """Map per-workflow execution-status columns to a small additive bonus.
+
+    Args:
+        status:      ``real_exec_status`` (e.g. 'ok', 'exec_error', None).
+        verdict:     ``workflow_correctness_verdict`` (e.g. 'executable', None).
+                     Consulted ONLY when ``status`` yields no signal.
+        provisional: ``real_exec_provisional`` (0/1/None). When truthy, positive
+                     bonuses are halved; penalties are unaffected.
+
+    Returns:
+        A float in [-_EXEC_BONUS_CAP, +_EXEC_BONUS_CAP]. Returns 0.0 for any
+        null/unknown combination — never a penalty for missing data.
+
+    Null-safe: any unexpected type is coerced or ignored without raising.
+    """
+    bonus = 0.0
+
+    status_key = (status or "").strip().lower() if isinstance(status, str) else ""
+    if status_key in _EXEC_STATUS_BONUS:
+        bonus = _EXEC_STATUS_BONUS[status_key]
+    else:
+        # No usable status → fall back to the correctness verdict.
+        verdict_key = (verdict or "").strip().lower() if isinstance(verdict, str) else ""
+        bonus = _EXEC_VERDICT_BONUS.get(verdict_key, 0.0)
+
+    # Provisional status is weaker evidence: halve POSITIVE bonuses only.
+    try:
+        is_provisional = bool(int(provisional)) if provisional is not None else False
+    except (TypeError, ValueError):
+        is_provisional = bool(provisional)
+    if is_provisional and bonus > 0.0:
+        bonus *= 0.5
+
+    # Clamp to the cap so this signal can never dominate semantic relevance.
+    if bonus > _EXEC_BONUS_CAP:
+        bonus = _EXEC_BONUS_CAP
+    elif bonus < -_EXEC_BONUS_CAP:
+        bonus = -_EXEC_BONUS_CAP
+    return round(bonus, 2)
+
+
 @dataclass
 class WorkflowMatch:
     """Represents a workflow search result."""
@@ -686,7 +777,8 @@ class UnifiedWorkflowSearch:
                 SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
                        w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
                        bm25(workflows_fts) as fts_score,
-                       w.input_types, w.output_types
+                       w.input_types, w.output_types,
+                       w.real_exec_status, w.workflow_correctness_verdict, w.real_exec_provisional
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
                 WHERE workflows_fts MATCH ?
@@ -765,7 +857,8 @@ class UnifiedWorkflowSearch:
                         SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
                                w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
                                0.0 as fts_score,
-                               w.input_types, w.output_types
+                               w.input_types, w.output_types,
+                               w.real_exec_status, w.workflow_correctness_verdict, w.real_exec_provisional
                         FROM workflows w
                         WHERE w.id IN ({placeholders})
                     """
@@ -809,7 +902,8 @@ class UnifiedWorkflowSearch:
                         SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
                                w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
                                0.0 as fts_score,
-                               w.input_types, w.output_types
+                               w.input_types, w.output_types,
+                               w.real_exec_status, w.workflow_correctness_verdict, w.real_exec_provisional
                         FROM workflows w
                         WHERE w.id IN ({placeholders})
                     """
@@ -1205,6 +1299,25 @@ class UnifiedWorkflowSearch:
         Returns True when the index is ready, False on any failure.
         Uses module-level singletons so the index is built at most once per
         process regardless of how many UnifiedWorkflowSearch instances exist.
+
+        Staleness contract (added 2026-06-13 — see
+        docs/20260613_DENSE_EMBEDDINGS_PATHS.md §6):
+
+          - On load, we re-derive a content signature from the live DB
+            and compare it against the signature stamped into the .npz
+            at build time. Mismatch → rebuild.
+          - The signature is a SHA-256 over the same (id, name,
+            description, annotation) tuples the build uses to encode
+            text, so it catches BOTH row-count drift AND in-place
+            edits.
+          - Computing the signature is a single SQL SELECT + a hash
+            pass over ~4k strings (~5-10 ms). Cheap relative to the
+            ~67 s rebuild it prevents.
+          - When the .npz pre-dates this contract (no signature
+            metadata), we trust the existing file and just check
+            row-count parity as the minimum bar — first opportunity
+            to upgrade lands the signature in the saved .npz so the
+            next process gets the full check for free.
         """
         global _WF_EMBED_MODEL, _WF_EMBED_IDS, _WF_EMBED_MATRIX, _WF_EMBED_READY, _WF_EMBED_FAILED, _WORKFLOW_EMBED_NPZ
 
@@ -1228,6 +1341,10 @@ class UnifiedWorkflowSearch:
 
             if _WORKFLOW_EMBED_NPZ.exists():
                 self._load_workflow_embeddings()
+                # Staleness check: did the DB drift since the .npz was built?
+                if self._workflow_embeddings_stale():
+                    log.info("[WorkflowEmbed] .npz is stale vs DB — rebuilding")
+                    self._build_workflow_embeddings()
             else:
                 self._build_workflow_embeddings()
 
@@ -1247,6 +1364,77 @@ class UnifiedWorkflowSearch:
             log.warning("[WorkflowEmbed] Init failed (dense retrieval disabled): %s", exc)
             return False
 
+    # ------------------------------------------------------------------
+    # Staleness detection
+    # ------------------------------------------------------------------
+
+    def _compute_workflow_db_signature(self) -> tuple:
+        """Compute (row_count, sha256_hex) over the DB's workflow rows.
+
+        Hashes the same (id, name, description, annotation) tuples
+        _build_workflow_embeddings reads, so any change that would
+        affect the encoded text shows up as a different signature.
+        """
+        import hashlib as _hashlib
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, COALESCE(name,''), COALESCE(description,''), "
+            "COALESCE(domain,''), COALESCE(tags,''), COALESCE(annotation,'') "
+            "FROM workflows ORDER BY id"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        h = _hashlib.sha256()
+        for r in rows:
+            # Use a delimiter that can't appear in normal text fields
+            h.update("\x1e".join(str(x) for x in r).encode("utf-8", errors="replace"))
+            h.update(b"\x1f")
+        return len(rows), h.hexdigest()
+
+    def _workflow_embeddings_stale(self) -> bool:
+        """True iff the loaded .npz no longer matches the live DB.
+
+        Compares:
+          1) row count — fast, catches new/removed workflows
+          2) signature — catches in-place edits to name/description/etc.
+             when present in the .npz metadata (built post-2026-06-13).
+
+        Conservative on missing metadata: pre-signature .npz files pass
+        the check on row-count alone; the next rebuild lands the
+        signature so subsequent loads get the full check.
+        """
+        try:
+            db_count, db_sig = self._compute_workflow_db_signature()
+        except Exception as exc:
+            log.warning("[WorkflowEmbed] DB signature failed (treating as fresh): %s", exc)
+            return False
+
+        if db_count != len(_WF_EMBED_IDS):
+            log.info(
+                "[WorkflowEmbed] Row-count drift: DB=%d .npz=%d",
+                db_count, len(_WF_EMBED_IDS),
+            )
+            return True
+
+        # Optional signature check — only present on .npz files built
+        # post-2026-06-13. Absence is NOT stale (back-compat).
+        try:
+            data = _np.load(str(_WORKFLOW_EMBED_NPZ), allow_pickle=True)
+            stored = data.get("workflow_signature")
+            if stored is not None:
+                stored_sig = stored.item() if hasattr(stored, "item") else str(stored)
+                if stored_sig != db_sig:
+                    log.info(
+                        "[WorkflowEmbed] Content signature mismatch (stored=%s.. live=%s..)",
+                        str(stored_sig)[:12], db_sig[:12],
+                    )
+                    return True
+        except Exception as exc:
+            log.warning("[WorkflowEmbed] Signature read failed: %s", exc)
+
+        return False
+
     def _load_workflow_embeddings(self) -> None:
         global _WF_EMBED_IDS, _WF_EMBED_MATRIX
         log.info("[WorkflowEmbed] Loading from %s", _WORKFLOW_EMBED_NPZ)
@@ -1256,7 +1444,12 @@ class UnifiedWorkflowSearch:
         log.info("[WorkflowEmbed] Loaded %d workflow embeddings", len(_WF_EMBED_IDS))
 
     def _build_workflow_embeddings(self) -> None:
-        """Encode all workflows and persist to disk as .npz."""
+        """Encode all workflows and persist to disk as .npz.
+
+        Stamps a content signature into the .npz so subsequent loads
+        can detect staleness without re-encoding (see §6 of
+        docs/20260613_DENSE_EMBEDDINGS_PATHS.md).
+        """
         global _WF_EMBED_IDS, _WF_EMBED_MATRIX
 
         log.info("[WorkflowEmbed] Building embedding index for all workflows …")
@@ -1301,13 +1494,26 @@ class UnifiedWorkflowSearch:
         _WF_EMBED_IDS = ids
         _WF_EMBED_MATRIX = matrix
 
+        # Compute the same signature _workflow_embeddings_stale will
+        # check against on load. Stored as a 0-dim object array so np
+        # round-trips it cleanly.
+        try:
+            _, sig = self._compute_workflow_db_signature()
+        except Exception as exc:
+            log.warning("[WorkflowEmbed] Signature compute on save failed: %s", exc)
+            sig = ""
+
         # Persist
         _np.savez_compressed(
             str(_WORKFLOW_EMBED_NPZ),
             workflow_ids=_np.array(ids, dtype=_np.int64),
             embeddings=matrix,
+            workflow_signature=_np.array(sig, dtype=object),
         )
-        log.info("[WorkflowEmbed] Saved %d embeddings to %s", len(ids), _WORKFLOW_EMBED_NPZ)
+        log.info(
+            "[WorkflowEmbed] Saved %d embeddings to %s (sig=%s..)",
+            len(ids), _WORKFLOW_EMBED_NPZ, sig[:12] if sig else "none",
+        )
 
     def _dense_workflow_prefilter(
         self,
@@ -1375,7 +1581,17 @@ class UnifiedWorkflowSearch:
                       preferred_domains: Optional[List[str]] = None,
                       penalized_domains: Optional[List[str]] = None) -> WorkflowMatch:
         """Create WorkflowMatch from database row."""
-        id_, name, description, domain, source, format_, step_count, tools_json, tags_json, filename, workflow_json, fts_score, input_types_json, output_types_json = row
+        # Unpack length-tolerantly: the first 14 fields are always present; the
+        # trailing execution-quality columns (real_exec_status,
+        # workflow_correctness_verdict, real_exec_provisional) are appended by
+        # the candidate SELECTs but may be absent for callers using an older
+        # SELECT shape. Missing → None → neutral 0.0 exec bonus.
+        (id_, name, description, domain, source, format_, step_count,
+         tools_json, tags_json, filename, workflow_json, fts_score,
+         input_types_json, output_types_json) = row[:14]
+        real_exec_status = row[14] if len(row) > 14 else None
+        workflow_correctness_verdict = row[15] if len(row) > 15 else None
+        real_exec_provisional = row[16] if len(row) > 16 else None
 
         # Parse JSON fields
         try:
@@ -1406,7 +1622,10 @@ class UnifiedWorkflowSearch:
                                       preferred_domains=preferred_domains,
                                       penalized_domains=penalized_domains,
                                       input_types=input_types,
-                                      is_subworkflow=is_subworkflow)
+                                      is_subworkflow=is_subworkflow,
+                                      real_exec_status=real_exec_status,
+                                      workflow_correctness_verdict=workflow_correctness_verdict,
+                                      real_exec_provisional=real_exec_provisional)
         match_type = self._classify_match(score)
 
         return WorkflowMatch(
@@ -1466,7 +1685,10 @@ class UnifiedWorkflowSearch:
                          preferred_domains: Optional[List[str]] = None,
                          penalized_domains: Optional[List[str]] = None,
                          input_types: Optional[List[str]] = None,
-                         is_subworkflow: bool = False) -> float:
+                         is_subworkflow: bool = False,
+                         real_exec_status: Optional[str] = None,
+                         workflow_correctness_verdict: Optional[str] = None,
+                         real_exec_provisional: Optional[Any] = None) -> float:
         """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
         # Expand abbreviations in query for keyword matching
@@ -1600,6 +1822,16 @@ class UnifiedWorkflowSearch:
             if "legacy" not in query_lower and "admet_pred" not in query_lower.replace(" ", "_"):
                 score -= 6.0
 
+        # 10. Execution-quality bonus (B-4: "Routing prefers runnable").
+        # Small additive signal (capped at ±2.0) from per-workflow exec-status
+        # columns: prefer workflows that actually run, gently down-weight ones
+        # that crash/timeout. Null/unknown → 0.0 (neutral). This is well below
+        # the semantic signals above, so it only re-orders near-ties and can
+        # never let a runnable-but-irrelevant workflow outrank a relevant one.
+        score += _exec_quality_bonus(
+            real_exec_status, workflow_correctness_verdict, real_exec_provisional
+        )
+
         return round(score, 2)
 
     def _classify_match(self, score: float) -> str:
@@ -1634,7 +1866,8 @@ class UnifiedWorkflowSearch:
             sql = """
                 SELECT id, name, description, domain, source, format,
                        step_count, tools_used, tags, filename, workflow_json, 0.0 as fts_score,
-                       input_types, output_types
+                       input_types, output_types,
+                       real_exec_status, workflow_correctness_verdict, real_exec_provisional
                 FROM workflows
                 WHERE name LIKE ? OR description LIKE ? OR tools_used LIKE ?
             """
@@ -1679,7 +1912,8 @@ class UnifiedWorkflowSearch:
             cursor.execute("""
                 SELECT id, name, description, domain, source, format,
                        step_count, tools_used, tags, filename, workflow_json,
-                       0.0 as fts_score, input_types, output_types
+                       0.0 as fts_score, input_types, output_types,
+                       real_exec_status, workflow_correctness_verdict, real_exec_provisional
                 FROM workflows
                 WHERE id = ?
             """, (workflow_id,))

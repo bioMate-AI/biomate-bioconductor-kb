@@ -56,14 +56,14 @@ process BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION {
     library(HiCBricks)
     library(GenomicRanges)
     
-    # 1. Load the user-provided BrickContainer object
+    # --- Load the user-provided BrickContainer object ---
     if (!file.exists("My_BrickContainer")) {
       stop("Error: The required input file 'My_BrickContainer' was not found in the working directory.")
     }
     
     My_BrickContainer <- readRDS("My_BrickContainer")
     
-    # 2. Call TADs across chromosomes using the LSD algorithm
+    # --- Call TADs across chromosomes using the LSD algorithm ---
     Chromosome <- c("chr2L", "chr3L", "chr3R", "chrX")
     di_window <- 10
     lookup_window <- 30
@@ -79,7 +79,7 @@ process BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION {
       chunk_size = 500
     )
     
-    # 3. Save the called TAD ranges into the Brick container
+    # --- Save the called TAD ranges into the Brick container ---
     Name <- paste("LSD", di_window, lookup_window, sep = "_")
     Brick_add_ranges(
       Brick = My_BrickContainer, 
@@ -88,20 +88,20 @@ process BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION {
       resolution = 100000
     )
     
-    # 4. Retrieve the saved TAD ranges
+    # --- Retrieve the saved TAD ranges ---
     TAD_ranges <- Brick_get_ranges(
       Brick = My_BrickContainer, 
       rangekey = Name, 
       resolution = 100000
     )
     
-    # 5. Define custom log-transformation function
+    # --- Define custom log-transformation function ---
     Failsafe_log10 <- function(x) {
       x[is.na(x) | is.nan(x) | is.infinite(x)] <- 0
       return(log10(x + 1))
     }
     
-    # 6. Plot a 45-degree rotated heatmap with overlaid TAD borders
+    # --- Plot a 45-degree rotated heatmap with overlaid TAD borders ---
     output_pdf <- "chr3R-1-10MB-normal-colours-log10-rotate-3-tads.pdf"
     
     Brick_vizart_plot_heatmap(
@@ -125,7 +125,7 @@ process BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION {
       return_object = TRUE
     )
     
-    # 7. Save meaningful outputs to the working directory
+    # --- Save meaningful outputs to the working directory ---
     saveRDS(TAD_ranges, file = "TAD_ranges.rds")
     write.csv(as.data.frame(TAD_ranges), file = "TAD_ranges.csv", row.names = FALSE)
     saveRDS(My_BrickContainer, file = "My_BrickContainer_updated.rds")

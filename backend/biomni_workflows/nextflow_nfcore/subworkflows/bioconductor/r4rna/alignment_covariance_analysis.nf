@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Read the multiple sequence alignment using readBStringSet and convert to character. 2. Read the known structure using readVienna a
+//  * 1. [Visualization & Output] Read the known structure and expand
+//  * 2. [Visualization & Output] Read the multiple sequence alignment
+//  * 3. [Visualization & Output] Plot covariance in alignment
+//  * 4. [Visualization & Output] Color and plot by covariation
+//  * 5. [Visualization & Output] Color and plot by conservation
+//  * 6. [Visualization & Output] Color and plot by canonical
+//  * 7. [Visualization & Output] Color and plot pseudoknots/unknotted groups
 
 nextflow.enable.dsl = 2
 
@@ -59,31 +65,31 @@ process BIOC_R4RNA_ALIGNMENT_COVARIANCE_ANALYSIS {
     library(R4RNA)
     library(Biostrings)
     
-    # 1. Read the known structure and expand
+    # --- Read the known structure and expand ---
     known_file <- "vienna.txt"
     known <- readVienna(known_file)
     known <- expandHelix(known)
     saveRDS(known, "known_structure.rds")
     
-    # 2. Read the multiple sequence alignment
+    # --- Read the multiple sequence alignment ---
     fasta_file <- "fasta.txt"
     fasta <- as.character(readBStringSet(fasta_file))
     
     # Open PDF device to save plots
     pdf("alignment_covariance_plots.pdf", width = 11, height = 8.5)
     
-    # 3. Plot covariance in alignment
+    # --- Plot covariance in alignment ---
     message("Plot covariance in alignment")
     plotCovariance(fasta, known, cex = 0.5)
     
-    # 4. Color and plot by covariation
+    # --- Color and plot by covariation ---
     col <- colourByCovariation(known, fasta, get = TRUE)
     saveRDS(col, "col_covariation.rds")
     plotCovariance(fasta, col, grid = TRUE, legend = FALSE)
     legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
         inset = 0.1, bty = "n", border = NA, cex = 0.37, title = "Covariation")
     
-    # 5. Color and plot by conservation
+    # --- Color and plot by conservation ---
     custom_colours <- c("green", "blue", "cyan", "red", "black", "grey")
     plotCovariance(fasta, col <- colourByConservation(known, fasta, get = TRUE),
         palette = custom_colours, cex = 0.5)
@@ -91,14 +97,14 @@ process BIOC_R4RNA_ALIGNMENT_COVARIANCE_ANALYSIS {
     legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
         inset = 0.15, bty = "n", border = NA, cex = 0.75, title = "Conservation")
     
-    # 6. Color and plot by canonical
+    # --- Color and plot by canonical ---
     col <- colourByCanonical(known, fasta, custom_colours, get = TRUE)
     saveRDS(col, "col_canonical.rds")
     plotCovariance(fasta, col, base.colour = TRUE, cex = 0.5)
     legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
         inset = 0.15, bty = "n", border = NA, cex = 0.75, title = "% Canonical")
     
-    # 7. Color and plot pseudoknots/unknotted groups
+    # --- Color and plot pseudoknots/unknotted groups ---
     tryCatch({
         col <- colourByUnknottedGroups(known, c("red", "blue"), get = TRUE)
         saveRDS(col, "col_unknotted.rds")

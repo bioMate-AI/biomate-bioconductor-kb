@@ -78,11 +78,11 @@ process BIOC_APALYZER_GENE_EXPRESSION_ANALYSIS {
       stop("Error: flsall input file not found (expected flsall.rds in the working directory).")
     }
     
-    # Stage 1: Build coding region references using REFCDS
+    # --- Build coding region references using REFCDS ---
     message("Building coding region references...")
     CDSdbraw=REFCDS(txdb,IDDB)
     
-    # Stage 2: Calculate gene expression using GENEXP_CDS
+    # --- Calculate gene expression using GENEXP_CDS ---
     message("Calculating gene expression using coding regions...")
     DFGENEraw=GENEXP_CDS(CDSdbraw, flsall, Strandtype="forward")
     

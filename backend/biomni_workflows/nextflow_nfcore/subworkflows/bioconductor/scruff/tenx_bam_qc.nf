@@ -34,7 +34,7 @@ process BIOC_SCRUFF_TENX_BAM_QC {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "ggplot2", "scruff")
+    .bm_deps <- c("SingleCellExperiment", "ggplot2", "scruff", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_SCRUFF_TENX_BAM_QC {
     
     # Load required libraries
     library(scruff)
+    library(SummarizedExperiment)
     library(SingleCellExperiment)
     library(ggplot2)
     
@@ -69,11 +70,11 @@ process BIOC_SCRUFF_TENX_BAM_QC {
         stop(paste("Required input barcodes TSV file not found:", filteredBc))
     }
     
-    # Stage 1: Run tenxBamqc to collect QC metrics
+    # --- Run tenxBamqc to collect QC metrics ---
     message("Running tenxBamqc on input BAM file...")
     sce <- tenxBamqc(bam = bamfile10x, experiment = "Neurons_Sample_01", filter = filteredBc)
     
-    # Stage 2: Plot QC metrics using qcplots
+    # --- Plot QC metrics using qcplots ---
     message("Generating QC plots...")
     g <- qcplots(sce)
     

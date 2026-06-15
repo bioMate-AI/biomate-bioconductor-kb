@@ -35,6 +35,15 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "factDesign")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     library(factDesign)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (counts.csv contains normalized expression values for microarray)
@@ -91,7 +100,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     eset <- ExpressionSet(assayData = counts, phenoData = pheno)
     
     # ==========================================
-    # STAGE 2: Gene Filtering using kRepsOverA
+    # --- Gene Filtering using kRepsOverA ---
     # ==========================================
     
     # Filter genes that have at least k replicates with expression over A in any condition group
@@ -110,7 +119,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     eset <- eset[keep, ]
     
     # ==========================================
-    # STAGE 3: Outlier Detection and Removal
+    # --- Outlier Detection and Removal ---
     # ==========================================
     
     expr_mat <- exprs(eset)
@@ -132,7 +141,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     exprs(eset) <- cleaned_expr_mat
     
     # ==========================================
-    # STAGE 4: Linear Modeling and ANOVA F-test
+    # --- Linear Modeling and ANOVA F-test ---
     # ==========================================
     
     lm.full <- function(y) lm(y ~ ES + TIME + ES:TIME, data = pData(eset))
@@ -176,7 +185,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     lm.f.Fsub <- lm.f[Fsub]
     
     # ==========================================
-    # STAGE 5: Contrast Testing & Fold Change
+    # --- Contrast Testing & Fold Change ---
     # ==========================================
     
     betaNames <- names(coef(lm.f[[1]]))
@@ -217,7 +226,7 @@ process BIOC_FACTDESIGN_FACT_DESIGN_FACTORIAL_ANALYSIS {
     ESTgenes <- sapply(lm.f.Fsub, FUN = ESTcontrast)
     
     # ==========================================
-    # STAGE 6: Export Results and Visualizations
+    # --- Export Results and Visualizations ---
     # ==========================================
     
     # Save results table

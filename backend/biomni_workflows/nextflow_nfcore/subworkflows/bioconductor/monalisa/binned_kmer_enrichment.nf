@@ -34,7 +34,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("BSgenome.Mmusculus.UCSC.mm10", "Biostrings", "ComplexHeatmap", "GenomicRanges", "JASPAR2020", "TFBSTools", "circlize", "monaLisa", "rtracklayer")
+    .bm_deps <- c("BSgenome.Mmusculus.UCSC.mm10", "Biostrings", "ComplexHeatmap", "GenomicRanges", "JASPAR2020", "TFBSTools", "circlize", "monaLisa", "rtracklayer", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,6 +54,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     
     # Load required libraries
     library(monaLisa)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(rtracklayer)
     library(Biostrings)
@@ -65,7 +66,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     library(grid)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     if (!file.exists("peaks.bed")) {
@@ -120,7 +121,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     bins <- bin(x = meth_val, binmode = "equalN", nElement = n_elem)
     
     # ==========================================
-    # 2. Generate seSel (Motif Enrichment)
+    # --- Generate seSel (Motif Enrichment) ---
     # ==========================================
     # To compare enriched k-mers to motifs, we need a motif enrichment object (seSel).
     # We run a fast motif enrichment using a subset of JASPAR vertebrate motifs.
@@ -140,7 +141,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     seSel <- se[sel, ]
     
     # ==========================================
-    # 3. Run Binned K-mer Enrichment (Documented Code)
+    # --- Run Binned K-mer Enrichment (Documented Code) ---
     # ==========================================
     
     # Run calcBinnedKmerEnr to find enriched k-mers
@@ -164,7 +165,7 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
     hmSeqlogo <- rowAnnotation(logo = annoSeqlogo(seqlogoGrobs, which = "row"), annotation_width = unit(1.5, "inch"), show_annotation_name = FALSE )
     
     # ==========================================
-    # 4. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save the main SummarizedExperiment object

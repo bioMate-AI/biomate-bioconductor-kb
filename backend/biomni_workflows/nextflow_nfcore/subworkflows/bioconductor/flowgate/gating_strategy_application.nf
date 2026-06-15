@@ -59,7 +59,7 @@ process BIOC_FLOWGATE_GATING_STRATEGY_APPLICATION {
     library(ggcyto)
     library(ggplot2)
     
-    # 1. Import FCS files and create a compensated GatingSet
+    # --- Import FCS files and create a compensated GatingSet ---
     # Read from the user-specified directory 'path_to_fcs'
     path_to_fcs <- "path_to_fcs"
     fs <- read.flowSet(path = path_to_fcs, pattern = ".FCS\$", full.names = TRUE)
@@ -71,7 +71,7 @@ process BIOC_FLOWGATE_GATING_STRATEGY_APPLICATION {
     comp <- compensation(comp_matrix)
     gs <- compensate(gs, comp)
     
-    # 2. Define a gating strategy tibble
+    # --- Define a gating strategy tibble ---
     strategy <- tibble::tribble(
       ~ filterId, ~ dims, ~ subset, ~ bins,
       "Leukocytes" , list ( "FSC-H" , "SSC-H" ), "root" , 256 ,
@@ -79,11 +79,11 @@ process BIOC_FLOWGATE_GATING_STRATEGY_APPLICATION {
       "CD33 CD15" , list ( "CD33" , "CD15" ), "CD45" , 64
     )
     
-    # 3. Apply the gating strategy sequentially
+    # --- Apply the gating strategy sequentially ---
     # Note: This function launches an interactive Shiny gadget for gating.
     gs_apply_gating_strategy(gs, gating_strategy = strategy)
     
-    # 4. Save meaningful results and outputs
+    # --- Save meaningful results and outputs ---
     # Save the GatingSet object
     save_gs(gs, "gated_GatingSet.gs")
     

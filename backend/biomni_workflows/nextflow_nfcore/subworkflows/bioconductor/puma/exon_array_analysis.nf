@@ -58,27 +58,27 @@ process BIOC_PUMA_EXON_ARRAY_ANALYSIS {
       library(pumadata)
     }
     
-    # 1. Read CEL files and SampleNameTable from the working directory
+    # --- Read CEL files and SampleNameTable from the working ---
     SampleNameTable_file <- "SampleNameTable"
     sample_info <- read.table(SampleNameTable_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     exonFilenames <- sample_info\$Celnames
     
     oligo.exon <- read.celfiles(exonFilenames)
     
-    # 2. Calculate gene and transcript expression levels using gmoExon
+    # --- Calculate gene and transcript expression levels using ---
     eset_gmoExon <- gmoExon(oligo.exon, exontype = "Human", gsnorm = "none")
     
-    # 3. Write expression and standard error results to CSV files for gmoExon
+    # --- Write expression and standard error results to CSV files ---
     write.reslts(eset_gmoExon\$gene, file = "eset_gmoExon_gene")
     write.reslts(eset_gmoExon\$transcript, file = "eset_gmoExon_transcript")
     
-    # 4. Calculate gene and transcript expression levels using igmoExon
+    # --- Calculate gene and transcript expression levels using ---
     cel.path <- "."
     SampleNameTable <- "SampleNameTable"
     eset_igmoExon <- igmoExon(cel.path = cel.path, SampleNameTable = SampleNameTable,
                               exontype = "Human", gsnorm = "none", condition = "Yes")
     
-    # 5. Write expression and standard error results to CSV files for igmoExon
+    # --- Write expression and standard error results to CSV files ---
     write.reslts(eset_igmoExon\$gene, file = "eset_igmoExon_gene")
     write.reslts(eset_igmoExon\$transcript, file = "eset_igmoExon_transcript")
 

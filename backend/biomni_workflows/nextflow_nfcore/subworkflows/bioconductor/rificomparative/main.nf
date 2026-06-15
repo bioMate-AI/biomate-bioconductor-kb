@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load and join data from two conditions using loading_fun, joining_data_row, and joining_data_column. 2. Calculate penalties for ha
+//  * 1. [Visualization & Output] Load and Join Data
+//  * 2. [Visualization & Output] Calculate Penalties
+//  * 3. [Visualization & Output] Perform Fragmentation
+//  * 4. [Visualization & Output] Run Statistical Tests
+//  * 5. [Visualization & Output] Preprocess GFF3 and Visualize
+//  * 6. [Visualization & Output] Adjust Half-Life and Intensity Fragments
+//  * 7. [Visualization & Output] Generate Summary Plots
+//  * 8. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +45,15 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rifiComparative")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +67,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     library(rifiComparative)
     
     # ==========================================
-    # 1. Load and Join Data
+    # --- Load and Join Data ---
     # ==========================================
     
     # Load user-provided RDA files from the working directory
@@ -70,7 +86,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     df_comb_minimal <- joining_data_column(data = data_combined_minimal)
     
     # ==========================================
-    # 2. Calculate Penalties
+    # --- Calculate Penalties ---
     # ==========================================
     
     # Extract penalties for half-life and intensity
@@ -80,7 +96,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     pen_int <- penalties_res[[3]]
     
     # ==========================================
-    # 3. Perform Fragmentation
+    # --- Perform Fragmentation ---
     # ==========================================
     
     # Perform half-life fragmentation
@@ -100,7 +116,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     )
     
     # ==========================================
-    # 4. Run Statistical Tests
+    # --- Run Statistical Tests ---
     # ==========================================
     
     # Run statistical tests on fragments
@@ -109,7 +125,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     df_comb_uniq_minimal <- stats_res[[2]]
     
     # ==========================================
-    # 5. Preprocess GFF3 and Visualize
+    # --- Preprocess GFF3 and Visualize ---
     # ==========================================
     
     # Preprocess the user-provided GFF3 file
@@ -126,7 +142,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 6. Adjust Half-Life and Intensity Fragments
+    # --- Adjust Half-Life and Intensity Fragments ---
     # ==========================================
     
     # Adjust half-life and intensity fragments and merge with genome annotation
@@ -136,7 +152,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     )
     
     # ==========================================
-    # 7. Generate Summary Plots
+    # --- Generate Summary Plots ---
     # ==========================================
     
     # Assign the adjusted data frame to df_mean_minimal for plotting
@@ -155,7 +171,7 @@ process BIOC_RIFICOMPARATIVE_RIFI_COMPARATIVE_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # 8. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save key data frames as CSV and RDS files

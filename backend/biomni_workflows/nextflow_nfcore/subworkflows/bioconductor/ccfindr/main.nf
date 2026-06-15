@@ -58,13 +58,13 @@ process BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF {
     # Define the input directory as the current working directory
     dir <- "."
     
-    # 1. Read 10x Genomics data to create an scNMFSet object
+    # --- Read 10x Genomics data to create an scNMFSet object ---
     sc <- read_10x(dir = dir, count = 'matrix.mtx', genes = 'genes.tsv', barcodes = 'barcodes.tsv')
     
-    # 2. Filter cells based on UMI count thresholds
+    # --- Filter cells based on UMI count thresholds ---
     sc <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
     
-    # 3. Filter genes based on variance-to-mean ratio (VMR) and minimum cell expression
+    # --- Filter genes based on variance-to-mean ratio (VMR) and ---
     markers <- c('CD4','CD8A','CD8B','CD19','CD3G','CD3D',
                  'CD3Z','CD14')
     sc0 <- filter_genes(sc, markers = markers, vmr.min = 1.5, 
@@ -73,10 +73,10 @@ process BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF {
     # Assign the gene-filtered object to sc to proceed with factorization on the filtered dataset
     sc <- sc0
     
-    # 4. Perform Maximum Likelihood NMF factorization across a range of ranks
+    # --- Perform Maximum Likelihood NMF factorization across a ---
     sc <- factorize(sc, ranks = seq(3,7), nrun = 5, verbose = 1, progress.bar = FALSE)
     
-    # 5. Evaluate factorization quality measures (dispersion, cophenetic correlation)
+    # --- Evaluate factorization quality measures (dispersion, ---
     measures_df <- measure(sc)
     
     # Write outputs to the working directory

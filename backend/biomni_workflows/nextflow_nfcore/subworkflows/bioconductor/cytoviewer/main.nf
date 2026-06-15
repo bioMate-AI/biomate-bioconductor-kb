@@ -16,7 +16,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -34,6 +34,15 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cytoviewer", "cytomapper", "EBImage", "S4Vectors", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -43,17 +52,18 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
+    library(SummarizedExperiment)
     library(cytoviewer)
     library(cytomapper)
     library(EBImage)
     library(S4Vectors)
     
-    # Stage 2: Read input image from the working directory
+    # --- Read input image from the working directory ---
     message("Reading input image...")
     img_raw <- EBImage::readImage("image.tif")
     
-    # Stage 3: Preprocess and construct CytoImageList for images
+    # --- Preprocess and construct CytoImageList for images ---
     message("Preparing image CytoImageList...")
     img_list <- list(sample_image = img_raw)
     img_cil <- cytomapper::CytoImageList(img_list)
@@ -66,7 +76,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
       channelNames(img_cil) <- paste0("Channel", seq_len(img_dim[3]))
     }
     
-    # Stage 4: Generate a segmentation mask from the image
+    # --- Generate a segmentation mask from the image ---
     message("Generating segmentation mask...")
     if (length(img_dim) == 3) {
       # Use the first channel for segmentation
@@ -86,12 +96,12 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     # Wrap the mask in a CytoImageList
     mask_cil <- cytomapper::CytoImageList(list(sample_image = labeled_mask))
     
-    # Stage 5: Link images and masks using metadata
+    # --- Link images and masks using metadata ---
     message("Linking image and mask metadata...")
     S4Vectors::mcols(img_cil)\$ImageNb <- "Image1"
     S4Vectors::mcols(mask_cil)\$ImageNb <- "Image1"
     
-    # Stage 6: Measure cell-specific features to generate a SingleCellExperiment
+    # --- Measure cell-specific features to generate a ---
     message("Measuring object features...")
     sce <- cytomapper::measureObjects(
       image = img_cil, 
@@ -103,7 +113,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     measurements_df <- as.data.frame(SummarizedExperiment::colData(sce))
     write.csv(measurements_df, "cell_measurements.csv", row.names = FALSE)
     
-    # Stage 7: Build and serialize the cytoviewer Shiny application
+    # --- Build and serialize the cytoviewer Shiny application ---
     message("Building cytoviewer application...")
     app <- cytoviewer(
       image = img_cil,

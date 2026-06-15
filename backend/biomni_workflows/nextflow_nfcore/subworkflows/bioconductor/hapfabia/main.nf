@@ -64,15 +64,15 @@ process BIOC_HAPFABIA_VCF_PIPELINE {
     # Load required library
     library(hapFabia)
     
-    # 1. Convert VCF to sparse matrix format
+    # --- Convert VCF to sparse matrix format ---
     vcftoFABIA(fileName=fileName)
     
-    # 2. Copy genotype matrix to the active matrix file
+    # --- Copy genotype matrix to the active matrix file ---
     file.copy(paste(fileName,"_matG.txt",sep=""),
               paste(fileName,"_mat.txt",sep=""),
               overwrite = TRUE)
     
-    # 3. Split the sparse matrix into overlapping intervals
+    # --- Split the sparse matrix into overlapping intervals ---
     split_sparse_matrix(fileName=fileName,intervalSize=intervalSize,
                         shiftSize=shiftSize,annotation=TRUE)
     
@@ -83,7 +83,7 @@ process BIOC_HAPFABIA_VCF_PIPELINE {
     N1 <- noSNVs%/%shiftSize
     endRunA <- (N1-over+2)
     
-    # 4. Run iterative FABIA across intervals
+    # --- Run iterative FABIA across intervals ---
     iterateIntervals(startRun=1,endRun=endRunA,shift=shiftSize,
                      intervalSize=intervalSize,fileName=fileName,individuals=0,
                      upperBP=0.05,p=10,iter=40,alpha=0.03,cyc=50,IBDsegmentLength=50,
@@ -91,18 +91,18 @@ process BIOC_HAPFABIA_VCF_PIPELINE {
                      pMAF=0.035,haplotypes=FALSE,cut=0.8,procMinIndivids=0.1,thresPrune=1e-3,
                      simv="minD",minTagSNVs=6,minIndivid=2,avSNVsDist=100,SNVclusterLength=100)
     
-    # 5. Identify duplicate IBD segments across overlapping intervals
+    # --- Identify duplicate IBD segments across overlapping ---
     identifyDuplicates(fileName=fileName,startRun=1,endRun=endRunA,
                        shift=shiftSize,intervalSize=intervalSize)
     
-    # 6. Analyze the non-duplicate IBD segments
+    # --- Analyze the non-duplicate IBD segments ---
     anaRes <- analyzeIBDsegments(fileName=fileName,startRun=1,endRun=endRunA,
                                  shift=shiftSize,intervalSize=intervalSize)
     
     # Save analysis results to disk
     saveRDS(anaRes, file="analysis_results.rds")
     
-    # 7. Load and plot specific IBD segments
+    # --- Load and plot specific IBD segments ---
     # Select a valid interval index (robust fallback if endRunA is small)
     posAll <- min(50, max(1, endRunA - 1))
     start <- (posAll-1)*shiftSize

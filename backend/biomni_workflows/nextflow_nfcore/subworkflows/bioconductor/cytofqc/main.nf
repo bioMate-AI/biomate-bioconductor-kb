@@ -66,7 +66,7 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
       stop(paste("Required input file '", f, "' not found in the working directory."))
     }
     
-    # 1. Read FCS data and define QC channels using readCytof
+    # --- Read FCS data and define QC channels using readCytof ---
     x <- readCytof(f, 
                    beads = c("Bead"),
                    dna = c("DNA1", "DNA2"),
@@ -74,10 +74,10 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
                    viability = "Live_Dead",
                    gaussian = c("Center", "Offset", "Width", "Residual"))
     
-    # 2. Run the all-in-one labeling using labelQC
+    # --- Run the all-in-one labeling using labelQC ---
     x <- labelQC(x)
     
-    # 3. Retrieve labels, scores, and probabilities using label, scores, and probs
+    # --- Retrieve labels, scores, and probabilities using label, ---
     lbls <- label(x)
     scrs <- scores(x)
     init <- initial(x)
@@ -107,7 +107,7 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
     # Save the SingleCellExperiment object
     saveRDS(x, "cytof_qc_sce.rds")
     
-    # 4. Visualize the scores using cytofHist
+    # --- Visualize the scores using cytofHist ---
     bead <- cytofHist(scores(x, type = 'bead'), label(x), title = "Bead score")
     debris <- cytofHist(scores(x, type = 'debris'), label(x), title = "Debris score")
     doublet <- cytofHist(scores(x, type = 'doublet'), label(x), title = "Doublet score")

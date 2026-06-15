@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the SNAGEE package and the dataset. 2. Calculate individual sample quality scores using qualSample. 3. Identify samples with 
+//  * 1. [Input & Preparation] Save the quality scores to a CSV table
+//  * 2. [Input & Preparation] Save only the flagged samples to a separate CSV table
+//  * 3. [Input & Preparation] Save the raw quality scores as an RDS object
+//  * 4. [Input & Preparation] Generate a PDF plot of the quality scores
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_SNAGEE_SAMPLE_QUALITY_ASSESSMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SNAGEE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -80,7 +92,7 @@ process BIOC_SNAGEE_SAMPLE_QUALITY_ASSESSMENT {
     flagged_count = sum(qs < -5)
     
     # Write named output files for the meaningful results
-    # 1. Save the quality scores to a CSV table
+    # --- Save the quality scores to a CSV table ---
     qs_df <- data.frame(
       Sample = names(qs),
       QualityScore = qs,
@@ -89,14 +101,14 @@ process BIOC_SNAGEE_SAMPLE_QUALITY_ASSESSMENT {
     )
     write.csv(qs_df, "sample_quality_scores.csv", row.names = FALSE)
     
-    # 2. Save only the flagged samples to a separate CSV table
+    # --- Save only the flagged samples to a separate CSV table ---
     flagged_df <- qs_df[qs_df\$Flagged, ]
     write.csv(flagged_df, "flagged_samples.csv", row.names = FALSE)
     
-    # 3. Save the raw quality scores as an RDS object
+    # --- Save the raw quality scores as an RDS object ---
     saveRDS(qs, "sample_quality_scores.rds")
     
-    # 4. Generate a PDF plot of the quality scores
+    # --- Generate a PDF plot of the quality scores ---
     pdf("sample_quality_plot.pdf", width = 8, height = 6)
     plot(qs, type = "h", lwd = 2, col = ifelse(qs < -5, "red", "blue"),
          main = "Sample Quality Scores (SNAGEE)",

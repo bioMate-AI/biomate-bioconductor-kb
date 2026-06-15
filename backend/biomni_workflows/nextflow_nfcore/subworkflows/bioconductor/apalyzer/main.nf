@@ -70,7 +70,7 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
       }
     }
     
-    # 1. Read User Inputs from the working directory
+    # --- Read User Inputs from the working directory ---
     if (file.exists("flsall.rds")) {
       flsall <- readRDS("flsall.rds")
     } else if (file.exists("flsall.csv")) {
@@ -94,22 +94,22 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
     dfIPAraw <- dfIPA
     dfLEraw <- dfLE
     
-    # 2. Build PAS reference regions using REF4PAS
+    # --- Build PAS reference regions using REF4PAS ---
     PASREF=REF4PAS(refUTRraw,dfIPAraw,dfLEraw)
     UTRdbraw=PASREF\$UTRdbraw
     dfIPA=PASREF\$dfIPA
     dfLE=PASREF\$dfLE
     
-    # 3. Build 3'UTR aUTR and cUTR references using REF3UTR
+    # --- Build 3'UTR aUTR and cUTR references using REF3UTR ---
     UTRdbraw=REF3UTR(refUTRraw)
     
-    # 4. Calculate relative expression of 3'UTR APA using PASEXP_3UTR
+    # --- Calculate relative expression of 3'UTR APA using ---
     DFUTRraw=PASEXP_3UTR(UTRdbraw, flsall, Strandtype="forward")
     
-    # 5. Calculate relative expression of intronic PAS (IPA) using PASEXP_IPA
+    # --- Calculate relative expression of intronic PAS (IPA) using ---
     IPA_OUTraw=PASEXP_IPA(dfIPA, dfLE, flsall, Strandtype="forward", nts=1)
     
-    # 6. Set up sample tables dynamically based on flsall names
+    # --- Set up sample tables dynamically based on flsall names ---
     if (all(c("SRR316184", "SRR316187") %in% names(flsall))) {
       sampleTable2 = data.frame(samplename = c("SRR316184","SRR316187"), condition = c("NT","KD"))
     } else {
@@ -127,7 +127,7 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
       sampleTable1 = data.frame(samplename = c(names(flsall)), condition = conds)
     }
     
-    # 7. Perform differential APA analysis using APAdiff
+    # --- Perform differential APA analysis using APAdiff ---
     test_3UTRsing=APAdiff(sampleTable2,DFUTRraw, 
                             conKET='NT',
                             trtKEY='KD',
@@ -161,7 +161,7 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
                             p_adjust_methods="fdr",
                             MultiTest='unpaired t-test')
     
-    # 8. Visualize results using APAVolcano and APABox
+    # --- Visualize results using APAVolcano and APABox ---
     pdf("APAVolcano_3UTRsing.pdf")
     APAVolcano(test_3UTRsing, PAS='3UTR', Pcol = "pvalue", top=5, main='3UTR APA')
     dev.off()
@@ -170,7 +170,7 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
     APABox(test_3UTRsing, xlab = "APAreg", ylab = "RED", plot_title = NULL)
     dev.off()
     
-    # 9. Write named output files
+    # --- Write named output files ---
     write.csv(DFUTRraw, "DFUTRraw.csv", row.names = FALSE)
     write.csv(IPA_OUTraw, "IPA_OUTraw.csv", row.names = FALSE)
     write.csv(test_3UTRsing, "test_3UTRsing.csv", row.names = FALSE)

@@ -56,7 +56,7 @@ process BIOC_SEQGSEA_ONE_STEP_SEQGSEA {
     library(SeqGSEA)
     library(doParallel)
     
-    # 1. Define input file patterns, gene set file, and analysis parameters
+    # --- Define input file patterns, gene set file, and analysis ---
     data.dir <- "data.dir"
     geneset.file <- "geneset.file"
     
@@ -106,7 +106,7 @@ process BIOC_SEQGSEA_ONE_STEP_SEQGSEA {
     cl <- makeCluster(nCores)
     registerDoParallel(cl)
     
-    # 2. Run the complete analysis using runSeqGSEA
+    # --- Run the complete analysis using runSeqGSEA ---
     message("Running SeqGSEA pipeline...")
     tryCatch({
       runSeqGSEA(

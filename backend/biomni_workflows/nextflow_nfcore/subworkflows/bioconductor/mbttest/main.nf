@@ -85,18 +85,18 @@ process BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     message(paste("Detected parameters - Condition A replicates (na):", na))
     message(paste("Detected parameters - Condition B replicates (nb):", nb))
     
-    # 1. Simulate null count data from real data using simulat
+    # --- Simulate null count data from real data using simulat ---
     # We use a subset of up to 500 rows to keep the simulation fast and faithful to the vignette
     sub_data_sim <- real_data[1:min(500, nrow(real_data)), ]
     sjknull1 <- simulat(yy = sub_data_sim, nci = nci, r1 = na, r2 = nb, p = 0, q = 0.2)
     
-    # 2. Run multiple beta t-tests on the simulated null data using smbetattest to identify false positives
+    # --- Run multiple beta t-tests on the simulated null data ---
     mysim1 <- smbetattest(X = sjknull1, na = na, nb = nb, alpha = 0.05)
     
     # Save simulation results
     write.csv(mysim1, "simulated_null_results.csv", row.names = FALSE)
     
-    # 3. Calculate the threshold parameter omega (W) by sorting and analyzing the rho values of false positives
+    # --- Calculate the threshold parameter omega (W) by sorting ---
     # False positives are identified by symb == "+"
     fps <- mysim1[trimws(as.character(mysim1\$symb)) == "+", ]
     if (nrow(fps) > 0) {
@@ -115,7 +115,7 @@ process BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     }
     message(paste("Calculated omega (W) threshold parameter:", W_val))
     
-    # 4. Normalize the real count data to ensure equal library sizes
+    # --- Normalize the real count data to ensure equal library ---
     count_cols <- (nci + 1):(nci + na + nb)
     counts <- real_data[, count_cols]
     lib_sizes <- colSums(counts)
@@ -129,14 +129,14 @@ process BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     normalized_data <- real_data
     normalized_data[, count_cols] <- normalized_counts
     
-    # 5. Perform the multiple beta t-test on the normalized real data using mbetattest
+    # --- Perform the multiple beta t-test on the normalized real ---
     # We use the whole normalized dataset
     res <- mbetattest(X = normalized_data, na = na, nb = nb, W = W_val, alpha = 0.05, file = "jurkat_NS_48h_tag_mbetattest.csv")
     
     # Save the results object as RDS for downstream analysis
     saveRDS(res, "mbetattest_results.rds")
     
-    # 6. Visualize the results using maplot and myheatmap
+    # --- Visualize the results using maplot and myheatmap ---
     dat <- res
     
     pdf("differential_expression_plots.pdf", width = 10, height = 8)

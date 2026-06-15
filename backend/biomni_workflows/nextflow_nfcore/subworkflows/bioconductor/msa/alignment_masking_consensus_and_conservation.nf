@@ -58,27 +58,27 @@ process BIOC_MSA_ALIGNMENT_MASKING_CONSENSUS_AND_CONSERVATION {
     library(IRanges)
     library(pwalign)
     
-    # 1. Read and align sequences
+    # --- Read and align sequences ---
     # Read the user-provided FASTA file from the working directory
     mySequenceFile <- "exampleAA.fasta"
     mySequences <- readAAStringSet(mySequenceFile)
     myFirstAlignment <- msa(mySequences)
     
-    # 2. Apply a column mask using colmask and IRanges
+    # --- Apply a column mask using colmask and IRanges ---
     myMaskedAlignment <- myFirstAlignment
     colM <- IRanges(start=1, end=100)
     colmask(myMaskedAlignment) <- colM
     
-    # 3. Retrieve the unmasked alignment
+    # --- Retrieve the unmasked alignment ---
     unmasked_alignment <- unmasked(myMaskedAlignment)
     
-    # 4. Compute the consensus matrix
+    # --- Compute the consensus matrix ---
     conMat <- consensusMatrix(myMaskedAlignment)
     
-    # 5. Generate a threshold-based consensus sequence
+    # --- Generate a threshold-based consensus sequence ---
     consSeq <- msaConsensusSequence(myFirstAlignment, type="upperlower", thresh=c(40, 20))
     
-    # 6. Calculate position-specific conservation scores using a substitution matrix
+    # --- Calculate position-specific conservation scores using a ---
     # Note: BLOSUM62 is directly exported by the pwalign package
     scores <- msaConservationScore(myFirstAlignment, BLOSUM62)
     

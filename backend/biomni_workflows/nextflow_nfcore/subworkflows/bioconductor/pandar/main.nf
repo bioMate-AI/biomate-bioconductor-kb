@@ -35,6 +35,15 @@ process BIOC_PANDAR_PANDA_DIFFERENTIAL_NETWORK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("pandaR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -48,7 +57,7 @@ process BIOC_PANDAR_PANDA_DIFFERENTIAL_NETWORK {
     library(pandaR)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Expression & Metadata
+    # --- Load and Preprocess Expression & Metadata ---
     # ---------------------------------------------------------
     message("Loading input datasets...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -94,7 +103,7 @@ process BIOC_PANDAR_PANDA_DIFFERENTIAL_NETWORK {
     expr2 <- expr_filtered[, samples2, drop = FALSE]
     
     # ---------------------------------------------------------
-    # Stage 2: Construct Motif and PPI Priors
+    # --- Construct Motif and PPI Priors ---
     # ---------------------------------------------------------
     message("Constructing motif and PPI priors...")
     # Define a set of transcription factors
@@ -111,7 +120,7 @@ process BIOC_PANDAR_PANDA_DIFFERENTIAL_NETWORK {
     ppi_prior\$Weight <- runif(nrow(ppi_prior), 0, 1)
     
     # ---------------------------------------------------------
-    # Stage 3: Run PANDA Network Reconstruction
+    # --- Run PANDA Network Reconstruction ---
     # ---------------------------------------------------------
     message("Running PANDA for Condition 1...")
     panda_res1 <- panda(motif_prior, expr1, ppi_prior, hamming = 1)
@@ -120,7 +129,7 @@ process BIOC_PANDAR_PANDA_DIFFERENTIAL_NETWORK {
     panda_res2 <- panda(motif_prior, expr2, ppi_prior, hamming = 1)
     
     # ---------------------------------------------------------
-    # Stage 4: Downstream Network Analysis & Edge Extraction
+    # --- Downstream Network Analysis & Edge Extraction ---
     # ---------------------------------------------------------
     message("Extracting top regulatory edges...")
     top_net1 <- topedges(panda_res1, 100)
@@ -144,7 +153,7 @@ process BIOC_PANDAR_PANDA_DIFFERENTIAL_NETWORK {
     sub_net <- subnetwork(top_net1, sub_tfs)
     
     # ---------------------------------------------------------
-    # Stage 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ---------------------------------------------------------
     message("Generating diagnostic plots...")
     pdf("panda_plots.pdf", width = 8, height = 8)

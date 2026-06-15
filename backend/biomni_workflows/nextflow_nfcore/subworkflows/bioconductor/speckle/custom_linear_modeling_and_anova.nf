@@ -13,7 +13,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Extract counts, proportions, and transformed proportions. 2. Set up a design matrix for group and pairing covariates. 3. Perform a
+//  * 1. [Input & Preparation] Read the input SingleCellExperiment object
+//  * 2. [Input & Preparation] Extract counts, proportions, and transformed proportions
+//  * 3. [Input & Preparation] Set up a design matrix for group and pairing covariates
+//  * 4. [Input & Preparation] Perform an ANOVA test across multiple groups using
+//  * 5. [Input & Preparation] Perform a pairwise t-test using propeller.ttest with
+//  * 6. [Input & Preparation] Fit a continuous variable (dose/trend) directly using
+//  * 7. [Input & Preparation] Fit a linear model accounting for random effects using
+//  * 8. [Input & Preparation] Generate and save diagnostic plots
 
 nextflow.enable.dsl = 2
 
@@ -66,7 +73,7 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
     library(edgeR)
     library(statmod)
     
-    # 1. Read the input SingleCellExperiment object
+    # --- Read the input SingleCellExperiment object ---
     if (file.exists("sce_all.rds")) {
       sce_all <- readRDS("sce_all.rds")
     } else if (file.exists("sce_all")) {
@@ -75,7 +82,7 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
       stop("Error: Could not find 'sce_all' or 'sce_all.rds' in the working directory.")
     }
     
-    # 2. Extract counts, proportions, and transformed proportions
+    # --- Extract counts, proportions, and transformed proportions ---
     props <- getTransformedProps(sce_all\$cluster, sce_all\$sample, transform="logit")
     
     samples_in_props <- colnames(props\$TransformedProps)
@@ -99,7 +106,7 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
     # Use the actual groups from the user's data
     group <- factor(sample_group_map\$group)
     
-    # 3. Set up a design matrix for group and pairing covariates
+    # --- Set up a design matrix for group and pairing covariates ---
     if ("pair" %in% colnames(sample_group_map)) {
       pair <- factor(sample_group_map\$pair)
       design <- model.matrix(~ 0 + group + pair)
@@ -107,12 +114,12 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
       design <- model.matrix(~ 0 + group)
     }
     
-    # 4. Perform an ANOVA test across multiple groups using propeller.anova
+    # --- Perform an ANOVA test across multiple groups using ---
     group_coefs <- 1:length(levels(group))
     anova_res <- propeller.anova(prop.list=props, design=design, coef = group_coefs, robust=TRUE, trend=FALSE, sort=TRUE)
     write.csv(anova_res, "propeller_anova_results.csv", row.names=TRUE)
     
-    # 5. Perform a pairwise t-test using propeller.ttest with contrasts
+    # --- Perform a pairwise t-test using propeller.ttest with ---
     if (length(levels(group)) >= 2) {
       # Dynamically create a contrast between the first two groups, using backticks to safely handle any special characters
       contr_str <- paste0("`", colnames(design)[1], "` - `", colnames(design)[2], "`")
@@ -121,7 +128,7 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
       write.csv(ttest_res, "propeller_ttest_results.csv", row.names=TRUE)
     }
     
-    # 6. Fit a continuous variable (dose/trend) directly using limma
+    # --- Fit a continuous variable (dose/trend) directly using ---
     if ("dose" %in% colnames(sample_group_map)) {
       dose <- sample_group_map\$dose
       des.dose <- model.matrix(~dose)
@@ -131,7 +138,7 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
       write.csv(top_dose, "limma_continuous_dose_results.csv", row.names=TRUE)
     }
     
-    # 7. Fit a linear model accounting for random effects using duplicateCorrelation
+    # --- Fit a linear model accounting for random effects using ---
     if ("pair" %in% colnames(sample_group_map)) {
       des.tech <- model.matrix(~group)
       dupcor <- duplicateCorrelation(props\$TransformedProps, design=des.tech, block=pair)
@@ -141,7 +148,7 @@ process BIOC_SPECKLE_CUSTOM_LINEAR_MODELING_AND_ANOVA {
       write.csv(top_tech, "limma_random_effects_results.csv", row.names=TRUE)
     }
     
-    # 8. Generate and save diagnostic plots
+    # --- Generate and save diagnostic plots ---
     pdf("speckle_diagnostic_plots.pdf", width=10, height=8)
     try({
       print(plotCellTypeProps(sce_all))

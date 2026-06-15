@@ -34,7 +34,7 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("AnnotationHub", "DESeq2", "doubleexpseq", "edgeR", "ggplot2", "SpliceWiz")
+    .bm_deps <- c("AnnotationHub", "DESeq2", "doubleexpseq", "edgeR", "ggplot2", "SpliceWiz", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -51,11 +51,13 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
         }
       }
     }
-    
+        
+    library(SummarizedExperiment)
+
     library(SpliceWiz)
     library(edgeR)
     
-    # 1. Build the SpliceWiz reference using buildRef()
+    # --- Build the SpliceWiz reference using buildRef() ---
     ref_path <- file.path(tempdir(), "Reference")
     buildRef(
       reference_path = ref_path,
@@ -64,7 +66,7 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
       ontologySpecies = "Homo sapiens"
     )
     
-    # 2. Process BAM files to extract junction and intron coverage data using processBAM()
+    # --- Process BAM files to extract junction and intron coverage ---
     # We replicate the single input BAM file to 6 samples to satisfy the 
     # experimental design in the documented code (6 samples: 3 A, 3 B)
     bams <- data.frame(
@@ -81,7 +83,7 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
       output_path = pb_path
     )
     
-    # 3. Collate processed sample outputs into an experiment database using collateData()
+    # --- Collate processed sample outputs into an experiment ---
     expr <- findSpliceWizOutput(pb_path)
     nxtse_path <- file.path(tempdir(), "NxtSE_output")
     collateData(
@@ -90,17 +92,17 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
       output_path = nxtse_path
     )
     
-    # 4. Import the collated experiment as an NxtSE object using makeSE()
+    # --- Import the collated experiment as an NxtSE object using ---
     se <- makeSE(nxtse_path)
     se <- realize_NxtSE(se)
     
     colData(se)\$condition <- rep(c("A", "B"), each = 3)
     colData(se)\$batch <- rep(c("K", "L", "M"), 2)
     
-    # 5. Filter out low-confidence alternative splicing events using applyFilters()
+    # --- Filter out low-confidence alternative splicing events ---
     se.filtered <- se[applyFilters(se), ]
     
-    # 6. Perform differential alternative splicing analysis using ASE_edgeR()
+    # --- Perform differential alternative splicing analysis using ---
     require("edgeR")
     res_edgeR <- ASE_edgeR(
       se = se.filtered,

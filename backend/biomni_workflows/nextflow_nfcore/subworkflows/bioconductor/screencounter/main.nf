@@ -80,10 +80,10 @@ process BIOC_SCREENCOUNTER_SINGLE_BARCODES {
     counts_matrix <- assay(out)
     
     # Write meaningful results to output files
-    # 1. Save the full SummarizedExperiment object
+    # --- Save the full SummarizedExperiment object ---
     saveRDS(out, file="single_barcodes_se.rds")
     
-    # 2. Save the quantified counts as a CSV table
+    # --- Save the quantified counts as a CSV table ---
     write.csv(as.matrix(counts_matrix), file="single_barcodes_counts.csv", row.names=TRUE)
     
     # Print the results to standard output for verification

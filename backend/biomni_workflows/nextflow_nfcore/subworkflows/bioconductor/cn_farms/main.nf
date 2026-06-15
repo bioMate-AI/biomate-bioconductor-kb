@@ -55,7 +55,7 @@ process BIOC_CN_FARMS_CN_FARMS_PIPELINE {
     # Load the required Bioconductor package
     library(cn.farms)
     
-    # 1. Locate CEL files
+    # --- Locate CEL files ---
     # The pipeline reads the declared user input 'cel_files.CEL' from the working directory.
     # If not found under that exact name, it falls back to any CEL files in the directory.
     filenames <- "cel_files.CEL"
@@ -70,11 +70,11 @@ process BIOC_CN_FARMS_CN_FARMS_PIPELINE {
       stop("Error: No CEL files found. Please ensure 'cel_files.CEL' is in the working directory.")
     }
     
-    # 2. Run the cn.farms pipeline to normalize, correct for fragment length, and summarize probe intensities
+    # --- Run the cn.farms pipeline to normalize, correct for ---
     # Keeping the exact function call and argument names from the documented code
     cn.data <- cn.farms(filenames)
     
-    # 3. Extract copy number estimates and save outputs
+    # --- Extract copy number estimates and save outputs ---
     # Save the complete ExpressionSet object as an RDS file
     saveRDS(cn.data, file = "cn_farms_output.rds")
     

@@ -52,7 +52,7 @@ process BIOC_COSMIQ_COSMIQ_WRAPPER {
       }
     }
     
-    # Stage 1: Identify input file paths
+    # --- Identify input file paths ---
     # The pipeline reads raw LCMS/GCMS files (CDF, mzXML, mzML) from the working directory.
     my.input.files <- list.files(
       path = ".", 
@@ -67,12 +67,12 @@ process BIOC_COSMIQ_COSMIQ_WRAPPER {
     # Load the required package
     library(cosmiq)
     
-    # Stage 2: Run the cosmiq wrapper function to combine spectra, detect peaks, 
+    # --- Run the cosmiq wrapper function to combine spectra, ---
     # correct retention times, and quantify features.
     message("Running cosmiq wrapper function on ", length(my.input.files), " files...")
     x <- cosmiq(files=my.input.files, mzbin=0.25, SNR.Th=0, linear=TRUE)
     
-    # Stage 3: Visualize the resulting m/z versus RT map and inspect peak data.
+    # --- Visualize the resulting m/z versus RT map and inspect ---
     # Save the visualization to a PDF file
     pdf_file <- "mz_vs_rt_map.pdf"
     pdf(pdf_file, width = 8, height = 6)

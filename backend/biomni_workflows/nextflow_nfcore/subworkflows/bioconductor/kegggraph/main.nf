@@ -64,17 +64,17 @@ process BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS {
       stop(paste("Required input file", mapkKGML, "not found in the working directory."))
     }
     
-    # 1. Parse the KGML file into a graphNEL object with gene expansion
+    # --- Parse the KGML file into a graphNEL object with gene ---
     mapkG <- parseKGML2Graph(mapkKGML, expandGenes=TRUE)
     
-    # 2. Extract node and edge information
+    # --- Extract node and edge information ---
     mapkNodes <- nodes(mapkG)
     mapkEdges <- edges(mapkG)
     
-    # 3. Retrieve node-specific KEGG attributes
+    # --- Retrieve node-specific KEGG attributes ---
     mapkGnodedata <- getKEGGnodeData(mapkG)
     
-    # 4. Calculate in-degrees and out-degrees to identify central regulatory nodes
+    # --- Calculate in-degrees and out-degrees to identify central ---
     mapkGoutdegrees <- sapply(edges(mapkG), length)
     mapkGindegrees <- sapply(inEdges(mapkG), length)
     topouts <- sort(mapkGoutdegrees, decreasing=TRUE)

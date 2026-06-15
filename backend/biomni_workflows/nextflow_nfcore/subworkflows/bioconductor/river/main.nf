@@ -63,11 +63,11 @@ process BIOC_RIVER_RIVER_EVALUATION {
       stop(paste("Error: Required input file '", input_file, "' not found in the working directory.", sep=""))
     }
     
-    # 1. Import experimental data using getData
+    # --- Import experimental data using getData ---
     message("Importing experimental data...")
     dataInput <- getData(input_file)
     
-    # 2. Run evaluation using evaRIVER with specified hyperparameters
+    # --- Run evaluation using evaRIVER with specified ---
     message("Running RIVER evaluation...")
     evaROC <- evaRIVER(dataInput, 
                        pseudoc=50, 
@@ -75,13 +75,13 @@ process BIOC_RIVER_RIVER_EVALUATION {
                        costs=c(100, 10, 1, .1, .01, 1e-3, 1e-4), 
                        verbose=TRUE)
     
-    # 3. Extract and compare AUC values for GAM and RIVER
+    # --- Extract and compare AUC values for GAM and RIVER ---
     message("Evaluation complete. Results:")
     cat('AUC (GAM-genomic annotation model) = ', round(evaROC\$GAM_auc,3), '\n')
     cat('AUC (RIVER) = ', round(evaROC\$RIVER_auc,3), '\n')
     cat('P-value ', format.pval(evaROC\$pvalue, digits=2, eps=0.001), '***\n')
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     
     # Save evaluation metrics as a CSV table
     metrics_df <- data.frame(

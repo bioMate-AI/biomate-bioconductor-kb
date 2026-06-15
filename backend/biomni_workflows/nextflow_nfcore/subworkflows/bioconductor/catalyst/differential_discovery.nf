@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare the SingleCellExperiment object using prepData. 2. Perform FlowSOM clustering and ConsensusClusterPlus metaclustering usin
+//  * 1. [Visualization & Output] Read User Input Files & Data Preparation
+//  * 2. [Visualization & Output] Clustering & Manual Merging
+//  * 3. [Visualization & Output] Dimensionality Reduction
+//  * 4. [Visualization & Output] Differential Testing & Visualization
 
 nextflow.enable.dsl = 2
 
@@ -39,6 +42,15 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CATALYST", "flowCore", "diffcyt", "scater", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,13 +61,14 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
         }
                 
                 # Load required libraries
-                library(CATALYST)
+                          library(SummarizedExperiment)
+      library(CATALYST)
                 library(flowCore)
                 library(diffcyt)
                 library(scater)
                 
                 # ==========================================
-                # 1. Read User Input Files & Data Preparation
+                # --- Read User Input Files & Data Preparation ---
                 # ==========================================
                 
                 # Read metadata and panel files
@@ -90,7 +103,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 sce <- prepData(PBMC_fs, PBMC_panel, PBMC_md)
                 
                 # ==========================================
-                # 2. Clustering & Manual Merging
+                # --- Clustering & Manual Merging ---
                 # ==========================================
                 
                 # Perform FlowSOM clustering and ConsensusClusterPlus metaclustering
@@ -107,7 +120,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 sce <- mergeClusters(sce, k = "meta20", table = merging_table, id = "merging1")
                 
                 # ==========================================
-                # 3. Dimensionality Reduction
+                # --- Dimensionality Reduction ---
                 # ==========================================
                 
                 # Run UMAP on a subset of cells (safely bounded by total available cells)
@@ -125,7 +138,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 dev.off()
                 
                 # ==========================================
-                # 4. Differential Testing & Visualization
+                # --- Differential Testing & Visualization ---
                 # ==========================================
                 
                 tryCatch({

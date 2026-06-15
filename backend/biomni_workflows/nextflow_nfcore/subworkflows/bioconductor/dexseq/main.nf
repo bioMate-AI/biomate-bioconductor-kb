@@ -34,7 +34,7 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomeInfoDb", "GenomicAlignments", "GenomicFeatures", "Rsamtools", "DEXSeq", "txdbmaker")
+    .bm_deps <- c("GenomeInfoDb", "GenomicAlignments", "GenomicFeatures", "Rsamtools", "DEXSeq", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -54,19 +54,20 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
     
     # Load required libraries
     library(GenomicFeatures)
+    library(SummarizedExperiment)
     library(txdbmaker)
     library(Rsamtools)
     library(GenomicAlignments)
     library(GenomeInfoDb)
     library(DEXSeq)
     
-    # 1. Prepare annotation using makeTxDbFromGFF() and exonicParts()
+    # --- Prepare annotation using makeTxDbFromGFF() and ---
     txdb = makeTxDbFromGFF("annotation.gtf")
     flattenedAnnotation = exonicParts( txdb, linked.to.single.gene.only=TRUE )
     names(flattenedAnnotation) =
         sprintf("%s:E%0.3d", flattenedAnnotation\$gene_id, flattenedAnnotation\$exonic_part)
     
-    # 2. Count reads overlapping exonic parts using BamFileList() and summarizeOverlaps()
+    # --- Count reads overlapping exonic parts using BamFileList() ---
     bamFiles = c( "sample1.bam", "sample2.bam" )
     bamFiles = BamFileList( bamFiles )
     
@@ -81,24 +82,24 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
         flattenedAnnotation, BamFileList(bamFiles), singleEnd=FALSE,
         fragments=TRUE, ignore.strand=TRUE )
     
-    # 3. Build a DEXSeqDataSet using DEXSeqDataSetFromSE()
+    # --- Build a DEXSeqDataSet using DEXSeqDataSetFromSE() ---
     colData(se)\$condition = factor(c("untreated1", "untreated3"))
     colData(se)\$libType = factor(c("single-end", "paired-end"))
     dxd = DEXSeqDataSetFromSE( se, design= ~ sample + exon + condition:exon )
     
-    # 4. Estimate size factors using estimateSizeFactors()
+    # --- Estimate size factors using estimateSizeFactors() ---
     dxd = estimateSizeFactors( dxd )
     
-    # 5. Estimate dispersions using estimateDispersions()
+    # --- Estimate dispersions using estimateDispersions() ---
     dxd = estimateDispersions( dxd )
     
-    # 6. Test for differential exon usage using testForDEU()
+    # --- Test for differential exon usage using testForDEU() ---
     dxd = testForDEU( dxd )
     
-    # 7. Estimate exon fold changes using estimateExonFoldChanges()
+    # --- Estimate exon fold changes using estimateExonFoldChanges() ---
     dxd = estimateExonFoldChanges( dxd, fitExpToVar="condition")
     
-    # 8. Extract results using DEXSeqResults()
+    # --- Extract results using DEXSeqResults() ---
     dxr1 = DEXSeqResults( dxd )
     
     # Write meaningful output files

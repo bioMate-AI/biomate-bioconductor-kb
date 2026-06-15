@@ -35,6 +35,15 @@ process BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("RegEnrich", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -105,19 +114,19 @@ process BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS {
     
     message("Stage 4: Running the RegEnrich pipeline...")
     
-    # 1. Differential expression analysis
+    # --- Differential expression analysis ---
     message("Step 4.1: Running differential expression analysis...")
     object <- regenrich_diffExpr(object)
     
-    # 2. Regulator-target network inference
+    # --- Regulator-target network inference ---
     message("Step 4.2: Inferring regulator-target network...")
     object <- regenrich_network(object)
     
-    # 3. Enrichment analysis
+    # --- Enrichment analysis ---
     message("Step 4.3: Performing enrichment analysis...")
     object <- regenrich_enrich(object)
     
-    # 4. Regulator scoring and ranking
+    # --- Regulator scoring and ranking ---
     message("Step 4.4: Scoring and ranking regulators...")
     object <- regenrich_rankScore(object)
     

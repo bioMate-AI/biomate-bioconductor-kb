@@ -68,14 +68,14 @@ process BIOC_REPVIZ_REPLICATE_SEQUENCING_VISUALIZATION {
       stop(paste("Required input file missing:", bed_input_csv))
     }
     
-    # Stage 1: Define the genomic region of interest using GenomicRanges
+    # --- Define the genomic region of interest using GenomicRanges ---
     region <- GRanges("chr12:110938000-110940000")
     
     # Set up PDF device to capture the generated visualization
     output_plot <- "replicate_visualization.pdf"
     pdf(output_plot, width = 8, height = 10)
     
-    # Stage 2: Run the RepViz function to generate the multi-panel visualization plot
+    # --- Run the RepViz function to generate the multi-panel ---
     RepViz::RepViz(region = region,
         genome = "hg19",
         BAM = "BAM_input.csv",

@@ -62,12 +62,12 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     gdsfile <- "tmp.gds"
     pedigree_file <- "pedigree_data.RData"
     
-    # 1. Convert VCF to GDS format and open it
+    # --- Convert VCF to GDS format and open it ---
     seqVCF2GDS(vcffile, gdsfile, verbose=FALSE)
     gds <- seqOpen(gdsfile)
     gds
     
-    # 2. Extract basic variant info
+    # --- Extract basic variant info ---
     head(refChar(gds))
     head(altChar(gds))
     table(nAlleles(gds))
@@ -126,7 +126,7 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     # Open PDF for all QC and association plots
     pdf("qc_and_association_plots.pdf", width=10, height=8)
     
-    # 3. Calculate QC metrics
+    # --- Calculate QC metrics ---
     titv(gds)
     head(titv(gds, by.sample=TRUE))
     
@@ -188,7 +188,7 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     hist(hethom, main="", xlab="Het/Hom Non-Ref")
     seqSetFilter(gds)
     
-    # 4. Population structure and Hardy-Weinberg Equilibrium
+    # --- Population structure and Hardy-Weinberg Equilibrium ---
     pc <- pca(gds)
     saveRDS(pc, "pca_results.rds")
     names(pc)
@@ -206,7 +206,7 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     ic <- inbreedCoeff(gds, margin="by.sample")
     range(ic)
     
-    # 5. Check for Mendelian errors using pedigree data
+    # --- Check for Mendelian errors using pedigree data ---
     loaded_objs <- load(pedigree_file)
     # Ensure the loaded pedigree object is correctly named 'pedigree'
     if (!"pedigree" %in% loaded_objs) {
@@ -223,7 +223,7 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     table(err\$by.variant)
     err\$by.trio
     
-    # 6. Combine GDS and sample annotation into a SeqVarData object and run association tests
+    # --- Combine GDS and sample annotation into a SeqVarData ---
     sample.id <- seqGetData(gds, "sample.id")
     pedigree <- pedigree[match(sample.id, pedigree\$sample.id),]
     sample.data <- AnnotatedDataFrame(pedigree)

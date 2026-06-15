@@ -34,7 +34,7 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("bambu", "BiocFileCache", "DESeq2", "DEXSeq", "ExperimentHub", "nanoporernaseq")
+    .bm_deps <- c("bambu", "BiocFileCache", "DESeq2", "DEXSeq", "ExperimentHub", "nanoporernaseq", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,6 +53,7 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     }
     
     # Load required library
+    library(SummarizedExperiment)
     library(bambu)
     
     # Define input files from the working directory as specified by the user
@@ -60,10 +61,10 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     gtf.file <- "Homo_sapiens.GRCh38.91_chr9_1_1000000.gtf"
     fa.file <- "Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa"
     
-    # 1. Prepare reference annotations
+    # --- Prepare reference annotations ---
     bambuAnnotations <- prepareAnnotations(gtf.file)
     
-    # 2. Run bambu to perform transcript discovery and quantification (single sample)
+    # --- Run bambu to perform transcript discovery and ---
     se <- bambu(reads = test.bam, annotations = bambuAnnotations, genome = fa.file)
     
     # Set up variables for the multi-sample documented steps using our input data
@@ -74,10 +75,10 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     # Run bambu for the multi-sample workflow
     se.multiSample <- bambu(reads = bamFiles, annotations = HsChr22BambuAnnotation, genome = genomeSequence)
     
-    # 3. Convert transcript expression estimates to gene expression estimates
+    # --- Convert transcript expression estimates to gene ---
     seGene.multiSample <- transcriptToGeneExpression(se.multiSample)
     
-    # 4. Export the extended annotations and expression estimates
+    # --- Export the extended annotations and expression estimates ---
     save.dir <- "bambu_outputs"
     if (!dir.exists(save.dir)) {
         dir.create(save.dir, recursive = TRUE)
@@ -91,7 +92,7 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     saveRDS(se.multiSample, file = file.path(save.dir, "se_multiSample.rds"))
     saveRDS(seGene.multiSample, file = file.path(save.dir, "seGene_multiSample.rds"))
     
-    # 5. Visualize sample correlations and annotations
+    # --- Visualize sample correlations and annotations ---
     # We write the plots to a PDF file and wrap them in tryCatch blocks to ensure
     # robustness (e.g., if single-sample limits PCA/heatmap or if the specific gene is absent)
     pdf("bambu_visualizations.pdf", width = 8, height = 8)

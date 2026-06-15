@@ -74,23 +74,23 @@ process BIOC_RBLAST_QUERY_EXISTING_BLAST_DB {
       bfcadd(bfc, rname = db_url, fpath = "16S_ribosomal_RNA.tar.gz", action = "copy")
     }
     
-    # 1. Download/retrieve the database archive using blast_db_get
+    # --- Download/retrieve the database archive using blast_db_get ---
     message("Retrieving database archive path...")
     tgz_file <- blast_db_get ( "16S_ribosomal_RNA.tar.gz" )
     
-    # 2. Extract the database files using untar
+    # --- Extract the database files using untar ---
     message("Extracting database files...")
     untar (tgz_file, exdir = "16S_rRNA_DB" )
     
-    # 3. Load the BLAST database using blast
+    # --- Load the BLAST database using blast ---
     message("Loading BLAST database...")
     bl <- blast ( db = "./16S_rRNA_DB/16S_ribosomal_RNA" )
     
-    # 4. Read query sequences using readRNAStringSet (adapted from user input file)
+    # --- Read query sequences using readRNAStringSet (adapted from ---
     message("Reading query sequences...")
     seq <- readRNAStringSet ( "RNA_example.fasta" )[ 1 ]
     
-    # 5. Query the database using predict with default arguments
+    # --- Query the database using predict with default arguments ---
     message("Running BLAST query (default)...")
     cl <- predict (bl, seq)
     
@@ -98,7 +98,7 @@ process BIOC_RBLAST_QUERY_EXISTING_BLAST_DB {
     write.csv(cl, "blast_results_default.csv", row.names = FALSE)
     saveRDS(cl, "blast_results_default.rds")
     
-    # 6. Query the database using predict with custom arguments and formats
+    # --- Query the database using predict with custom arguments ---
     message("Running BLAST query (custom format and identity threshold)...")
     fmt <- paste ( "qaccver saccver pident length mismatch gapopen qstart qend" , "sstart send evalue bitscore qseq sseq" )
     cl <- predict (bl, seq, BLAST_args = "-perc_identity 99" , custom_format = fmt )

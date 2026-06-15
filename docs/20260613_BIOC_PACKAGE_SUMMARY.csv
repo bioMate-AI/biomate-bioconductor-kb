@@ -1,0 +1,1819 @@
+package,domain,n_workflows,n_runnable_ok,n_exec_error,workflows
+a4,transcriptomics,4,0,0,a4; a4_log_ratio_analysis; a4_microarray_class_prediction; a4_pathway_enrichment_mlp
+a4classif,transcriptomics,1,0,0,a4Classif
+a4core,transcriptomics,1,1,0,a4Core
+a4preproc,transcriptomics,1,1,0,a4Preproc
+abseqr,genomics,4,3,1,abseqr; abseqr_custom_downstream_comparison; abseqr_custom_sample_comparison; abseqr_multi_directory_comparison
+absseq,transcriptomics,4,3,1,absseq; absseq_complex_design_analysis; absseq_single_replicate_de_analysis; absseq_variance_stabilization_and_pca
+acde,transcriptomics,2,0,0,acde; acde_time_course_analysis
+ace,genomics,4,0,0,ace; ace_batch_post_analysis; ace_single_sample_refinement; ace_variant_and_segment_annotation
+acgh,imaging,5,2,3,acgh; acgh_association_testing; acgh_clustering; acgh_read_sproc_files; acgh_sproc_import
+acme,genomics,1,0,1,acme
+adacgh2,variant_calling,4,0,2,adacgh2; adacgh2_directory_ff_forking; adacgh2_ff_objects_cluster; adacgh2_large_text_file_cutting
+adapt,transcriptomics,1,0,0,adapt
+adductomicsr,epigenomics,1,1,0,adductomicsr
+adsplit,transcriptomics,2,0,1,adsplit; adsplit_manual_split_and_null_distribution
+adverscarial,transcriptomics,5,0,0,adverscarial; adverscarial_cluster_gradient_descent_attack; adverscarial_max_change_attack; adverscarial_random_walk_minimum_change_attack; adverscarial_vulnerability_overview
+affixcan,transcriptomics,2,0,0,affixcan; affixcan_k_fold_cross_validation
+affy,transcriptomics,1,1,0,affy
+affycomp,transcriptomics,1,1,0,affycomp
+affycontam,transcriptomics,1,0,0,affycontam
+affycoretools,transcriptomics,2,1,0,affycoretools; affycoretools_interactive_venn_diagram_generation
+affyilm,transcriptomics,1,0,0,affyILM
+affylmgui,transcriptomics,1,1,0,affylmGUI
+affyplm,transcriptomics,2,0,2,affyplm; affyplm_flexible_threestep_preprocessing
+affyrnadegradation,transcriptomics,2,0,0,affyrnadegradation; affyrnadegradation_integrated_calibration_pipeline
+agdex,transcriptomics,1,0,0,agdex
+aggregatebiovar,transcriptomics,1,0,0,aggregatebiovar
+agilp,transcriptomics,1,0,0,agilp
+agimicrorna,transcriptomics,3,3,0,agimicrorna; agimicrorna_agilent_microrna_rma_workflow; agimicrorna_agilent_rma_workflow
+ahmassbank,metabolomics,1,1,0,AHMassBank
+aims,transcriptomics,1,1,0,aims
+airpart,transcriptomics,1,0,0,airpart
+alabaster_base,general,1,0,0,alabaster_base
+alabaster_bumpy,general,1,0,0,alabaster_bumpy
+alabaster_files,general,1,0,0,alabaster_files
+alabaster_mae,general,1,0,0,alabaster_mae
+alabaster_matrix,general,1,0,0,alabaster_matrix
+alabaster_ranges,general,1,0,0,alabaster_ranges
+alabaster_sce,general,1,0,0,alabaster_sce
+alabaster_se,general,1,0,0,alabaster_se
+alabaster_spatial,transcriptomics,1,0,0,alabaster_spatial
+alabaster_string,general,1,0,0,alabaster_string
+alabaster_vcf,variant_calling,1,0,0,alabaster_vcf
+aldex2,transcriptomics,4,0,4,aldex2; aldex2_complex_design_glm; aldex2_scale_simulation; aldex2_sensitivity_analysis
+alevinqc,single_cell,4,3,1,alevinqc; alevinqc_custom_plotting_and_data_extraction; alevinqc_interactive_and_individual_plots; alevinqc_interactive_shiny_app
+alphabeta,epigenomics,3,0,3,alphabeta; alphabeta_somatic_clonal_systems_epimutation_rate; alphabeta_somatic_epimutation_analysis
+alphamissenser,genomics,4,0,4,alphamissenser; alphamissenser_clinvar_benchmarking; alphamissenser_genomic_track_plot; alphamissenser_protein_structure_visualization
+alpsnmr,genomics,3,0,3,alpsnmr; alpsnmr_older_peak_integration; alpsnmr_untargeted_nmr_metabolomics_classic
+altcdfenvs,transcriptomics,2,2,0,altcdfenvs; altcdfenvs_subset_and_modify_cdf_env
+amaretto,transcriptomics,1,0,0,amaretto
+amountain,transcriptomics,3,0,0,amountain; amountain_multi_layer_module_detection; amountain_two_layer_module_detection
+amplican,genomics,1,1,0,amplican
+ancombc,transcriptomics,4,0,0,ancombc; ancombc_ancombc2_advanced_da; ancombc_bias_corrected_da; ancombc_secom_correlation_analysis
+anf,systems_biology,2,0,2,anf; anf_multi_view_affinity_network_fusion
+annaffy,transcriptomics,2,0,0,annaffy; annaffy_metadata_search
+annotate,genomics,1,1,0,annotate
+annotationhub,variant_calling,1,0,1,AnnotationHub
+annotationtools,transcriptomics,2,1,1,annotationtools; annotationtools_cross_species_expression_integration
+anota,transcriptomics,1,0,0,anota
+anota2seq,transcriptomics,2,1,1,anota2seq; anota2seq_summarized_experiment_analysis
+antiprofiles,transcriptomics,1,0,0,antiProfiles
+anvil,genomics,1,0,1,AnVIL
+anvilaz,genomics,1,0,1,AnVILAz
+anvilbase,general,1,0,1,AnVILBase
+anvilbilling,general,1,0,0,anvilbilling
+anvilworkflow,genomics,1,0,1,AnVILWorkflow
+apalyzer,transcriptomics,6,6,0,apalyzer; apalyzer_cds_gene_expression_analysis; apalyzer_gene_expression_analysis; apalyzer_intronic_apa_analysis; apalyzer_paired_end_3most_extraction; apalyzer_three_utr_apa_analysis
+apcomplex,proteomics,1,0,1,apcomplex
+apeglm,transcriptomics,1,1,0,apeglm
+apl,transcriptomics,2,0,0,apl; apl_step_by_step_apl
+appreci8r,variant_calling,1,0,0,appreci8r
+arrayexpress,transcriptomics,1,1,0,ArrayExpress
+arraymvout,transcriptomics,3,1,1,arraymvout; arraymvout_direct_affybatch_outlier_detection; arraymvout_outlier_detection_from_affybatch
+arrayqualitymetrics,transcriptomics,1,0,1,arrayqualitymetrics
+arrmnormalization,epigenomics,1,0,0,arrmnormalization
+aseb,proteomics,3,1,2,aseb; aseb_protein_acetylation_prediction; aseb_protein_specific_prediction
+asgsca,genetics,1,0,0,asgsca
+asics,metabolomics,4,0,3,asics; asics_custom_library_creation; asics_custom_reference_library_creation; asics_spectral_bucket_analysis
+aspli,transcriptomics,1,0,1,aspli
+assessorf,genomics,1,0,0,assessorf
+asset,genomics,2,0,0,asset; asset_disease_subtype_analysis
+assign,transcriptomics,1,1,0,ASSIGN
+asurat,transcriptomics,1,1,0,asurat
+atacseqqc,transcriptomics,2,2,0,atacseqqc; atacseqqc_atacseq_downstream_analysis
+atacseqtfea,genomics,2,0,2,atacseqtfea; atacseqtfea_step_by_step_tfea
+atena,transcriptomics,3,0,1,atena; atena_telescope_quantification; atena_tetranscripts_quantification
+attract,transcriptomics,1,0,1,attract
+aucell,transcriptomics,1,0,1,aucell
+awfisher,general,2,0,0,awfisher; awfisher_biomarker_categorization_and_pattern_detection
+awst,transcriptomics,1,1,0,awst
+baalchip,variant_calling,1,1,0,BaalChIP
+bacon,genomics,3,2,0,bacon; bacon_adjustment_with_95_ci; bacon_multiple_sets_and_meta_analysis
+bader,transcriptomics,1,0,0,bader
+badregionfinder,genomics,1,0,0,badregionfinder
+bags,transcriptomics,1,0,0,BAGS
+ballgown,transcriptomics,4,4,0,ballgown; ballgown_custom_model_differential_expression; ballgown_transcript_clustering_and_analysis; ballgown_transcript_clustering_and_testing
+bambu,transcriptomics,3,3,0,bambu; bambu_custom_model_training_and_application; bambu_model_training_and_denovo_discovery
+bamsignals,genomics,1,1,0,bamsignals
+bandits,transcriptomics,1,0,0,BANDITS
+bandle,proteomics,1,0,0,bandle
+banksy,transcriptomics,3,0,0,banksy; banksy_multi_sample_joint_clustering; banksy_spatial_integration_with_harmony
+banocc,metagenomics,1,0,0,banocc
+barcodetrackr,genomics,1,0,1,barcodetrackR
+basecallqc,genomics,3,3,0,basecallqc; basecallqc_basecall_qc_analysis; basecallqc_bcl2fastq_qc_analysis_and_reporting
+basespacer,genomics,1,0,1,BaseSpaceR
+basic4cseq,genomics,1,0,0,basic4cseq
+basics,transcriptomics,2,2,0,basics; basics_two_group_differential_expression
+basicstan,transcriptomics,1,0,0,basicstan
+basicstarrseq,genomics,2,0,0,basicstarrseq; basicstarrseq_peak_calling_from_granges
+basilisk,general,1,0,1,basilisk
+batchelor,transcriptomics,3,1,2,batchelor; batchelor_batch_rescaling; batchelor_cluster_mnn_correction
+batchqc,transcriptomics,1,0,1,batchqc
+bayesknockdown,transcriptomics,3,0,0,bayesknockdown; bayesknockdown_bayes_knockdown_diff_exp; bayesknockdown_bayes_knockdown_expressionset
+bayesspace,transcriptomics,1,1,0,bayesspace
+baynorm,transcriptomics,2,0,0,baynorm; baynorm_supplementary_generation
+bayseq,transcriptomics,4,1,1,bayseq; bayseq_generic_zinb_analysis; bayseq_paired_data_beta_binomial; bayseq_srna_seq_lengths_multiple_groups
+bbcanalyzer,genomics,3,0,1,bbcanalyzer; bbcanalyzer_plot_only_analysis; bbcanalyzer_visualization_only
+bcrank,genomics,1,0,1,bcrank
+bcseq,transcriptomics,3,0,0,bcseq; bcseq_barcode_alignment_custom_probability; bcseq_barcode_alignment_edit
+beaddatapackr,genomics,1,0,1,BeadDataPackR
+beat,epigenomics,1,1,0,beat
+beclear,epigenomics,2,0,0,beclear; beclear_one_step_batch_correction
+beer,genomics,1,0,0,beer
+benchdamic,transcriptomics,4,0,0,benchdamic; benchdamic_concordance_analysis; benchdamic_enrichment_analysis; benchdamic_type_i_error_control
+bert,transcriptomics,4,0,0,bert; bert_covariate_batch_correction; bert_reference_based_correction; bert_summarized_experiment_correction
+betahmm,epigenomics,2,0,2,betahmm; betahmm_threshold_estimation
+bettr,genomics,1,0,0,bettr
+bg2,genomics,2,0,1,bg2; bg2_binary_gwas
+bgeedb,transcriptomics,1,1,0,BgeeDB
+bicare,transcriptomics,1,1,0,bicare
+biggr,systems_biology,1,0,1,BiGGR
+bigmelon,epigenomics,1,1,0,bigmelon
+bindingsitefinder,transcriptomics,2,0,2,bindingsitefinder; bindingsitefinder_differential_binding_analysis
+biobase,general,1,0,1,Biobase
+biobroom,transcriptomics,1,1,0,biobroom
+biobtreer,general,1,0,0,biobtreeR
+biocancer,transcriptomics,1,0,0,bioCancer
+biocartaimage,imaging,1,0,0,BioCartaImage
+biocbook,imaging,1,0,1,BiocBook
+biocgraph,general,1,0,1,biocGraph
+biocor,transcriptomics,3,0,0,biocor; biocor_merge_similarity_sources; biocor_wgcna_integration
+biocpkgtools,general,1,0,1,BiocPkgTools
+biocroxytest,general,1,0,0,biocroxytest
+biocset,transcriptomics,1,1,0,BiocSet
+biocsklearn,general,1,1,0,BiocSklearn
+biocthis,general,1,0,1,biocthis
+biocviews,genomics,1,1,0,biocViews
+biodb,metabolomics,1,1,0,biodb
+biodbchebi,metabolomics,1,1,0,biodbChebi
+biodbhmdb,metabolomics,1,0,0,biodbHmdb
+biodbncbi,general,1,0,1,biodbNcbi
+biodbnci,drug_discovery,1,0,1,biodbNci
+biodbuniprot,proteomics,1,0,1,biodbUniprot
+biodist,transcriptomics,2,2,0,biodist; biodist_correlation_distance_and_neighbor_search
+bioga,genomics,1,0,0,bioga
+biomart,general,1,1,0,biomaRt
+biomformat,metagenomics,1,1,0,biomformat
+biomvrcns,transcriptomics,3,0,0,biomvrcns; biomvrcns_dmr_detection; biomvrcns_rna_seq_transcript_detection
+bionar,proteomics,1,1,0,bionar
+bionero,transcriptomics,4,2,1,bionero; bionero_consensus_modules; bionero_gene_regulatory_network; bionero_module_preservation
+bionet,transcriptomics,3,1,0,bionet; bionet_consensus_module_detection; bionet_exact_module_detection
+bioqc,transcriptomics,1,0,0,bioqc
+biosigner,general,3,0,0,biosigner; biosigner_multi_assay_experiment_analysis; biosigner_summarized_experiment_analysis
+biostrings,genomics,1,0,1,Biostrings
+biotip,transcriptomics,1,0,0,BioTIP
+biotmle,transcriptomics,1,0,0,biotmle
+biovizbase,general,1,0,1,biovizBase
+birewire,systems_biology,1,0,0,BiRewire
+biscuiteer,epigenomics,1,1,0,biscuiteer
+biseq,genomics,4,0,4,biseq; biseq_predefined_regions_biseq; biseq_predefined_regions_global_test; biseq_two_sample_dmr_detection
+blacksheepr,transcriptomics,3,0,0,blacksheepr; blacksheepr_piecewise_outlier_analysis; blacksheepr_raw_counts_normalization_and_formatting
+blima,transcriptomics,2,0,0,blima; blima_alternative_preprocessing_options
+blma,transcriptomics,2,0,2,blma; blma_network_based_integrative_analysis
+bloodgen3module,transcriptomics,1,1,0,BloodGen3Module
+bnbc,epigenomics,2,0,0,bnbc; bnbc_hic_normalization_from_cooler
+bnem,transcriptomics,2,0,0,bnem; bnem_inference_with_preattached_egenes
+bobafit,genomics,1,1,0,bobafit
+borealis,epigenomics,1,0,1,borealis
+bprmeth,transcriptomics,1,0,0,BPRMeth
+brain,proteomics,3,2,0,brain; brain_heuristic_isotopic_distribution; brain_high_throughput_protein_processing
+branchpointer,genomics,3,1,0,branchpointer; branchpointer_snp_effect_evaluation; branchpointer_snp_effect_prediction
+brendadb,biochemistry,1,0,0,brendaDb
+brew3r_r,transcriptomics,1,0,0,brew3r_r
+bridgedbr,systems_biology,1,0,0,BridgeDbR
+broadseq,transcriptomics,1,0,0,broadseq
+browserviz,general,1,1,0,BrowserViz
+bsgenome,genomics,5,1,4,bsgenome; bsgenome_constant_width_dict_search; bsgenome_constant_width_dictionary_search; bsgenome_masked_genome_analysis; bsgenome_masked_sequence_analysis
+bsgenomeforge,genomics,1,0,1,BSgenomeForge
+bsseq,genomics,2,2,0,bsseq; bsseq_large_scale_hdf5_analysis
+bubbletree,variant_calling,1,0,0,BubbleTree
+bufferedmatrix,general,1,0,0,BufferedMatrix
+bugsigdbr,metagenomics,1,1,0,bugsigdbr
+bumhmm,transcriptomics,1,0,0,bumhmm
+bumphunter,epigenomics,2,0,1,bumphunter; bumphunter_full_bumphunter_analysis
+bumpymatrix,general,1,0,1,BumpyMatrix
+bus,transcriptomics,2,0,0,bus; bus_supervised_gene_trait_association
+buscorrect,transcriptomics,2,0,0,buscorrect; buscorrect_bus_correct_summarized_experiment
+busparse,transcriptomics,3,3,0,busparse; busparse_transcript_to_gene_generation; busparse_transcript_to_gene_mapping
+busseq,transcriptomics,1,1,0,busseq
+cadra,transcriptomics,1,0,0,cadra
+caen,transcriptomics,1,0,0,caen
+cafe,transcriptomics,1,1,0,cafe
+cagefightr,transcriptomics,1,1,0,cagefightr
+cageminer,transcriptomics,1,1,0,cageminer
+camera,epigenomics,5,0,5,camera; camera_isotope_detection_with_validation; camera_isotope_validation; camera_multi_sample_lcms_diffreport; camera_multiple_sample_diffreport
+camutqc,variant_calling,3,0,2,camutqc; camutqc_cancer_or_reference_specific_filtering; camutqc_multi_caller_integration
+cancer,transcriptomics,1,0,0,canceR
+cancerclass,transcriptomics,2,0,0,cancerclass; cancerclass_predictor_construction_and_independent_validation
+cardelino,transcriptomics,2,2,0,cardelino; cardelino_clone_id_denovo
+cardinal,imaging,7,3,4,cardinal; cardinal_class_comparison; cardinal_differential_abundance_testing; cardinal_supervised_classification; cardinal_supervised_pixel_classification; cardinal_unsupervised_analysis_and_segmentation; cardinal_unsupervised_spatial_analysis_and_segmentation
+cardinalio,imaging,1,0,1,CardinalIO
+carnival,transcriptomics,3,2,1,carnival; carnival_inverse_carnival; carnival_two_step_carnival
+casper,transcriptomics,1,1,0,casper
+catalyst,transcriptomics,2,2,0,catalyst; catalyst_differential_discovery
+category,transcriptomics,2,2,0,category; category_chrom_band_hypergeometric_test
+categorycompare,transcriptomics,1,0,1,categorycompare
+catscradle,transcriptomics,3,3,0,catscradle; catscradle_gene_function_prediction; catscradle_spatial_neighborhood_analysis
+causalr,transcriptomics,3,3,0,causalr; causalr_sequential_causal_analysis_of_networks_scan; causalr_sequential_causal_analysis_scan
+cbaf,transcriptomics,2,0,0,cbaf; cbaf_multiple_studies_analysis
+cbea,metagenomics,1,1,0,cbea
+cbioportaldata,genomics,1,0,1,cBioPortalData
+cbnplot,transcriptomics,1,1,0,cbnplot
+ccfindr,transcriptomics,3,3,0,ccfindr; ccfindr_bayesian_nmf; ccfindr_bayesian_nmf_and_hierarchy
+ccimpute,transcriptomics,2,1,0,ccimpute; ccimpute_decomposed_imputation
+ccplotr,transcriptomics,1,1,0,CCPlotR
+ccpromise,transcriptomics,2,0,0,ccpromise; ccpromise_probe_pair_level_ccpromise
+cdi,transcriptomics,2,0,0,cdi; cdi_multi_batch_cdi
+celaref,transcriptomics,3,3,0,celaref; celaref_scrna_seq_query_vs_microarray_ref; celaref_scrnaseq_to_microarray_comparison
+celda,transcriptomics,2,1,1,celda; celda_decontx_decontamination
+cellbarcode,transcriptomics,2,2,0,cellbarcode; cellbarcode_scrnaseq_sam_lineage_barcoding
+cellbench,single_cell,2,0,0,cellbench; cellbench_method_timing_benchmarking
+cellid,transcriptomics,2,0,0,cellid; cellid_functional_annotation
+cellity,transcriptomics,2,0,0,cellity; cellity_svm_based_quality_classification
+cellmapper,transcriptomics,2,0,0,cellmapper; cellmapper_custom_data_search
+cellmixs,transcriptomics,3,1,0,cellmixs; cellmixs_comprehensive_metric_evaluation; cellmixs_evaluate_and_compare_integration
+cellnoptr,systems_biology,4,2,0,cellnoptr; cellnoptr_cross_validation; cellnoptr_ilp_optimization; cellnoptr_two_time_point_ga
+cellscore,transcriptomics,1,1,0,CellScore
+cellxgenedp,transcriptomics,1,1,0,cellxgenedp
+cemitool,transcriptomics,2,2,0,cemitool; cemitool_diagnostic_and_troubleshooting_analysis
+censcyt,single_cell,2,0,0,censcyt; censcyt_censored_da_wrapper
+cepo,transcriptomics,3,3,0,cepo; cepo_batch_aware_differential_stability; cepo_out_of_memory_parallel_differential_stability
+cetf,transcriptomics,2,0,0,cetf; cetf_step_by_step_pcit_rif
+cexor,epigenomics,1,0,0,cexor
+cfassay,pharmacology,2,0,0,cfassay; cfassay_two_way_anova_cfa
+cfdnakit,genomics,2,1,0,cfdnakit; cfdnakit_create_panel_of_normals
+cfdnapro,genomics,5,0,5,cfdnapro; cfdnapro_inter_peak_valley_distance; cfdnapro_modal_fragment_size; cfdnapro_multi_cohort_comparison; cfdnapro_peak_valley_highlighting
+cftools,epigenomics,4,0,2,cftools; cftools_cancer_detection; cftools_tissue_deconvolution_cfsort; cftools_tissue_deconvolution_em
+cgen,variant_calling,3,0,0,cgen; cgen_matched_case_control; cgen_snp_logistic_interaction
+cghcall,genomics,1,0,0,cghcall
+cghmcr,genomics,2,1,1,cghmcr; cghmcr_minimum_common_regions_mcr
+cghnormaliter,genomics,1,0,0,CGHnormaliter
+cghregions,genomics,1,0,0,cghregions
+chemmineob,drug_discovery,1,0,1,ChemmineOB
+chemminer,drug_discovery,5,2,3,chemminer; chemminer_database_storage_and_querying; chemminer_large_file_streaming; chemminer_large_sdf_streaming; chemminer_sql_database_storage
+chetah,transcriptomics,2,0,0,chetah; chetah_reference_qc_and_preparation
+chicago,epigenomics,3,1,1,chicago; chicago_genomic_interactions_downstream; chicago_peak_enrichment_analysis
+chihaya,general,1,0,1,chihaya
+chimeraviz,genomics,2,0,0,chimeraviz; chimeraviz_fusion_reads_alignment_and_plotting
+chipcomp,epigenomics,1,1,0,chipcomp
+chipenrich,epigenomics,8,0,3,chipenrich; chipenrich_diagnostic_qc_plots; chipenrich_hybrid_enrichment; chipenrich_narrow_peak_enrichment; chipenrich_narrow_peak_enrichment_chipenrich; chipenrich_narrow_peak_enrichment_polyenrich; chipenrich_proximity_analysis; chipenrich_proximity_to_regulatory_regions
+chipexoqual,genomics,2,1,0,chipexoqual; chipexoqual_subsampling_analysis
+chipqc,epigenomics,3,0,0,chipqc; chipqc_single_sample_chipseq_qc; chipqc_single_sample_qc
+chipseeker,epigenomics,6,0,5,chipseeker; chipseeker_multi_dataset_comparison; chipseeker_overlap_testing_and_geo_mining; chipseeker_peak_annotation_and_enrichment; chipseeker_peak_annotation_and_feature_distribution; chipseeker_peak_overlap_significance_and_geo_mining
+chipseq,epigenomics,1,0,1,chipseq
+chipseqr,epigenomics,1,1,0,chipseqr
+chipsim,epigenomics,2,1,1,chipsim; chipsim_transcription_factor_binding_simulation
+chipxpress,transcriptomics,1,0,0,chipxpress
+chopsticks,variant_calling,1,0,0,chopsticks
+chromdraw,genomics,3,2,0,chromdraw; chromdraw_bed_file_karyotype; chromdraw_genomic_ranges_karyotype
+chromheatmap,transcriptomics,1,1,0,chromheatmap
+chromplot,genomics,4,0,0,chromplot; chromplot_histogram_density_profiling; chromplot_segment_and_ancestry_mapping; chromplot_xy_plotting_of_genomic_statistics
+chromstar,genomics,1,0,0,chromstaR
+chromvar,epigenomics,1,0,1,chromvar
+circrnaprofiler,transcriptomics,1,0,0,circrnaprofiler
+circseqaligntk,transcriptomics,3,3,0,circseqaligntk; circseqaligntk_synthetic_read_generation_and_evaluation; circseqaligntk_synthetic_read_simulation_and_evaluation
+cispath,proteomics,1,0,0,cispath
+citefuse,transcriptomics,2,0,0,citefuse; citefuse_between_sample_analysis
+classifyr,general,4,0,0,classifyr; classifyr_advanced_modelling_and_evaluation; classifyr_multi_view_integration; classifyr_parameter_tuning
+cleanuprnaseq,transcriptomics,1,0,0,cleanuprnaseq
+cleaver,proteomics,1,1,0,cleaver
+clevrvis,genomics,3,0,3,clevrvis; clevrvis_allele_aware_visualization; clevrvis_explore_alternative_trees
+clippda,transcriptomics,1,0,0,clippda
+clipper,systems_biology,2,2,0,clipper; clipper_easy_clipper_analysis
+cliprofiler,epigenomics,3,3,0,cliprofiler; cliprofiler_custom_window_profiling; cliprofiler_motif_enrichment_profiling
+cliquems,proteomics,1,0,1,cliquems
+clomial,genomics,1,0,0,clomial
+clst,general,1,0,0,clst
+clstutils,metagenomics,3,0,1,clstutils; clstutils_reference_set_creation; clstutils_reference_set_curation
+clumsid,metabolomics,5,1,4,clumsid; clumsid_gc_ei_ms_lowres; clumsid_lc_ms2_lowres; clumsid_lc_ms2_multi_file_external_peaks; clumsid_lc_ms_ms_external_peaklist
+clustall,general,1,0,0,clustall
+clustcomp,transcriptomics,2,0,0,clustcomp; clustcomp_flat_vs_hierarchical_comparison
+clusterexperiment,transcriptomics,2,1,0,clusterexperiment; clusterexperiment_manual_step_by_step_clustering
+clusterfoldsimilarity,transcriptomics,1,0,0,clusterfoldsimilarity
+clusterjudge,transcriptomics,1,0,0,ClusterJudge
+clusterprofiler,genomics,3,2,0,clusterprofiler; clusterprofiler_biological_theme_comparison; clusterprofiler_gene_set_enrichment_analysis
+clusterseq,transcriptomics,2,0,0,clusterseq; clusterseq_posterior_likelihood_clustering
+clustersignificance,general,3,0,0,clustersignificance; clustersignificance_mlp_analysis; clustersignificance_pca_downstream_analysis
+clusterstab,transcriptomics,1,0,0,clusterstab
+clustifyr,transcriptomics,4,0,0,clustifyr; clustifyr_build_reference_matrix; clustifyr_direct_object_annotation; clustifyr_marker_list_annotation
+cma,transcriptomics,2,0,2,cma; cma_classifier_comparison
+cmapr,transcriptomics,1,0,1,cmapR
+cn_farms,genomics,1,0,1,cn_farms
+cn_mops,variant_calling,1,0,0,cn_mops
+cnanorm,genomics,2,0,0,cnanorm; cnanorm_advanced_ploidy_estimation_workflow
+cner,genomics,3,0,0,cner; cner_cne_identification_and_visualization; cner_pairwise_whole_genome_alignment
+cnordt,proteomics,1,0,0,cnordt
+cnorfeeder,proteomics,2,0,0,cnorfeeder; cnorfeeder_dynamic_feeder_ode
+cnorfuzzy,systems_biology,1,0,0,cnorfuzzy
+cntools,genomics,1,0,1,cntools
+cnvmetrics,variant_calling,3,2,1,cnvmetrics; cnvmetrics_cnv_profile_simulation; cnvmetrics_log2_ratio_similarity
+cnvpanelizer,genomics,1,0,1,cnvpanelizer
+cnvranger,transcriptomics,4,0,0,cnvranger; cnvranger_cnv_expression_eqtl_association; cnvranger_cnv_expression_eqtl_tcga; cnvranger_cnv_phenotype_gwas
+cnvrd2,variant_calling,3,0,0,cnvrd2; cnvrd2_complex_locus_bayesian_clustering; cnvrd2_polymorphic_region_detection
+codex,genomics,2,0,2,codex; codex_case_control_wes_cnv_calling
+cogaps,transcriptomics,2,0,2,cogaps; cogaps_distributed_sc_cogaps_workflow
+cogena,transcriptomics,2,1,1,cogena; cogena_drug_repositioning
+cogeqc,genomics,1,0,1,cogeqc
+cogito,transcriptomics,1,0,1,cogito
+cogps,transcriptomics,1,0,0,cogps
+comapr,genomics,2,1,0,comapr; comapr_single_sperm_co_analysis
+combi,metagenomics,2,0,0,combi; combi_constrained_integration
+comethdmr,genomics,1,1,0,coMethDMR
+compass,transcriptomics,2,2,0,compass; compass_simple_compass
+compcoder,transcriptomics,2,0,0,compcoder; compcoder_phylogenetic_rnaseq_comparison
+compepitools,transcriptomics,3,0,0,compepitools; compepitools_epigenomic_heatmap_visualization; compepitools_genomic_region_annotation
+complexheatmap,genomics,3,1,2,complexheatmap; complexheatmap_annotations_only; complexheatmap_custom_dendrogram_axes
+compounddb,metabolomics,1,1,0,CompoundDb
+compran,proteomics,2,2,0,compran; compran_protein_only_workflow
+compspot,genomics,1,0,0,compspot
+condiments,transcriptomics,1,0,1,condiments
+consensus,transcriptomics,1,0,0,consensus
+consensusclusterplus,genomics,2,2,0,consensusclusterplus; consensusclusterplus_custom_distance_consensus_clustering
+consensusseeker,epigenomics,2,0,0,consensusseeker; consensusseeker_nucleosome_position_consensus
+consica,transcriptomics,1,0,0,consica
+copa,transcriptomics,1,0,0,copa
+cordon,transcriptomics,1,0,1,cordon
+coregx,pharmacology,1,1,0,CoreGx
+cormotif,transcriptomics,1,0,0,cormotif
+corral,transcriptomics,2,0,0,corral; corral_multi_batch_integration
+coseq,transcriptomics,3,1,0,coseq; coseq_deseq2_integrated_coexpression; coseq_edger_integrated_coexpression
+cosia,transcriptomics,2,0,2,cosia; cosia_cross_species_diversity_and_specificity
+cosmiq,epigenomics,2,1,0,cosmiq; cosmiq_step_by_step
+cosnet,systems_biology,2,1,1,cosnet; cosnet_parameter_optimization_and_prediction
+cotan,transcriptomics,3,0,0,cotan; cotan_cell_clustering_and_dea; cotan_gene_coexpression_and_clustering
+countsimqc,transcriptomics,1,0,1,countsimqc
+coveb,transcriptomics,2,0,0,coveb; coveb_cov_estimation_known_blocks
+coverageview,transcriptomics,4,4,0,coverageview; coverageview_interval_coverage_analysis; coverageview_multi_sample_comparison; coverageview_sample_ratio_and_interval_analysis
+covrna,transcriptomics,1,0,0,covrna
+cpvsnp,variant_calling,2,0,0,cpvsnp; cpvsnp_vegas_analysis
+cqn,transcriptomics,2,2,0,cqn; cqn_edger_differential_expression
+crimage,imaging,3,1,0,crimage; crimage_aperio_slide_processing; crimage_copy_number_correction
+crisprball,genomics,1,0,0,CRISPRball
+crisprbase,transcriptomics,1,1,0,crisprBase
+crisprbwa,transcriptomics,2,2,0,crisprbwa; crisprbwa_rnai_seed_alignment
+crisprdesign,transcriptomics,1,1,0,crisprDesign
+crisprscore,transcriptomics,6,6,0,crisprscore; crisprscore_cas12a_on_target_scoring; crisprscore_cas13d_on_target_scoring; crisprscore_indel_frameshift_prediction; crisprscore_off_target_specificity_prediction; crisprscore_off_target_specificity_scoring
+crisprseek,transcriptomics,7,7,0,crisprseek; crisprseek_allele_specific_grna_design; crisprseek_base_editing_grna_design; crisprseek_bulge_offtarget_analysis; crisprseek_offtarget_search_with_bulges; crisprseek_prime_editing_grna_design; crisprseek_prime_editing_pegrna_design
+crisprvariants,variant_calling,1,0,1,CrispRVariants
+crisprviz,transcriptomics,2,0,0,crisprviz; crisprviz_compare_multiple_guidesets
+crlmm,variant_calling,4,0,4,crlmm; crlmm_affy_simple_genotyping_gwas; crlmm_copy_number_and_genotyping_pipeline; crlmm_gwas_preparation_with_snpstats
+csar,epigenomics,1,0,0,csar
+cssq,epigenomics,3,0,0,cssq; cssq_differential_binding_from_precalculated_counts; cssq_differential_binding_pipeline_wrapper
+ctc,general,1,1,0,ctc
+ctdata,transcriptomics,1,1,0,CTdata
+ctrap,transcriptomics,3,0,0,ctrap; ctrap_compare_cmap_perturbations; ctrap_predict_targeting_drugs_and_descriptors
+ctsv,transcriptomics,1,1,0,CTSV
+cummerbund,transcriptomics,1,1,0,cummeRbund
+curatedatlasqueryr,transcriptomics,1,1,0,CuratedAtlasQueryR
+customcmpdb,drug_discovery,1,0,0,customCMPdb
+customprodb,transcriptomics,1,0,0,customProDB
+cyanofilter,imaging,1,0,0,cyanofilter
+cycle,transcriptomics,1,0,0,cycle
+cydar,proteomics,1,0,0,cydar
+cytofpower,proteomics,1,0,0,CyTOFpower
+cytofqc,proteomics,3,1,0,cytofqc; cytofqc_manual_step_by_step_qc; cytofqc_step_by_step_qc_modeling
+cytokernel,transcriptomics,1,1,0,cytokernel
+cytomapper,transcriptomics,2,2,0,cytomapper; cytomapper_on_disk_image_handling
+cytomds,genomics,3,0,0,cytomds; cytomds_generic_expression_matrices; cytomds_large_dataset_parallel
+cytomem,single_cell,1,1,0,cytomem
+cytoml,single_cell,1,0,1,CytoML
+cytopipeline,imaging,2,0,2,cytopipeline; cytopipeline_flowai_json_preprocessing_pipeline
+cytopipelinegui,imaging,1,0,0,CytoPipelineGUI
+cytoviewer,imaging,1,0,0,cytoviewer
+dada2,transcriptomics,1,1,0,dada2
+daglogo,proteomics,2,2,0,daglogo; daglogo_fasta_peptide_analysis
+damefinder,epigenomics,2,0,0,damefinder; damefinder_methyl_circle_visualization
+damirseq,transcriptomics,2,2,0,damirseq; damirseq_cross_validation_and_independent_prediction
+damsel,epigenomics,1,0,0,Damsel
+dart,transcriptomics,2,1,0,dart; dart_wrapper_dart
+dcats,transcriptomics,1,1,0,dcats
+dce,transcriptomics,1,0,1,dce
+ddct,transcriptomics,2,2,0,ddct; ddct_step_by_step_analysis
+ddpcrclust,molecular_biology,1,1,0,ddpcrclust
+dearseq,transcriptomics,2,0,0,dearseq; dearseq_gene_set_analysis
+decipher,genomics,4,0,4,decipher; decipher_fish_probe_design; decipher_microarray_design_and_analysis; decipher_pcr_primer_design
+decomptumor2sig,genomics,4,2,2,decomptumor2sig; decomptumor2sig_mapping_and_comparing_signature_sets; decomptumor2sig_signature_adjustment_for_genomic_subsets; decomptumor2sig_signature_comparison_and_mapping
+deconrnaseq,transcriptomics,1,0,0,deconrnaseq
+decontam,metagenomics,2,0,2,decontam; decontam_prevalence_based_decontamination
+deconvr,transcriptomics,2,0,0,deconvr; deconvr_atlas_extension_and_signature_generation
+decoupler,transcriptomics,3,3,0,decoupler; decoupler_pathway_activity_bulk_rnaseq; decoupler_tf_activity_scrnaseq
+deepsnv,variant_calling,5,1,3,deepsnv; deepsnv_shearwater_bayes_factor; deepsnv_shearwater_bayes_variant_calling; deepsnv_shearwater_ml; deepsnv_shearwater_ml_variant_calling
+deeptarget,transcriptomics,1,0,0,deeptarget
+deformats,transcriptomics,1,1,0,DEFormats
+degcre,transcriptomics,1,0,1,degcre
+degnorm,transcriptomics,1,1,0,degnorm
+degraph,transcriptomics,1,0,1,degraph
+degreport,transcriptomics,3,3,0,degreport; degreport_de_downstream_and_reporting; degreport_expression_pattern_clustering
+degseq,transcriptomics,5,5,0,degseq; degseq_deg_analysis_from_alignments; degseq_deg_from_mapped_reads; degseq_gene_expression_extraction; degseq_get_gene_expression
+delayeddataframe,general,1,0,0,DelayedDataFrame
+delayedrandomarray,general,1,0,1,DelayedRandomArray
+delocal,transcriptomics,2,0,0,delocal; delocal_dynamic_neighborhood
+deltagseg,proteomics,3,1,2,deltagseg; deltagseg_differentiation_subpopulation_estimation; deltagseg_differentiation_transformation
+demand,transcriptomics,1,0,0,demand
+demixt,transcriptomics,2,0,0,demixt; demixt_demixnb_spatial_deconvolution
+demuxmix,single_cell,2,0,2,demuxmix; demuxmix_pooling_non_labeled_with_labeled_cells
+demuxsnp,transcriptomics,1,0,0,demuxsnp
+densvis,transcriptomics,2,0,0,densvis; densvis_density_preserving_umap
+dep,transcriptomics,1,0,0,dep
+depecher,transcriptomics,2,0,0,depecher; depecher_group_probability_plotting
+depinfer,proteomics,1,0,1,depinfer
+deqms,transcriptomics,3,0,1,deqms; deqms_maxquant_lfq; deqms_psm_table_isobaric
+derfinder,transcriptomics,3,0,0,derfinder; derfinder_feature_level_analysis; derfinder_single_base_level_f_statistics
+derfinderhelper,transcriptomics,1,1,0,derfinderHelper
+derfinderplot,transcriptomics,1,1,0,derfinderPlot
+descan2,epigenomics,1,1,0,descan2
+deseq2,transcriptomics,5,4,1,deseq2; deseq2_de_from_transcript_abundance; deseq2_likelihood_ratio_test; deseq2_multi_factor_analysis; deseq2_transformation_and_qc
+desingle,transcriptomics,2,2,0,desingle; desingle_sce_input_workflow
+despace,transcriptomics,2,2,0,despace; despace_differential_spatial_patterns
+destiny,single_cell,6,1,3,destiny; destiny_censored_and_missing_data; destiny_diffusion_map_prediction; destiny_gene_relevance; destiny_projection_prediction; destiny_scrna_seq_gene_relevance
+dewseq,transcriptomics,1,0,0,dewseq
+dexma,transcriptomics,3,0,3,dexma; dexma_batch_effect_correction; dexma_download_geo_data
+dexseq,transcriptomics,5,5,0,dexseq; dexseq_complex_design_workflow; dexseq_complex_experimental_design; dexseq_python_htseq_preprocessed_workflow; dexseq_python_htseq_workflow
+dfp,transcriptomics,2,2,0,dfp; dfp_step_by_step_fuzzy_pipeline
+dfplyr,general,1,0,0,DFplyr
+diffbind,epigenomics,4,4,0,diffbind; diffbind_consensus_peakset_generation; diffbind_multi_factor_analysis; diffbind_occupancy_and_consensus
+diffcoexp,transcriptomics,1,0,0,diffcoexp
+diffcyt,transcriptomics,2,0,0,diffcyt; diffcyt_step_by_step_pipeline
+differentialregulation,transcriptomics,2,2,0,differentialregulation; differentialregulation_bulk_rna_seq_pipeline
+difflogo,genomics,4,0,4,difflogo; difflogo_multiple_motif_comparison_table; difflogo_multiple_pwm_alignment; difflogo_pwm_alignment
+diffustats,transcriptomics,2,0,0,diffustats; diffustats_grid_diffusion_and_benchmarking
+diggit,transcriptomics,1,0,0,diggit
+dino,transcriptomics,3,2,1,dino; dino_custom_depth_normalization; dino_single_cell_experiment_normalization
+dinor,epigenomics,1,0,0,dinoR
+dir_expiry,general,1,0,0,dir_expiry
+director,systems_biology,1,1,0,Director
+dirichletmultinomial,metagenomics,2,2,0,dirichletmultinomial; dirichletmultinomial_generative_classification
+discordant,transcriptomics,1,0,0,discordant
+discorhythm,systems_biology,2,0,0,discorhythm; discorhythm_batch_rhythm_analysis
+distinct,transcriptomics,1,0,0,distinct
+dittoseq,transcriptomics,1,1,0,dittoSeq
+dks,general,2,0,0,dks; dks_bayesian_beta_parameter_analysis
+dmrcaller,epigenomics,3,2,0,dmrcaller; dmrcaller_bisulfite_seq_replicates_analysis; dmrcaller_ont_methylation_analysis
+dmrcate,transcriptomics,2,0,2,dmrcate; dmrcate_sequencing_dmr_analysis
+dmrscan,genomics,1,0,0,DMRScan
+dmrseq,genomics,3,2,0,dmrseq; dmrseq_block_detection; dmrseq_dmr_simulation
+dnacopy,genomics,1,0,1,dnacopy
+dnafusion,genomics,1,1,0,dnafusion
+dominoeffect,genomics,2,0,0,dominoeffect; dominoeffect_hotspot_step_by_step
+dominosignal,transcriptomics,1,0,0,dominosignal
+doppelgangr,transcriptomics,1,0,0,doppelgangR
+doscheda,proteomics,1,1,0,Doscheda
+dose,systems_biology,3,1,1,dose; dose_gene_set_enrichment_analysis; dose_semantic_similarity_analysis
+doser,transcriptomics,1,1,0,doseR
+doubletrouble,genomics,1,0,1,doubletrouble
+drawproteins,proteomics,1,0,0,drawProteins
+dreamlet,transcriptomics,1,1,0,dreamlet
+drimseq,transcriptomics,2,1,0,drimseq; drimseq_transcript_usage_qtl
+drivernet,transcriptomics,1,0,0,drivernet
+dropletutils,transcriptomics,6,6,0,dropletutils; dropletutils_demultiplex_hashed_libraries; dropletutils_detect_empty_droplets; dropletutils_remove_barcode_swapping; dropletutils_remove_chimeric_reads; dropletutils_remove_swapping_and_chimeric_effects
+drugtargetinteractions,proteomics,1,1,0,drugTargetInteractions
+drugvsdisease,transcriptomics,1,0,0,DrugVsDisease
+dss,transcriptomics,4,2,2,dss; dss_bsseq_multifactor_dml_dmr; dss_bsseq_twogroup_dml_dmr; dss_rnaseq_multifactor_de
+dstruct,transcriptomics,1,1,0,dStruct
+dta,transcriptomics,1,0,0,DTA
+dune,transcriptomics,1,0,0,Dune
+duplexdiscoverer,transcriptomics,1,0,0,DuplexDiscovereR
+dyebias,transcriptomics,1,0,1,dyebias
+easier,transcriptomics,1,1,0,easier
+easylift,genomics,1,1,0,easylift
+easyreporting,general,1,0,0,easyreporting
+easyrnaseq,transcriptomics,1,1,0,easyRNASeq
+ebarrays,transcriptomics,1,1,0,ebarrays
+ebcoexpress,transcriptomics,1,0,0,EBcoexpress
+ebimage,imaging,2,0,0,ebimage; ebimage_image_thresholding_and_object_manipulation
+ebsea,transcriptomics,1,0,0,EBSEA
+ebseq,transcriptomics,4,4,0,ebseq; ebseq_gene_de_multi_conditions; ebseq_isoform_de_multi_conditions; ebseq_isoform_de_two_conditions
+ecolitk,genomics,1,1,0,ecolitk
+edaseq,transcriptomics,3,3,0,edaseq; edaseq_gene_level_eda_and_normalization; edaseq_gene_level_normalization_and_de
+edge,transcriptomics,3,1,1,edge; edge_sva_de_analysis; edge_timecourse_de_analysis
+edger,transcriptomics,4,1,1,edger; edger_classic_pipeline; edger_fold_change_threshold_testing; edger_glm_lrt_pipeline
+edirquery,genomics,1,1,0,EDIRquery
+eds,transcriptomics,1,1,0,eds
+eir,drug_discovery,1,1,0,eiR
+eisar,transcriptomics,4,4,0,eisar; eisar_convenient_eisa_workflow; eisar_exon_intron_split_analysis; eisar_step_by_step_eisa_with_alignment
+emdomics,transcriptomics,1,0,0,EMDomics
+empiricalbrownsmethod,transcriptomics,1,0,0,EmpiricalBrownsMethod
+enhancedvolcano,transcriptomics,1,1,0,EnhancedVolcano
+enhancerhomologsearch,genomics,1,0,1,enhancerHomologSearch
+enmix,epigenomics,6,1,2,enmix; enmix_custom_step_by_step_preprocessing; enmix_customized_preprocessing; enmix_downstream_analysis; enmix_downstream_epigenetic_analysis; enmix_oxbs_mle
+enrichdo,genomics,1,0,0,EnrichDO
+enrichedheatmap,genomics,1,0,1,EnrichedHeatmap
+enrichmentbrowser,transcriptomics,2,2,0,enrichmentbrowser; enrichmentbrowser_all_in_one_pipeline
+enrichplot,transcriptomics,1,1,0,enrichplot
+enrichviewnet,proteomics,1,1,0,enrichViewNet
+epialleler,genomics,9,1,1,epialleler; epialleler_long_read_methylation_analysis; epialleler_long_read_methylation_reporting; epialleler_methylation_bimodality_ecdf; epialleler_methylation_calling_unannotated_bams; epialleler_methylation_pattern_and_ecdf_visualization; epialleler_sequence_variant_association; epialleler_short_read_methylation_calling; epialleler_snv_epiallele_association
+epicompare,epigenomics,1,1,0,EpiCompare
+epidecoder,transcriptomics,1,1,0,epidecoder
+epigenomix,transcriptomics,2,0,0,epigenomix; epigenomix_rnaseq_chipseq_integration
+epigrahmm,epigenomics,2,0,2,epigrahmm; epigrahmm_differential_peak_calling
+epimix,transcriptomics,1,1,0,epimix
+epimutacions,epigenomics,2,1,0,epimutacions; epimutacions_leave_one_out_epimutation_analysis
+epinem,systems_biology,2,0,0,epinem; epinem_systematic_modulator_screening
+epiregulon,transcriptomics,1,0,1,epiregulon
+epiregulon_extra,epigenomics,1,0,0,epiregulon_extra
+epistack,transcriptomics,2,0,2,epistack; epistack_promoter_epigenetics_expression
+epistasisga,variant_calling,1,0,1,epistasisGA
+epitxdb,transcriptomics,1,0,0,EpiTxDb
+epivizr,genomics,1,0,1,epivizr
+epivizrchart,genomics,1,0,1,epivizrChart
+erccdashboard,transcriptomics,2,0,0,erccdashboard; erccdashboard_microarray_analysis
+erma,epigenomics,1,0,0,erma
+erssa,transcriptomics,1,0,0,erssa
+escape,transcriptomics,2,2,0,escape; escape_gsea_on_precomputed_deg
+escher,transcriptomics,3,0,0,escher; escher_binned_spatial_visualization; escher_dataframe_visualization
+esetvis,transcriptomics,3,0,0,esetvis; esetvis_lda_visualization; esetvis_tsne_visualization
+eudysbiome,metagenomics,1,0,0,eudysbiome
+evaluomer,general,2,0,0,evaluomer; evaluomer_metric_distribution_analysis
+eventpointer,transcriptomics,3,0,0,eventpointer; eventpointer_junction_array_pipeline; eventpointer_rna_seq_transcriptome_pipeline
+excluster,transcriptomics,1,1,0,excluster
+eximir,transcriptomics,5,5,0,eximir; eximir_exiqon_mirna_normalization; eximir_limma_integrated_normalization; eximir_limma_integration_normalization; eximir_summarize_limma_normalized_data
+experimenthub,general,1,0,1,ExperimentHub
+experimentsubset,single_cell,1,0,1,ExperimentSubset
+extrachips,epigenomics,1,1,0,extraChIPs
+factdesign,transcriptomics,1,1,0,factDesign
+factr,transcriptomics,1,1,0,factr
+faers,pharmacology,1,1,0,faers
+famagg,genetics,1,0,0,famagg
+famat,metabolomics,1,0,0,famat
+fastliquidassociation,transcriptomics,1,0,0,fastLiquidAssociation
+fastqcleaner,genomics,1,0,1,fastqcleaner
+fastseg,transcriptomics,3,0,0,fastseg; fastseg_expressionset_segmentation; fastseg_vector_matrix_segmentation
+fccac,transcriptomics,1,1,0,fccac
+fci,transcriptomics,2,0,0,fci; fci_proteogenomics_deg_analysis
+feast,transcriptomics,3,0,3,feast; feast_fast_feature_selection; feast_model_selection_and_visualization
+featseekr,general,1,0,0,featseekr
+fedup,genomics,1,1,0,fedup
+fella,metabolomics,1,0,1,fella
+fenr,transcriptomics,1,0,1,fenr
+ffpe,transcriptomics,1,1,0,ffpe
+fgga,proteomics,1,0,1,fgga
+fgnet,genomics,3,0,1,fgnet; fgnet_gage_expression_to_network; fgnet_import_david_to_network
+fgsea,transcriptomics,3,3,0,fgsea; fgsea_gene_set_coregulation_analysis; fgsea_over_representation_analysis
+filterffpe,genomics,1,0,0,filterffpe
+findips,transcriptomics,2,0,0,findips; findips_survival_outcome_ip_detection
+findit2,transcriptomics,1,1,0,FindIT2
+fishalyser,imaging,3,1,2,fishalyser; fishalyser_automated_fish_quantification; fishalyser_manual_threshold_and_particle_cleaning
+fishpond,transcriptomics,3,3,0,fishpond; fishpond_allelic_imbalance_seesaw; fishpond_differential_transcript_usage
+fithic,genomics,3,0,0,fithic; fithic_hicpro_analysis; fithic_normalized_analysis
+flagme,transcriptomics,4,4,0,flagme; flagme_correlation_based_alignment; flagme_multiple_group_alignment; flagme_xcms_peak_picking_alignment_workflow
+flowbeads,immunology,1,0,0,flowbeads
+flowbin,transcriptomics,1,1,0,flowbin
+flowcatchr,imaging,1,0,1,flowcatchr
+flowchic,imaging,1,0,0,flowchic
+flowclean,imaging,1,1,0,flowclean
+flowclust,single_cell,3,2,0,flowclust; flowclust_flowcore_integration; flowclust_prior_based_clustering
+flowcore,imaging,2,1,1,flowcore; flowcore_gatingset_hierarchical_analysis
+flowcut,single_cell,1,0,0,flowCut
+flowcybar,imaging,3,0,0,flowcybar; flowcybar_correlation_analysis; flowcybar_nmds_analysis
+flowfp,imaging,2,1,1,flowfp; flowfp_gating_quality_control
+flowgate,imaging,3,0,3,flowgate; flowgate_batch_gating_strategy_pipeline; flowgate_gating_strategy_application
+flowgraph,imaging,2,0,0,flowgraph; flowgraph_fast_flowgraph_subset_analysis
+flowmatch,single_cell,2,0,0,flowmatch; flowmatch_template_construction_and_metaclustering
+flowmeans,imaging,1,1,0,flowmeans
+flowmerge,imaging,1,1,0,flowmerge
+flowpeaks,epigenomics,2,0,0,flowpeaks; flowpeaks_flowframe_clustering
+flowploidy,transcriptomics,1,0,0,flowPloidy
+flowplots,imaging,2,0,0,flowplots; flowplots_ternary_plot_pfd
+flowsom,single_cell,1,0,1,FlowSOM
+flowspecs,single_cell,1,1,0,flowSpecs
+flowstats,single_cell,2,1,1,flowstats; flowstats_probability_binning_comparison
+flowtime,proteomics,3,0,3,flowtime; flowtime_custom_yeast_gating; flowtime_time_course_analysis
+flowtrans,imaging,1,0,0,flowtrans
+flowviz,imaging,3,1,1,flowviz; flowviz_one_dimensional_density_plots; flowviz_parallel_coordinate_plots
+flowvs,transcriptomics,1,1,0,flowVS
+fmcsr,drug_discovery,2,0,2,fmcsr; fmcsr_batch_search_and_clustering
+fmrs,general,1,0,0,fmrs
+fraser,transcriptomics,2,1,1,fraser; fraser_aberrant_splicing_from_counts
+frenchfish,bioimaging,2,1,1,frenchfish; frenchfish_correct_manual_counts
+frgepistasis,genetics,2,0,0,frgepistasis; frgepistasis_pca_pointwise_epistasis
+frma,transcriptomics,1,1,0,frma
+frmatools,transcriptomics,1,1,0,frmaTools
+funomics,proteomics,1,0,0,funOmics
+fusesom,imaging,2,0,0,fusesom; fusesom_sce_or_spe_input
+ga4ghclient,genomics,1,0,1,GA4GHclient
+ga4ghshiny,genomics,1,0,0,GA4GHshiny
+gaga,transcriptomics,3,3,0,gaga; gaga_class_prediction; gaga_sample_size_calculation
+gage,transcriptomics,1,1,0,gage
+gaprediction,epigenomics,1,0,0,gaprediction
+gars,general,2,0,0,gars; gars_find_optimal_features_loop
+gatefinder,single_cell,1,0,0,gatefinder
+gatom,transcriptomics,2,1,1,gatom; gatom_lipidomics_metabolite_level_active_module
+gbscleanr,variant_calling,1,0,1,gbscleanr
+gcapc,epigenomics,1,0,0,gcapc
+gcatest,genomics,1,0,0,gcatest
+gcrisprtools,transcriptomics,2,1,1,gcrisprtools; gcrisprtools_advanced_contrast_comparison
+gdnax,transcriptomics,1,0,0,gdnax
+gdr,pharmacology,2,0,2,gdr; gdr_automated_drug_response_pipeline
+gdrimport,pharmacology,1,1,0,gDRimport
+gdrutils,pharmacology,1,0,1,gDRutils
+gdsarray,genomics,1,0,0,GDSArray
+gdsfmt,genomics,1,0,1,gdsfmt
+gedi,transcriptomics,1,0,0,GeDi
+gemini,genetics,1,0,1,gemini
+gemma_r,transcriptomics,1,0,0,gemma_r
+genarise,transcriptomics,2,2,0,genarise; genarise_functional_enrichment_genmerge
+genebreak,genomics,2,0,0,genebreak; genebreak_dataframe_input_pipeline
+geneclassifiers,transcriptomics,1,0,0,geneclassifiers
+geneexpressionsignature,transcriptomics,1,1,0,GeneExpressionSignature
+genefilter,transcriptomics,3,1,2,genefilter; genefilter_gene_finding; genefilter_independent_filtering_diagnostics
+genega,transcriptomics,3,3,0,genega; genega_custom_codon_weights_computation; genega_custom_w_table_computation
+genegeneinter,genomics,1,0,0,genegeneinter
+genemeta,transcriptomics,2,0,0,genemeta; genemeta_automated_meta_analysis_fdr
+genenetworkbuilder,transcriptomics,1,1,0,GeneNetworkBuilder
+geneoverlap,genomics,3,3,0,geneoverlap; geneoverlap_matrix_gene_overlap; geneoverlap_self_comparison_overlap
+geneplast,genomics,3,0,0,geneplast; geneplast_evolutionary_rooting_analysis; geneplast_network_rooting_mapping
+geneplotter,transcriptomics,2,1,1,geneplotter; geneplotter_single_chromosome_expression_plotting
+generecommender,transcriptomics,1,0,0,generecommender
+generegionscan,transcriptomics,3,3,0,generegionscan; generegionscan_analyze_and_visualize_probe_level_data; generegionscan_gene_region_analysis_and_visualization
+generxcluster,genomics,1,0,0,generxcluster
+geneselectmmd,transcriptomics,2,0,0,geneselectmmd; geneselectmmd_data_matrix_workflow
+genestructuretools,transcriptomics,3,0,0,genestructuretools; genestructuretools_dexseq_and_gtf_reannotation; genestructuretools_leafcutter_analysis
+genetclassifier,transcriptomics,3,1,0,genetclassifier; genetclassifier_query_new_samples; genetclassifier_visualize_classifier_results
+geneticsped,genetics,1,0,0,geneticsped
+genetonic,transcriptomics,1,0,0,genetonic
+genie3,transcriptomics,2,0,2,genie3; genie3_targeted_network_inference
+genocn,genomics,1,0,0,genocn
+genomation,genomics,2,2,0,genomation; genomation_feature_combination_analysis
+genomautomorphism,genomics,2,2,0,genomautomorphism; genomautomorphism_automorphism_analysis_3d_space
+genomeintervals,genomics,1,1,0,genomeIntervals
+genomes,genomics,1,0,0,genomes
+genomicalignments,genomics,3,0,2,genomicalignments; genomicalignments_overlap_encoding_and_splicing_compatibility; genomicalignments_splice_junction_overlap_encoding
+genomicdatacommons,genomics,1,1,0,GenomicDataCommons
+genomicdistributions,genomics,8,0,0,genomicdistributions; genomicdistributions_custom_reference_and_features; genomicdistributions_custom_reference_generation; genomicdistributions_feature_distance_analysis; genomicdistributions_genomic_partition_analysis; genomicdistributions_sequence_composition_analysis; genomicdistributions_signal_in_regions; genomicdistributions_signal_specificity_analysis
+genomicfeatures,genomics,1,0,0,GenomicFeatures
+genomicfiles,genomics,1,0,1,GenomicFiles
+genomicinstability,transcriptomics,2,1,1,genomicinstability; genomicinstability_reference_based_gia
+genomicinteractionnodes,epigenomics,1,1,0,genomicinteractionnodes
+genomicinteractions,epigenomics,1,1,0,GenomicInteractions
+genomicozone,genomics,1,0,0,GenomicOZone
+genomicplot,transcriptomics,1,1,0,GenomicPlot
+genomicranges,genomics,1,0,1,GenomicRanges
+genomicscores,genomics,1,0,1,GenomicScores
+genomicsupersignature,transcriptomics,1,0,0,genomicsupersignature
+genomictuples,genomics,1,0,0,GenomicTuples
+genvisr,genomics,5,2,3,genvisr; genvisr_copy_number_profiling; genvisr_loss_of_heterozygosity; genvisr_sequence_coverage_gencov; genvisr_transition_transversion_tvti
+geodiff,transcriptomics,1,0,0,geodiff
+geoexplorer,transcriptomics,1,0,1,GEOexplorer
+geofastq,transcriptomics,1,1,0,GEOfastq
+geometrid,genomics,3,3,0,geometrid; geometrid_chromatin_2d_loop_bouquet; geometrid_single_cell_3d_plot
+geomxtools,transcriptomics,3,3,0,geomxtools; geomxtools_protein_geomx_workflow; geomxtools_protein_preprocessing
+geoquery,transcriptomics,1,1,0,GEOquery
+geosubmission,transcriptomics,1,0,0,GEOsubmission
+geotcgadata,transcriptomics,5,1,4,geotcgadata; geotcgadata_cnv_differential_analysis; geotcgadata_dna_methylation_differential_analysis; geotcgadata_geo_chip_data_preprocessing; geotcgadata_tcga_id_conversion_and_normalization
+gep2pep,transcriptomics,3,0,0,gep2pep; gep2pep_condition_set_enrichment_analysis; gep2pep_pathway_set_enrichment_analysis
+getdee2,transcriptomics,1,0,0,getDEE2
+geva,transcriptomics,3,3,0,geva; geva_quick_analysis; geva_quick_geva_pipeline
+gewist,variant_calling,2,0,0,gewist; gewist_snp_prioritization_unknown_effect
+gg4way,transcriptomics,3,0,3,gg4way; gg4way_with_deseq2; gg4way_with_edger
+ggbio,genomics,1,0,1,ggbio
+ggcyto,imaging,1,0,0,ggcyto
+ggkegg,systems_biology,2,0,2,ggkegg; ggkegg_quick_wrapper_visualization
+ggmanh,genomics,3,3,0,ggmanh; ggmanh_binned_manhattan_plot; ggmanh_gds_variant_annotation_plotting
+ggpa,transcriptomics,2,0,0,ggpa; ggpa_graph_gpa_with_prior
+ggseqalign,genomics,1,0,0,ggseqalign
+ggspavis,transcriptomics,3,0,2,ggspavis; ggspavis_imaging_based_and_dimred_plotting; ggspavis_quality_control_plotting
+ggtree,genomics,1,1,0,ggtree
+ggtreeextra,transcriptomics,2,2,0,ggtreeextra; ggtreeextra_same_position_multiple_layers
+ggtreespace,genetics,2,0,0,ggtreespace; ggtreespace_annotated_phylomorphospace_heatmap
+gigsea,transcriptomics,1,0,0,GIGSEA
+ginmapper,proteomics,1,0,0,ginmappeR
+gintomics,transcriptomics,2,0,0,gintomics; gintomics_complete_multiomics_integration
+girafe,genomics,1,0,0,girafe
+glad,genomics,3,0,0,glad; glad_array_spatial_visualization; glad_daglad_analysis
+gladiatox,pharmacology,1,1,0,GladiaTOX
+glimma,transcriptomics,1,1,0,Glimma
+glmgampoi,transcriptomics,2,1,1,glmgampoi; glmgampoi_cell_level_marker_gene_identification
+glmsparsenet,proteomics,2,0,2,glmsparsenet; glmsparsenet_binary_classification_binomial
+globalancova,transcriptomics,4,4,0,globalancova; globalancova_generalized_and_hierarchical_testing; globalancova_public_gene_set_testing; globalancova_sum_of_squares_decomposition
+globaltest,transcriptomics,4,1,3,globaltest; globaltest_gene_set_testing; globaltest_goodness_of_fit_testing; globaltest_graph_structured_multiple_testing
+gmapr,genomics,3,0,0,gmapr; gmapr_create_gmap_genome_package; gmapr_variant_tallying_bam_tally
+gmicr,transcriptomics,1,0,0,GmicR
+gmoviz,genomics,6,3,0,gmoviz; gmoviz_feature_diagram; gmoviz_feature_diagram_plasmid_map; gmoviz_incremental_plotting; gmoviz_incremental_track_plotting; gmoviz_multiple_insertion_diagram
+gmrp,variant_calling,1,0,0,GMRP
+goexpress,transcriptomics,2,2,0,goexpress; goexpress_custom_annotation_generation
+gofuncr,genomics,6,0,5,gofuncr; gofuncr_binomial_test; gofuncr_contingency_test; gofuncr_custom_annotations_and_coordinates; gofuncr_go_graph_exploration_and_utilities; gofuncr_wilcoxon_test
+goprofiles,transcriptomics,3,0,3,goprofiles; goprofiles_equivalence_testing; goprofiles_statistical_comparison_and_fisher_test
+gosemsim,genomics,1,1,0,GOSemSim
+goseq,transcriptomics,3,1,2,goseq; goseq_count_bias_corrected_analysis; goseq_custom_category_analysis
+gostag,transcriptomics,1,0,0,gostag
+gostats,transcriptomics,3,3,0,gostats; gostats_association_unsupported_organism; gostats_go_visualization_and_similarity
+gothic,genomics,3,0,3,gothic; gothic_hicup_gothic_pipeline; gothic_hicup_pipeline
+gotools,transcriptomics,2,0,2,gotools; gotools_custom_endnode_comparison
+gpa,transcriptomics,1,0,0,GPA
+gpls,general,2,0,2,gpls; gpls_multi_group_classification
+gpumagic,general,1,0,0,gpuMagic
+grafgen,genomics,1,0,1,grafgen
+granulator,transcriptomics,1,1,0,granulator
+graper,general,2,0,0,graper; graper_logistic_regression
+graphalignment,genomics,2,0,2,graphalignment; graphalignment_directed_binary_network_alignment
+graphite,transcriptomics,4,3,1,graphite; graphite_clipper_gene_expression; graphite_clipper_mixed_metabolomics; graphite_topology_gsa_analysis
+grenits,transcriptomics,1,0,0,grenits
+greylistchip,genomics,3,0,0,greylistchip; greylistchip_bsgenome_one_step; greylistchip_bsgenome_workflow
+grmetrics,pharmacology,2,0,0,grmetrics; grmetrics_gr_metrics_case_c
+grohmm,transcriptomics,1,0,1,groHMM
+gsalightning,transcriptomics,3,0,0,gsalightning; gsalightning_paired_gsa; gsalightning_single_gene_testing
+gsar,transcriptomics,2,0,2,gsar; gsar_rnaseq_gsa
+gsca,transcriptomics,1,0,0,gsca
+gscreend,transcriptomics,1,0,0,gscreend
+gseabase,transcriptomics,1,1,0,GSEABase
+gseabenchmarker,transcriptomics,1,0,0,GSEABenchmarkeR
+gsealm,transcriptomics,1,0,1,gsealm
+gseamining,transcriptomics,1,0,0,gseamining
+gsgalgor,transcriptomics,2,0,0,gsgalgor; gsgalgor_custom_callback_execution
+gsreg,transcriptomics,2,0,0,gsreg; gsreg_splice_eva_analysis
+gsri,transcriptomics,3,0,0,gsri; gsri_multiple_gene_sets_analysis; gsri_weighted_gene_set_analysis
+gsva,transcriptomics,3,3,0,gsva; gsva_proteomics_missing_values; gsva_single_cell_gsva
+gtrellis,genomics,1,1,0,gtrellis
+guideseq,epigenomics,2,1,0,guideseq; guideseq_all_in_one_guideseq
+guitar,transcriptomics,2,0,2,guitar; guitar_custom_guitar_coordinates_and_sampling
+gviz,genomics,2,2,0,gviz; gviz_gene_region_visualization
+gwas_bayes,genetics,1,0,0,gwas_bayes
+gwascat,genomics,2,1,0,gwascat; gwascat_visualize_gwas_catalog_data
+gwastools,variant_calling,1,1,0,GWASTools
+gwena,transcriptomics,1,0,0,gwena
+gypsum,general,1,0,1,gypsum
+hapfabia,variant_calling,2,2,0,hapfabia; hapfabia_direct_sparse_matrix_analysis
+harman,epigenomics,2,0,2,harman; harman_methylation_m_values
+harmonizr,transcriptomics,1,0,1,harmonizr
+hdtd,transcriptomics,2,0,0,hdtd; hdtd_covariance_structure_analysis
+hdxmsqc,proteomics,1,1,0,hdxmsqc
+heatmaps,genomics,2,1,1,heatmaps; heatmaps_sequence_feature_heatmaps
+heatplus,general,4,4,0,heatplus; heatplus_annotated_heatmap; heatplus_double_annotated_heatmap; heatplus_legacy_heatmap
+helloranges,genomics,1,0,0,HelloRanges
+help,epigenomics,1,0,1,help
+heron,proteomics,2,0,0,heron; heron_smoothed_probe_level_analysis
+herper,transcriptomics,1,0,0,Herper
+hiannotator,genomics,1,0,0,hiAnnotator
+hibag,variant_calling,1,1,0,HIBAG
+hicaggr,epigenomics,1,0,0,hicaggr
+hicbricks,epigenomics,1,1,0,HiCBricks
+hiccompare,epigenomics,2,1,0,hiccompare; hiccompare_genome_wide_parallel_comparison
+hicdcplus,epigenomics,1,1,0,HiCDCPlus
+hicdoc,epigenomics,1,0,1,hicdoc
+hicexperiment,epigenomics,1,1,0,HiCExperiment
+hicontacts,epigenomics,3,2,1,hicontacts; hicontacts_contact_map_analysis; hicontacts_topological_feature_mapping
+hicool,epigenomics,1,0,0,hicool
+hicvenndiagram,epigenomics,1,1,0,hicVennDiagram
+hiergwas,variant_calling,1,0,0,hiergwas
+hierinf,genomics,2,0,0,hierinf; hierinf_multiple_studies_meta_analysis
+hilbertvis,genomics,1,1,0,HilbertVis
+hilda,genomics,1,0,1,hilda
+hippo,transcriptomics,1,0,0,hippo
+hireadsprocessor,genomics,1,0,0,hiReadsProcessor
+hireewas,genomics,1,0,0,hireewas
+hitc,epigenomics,1,1,0,HiTC
+hmdbquery,proteomics,1,0,0,hmdbQuery
+hmmcopy,genomics,3,2,1,hmmcopy; hmmcopy_matched_tumor_normal_correction; hmmcopy_matched_tumour_normal_correction
+holofoodr,metagenomics,1,0,1,HoloFoodR
+hoodscanr,single_cell,1,0,1,hoodscanr
+hopach,transcriptomics,1,1,0,hopach
+hpaanalyze,proteomics,3,0,3,hpaanalyze; hpaanalyze_retrieve_parse_xml; hpaanalyze_visualize_hpa_expression
+hpar,proteomics,1,1,0,hpar
+hpip,proteomics,1,1,0,HPiP
+htqpcr,transcriptomics,1,0,1,htqpcr
+htsfilter,transcriptomics,4,4,0,htsfilter; htsfilter_deseq2_pipeline; htsfilter_edger_pipeline; htsfilter_external_normalization
+hubmapr,single_cell,1,0,1,HuBMAPR
+hummingbird,transcriptomics,1,0,0,hummingbird
+hybridmtest,transcriptomics,2,0,0,hybridmtest; hybridmtest_k_group_comparison
+hyper,transcriptomics,1,0,0,hyper
+hyperdraw,systems_biology,1,1,0,hyperdraw
+iaseq,transcriptomics,1,0,0,iaseq
+iasva,transcriptomics,1,0,0,iasva
+ibbig,transcriptomics,3,0,0,ibbig; ibbig_bicluster_comparison; ibbig_expression_data_preprocessing
+ibh,systems_biology,2,1,0,ibh; ibh_clustering_evaluation
+ibmq,transcriptomics,2,0,0,ibmq; ibmq_eqtl_mapping_f2_cross
+icare,genomics,2,0,0,icare; icare_absolute_risk_model_validation
+icetea,transcriptomics,3,3,0,icetea; icetea_bam_entry_tss_analysis; icetea_tss_analysis_from_bams
+icheck,transcriptomics,1,0,0,iCheck
+ichip,epigenomics,2,0,0,ichip; ichip_ichip1_first_order_ising
+icnv,variant_calling,3,0,0,icnv; icnv_ngs_only_cnv_detection; icnv_snp_array_only_cnv_detection
+icobra,general,3,0,0,icobra; icobra_interactive_shiny_visualization; icobra_text_file_import_export
+ideal,transcriptomics,1,1,0,ideal
+idr2d,epigenomics,2,0,0,idr2d; idr2d_one_dimensional_idr
+igc,transcriptomics,1,0,0,igc
+iggeneusage,transcriptomics,2,0,0,iggeneusage; iggeneusage_leave_one_out_robustness_analysis
+igvr,genomics,1,0,0,igvR
+ihw,transcriptomics,2,2,0,ihw; ihw_incomplete_pvalues_ihw
+illuminaio,transcriptomics,1,1,0,illuminaio
+iloreg,transcriptomics,1,0,0,iloreg
+imas,transcriptomics,1,0,0,IMAS
+imcrtools,imaging,1,1,0,imcRtools
+imman,genomics,1,0,1,imman
+immune_deconvolution,immunology,1,0,0,immune_deconvolution
+immunoclust,imaging,1,0,0,immunoclust
+immunogenviewer,proteomics,1,0,0,immunogenviewer
+immunotation,immunology,1,1,0,immunotation
+indeed,transcriptomics,2,0,0,indeed; indeed_partial_correlation_analysis
+inetgrate,transcriptomics,1,0,0,inetgrate
+infinityflow,proteomics,2,0,0,infinityflow; infinityflow_custom_regression_pipeline
+inpas,transcriptomics,1,0,1,InPAS
+inpower,variant_calling,1,0,0,inpower
+inspect,transcriptomics,1,1,0,INSPEcT
+intact,transcriptomics,3,0,0,intact; intact_gse; intact_multi_intact
+intad,transcriptomics,2,0,0,intad; intad_loop_based_correlation
+intansv,genomics,1,0,0,intansv
+interaccircos,genomics,2,2,0,interaccircos; interaccircos_interactive_circos_snp_background
+interactionset,epigenomics,1,0,1,InteractionSet
+interactivecomplexheatmap,general,1,1,0,InteractiveComplexHeatmap
+intercellar,transcriptomics,1,1,0,InterCellar
+interest,transcriptomics,1,0,0,IntEREst
+ioniser,genomics,1,0,0,ioniser
+ipath,transcriptomics,1,0,0,ipath
+ipddb,immunology,1,0,0,ipdDb
+ipo,epigenomics,1,0,1,ipo
+isanalytics,genomics,3,0,3,isanalytics; isanalytics_clonal_sharing_analysis; isanalytics_custom_barcode_data_workflow
+isee,single_cell,1,1,0,iSEE
+iseede,transcriptomics,1,0,1,iSEEde
+iseefier,single_cell,1,0,0,iSEEfier
+iseehex,single_cell,1,0,1,iSEEhex
+iseehub,general,1,1,0,iSEEhub
+iseeindex,general,1,0,1,iSEEindex
+iseepathways,transcriptomics,1,0,1,iSEEpathways
+iseetree,metagenomics,1,0,0,iSEEtree
+iseeu,transcriptomics,1,0,0,iSEEu
+iseq,epigenomics,2,0,0,iseq; iseq_iseq2_high_order_ising
+isobar,proteomics,3,3,0,isobar; isobar_ptm_localization_quant; isobar_ptm_localization_quantification
+isobayes,transcriptomics,2,2,0,isobayes; isobayes_user_provided_data_pipeline
+isocorrector,proteomics,1,1,0,isocorrector
+isocorrectorgui,proteomics,1,0,0,IsoCorrectoRGUI
+isoformswitchanalyzer,transcriptomics,3,3,0,isoformswitchanalyzer; isoformswitchanalyzer_detailed_custom_analysis; isoformswitchanalyzer_detailed_isoform_switch_workflow
+isomirs,transcriptomics,1,0,0,isomiRs
+italics,epigenomics,1,0,0,italics
+iterativebma,transcriptomics,1,0,0,iterativebma
+iterativebmasurv,transcriptomics,3,0,0,iterativebmasurv; iterativebmasurv_automated_survival_analysis; iterativebmasurv_cross_validation
+ivas,transcriptomics,1,0,0,ivas
+ivygapse,transcriptomics,1,0,0,ivygapSE
+iwtomics,transcriptomics,1,0,1,iwtomics
+karyoploter,genomics,3,2,1,karyoploter; karyoploter_custom_low_level_plotting; karyoploter_zoomed_region_plotting
+katdetectr,genomics,4,0,2,katdetectr; katdetectr_custom_cutoff_kataegis_detection; katdetectr_non_standard_genome_kataegis_detection; katdetectr_non_standard_sequence_detection
+kcsmart,genomics,2,1,1,kcsmart; kcsmart_comparative_kc_smart
+kebabs,transcriptomics,5,3,2,kebabs; kebabs_annotation_specific_classification; kebabs_grid_search_and_model_selection; kebabs_prediction_profiling; kebabs_sequence_regression_and_feature_weights
+kegggraph,systems_biology,5,0,0,kegggraph; kegggraph_chemical_reaction_network_analysis; kegggraph_chemical_reaction_network_parsing; kegggraph_expression_data_integration_and_neighborhood_subsetting; kegggraph_pathway_merging_and_crosstalk
+kegglincs,transcriptomics,2,0,0,kegglincs; kegglincs_overlay_experimental_edge_data
+keggorthology,systems_biology,1,0,1,keggorthology
+keggrest,genomics,1,1,0,KEGGREST
+kissde,transcriptomics,4,4,0,kissde; kissde_custom_count_table_analysis; kissde_custom_table_analysis; kissde_snv_snp_analysis
+kmcut,transcriptomics,8,8,0,kmcut; kmcut_batch_cox_regression; kmcut_cox_regression_and_prediction; kmcut_cox_risk_prediction; kmcut_cutoff_validation; kmcut_fast_exploratory_cutoff; kmcut_fixed_or_quantile_cutoff; kmcut_optimal_cutoff_exploratory
+knowseq,transcriptomics,2,0,0,knowseq; knowseq_automated_report
+knowyourcg,epigenomics,9,0,2,knowyourcg; knowyourcg_continuous_data_sea; knowyourcg_continuous_enrichment_sea; knowyourcg_feature_aggregation_and_annotation; knowyourcg_gene_linkage_and_go; knowyourcg_genomic_proximity; knowyourcg_genomic_proximity_and_linkage; knowyourcg_sequencing_discrete_enrichment; knowyourcg_sequencing_yame_enrichment
+koinar,proteomics,2,2,0,koinar; koinar_spectral_similarity_comparison
+lapmix,transcriptomics,1,0,0,lapmix
+lbe,transcriptomics,1,1,0,lbe
+ldblock,genetics,1,0,0,ldblock
+lea,genomics,6,2,3,lea; lea_ecological_association_lfmm2_least_squares; lea_ecological_association_lfmm_mcmc; lea_gea_least_squares_lfmm2; lea_gea_mcmc_lfmm; lea_predictive_ecological_genomics_genetic_gap
+ledpred,epigenomics,3,0,0,ledpred; ledpred_all_in_one_ledpred; ledpred_all_in_one_svm_prediction
+lefser,transcriptomics,2,0,0,lefser; lefser_phyloseq_integration
+lemur,transcriptomics,1,0,1,lemur
+les,transcriptomics,1,0,0,les
+lfa,variant_calling,1,0,0,lfa
+limma,transcriptomics,3,0,2,limma; limma_filtering_unexpressed_probes; limma_single_channel_microarray_analysis
+limmagui,transcriptomics,1,1,0,limmaGUI
+limpca,transcriptomics,1,0,0,limpca
+linnorm,transcriptomics,5,3,2,linnorm; linnorm_cell_subpopulation_clustering; linnorm_differential_expression_limma; linnorm_highly_variable_gene_analysis; linnorm_rnaxsim_expression_simulation
+lintind,genomics,1,0,1,lintind
+lionessr,transcriptomics,1,0,0,lionessr
+lipidr,metabolomics,1,1,0,lipidr
+liquidassociation,transcriptomics,2,0,0,liquidassociation; liquidassociation_genome_wide_triplet_screening
+lisaclust,imaging,2,2,0,lisaclust; lisaclust_custom_lisa_clustering
+loci2path,transcriptomics,2,0,0,loci2path; loci2path_tissue_specificity_enrichment
+logicfs,variant_calling,2,1,1,logicfs; logicfs_bagged_logic_regression_classification
+lola,genomics,1,0,0,lola
+loomexperiment,single_cell,1,0,1,LoomExperiment
+lpe,transcriptomics,1,1,0,lpe
+lpnet,systems_biology,3,0,0,lpnet; lpnet_parameter_tuning_cross_validation; lpnet_time_series_network_inference
+lpsymphony,general,1,0,1,lpsymphony
+lrbasedbi,systems_biology,1,0,0,LRBaseDbi
+lrcell,transcriptomics,1,0,0,lrcell
+lute,transcriptomics,1,0,0,lute
+lymphoseq,genomics,1,0,0,lymphoseq
+m3c,transcriptomics,2,0,1,m3c; m3c_regularised_consensus_clustering
+m3drop,transcriptomics,2,0,1,m3drop; m3drop_umi_nbumi_workflow
+m6aboost,epigenomics,1,1,0,m6aboost
+macorrplot,transcriptomics,1,0,0,macorrplot
+macsr,epigenomics,1,0,1,macsr
+made4,transcriptomics,1,1,0,made4
+madseq,genomics,1,0,0,madseq
+magar,variant_calling,4,1,3,magar; magar_compare_meth_qtl_results; magar_meth_qtl_with_imputation; magar_methqtl_comparison
+mageckflute,genomics,2,0,0,mageckflute; mageckflute_mageck_mle_analysis
+magrene,genomics,2,2,0,magrene; magrene_interaction_similarity
+mai,metabolomics,2,0,0,mai; mai_summarized_experiment_imputation
+mait,epigenomics,2,0,2,mait; mait_external_peak_data_analysis
+makecdfenv,epigenomics,1,1,0,makecdfenv
+mantelcorr,transcriptomics,1,0,0,mantelcorr
+mapfx,proteomics,1,0,0,MAPFX
+mapredictdsc,transcriptomics,1,0,0,maPredictDSC
+mariner,epigenomics,4,0,4,mariner; mariner_calculate_loop_enrichment; mariner_extract_and_aggregate_hic_matrices; mariner_loop_enrichment_analysis
+marr,transcriptomics,1,0,0,marr
+marray,transcriptomics,1,1,0,marray
+martini,genomics,2,0,0,martini; martini_simulate_network_phenotypes
+maskbad,transcriptomics,1,0,0,maskbad
+massarray,variant_calling,2,2,0,massarray; massarray_data_analysis
+massir,transcriptomics,2,0,0,massir; massir_microarray_expressionset_workflow
+massspecwavelet,genomics,2,0,2,massspecwavelet; massspecwavelet_one_step_peak_detection
+mast,transcriptomics,3,3,0,mast; mast_gene_set_enrichment_analysis; mast_scrnaseq_hurdle_analysis
+mastr,transcriptomics,3,0,0,mastr; mastr_multi_dataset_signature_aggregation; mastr_single_cell_pseudo_bulk_signature
+matchbox,transcriptomics,1,0,0,matchbox
+matrixqcvis,proteomics,1,1,0,MatrixQCvis
+matrixrider,proteomics,1,0,0,matrixrider
+matter,imaging,3,2,0,matter; matter_image_processing_and_alignment; matter_nonuniform_spectral_signal_processing
+mbamethyl,epigenomics,1,0,0,mbamethyl
+mbased,transcriptomics,2,0,2,mbased; mbased_two_sample_ase
+mbcb,transcriptomics,1,0,0,mbcb
+mbecs,metagenomics,1,1,0,MBECS
+mbkmeans,transcriptomics,2,2,0,mbkmeans; mbkmeans_bluster_mbkmeans_clustering
+mbpcr,variant_calling,5,0,3,mbpcr; mbpcr_direct_mbpcr_computation; mbpcr_direct_vector_profile_estimation; mbpcr_oligosnpset_profile_estimation; mbpcr_profile_estimation_for_oligosnpset
+mbqn,proteomics,1,0,0,mbqn
+mbttest,transcriptomics,1,1,0,MBttest
+mcbiclust,transcriptomics,3,0,0,mcbiclust; mcbiclust_multi_run_bicluster_analysis; mcbiclust_scoring_independent_samples
+mcsea,genomics,2,0,0,mcsea; mcsea_methylation_expression_integration
+mdp,transcriptomics,2,0,0,mdp; mdp_pathway_mdp_analysis
+mdqc,transcriptomics,1,0,0,mdqc
+meal,transcriptomics,4,1,0,meal; meal_expression_analysis; meal_methylation_expression_integration; meal_regional_rda
+measurementerror_cor,general,1,0,0,measurementerror_cor
+meat,epigenomics,1,0,0,MEAT
+meb,transcriptomics,3,0,0,meb; meb_scmeb_single_cell; meb_sfmeb_bulk_different_species
+medips,epigenomics,3,0,3,medips; medips_enrichment_quality_control; medips_quality_control_analysis
+medme,epigenomics,1,0,0,MEDME
+megadepth,transcriptomics,1,1,0,megadepth
+meigor,systems_biology,1,0,0,MEIGOR
+melissa,epigenomics,1,0,0,melissa
+mergeomics,systems_biology,4,0,4,mergeomics; mergeomics_manual_module_merge; mergeomics_meta_msea; mergeomics_step_by_step_mergeomics
+meshes,transcriptomics,1,1,0,meshes
+meskit,genomics,4,0,0,meskit; meskit_ith_measurement; meskit_metastatic_routes_and_neutrality; meskit_phylogenetic_and_signature_analysis
+messina,transcriptomics,2,0,0,messina; messina_survival_analysis_messina
+metabcombiner,genomics,1,0,0,metabcombiner
+metaboannotation,metabolomics,3,1,1,metaboannotation; metaboannotation_create_standard_mixes; metaboannotation_match_spectra
+metabocoreutils,transcriptomics,3,3,0,metabocoreutils; metabocoreutils_quality_assessment_and_filtering; metabocoreutils_signal_drift_adjustment
+metabolomicsworkbenchr,proteomics,1,0,0,metabolomicsWorkbenchR
+metabomxtr,metabolomics,2,0,0,metabomxtr; metabomxtr_mixture_model_normalization
+metacca,genomics,2,0,0,metacca; metacca_multi_snp_multi_trait_analysis
+metagene2,genomics,4,0,0,metagene2; metagene2_large_dataset_analysis; metagene2_metagene_heatmap; metagene2_rnaseq_metagene_analysis
+metagenomeseq,transcriptomics,2,1,0,metagenomeseq; metagenomeseq_longitudinal_time_series
+metahdep,transcriptomics,2,0,0,metahdep; metahdep_custom_meta_analysis
+metams,metabolomics,1,0,0,metaMS
+metaphor,transcriptomics,5,5,0,metaphor; metaphor_cytoscape_pathway_modeling; metaphor_multi_deg_comparative_profiling; metaphor_multi_deg_metabolic_comparison; metaphor_pathway_network_modeling
+metapod,transcriptomics,1,1,0,metapod
+metapone,metabolomics,1,1,0,metapone
+metaseq,transcriptomics,2,0,0,metaseq; metaseq_non_noiseq_meta_analysis
+metaseqr2,transcriptomics,5,5,0,metaseqr2; metaseqr2_annotation_db_build; metaseqr2_build_custom_annotation; metaseqr2_combine_p_values; metaseqr2_p_value_combination
+metcirc,metabolomics,1,0,0,MetCirc
+methimpute,genomics,5,0,4,methimpute; methimpute_binned_methylation_calling; methimpute_enrichment_analysis; methimpute_individual_cytosines_interacting_context; methimpute_interacting_context_calling
+methinheritsim,epigenomics,1,0,0,methinheritsim
+methodical,transcriptomics,1,0,0,methodical
+methped,epigenomics,1,0,0,methped
+methreg,transcriptomics,3,0,0,methreg; methreg_confounding_correction_analysis; methreg_regulon_based_analysis
+methrix,epigenomics,1,0,1,methrix
+methtargetedngs,genomics,2,0,2,methtargetedngs; methtargetedngs_profile_hmm_analysis
+methylaid,epigenomics,1,1,0,MethylAid
+methylcc,epigenomics,1,0,0,methylCC
+methylclock,epigenomics,2,1,1,methylclock; methylclock_gestational_age_estimation
+methylgsa,epigenomics,4,0,2,methylgsa; methylgsa_custom_annotation_analysis; methylgsa_methylgometh_analysis; methylgsa_methylrra_analysis
+methylimp2,epigenomics,1,1,0,methylimp2
+methylinheritance,epigenomics,1,0,1,methylinheritance
+methylkit,genomics,4,0,0,methylkit; methylkit_large_data_tabix_db; methylkit_methylation_profile_segmentation; methylkit_regional_and_tiling_analysis
+methylpipe,epigenomics,3,0,2,methylpipe; methylpipe_differential_methylation_analysis; methylpipe_methylation_profiling_and_visualization
+methylseekr,epigenomics,1,1,0,methylseekr
+methylsig,genomics,1,0,0,methylsig
+metid,metabolomics,1,0,0,metid
+metmashr,metabolomics,1,0,0,MetMashR
+metnet,metabolomics,1,0,0,metnet
+mfa,transcriptomics,1,0,0,mfa
+mfuzz,proteomics,2,2,0,mfuzz; mfuzz_global_cluster_structure_analysis
+mgfm,transcriptomics,1,0,0,mgfm
+mgfr,transcriptomics,1,0,0,mgfr
+mgnifyr,metagenomics,1,0,1,MGnifyR
+mgsa,transcriptomics,2,0,0,mgsa; mgsa_custom_sets
+mia,metagenomics,3,0,0,mia; mia_abundance_transformation_and_rarefaction; mia_community_diversity_and_ordination
+miasim,epigenomics,1,1,0,miaSim
+miaviz,metagenomics,6,0,0,miaviz; miaviz_factor_and_dmn_plotting; miaviz_graph_plotting; miaviz_prevalence_plotting; miaviz_serial_data_and_trajectories; miaviz_tree_plotting
+michip,transcriptomics,2,2,0,michip; michip_automated_pipeline
+microbiome,metagenomics,1,1,0,microbiome
+microbiomedasim,metagenomics,1,1,0,microbiomeDASim
+microbiomemarker,transcriptomics,1,0,0,microbiomemarker
+microstasis,metagenomics,1,0,0,microstasis
+micsqtl,transcriptomics,1,0,0,micsqtl
+midashla,immunology,3,0,3,midashla; midashla_hla_amino_acid_fine_mapping; midashla_hla_kir_interaction_analysis
+milor,single_cell,3,0,1,milor; milor_da_contrasts; milor_da_glmm_random_effects
+mimager,transcriptomics,3,0,0,mimager; mimager_plm_spatial_artifact_visualization; mimager_transformed_array_visualization
+mina,metagenomics,3,0,0,mina; mina_network_clustering_and_higher_order_analysis; mina_statistical_network_comparison
+mineica,transcriptomics,1,1,0,MineICA
+minfi,epigenomics,1,1,0,minfi
+minimumdistance,variant_calling,1,1,0,minimumdistance
+miqc,transcriptomics,2,2,0,miqc; miqc_one_dimensional_miqc
+mirage,transcriptomics,1,1,0,mirage
+mirbaseconverter,transcriptomics,1,1,0,miRBaseConverter
+mircomp,transcriptomics,1,0,0,miRcomp
+mirintegrator,transcriptomics,1,0,1,mirintegrator
+mirit,transcriptomics,2,0,2,mirit; mirit_unpaired_integration_workflow
+mirlab,transcriptomics,4,4,0,mirlab; mirlab_mirna_target_prediction_methods; mirlab_top_interactions_validation; mirlab_validate_top_overall_interactions
+mirnapath,transcriptomics,1,1,0,mirnapath
+mirnatap,transcriptomics,1,1,0,mirnatap
+mirtarrnaseq,transcriptomics,3,0,3,mirtarrnaseq; mirtarrnaseq_mirna_mrna_correlation_multi_timepoint; mirtarrnaseq_mirna_mrna_relationship_two_timepoint
+missmethyl,epigenomics,4,0,1,missmethyl; missmethyl_diff_var_methylation; missmethyl_diff_var_rnaseq; missmethyl_region_level_gsa
+missrows,systems_biology,2,0,0,missrows; missrows_tune_imputations
+mitch,transcriptomics,2,0,0,mitch; mitch_methylation_array_enrichment
+mitoclone2,transcriptomics,3,3,0,mitoclone2; mitoclone2_clonal_clustering_and_tree_building; mitoclone2_cohort_shared_noise_workflow
+mixomics,proteomics,3,3,0,mixomics; mixomics_spls_regression; mixomics_splsda_classification
+mlinterfaces,transcriptomics,2,0,1,mlinterfaces; mlinterfaces_multi_classifier_evaluation
+mlp,transcriptomics,1,0,1,mlp
+mlseq,transcriptomics,1,0,1,mlseq
+mmdiff2,epigenomics,1,0,0,mmdiff2
+mmuphin,metagenomics,4,0,0,mmuphin; mmuphin_continuous_structure_discovery; mmuphin_differential_abundance_testing; mmuphin_discrete_structure_discovery
+mnem,transcriptomics,2,0,0,mnem; mnem_discrete_data_pipeline
+moanin,transcriptomics,2,0,0,moanin; moanin_spline_timecourse_de_and_clustering
+mobilerna,transcriptomics,1,0,0,mobilerna
+mofa2,systems_biology,2,0,0,mofa2; mofa2_mefisto_covariate_analysis
+mogamun,transcriptomics,1,1,0,mogamun
+mogsa,transcriptomics,1,0,0,mogsa
+moleculeexperiment,transcriptomics,4,4,0,moleculeexperiment; moleculeexperiment_build_from_custom_data_frames; moleculeexperiment_subset_and_aggregate_to_spatial_experiment; moleculeexperiment_vendor_import_subset_and_visualize
+moma,proteomics,1,0,0,moma
+monalisa,transcriptomics,7,7,0,monalisa; monalisa_annotate_genomic_regions; monalisa_binary_motif_enrichment; monalisa_binned_kmer_enrichment; monalisa_motif_scanning_and_annotation; monalisa_randomized_lasso_stability_selection; monalisa_single_set_motif_enrichment
+monocle,transcriptomics,1,0,1,monocle
+moonlight2r,transcriptomics,1,1,0,Moonlight2R
+mosaics,epigenomics,8,0,6,mosaics; mosaics_broad_peak_calling_hmm; mosaics_convenient_pipeline; mosaics_convenient_two_sample_run_all; mosaics_one_sample_genomic_features; mosaics_one_sample_with_genomic_features; mosaics_two_sample_genomic_features; mosaics_two_sample_with_genomic_features
+mosbi,systems_biology,1,0,1,mosbi
+mosclip,systems_biology,2,0,0,mosclip; mosclip_multi_omic_survival_pathway_analysis
+mosdef,transcriptomics,3,2,1,mosdef; mosdef_report_beautification; mosdef_vector_enrichment
+mosim,transcriptomics,2,0,0,mosim; mosim_single_cell_multi_omics_simulation
+motifbreakr,genomics,1,0,1,motifbreakr
+motifcounter,genomics,1,0,0,motifcounter
+motifdb,genomics,1,0,1,MotifDb
+motifmatchr,genomics,2,1,1,motifmatchr; motifmatchr_motif_matching_sequences
+motifstack,transcriptomics,7,7,0,motifstack; motifstack_advanced_grouped_layouts; motifstack_advanced_grouped_motif_layouts; motifstack_ggplot2_motif_plotting; motifstack_interactive_motif_browsing; motifstack_motif_cloud_and_signatures; motifstack_multiple_motif_stack_and_tree
+motiftestr,epigenomics,3,1,2,motiftestr; motiftestr_clustered_motif_analysis; motiftestr_motif_enrichment_analysis
+mousefm,genetics,3,0,0,mousefm; mousefm_fetch_genotypes; mousefm_strain_prioritization
+mpac,transcriptomics,1,0,0,mpac
+mpfe,epigenomics,1,0,0,mpfe
+mpra,genomics,2,0,0,mpra; mpra_allelic_comparison
+mpranalyze,transcriptomics,3,0,0,mpranalyze; mpranalyze_comparative_analysis; mpranalyze_scalable_comparative_analysis
+msa,transcriptomics,4,4,0,msa; msa_alignment_masking_consensus_and_conservation; msa_phylogenetic_tree_reconstruction; msa_pretty_print_alignment
+msa2dist,genomics,1,0,1,MSA2dist
+msbackendmassbank,proteomics,1,0,1,MsBackendMassbank
+msbackendmetabolights,proteomics,1,0,1,MsBackendMetaboLights
+msbackendmgf,proteomics,1,0,1,MsBackendMgf
+msbackendmsp,proteomics,1,0,1,MsBackendMsp
+msbackendrawfilereader,proteomics,1,1,0,MsBackendRawFileReader
+msbackendsql,transcriptomics,1,0,1,MsBackendSql
+mscoreutils,proteomics,1,0,1,MsCoreUtils
+msdatahub,proteomics,1,1,0,MsDataHub
+msexperiment,proteomics,1,0,1,MsExperiment
+msfeatures,proteomics,2,0,0,msfeatures; msfeatures_subset_feature_grouping
+msgbsr,epigenomics,1,1,0,msgbsR
+msimpute,proteomics,1,0,0,msImpute
+mslp,transcriptomics,1,0,0,mslp
+msmseda,proteomics,1,0,1,msmsEDA
+msmstests,proteomics,1,1,0,msmsTests
+msnbase,proteomics,4,0,3,msnbase; msnbase_chromatogram_extraction; msnbase_chromatographic_srm_import; msnbase_label_free_quantitation
+msnid,proteomics,3,0,2,msnid; msnid_handling_and_mapping_modifications; msnid_peptide_modification_mapping
+msprep,metabolomics,2,0,0,msprep; msprep_summarized_experiment_pipeline
+mspurity,epigenomics,1,0,0,msPurity
+msqrob2,transcriptomics,2,2,0,msqrob2; msqrob2_dia_precursor_workflow
+msquality,proteomics,2,1,0,msquality; msquality_chromatographic_qc_chromatograms
+msstatsconvert,proteomics,2,2,0,msstatsconvert; msstatsconvert_tmt_openms_workflow
+msstatslip,transcriptomics,2,2,0,msstatslip; msstatslip_proteolytic_resistance_analysis
+msstatsptm,transcriptomics,1,1,0,MSstatsPTM
+msstatstmt,proteomics,1,0,0,msstatstmt
+mudata,single_cell,1,0,1,MuData
+multiassayexperiment,general,1,0,1,MultiAssayExperiment
+multibac,transcriptomics,2,0,0,multibac; multibac_multi_omic_correction
+multidataset,systems_biology,1,0,1,MultiDataSet
+multigsea,proteomics,2,0,0,multigsea; multigsea_custom_gene_sets_enrichment
+multimed,general,1,0,0,multimed
+multimir,transcriptomics,1,1,0,multiMiR
+multirnaflow,transcriptomics,1,1,0,multirnaflow
+multiscan,transcriptomics,1,0,0,multiscan
+multistateqtl,transcriptomics,1,0,0,multistateqtl
+multiwgcna,transcriptomics,2,0,2,multiwgcna; multiwgcna_autism_microarray_workflow
+mumosa,transcriptomics,2,0,0,mumosa; mumosa_feature_correlation_analysis
+mungesumstats,genomics,5,0,4,mungesumstats; mungesumstats_import_open_gwas; mungesumstats_liftover_genome_build; mungesumstats_quick_format_disk; mungesumstats_quick_format_from_disk
+muscat,transcriptomics,1,1,0,muscat
+muscle,genomics,1,0,1,muscle
+musicatk,genomics,3,1,0,musicatk; musicatk_count_table_workflow; musicatk_predict_known_signatures
+mutationalpatterns,genomics,1,1,0,MutationalPatterns
+mygene,genomics,1,0,1,mygene
+myvariant,variant_calling,1,1,0,myvariant
+mzid,proteomics,1,1,0,mzID
+mzr,proteomics,1,0,1,mzR
+nadfinder,transcriptomics,2,2,0,nadfinder; nadfinder_replicated_nad_seq
+nanomethviz,epigenomics,3,2,0,nanomethviz; nanomethviz_downstream_export_and_dim_reduction; nanomethviz_modbam_direct_plotting
+nanostringdiff,transcriptomics,2,0,0,nanostringdiff; nanostringdiff_matrix_input_workflow
+nanostringnctools,transcriptomics,1,1,0,nanostringnctools
+nanotube,transcriptomics,1,1,0,NanoTube
+nbamseq,transcriptomics,1,0,0,nbamseq
+ncdfflow,imaging,1,0,1,ncdfFlow
+ncigraph,systems_biology,1,0,0,ncigraph
+ndexr,systems_biology,1,1,0,ndexr
+nearbynding,transcriptomics,1,0,0,nearbynding
+nebulosa,transcriptomics,2,2,0,nebulosa; nebulosa_seurat_density
+nempi,transcriptomics,3,0,0,nempi; nempi_prior_guided_perturbation_inference; nempi_supervised_classification_inference
+netactivity,transcriptomics,1,1,0,NetActivity
+netboost,systems_biology,1,0,0,netboost
+netpathminer,genomics,1,0,1,netpathminer
+netresponse,transcriptomics,2,0,0,netresponse; netresponse_nonparametric_gaussian_mixture_modeling
+netsam,transcriptomics,6,6,0,netsam; netsam_correlation_network_analysis; netsam_id_mapping_to_symbols; netsam_matsam_correlation_modularization; netsam_network_topological_analysis; netsam_stepwise_correlation_network_analysis
+netzoor,transcriptomics,1,1,0,netZooR
+newwave,transcriptomics,1,0,0,newwave
+ngsreports,genomics,3,0,3,ngsreports; ngsreports_ngs_log_file_import_and_visualization; ngsreports_ngs_log_import_and_plotting
+nipalsmcia,single_cell,3,0,3,nipalsmcia; nipalsmcia_out_of_sample_prediction; nipalsmcia_single_cell_cite_seq_mcia
+nnnorm,transcriptomics,1,0,0,nnnorm
+nnsvg,transcriptomics,1,1,0,nnSVG
+noiseq,transcriptomics,2,2,0,noiseq; noiseq_differential_expression_analysis
+norce,transcriptomics,6,6,0,norce; norce_biotype_analysis; norce_biotype_filtering_and_extraction; norce_go_enrichment_ncrna_regions; norce_mirna_enrichment_with_targets_and_coexpression; norce_pathway_enrichment
+normalyzerde,transcriptomics,4,4,0,normalyzerde; normalyzerde_differential_expression; normalyzerde_retention_time_normalization; normalyzerde_stepwise_processing
+normqpcr,transcriptomics,5,5,0,normqpcr; normqpcr_compute_nrqs; normqpcr_delta_delta_cq_normalization; normqpcr_normalized_relative_quantities; normqpcr_qpcr_normalization
+normr,genomics,8,0,1,normr; normr_cnv_detection_and_filtering; normr_custom_counting_and_predefined_regions; normr_differential_enrichment; normr_differential_enrichment_calling; normr_enrichment_regime_stratification; normr_enrichment_regimes; normr_predefined_regions
+nparc,proteomics,1,0,0,nparc
+npgsea,transcriptomics,2,0,0,npgsea; npgsea_multiple_sets
+ntw,systems_biology,3,0,0,ntw; ntw_single_row_prediction_known_p; ntw_single_row_prediction_unknown_p
+nucleosim,genomics,1,0,0,nucleoSim
+nucler,epigenomics,3,1,0,nucler; nucler_mnase_bias_correction; nucler_tiling_array_nucleosome_calling
+nucpos,epigenomics,1,0,0,nucpos
+nullranges,epigenomics,1,1,0,nullranges
+occugene,genomics,1,0,0,occugene
+ocplus,transcriptomics,1,1,0,OCplus
+odseq,genomics,3,0,3,odseq; odseq_unaligned_sequence_outlier_detection; odseq_unaligned_sequence_outliers
+ogre,variant_calling,1,1,0,OGRE
+olin,transcriptomics,3,0,0,olin; olin_between_array_scaling; olin_statistical_bias_assessment
+olingui,transcriptomics,1,1,0,OLINgui
+omada,transcriptomics,2,0,0,omada; omada_modular_step_by_step_clustering
+omicade4,systems_biology,1,1,0,omicade4
+omiccircos,genomics,2,1,1,omiccircos; omiccircos_tcga_cancer_omics_visualization
+omicrexposome,transcriptomics,2,0,0,omicrexposome; omicrexposome_integration_analysis
+omicsmlrepor,general,1,0,0,OmicsMLRepoR
+omicspca,systems_biology,2,0,1,omicspca; omicspca_multi_assay_integration_and_clustering
+omicsprint,epigenomics,2,0,0,omicsprint; omicsprint_methylation_relationship_verification
+omicsviewer,transcriptomics,1,0,1,omicsViewer
+omixer,lab_automation,1,0,0,omixer
+omnipathr,systems_biology,1,0,1,OmnipathR
+ompbam,transcriptomics,1,1,0,ompBAM
+omxplore,general,1,1,0,omXplore
+oncomix,transcriptomics,1,0,0,oncomix
+oncoscanr,genomics,4,0,3,oncoscanr; oncoscanr_ascat_standard_workflow; oncoscanr_ascat_workflow; oncoscanr_chas_standard_workflow
+oncosimulr,genetics,2,0,0,oncosimulr; oncosimulr_random_landscape_predictability
+onlinefdr,general,3,0,0,onlinefdr; onlinefdr_batch_fdr_control; onlinefdr_online_fdr_bounded
+ontoproc,genomics,2,1,1,ontoproc; ontoproc_import_and_visualize_owl_ontology
+opencyto,general,3,1,2,opencyto; opencyto_interactive_gating; opencyto_interactive_gating_prototyping
+openprimer,molecular_biology,3,1,0,openprimer; openprimer_analyze_primers; openprimer_compare_primers
+openstats,genetics,3,0,0,openstats; openstats_fishers_exact_test_workflow; openstats_reference_range_plus_workflow
+opossom,transcriptomics,1,1,0,oposSOM
+oppar,transcriptomics,1,0,0,oppar
+optimalflow,imaging,1,1,0,optimalFlow
+opweight,transcriptomics,2,0,0,opweight; opweight_decomposed_opw
+orderedlist,transcriptomics,2,0,0,orderedlist; orderedlist_compare_ordered_lists
+orfhunter,transcriptomics,3,3,0,orfhunter; orfhunter_orf_prediction_and_annotation; orfhunter_predict_and_annotate_orfs
+organism_dplyr,genomics,1,0,0,organism_dplyr
+organismdbi,genomics,1,0,1,OrganismDbi
+osat,transcriptomics,3,0,0,osat; osat_paired_sample_assignment; osat_prioritized_blocking_assignment
+oscope,transcriptomics,1,1,0,oscope
+otubase,metagenomics,3,0,0,otubase; otubase_taxonomic_classification_analysis; otubase_taxonomy_based_analysis
+outrider,transcriptomics,2,0,2,outrider; outrider_peer_controlled_outlier_detection
+paa,proteomics,1,1,0,PAA
+packfinder,genomics,2,0,0,packfinder; packfinder_step_wise_transposon_search
+padma,transcriptomics,2,0,0,padma; padma_reference_based_pathway_deviation_projection
+padog,transcriptomics,2,2,0,padog; padog_benchmark_gene_set_analysis
+pagerank,systems_biology,6,0,0,pagerank; pagerank_accessibility_grn_generation; pagerank_conformation_grn_generation; pagerank_graph_cleaning_and_adjustment; pagerank_grn_filtering_expression; pagerank_multiplex_pagerank
+paircompviz,general,1,1,0,paircompviz
+pairedgsea,transcriptomics,1,0,0,pairedgsea
+pairkat,metabolomics,1,1,0,pairkat
+pandar,transcriptomics,1,1,0,pandaR
+panelcn_mops,variant_calling,1,0,0,panelcn_mops
+panomir,transcriptomics,4,4,0,panomir; panomir_custom_mirna_pathway_enrichment; panomir_custom_pathway_table_from_gmt; panomir_custom_pathway_table_generation
+panp,transcriptomics,1,0,1,panp
+panr,systems_biology,1,0,0,panr
+parglms,general,1,0,0,parglms
+parody,general,2,0,2,parody; parody_multivariate_outlier_detection
+partcnv,genomics,2,0,0,partcnv; partcnv_part_cnvh_hmm
+past,variant_calling,1,0,0,past
+path2ppi,proteomics,1,0,0,Path2PPI
+pathifier,transcriptomics,1,0,0,pathifier
+pathlinkr,transcriptomics,3,2,0,pathlinkr; pathlinkr_pathway_similarity_network; pathlinkr_ppi_network_analysis
+pathnet,transcriptomics,2,0,0,pathnet; pathnet_pathway_contextual_analysis
+pathostat,metagenomics,1,1,0,PathoStat
+pathrender,systems_biology,1,1,0,pathRender
+pathview,transcriptomics,4,3,1,pathview; pathview_discrete_data_visualization; pathview_id_mapping_and_visualization; pathview_multi_sample_comparison
+pathwaypca,epigenomics,2,0,0,pathwaypca; pathwaypca_multi_omics_integration
+pcaexplorer,transcriptomics,2,0,0,pcaexplorer; pcaexplorer_gene_level_pca_and_profiling
+pcamethods,general,4,1,3,pcamethods; pcamethods_expressionset_pca_imputation; pcamethods_pca_diagnostics_validation; pcamethods_robust_pca_outliers
+pcan,systems_biology,3,0,0,pcan; pcan_network_consensus; pcan_pathway_consensus
+pcatools,transcriptomics,1,1,0,PCAtools
+pdinfobuilder,epigenomics,1,1,0,pdInfoBuilder
+peakpanther,epigenomics,2,0,0,peakpanther; peakpanther_real_time_annotation
+peca,transcriptomics,2,0,0,peca; peca_microarray_affy
+peco,transcriptomics,1,0,0,peco
+pedixplorer,genetics,1,1,0,Pedixplorer
+pengls,general,2,0,2,pengls; pengls_temporal_autocorrelation_analysis
+pepsnmr,metabolomics,1,0,1,pepsnmr
+pepstat,proteomics,1,0,0,pepstat
+pepxmltab,proteomics,1,0,0,pepXMLTab
+pfamanalyzer,transcriptomics,1,1,0,pfamanalyzer
+pgca,proteomics,1,0,0,pgca
+pgxrpi,genomics,1,1,0,pgxRpi
+phantasuslite,transcriptomics,1,1,0,phantasusLite
+pharmacogx,transcriptomics,4,0,1,pharmacogx; pharmacogx_drug_synergy_antagonism; pharmacogx_gene_drug_association; pharmacogx_perturbation_connectivity
+phenogeneranker,systems_biology,1,0,0,phenogeneranker
+phenomis,metabolomics,1,0,0,phenomis
+phenopath,transcriptomics,2,2,0,phenopath; phenopath_summarized_experiment_workflow
+phenotest,transcriptomics,1,1,0,phenoTest
+phenstat,genetics,2,0,0,phenstat; phenstat_fishers_exact_categorical_analysis
+philr,metagenomics,1,0,0,philr
+phipdata,proteomics,1,0,1,PhIPData
+phosphonormalizer,proteomics,1,0,0,phosphonormalizer
+phosr,proteomics,1,1,0,PhosR
+phyloprofile,genomics,9,0,5,phyloprofile; phyloprofile_core_gene_identification; phyloprofile_distribution_analysis; phyloprofile_domain_architecture_plot; phyloprofile_domain_architecture_plotting; phyloprofile_downstream_profile_analysis; phyloprofile_gene_age_estimation; phyloprofile_group_comparison; phyloprofile_profile_clustering
+phyloseq,metagenomics,4,0,4,phyloseq; phyloseq_data_filtering_and_transformation; phyloseq_differential_abundance_deseq2; phyloseq_exploratory_analysis_and_visualization
+piano,transcriptomics,2,0,1,piano; piano_consensus_gsa_scoring
+pics,epigenomics,1,0,0,pics
+pigengene,transcriptomics,2,0,0,pigengene; pigengene_step_by_step_pipeline
+pipecomp,transcriptomics,2,0,0,pipecomp; pipecomp_scrna_seq_clustering_benchmarking
+pipeframe,general,1,0,0,pipeFrame
+pirat,proteomics,2,0,0,pirat; pirat_imputation_with_extensions
+piuma,transcriptomics,2,0,0,piuma; piuma_seurat_integrated_tda
+planet,epigenomics,4,2,0,planet; planet_ethnicity_prediction; planet_gestational_age_prediction; planet_preeclampsia_prediction
+planttfhunter,genomics,3,2,1,planttfhunter; planttfhunter_multi_species_tf_counting; planttfhunter_multi_species_tf_profiling
+plasmut,genomics,1,0,0,plasmut
+plgem,transcriptomics,2,0,0,plgem; plgem_step_by_step_mode
+plotgardener,genomics,1,0,1,plotgardener
+plotgrouper,imaging,1,0,0,plotGrouper
+plpe,transcriptomics,1,0,0,PLPE
+plsdabatch,metagenomics,1,0,0,plsdabatch
+plyinteractions,genomics,1,0,1,plyinteractions
+plyranges,genomics,1,1,0,plyranges
+plyxp,transcriptomics,1,1,0,plyxp
+pmm,transcriptomics,1,0,0,pmm
+pmp,epigenomics,2,0,0,pmp; pmp_signal_drift_and_batch_correction
+podcall,epigenomics,1,1,0,podcall
+podkat,genomics,2,1,0,podkat; podkat_post_association_analysis_and_visualization
+pogos,pharmacology,1,0,0,pogos
+polystest,transcriptomics,1,0,0,polystest
+powertcr,immunology,2,0,2,powertcr; powertcr_pareto_model_analysis
+powsc,transcriptomics,2,0,0,powsc; powsc_multiple_group_power_analysis
+ppcseq,transcriptomics,1,0,1,ppcseq
+ppinfer,proteomics,2,1,1,ppinfer; ppinfer_species_specific_inference
+pqsfinder,transcriptomics,3,3,0,pqsfinder; pqsfinder_custom_g4_detection; pqsfinder_custom_g4_scoring
+pram,transcriptomics,3,3,0,pram; pram_step_by_step_pram_analysis; pram_step_by_step_pram_workflow
+prebs,transcriptomics,4,4,0,prebs; prebs_create_probe_mapping; prebs_manufacturer_cdf_expression; prebs_manufacturer_cdf_probeset_expression
+precisetad,epigenomics,2,0,0,precisetad; precisetad_cross_cell_type_prediction
+preda,transcriptomics,2,1,1,preda; preda_sodegir_combined_analysis
+prince,proteomics,2,0,0,prince; prince_detect_complexes_workflow
+proactiv,transcriptomics,1,1,0,proactiv
+probamr,genomics,1,0,0,probamr
+process,proteomics,3,2,1,process; process_mean_spectrum_peak_detection; process_mean_spectrum_peaks
+procoil,proteomics,2,0,2,procoil; procoil_comparative_mutation_analysis
+proda,transcriptomics,1,1,0,proda
+profileplyr,epigenomics,1,1,0,profileplyr
+profilescoredist,genomics,1,0,0,profilescoredist
+progeny,transcriptomics,1,1,0,progeny
+projectr,transcriptomics,4,0,0,projectr; projectr_clustering_projection; projectr_correlation_projection; projectr_differential_feature_drivers
+proloc,proteomics,3,2,0,proloc; proloc_nearest_neighbour_transfer_learning; proloc_subcellular_resolution_assessment
+prolocgui,proteomics,1,1,0,pRolocGUI
+promise,transcriptomics,1,0,0,promise
+prone,transcriptomics,1,1,0,prone
+proteinprofiles,proteomics,1,0,0,proteinProfiles
+proteodisco,transcriptomics,3,3,0,proteodisco; proteodisco_manual_transcripts_workflow; proteodisco_splice_junctions_workflow
+proteomm,transcriptomics,1,0,0,proteomm
+protgear,proteomics,1,1,0,protgear
+psmatch,proteomics,3,0,3,psmatch; psmatch_fragment_ion_calculation_and_visualization; psmatch_ms2_fragment_ion_analysis
+ptairms,transcriptomics,2,2,0,ptairms; ptairms_single_raw_file_processing
+puma,transcriptomics,7,7,0,puma; puma_exon_array_analysis; puma_exon_array_summarisation; puma_hta_20_array_summarisation; puma_hta_array_analysis; puma_pca_and_clustering_with_uncertainty; puma_uncertainty_aware_clustering
+purecn,variant_calling,3,0,2,purecn; purecn_biomarker_extraction; purecn_third_party_segmentation
+pvac,transcriptomics,1,0,0,pvac
+pvca,transcriptomics,1,0,1,pvca
+pviz,proteomics,1,0,0,Pviz
+pwmenrich,genomics,1,1,0,PWMEnrich
+qckitfastq,genomics,1,0,0,qckitfastq
+qcmetrics,proteomics,3,1,2,qcmetrics; qcmetrics_n15_labeled_proteomics_qc; qcmetrics_proteomics_raw_ms_qc
+qdnaseq,genomics,3,0,0,qdnaseq; qdnaseq_generate_bin_annotations; qdnaseq_generate_custom_bin_annotations
+qfeatures,proteomics,1,1,0,qfeatures
+qmtools,metabolomics,1,0,0,qmtools
+qpcrnorm,transcriptomics,1,0,0,qpcrnorm
+qpgraph,transcriptomics,1,0,0,qpgraph
+qplexanalyzer,proteomics,1,1,0,qPLEXanalyzer
+qsea,epigenomics,1,0,0,qsea
+qsmooth,transcriptomics,2,0,0,qsmooth; qsmooth_gc_content_aware_smooth_quantile_normalization
+qsutils,genomics,7,0,7,qsutils; qsutils_complexity_and_diversity_analysis; qsutils_genotyping; qsutils_genotyping_unknown_haplotypes; qsutils_quasispecies_diversity_analysis; qsutils_strand_haplotype_intersection; qsutils_strand_intersection
+qsvar,transcriptomics,1,0,0,qsvar
+qtlexperiment,variant_calling,1,0,1,QTLExperiment
+qtlizer,transcriptomics,1,0,0,Qtlizer
+quantiseqr,transcriptomics,2,2,0,quantiseqr; quantiseqr_deconvolution_from_summarized_experiment
+quantro,transcriptomics,1,1,0,quantro
+quantsmooth,genomics,1,1,0,quantsmooth
+quasr,transcriptomics,7,7,0,quasr; quasr_bis_seq_analysis; quasr_bis_seq_workflow; quasr_mirna_seq_workflow; quasr_rna_seq_analysis; quasr_rna_seq_workflow; quasr_smrna_seq_analysis
+qubic,transcriptomics,3,0,0,qubic; qubic_bicluster_expanding; qubic_query_based_biclustering
+qusage,transcriptomics,1,0,1,qusage
+qvalue,general,2,0,1,qvalue; qvalue_fdr_estimation_from_test_statistics
+r3cpet,transcriptomics,1,0,0,r3cpet
+r3cseq,epigenomics,1,1,0,r3cseq
+r453plus1toolbox,variant_calling,5,1,4,r453plus1toolbox; r453plus1toolbox_gs_mapper_analysis; r453plus1toolbox_sff_manipulation; r453plus1toolbox_sff_manipulation_qc; r453plus1toolbox_structural_variant_detection
+r4rna,transcriptomics,3,3,0,r4rna; r4rna_alignment_and_structural_covariance; r4rna_alignment_covariance_analysis
+radiogx,genomics,2,0,0,radiogx; radiogx_biomarker_discovery_signatures
+raer,transcriptomics,4,1,3,raer; raer_alu_editing_index; raer_bulk_differential_editing; raer_novel_editing_detection
+raggedexperiment,genomics,1,0,0,RaggedExperiment
+raids,transcriptomics,2,2,0,raids; raids_rna_ancestry_inference
+rain,genomics,1,1,0,rain
+ramwas,genomics,4,2,1,ramwas; ramwas_cpg_snp_joint_analysis; ramwas_custom_cpg_set_and_qc; ramwas_custom_cpg_set_construction
+randpack,general,1,0,0,randpack
+randrotation,transcriptomics,3,0,0,randrotation; randrotation_contrast_analysis_batch_correction; randrotation_mixed_model_batch_correction
+rankprod,transcriptomics,5,1,4,rankprod; rankprod_cdna_common_reference; rankprod_metabolomics_rank_sum; rankprod_multi_condition_contrast; rankprod_multi_origin_analysis
+raresim,variant_calling,2,2,0,raresim; raresim_estimate_expected_variants_with_defaults
+rarevariantvis,transcriptomics,2,2,0,rarevariantvis; rarevariantvis_multiple_sample_visualization
+rarr,transcriptomics,1,1,0,Rarr
+rawdiag,proteomics,3,0,3,rawdiag; rawdiag_launch_rawdiag_shiny_app; rawdiag_shiny_application
+rawrr,genomics,1,0,1,rawrr
+rbcbook1,general,1,0,1,RbcBook1
+rbec,metagenomics,3,1,1,rbec; rbec_contamination_detection; rbec_detect_contaminants
+rbioformats,imaging,1,0,1,RBioFormats
+rbioinf,transcriptomics,1,0,0,RBioinf
+rbiopaxparser,systems_biology,1,0,1,rbiopaxparser
+rblast,genomics,3,0,3,rblast; rblast_create_and_query_custom_db; rblast_create_custom_blast_db
+rbm,transcriptomics,1,0,0,rbm
+rbowtie,genomics,2,0,2,rbowtie; rbowtie_spliced_alignment_splicemap
+rbowtie2,genomics,1,1,0,rbowtie2
+rbsurv,transcriptomics,1,0,0,rbsurv
+rbwa,genomics,3,0,2,rbwa; rbwa_bwa_mem_alignment; rbwa_bwa_mem_long_reads
+rcas,transcriptomics,2,2,0,rcas; rcas_multi_sample_meta_analysis
+rcaspar,transcriptomics,2,0,0,rcaspar; rcaspar_survival_prediction_with_cross_validation
+rcellminer,transcriptomics,1,1,0,rcellminer
+rcgh,variant_calling,1,0,1,rcgh
+rcistarget,genomics,1,0,1,rcistarget
+rcm,metagenomics,2,0,0,rcm; rcm_constrained_rcm
+rcollectl,genomics,1,0,0,Rcollectl
+rcsl,transcriptomics,1,0,1,rcsl
+rcx,systems_biology,1,0,1,RCX
+rcy3,systems_biology,4,1,1,rcy3; rcy3_graphnel_interoperability; rcy3_igraph_interoperability; rcy3_import_attribute_data
+rcyjs,systems_biology,1,0,0,RCyjs
+rdrtoolbox,transcriptomics,1,1,0,rdrtoolbox
+reactomepa,transcriptomics,2,1,1,reactomepa; reactomepa_reactome_gsea
+readqpcr,transcriptomics,2,0,2,readqpcr; readqpcr_taqman_sds_loading
+rebet,variant_calling,1,0,0,REBET
+rebook,general,1,0,0,rebook
+receptloss,transcriptomics,1,1,0,receptLoss
+reconsi,metagenomics,2,0,0,reconsi; reconsi_phyloseq_differential_abundance
+recount,transcriptomics,1,1,0,recount
+recount3,transcriptomics,1,1,0,recount3
+recountmethylation,epigenomics,1,0,0,recountmethylation
+reder,transcriptomics,2,1,1,reder; reder_tree_and_leaf_diagrams
+redisparam,transcriptomics,1,0,1,RedisParam
+redseq,genomics,1,0,0,redseq
+regenrich,transcriptomics,1,0,0,RegEnrich
+regionalpcs,epigenomics,1,0,0,regionalpcs
+regionalst,single_cell,3,0,2,regionalst; regionalst_analysis_with_cell_type_labels; regionalst_cell_type_labels_workflow
+regioner,epigenomics,3,0,3,regioner; regioner_local_zscore_analysis; regioner_resampling_permutation_test
+regionereloaded,epigenomics,2,0,2,regionereloaded; regionereloaded_multi_local_zscore
+regionreport,transcriptomics,2,1,1,regionreport; regionreport_derfinder_base_level_report
+regsplice,transcriptomics,2,0,0,regsplice; regsplice_rna_seq_step_by_step
+regutools,transcriptomics,1,0,0,regutools
+remp,genomics,1,0,0,remp
+repitools,transcriptomics,1,1,0,Repitools
+reportingtools,transcriptomics,1,0,1,ReportingTools
+repviz,transcriptomics,1,1,0,repviz
+residualmatrix,general,1,0,1,ResidualMatrix
+retrofit,transcriptomics,2,0,2,retrofit; retrofit_one_step_deconvolution_and_annotation
+rexposome,general,2,2,0,rexposome; rexposome_multiple_imputation_exposome
+rfastp,genomics,7,0,4,rfastp; rfastp_custom_trimming_and_filtering; rfastp_fastq_concatenation; rfastp_paired_end_qc_and_merging; rfastp_paired_end_qc_trimming_merging; rfastp_umi_preprocessing; rfastp_umi_processing
+rfpred,transcriptomics,1,0,0,rfPred
+rgadem,epigenomics,1,0,0,rgadem
+rgenometracks,genomics,1,0,0,rgenometracks
+rgntx,transcriptomics,1,0,0,RgnTX
+rgoslin,metabolomics,1,1,0,rgoslin
+rgraph2js,general,1,0,1,RGraph2js
+rgsea,transcriptomics,2,0,0,rgsea; rgsea_sd_features
+rgsepd,transcriptomics,1,0,0,rgsepd
+rhdf5client,general,1,0,1,rhdf5client
+rhinotyper,microbiology,4,0,4,rhinotyper; rhinotyper_amino_acid_visualization; rhinotyper_genotyping_with_in_r_alignment; rhinotyper_rhinovirus_genotyping_internal_alignment
+ribodipa,transcriptomics,5,5,0,ribodipa; ribodipa_exon_level_analysis; ribodipa_exon_level_pipeline; ribodipa_step_by_step_pipeline; ribodipa_step_by_step_pipeline
+riboprofiling,genomics,1,0,0,RiboProfiling
+ribor,transcriptomics,3,0,3,ribor; ribor_translational_efficiency; ribor_translational_efficiency_and_optional_data
+riboseqr,genomics,1,1,0,riboSeqR
+ribosomeprofilingqc,transcriptomics,5,5,0,ribosomeprofilingqc; ribosomeprofilingqc_differential_analysis_rpf_only; ribosomeprofilingqc_floss_analysis; ribosomeprofilingqc_rpf_only_differential_analysis; ribosomeprofilingqc_translational_efficiency_and_rrs
+rifi,transcriptomics,1,0,1,rifi
+rificomparative,transcriptomics,1,0,0,rificomparative
+rimmport,immunology,1,0,1,RImmPort
+ritan,systems_biology,3,2,1,ritan; ritan_comparative_subset_enrichment; ritan_induced_subnetwork_extraction
+river,genomics,3,0,3,river; river_application; river_model_application
+rjmcmcnucleosomes,genomics,2,0,0,rjmcmcnucleosomes; rjmcmcnucleosomes_chromosomal_nucleosome_positioning
+rlassocox,transcriptomics,1,0,0,rlassocox
+rlmm,variant_calling,1,0,0,rlmm
+rmagpie,transcriptomics,2,0,0,rmagpie; rmagpie_nsc_classification
+rmassbank,metabolomics,4,4,0,rmassbank; rmassbank_combining_multiplicities; rmassbank_massbank_record_generation; rmassbank_multiplicity_filtering_workflow
+rmmquant,transcriptomics,1,1,0,rmmquant
+rmspc,transcriptomics,3,3,0,rmspc; rmspc_granges_input; rmspc_peak_calling_from_granges
+rnaagecalc,transcriptomics,2,0,0,rnaagecalc; rnaagecalc_predict_age_summarized_experiment
+rnadecay,transcriptomics,1,0,0,rnadecay
+rnaeditr,transcriptomics,2,0,0,rnaeditr; rnaeditr_region_based_analysis
+rnamodr,transcriptomics,3,3,0,rnamodr; rnamodr_multi_sample_comparison_and_visualization; rnamodr_multi_sample_modification_comparison
+rnamodr_alkanilineseq,transcriptomics,1,0,0,rnamodr_alkanilineseq
+rnamodr_ml,transcriptomics,1,1,0,rnamodr_ml
+rnamodr_ribomethseq,transcriptomics,1,0,0,rnamodr_ribomethseq
+rnasense,transcriptomics,1,0,0,rnasense
+rnaseqcomp,transcriptomics,1,0,0,rnaseqcomp
+rnaseqpower,transcriptomics,1,1,0,RNASeqPower
+rnaseqsamplesize,transcriptomics,4,0,0,rnaseqsamplesize; rnaseqsamplesize_reference_distribution_estimation; rnaseqsamplesize_user_prior_data_estimation; rnaseqsamplesize_visualization_and_optimization
+rnbeads,genomics,4,4,0,rnbeads; rnbeads_bisulfite_sequencing_analysis; rnbeads_bisulfite_sequencing_vanilla_analysis; rnbeads_tailored_step_by_step_analysis
+rnits,transcriptomics,1,1,0,Rnits
+roar,transcriptomics,1,1,0,roar
+rols,general,1,0,0,rols
+rontotools,transcriptomics,2,0,0,rontotools; rontotools_primary_dis_regulation
+ropls,metabolomics,4,2,0,ropls; ropls_multi_assay_experiment_workflow; ropls_summarized_experiment_workflow; ropls_supervised_pls_opls
+roseq,transcriptomics,1,0,0,roseq
+rots,transcriptomics,1,0,1,rots
+rprimer,genomics,2,1,1,rprimer; rprimer_mixed_primer_design_masked_alignment
+rpx,proteomics,1,1,0,rpx
+rqc,genomics,2,0,2,rqc; rqc_advanced_qc_analysis
+rqubic,transcriptomics,1,0,0,rqubic
+rrdp,transcriptomics,1,0,0,rrdp
+rrho,transcriptomics,2,0,0,rrho; rrho_compare_three_lists
+rrvgo,systems_biology,1,1,0,rrvgo
+rsamtools,genomics,1,1,0,Rsamtools
+rsbml,systems_biology,1,1,0,rsbml
+rscudo,transcriptomics,1,0,0,rscudo
+rsemmed,systems_biology,2,0,0,rsemmed; rsemmed_node_neighborhood_expansion
+rseqan,genomics,1,0,0,RSeqAn
+rsubread,transcriptomics,5,5,0,rsubread; rsubread_bulk_rnaseq_junction_detection; rsubread_read_quality_assessment; rsubread_single_cell_10x_quantification; rsubread_single_cell_rna_seq_quantification
+rsvsim,genomics,6,4,2,rsvsim; rsvsim_comparing_sv_sets; rsvsim_estimating_sv_sizes; rsvsim_inserting_known_svs; rsvsim_sv_detection_comparison; rsvsim_sv_size_estimation
+rsweep,genomics,1,0,0,rsweep
+rtca,transcriptomics,2,0,0,rtca; rtca_data_transformation
+rtcgatoolbox,transcriptomics,1,1,0,RTCGAToolbox
+rtn,transcriptomics,2,2,0,rtn; rtn_regulon_activity_profiling_and_cohort_projection
+rtopper,genomics,2,0,2,rtopper; rtopper_gse_then_integration
+rtpca,genomics,2,2,0,rtpca; rtpca_differential_tpca
+rtracklayer,genomics,1,0,0,rtracklayer
+rtreemix,genetics,1,0,0,Rtreemix
+rtrm,proteomics,1,0,0,rtrm
+rtrmui,transcriptomics,1,0,0,rTRMui
+ruvcorr,transcriptomics,1,0,0,RUVcorr
+ruvnormalize,transcriptomics,3,0,0,ruvnormalize; ruvnormalize_iterative_ruv; ruvnormalize_replicate_ruv
+ruvseq,transcriptomics,3,3,0,ruvseq; ruvseq_ruvr_residuals; ruvseq_ruvs_replicate_samples
+rvs,genomics,2,0,0,rvs; rvs_gene_based_partial_sharing
+rwikipathways,imaging,1,1,0,rWikiPathways
+safe,transcriptomics,4,0,2,safe; safe_covariate_adjusted_safe_analysis; safe_custom_cmatrix_safe_analysis; safe_survival_safe_analysis
+saigegds,genomics,1,0,0,saigegds
+sampleclassifier,transcriptomics,2,0,0,sampleclassifier; sampleclassifier_rnaseq_classification
+samspectral,single_cell,1,0,0,samspectral
+sangerseqr,variant_calling,1,0,1,sangerseqr
+santa,systems_biology,1,0,0,santa
+sarc,variant_calling,1,1,0,SARC
+sarks,transcriptomics,3,0,0,sarks; sarks_kmer_clustering_and_mapping; sarks_spatial_smoothing_and_multi_parameter_analysis
+saser,transcriptomics,4,4,0,saser; saser_aberrant_splicing_analysis; saser_differential_usage_analysis_with_adapted_offsets; saser_differential_usage_deseq2_edger
+saturn,transcriptomics,1,1,0,saturn
+sbmlr,systems_biology,1,1,0,sbmlr
+sc3,transcriptomics,3,3,0,sc3; sc3_hybrid_svm_clustering; sc3_step_by_step_sc3_pipeline
+scale4c,epigenomics,1,1,0,scale4c
+scan_upc,transcriptomics,3,0,3,scan_upc; scan_upc_rnaseq_upc; scan_upc_rnaseq_upc_expression_probability
+scanmir,transcriptomics,1,1,0,scanMiR
+scanmirapp,transcriptomics,1,1,0,scanMiRApp
+scannotatr,transcriptomics,3,0,3,scannotatr; scannotatr_train_basic_classifier; scannotatr_train_child_classifier
+scanvis,genomics,1,0,0,scanvis
+scarray,transcriptomics,1,0,0,scarray
+scarray_sat,single_cell,1,0,0,scarray_sat
+scater,transcriptomics,1,1,0,scater
+scatterhatch,general,1,1,0,scatterhatch
+scbfa,transcriptomics,2,0,0,scbfa; scbfa_binary_pca
+scbn,transcriptomics,1,0,0,scbn
+scbubbletree,transcriptomics,3,0,3,scbubbletree; scbubbletree_sc_bubbletree_comparison; scbubbletree_sc_bubbletree_external_clustering
+sccb2,transcriptomics,2,2,0,sccb2; sccb2_detailed_cb2_pipeline
+scclassify,transcriptomics,3,0,0,scclassify; scclassify_predict_pretrained; scclassify_train_custom_model
+sccomp,transcriptomics,4,0,0,sccomp; sccomp_differential_variability_analysis; sccomp_model_comparison_loo; sccomp_random_effects_modeling
+scdataviz,transcriptomics,3,0,2,scdataviz; scdataviz_import_from_seurat; scdataviz_import_numerical_data
+scdblfinder,transcriptomics,3,3,0,scdblfinder; scdblfinder_compute_doublet_density; scdblfinder_find_doublet_clusters
+scdd,transcriptomics,2,1,0,scdd; scdd_single_cell_simulation
+scddboost,transcriptomics,1,0,1,scddboost
+scdesign3,transcriptomics,1,0,1,scdesign3
+scdotplot,transcriptomics,2,0,1,scdotplot; scdotplot_seurat_dotplot
+scds,transcriptomics,1,0,1,scds
+scfa,systems_biology,2,0,0,scfa; scfa_risk_score_prediction
+scfeatures,single_cell,2,1,0,scfeatures; scfeatures_association_study_report
+scgps,single_cell,2,1,1,scgps; scgps_subpopulation_relationship_prediction
+schex,single_cell,1,1,0,schex
+schot,transcriptomics,2,0,0,schot; schot_spatial_differential_correlation
+scider,transcriptomics,1,0,0,scider
+scifer,single_cell,1,0,1,scifer
+scmap,transcriptomics,2,1,1,scmap; scmap_cell
+scmerge,transcriptomics,4,0,0,scmerge; scmerge_sc_merge_v2; scmerge_sc_merge_v2_hierarchical; scmerge_sc_seg_index_computation
+scmet,transcriptomics,2,2,0,scmet; scmet_differential_methylation_analysis
+scmeth,epigenomics,2,0,0,scmeth; scmeth_step_by_step_qc_analysis
+scmitomut,transcriptomics,1,0,0,scmitomut
+scmultisim,transcriptomics,1,1,0,scMultiSim
+scone,transcriptomics,2,2,0,scone; scone_psinorm_standalone_normalization
+sconify,single_cell,1,0,0,sconify
+scoreinvhap,variant_calling,1,0,0,scoreInvHap
+scp,transcriptomics,1,1,0,scp
+scpca,transcriptomics,1,0,0,scPCA
+scpipe,transcriptomics,1,1,0,scPipe
+scran,transcriptomics,3,0,0,scran; scran_automated_pc_selection; scran_gene_correlation_analysis
+scrapper,transcriptomics,4,0,4,scrapper; scrapper_batch_blocked_analysis; scrapper_modular_sc_rna_seq_analysis; scrapper_multimodal_rna_adt_analysis
+screclassify,single_cell,1,0,1,screclassify
+screcover,transcriptomics,2,0,0,screcover; screcover_dropout_estimation
+screencounter,transcriptomics,5,5,0,screencounter; screencounter_combinatorial_barcodes; screencounter_dual_barcodes_paired_end; screencounter_dual_barcodes_single_end; screencounter_random_barcodes
+screenr,transcriptomics,1,0,0,ScreenR
+screpertoire,single_cell,3,2,1,screpertoire; screpertoire_bcr_repertoire_clustering; screpertoire_integrated_single_cell_analysis
+scrnaseqapp,transcriptomics,1,1,0,scRNAseqApp
+scruff,transcriptomics,4,4,0,scruff; scruff_cel_seq_pipeline_stepwise; scruff_read_mapping_visualization; scruff_tenx_bam_qc
+scry,transcriptomics,3,2,1,scry; scry_large_data_deviance; scry_sce_null_residuals_pca
+scshapes,transcriptomics,1,0,1,scshapes
+sctensor,transcriptomics,2,0,0,sctensor; sctensor_gene_id_conversion
+sctgif,transcriptomics,1,0,0,sctgif
+scthi,single_cell,2,0,0,scthi; scthi_tme_classification
+scuttle,transcriptomics,2,0,1,scuttle; scuttle_scaling_normalization
+scvir,single_cell,1,0,1,scvir
+sdams,transcriptomics,3,3,0,sdams; sdams_matrix_based_analysis; sdams_matrix_to_sda
+seahtrue,metabolomics,1,0,1,seahtrue
+sechm,transcriptomics,1,1,0,sechm
+segmenter,genomics,1,0,0,segmenter
+segmentseq,transcriptomics,3,3,0,segmentseq; segmentseq_dna_methylation_loci_and_dm; segmentseq_methylation_loci_and_dm_analysis
+selectksigs,genomics,1,0,1,selectksigs
+selex,genomics,1,0,0,selex
+semdist,proteomics,3,2,1,semdist; semdist_evaluate_predictions_ru_mi; semdist_evaluate_predictions_rumi
+semisup,transcriptomics,1,0,0,semisup
+seq2pathway,variant_calling,3,0,0,seq2pathway; seq2pathway_fishers_exact_enrichment; seq2pathway_rna_seq_expression_pathway
+seq_hotspot,genomics,1,0,0,seq_hotspot
+seqarchr,genomics,1,0,1,seqArchR
+seqarchrplus,transcriptomics,1,0,0,seqArchRplus
+seqarray,genomics,1,0,1,SeqArray
+seqcat,variant_calling,4,3,1,seqcat; seqcat_cosmic_database_comparison; seqcat_cosmic_profile_comparison; seqcat_targeted_variant_validation
+seqgate,transcriptomics,1,0,0,seqgate
+seqgsea,transcriptomics,3,3,0,seqgsea; seqgsea_de_only_gsea; seqgsea_one_step_seqgsea
+seqlogo,genomics,1,1,0,seqlogo
+seqpattern,genomics,2,2,0,seqpattern; seqpattern_motif_scanning_and_density
+seqsetvis,epigenomics,2,0,1,seqsetvis; seqsetvis_signal_profiling_and_clustering
+seqsqc,genomics,2,0,0,seqsqc; seqsqc_step_by_step_qc
+seqtools,genomics,1,0,0,seqTools
+seqvartools,variant_calling,3,1,2,seqvartools; seqvartools_iterative_variant_processing; seqvartools_variant_iteration
+sesame,epigenomics,1,1,0,sesame
+setools,transcriptomics,1,0,0,SEtools
+sevenbridges,general,1,0,1,sevenbridges
+sevenc,genomics,2,0,0,sevenc; sevenc_train_custom_prediction_model
+sgcp,transcriptomics,1,0,1,SGCP
+sgseq,transcriptomics,3,0,3,sgseq; sgseq_de_novo_splice_analysis; sgseq_step_by_step_splice_analysis
+sharedobject,general,1,0,0,SharedObject
+shiny_gosling,genomics,1,0,0,shiny_gosling
+shinymethyl,epigenomics,1,1,0,shinyMethyl
+shortread,genomics,4,1,1,shortread; shortread_custom_column_parsing; shortread_fastq_filtering_and_trimming; shortread_parsing_custom_tabular_sequence_files
+siamcat,metagenomics,2,0,0,siamcat; siamcat_holdout_testing
+sictools,genomics,3,0,0,sictools; sictools_indel_diff_detection; sictools_indel_difference_detection
+sigcheck,transcriptomics,2,0,0,sigcheck; sigcheck_classification_analysis
+sigfeature,transcriptomics,2,1,0,sigfeature; sigfeature_cross_validation_and_frequency_profiling
+sigfuge,transcriptomics,1,0,0,sigfuge
+siggenes,transcriptomics,1,1,0,siggenes
+sights,drug_discovery,1,0,0,sights
+signaturesearch,transcriptomics,2,0,1,signaturesearch; signaturesearch_batch_gess_processing
+signer,genomics,3,0,0,signer; signer_downstream_exposure_analysis; signer_exposure_estimation_to_known_signatures
+sigsquared,transcriptomics,1,0,0,sigsquared
+sim,genomics,1,0,1,SIM
+simat,epigenomics,2,0,0,simat; simat_fragment_optimization
+simbu,transcriptomics,1,0,1,simbu
+simd,transcriptomics,1,0,0,simd
+simffpe,genomics,2,1,1,simffpe; simffpe_targeted_region_simulation
+similarpeak,transcriptomics,2,0,0,similarpeak; similarpeak_metric_factory_similarity
+simpic,epigenomics,2,1,1,simpic; simpic_scatac_simulation_and_comparison
+simpleseg,transcriptomics,1,1,0,simpleseg
+sincell,transcriptomics,3,0,0,sincell; sincell_functional_association_testing; sincell_statistical_support_assessment
+singlecellalleleexperiment,transcriptomics,1,1,0,singlecellalleleexperiment
+singlecellexperiment,single_cell,1,0,1,SingleCellExperiment
+singlecelltk,transcriptomics,1,1,0,singleCellTK
+singlemoleculefootprinting,genomics,1,1,0,SingleMoleculeFootprinting
+singler,transcriptomics,2,1,0,singler; singler_annotation_with_single_cell_reference_and_diagnostics
+singscore,transcriptomics,3,0,3,singscore; singscore_score_landscape_projection; singscore_stingscore_reduced_measurements
+sipsic,transcriptomics,1,0,1,sipsic
+sitadela,transcriptomics,1,1,0,sitadela
+sitepath,genomics,1,1,0,sitepath
+sizepower,transcriptomics,3,0,0,sizepower; sizepower_matched_pairs_design; sizepower_multiple_treatment_or_block_design
+sketchr,single_cell,1,0,0,sketchr
+skewr,epigenomics,1,0,0,skewr
+slalom,transcriptomics,1,0,0,slalom
+slqpcr,transcriptomics,1,0,0,SLqPCR
+smite,transcriptomics,1,0,0,smite
+smoothclust,transcriptomics,1,0,0,smoothclust
+snagee,transcriptomics,2,0,0,snagee; snagee_sample_quality_assessment
+snapcount,transcriptomics,1,1,0,snapcount
+snifter,single_cell,2,0,1,snifter; snifter_project_new_data
+snm,transcriptomics,4,0,4,snm; snm_double_channel_normalization; snm_preprocessed_normalization; snm_reference_design_normalization
+snpediar,variant_calling,1,0,0,SNPediaR
+snprelate,genomics,8,0,5,snprelate; snprelate_fst_estimation; snprelate_ibs_and_cluster_analysis; snprelate_identity_by_state_clustering; snprelate_pca_and_ld_pruning; snprelate_pca_and_population_structure; snprelate_relatedness_and_ibd_analysis; snprelate_relatedness_and_relationship_inference
+snpstats,variant_calling,6,2,3,snpstats; snpstats_fst_calculation; snpstats_imputation_and_association; snpstats_ld_analysis; snpstats_linkage_disequilibrium; snpstats_snp_imputation_and_association
+soggi,genomics,1,0,1,soGGi
+somaticsignatures,variant_calling,1,0,1,somaticsignatures
+spacemarkers,transcriptomics,1,0,0,SpaceMarkers
+spaniel,transcriptomics,1,0,1,spaniel
+spanorm,transcriptomics,3,0,0,spanorm; spanorm_seurat_workflow; spanorm_svg_and_dimension_reduction
+sparrow,transcriptomics,1,1,0,sparrow
+sparsenetgls,general,2,2,0,sparsenetgls; sparsenetgls_ggm_accuracy_assessment
+sparsesignatures,genomics,1,0,0,sparsesignatures
+spasim,imaging,1,0,0,spaSim
+spatialcpie,transcriptomics,1,0,0,spatialcpie
+spatialde,transcriptomics,2,0,2,spatialde; spatialde_spatial_experiment_workflow
+spatialdecon,transcriptomics,2,1,1,spatialdecon; spatialdecon_custom_profile_matrix_generation
+spatialexperiment,transcriptomics,1,0,1,SpatialExperiment
+spatialfeatureexperiment,single_cell,1,0,1,SpatialFeatureExperiment
+spatialheatmap,epigenomics,1,1,0,spatialHeatmap
+spatialomicsoverlay,transcriptomics,1,0,0,spatialomicsoverlay
+spatialsimgp,transcriptomics,1,0,0,spatialsimgp
+speckle,transcriptomics,3,0,0,speckle; speckle_custom_linear_modeling_and_anova; speckle_propeller_on_precalculated_proportions
+specl,proteomics,2,0,2,specl; specl_swath_library_generation_no_irt
+specond,transcriptomics,2,0,0,specond; specond_stepwise_specond_analysis
+spectraql,transcriptomics,1,0,0,SpectraQL
+spem,systems_biology,1,0,0,spem
+spia,transcriptomics,2,1,1,spia; spia_with_custom_kegg_data
+spicyr,imaging,1,1,0,spicyR
+spiky,epigenomics,2,1,1,spiky; spiky_cfmedip_analysis_bedpe
+spillr,proteomics,1,0,0,spillr
+spktools,transcriptomics,1,0,0,spktools
+splatter,transcriptomics,3,0,0,splatter; splatter_compare_and_diff_simulations; splatter_splatpop_population_simulation
+splicewiz,transcriptomics,5,5,0,splicewiz; splicewiz_coverage_visualization; splicewiz_novel_splicing_analysis; splicewiz_novel_splicing_detection; splicewiz_star_alignment_and_reference_generation
+splicingfactory,transcriptomics,1,0,0,splicingfactory
+splicinggraphs,transcriptomics,1,1,0,SplicingGraphs
+splinetimer,transcriptomics,1,0,0,splineTimeR
+splinter,transcriptomics,1,1,0,splinter
+splots,transcriptomics,1,1,0,splots
+sponge,transcriptomics,2,0,0,sponge; sponge_effects_classification
+spoon,transcriptomics,2,0,0,spoon; spoon_custom_weighted_svg_workflow
+spotclean,transcriptomics,2,2,0,spotclean; spotclean_spatial_experiment_workflow
+spotlight,transcriptomics,2,0,0,spotlight; spotlight_two_step_deconvolution
+spotsweeper,transcriptomics,2,0,2,spotsweeper; spotsweeper_technical_artifact_detection
+spqn,transcriptomics,1,0,0,spqn
+spsimseq,transcriptomics,2,0,0,spsimseq; spsimseq_simulate_single_cell_rna_seq
+squallms,epigenomics,1,0,0,squallms
+sradb,genomics,1,0,1,SRAdb
+sseq,transcriptomics,2,0,0,sseq; sseq_paired_experimental_design
+ssize,transcriptomics,2,0,0,ssize; ssize_power_calculation
+ssnappy,transcriptomics,1,0,1,ssnappy
+sspaths,transcriptomics,1,0,0,sspaths
+ssrch,general,1,0,0,ssrch
+ssviz,transcriptomics,2,2,0,ssviz; ssviz_pirna_ping_pong_and_composition
+stabmap,transcriptomics,2,0,0,stabmap; stabmap_indirect_mosaic_integration
+stager,transcriptomics,2,0,2,stager; stager_differential_transcript_usage
+standr,transcriptomics,1,1,0,standr
+stategra,systems_biology,3,0,3,stategra; stategra_holistic_differential_expression; stategra_omics_clustering
+statial,transcriptomics,2,0,2,statial; statial_continuous_cell_state_changes
+stjoincount,transcriptomics,1,0,1,stjoincount
+strandcheckr,transcriptomics,1,1,0,strandcheckr
+streamer,general,1,0,1,Streamer
+stringdb,proteomics,1,1,0,stringdb
+struct,general,1,0,1,struct
+structstrings,transcriptomics,1,0,1,Structstrings
+structtoolbox,metabolomics,3,0,0,structtoolbox; structtoolbox_supervised_pls_modeling_and_validation; structtoolbox_svm_classification_and_boundary_tuning
+structuralvariantannotation,variant_calling,3,1,2,structuralvariantannotation; structuralvariantannotation_format_conversion_and_visualization; structuralvariantannotation_transitive_breakpoint_identification
+subcellbarcode,proteomics,3,0,0,subcellbarcode; subcellbarcode_differential_localization; subcellbarcode_exon_centric_classification
+subseq,transcriptomics,3,2,1,subseq; subseq_add_methods_or_depths; subseq_extract_subsampled_matrix
+suitor,genomics,1,1,0,suitor
+summix,genomics,3,1,2,summix; summix_allele_frequency_adjustment; summix_local_ancestry_estimation
+supersigs,genomics,3,1,2,supersigs; supersigs_partial_signature_adjustment; supersigs_predict_supersig
+surfr,transcriptomics,1,1,0,SurfR
+survclust,genomics,2,0,0,survclust; survclust_single_omic_clustering
+survcomp,transcriptomics,3,0,0,survcomp; survcomp_performance_comparison_meta_analysis; survcomp_survival_curve_visualization
+survival,general,2,0,0,survival; survival_cox_proportional_hazards_regression
+sva,transcriptomics,5,5,0,sva; sva_combat_known_batches; sva_combat_seq_rna_seq; sva_frozen_sva_prediction; sva_sequencing
+svanumt,genomics,1,0,1,svanumt
+svaretro,variant_calling,1,1,0,svaretro
+swath2stats,genomics,1,0,0,SWATH2stats
+swathxtend,proteomics,3,1,2,swathxtend; swathxtend_reliability_check_swath; swathxtend_swath_reliability_check
+swfdr,general,2,0,0,swfdr; swfdr_science_wise_fdr_estimation
+switchbox,transcriptomics,2,0,0,switchbox; switchbox_legacy_ktsp_workflow
+switchde,transcriptomics,1,0,0,switchde
+synapsis,proteomics,1,0,0,synapsis
+synapter,proteomics,1,0,0,synapter
+synergyfinder,pharmacology,3,3,0,synergyfinder; synergyfinder_higher_order_combinations; synergyfinder_two_drug_with_replicates
+synextend,genomics,1,0,0,synextend
+synlet,transcriptomics,1,0,0,synlet
+synmut,synthetic_biology,1,0,0,synmut
+syntenet,genomics,2,0,2,syntenet; syntenet_pairwise_synteny_detection
+systempiper,transcriptomics,1,1,0,systemPipeR
+systempipeshiny,general,1,0,1,systemPipeShiny
+systempipetools,transcriptomics,1,0,1,systempipetools
+tadar,transcriptomics,1,0,1,tadar
+tanggle,transcriptomics,2,2,0,tanggle; tanggle_explicit_networks
+tapseq,transcriptomics,2,0,0,tapseq; tapseq_primer_design_and_evaluation
+target,transcriptomics,1,0,0,target
+targetdecoy,proteomics,1,1,0,TargetDecoy
+targetscore,transcriptomics,3,0,0,targetscore; targetscore_target_score_deseq_pipeline; targetscore_target_score_via_targetscoredata
+targetsearch,metabolomics,1,0,0,TargetSearch
+tcc,transcriptomics,3,0,1,tcc; tcc_multi_group_replicates; tcc_paired_two_group
+tcgautils,genomics,1,1,0,TCGAutils
+tcseq,transcriptomics,1,1,0,tcseq
+tdbasedufe,transcriptomics,2,2,0,tdbasedufe; tdbasedufe_multiomics_integration
+tdbasedufeadv,transcriptomics,3,1,2,tdbasedufeadv; tdbasedufeadv_multi_omics_sharing_features; tdbasedufeadv_multi_omics_sharing_samples
+tekrabber,transcriptomics,2,1,1,tekrabber; tekrabber_within_species_comparison
+tenxio,transcriptomics,1,0,1,TENxIO
+tenxplore,transcriptomics,1,0,0,tenXplore
+teqc,transcriptomics,3,3,0,teqc; teqc_custom_qc_analysis; teqc_detailed_qc_analysis
+ternarynet,transcriptomics,1,0,0,ternarynet
+terratcgadata,genomics,1,0,1,terraTCGAdata
+tfarm,epigenomics,1,0,0,tfarm
+tfbstools,genomics,4,1,2,tfbstools; tfbstools_de_novo_motif_discovery; tfbstools_genome_wide_phylogenetic_footprinting; tfbstools_pairwise_alignment_scanning
+tfhaz,genomics,1,0,0,tfhaz
+tfutils,genomics,1,0,0,TFutils
+tidybulk,transcriptomics,1,0,1,tidybulk
+tidycoverage,genomics,3,0,1,tidycoverage; tidycoverage_aggregated_coverage_multiple_features; tidycoverage_aggregated_coverage_profiling
+tidyflowcore,imaging,1,0,0,tidyFlowCore
+tidysbml,genomics,1,1,0,tidysbml
+tidysinglecellexperiment,transcriptomics,1,0,1,tidySingleCellExperiment
+tidyspatialexperiment,transcriptomics,1,0,1,tidySpatialExperiment
+tidysummarizedexperiment,transcriptomics,1,0,1,tidySummarizedExperiment
+tidytof,proteomics,1,0,0,tidytof
+tigre,transcriptomics,2,0,2,tigre; tigre_non_affymetrix_time_series_analysis
+tiledbarray,general,1,0,0,TileDBArray
+tilingarray,epigenomics,2,2,0,tilingarray; tilingarray_along_chromosome_visualization
+timecourse,transcriptomics,1,1,0,timecourse
+timeomics,transcriptomics,2,0,0,timeomics; timeomics_multi_block_omics_clustering
+tin,transcriptomics,1,0,0,TIN
+titancna,genomics,1,0,0,TitanCNA
+tkwidgets,general,1,0,1,tkWidgets
+tloh,transcriptomics,1,0,1,tloh
+tmixclust,transcriptomics,3,3,0,tmixclust; tmixclust_expression_set_clustering; tmixclust_expressionset_time_series_clustering
+tmsig,transcriptomics,1,0,1,tmsig
+tnt,genomics,1,0,1,TnT
+toast,transcriptomics,5,1,0,toast; toast_complete_geometric_deconvolution; toast_correlated_differential_analysis_cedar; toast_partial_reference_free_deconvolution; toast_reference_free_deconvolution
+tomoda,transcriptomics,1,0,0,tomoda
+tomoseqr,transcriptomics,2,1,0,tomoseqr; tomoseqr_detect_axial_peak_genes
+top,transcriptomics,1,0,0,top
+topconfects,transcriptomics,3,0,0,topconfects; topconfects_deseq2_confects; topconfects_edger_confects
+topdownr,proteomics,1,1,0,topdownr
+topgo,transcriptomics,2,1,1,topgo; topgo_score_based_expression_enrichment
+tpsvg,transcriptomics,2,0,0,tpsvg; tpsvg_covariate_adjusted_model
+tracktables,genomics,1,1,0,tracktables
+trackviewer,transcriptomics,4,4,0,trackviewer; trackviewer_chromatin_interaction_visualization; trackviewer_dandelion_plot; trackviewer_lollipop_plot
+trajectorygeometry,transcriptomics,3,0,0,trajectorygeometry; trajectorygeometry_branch_point_analysis; trajectorygeometry_path_progression_and_randomization
+trajectoryutils,transcriptomics,1,1,0,TrajectoryUtils
+transcriptr,transcriptomics,2,2,0,transcriptr; transcriptr_integrated_rna_and_chip_seq_demarcation
+transformgampoi,transcriptomics,2,2,0,transformgampoi; transformgampoi_model_residuals_transformation
+translatome,transcriptomics,1,0,1,translatome
+transmogr,genomics,4,0,0,transmogr; transmogr_coordinate_shifting_reference_extraction; transmogr_genome_modification_and_coordinate_shifting; transmogr_splice_junction_extraction
+traser,genomics,1,1,0,traseR
+treeclimbr,general,2,0,0,treeclimbr; treeclimbr_differential_state_analysis
+treeio,transcriptomics,1,1,0,treeio
+treekor,transcriptomics,1,0,1,treekor
+treesummarizedexperiment,single_cell,1,0,1,TreeSummarizedExperiment
+treg,transcriptomics,1,0,1,treg
+tricycle,transcriptomics,3,3,0,tricycle; tricycle_custom_reference_projection; tricycle_discrete_stage_inference
+trigger,transcriptomics,1,0,0,trigger
+trio,variant_calling,3,1,0,trio; trio_ld_block_detection; trio_logic_regression_and_feature_selection
+triplex,genomics,1,0,1,triplex
+tripr,transcriptomics,1,1,0,tripr
+trna,transcriptomics,2,2,0,trna; trna_feature_comparison_and_visualization
+trnadbimport,transcriptomics,1,1,0,tRNAdbImport
+trnascanimport,transcriptomics,1,1,0,tRNAscanImport
+tronco,variant_calling,3,2,0,tronco; tronco_export_to_external_tools; tronco_pathway_level_visualization
+tscan,transcriptomics,1,0,1,tscan
+ttmap,transcriptomics,1,0,0,TTMap
+turbonorm,epigenomics,3,3,0,turbonorm; turbonorm_two_colour_normalization; turbonorm_weighted_methylation_normalization
+tvtb,genomics,1,0,1,tvtb
+tweedeseq,transcriptomics,3,2,1,tweedeseq; tweedeseq_generalized_linear_modeling; tweedeseq_goodness_of_fit_testing
+twilight,transcriptomics,3,3,0,twilight; twilight_correlation_analysis; twilight_permutation_filtering
+twoddpcr,molecular_biology,4,2,2,twoddpcr; twoddpcr_custom_classification_integration; twoddpcr_knn_classification; twoddpcr_knn_training_classification
+txcutr,transcriptomics,1,0,1,txcutr
+txdbmaker,genomics,1,0,1,txdbmaker
+tximeta,transcriptomics,4,4,0,tximeta; tximeta_linked_transcriptomes; tximeta_mixed_reference_import; tximeta_mixed_reference_oarfish_import
+tximport,transcriptomics,6,5,1,tximport; tximport_alevin_import; tximport_gene_level_import_and_edger_limma; tximport_rsem_import; tximport_stringtie_import; tximport_transcript_level_import_and_summarization
+ucell,transcriptomics,3,3,0,ucell; ucell_seurat_workflow; ucell_single_cell_experiment_workflow
+ucsc_utils,genomics,1,0,0,ucsc_utils
+umi4cats,genomics,1,0,0,umi4cats
+undo,transcriptomics,1,0,0,undo
+unifiedwmwqpcr,transcriptomics,1,0,0,unifiedwmwqpcr
+uniprot_ws,proteomics,1,0,0,uniprot_ws
+updhmm,genomics,1,0,0,updhmm
+usort,transcriptomics,1,0,0,usort
+vanillaice,variant_calling,2,0,1,vanillaice; vanillaice_cnv_calling_from_crlmm_cnset
+variantannotation,variant_calling,3,2,1,variantannotation; variantannotation_genotype_to_snpmatrix; variantannotation_vcf_filtering
+variantexperiment,genomics,1,0,0,VariantExperiment
+variantfiltering,variant_calling,3,0,3,variantfiltering; variantfiltering_inheritance_model_analysis; variantfiltering_inheritance_models_analysis
+varianttools,variant_calling,5,1,2,varianttools; varianttools_sample_specific_variant_calling; varianttools_somatic_variant_calling; varianttools_wildtype_and_nocall_calling; varianttools_wildtype_calling
+vasp,transcriptomics,1,0,0,vasp
+vbmp,general,2,0,1,vbmp; vbmp_high_dimensional_cross_validation
+vcfarray,variant_calling,1,0,0,VCFArray
+vegamc,genomics,1,0,1,vegamc
+velociraptor,transcriptomics,1,0,0,velociraptor
+veloviz,transcriptomics,1,0,1,veloviz
+venndetail,general,1,0,1,venndetail
+vidger,transcriptomics,3,0,0,vidger; vidger_deseq2_dge_visualization; vidger_edger_dge_visualization
+viper,transcriptomics,2,1,0,viper; viper_single_sample_viper
+visiumio,genomics,1,0,1,VisiumIO
+visse,transcriptomics,1,0,1,visse
+voyager,transcriptomics,1,0,1,voyager
+vplotr,genomics,1,0,0,vplotr
+vsclust,transcriptomics,2,0,1,vsclust; vsclust_standard_matrix_workflow
+vsn,variant_calling,4,2,2,vsn; vsn_affymetrix_genechip_normalization; vsn_reference_normalization; vsn_rglist_normalization
+vtpnet,variant_calling,3,0,2,vtpnet; vtpnet_alt_allele_injection; vtpnet_motif_match_search
+vulcan,transcriptomics,3,0,0,vulcan; vulcan_gsea_pareto; vulcan_rank_enrichment_analysis
+watermelon,epigenomics,1,0,1,watermelon
+weaver,general,1,0,0,weaver
+weitrix,transcriptomics,2,0,0,weitrix; weitrix_alternative_polyadenylation_shift_analysis
+widgettools,general,1,0,1,widgetTools
+wiggleplotr,transcriptomics,2,1,0,wiggleplotr; wiggleplotr_read_coverage_plotting
+wpm,proteomics,5,0,5,wpm; wpm_eset_msnset_to_plate_map; wpm_expressionset_to_plate_map; wpm_summarized_experiment_to_plate_map; wpm_summarizedexperiment_to_plate_map
+wppi,proteomics,1,0,1,wppi
+xcms,metabolomics,6,0,3,xcms; xcms_alignment_to_external_reference; xcms_compounding_feature_grouping; xcms_lc_ms_feature_compounding; xcms_lc_ms_preprocessing; xcms_quality_based_feature_filtering
+xcore,transcriptomics,2,1,0,xcore; xcore_construct_molecular_signatures
+xde,transcriptomics,1,0,0,xde
+xenlite,single_cell,1,0,0,xenLite
+xeva,transcriptomics,2,0,0,xeva; xeva_create_xeva_object
+xina,transcriptomics,1,0,0,xina
+xmapbridge,genomics,1,0,0,xmapbridge
+yamss,epigenomics,1,0,1,yamss
+yapsa,genomics,1,1,0,YAPSA
+yarn,transcriptomics,1,0,0,yarn
+zellkonverter,single_cell,1,0,1,zellkonverter
+zenith,transcriptomics,1,0,1,zenith
+zfpkm,transcriptomics,1,0,0,zfpkm
+zinbwave,transcriptomics,3,3,0,zinbwave; zinbwave_differential_expression_with_weights; zinbwave_large_dataset_approximation
+zitools,metagenomics,1,0,0,zitools
+zygositypredictor,genomics,2,0,2,zygositypredictor; zygositypredictor_gene_zygosity_prediction

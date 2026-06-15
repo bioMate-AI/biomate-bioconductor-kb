@@ -1,28 +1,37 @@
-suppressPackageStartupMessages(library(wpm))
-suppressPackageStartupMessages(library(MSnbase))
+# Real user-style input for wpm::convertESet -> wrapperWPM:
+#   my_MSnSet_object - an ExpressionSet a user feeds WPM to randomise samples
+#       across a well plate (this is the "expressionset_to_plate_map" workflow;
+#       wpm::convertESet accepts ExpressionSet or MSnSet identically — it only
+#       reads Biobase::pData). The phenoData carries an `Environment` grouping
+#       factor (the experimental block/condition the workflow groups on), exactly
+#       as the wpm vignette's command-line ExpressionSet/MSnSet example. The
+#       intensities are synthetic (the user's own measurements); the structure
+#       (sample names in colnames, `Environment` grouping factor in pData) is the
+#       real contract wpm::convertESet(object, "Environment") expects.
+# Built with Biobase only (ships in the wpm biocontainer) — no MSnbase needed.
+suppressPackageStartupMessages({
+  library(Biobase)
+})
 
-# Create a synthetic MSnSet object using the sample names and metadata from the vignette
-exprs_data <- matrix(rnorm(20), ncol = 4)
-colnames(exprs_data) <- c("s1", "s2", "s3", "s4")
-rownames(exprs_data) <- paste0("f", 1:5)
+set.seed(42)
 
-pdata <- data.frame(
-  Sample = c("s1", "s2", "s3", "s4"),
-  Type = c("A", "A", "B", "C"),
-  Treatment = c("trt1", "trt1", "Ctrl", "Ctrl"),
-  row.names = c("s1", "s2", "s3", "s4")
+# A realistic small design: 12 samples in 3 experimental environments.
+sample_names <- sprintf("S%02d", seq_len(12))
+n_feat <- 80
+M <- matrix(rnorm(n_feat * length(sample_names), mean = 20, sd = 3),
+            nrow = n_feat, ncol = length(sample_names))
+colnames(M) <- sample_names
+rownames(M) <- sprintf("protein_%03d", seq_len(n_feat))
+
+pd <- data.frame(
+  Environment = factor(rep_len(c("ctrl", "treatA", "treatB"), length(sample_names))),
+  Category    = factor(rep_len(c("batch1", "batch2"), length(sample_names))),
+  row.names   = sample_names
 )
 
-fdata <- data.frame(
-  Feature = paste0("f", 1:5),
-  row.names = paste0("f", 1:5)
-)
+my_MSnSet_object <- ExpressionSet(
+  assayData = M,
+  phenoData = AnnotatedDataFrame(pd))
 
-my_MSnSet_object <- new("MSnSet", 
-                        exprs = exprs_data, 
-                        phenoData = new("AnnotatedDataFrame", data = pdata),
-                        featureData = new("AnnotatedDataFrame", data = fdata))
-
-# Save the object to the expected files
 saveRDS(my_MSnSet_object, "my_MSnSet_object")
 saveRDS(my_MSnSet_object, "my_MSnSet_object.rds")

@@ -76,10 +76,10 @@ process BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION {
     first_chars <- unique(substr(layer_files, 1, 1))
     layers_string <- paste(first_chars, collapse = "")
     
-    # 1. Initialize evolution and general parameters
+    # --- Initialize evolution and general parameters ---
     parameters <- mogamun_init(Generations = 1, PopSize = 10)
     
-    # 2. Load differential expression data and multiplex network layers
+    # --- Load differential expression data and multiplex network ---
     loadedData <-
         mogamun_load_data(
             EvolutionParameters = parameters,
@@ -92,10 +92,10 @@ process BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION {
     # Save the loaded data object for reproducibility
     saveRDS(loadedData, file = "mogamun_loaded_data.rds")
     
-    # 3. Run the genetic algorithm
+    # --- Run the genetic algorithm ---
     mogamun_run(LoadedData = loadedData, ResultsDir = '.')
     
-    # 4. Post-process the results
+    # --- Post-process the results ---
     mogamun_postprocess(
         LoadedData = loadedData, 
         ExperimentDir = '.', 

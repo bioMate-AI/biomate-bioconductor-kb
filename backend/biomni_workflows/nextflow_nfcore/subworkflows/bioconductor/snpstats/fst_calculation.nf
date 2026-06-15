@@ -61,11 +61,11 @@ process BIOC_SNPSTATS_FST_CALCULATION {
     snps.10 <- readRDS("snps.10.rds")
     subject.support <- readRDS("subject.support.rds")
     
-    # 1. Calculate pairwise Fst
+    # --- Calculate pairwise Fst ---
     f1 <- Fst(snps.10, subject.support\$stratum, pairwise=TRUE)
     mean_f1 <- weighted.mean(f1\$Fst, f1\$weight)
     
-    # 2. Calculate overall Fst
+    # --- Calculate overall Fst ---
     f2 <- Fst(snps.10, subject.support\$stratum, pairwise=FALSE)
     mean_f2 <- weighted.mean(f2\$Fst, f2\$weight)
     

@@ -73,13 +73,13 @@ process BIOC_SPICYR_CUSTOM_METRICS_MODELING {
       stop("Error: kerenSPE file not found in the working directory.")
     }
     
-    # 1. Build a spatial graph using imcRtools::buildSpatialGraph()
+    # --- Build a spatial graph using imcRtools::buildSpatialGraph() ---
     kerenSPE <- imcRtools::buildSpatialGraph(kerenSPE, 
                                              img_id = "imageID", 
                                              type = "knn", k = 20,
                                             coords = c("x", "y"))
     
-    # 2. Convert the spatial graph into an abundance matrix using convPairs()
+    # --- Convert the spatial graph into an abundance matrix using ---
     pairAbundances <- convPairs(kerenSPE,
                       colPair = "knn_interaction_graph")
     
@@ -89,7 +89,7 @@ process BIOC_SPICYR_CUSTOM_METRICS_MODELING {
     # Print head of B_cell__B_cell as shown in the vignette
     print(head(pairAbundances["B_cell__B_cell"]))
     
-    # 3. Run spicy() with the custom abundance matrix passed to alternateResult and weights set to FALSE
+    # --- Run spicy() with the custom abundance matrix passed to ---
     spicyTestColPairs <- spicy(
       kerenSPE,
       condition = "tumour_type",
@@ -100,12 +100,12 @@ process BIOC_SPICYR_CUSTOM_METRICS_MODELING {
     # Save the spicy results object
     saveRDS(spicyTestColPairs, "spicyTestColPairs.rds")
     
-    # 4. Retrieve top pairs using topPairs() and save to CSV
+    # --- Retrieve top pairs using topPairs() and save to CSV ---
     top_pairs_df <- topPairs(spicyTestColPairs)
     write.csv(top_pairs_df, "top_pairs_colpairs.csv", row.names = TRUE)
     print(head(top_pairs_df))
     
-    # 5. Visualize results using signifPlot() and save to PDF
+    # --- Visualize results using signifPlot() and save to PDF ---
     pdf("signif_plot_colpairs.pdf", width = 8, height = 8)
     signifPlot(
       spicyTestColPairs,

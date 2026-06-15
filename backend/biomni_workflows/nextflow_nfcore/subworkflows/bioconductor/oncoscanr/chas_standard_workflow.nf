@@ -75,10 +75,10 @@ process BIOC_ONCOSCANR_CHAS_STANDARD_WORKFLOW {
     message(paste('HRD score:', dat\$scores\$HRD))
     
     # Write meaningful output files for downstream analysis
-    # 1. Save the complete result list as an RDS object
+    # --- Save the complete result list as an RDS object ---
     saveRDS(dat, "oncoscan_workflow_results.rds")
     
-    # 2. Export the calculated scores to a CSV table
+    # --- Export the calculated scores to a CSV table ---
     scores_df <- data.frame(
       File = segs.filename,
       HRD = dat\$scores\$HRD,
@@ -88,7 +88,7 @@ process BIOC_ONCOSCANR_CHAS_STANDARD_WORKFLOW {
     )
     write.csv(scores_df, "oncoscan_scores.csv", row.names = FALSE)
     
-    # 3. Export the arm-level alterations to a structured JSON file
+    # --- Export the arm-level alterations to a structured JSON file ---
     armlevel_json <- jsonlite::toJSON(dat\$armlevel, auto_unbox = TRUE, pretty = TRUE)
     writeLines(armlevel_json, "oncoscan_armlevel_alterations.json")
 

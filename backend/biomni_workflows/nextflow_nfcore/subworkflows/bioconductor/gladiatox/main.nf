@@ -55,7 +55,7 @@ process BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING {
     library(GladiaTOX)
     library(data.table)
     
-    # 1. Configure database connection
+    # --- Configure database connection ---
     # Copy the package's template sqlite database to the working directory to avoid modifying package files
     sqlite_template <- file.path(find.package("GladiaTOX"), "sql", "gladiatoxdb.sqlite")
     sqlite_src <- file.path(getwd(), "gladiatoxdb.sqlite")
@@ -69,7 +69,7 @@ process BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING {
     
     gtoxLoadAsid()
     
-    # 2. Build assay table from plate and channel mapping metadata
+    # --- Build assay table from plate and channel mapping metadata ---
     # Read user inputs from the working directory
     plate <- fread("plate_metadata.csv")
     chnmap <- fread("channel_mapping.csv")
@@ -77,21 +77,21 @@ process BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING {
     
     assay <- buildAssayTab(plate, chnmap)
     
-    # 3. Register study info and load annotations into the database
+    # --- Register study info and load annotations into the database ---
     std.nm <- "SampleStudy" # study name
     phs.nm <- "PhaseII" # study phase
     loadAnnot(plate, assay, NULL)
     
     asid = gtoxLoadAsid(fld = c("asnm", "asph"), val = list(std.nm, phs.nm))\$asid
     
-    # 4. Prepare and write raw data to the database
+    # --- Prepare and write raw data to the database ---
     dat <- prepareDatForDB(asid, dat)
     gtoxWriteData(dat[ , list(acid, waid, wllq, rval)], lvl = 0, type = "mc")
     
-    # 5. Assign default processing methods
+    # --- Assign default processing methods ---
     assignDefaultMthds(asid = asid)
     
-    # 6. Run initial processing (levels 1-3) and compute the noise band (VMAD)
+    # --- Run initial processing (levels 1-3) and compute the noise ---
     res <- gtoxRun(asid = asid, slvl = 1, elvl = 3, mc.cores = 2)
     aeids <- gtoxLoadAeid(fld = "asid", val = asid)\$aeid
     tmp <- mapply(function(xx){
@@ -100,10 +100,10 @@ process BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING {
         error = function(e) NULL)},
         as.integer(aeids))
     
-    # 7. Run full processing (levels 1-6)
+    # --- Run full processing (levels 1-6) ---
     res <- gtoxRun(asid = asid, slvl = 1, elvl = 6, mc.cores = 2)
     
-    # 8. Generate QC reports and mask low-quality plates
+    # --- Generate QC reports and mask low-quality plates ---
     outdir <- getwd()
     gtoxReport(type = "qc", asid = asid, report_author = "report author",
     report_title = "Vignette QC report", odir = outdir)

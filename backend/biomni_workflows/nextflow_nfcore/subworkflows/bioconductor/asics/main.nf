@@ -56,7 +56,7 @@ process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     library(ASICS)
     
     # ----------------------------------------------------------------------
-    # 1. Import raw spectra and design metadata
+    # --- Import raw spectra and design metadata ---
     # ----------------------------------------------------------------------
     design_file <- "design_file.txt"
     if (!file.exists(design_file)) {
@@ -91,7 +91,7 @@ process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     }
     
     # ----------------------------------------------------------------------
-    # 2. Identify and quantify metabolites using ASICS
+    # --- Identify and quantify metabolites using ASICS ---
     # ----------------------------------------------------------------------
     # Define areas to exclude (e.g., water and urea regions)
     to_exclude <- matrix(c(4.5, 5.1, 5.5, 6.5), ncol = 2, byrow = TRUE)
@@ -104,7 +104,7 @@ process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     write.csv(quant_df, "quantification_results.csv", row.names = TRUE)
     
     # ----------------------------------------------------------------------
-    # 3. Format quantification results for downstream analysis
+    # --- Format quantification results for downstream analysis ---
     # ----------------------------------------------------------------------
     # Safely handle specified outliers (only exclude if they exist in the dataset)
     outliers_to_exclude <- c("ADG10003u_007", "ADG19007u_163")
@@ -122,7 +122,7 @@ process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     )
     
     # ----------------------------------------------------------------------
-    # 4. Downstream Statistical Analyses
+    # --- Downstream Statistical Analyses ---
     # ----------------------------------------------------------------------
     # PCA Analysis
     resPCA <- pca(analysis_data)
@@ -141,7 +141,7 @@ process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     saveRDS(resTests, "resTests.rds")
     
     # ----------------------------------------------------------------------
-    # 5. Visualization and Plotting
+    # --- Visualization and Plotting ---
     # ----------------------------------------------------------------------
     pdf("asics_analysis_plots.pdf", width = 10, height = 8)
     

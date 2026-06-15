@@ -36,6 +36,15 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DESeq2", "edgeR", "DEFormats", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -45,12 +54,13 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries---
     library(DESeq2)
+    library(SummarizedExperiment)
     library(edgeR)
     library(DEFormats)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
     counts_mat <- as.matrix(counts_df)
@@ -68,7 +78,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     # Ensure condition is a factor
     coldata_df\$condition <- as.factor(coldata_df\$condition)
     
-    # Stage 3: Format conversions using DEFormats
+    # --- Format conversions using DEFormats ---
     message("Performing format conversions...")
     
     # 3.1: Create DGEList and convert to DESeqDataSet
@@ -86,7 +96,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     names(colData(se))[names(colData(se)) == "condition"] <- "group"
     dge_converted <- DGEList(se)
     
-    # Stage 4: Parallel Differential Expression Analysis
+    # --- Parallel Differential Expression Analysis ---
     message("Running DESeq2 analysis on converted object...")
     # Run DESeq2 on the DESeqDataSet converted from DGEList
     dds_analyzed <- DESeq(dds_converted, quiet = TRUE)
@@ -101,7 +111,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     res_edger <- topTags(et_analyzed, n = Inf)\$table
     res_edger\$gene_id <- rownames(res_edger)
     
-    # Stage 5: Compare and Save Results
+    # --- Compare and Save Results ---
     message("Comparing results and writing outputs...")
     
     # Write individual results

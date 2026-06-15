@@ -64,15 +64,15 @@ process BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS {
       stop(paste("Required input file missing:", filepath))
     }
     
-    # 1. Load quasispecies data using ReadAmplSeqs
+    # --- Load quasispecies data using ReadAmplSeqs ---
     lst <- ReadAmplSeqs(filepath, type="DNA")
     
-    # 2. Compute incidence-based indices
+    # --- Compute incidence-based indices ---
     hseqs_len <- length(lst\$hseqs)
     seg_sites <- SegSites(lst\$hseqs)
     total_muts <- TotalMutations(lst\$hseqs)
     
-    # 3. Compute abundance-based indices
+    # --- Compute abundance-based indices ---
     shannon_val <- Shannon(lst\$nr)
     norm_shannon <- NormShannon(lst\$nr)
     shannon_var <- ShannonVar(lst\$nr)
@@ -88,7 +88,7 @@ process BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS {
     hcq_var <- HCqVar(lst\$nr, q= 4)
     hcq_prof <- HCqProfile(lst\$nr)
     
-    # 4. Compute functional diversity indices using genetic distances
+    # --- Compute functional diversity indices using genetic ---
     dst <- DNA.dist(lst\$hseqs, model="raw")
     mut_freq_dst <- MutationFreq(dst)
     fad_dst <- FAD(dst)
@@ -103,7 +103,7 @@ process BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS {
     rao_var_val <- RaoVar(dst, lst\$nr)
     rao_pow_prof <- RaoPowProfile(dst, lst\$nr)
     
-    # 5. Correct for sample size bias using DSFT
+    # --- Correct for sample size bias using DSFT ---
     dsft_val <- DSFT(lst\$nr, size=2000)
     
     # --- Save Results ---

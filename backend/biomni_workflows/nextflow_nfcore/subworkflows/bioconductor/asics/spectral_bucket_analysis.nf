@@ -73,19 +73,19 @@ process BIOC_ASICS_SPECTRAL_BUCKET_ANALYSIS {
     # design_file.txt: sample metadata with sample names in the first column
     design <- read.table(design_file, header = TRUE, check.names = FALSE)
     
-    # 1. Align spectra using alignment
+    # --- Align spectra using alignment ---
     message("Aligning spectra...")
     spectra_align <- alignment(spectra_data_txt)
     
-    # 2. Bin spectra into buckets using binning
+    # --- Bin spectra into buckets using binning ---
     message("Binning spectra...")
     spectra_bucket <- binning(spectra_align)
     
-    # 3. Format bucketed data and merge with design metadata using formatForAnalysis
+    # --- Format bucketed data and merge with design metadata using ---
     message("Formatting data for analysis...")
     analysis_data_bucket <- formatForAnalysis(spectra_bucket, design = design, zero.threshold = 75)
     
-    # 4. Perform OPLS-DA on buckets using oplsda with type.data = "buckets"
+    # --- Perform OPLS-DA on buckets using oplsda with type.data = ---
     message("Performing OPLS-DA on buckets...")
     resOPLSDA_buckets <- oplsda(analysis_data_bucket, condition = "condition", type.data = "buckets")
     
@@ -94,7 +94,7 @@ process BIOC_ASICS_SPECTRAL_BUCKET_ANALYSIS {
     print(resOPLSDA_buckets)
     sink()
     
-    # 5. Visualize bucket-level OPLS-DA results using plot with graph = "buckets"
+    # --- Visualize bucket-level OPLS-DA results using plot with ---
     message("Generating OPLS-DA bucket plot...")
     pdf("oplsda_buckets_plot.pdf", width = 10, height = 7)
     plot(resOPLSDA_buckets, graph = "buckets")

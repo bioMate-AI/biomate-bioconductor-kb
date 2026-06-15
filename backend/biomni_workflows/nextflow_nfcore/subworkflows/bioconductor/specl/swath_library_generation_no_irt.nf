@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Read the non-redundant BiblioSpec sqlite file. 2. Load the FASTA database and re-annotate protein IDs to the PSM set. 3. Generate 
+//  * 1. [Visualization & Output] Read the non-redundant BiblioSpec sqlite file
+//  * 2. [Visualization & Output] Load the FASTA database
+//  * 3. [Visualization & Output] Generate the SWATH ion library without providing
+//  * 4. [Visualization & Output] Export the library to a Spectronaut-compatible text file
 
 nextflow.enable.dsl = 2
 
@@ -72,10 +75,10 @@ process BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT {
       stop(paste("Required input file missing:", fasta_file))
     }
     
-    # 1. Read the non-redundant BiblioSpec sqlite file
+    # --- Read the non-redundant BiblioSpec sqlite file ---
     BLIB_FILTERED <- read.bibliospec(blib_file)
     
-    # 2. Load the FASTA database
+    # --- Load the FASTA database ---
     FASTA <- read.fasta(fasta_file, 
                         seqtype = "AA", 
                         as.string = TRUE)
@@ -84,10 +87,10 @@ process BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT {
     BLIB_FILTERED <- annotate.protein_id(BLIB_FILTERED, 
                                          fasta = FASTA)
     
-    # 3. Generate the SWATH ion library without providing redundant data or iRT standards
+    # --- Generate the SWATH ion library without providing ---
     res.genSwathIonLib.no_iRT <- genSwathIonLib(BLIB_FILTERED)
     
-    # 4. Export the library to a Spectronaut-compatible text file
+    # --- Export the library to a Spectronaut-compatible text file ---
     write.spectronaut(res.genSwathIonLib.no_iRT, file="specL-Spectronaut.txt")
     
     # Save additional meaningful results (RDS object and PDF plots)

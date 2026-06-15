@@ -56,7 +56,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
     library(Biostrings)
     library(GenomAutomorphism)
     
-    # 1. Load the pairwise sequence alignment from the working directory
+    # --- Load the pairwise sequence alignment from the working ---
     # The pipeline expects 'covid_aln' as a DNAMultipleAlignment object.
     # We support reading it from an RDS file or a FASTA file.
     if (file.exists("covid_aln.rds")) {
@@ -75,7 +75,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
       stop("Required input file 'covid_aln' (RDS or FASTA format) not found in the working directory.")
     }
     
-    # 2. Compute codon coordinates on the specified group
+    # --- Compute codon coordinates on the specified group ---
     codons <- codon_coord(
                         codon = covid_aln, 
                         cube = "ACGT", 
@@ -88,7 +88,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
     # Save codon coordinates
     saveRDS(codons, "codons_coord.rds")
     
-    # 3. Compute automorphisms on the 1D cyclic group (Z64) using dual cubes
+    # --- Compute automorphisms on the 1D cyclic group (Z64) using ---
     autm <- automorphisms(
                         seqs = covid_aln,
                         group = "Z64",
@@ -100,7 +100,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
     
     saveRDS(autm, "autm_z64_750.rds")
     
-    # 4. Summarize the automorphism results by genomic ranges to identify mutational regions and indels
+    # --- Summarize the automorphism results by genomic ranges to ---
     aut_range <- automorphismByRanges(autm)
     
     # Compute full-length automorphisms on Z64 (replacing package data loading)
@@ -148,14 +148,14 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
           col = c("white", "yellow", "black"))
     dev.off()
     
-    # 5. Group automorphisms by coefficients to classify mutation types
+    # --- Group automorphisms by coefficients to classify mutation ---
     autby_coef <- automorphism_bycoef(covid_autm)
     autby_coef <- autby_coef[ autby_coef\$autm != 1 & autby_coef\$autm != -1  ]
     
     saveRDS(autby_coef, "autby_coef.rds")
     write.csv(as.data.frame(autby_coef), "autby_coef.csv", row.names = FALSE)
     
-    # 6. Estimate the posterior probabilities of mutation types using a Bayesian Dirichlet-Multinomial model
+    # --- Estimate the posterior probabilities of mutation types ---
     post_prob <- automorphism_prob(autby_coef)
     
     # Generate and save Automorphism distribution per Mutation type plot
@@ -188,7 +188,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
     axis(side = 2, cex.axis = 2.1, line = -1.8, hadj = 0.9)
     dev.off()
     
-    # 7. Extract conserved and unique conserved genomic regions
+    # --- Extract conserved and unique conserved genomic regions ---
     conserv <- conserved_regions(covid_autm)
     saveRDS(conserv, "conserved_regions.rds")
     write.csv(as.data.frame(conserv), "conserved_regions.csv", row.names = FALSE)
@@ -197,7 +197,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
     saveRDS(conserv_unique, "conserved_regions_unique.rds")
     write.csv(as.data.frame(conserv_unique), "conserved_regions_unique.csv", row.names = FALSE)
     
-    # 8. Compute automorphisms on the 1D cyclic group (Z125)
+    # --- Compute automorphisms on the 1D cyclic group (Z125) ---
     autm_z125 <- automorphisms(
                         seqs = covid_aln,
                         group = "Z125",

@@ -69,7 +69,7 @@ process BIOC_HICBRICKS_IMPORT_FROM_MCOOL {
       dir.create(out_dir, recursive = TRUE)
     }
     
-    # 1. Initialize the Brick objects directly from the mcool file metadata
+    # --- Initialize the Brick objects directly from the mcool file ---
     Create_many_Bricks_from_mcool(
       output_directory = out_dir, 
       file_prefix = "mcool_to_Brick_test", 
@@ -79,10 +79,10 @@ process BIOC_HICBRICKS_IMPORT_FROM_MCOOL {
       remove_existing = TRUE
     )
     
-    # 2. Load the BrickContainer
+    # --- Load the BrickContainer ---
     My_BrickContainer <- load_BrickContainer(project_dir = out_dir)
     
-    # 3. Populate the Brick objects with normalized values from the mcool file
+    # --- Populate the Brick objects with normalized values from ---
     Brick_load_data_from_mcool(
       Brick = My_BrickContainer, 
       mcool = mcool_path, 

@@ -35,6 +35,15 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("sechm", "ComplexHeatmap", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -47,11 +56,12 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     # Load required libraries
     suppressPackageStartupMessages({
       library(sechm)
+      library(SummarizedExperiment)
       library(ComplexHeatmap)
     })
     
     # ==========================================
-    # Stage 1: Load Data and Construct SummarizedExperiment
+    # --- Load Data and Construct SummarizedExperiment ---
     # ==========================================
     
     # Read input files from the working directory
@@ -80,7 +90,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     )
     
     # ==========================================
-    # Stage 2: Calculate Log2 Fold Changes and Row Metadata
+    # --- Calculate Log2 Fold Changes and Row Metadata ---
     # ==========================================
     
     # Identify control samples for fold-change calculation
@@ -109,7 +119,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     top_genes <- names(sort(rowData(se)\$variance, decreasing = TRUE)[1:top_n])
     
     # ==========================================
-    # Stage 3: Generate Single-Dataset Heatmaps
+    # --- Generate Single-Dataset Heatmaps ---
     # ==========================================
     
     pdf("sechm_plots.pdf", width = 10, height = 8)
@@ -155,7 +165,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     dev.off()
     
     # ==========================================
-    # Stage 4: Multi-Dataset Comparison (crossHm)
+    # --- Multi-Dataset Comparison (crossHm) ---
     # ==========================================
     
     # Simulate a second dataset (e.g., a technical replicate or batch) by adding jitter
@@ -178,7 +188,7 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
     dev.off()
     
     # ==========================================
-    # Stage 5: Export Melted Data Frame
+    # --- Export Melted Data Frame ---
     # ==========================================
     
     # Extract tidy format data for the top features

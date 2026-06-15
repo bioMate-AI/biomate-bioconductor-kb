@@ -35,6 +35,15 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gage")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,7 +53,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(gage)
     
     # Define parameters
@@ -52,7 +61,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
     kegg_code <- "hsa"
     q_cutoff <- 0.1
     
-    # Stage 2: Load and preprocess user input data
+    # --- Load and preprocess user input data ---
     message("Loading input data...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -91,7 +100,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
     message(paste("Reference condition:", ref_cond, "(Samples:", paste(ref.idx, collapse=","), ")"))
     message(paste("Comparison condition:", samp_cond, "(Samples:", paste(samp.idx, collapse=","), ")"))
     
-    # Stage 3: Fetch Gene Sets (GO and KEGG)
+    # --- Fetch Gene Sets (GO and KEGG) ---
     message("Fetching gene sets...")
     # Fetch GO Molecular Function gene sets (offline-capable via annotation packages)
     go.hs <- go.gsets(species = species)
@@ -106,7 +115,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
         warning("Failed to fetch KEGG gene sets online: ", e\$message, ". Proceeding with GO analysis only.")
     })
     
-    # Stage 4: Run GAGE Pathway Enrichment Analysis
+    # --- Run GAGE Pathway Enrichment Analysis ---
     message("Running GAGE analysis...")
     # Run GAGE on GO Molecular Function
     go.p <- gage(cnts.norm, gsets = go.gs, ref = ref.idx, samp = samp.idx, compare = "unpaired")
@@ -117,7 +126,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
         kegg.p <- gage(cnts.norm, gsets = kegg.gs, ref = ref.idx, samp = samp.idx, compare = "unpaired")
     }
     
-    # Stage 5: Identify and Output Significant Gene Sets
+    # --- Identify and Output Significant Gene Sets ---
     message("Filtering significant gene sets...")
     go.sig <- sigGeneSet(go.p, outname = "go_gage", cutoff = q_cutoff)
     write.table(rbind(go.p\$greater, go.p\$less), file = "go_gage_results.txt", sep = "\t", col.names = NA)
@@ -130,7 +139,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
         writeLines("KEGG analysis was bypassed due to API unavailability.", "kegg_gage_results.txt")
     }
     
-    # Stage 6: Extract Non-Redundant Essential Gene Sets
+    # --- Extract Non-Redundant Essential Gene Sets ---
     message("Extracting non-redundant essential gene sets...")
     # For GO Up-regulated
     go_up_sig <- go.p\$greater[!is.na(go.p\$greater[, "q.val"]) & go.p\$greater[, "q.val"] < q_cutoff, , drop = FALSE]
@@ -150,7 +159,7 @@ process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
         writeLines("No significantly down-regulated GO terms found.", "essential_go_sets_down.txt")
     }
     
-    # Stage 7: Visualization of Top Enriched Pathways
+    # --- Visualization of Top Enriched Pathways ---
     message("Generating visualizations...")
     pdf("top_pathway_expression.pdf", width = 10, height = 8)
     

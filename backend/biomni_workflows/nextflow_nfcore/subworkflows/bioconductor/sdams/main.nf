@@ -52,7 +52,7 @@ process BIOC_SDAMS_CSV_TO_SDA {
       }
     }
     
-    # 1. Define paths to the feature and group CSV files
+    # --- Define paths to the feature and group CSV files ---
     path1 <- "feature.csv"
     path2 <- "group.csv"
     
@@ -64,22 +64,22 @@ process BIOC_SDAMS_CSV_TO_SDA {
       stop("Error: Required input file 'group.csv' not found in the working directory.")
     }
     
-    # 2. Load the SDAMS library
+    # --- Load the SDAMS library ---
     library("SDAMS")
     
-    # 3. Create a SummarizedExperiment object using createSEFromCSV
+    # --- Create a SummarizedExperiment object using createSEFromCSV ---
     exampleSE1 <- createSEFromCSV(path1, path2)
     
     # Save the constructed SummarizedExperiment object
     saveRDS(exampleSE1, file = "sda_se.rds")
     
-    # 4. Perform differential abundance analysis using SDA
+    # --- Perform differential abundance analysis using SDA ---
     results <- SDA(exampleSE1)
     
     # Save the complete results list object
     saveRDS(results, file = "sda_results.rds")
     
-    # 5. Extract and display results for gamma, beta, and the two-part test
+    # --- Extract and display results for gamma, beta, and the ---
     cat("=== Head of Gamma ===\n")
     print(head(results\$gamma[, 1]))
     

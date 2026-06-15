@@ -35,6 +35,15 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_COMPARE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MSnbase", "pRolocGUI")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -44,11 +53,11 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_COMPARE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(MSnbase)
     library(pRolocGUI)
     
-    # Stage 2: Read and align input files
+    # --- Read and align input files ---
     intensity <- read.csv("intensity.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
     
@@ -77,7 +86,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_COMPARE {
       conditions <- unique(coldata\$condition)
     }
     
-    # Stage 3: Construct MSnSet for each condition and combine into MSnSetList
+    # --- Construct MSnSet for each condition and combine into ---
     msnsets <- list()
     for (cond in conditions) {
       cond_samples <- rownames(coldata)[coldata\$condition == cond]
@@ -106,7 +115,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_COMPARE {
     # Save the MSnSetList object
     saveRDS(msnset_list, "processed_msnsetlist.rds")
     
-    # Stage 4: Generate side-by-side static PCA preview
+    # --- Generate side-by-side static PCA preview ---
     pdf("pca_compare_preview.pdf", width = 12, height = 6)
     par(mfrow = c(1, 2))
     for (i in seq_along(msnsets)) {
@@ -127,7 +136,7 @@ process BIOC_PROLOCGUI_PROLOC_SPATIAL_COMPARE {
     }
     dev.off()
     
-    # Stage 5: Write launcher script for interactive comparison
+    # --- Write launcher script for interactive comparison ---
     writeLines(c(
       "library(pRolocGUI)",
       "msnset_list <- readRDS('processed_msnsetlist.rds')",

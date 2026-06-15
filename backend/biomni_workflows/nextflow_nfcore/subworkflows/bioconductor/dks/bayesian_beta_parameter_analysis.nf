@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Calculate the posterior distribution of the Beta hyperparameters using pprob.dist. 2. Plot the posterior distribution using the im
+//  * 1. [Visualization & Output] Calculate the posterior distribution of the Beta
+//  * 2. [Visualization & Output] Plot the posterior distribution
+//  * 3. [Visualization & Output] Calculate the credible set of the hyperparameters
+//  * 4. [Visualization & Output] Plot the credible set
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_DKS_BAYESIAN_BETA_PARAMETER_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dks", "cubature")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -70,11 +82,11 @@ process BIOC_DKS_BAYESIAN_BETA_PARAMETER_ANALYSIS {
       stop("Error: Input matrix P must have at least one column.")
     }
     
-    # Stage 1: Calculate the posterior distribution of the Beta hyperparameters
+    # --- Calculate the posterior distribution of the Beta ---
     delta <- 0.1
     dist1 <- pprob.dist(P[,1])
     
-    # Stage 2: Plot the posterior distribution
+    # --- Plot the posterior distribution ---
     alpha <- seq(0.1,10,by=delta)
     beta <- seq(0.1,10,by=delta)
     
@@ -85,10 +97,10 @@ process BIOC_DKS_BAYESIAN_BETA_PARAMETER_ANALYSIS {
     points(0,0,col="blue",cex=1,pch=19)	
     dev.off()
     
-    # Stage 3: Calculate the credible set of the hyperparameters
+    # --- Calculate the credible set of the hyperparameters ---
     cred1 <- cred.set(dist1,delta=0.1, level=0.80)
     
-    # Stage 4: Plot the credible set
+    # --- Plot the credible set ---
     alpha <- seq(0.1,10,by=delta)
     beta <- seq(0.1,10,by=delta)
     

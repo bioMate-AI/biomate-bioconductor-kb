@@ -102,6 +102,39 @@ process AIZYNTHFINDER_PREDICT {
     def max_depth  = params.max_depth
     def config     = params.aizynthfinder_config
     """
+        # Pre-flight: ensure expansion policy is configured. The container's
+        # build-time download_public_data step uses '|| true' so silent failures
+        # leave the config with no expansion: section, and aizynthcli crashes
+        # with IndexError on policy.items[0] before producing any output.
+        # Runtime download isn't viable on the Batch container (the aizynthfinder
+        # API surface for download_public_data varies across versions and Batch
+        # task containers may have no outbound network to figshare). Fail loud
+        # so a missing model is visible in logs instead of being silently
+        # masked, and ship the route_count=0 honest result file so QC can
+        # still observe an empty-routes outcome.
+        if ! grep -q "^expansion:" "${config}" 2>/dev/null; then
+            echo "[aizynth-predict] FATAL: ${config} has no expansion policy." >&2
+            echo "[aizynth-predict] The container biomate/biomni-drug-discovery-nf:x86 was" >&2
+            echo "[aizynth-predict] built without USPTO models. Rebuild the container with the" >&2
+            echo "[aizynth-predict] models baked in (backend/docker/drug-discovery-nf/Dockerfile)." >&2
+            echo "[aizynth-predict] Writing honest zero-routes result so QC can observe the failure." >&2
+            python3 -c "
+import json
+compound_id = '${compound_id}'
+out = {
+    'compound_id':       compound_id,
+    'smiles':            '${smiles}',
+    'success':           False,
+    'error':             'no_expansion_policy_in_container',
+    'routes':            [],
+    'route_count':       0,
+}
+open(f'{compound_id}_routes.json', 'w').write(json.dumps(out, indent=2))
+"
+            python3 -c "print('aizynthfinder: x.y.z')" > versions.yml
+            exit 1
+        fi
+
         # Run aizynthcli and normalize its output into BioMate JSON format.
         # aizynthcli writes a JSON file containing a list of solved route trees.
         aizynthcli \
@@ -374,6 +407,7 @@ process RETROSYNTHESIS_REPORT {
     path "retrosynthesis_report.html", emit: report_html
     path "retrosynthesis_results.csv", emit: filtered_tsv
     path "qc_summary.json",            emit: qc_summary_json
+    path "qc_metrics.json",            emit: qc_metrics
     path "versions.yml",               emit: versions
 
     script:
@@ -448,6 +482,26 @@ qc_summary = {
 
 with open("qc_summary.json", "w") as f:
     json.dump(qc_summary, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# aizynth_solved_routes gate (≥1 solved route, GOLD-anchored to
+# Genheden 2020 — both metric AND cutoff in the paper). The
+# canonical key the gate reader expects is "num_solved_routes".
+# For a multi-compound campaign we report the TOTAL across compounds
+# (gate fires unless every compound returned zero routes); per-compound
+# routes are still in qc_summary["compounds"][i]["n_routes"].
+_route_counts = [c.get("n_routes", 0) for c in qc_summary["compounds"]]
+qc_metrics = {
+    "num_solved_routes":            int(sum(_route_counts)),
+    "min_solved_routes_per_compound": int(min(_route_counts)) if _route_counts else 0,
+    "n_compounds":                  n_total,
+    "n_pass":                       n_pass,
+    "pass_rate_pct":                qc_summary["pass_rate_pct"],
+    "avg_best_sa_score":            avg_sa,
+    "avg_best_steps":               avg_steps,
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2)
 
 # ---------------------------------------------------------------------------
 # CRO pipeline CSV

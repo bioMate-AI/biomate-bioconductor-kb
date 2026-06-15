@@ -35,6 +35,15 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CGHnormaliter", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -49,7 +58,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     library(rtracklayer)
     
     # ==========================================
-    # Stage 1: Import and Preprocess Input Data
+    # --- Import and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Importing genomic regions and metadata...")
     
@@ -136,7 +145,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     cgh_data <- cgh_data[o, ]
     
     # ==========================================
-    # Stage 2: Run CGHnormaliter Pipeline
+    # --- Run CGHnormaliter Pipeline ---
     # ==========================================
     message("Stage 2: Running CGHnormaliter normalization...")
     
@@ -148,7 +157,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: Export Normalized Data and Calls
+    # --- Export Normalized Data and Calls ---
     # ==========================================
     message("Stage 3: Exporting results to files...")
     
@@ -180,7 +189,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     # ==========================================
     message("Stage 4: Generating diagnostic plots...")
     

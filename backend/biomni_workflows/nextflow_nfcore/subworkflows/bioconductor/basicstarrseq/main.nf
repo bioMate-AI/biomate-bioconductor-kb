@@ -57,7 +57,7 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM {
     library(GenomicAlignments)
     library(GenomicRanges)
     
-    # 1. Specify BAM file paths (User Input)
+    # --- Specify BAM file paths (User Input) ---
     starrseqFileName <- "smallSTARR.bam"
     inputFileName <- "smallInput.bam"
     
@@ -69,7 +69,7 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM {
       stop(paste("Error: Required input file missing:", inputFileName))
     }
     
-    # 2. Initialize STARRseqData object for paired-end or single-end data
+    # --- Initialize STARRseqData object for paired-end or ---
     message("Initializing STARRseqData with pairedEnd=TRUE...")
     data_paired <- STARRseqData(sample=starrseqFileName, control=inputFileName,
                                 pairedEnd=TRUE)
@@ -78,7 +78,7 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM {
     data_single <- STARRseqData(sample=starrseqFileName, control=inputFileName,
                                 pairedEnd=FALSE)
     
-    # 3. Initialize using GRanges and perform Peak Calling
+    # --- Initialize using GRanges and perform Peak Calling ---
     message("Reading alignments and converting to GRanges...")
     starrseqGRanges <- granges(readGAlignmentPairs(starrseqFileName))
     inputGRanges <- granges(readGAlignmentPairs(inputFileName))
@@ -89,7 +89,7 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM {
     message("Calling peaks...")
     peaks <- getPeaks(data)
     
-    # 4. Write outputs to the working directory
+    # --- Write outputs to the working directory ---
     message("Writing output files...")
     saveRDS(data_paired, "starrseq_data_paired.rds")
     saveRDS(data_single, "starrseq_data_single.rds")

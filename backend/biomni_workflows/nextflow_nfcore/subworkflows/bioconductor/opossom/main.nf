@@ -66,14 +66,14 @@ process BIOC_OPOSSOM_MATRIX_INPUT_WORKFLOW {
     # with genes as rows and samples as columns.
     expression_matrix <- as.matrix(read.csv(input_file, row.names = 1, check.names = FALSE))
     
-    # 1. Initialize environment with opossom.new
+    # --- Initialize environment with opossom.new ---
     env <- opossom.new(list(dataset.name="Tissues",
                             dim.1stLvlSom=20))
     
-    # 2. Assign expression matrix to env\$indata
+    # --- Assign expression matrix to env\$indata ---
     env\$indata <- expression_matrix
     
-    # 3. Define sample group labels and colors
+    # --- Define sample group labels and colors ---
     env\$group.labels <- c(rep("Homeostasis", 2),
                               "Endocrine",
                               "Digestion",
@@ -94,14 +94,14 @@ process BIOC_OPOSSOM_MATRIX_INPUT_WORKFLOW {
                           rep("blue2", 2),
                           rep("gray", 2) )
     
-    # 4. Define pairwise comparison groups
+    # --- Define pairwise comparison groups ---
     env\$preferences\$pairwise.comparison.list <-
         list(list(c("liver","kidney cortex"),
                   c("accumbens","cerebral cortex")),
              list(c("tongue","small intestine"),
                   c("accumbens","cerebral cortex")))
     
-    # 5. Run the pipeline with opossom.run
+    # --- Run the pipeline with opossom.run ---
     # This will generate the standard oposSOM output directory structure (e.g., "Tissues" folder)
     # containing HTML reports, PDF plots, and CSV tables.
     opossom.run(env)

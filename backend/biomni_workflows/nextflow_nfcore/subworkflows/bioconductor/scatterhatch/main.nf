@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the package and prepare the coordinate data with group annotations. 2. Generate a basic scatterHatch plot using default patte
+//  * 1. [Visualization & Output] Load the package and prepare the coordinate data with
+//  * 2. [Visualization & Output] Generate a basic scatterHatch plot using default patterns
+//  * 3. [Visualization & Output] Define custom pattern aesthetics (angles, line widths,
+//  * 4. [Visualization & Output] Generate and render the customized scatterHatch plot
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +41,15 @@ process BIOC_SCATTERHATCH_TEXTURED_SCATTERPLOT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("scatterHatch", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +63,7 @@ process BIOC_SCATTERHATCH_TEXTURED_SCATTERPLOT {
     library(scatterHatch)
     library(ggplot2)
     
-    # 1. Load the package and prepare the coordinate data with group annotations
+    # --- Load the package and prepare the coordinate data with ---
     # Read the user input file from the working directory
     if (!file.exists("pdacData.csv")) {
       stop("Required input file 'pdacData.csv' not found in the working directory.")
@@ -78,7 +90,7 @@ process BIOC_SCATTERHATCH_TEXTURED_SCATTERPLOT {
     # Save the annotated dataset
     write.csv(pdacData, "pdacData_annotated.csv", row.names = FALSE)
     
-    # 2. Generate a basic scatterHatch plot using default patterns
+    # --- Generate a basic scatterHatch plot using default patterns ---
     plt_basic <- scatterHatch(data = pdacData, x = "Xt", y = "Yt", 
         color_by = "location", legendTitle = "Tissue Type")
     
@@ -87,7 +99,7 @@ process BIOC_SCATTERHATCH_TEXTURED_SCATTERPLOT {
     plot(plt_basic)
     dev.off()
     
-    # 3. Define custom pattern aesthetics (angles, line widths, and types) in a list
+    # --- Define custom pattern aesthetics (angles, line widths, ---
     patternList = list(
         list(pattern="/", angle = 70), 
         list(pattern="-"), 
@@ -95,7 +107,7 @@ process BIOC_SCATTERHATCH_TEXTURED_SCATTERPLOT {
         list(pattern="+")
     )
     
-    # 4. Generate and render the customized scatterHatch plot
+    # --- Generate and render the customized scatterHatch plot ---
     plt_custom <- scatterHatch(data = pdacData, x = "Xt", y = "Yt", 
         color_by = "location", legendTitle = "Tissue Type", 
         patternList = patternList)

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Detect rank-invariant (RI) or nearly rank-invariant (NRI) features using mbqnGetNRIfeatures. 2. Perform classical quantile normali
+//  * 1. [Visualization & Output] Detect rank-invariant (RI) or nearly rank-invariant (NRI)
+//  * 2. [Visualization & Output] Perform classical quantile normalization, full MBQN, or
+//  * 3. [Visualization & Output] Visualize and compare the normalized intensities
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +40,15 @@ process BIOC_MBQN_MBQN_NORMALIZATION_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MBQN")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -70,14 +81,14 @@ process BIOC_MBQN_MBQN_NORMALIZATION_WORKFLOW {
           mode(mtx) <- "numeric"
         }
         
-        # 1. Detect rank-invariant (RI) or nearly rank-invariant (NRI) features
+        # --- Detect rank-invariant (RI) or nearly rank-invariant (NRI) ---
         res <- mbqnGetNRIfeatures(mtx, low_thr = 0.5)
         
-        # 2. Perform classical quantile normalization, full MBQN, or selective NRI-balanced quantile normalization
+        # --- Perform classical quantile normalization, full MBQN, or ---
         mbqn.mtx <- mbqnNRI(x = mtx, FUN = median, verbose = FALSE)
         qn.mtx <- mbqnNRI(x = mtx, FUN = NULL, verbose = FALSE)
         
-        # 3. Visualize and compare the normalized intensities
+        # --- Visualize and compare the normalized intensities ---
         # We save the boxplot to a PDF file
         pdf("mbqn_boxplot.pdf", width = 7, height = 6)
         plot.new()

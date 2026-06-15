@@ -74,7 +74,7 @@ process BIOC_RAIDS_DNA_ANCESTRY_INFERENCE {
         stop(paste("Required input file missing:", fileDonorVCF))
     }
     
-    # 1. Set up the working directory structure and copy reference files
+    # --- Set up the working directory structure and copy reference ---
     pathWorkingDirectory <- file.path(tempdir(), "workingDirectory")
     pathWorkingDirectoryData <- file.path(pathWorkingDirectory, "data")
     if (!dir.exists(pathWorkingDirectory)) {
@@ -96,15 +96,15 @@ process BIOC_RAIDS_DNA_ANCESTRY_INFERENCE {
         dir.create(pathProfileGDS, recursive = TRUE)
     }
     
-    # 2. Select reference profiles for data synthesis
+    # --- Select reference profiles for data synthesis ---
     set.seed(3043)
     dataRef <- select1KGPopForSynthetic(fileReferenceGDS=refGenotype, nbProfiles=2L)
     
-    # 3. Load chromosome length information from BSgenome
+    # --- Load chromosome length information from BSgenome ---
     genome <- BSgenome.Hsapiens.UCSC.hg38::Hsapiens
     chrInfo <- Seqinfo::seqlengths(genome)[1:25]
     
-    # 4. Run ancestry inference and parameter optimization
+    # --- Run ancestry inference and parameter optimization ---
     resOut <- inferAncestry(
         profileFile=fileDonorVCF, 
         pathProfileGDS=pathProfileGDS, 
@@ -115,7 +115,7 @@ process BIOC_RAIDS_DNA_ANCESTRY_INFERENCE {
         genoSource=c("VCF")
     )
     
-    # 5. Inspect results and visualize performance
+    # --- Inspect results and visualize performance ---
     print("Class of output:")
     print(class(resOut))
     

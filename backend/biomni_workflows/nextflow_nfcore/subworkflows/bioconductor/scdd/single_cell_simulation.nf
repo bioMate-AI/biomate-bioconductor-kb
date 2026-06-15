@@ -41,7 +41,7 @@ process BIOC_SCDD_SINGLE_CELL_SIMULATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SingleCellExperiment", "scDD")
+    .bm_deps <- c("SingleCellExperiment", "scDD", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -60,6 +60,7 @@ process BIOC_SCDD_SINGLE_CELL_SIMULATION {
     
     # Load required libraries
     library(scDD)
+    library(SummarizedExperiment)
     
     # 1. Load the pilot SingleCellExperiment dataset
     # The pipeline reads pilot_data.rds from the working directory

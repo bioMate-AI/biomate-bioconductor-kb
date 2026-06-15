@@ -67,18 +67,18 @@ process BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION {
       stop(paste("Required input file missing:", file_rv))
     }
     
-    # 1. Load forward and reverse amplicon sequences using ReadAmplSeqs
+    # --- Load forward and reverse amplicon sequences using ---
     filepath <- file_fw
     lstFW <- ReadAmplSeqs(filepath, type="DNA")
     
     filepath <- file_rv
     lstRV <- ReadAmplSeqs(filepath, type="DNA")
     
-    # 2. Intersect and filter strand haplotypes using IntersectStrandHpls
+    # --- Intersect and filter strand haplotypes using ---
     lstI <- IntersectStrandHpls(lstFW\$nr, lstFW\$hseqs, lstRV\$nr, lstRV\$hseqs)
     
     # Save the complete intersection results list as an RDS object
-    saveRDS(lstI, file = "intersected_haplotypes.rds")
+    saveRDS(lstI, file = "strand_haplotypes.rds")
     
     # Create and write a summary table of the intersection process
     summary_df <- data.frame(
@@ -100,17 +100,17 @@ process BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION {
       )
     )
     
-    write.csv(summary_df, file = "intersection_summary.csv", row.names = FALSE)
-    
+    write.csv(summary_df, file = "strand_intersection_summary.csv", row.names = FALSE)
+
     # Print summary to console
     cat("Workflow completed successfully.\n")
     cat("Outputs saved:\n")
-    cat(" - intersected_haplotypes.rds (Full intersection list object)\n")
-    cat(" - intersection_summary.csv (Summary statistics table)\n")
+    cat(" - strand_haplotypes.rds (Full intersection list object)\n")
+    cat(" - strand_intersection_summary.csv (Summary statistics table)\n")
 
     writeLines(c(
         '"BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION":',
-        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+        paste0('        qsutils: ', as.character(packageVersion("QSutils")))
     ), "versions.yml")
     """
 

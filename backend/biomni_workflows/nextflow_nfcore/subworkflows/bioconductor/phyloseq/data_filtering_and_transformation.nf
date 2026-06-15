@@ -66,22 +66,22 @@ process BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION {
     # Define topN dynamically based on the number of taxa available
     topN <- min(10, ntaxa(GlobalPatterns))
     
-    # Stage 1: Prune taxa based on abundance using prune_taxa and taxa_sums
+    # --- Prune taxa based on abundance using prune_taxa and ---
     GP <- prune_taxa(taxa_sums(GlobalPatterns) > 0, GlobalPatterns)
     most_abundant_taxa <- sort(taxa_sums(GlobalPatterns), TRUE)[1:topN]
     ex2 <- prune_taxa(names(most_abundant_taxa), GlobalPatterns)
     
-    # Stage 2: Filter taxa using within-sample criteria with genefilter_sample and filterfun_sample
+    # --- Filter taxa using within-sample criteria with ---
     f1 <- filterfun_sample(topp(0.1))
     wh1 <- genefilter_sample(GlobalPatterns, f1, A = (1/2 * nsamples(GlobalPatterns)))
     ex2 <- prune_taxa(wh1, GlobalPatterns)
     
-    # Stage 3: Filter taxa using across-sample criteria with filter_taxa
+    # --- Filter taxa using across-sample criteria with filter_taxa ---
     flist <- filterfun(kOverA(5, 2e-05))
     ent.logi <- filter_taxa(enterotype, flist)
     ent.trim <- filter_taxa(enterotype, flist, TRUE)
     
-    # Stage 4: Subset samples based on metadata variables using subset_samples
+    # --- Subset samples based on metadata variables using ---
     # Wrapped in tryCatch to handle cases where "SampleType" is not present in the input metadata
     ex3 <- tryCatch({
       subset_samples(GlobalPatterns, SampleType %in% c("Freshwater", "Ocean", "Freshwater (creek)"))
@@ -90,7 +90,7 @@ process BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION {
       GlobalPatterns
     })
     
-    # Stage 5: Subset taxa by taxonomic category using subset_taxa
+    # --- Subset taxa by taxonomic category using subset_taxa ---
     # Wrapped in tryCatch to handle cases where "Phylum" is not present in the taxonomy table
     ex4 <- tryCatch({
       subset_taxa(GlobalPatterns, Phylum == "Firmicutes")
@@ -99,7 +99,7 @@ process BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION {
       GlobalPatterns
     })
     
-    # Stage 6: Transform abundance counts using transform_sample_counts
+    # --- Transform abundance counts using transform_sample_counts ---
     ex2 <- transform_sample_counts(GlobalPatterns, I)
     
     # Wrapped in tryCatch to handle cases where threshrankfun fails (e.g., if threshold exceeds taxa count)
@@ -110,7 +110,7 @@ process BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION {
       transform_sample_counts(GlobalPatterns, threshrankfun(min(5, ntaxa(GlobalPatterns))))
     })
     
-    # Stage 7: Agglomerate taxa taxonomically using tax_glom or phylogenetically using tip_glom
+    # --- Agglomerate taxa taxonomically using tax_glom or ---
     # Wrapped in tryCatch to handle cases where "Genus" is not a valid taxonomic rank
     ex6 <- tryCatch({
       tax_glom(GlobalPatterns, taxlevel = "Genus")

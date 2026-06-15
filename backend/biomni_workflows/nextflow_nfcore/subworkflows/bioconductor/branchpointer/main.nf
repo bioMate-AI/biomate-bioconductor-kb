@@ -71,11 +71,11 @@ process BIOC_BRANCHPOINTER_INTRONIC_BRANCHPOINT_ANNOTATION {
     # Load the BSgenome object
     g <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
     
-    # 1. Convert GTF annotations to an exon GRanges object
+    # --- Convert GTF annotations to an exon GRanges object ---
     message("Converting GTF annotations to exons...")
     exons <- gtfToExons(gtf_file)
     
-    # 2. Read query regions and calculate location attributes
+    # --- Read query regions and calculate location attributes ---
     message("Reading query file...")
     queryIntron <- readQueryFile(query_file, queryType = "region", exons = exons)
     
@@ -94,11 +94,11 @@ process BIOC_BRANCHPOINTER_INTRONIC_BRANCHPOINT_ANNOTATION {
       NULL
     })
     
-    # 3. Predict branchpoint probabilities
+    # --- Predict branchpoint probabilities ---
     message("Predicting branchpoint probabilities...")
     branchpointPredictionsIntron <- predictBranchpoints(queryIntron, queryType = "region", BSgenome = g)
     
-    # 4. Visualize the branchpoint window
+    # --- Visualize the branchpoint window ---
     message("Plotting branchpoint window...")
     # Use the second query ID as documented, fallback to the first if not available
     query_id <- if (length(queryIntron\$id) >= 2) queryIntron\$id[2] else queryIntron\$id[1]

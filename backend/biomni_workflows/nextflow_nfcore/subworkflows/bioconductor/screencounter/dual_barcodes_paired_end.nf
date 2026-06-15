@@ -67,7 +67,7 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_PAIRED_END {
       stop(sprintf("Required input files '%s' and/or '%s' not found in the working directory.", file1, file2))
     }
     
-    # 1. Define valid barcode combinations in a DataFrame
+    # --- Define valid barcode combinations in a DataFrame ---
     known.pool1 <- c("AGAGAGAGA", "CTCTCTCTC", "GTGTGTGTG", "CACACACAC")
     known.pool2 <- c("ATATATATA", "CGCGCGCGC", "GAGAGAGAG", "CTCTCTCTC")
     
@@ -78,7 +78,7 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_PAIRED_END {
     set.seed(42)
     choices <- choices[sample(nrow(choices), nrow(choices)*0.9),]
     
-    # 2. Quantify dual barcodes using matrixOfDualBarcodes
+    # --- Quantify dual barcodes using matrixOfDualBarcodes ---
     out <- matrixOfDualBarcodes(
       list(c(file1, file2)), 
       choices=choices,
@@ -86,13 +86,13 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_PAIRED_END {
                  "TGGGCAGCGACANNNNNNNNNACACGAGGGTAT")
     )
     
-    # 3. Extract the count matrix using assay
+    # --- Extract the count matrix using assay ---
     count_matrix <- assay(out)
     
-    # 4. Extract mapping diagnostics using colData
+    # --- Extract mapping diagnostics using colData ---
     diagnostics <- colData(out)
     
-    # 5. Extract barcode identities using rowData
+    # --- Extract barcode identities using rowData ---
     barcode_ids <- rowData(out)
     
     # Write outputs to files

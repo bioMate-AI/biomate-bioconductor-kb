@@ -1,0 +1,20 @@
+{"query": "single particle analysis of GPCR membrane protein in nanodisc", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "cryoEM domain — should hit GPCR Complex SPA or standard SPA"}
+{"query": "conformational heterogeneity analysis in a cryo-EM dataset", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "cryoEM heterogeneity — cryoDRGN or 3D Variability"}
+{"query": "helical reconstruction for filamentous protein assembly", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "cryoEM helical — Helical SPA Pipeline"}
+{"query": "PBPK simulation for renal impairment patients", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "pharmacology PBPK — pbpk_disease_state"}
+{"query": "predict dose-response curves from in vitro IC50 measurements", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "pharmacology dose-response — Sigmoid / synergyfinder"}
+{"query": "virtual patient cohort for Phase II/III trial design", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "pharmacology trial sim — virtual_patient_cohort"}
+{"query": "in silico antibody developability assessment for biologic drug candidate", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "drug_discovery — antibody_developability"}
+{"query": "flow cytometry clustering with tissue region identification", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "imaging — lisaclust / optimalFlow"}
+{"query": "MERFISH spatial transcriptomics analysis pipeline", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "single_cell/imaging spatial — merfish_spatial_analysis"}
+{"query": "shotgun metagenomics with CONCOCT contig binning and taxonomy", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "metagenomics — Fasta Binning Concoct + Mmseqs Contig Taxonomy"}
+{"query": "16S microbiome differential abundance analysis", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "metagenomics 16S DA — plsdabatch / cbea / dirichletmultinomial"}
+{"query": "mRNA therapeutic design with codon optimization and IVT", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "drug_discovery mRNA — mrna_therapeutic_design"}
+{"query": "scaffold hopping for lead compound optimization using matched molecular pairs", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "drug_discovery scaffold — Scaffold Hopping"}
+{"query": "predict CYP450 inhibition and hepatic clearance for new chemical entity", "expect_pattern": "iterative_refinement", "expect_mode": "upfront", "note": "drug_discovery DDI — CYP450 DDI Panel + Hepatic Clearance"}
+{"query": "CITE-seq preprocessing with paired protein and RNA modalities", "expect_pattern": "multi_omics_integration", "expect_mode": "upfront", "note": "single_cell CITE-seq — cite_seq_preprocessing or scrna_adt"}
+{"query": "MARS-seq single-cell RNA preprocessing", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "single_cell MARS-seq — nf-core/marsseq"}
+{"query": "AlphaFold protein structure database search against query", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "drug_discovery / structure — AlphaFold DB Search"}
+{"query": "FDA Phase II to Phase III dose justification brief", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "pharmacology regulatory — phase2_dose_justification"}
+{"query": "target tractability scoring for small molecule and biologic drug discovery", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "drug_discovery target — target_tractability_scorer"}
+{"query": "high-content screening hit calling for drug screen plate QC", "expect_pattern": "branching_on_qc", "expect_mode": "upfront", "note": "drug_discovery HTS — hts_plate_qc_hit_calling"}

@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Identify seed nodes of interest using find_nodes(). 2. Expand the seed nodes to their 1-neighborhood using grow_nodes(). 3. Summar
+//  * 1. [Visualization & Output] Identify seed nodes of interest using find_nodes()
+//  * 2. [Visualization & Output] Expand the seed nodes to their 1-neighborhood using
+//  * 3. [Visualization & Output] Summarize the semantic types of the neighboring nodes
+//  * 4. [Visualization & Output] Filter out uninteresting neighbor nodes using
 
 nextflow.enable.dsl = 2
 
@@ -37,6 +40,15 @@ process BIOC_RSEMMED_NODE_NEIGHBORHOOD_EXPANSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rsemmed", "magrittr", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -59,17 +71,17 @@ process BIOC_RSEMMED_NODE_NEIGHBORHOOD_EXPANSION {
         stop("Required input file 'g_small' or 'g_small.rds' not found in the working directory.")
     }
     
-    # 1. Identify seed nodes of interest using find_nodes()
+    # --- Identify seed nodes of interest using find_nodes() ---
     nodes_sickle <- find_nodes(g_small, pattern = "sickle")
     nodes_sickle_trait <- nodes_sickle[intersect(2:3, seq_along(nodes_sickle))]
     
-    # 2. Expand the seed nodes to their 1-neighborhood using grow_nodes()
+    # --- Expand the seed nodes to their 1-neighborhood using ---
     nbrs_sickle_trait <- grow_nodes(g_small, nodes_sickle_trait)
     
-    # 3. Summarize the semantic types of the neighboring nodes using summarize_semtypes()
+    # --- Summarize the semantic types of the neighboring nodes ---
     nbrs_sickle_trait_summ <- summarize_semtypes(g_small, nbrs_sickle_trait, is_path = FALSE)
     
-    # 4. Filter out uninteresting neighbor nodes using find_nodes() with match = FALSE
+    # --- Filter out uninteresting neighbor nodes using ---
     nbrs_sickle_trait2 <- nbrs_sickle_trait %>%
         find_nodes(
             pattern = "^Mice",

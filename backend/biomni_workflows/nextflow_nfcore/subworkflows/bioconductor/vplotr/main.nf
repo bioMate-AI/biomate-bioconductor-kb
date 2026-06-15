@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import paired-end BAM files using `importPEBamFiles()`. 2. Compute and plot fragment size distribution using `getFragmentsDistribu
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Import Paired-End BAM Files
+//  * 3. [Visualization & Output] Fragment Size Distribution
+//  * 4. [Visualization & Output] Generate V-plots
+//  * 5. [Visualization & Output] Generate Footprint Profiles
+//  * 6. [Visualization & Output] Plot Local Fragment Distribution
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +43,15 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("VplotR", "GenomicRanges", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -53,7 +67,7 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     library(ggplot2)
     
     # ==========================================
-    # 1. Load User Input Files
+    # --- Load User Input Files ---
     # ==========================================
     
     # Define input file paths
@@ -94,7 +108,7 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     }
     
     # ==========================================
-    # 2. Import Paired-End BAM Files
+    # --- Import Paired-End BAM Files ---
     # ==========================================
     
     fragments <- importPEBamFiles(
@@ -110,7 +124,7 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     saveRDS(fragments, "imported_fragments.rds")
     
     # ==========================================
-    # 3. Fragment Size Distribution
+    # --- Fragment Size Distribution ---
     # ==========================================
     
     df <- getFragmentsDistribution(
@@ -126,7 +140,7 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     ggsave("fragment_size_distribution.pdf", plot = p_dist, width = 7, height = 5)
     
     # ==========================================
-    # 4. Generate V-plots
+    # --- Generate V-plots ---
     # ==========================================
     
     # Single V-plot
@@ -158,7 +172,7 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     ggsave("vplot_multiple_norm_none.pdf", plot = p_multi_norm_none, width = 12, height = 6)
     
     # ==========================================
-    # 5. Generate Footprint Profiles
+    # --- Generate Footprint Profiles ---
     # ==========================================
     
     p_footprint <- plotFootprint(
@@ -168,7 +182,7 @@ process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     ggsave("footprint_profile.pdf", plot = p_footprint, width = 8, height = 5)
     
     # ==========================================
-    # 6. Plot Local Fragment Distribution
+    # --- Plot Local Fragment Distribution ---
     # ==========================================
     
     # Dynamically define a genomic window based on the first locus of interest to ensure overlap

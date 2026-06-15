@@ -60,20 +60,20 @@ process BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING {
     settingsFile <- NULL
     files <- "GM_rep1.chinput"
     
-    # 1. Initialize the chicagoData object with design files and settings
+    # --- Initialize the chicagoData object with design files and ---
     cd <- setExperiment(designDir = testDesignDir, settingsFile = settingsFile)
     
-    # 2. Read and merge replicate input files
+    # --- Read and merge replicate input files ---
     cd <- readAndMerge(files=files, cd=cd)
     
-    # 3. Run the core statistical pipeline
+    # --- Run the core statistical pipeline ---
     cd <- chicagoPipeline(cd)
     
     # Create output directory for results
     outputDirectory <- "chicago_output"
     dir.create(outputDirectory, showWarnings = FALSE, recursive = TRUE)
     
-    # 4. Export interaction calls to disk in ibed, seqmonk, and washU formats
+    # --- Export interaction calls to disk in ibed, seqmonk, and ---
     exportResults(cd, file.path(outputDirectory, "vignetteOutput"))
     
     # Save the processed chicagoData object to disk

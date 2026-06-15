@@ -60,10 +60,10 @@ process BIOC_BRANCHPOINTER_SNP_EFFECT_PREDICTION {
     # Initialize BSgenome object
     g <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
     
-    # 1. Convert GTF annotations to an exon GRanges object using gtfToExons()
+    # --- Convert GTF annotations to an exon GRanges object using ---
     exons <- gtfToExons("gencode.v26.annotation.gtf")
     
-    # 2. Read query SNPs and calculate location attributes using readQueryFile()
+    # --- Read query SNPs and calculate location attributes using ---
     querySNPFile <- "SNP_example.txt"
     querySNP <- readQueryFile(querySNPFile, queryType = "SNP", exons = exons, filter = TRUE)
     
@@ -77,17 +77,17 @@ process BIOC_BRANCHPOINTER_SNP_EFFECT_PREDICTION {
       message("BioMart query failed or timed out. Proceeding with query SNPs loaded from SNP_example.txt.")
     })
     
-    # 3. Predict branchpoint probabilities for reference and alternative alleles using predictBranchpoints()
+    # --- Predict branchpoint probabilities for reference and ---
     branchpointPredictionsSNP <- predictBranchpoints(querySNP, queryType = "SNP", BSgenome = g)
     
-    # 4. Summarize the variant effects using predictionsToSummary()
+    # --- Summarize the variant effects using predictionsToSummary() ---
     querySNPSummary <- predictionsToSummary(querySNP, branchpointPredictionsSNP)
     
     # Save tabular outputs
     write.csv(as.data.frame(querySNPSummary), "query_snp_summary.csv", row.names = FALSE)
     saveRDS(branchpointPredictionsSNP, "branchpoint_predictions_snp.rds")
     
-    # 5. Visualize reference vs alternative branchpoint windows using plotBranchpointWindow()
+    # --- Visualize reference vs alternative branchpoint windows ---
     pdf("branchpoint_window_plot.pdf", width = 12, height = 8)
     plotBranchpointWindow(querySNP\$id[2], branchpointPredictionsSNP, probabilityCutoff = 0.52, plotMutated = TRUE, plotStructure = TRUE, exons = exons)
     dev.off()

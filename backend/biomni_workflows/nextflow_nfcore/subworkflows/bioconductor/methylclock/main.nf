@@ -13,7 +13,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Check missing CpGs for chronological clocks using checkClocks. 2. Identify specific missing CpGs using commonClockCpgs. 3. Estimat
+//  * 1. [Visualization & Output] Check missing CpGs for chronological clocks using
+//  * 2. [Visualization & Output] Identify specific missing CpGs using commonClockCpgs
+//  * 3. [Visualization & Output] Estimate DNAm age using DNAmAge
+//  * 4. [Visualization & Output] Estimate DNAm age and age acceleration adjusted for cell
+//  * 5. [Visualization & Output] Plot correlation between estimated DNAm age and
+//  * 6. [Visualization & Output] Plot correlation among different clocks using
 
 nextflow.enable.dsl = 2
 
@@ -113,15 +118,15 @@ process BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION {
     # Map variables for exact documented code execution
     TestDataset <- MethylationData
     
-    # 1. Check missing CpGs for chronological clocks using checkClocks
+    # --- Check missing CpGs for chronological clocks using ---
     cpgs.missing <- checkClocks(TestDataset)
     saveRDS(cpgs.missing, "cpgs_missing.rds")
     
-    # 2. Identify specific missing CpGs using commonClockCpgs
+    # --- Identify specific missing CpGs using commonClockCpgs ---
     hannum_missing <- commonClockCpgs(cpgs.missing, "Hannum" )
     writeLines(hannum_missing, "hannum_missing_cpgs.txt")
     
-    # 3. Estimate DNAm age using DNAmAge
+    # --- Estimate DNAm age using DNAmAge ---
     age.example55 <- DNAmAge(MethylationData)
     readr::write_csv(age.example55, "age_example55_basic.csv")
     
@@ -131,7 +136,7 @@ process BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION {
     age.example55.sel <- DNAmAge(MethylationData, clocks=c("Horvath", "BNN"))
     readr::write_csv(age.example55.sel, "age_example55_selected_clocks.csv")
     
-    # 4. Estimate DNAm age and age acceleration adjusted for cell counts by providing chronological age to DNAmAge
+    # --- Estimate DNAm age and age acceleration adjusted for cell ---
     age.example55 <- DNAmAge(MethylationData, age=age, cell.count=TRUE)
     readr::write_csv(age.example55, "age_example55_with_age_and_cell_counts.csv")
     
@@ -139,8 +144,8 @@ process BIOC_METHYLCLOCK_CHRONOLOGICAL_AND_BIOLOGICAL_AGE_ESTIMATION {
     age.gse58045 <- age.example55
     age.gse <- age.example55
     
-    # 5. Plot correlation between estimated DNAm age and chronological age using plotDNAmAge
-    # 6. Plot correlation among different clocks using plotCorClocks
+    # --- Plot correlation between estimated DNAm age and ---
+    # --- Plot correlation among different clocks using ---
     pdf("plots_combined.pdf")
     print(plotDNAmAge(age.gse58045\$Horvath, age))
     print(plotDNAmAge(age.gse58045\$BNN, age, tit="Bayesian Neural Network"))

@@ -64,18 +64,18 @@ process BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS {
     iupred2a_result <- "iupred2a_result.txt.gz"
     signalP_results <- "signalP_results.txt"
     
-    # 1. Import isoform expression data
+    # --- Import isoform expression data ---
     salmonQuant <- importIsoformExpression(
         parentDir = salmon_quant_dir
     )
     
-    # 2. Create a design matrix
+    # --- Create a design matrix ---
     myDesign <- data.frame(
         sampleID = colnames(salmonQuant\$abundance)[-1],
         condition = gsub('_.*', '', colnames(salmonQuant\$abundance)[-1])
     )
     
-    # 3. Build the switchAnalyzeRlist
+    # --- Build the switchAnalyzeRlist ---
     aSwitchList <- importRdata(
         isoformCountMatrix   = salmonQuant\$counts,
         isoformRepExpression = salmonQuant\$abundance,
@@ -97,7 +97,7 @@ process BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS {
         subset = abs(aSwitchList\$isoformFeatures\$dIF) > 0.1
     )
     
-    # 4. Run Part 1 analysis (filtering, testing, ORF annotation, sequence extraction)
+    # --- Run Part 1 analysis (filtering, testing, ORF annotation, ---
     aSwitchList <- isoformSwitchAnalysisPart1(
         switchAnalyzeRlist   = aSwitchList,
         outputSequences      = FALSE, 
@@ -107,7 +107,7 @@ process BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS {
     # Extract and display initial switch summary
     extractSwitchSummary( aSwitchList )
     
-    # 5. Run Part 2 analysis (integrating external results and predicting consequences)
+    # --- Run Part 2 analysis (integrating external results and ---
     aSwitchList <- isoformSwitchAnalysisPart2(
       switchAnalyzeRlist        = aSwitchList, 
       n                         = 10,    
@@ -119,7 +119,7 @@ process BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS {
       outputPlots               = FALSE  
     )
     
-    # 6. Extract top switching genes with predicted consequences
+    # --- Extract top switching genes with predicted consequences ---
     top_switches <- extractTopSwitches(aSwitchList, filterForConsequences = TRUE, n=3)
     
     # Write meaningful results to output files

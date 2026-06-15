@@ -13,7 +13,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Build TxDb and extract exonic parts using txdbmaker::makeTxDbFromGFF and GenomicFeatures::exonicParts. 2. Summarize overlaps to ge
+//  * 1. [Visualization & Output] Build TxDb and extract exonic parts
+//  * 2. [Visualization & Output] Summarize overlaps to get bin counts
+//  * 3. [Visualization & Output] Define experimental conditions in colData (adapted to 6
+//  * 4. [Visualization & Output] Aggregate bin counts per gene to calculate gene-level
+//  * 5. [Visualization & Output] Replace zero offsets and counts with 1 to avoid errors in
+//  * 6. [Visualization & Output] Run DESeq2 analysis with custom normalization factors
+//  * 7. [Visualization & Output] Run edgeR analysis with custom log-offsets
 
 nextflow.enable.dsl = 2
 
@@ -40,7 +46,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("DESeq2", "GenomicAlignments", "GenomicFeatures", "dplyr", "edgeR", "saseR", "txdbmaker")
+    .bm_deps <- c("DESeq2", "GenomicAlignments", "GenomicFeatures", "dplyr", "edgeR", "saseR", "txdbmaker", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -59,6 +65,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
     
     # Load required libraries
     library(saseR)
+    library(SummarizedExperiment)
     library(edgeR)
     library(DESeq2)
     library(dplyr)
@@ -70,12 +77,12 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
     gtfFileName <- "genes.mini.gtf"
     BAMFiles <- c("A_C_0.bam", "A_C_1.bam", "A_C_2.bam", "A_D_0.bam", "A_D_1.bam", "A_D_2.bam")
     
-    # 1. Build TxDb and extract exonic parts
+    # --- Build TxDb and extract exonic parts ---
     genomeTxDb <- txdbmaker::makeTxDbFromGFF(gtfFileName)
     flattenedAnnotation = GenomicFeatures::exonicParts(genomeTxDb, 
                                       linked.to.single.gene.only=TRUE )
     
-    # 2. Summarize overlaps to get bin counts
+    # --- Summarize overlaps to get bin counts ---
     se = GenomicAlignments::summarizeOverlaps(
         flattenedAnnotation,
         BAMFiles, 
@@ -85,10 +92,10 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
     # Preprocess gene_id to ensure it is a standard character vector (resolving CharacterList S4 class issues)
     rowData(se)\$gene_id <- as.character(rowData(se)\$gene_id)
     
-    # 3. Define experimental conditions in colData (adapted to 6 samples: 3 control, 3 case)
+    # --- Define experimental conditions in colData (adapted to 6 ---
     colData(se)\$condition <- factor(c(rep(c("control", "case"), each = 3)))
     
-    # 4. Aggregate bin counts per gene to calculate gene-level offsets
+    # --- Aggregate bin counts per gene to calculate gene-level ---
     counts <- assays(se)\$counts
     offsetsGene <- aggregate(counts,
                          by = list("gene" = rowData(se)\$gene_id), FUN = sum) 
@@ -96,12 +103,12 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
                          mutate("gene" = NULL) %>% 
                          as.matrix() 
     
-    # 5. Replace zero offsets and counts with 1 to avoid errors in DESeq2/edgeR
+    # --- Replace zero offsets and counts with 1 to avoid errors in ---
     index <- offsets == 0
     counts[index] <- 1
     offsets[index] <- 1
     
-    # 6. Run DESeq2 analysis with custom normalization factors
+    # --- Run DESeq2 analysis with custom normalization factors ---
     dds <- DESeqDataSetFromMatrix(countData = counts,
                                   colData = colData(se),
                                   rowData = rowData(se),
@@ -112,7 +119,7 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
     dds <- DESeq2::nbinomWaldTest(dds)
     results_dds <- DESeq2::results(dds)
     
-    # 7. Run edgeR analysis with custom log-offsets
+    # --- Run edgeR analysis with custom log-offsets ---
     DGE <- DGEList(counts = counts)
     DGE\$offset <- log(offsets)
     design <- model.matrix(~condition, data = colData(se))

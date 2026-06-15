@@ -57,11 +57,11 @@ process BIOC_PQSFINDER_CUSTOM_G4_DETECTION {
     library(Biostrings)
     library(rtracklayer)
     
-    # 1. Read the user input FASTA file
+    # --- Read the user input FASTA file ---
     fasta_seqs <- readDNAStringSet("sequence.fa")
     seq <- fasta_seqs[[1]] # Extract the first sequence as a DNAString
     
-    # 2. Define a custom scoring function (c_loop_bonus)
+    # --- Define a custom scoring function (c_loop_bonus) ---
     c_loop_bonus <- function(subject, score, start, width, loop_1,
                              run_2, loop_2, run_3, loop_3, run_4) {
       l1 <- run_2 - loop_1
@@ -75,10 +75,10 @@ process BIOC_PQSFINDER_CUSTOM_G4_DETECTION {
       return(score)
     }
     
-    # 3. Run pqsfinder with the custom scoring function
+    # --- Run pqsfinder with the custom scoring function ---
     pqs_custom1 <- pqsfinder(seq, custom_scoring_fn = c_loop_bonus)
     
-    # 4. Define an alternative scoring function (isG4) and regular expression
+    # --- Define an alternative scoring function (isG4) and regular ---
     # for complete replacement of the default scoring system
     isG4 <- function(subject, score, start, width, loop_1,
                      run_2, loop_2, run_3, loop_3, run_4) {
@@ -102,12 +102,12 @@ process BIOC_PQSFINDER_CUSTOM_G4_DETECTION {
         return(0)
     }
     
-    # 5. Run pqsfinder with default scoring disabled
+    # --- Run pqsfinder with default scoring disabled ---
     pqs_custom2 <- pqsfinder(seq, strand = "+",
               use_default_scoring = FALSE, run_re = "G{3,6}|C{3,6}",
               custom_scoring_fn = isG4)
     
-    # 6. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     saveRDS(pqs_custom1, "pqs_custom1.rds")
     saveRDS(pqs_custom2, "pqs_custom2.rds")
     

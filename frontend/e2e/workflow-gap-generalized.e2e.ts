@@ -28,6 +28,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import { loginAsFixture } from "./_fixture-login";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -178,25 +179,16 @@ const CONFIGS: WorkflowGapConfig[] = [
 // Generic helpers
 // ===========================================================================
 
-async function registerUser(page: Page, prefix: string): Promise<void> {
-  const email = `e2e_wg_${prefix}_${Date.now()}@biomate.test`;
+// Per CLAUDE.md §"E2E test user": single canonical fixture
+// (lifeifei163361@163.com), shared across tests. The legacy per-test
+// register pattern was migrated 2026-06-15 — the fake @biomate.test
+// emails hit Galaxy's provisioning gap and left the test stuck on
+// /login. See docs/20260614_AUTOLOOP_SSE_SILENT_ON_ADMET.md for the
+// session that caught the regression.
+async function registerUser(page: Page, _prefix: string): Promise<void> {
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
-  await page.context().clearCookies();
-  await page.goto(`${BASE_URL}/register`);
-  await page.waitForLoadState("load");
-  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch {} }).catch(() => {});
-  try {
-    await page.waitForSelector("#name", { state: "visible", timeout: 12_000 });
-    await page.fill("#name", `WG ${prefix}`);
-    await page.fill("#email", email);
-    await page.fill("#password", "TestPass123!");
-    await page.fill("#confirmPassword", "TestPass123!");
-    await page.click("#terms");
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(2000);
-  } catch { /* already logged in */ }
-  await page.goto(BASE_URL);
-  await page.waitForLoadState("load");
+  await loginAsFixture(page);
+  // Dismiss onboarding banners that occasionally land on first session.
   for (let i = 0; i < 3; i++) {
     const skip = page.locator('button:has-text("Skip"), button:has-text("Dismiss"), button:has-text("Maybe later")').first();
     if (await skip.isVisible({ timeout: 2000 }).catch(() => false)) {

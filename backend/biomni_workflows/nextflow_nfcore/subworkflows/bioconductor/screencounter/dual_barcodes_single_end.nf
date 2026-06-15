@@ -34,7 +34,7 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Biostrings", "S4Vectors", "screenCounter")
+    .bm_deps <- c("Biostrings", "S4Vectors", "screenCounter", "SummarizedExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       .rv <- getRversion()
@@ -53,14 +53,15 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END {
     }
     
     # Load required libraries
-    library(screenCounter)
+       library(SummarizedExperiment)
+ library(screenCounter)
     library(Biostrings)
     library(S4Vectors)
     
     # Define input file
     input_fastq <- "dual_single.fastq"
     
-    # Stage 1: Define valid barcode combinations in a DataFrame
+    # --- Define valid barcode combinations in a DataFrame ---
     known.pool1 <- c("AGAGAGAGA", "CTCTCTCTC",
         "GTGTGTGTG", "CACACACAC")
     known.pool2 <- c("ATATATATA", "CGCGCGCGC",
@@ -71,17 +72,17 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END {
     set.seed(42) # Ensure reproducible sampling of the choices DataFrame
     choices <- choices[sample(nrow(choices), nrow(choices)*0.9),]
     
-    # Stage 2: Quantify single-end dual barcodes using matrixOfDualBarcodesSingleEnd
+    # --- Quantify single-end dual barcodes using ---
     out <- matrixOfDualBarcodesSingleEnd(input_fastq, choices=choices,
         template="CAGCTACGTACGNNNNNNNNNCCAGCTCGATCGNNNNNNNNNACACGAGGGTAT")
     
-    # Stage 3: Extract the count matrix using assay
+    # --- Extract the count matrix using assay ---
     counts_matrix <- assay(out)
     
-    # Stage 4: Extract mapping diagnostics using colData
+    # --- Extract mapping diagnostics using colData ---
     mapping_diagnostics <- colData(out)
     
-    # Stage 5: Extract barcode identities using rowData
+    # --- Extract barcode identities using rowData ---
     barcode_identities <- rowData(out)
     
     # Write outputs to files

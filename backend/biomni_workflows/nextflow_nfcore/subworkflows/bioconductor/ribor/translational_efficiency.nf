@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Extract RNA-Seq CDS counts. 2. Extract Ribosome Profiling CDS region counts. 3. Filter out lowly expressed transcripts. 4. Calcula
+//  * 1. [Core Analysis] Extract RNA-Seq CDS counts
+//  * 2. [Core Analysis] Extract Ribosome Profiling CDS region counts
+//  * 3. [Core Analysis] Filter out lowly expressed transcripts
+//  * 4. [Core Analysis] Calculate translational efficiency as the ratio of
 
 nextflow.enable.dsl = 2
 
@@ -74,7 +77,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY {
     # Initialize the Ribo object from the user-provided file
     original.ribo <- Ribo(input_file, rename = rename_default)
     
-    # 1. Extract RNA-Seq CDS counts
+    # --- Extract RNA-Seq CDS counts ---
     rnaseq_CDS <- get_rnaseq(ribo.object = original.ribo,
                              tidy        = TRUE,
                              alias       = TRUE,
@@ -82,7 +85,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY {
                              compact     = FALSE,
                              experiment  = "GSM1606108")
     
-    # 2. Extract Ribosome Profiling CDS region counts
+    # --- Extract Ribosome Profiling CDS region counts ---
     rc_CDS <- get_region_counts(ribo.object    = original.ribo,
                                     tidy       = TRUE,
                                     alias      = TRUE,
@@ -106,7 +109,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY {
          xlab = "Log 2 of RNA-Seq Count (+1)", 
          main = "RNA-Seq Density (Pre-filtering)")
     
-    # 3. Filter out lowly expressed transcripts
+    # --- Filter out lowly expressed transcripts ---
     filtered_transcripts <- which(rnaseq_CDS\$count > 2 & rc_CDS\$count > 2)
     rnaseq_CDS           <- rnaseq_CDS[filtered_transcripts, ]
     rc_CDS               <- rc_CDS[filtered_transcripts, ]
@@ -121,7 +124,7 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY {
          cex = 0.5,
          col = "darkblue")
     
-    # 4. Calculate translational efficiency as the ratio of ribosome profiling to RNA-Seq counts
+    # --- Calculate translational efficiency as the ratio of ---
     te_CDS    <- rc_CDS\$count/rnaseq_CDS\$count
     
     # Plot 3: Density of Translational Efficiency

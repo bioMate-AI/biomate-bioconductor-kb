@@ -67,22 +67,22 @@ process BIOC_MSNBASE_LABEL_FREE_QUANTITATION {
       stop(paste("Required input file missing:", identFile))
     }
     
-    # 1. Import raw MS data
+    # --- Import raw MS data ---
     msexp <- readMSData(quantFile, verbose = FALSE)
     
-    # 2. Integrate peptide identification data
+    # --- Integrate peptide identification data ---
     msexp <- addIdentificationData(msexp, id = identFile)
     
-    # 3. Filter out unidentified spectra
+    # --- Filter out unidentified spectra ---
     msexp <- removeNoId(msexp)
     
-    # 4. Quantify using spectral counting method
+    # --- Quantify using spectral counting method ---
     sc <- quantify(msexp, method = "count")
     
-    # 5. Aggregate features to protein level
+    # --- Aggregate features to protein level ---
     sc <- combineFeatures(sc, groupBy = fData(sc)\$DatabaseAccess, method = "sum")
     
-    # 6. Quantify using Spectral Index (SIn) method
+    # --- Quantify using Spectral Index (SIn) method ---
     siquant <- quantify(msexp, method = "SIn")
     
     # --- Save Outputs ---

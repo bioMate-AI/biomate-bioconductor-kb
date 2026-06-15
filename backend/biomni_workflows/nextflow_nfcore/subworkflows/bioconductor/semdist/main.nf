@@ -55,7 +55,7 @@ process BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION {
     # Load required library
     library(SemDist)
     
-    # 1. Define paths to the custom ontology and annotation files
+    # --- Define paths to the custom ontology and annotation files ---
     ontfile <- "mfo_ontology.txt"
     annotations <- "MFO_LABELS_TEST.txt"
     
@@ -67,13 +67,13 @@ process BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION {
       stop(paste("Required annotations file not found in working directory:", annotations))
     }
     
-    # 2. Compute information accretion values using computeIA with custom specifications
+    # --- Compute information accretion values using computeIA with ---
     message("Computing information accretion values...")
     IAccr <- computeIA("my", "values", specify.ont=TRUE, 
                     myont=ontfile, specify.annotations=TRUE, 
                     annotfile=annotations)
     
-    # 3. Save the meaningful results to output files
+    # --- Save the meaningful results to output files ---
     message("Saving results...")
     
     # Save the raw numeric vector as an RDS object

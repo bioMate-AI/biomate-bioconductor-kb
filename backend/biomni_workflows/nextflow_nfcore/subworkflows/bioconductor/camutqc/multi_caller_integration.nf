@@ -55,10 +55,10 @@ process BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION {
     # Load the required library
     library(CaMutQC)
     
-    # 1. Convert each caller's VEP-annotated VCF to MAF format using vcfToMAF
+    # --- Convert each caller's VEP-annotated VCF to MAF format ---
     maf_MuSE <- vcfToMAF("WES_EA_T_1.MuSE.vep.vcf") 
     
-    # 2. Filter each MAF dataset individually using mutFilterCom
+    # --- Filter each MAF dataset individually using mutFilterCom ---
     maf_MuSE_f <- mutFilterCom(maf_MuSE, report=FALSE, TMB=FALSE, 
                                PONfile="PON_test.txt", 
                                PONformat = "txt", progressbar=FALSE)
@@ -75,7 +75,7 @@ process BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION {
                              PONfile="PON_test.txt", 
                              PONformat="txt", progressbar=FALSE)
     
-    # 3. Combine the filtered MAF datasets into a list and merge them using the union strategy with processMut
+    # --- Combine the filtered MAF datasets into a list and merge ---
     mafs <- list(maf_MuSE_f, maf_VarScan2_f, MAFdat_f)
     maf_union <- processMut(mafs, processMethod = "union")
     
@@ -85,7 +85,7 @@ process BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION {
 
     writeLines(c(
         '"BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION":',
-        paste0('        camutqc: ', as.character(packageVersion("camutqc")))
+        paste0('        camutqc: ', as.character(packageVersion("CaMutQC")))
     ), "versions.yml")
     """
 

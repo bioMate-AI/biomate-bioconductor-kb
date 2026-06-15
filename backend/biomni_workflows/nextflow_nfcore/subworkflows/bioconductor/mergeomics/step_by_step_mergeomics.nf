@@ -76,7 +76,7 @@ process BIOC_MERGEOMICS_STEP_BY_STEP_MERGEOMICS {
     }
     
     # ==========================================
-    # 1. Initialize and run MSEA
+    # --- Initialize and run MSEA ---
     # ==========================================
     job.msea <- list()
     job.msea\$label <- "hdlc"
@@ -97,7 +97,7 @@ process BIOC_MERGEOMICS_STEP_BY_STEP_MERGEOMICS {
     saveRDS(job.msea, file = file.path(job.msea\$folder, "job.msea.rds"))
     
     # ==========================================
-    # 2. Create intermediary datasets for KDA
+    # --- Create intermediary datasets for KDA ---
     # ==========================================
     syms <- tool.read(symbols_file)
     syms <- syms[, c("HUMAN", "MOUSE")]
@@ -111,7 +111,7 @@ process BIOC_MERGEOMICS_STEP_BY_STEP_MERGEOMICS {
     job.kda <- ssea2kda(job.msea, rmax=0.2, symbols=syms, min.module.count=NULL) 
     
     # ==========================================
-    # 3. Configure and run wKDA
+    # --- Configure and run wKDA ---
     # ==========================================
     job.kda\$netfile <- network_file
     job.kda <- kda.configure(job.kda)
@@ -124,7 +124,7 @@ process BIOC_MERGEOMICS_STEP_BY_STEP_MERGEOMICS {
     saveRDS(job.kda, file = file.path(job.kda\$folder, "job.kda.rds"))
     
     # ==========================================
-    # 4. Export network files for Cytoscape visualization
+    # --- Export network files for Cytoscape visualization ---
     # ==========================================
     job.kda <- kda2cytoscape(job.kda)
     

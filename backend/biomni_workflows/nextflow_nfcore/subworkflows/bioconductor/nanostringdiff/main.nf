@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Specify the path to the combined CSV file and define the phenotype design data frame. 2. Create a NanoStringSet object from the CS
+//  * 1. [Input & Preparation] Specify the path to the combined CSV file and define the
+//  * 2. [Input & Preparation] Create a NanoStringSet object from the CSV file using
+//  * 3. [Input & Preparation] Create the design matrix using model.matrix
+//  * 4. [Input & Preparation] Estimate normalization factors using
+//  * 5. [Input & Preparation] Perform differential expression analysis using glm.LRT
 
 nextflow.enable.dsl = 2
 
@@ -38,6 +42,15 @@ process BIOC_NANOSTRINGDIFF_CSV_INPUT_WORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "NanoStringDiff")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -51,7 +64,7 @@ process BIOC_NANOSTRINGDIFF_CSV_INPUT_WORKFLOW {
     library("Biobase")
     library("NanoStringDiff")
     
-    # 1. Specify the path to the combined CSV file and define the phenotype design data frame.
+    # --- Specify the path to the combined CSV file and define the ---
     path <- "Mori.csv"
     
     # Read the designs data frame from the working directory
@@ -64,17 +77,17 @@ process BIOC_NANOSTRINGDIFF_CSV_INPUT_WORKFLOW {
       designs <- data.frame(group=c("Normal","Normal","Tumor","Tumor"))
     }
     
-    # 2. Create a NanoStringSet object from the CSV file using createNanoStringSetFromCsv.
+    # --- Create a NanoStringSet object from the CSV file using ---
     NanoStringData=createNanoStringSetFromCsv(path,header=TRUE,designs)
     
-    # 3. Create the design matrix using model.matrix.
+    # --- Create the design matrix using model.matrix ---
     pheno=pData(NanoStringData)
     design.full=model.matrix(~0+pheno\$group)
     
-    # 4. Estimate normalization factors using estNormalizationFactors.
+    # --- Estimate normalization factors using ---
     NanoStringData=estNormalizationFactors(NanoStringData)
     
-    # 5. Perform differential expression analysis using glm.LRT with a contrast vector.
+    # --- Perform differential expression analysis using glm.LRT ---
     result=glm.LRT(NanoStringData,design.full,contrast=c(1,-1))
     
     # Write named output files

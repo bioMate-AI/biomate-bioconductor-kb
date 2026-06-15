@@ -35,6 +35,15 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CCPlotR", "ggplot2", "patchwork")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     library(patchwork)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -88,7 +97,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     }
     
     # ==========================================
-    # STAGE 2: Compute Mean Expression & Build LR Database
+    # --- Compute Mean Expression & Build LR Database ---
     # ==========================================
     
     message("Computing mean expression per cell type...")
@@ -136,7 +145,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     lr_db <- unique(lr_db)
     
     # ==========================================
-    # STAGE 3: Calculate Interaction Scores
+    # --- Calculate Interaction Scores ---
     # ==========================================
     
     message("Calculating cell-cell interaction scores...")
@@ -189,7 +198,7 @@ process BIOC_CCPLOTR_CCPLOTR_CELL_COMMUNICATION {
     write.csv(exp_df, "mean_expression.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Generate Visualizations
+    # --- Generate Visualizations ---
     # ==========================================
     
     message("Generating CCPlotR visualizations...")

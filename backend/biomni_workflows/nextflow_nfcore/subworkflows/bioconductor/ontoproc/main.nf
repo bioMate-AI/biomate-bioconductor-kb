@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the mapping file and rename columns to "informal" and "formal". 2. Bind formal ontology tags to the SingleCellExperiment obje
+//  * 1. [Input & Preparation] Load the mapping file from the working directory
+//  * 2. [Input & Preparation] Load the SingleCellExperiment object from the working
+//  * 3. [Input & Preparation] Load the Cell Ontology (2023 version)
+//  * 4. [Input & Preparation] Subset the SingleCellExperiment to descendants of the
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +61,8 @@ process BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA {
     # Load required libraries
     library(ontoProc)
     
-    # 1. Load the mapping file from the working directory
+    library(SummarizedExperiment)
+    # --- Load the mapping file from the working directory ---
     if (file.exists("hpca.csv")) {
       hpca_map = read.csv("hpca.csv", stringsAsFactors = FALSE)
     } else {
@@ -68,7 +72,7 @@ process BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA {
     # Rename columns to "informal" and "formal" as required by bind_formal_tags
     names(hpca_map) = c("informal", "formal")
     
-    # 2. Load the SingleCellExperiment object from the working directory
+    # --- Load the SingleCellExperiment object from the working ---
     if (file.exists("hpca_sce")) {
       hpca_sce = readRDS("hpca_sce")
     } else if (file.exists("hpca_sce.rds")) {
@@ -80,10 +84,10 @@ process BIOC_ONTOPROC_MAP_AND_SUBSET_SINGLE_CELL_DATA {
     # Bind formal ontology tags to the SingleCellExperiment object
     hpca_sce = bind_formal_tags(hpca_sce, "label.fine", hpca_map)
     
-    # 3. Load the Cell Ontology (2023 version)
+    # --- Load the Cell Ontology (2023 version) ---
     cell_onto = ontoProc::getOnto("cellOnto", "2023")
     
-    # 4. Subset the SingleCellExperiment to descendants of the target term ("^monocyte\$")
+    # --- Subset the SingleCellExperiment to descendants of the ---
     hpca_mono = subset_descendants( hpca_sce, cell_onto, "^monocyte\$" )
     
     # Save the resulting subsetted SingleCellExperiment object

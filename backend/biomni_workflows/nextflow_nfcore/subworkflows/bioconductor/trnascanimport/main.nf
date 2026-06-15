@@ -34,6 +34,15 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("tRNAscanImport", "GenomicRanges", "Biostrings", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
           if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
@@ -50,7 +59,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     library(rtracklayer)
     
     # ==========================================
-    # Stage 1: Load Input Data & Generate Mock tRNAscan File
+    # --- Load Input Data & Generate Mock tRNAscan File ---
     # ==========================================
     
     # Read user-provided expression data
@@ -81,7 +90,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     writeLines(tRNAscan_content, con = t_file)
     
     # ==========================================
-    # Stage 2: Import and Validate tRNAscan Output
+    # --- Import and Validate tRNAscan Output ---
     # ==========================================
     
     message("Importing tRNAscan-SE output...")
@@ -97,7 +106,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     names(gr) <- trna_ids
     
     # ==========================================
-    # Stage 3: Integrate with Expression Counts
+    # --- Integrate with Expression Counts ---
     # ==========================================
     
     message("Integrating tRNA annotations with expression counts...")
@@ -128,7 +137,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     write.csv(agg_by_type, "tRNA_expression_summary.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Export GFF3 Annotations
+    # --- Export GFF3 Annotations ---
     # ==========================================
     
     message("Exporting GFF3 annotations...")
@@ -136,7 +145,7 @@ process BIOC_TRNASCANIMPORT_TRNASCAN_ANALYSIS_PIPELINE {
     export.gff3(gff_compliant, con = "tRNA_annotations.gff3")
     
     # ==========================================
-    # Stage 5: Extract tRNA Precursor Sequences
+    # --- Extract tRNA Precursor Sequences ---
     # ==========================================
     
     message("Extracting tRNA precursor sequences...")
