@@ -82,18 +82,31 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         sha256 <- digest::digest(seq_concat, algo = "sha256", serialize = FALSE)
         message("Computed SHA-256 digest: ", sha256)
         
+        # Root all scratch directories under an absolute, freshly-created temp dir.
+        # Using relative names (custom_index / quant_output) in the staging dir is
+        # fragile: under the workflow's staged-input layout a same-named entry or a
+        # failed mkdir can leave the path as a non-directory, which then breaks
+        # file.copy with "Not a directory". An absolute, guaranteed-empty scratch
+        # root removes that whole class of failure.
+        scratch <- file.path(tempdir(), paste0("tximeta_scratch_", Sys.getpid()))
+        dir.create(scratch, showWarnings = FALSE, recursive = TRUE)
+
         # --- Create a mock Salmon index directory containing the digest ---
         # tximeta's makeLinkedTxome reads the digest from the index directory.
-        indexDir <- normalizePath("custom_index", mustWork = FALSE)
-        dir.create(indexDir, showWarnings = FALSE, recursive = TRUE)
+        indexDir <- file.path(scratch, "custom_index")
+        if (!dir.create(indexDir, showWarnings = FALSE, recursive = TRUE) && !dir.exists(indexDir))
+          stop("failed to create index dir: ", indexDir)
         writeLines(paste0('{"index_seq_hash": "', sha256, '"}'), file.path(indexDir, "header.json"))
         writeLines(paste0('{"index_seq_hash": "', sha256, '"}'), file.path(indexDir, "info.json"))
-        
+
         # --- Set up the Salmon quantification directory structure ---
         # tximeta expects aux_info/meta_info.json relative to the quant.sf file.
-        quant_dir <- "quant_output"
-        dir.create(file.path(quant_dir, "aux_info"), showWarnings = FALSE, recursive = TRUE)
-        file.copy("quant.sf", file.path(quant_dir, "quant.sf"), overwrite = TRUE)
+        quant_dir <- file.path(scratch, "quant_output")
+        aux_dir <- file.path(quant_dir, "aux_info")
+        if (!dir.create(aux_dir, showWarnings = FALSE, recursive = TRUE) && !dir.exists(aux_dir))
+          stop("failed to create quant aux dir: ", aux_dir)
+        if (!file.copy("quant.sf", file.path(quant_dir, "quant.sf"), overwrite = TRUE))
+          stop("failed to stage quant.sf into ", quant_dir)
         writeLines(
           paste0('{"index_seq_hash": "', sha256, '", "salmon_version": "1.5.2"}'),
           file.path(quant_dir, "aux_info", "meta_info.json")
