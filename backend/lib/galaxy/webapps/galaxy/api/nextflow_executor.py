@@ -50,8 +50,13 @@ except Exception as _e:
 router = Router(tags=["nextflow"])
 
 # In-process registry: run_id → {status, process, outdir, ...}
+# Stage 2a of the persistence refactor (docs/20260615_RUNS_PERSISTENCE_DESIGN.md)
+# adds a parallel write to RunStateStore at the init site. Reads still go
+# through _runs; subsequent stages flip reads over cluster-by-cluster.
 _runs: Dict[str, Dict[str, Any]] = {}
 _runs_lock = threading.Lock()
+
+from galaxy.ai.runs import get_run_state_store  # noqa: E402
 
 # Concurrency throttle for Nextflow head-process launches.
 # Each NF head JVM is ~500MB–1GB resident. Without a cap, parallel-fired
@@ -4204,35 +4209,42 @@ def execute_nextflow(
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.
     _started_at_now = time.time()
+    _run_record_init = {
+        "run_id": run_id,
+        "invocation_id": invocation_id,
+        "status": initial_status,
+        "returncode": None,
+        "outdir": str(outdir),
+        "log_path": str(log_path),
+        "trace_path": str(trace_path),
+        "nextflow_path": str(nf_path),
+        "profile": profile,
+        "qc_overrides": qc_overrides,
+        "qc_profile": qc_profile,
+        "workflow_domain": workflow_domain,
+        "work_dir": _s3_work_dir if _s3_work_dir else str(work_dir),
+        "runtime_mode": strategy["mode"],
+        "runtime_image": strategy["image"],
+        "entry": selected_entry,
+        "required_modules": strategy["required_modules"],
+        "missing_modules": strategy["missing_modules"],
+        "host_arch": strategy.get("host_arch"),
+        "image_arch": strategy.get("image_arch"),
+        "is_batch": _is_batch,
+        "user_id": request.user_id or "anonymous",
+        "is_pilot": bool(request.is_pilot),
+        "started_at": _started_at_now,
+        # Accession metadata (empty dict when not applicable)
+        "accession_params": {k: v["label"] for k, v in accession_params.items()},
+    }
     with _runs_lock:
-        _runs[run_id] = {
-            "run_id": run_id,
-            "invocation_id": invocation_id,
-            "status": initial_status,
-            "returncode": None,
-            "outdir": str(outdir),
-            "log_path": str(log_path),
-            "trace_path": str(trace_path),
-            "nextflow_path": str(nf_path),
-            "profile": profile,
-            "qc_overrides": qc_overrides,
-            "qc_profile": qc_profile,
-            "workflow_domain": workflow_domain,
-            "work_dir": _s3_work_dir if _s3_work_dir else str(work_dir),
-            "runtime_mode": strategy["mode"],
-            "runtime_image": strategy["image"],
-            "entry": selected_entry,
-            "required_modules": strategy["required_modules"],
-            "missing_modules": strategy["missing_modules"],
-            "host_arch": strategy.get("host_arch"),
-            "image_arch": strategy.get("image_arch"),
-            "is_batch": _is_batch,
-            "user_id": request.user_id or "anonymous",
-            "is_pilot": bool(request.is_pilot),
-            "started_at": _started_at_now,
-            # Accession metadata (empty dict when not applicable)
-            "accession_params": {k: v["label"] for k, v in accession_params.items()},
-        }
+        _runs[run_id] = dict(_run_record_init)
+    # Stage 2a: parallel write to the persistence store. No semantic change
+    # yet — reads still use _runs[]. Subsequent stages flip readers over.
+    try:
+        get_run_state_store().set_run(run_id, _run_record_init)
+    except Exception as _store_exc:
+        log.debug("[runs] store.set_run init failed for %s: %s", run_id, _store_exc)
 
     # Persist timing to disk so other gunicorn workers can read it via the disk fallback.
     try:
