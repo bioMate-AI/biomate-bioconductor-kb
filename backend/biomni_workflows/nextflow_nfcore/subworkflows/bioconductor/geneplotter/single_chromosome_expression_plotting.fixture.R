@@ -53,6 +53,10 @@ saveRDS(eset, "sample.ExpressionSet")
 # fresh, minimal child R process (only annotate + the annotation package loaded)
 # so the dispatch depth stays well under the limit, then serialize it for the
 # workflow to read.
+# NOTE: buildChromLocation("hgu95av2") recurses deeply enough to overflow the
+# geneplotter biocontainer's fixed 8 MB C protection stack ("C stack usage is too
+# close to the limit"); the container does not permit raising ulimit -s. Building
+# it in a fresh minimal R process keeps dispatch depth as shallow as possible.
 child <- c(
     'suppressPackageStartupMessages({ library(annotate); library(hgu95av2.db) })',
     'saveRDS(buildChromLocation("hgu95av2"), "chrObj")'
@@ -60,7 +64,6 @@ child <- c(
 writeLines(child, "_build_chrobj.R")
 status <- system2("Rscript", c("--vanilla", "_build_chrobj.R"))
 if (status != 0 || !file.exists("chrObj")) {
-    # Fallback: build in-process (works when the C stack is not yet deep).
     suppressPackageStartupMessages(library(annotate))
     saveRDS(buildChromLocation("hgu95av2"), "chrObj")
 }
