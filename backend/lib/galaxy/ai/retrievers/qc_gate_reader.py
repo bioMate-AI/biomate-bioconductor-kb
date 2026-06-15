@@ -39,7 +39,7 @@ import math
 from pathlib import Path
 from typing import Any, Optional
 
-from galaxy.ai.retrievers.qc_evidence import get_evidence_for_gate
+from galaxy.ai.retrievers.qc_evidence import get_evidence_for_gate, resolve_thresholds
 
 log = logging.getLogger(__name__)
 
@@ -89,17 +89,25 @@ def _gate_ich_s5_safety_margin(m: dict) -> Optional[tuple]:
     return ("ich_s5_safety_margin", v, threshold, passed, level, msg)
 
 
-def _gate_ich_s7b_herg_margin(m: dict) -> Optional[tuple]:
-    """hERG safety margin ≥10× (ICH S7B)."""
+def _gate_ich_s7b_herg_margin(m: dict, context: Optional[dict] = None) -> Optional[tuple]:
+    """hERG safety margin ≥10× (ICH S7B).
+
+    Optional context for indication-class modifier (added 2026-06-15 Track 1).
+    Example: context={"indication_class": "chronic_cns"} → 50/30 cutoffs.
+    Falls back to the historical 30/10 defaults when context is absent.
+    """
     v = m.get("herg_safety_margin_x")
     if v is None:
         return None
     v = float(v)
-    threshold = 10.0
-    passed = v >= threshold
-    level = "GOLD" if v >= 30 else ("SILVER" if v >= 10 else "FAIL")
-    msg = f"hERG margin={v:.1f}×" + ("" if passed else f" < {threshold}× (ICH S7B)")
-    return ("ich_s7b_herg_margin", v, threshold, passed, level, msg)
+    advisory_min, fail_min = resolve_thresholds(
+        "ich_s7", "ich_s7b_herg_margin", context,
+        default_advisory=30.0, default_fail=10.0,
+    )
+    passed = v >= fail_min
+    level = "GOLD" if v >= advisory_min else ("SILVER" if v >= fail_min else "FAIL")
+    msg = f"hERG margin={v:.1f}×" + ("" if passed else f" < {fail_min}× (ICH S7B)")
+    return ("ich_s7b_herg_margin", v, fail_min, passed, level, msg)
 
 
 def _gate_boin_dlt_boundary(m: dict) -> Optional[tuple]:
