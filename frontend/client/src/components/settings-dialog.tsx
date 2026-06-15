@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { MfaSettings } from "./mfa-settings"
+import { RetrainAdapterCard } from "./RetrainAdapterCard"
 import { useLocation } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -748,7 +749,24 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <TabsContent value="advanced" className="space-y-6 m-0">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Advanced Settings</h3>
-                  
+
+                  {/* B3 — Per-org regulatory LLM adaptation queue. The
+                      RetrainAdapterCard self-fetches state on mount and
+                      handles its own loading/error display. */}
+                  <Card style={{ marginBottom: 16 }}>
+                    <CardHeader>
+                      <CardTitle className="text-base">Regulatory LLM adaptation</CardTitle>
+                      <CardDescription>
+                        Train a per-organisation rule pack from your accumulated edit
+                        history so the regulatory LLM matches your house style on the
+                        next inference call.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RetrainAdapterCard />
+                    </CardContent>
+                  </Card>
+
                   <Card>
                     <CardContent className="space-y-6 pt-6">
                       <div className="flex items-center justify-between">
