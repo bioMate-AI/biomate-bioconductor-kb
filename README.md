@@ -8,15 +8,15 @@ A skill bundle in [Claude Code Skills](https://docs.anthropic.com/en/docs/claude
 
 ```
 skills/  (200 packages · 12 domains)                  ⭐ = rising star
-├── transcriptomics/  (97 — DESeq2, edgeR, limma  ·  ⭐ crisprScore, BUSseq, ASURAT)
-├── genomics/         (33 — GenomicRanges, Biostrings  ·  ⭐ doubletrouble, cogeqc, ggmanh)
-├── general/          (19 — Biobase, DOSE  ·  ⭐ faers, immunotation, mosbi)
-├── proteomics/       (16 — MSnbase, mixOmics, mzR  ·  ⭐ bandle, MatrixQCvis)
+├── transcriptomics/  (97 — DESeq2, edgeR, limma  ·  ⭐ standR, Voyager, sechm, crisprScore)
+├── genomics/         (33 — GenomicRanges, Biostrings  ·  ⭐ rBLAST, syntenet, ggmanh)
+├── general/          (19 — Biobase, DOSE  ·  ⭐ immunotation, faers, mosbi)
+├── proteomics/       (16 — MSnbase, mixOmics, mzR  ·  ⭐ MatrixQCvis, MsDataHub, TargetDecoy)
 ├── epigenomics/      (10 — ChIPseeker, minfi  ·  ⭐ HiCExperiment, HiContacts, epigraHMM)
 ├── single-cell/      (8  — SingleCellExperiment  ·  ⭐ demuxmix, hoodscanR, MuData)
 ├── variant-calling/  (4  — VariantAnnotation, snpStats, vsn)
 ├── metagenomics/     (4  — phyloseq, microbiome, DirichletMultinomial)
-├── imaging/          (4  — flowCore, EBImage  ·  ⭐ cytoviewer, lisaClust)
+├── imaging/          (4  — flowCore, EBImage  ·  ⭐ lisaClust, cytoviewer)
 ├── annotation/       (2  — biomaRt, KEGGgraph)
 ├── enrichment/       (2  — enrichplot, ReactomePA)
 └── metabolomics/     (1  — ⭐ rgoslin)
@@ -58,16 +58,49 @@ Two ranked sets of 100:
   surface newly-important methods *before* they reach the top by raw volume.
 
 Together these 200 packages cover **~57% of Bioconductor's analysis-package download volume**
-(foundational infrastructure / data-container / annotation packages — which alone are ~40% of raw
+(foundational infrastructure and data-container packages — which alone are ~40% of raw
 downloads — are not counted as analysis volume). The full **BioMate-KB** goes much further:
 runnable workflows for **1,818** analysis packages — **~87% of analysis-package download
 volume**.
 
 > **Note on domains.** Domain labels come from BioMate's catalog and are intentionally coarse —
-> *transcriptomics* is a broad bucket that also absorbs many single-cell, spatial, and gene-set
-> tools (e.g. scater/scran are single-cell; fgsea/GSVA are enrichment), which is why it dominates
-> the charts.
+> *transcriptomics* is a broad catch-all that absorbs most single-cell, spatial, and gene-set tools
+> (scater / scran / monocle / SingleR are single-cell; fgsea / GSVA are enrichment) — which is why
+> it dominates the charts, and why the small *single-cell* (8) and *annotation* (2) folders are
+> remnants of the same imperfect classifier rather than clean boundaries. We keep BioMate's labels
+> for traceability; treat the domain folders as a rough guide, not a strict ontology.
 
+
+## How this compares
+
+Among the public Claude-Code / agent **skill libraries** surveyed in 2026, this is the **deepest
+R / Bioconductor coverage by a wide margin** — the others are Python-centric or general-science and
+carry only a handful of R packages:
+
+| Skill library | R / Bioconductor pkgs | Total skills | Focus |
+|---|--:|--:|---|
+| **BioMate-KB** (this bundle) | **200** | 200 | R / Bioconductor — vignette-grounded, per-package workflow recipes, executable on [BioMate Cloud](https://www.biomate.ai) |
+| GPTomics/bioSkills | ~50–100 | 497 | mixed bioinformatics |
+| jaechang-hits/SciAgent-Skills | ~0 (Python) | 197 | Python agents — holds the BixBench task-accuracy SOTA |
+| K-Dense-AI/scientific-agent-skills | minimal | 138 | general science |
+| ClawBio | 67 | — | adjacent bio domains |
+| wolf5996/agentic-skills | ~10 | — | general agentic |
+
+*Public-skill landscape as surveyed in 2026 — it moves fast; the column counts **R/Bioconductor**
+packages specifically, not total skills.*
+
+**What makes this bundle distinct** — beyond raw coverage:
+
+1. **Vignette-grounded & fact-verified** — every R function named in a skill is verified to appear
+   in that package's own Bioconductor vignette (mean verify **0.91**), not free-form LLM prose.
+2. **Per-package workflow recipes** — a package's distinct analyses are explicit `### ` recipes
+   (**390** across the 200), so an agent learns *how to run it*, not just *what it is*.
+3. **Executable backing** — the same knowledge drives runnable workflows on BioMate Cloud for
+   **1,818** packages, so a skill is a starting point for real execution, not a dead end.
+
+We deliberately **don't** compete on agent task-completion benchmarks (e.g. BixBench — SciAgent-Skills
+leads there). This bundle competes on **R/Bioconductor coverage, vignette grounding, and downstream
+execution**.
 
 ## Want the full collection?
 
@@ -163,10 +196,14 @@ The extraction code (`extraction/extract_skill.py`) is intentionally minimal (~3
 
 ## Versioning
 
-This is **v1.0.0** of the bundle. Future versions will track:
-- New Bioconductor releases (currently pinned to 3.20)
-- Expanded coverage (top-1000 if community demand justifies)
-- Refined SKILL.md sections (Q&A, gotchas, additional examples)
+**v2.0.0** (2026-06-15) — full history in **[CHANGELOG.md](CHANGELOG.md)**. Skills are pinned to
+**Bioconductor 3.21** (recorded in `MANIFEST.json`).
+
+Since v1.0.0: coverage doubled to **200 packages** (added the top 100 rising stars), per-package
+`## Workflows` recipes, and a full package table + coverage charts.
+
+Planned: track new Bioconductor releases, expand coverage (top-1000 if community demand justifies),
+and refine `SKILL.md` sections (Q&A, gotchas, more examples).
 
 ## Contributing
 
