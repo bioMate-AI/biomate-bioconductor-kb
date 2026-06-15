@@ -22,7 +22,7 @@ skills/  (200 packages · 12 domains)                  ⭐ = rising star
 └── metabolomics/     (1  — ⭐ rgoslin)
 ```
 
-A package that supports multiple analyses lists each as a `### ` recipe under a **`## Workflows`** section (e.g. DESeq2 → standard / multi-factor / LRT; crisprscore → on-target / off-target / indel scoring). The most-used 100 account for ~60% of all Bioconductor downloads; the rising-star 100 surface newly-important packages before they hit the top by volume. The full BioMate KB covers all 1,818 active Bioconductor packages, available via [BioMate Cloud](https://biomate.ai).
+A package that supports multiple analyses lists each as a `### ` recipe under a **`## Workflows`** section (e.g. DESeq2 → standard / multi-factor / LRT; crisprscore → on-target / off-target / indel scoring). The most-used 100 account for ~60% of all Bioconductor downloads; the rising-star 100 surface newly-important packages before they hit the top by volume. Beyond this 200-package sample, the full BioMate KB has executable, real-run-validated workflows for **1,818** Bioconductor packages (3,310 workflows) — available via [BioMate Cloud](https://biomate.ai).
 
 **Bioconductor version:** these skills are grounded against **Bioconductor 3.21** (pinned explicitly — `release` is a moving pointer that drops packages as it advances, e.g. several rising stars dropped out of 3.23). The pinned version is recorded in `MANIFEST.json` (`bioconductor_version`); re-fetch a different snapshot with `BIOC_VERSION=… python3 extraction/fetch_authoritative_sources.py`.
 
@@ -57,8 +57,10 @@ Two ranked sets of 100:
   (year-over-year download growth + ≥ 3,000 distinct download IPs), ranked by 2025 downloads. They
   surface newly-important methods *before* they reach the top by raw volume.
 
-Together: 200 of the ~3,058 ranked Bioconductor software packages (~6.5% by count), spanning the
-highest-traffic and fastest-emerging methods. The full BioMate KB indexes all 1,818 active packages.
+Together: 200 of the **~3,057** download-ranked Bioconductor software packages (~6.5% by count),
+spanning the highest-traffic and fastest-emerging methods. *(That ~3,057 is the full Bioconductor
+software catalog by download score; the separate **1,818** below is how many of them BioMate-KB has
+built executable workflows for — a deeper, different layer, not the selection universe.)*
 
 > **Note on domains.** Domain labels come from BioMate's catalog and are intentionally coarse —
 > *transcriptomics* is a broad bucket that also absorbs many single-cell, spatial, and gene-set
@@ -70,7 +72,7 @@ highest-traffic and fastest-emerging methods. The full BioMate KB indexes all 1,
 
 This bundle covers 200 Bioconductor packages (top 100 by downloads + 100 rising stars). **[BioMate AI](https://www.biomate.ai)** gives you:
 
-- **Full coverage** — all 1,818+ active Bioconductor packages plus 2,455 curated workflows across genomics, transcriptomics, proteomics, drug discovery, and more
+- **Full coverage** — executable workflows for **1,818** Bioconductor packages (**3,310** real-run-validated workflows), plus nf-core and drug-discovery pipelines across genomics, transcriptomics, proteomics, and more
 - **Efficient parallel computing** — workflows run in the cloud with automatic scaling, no cluster setup required
 - **Output visualization and analysis** — interactive charts, QC dashboards, and AI-generated findings built in
 - **Report generation** — one-click publication-ready methods reports and summary documents
@@ -109,7 +111,7 @@ Each `SKILL.md` is a self-contained Claude Code skill file — Claude discovers 
 Packages are ordered by Bioconductor's official monthly download score:
 - Source: <https://bioconductor.org/packages/stats/bioc/bioc_pkg_scores.tab>
 - Snapshot taken: 2026-05-21
-- Top 100 by download of 3,058 ranked software packages (~60% of download traffic) + 100 analysis rising stars = 200 (~6.5% of the catalog by count)
+- Top 100 by download of **3,057** ranked software packages (~60% of download traffic) + 100 analysis rising stars = 200 (~6.5% of the catalog by count)
 
 Because the ranking is by download volume, the bundle includes both **analysis tools** (DESeq2, edgeR, limma, fgsea, …) and the **core data-structure, I/O, and annotation packages** that nearly every analysis depends on (GenomicRanges, Biostrings, SingleCellExperiment, AnnotationHub, …) — the latter rank highly precisely because they are imported everywhere. Both are useful to an agent: the analysis packages teach *how to analyze*, the foundational ones *how to represent and load* the data.
 
