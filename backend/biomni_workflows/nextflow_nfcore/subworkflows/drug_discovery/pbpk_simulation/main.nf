@@ -37,6 +37,9 @@ params.population     = 'healthy_adult'  // healthy_adult | child | elderly | he
 params.dose_mg        = '500'
 params.dose_route     = 'oral'
 params.simulation_hours = '96'
+// Optional: observed AUC for the pbpk_auc_fold_error gate (GOLD, FDA 2018).
+// When supplied, qc_metrics.json will emit auc_fold_error = max(p/o, o/p).
+params.auc_observed_ug_h_mL = null
 
 process PBPK_SIMULATION {
     tag "$meta.id"
@@ -73,6 +76,7 @@ process PBPK_SIMULATION {
     export PARAM_DOSE='${params.dose_mg}'
     export PARAM_ROUTE='${params.dose_route}'
     export PARAM_SIM_H='${params.simulation_hours}'
+    export PARAM_AUC_OBSERVED='${params.auc_observed_ug_h_mL ?: ""}'
 
     python3 << 'PYEOF'
 import json, os, csv, sys, math
@@ -354,23 +358,74 @@ summary = {'status':'completed', 'population': pop, **nca_params,
 with open('pbpk_results.json','w') as f:
     json.dump(summary, f, indent=2)
 
-# ── QC gate: tmax fraction (FDA 2018 PBPK Guidance, SILVER) ───────────────────
-# Tmax should not coincide with end of simulation window; flag if tmax_h > 80%
-# of sim_hours_total (IND profile) or > 90% (screening).
+# ── QC gates: pbpk_tmax_fraction + pbpk_cl_min + pbpk_mass_balance + pbpk_auc_fold_error
+# Track 2 batch 1 (2026-06-15): wire the 3 documented-but-unwired pbpk gates
+# alongside the existing tmax_fraction. All four are in qc_evidence.yaml under
+# the 'pbpk' category. AUC fold-error only emitted when an observed AUC is
+# supplied via params.auc_observed_ug_h_mL.
+
 sim_hours_total = float(sim_h)
 tmax_fraction = nca_params['tmax_h'] / sim_hours_total if sim_hours_total > 0 else None
+
+# pbpk_cl_min — physiological plausibility floor (BRONZE, BioMate operational).
+# CL = dose / AUC; flag if implausibly low for a clinically meaningful molecule.
+cl_total_L_per_h = nca_params['CL_F_L_h']
+cl_min_threshold = 0.01  # L/h
+cl_within_floor  = (cl_total_L_per_h is not None
+                    and cl_total_L_per_h >= cl_min_threshold)
+
+# pbpk_mass_balance — sum of compartment masses + cumulative excretion vs dose.
+# The ODE state already conserves mass at integration time; we recompute end-of-
+# simulation total mass and verify recovery within the EMA tolerance.
+try:
+    total_mass_end = float(sum(sol.y[i][-1] for i in range(sol.y.shape[0])))
+    dose_ug_total  = float(dose_ug)
+    recovery_ratio = total_mass_end / dose_ug_total if dose_ug_total > 0 else None
+    mass_balance_passes = (recovery_ratio is not None
+                           and 0.95 <= recovery_ratio <= 1.05)
+except Exception:
+    recovery_ratio      = None
+    mass_balance_passes = None
+
+# pbpk_auc_fold_error — predicted/observed AUC fold-error (GOLD, FDA 2018).
+# Only computed when the workflow caller supplies an observed AUC reference.
+auc_obs_raw = os.environ.get('PARAM_AUC_OBSERVED', '') or ''
+auc_fold_error = None
+auc_within_2fold = None
+if auc_obs_raw not in ('', 'null', 'None'):
+    try:
+        auc_obs = float(auc_obs_raw)
+        auc_pred = float(nca_params['AUCinf_ugh_mL'])
+        if auc_obs > 0 and auc_pred > 0:
+            auc_fold_error = round(2 ** abs(math.log2(auc_pred / auc_obs)), 3)
+            auc_within_2fold = bool(auc_fold_error <= 2.0)
+    except (ValueError, ZeroDivisionError):
+        pass
+
 qc_metrics = {
     'success': True,
     'process': 'PBPK_SIMULATION',
     'domain': 'drug_discovery',
+    # pbpk_tmax_fraction gate
     'tmax_h': nca_params['tmax_h'],
     'simulation_duration_h': sim_hours_total,
     'pbpk_tmax_fraction': round(tmax_fraction, 3) if tmax_fraction is not None else None,
+    'tmax_within_window': bool(tmax_fraction is not None and tmax_fraction <= 0.8),
+    # pbpk_cl_min gate
+    'cl_total_L_per_h': cl_total_L_per_h,
+    'cl_min_threshold_L_per_h': cl_min_threshold,
+    'cl_within_floor': cl_within_floor,
+    # pbpk_mass_balance gate
+    'mass_recovery_ratio': round(recovery_ratio, 4) if recovery_ratio is not None else None,
+    'mass_balance_passes': mass_balance_passes,
+    # pbpk_auc_fold_error gate (only when observed AUC supplied)
+    'auc_fold_error': auc_fold_error,
+    'auc_within_2fold': auc_within_2fold,
+    # context metadata
     'cmax_ug_mL': nca_params['Cmax_ug_mL'],
     'auc_inf_ugh_mL': nca_params['AUCinf_ugh_mL'],
-    'tmax_within_window': bool(tmax_fraction is not None and tmax_fraction <= 0.8),
-    'evidence_tier': 'SILVER',
-    'citation': 'FDA 2018 PBPK Analyses — Format and Content Guidance',
+    'evidence_tier': 'SILVER-tmax / BRONZE-cl_min / SILVER-mass_balance / GOLD-auc_fold_error',
+    'citation': 'FDA 2018 PBPK Analyses + EMA PBPK Guideline 2019 + Davies & Morris 1993',
 }
 with open('qc_metrics.json','w') as f:
     json.dump(qc_metrics, f, indent=2)
