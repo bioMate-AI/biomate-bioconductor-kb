@@ -1165,6 +1165,85 @@ class NextflowQCGateHandler:
 
         return override_val
 
+    # Mapping: metric name → (yaml_domain, yaml_gate_name, advisory_or_fail).
+    # Limited to the 4 modifier-aware gates added in Track 1 step 1
+    # (docs/20260615_QC_GATE_INVENTORY_AND_PLAN.md). When a metric appears
+    # here AND no explicit user override exists, the threshold is resolved
+    # from qc_evidence.yaml modifiers using the active context. Other metrics
+    # continue through the legacy default path.
+    _MODIFIER_AWARE_METRICS: Dict[str, tuple] = {
+        # (yaml_domain, yaml_gate_name, "advisory_min" or "fail_min")
+        "herg_safety_margin_x":     ("ich_s7",         "ich_s7b_herg_margin",       "fail_min"),
+        "eta_shrinkage_pct_max":    ("nlmixr2_poppk",  "nlmixr2_eta_shrinkage",     "fail_min"),
+        "ofv_delta_max":            ("nlmixr2_poppk",  "nlmixr2_ofv_stability",     "fail_min"),
+        "auc_extrap_pct_max":       ("nca_pk",         "nca_auc_extrap",            "fail_min"),
+    }
+
+    def _get_threshold_with_context(
+        self,
+        metric: str,
+        default: float,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> float:
+        """
+        Variant of _get_threshold that consults qc_evidence.yaml's modifiers
+        block when no explicit user override exists. Falls through to the
+        legacy _get_threshold flow when:
+          - metric is not in _MODIFIER_AWARE_METRICS, OR
+          - context is None / no axes match, OR
+          - explicit user override already wins (handled by _get_threshold).
+
+        `context` is a dict like {"indication_class": "chronic_cns"} or
+        {"sampling_density": "sparse", "downstream_use": "vpc_only"}. Built
+        from invocation metadata + the active QC profile; see
+        _build_modifier_context() for the canonical translation.
+        """
+        # Explicit override + GOLD-metric protection short-circuit first —
+        # users opt in to those paths explicitly.
+        if self.qc_overrides and metric in self.qc_overrides:
+            return self._get_threshold(metric, default)
+
+        mapping = self._MODIFIER_AWARE_METRICS.get(metric)
+        if mapping is None or not context:
+            return default
+
+        domain, gate_name, tier_key = mapping
+        try:
+            from galaxy.ai.retrievers.qc_evidence import resolve_thresholds
+        except Exception:
+            return default
+        adv, fai = resolve_thresholds(
+            domain, gate_name, context,
+            default_advisory=default if tier_key == "advisory_min" else None,
+            default_fail=default if tier_key == "fail_min" else None,
+        )
+        resolved = adv if tier_key == "advisory_min" else fai
+        return float(resolved) if resolved is not None else default
+
+    def _build_modifier_context(self) -> Dict[str, Any]:
+        """
+        Build the context dict for resolve_thresholds() from the invocation's
+        currently-known metadata. Right now sources the active QC profile
+        only; future plumbing (invocation submission API → trace monitor
+        constructor) can attach indication / phase / sampling density etc.
+        """
+        ctx: Dict[str, Any] = {}
+        # Profile → indication-class mapping (matches the YAML axis names).
+        # compound_druglike is BioMate's general drug-discovery profile.
+        profile_to_indication = {
+            "compound_druglike":     "general",
+            "antibiotic_screen":     "antibiotic_short_course",
+            "oncology_screen":       "oncology_lifesaving",
+            "cns_chronic":           "chronic_cns",
+            "cardiac_chronic":       "chronic_cardiac",
+        }
+        if self.active_profile in profile_to_indication:
+            ctx["indication_class"] = profile_to_indication[self.active_profile]
+        # Phase modifier: profile names ending in '_regulatory' bump to that tier.
+        if self.active_profile and self.active_profile.endswith("_regulatory"):
+            ctx["phase"] = "regulatory"
+        return ctx
+
     def _write_audit_log_entry(self, event_type: str, applied_overrides: Dict[str, Any]) -> None:
         """
         Append one JSONL record to work_dir/qc_overrides_audit.jsonl.
@@ -5204,7 +5283,15 @@ class NextflowQCGateHandler:
             # FDA Guidance on PK studies 2018: "extrapolated AUC should be < 20%
             # of AUCinf to consider the profile adequately characterised"
             auc_extrap = qc_metrics.get("auc_extrap_pct_max")
-            _extrap_t = self._get_threshold("auc_extrap_pct_max", 20.0)
+            # Modifier-aware: profile / phase / population can tighten or relax
+            # the 20% FDA-default. See _MODIFIER_AWARE_METRICS + the YAML
+            # `modifiers` block for nca_auc_extrap. Defaults to 20.0 when no
+            # context applies (legacy behavior preserved).
+            _extrap_t = self._get_threshold_with_context(
+                "auc_extrap_pct_max",
+                self._get_threshold("auc_extrap_pct_max", 20.0),
+                context=self._build_modifier_context(),
+            )
             if auc_extrap is not None and auc_extrap > _extrap_t:
                 failures.append({
                     "metric": "auc_extrap_pct_max",
