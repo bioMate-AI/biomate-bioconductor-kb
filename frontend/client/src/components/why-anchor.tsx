@@ -28,6 +28,9 @@ export interface Rationale {
 }
 
 interface Props {
+  /** Design-faithful path: explicit per-event id (e.g. 'bulk_rnaseq:B'). */
+  rationaleId?: string | null
+  /** Legacy path: derive from chain + phase. Used only if rationaleId absent. */
   workflowName?: string | null
   phaseId?: string | null
   /** Optional override for testing — skip fetch + use this rationale directly. */
@@ -36,15 +39,19 @@ interface Props {
   fetchFn?: (workflowName: string, phaseId: string) => Promise<Rationale | null>
 }
 
-/** Default fetcher: hits the backend endpoint, returns null on empty / error. */
+/** Default fetcher: chooses the right URL per id type, returns null on empty / error. */
 async function defaultFetchRationale(
   workflowName: string,
   phaseId: string,
 ): Promise<Rationale | null> {
+  // Sentinel "rationaleId" is passed as workflowName when rationaleId path
+  // is taken (see handleOpenChange below); detect by leading colon-prefix
+  // marker the caller stamps in.
+  const isRationaleId = workflowName.startsWith("__rid__:")
+  const url = isRationaleId
+    ? `/api/rationale/${encodeURIComponent(workflowName.slice("__rid__:".length))}`
+    : `/api/workflows/${encodeURIComponent(workflowName)}/phases/${encodeURIComponent(phaseId)}/rationale`
   try {
-    const url =
-      `/api/workflows/${encodeURIComponent(workflowName)}` +
-      `/phases/${encodeURIComponent(phaseId)}/rationale`
     const r = await fetch(url, { credentials: "include" })
     if (!r.ok) return null
     const body = (await r.json()) as Partial<Rationale>
@@ -55,29 +62,39 @@ async function defaultFetchRationale(
   }
 }
 
-export function WhyAnchor({ workflowName, phaseId, rationale: rationaleProp, fetchFn }: Props) {
+export function WhyAnchor({ rationaleId, workflowName, phaseId, rationale: rationaleProp, fetchFn }: Props) {
   const [rationale, setRationale] = useState<Rationale | null | undefined>(
     rationaleProp ?? undefined,
   )
   // undefined = not loaded yet, null = loaded-but-empty (hide anchor),
   // object = loaded with content
 
+  // Resolve fetch args: explicit rationaleId (Phase 2 design-faithful path)
+  // takes precedence over legacy workflowName + phaseId.
+  const fetchKey1 = rationaleId ? `__rid__:${rationaleId}` : workflowName ?? ""
+  const fetchKey2 = rationaleId ? "" : phaseId ?? ""
+  const hasContext = Boolean(rationaleId) || Boolean(workflowName && phaseId)
+
   const handleOpenChange = useCallback(
     async (open: boolean) => {
       if (!open) return
       if (rationale !== undefined) return // already loaded
-      if (!workflowName || !phaseId) return
+      if (!hasContext) return
       const fetcher = fetchFn ?? defaultFetchRationale
-      const result = await fetcher(workflowName, phaseId)
+      const result = await fetcher(fetchKey1, fetchKey2)
       setRationale(result ?? null)
     },
-    [rationale, workflowName, phaseId, fetchFn],
+    [rationale, hasContext, fetchKey1, fetchKey2, fetchFn],
   )
 
-  // No workflow/phase context → no anchor at all.
-  if (!workflowName || !phaseId) return null
+  // No context → no anchor at all.
+  if (!hasContext) return null
   // Loaded and empty → hide the anchor (don't show a broken popover).
   if (rationale === null) return null
+
+  // Stable testid that's a valid CSS selector value (no colons).
+  const labelId = rationaleId ?? phaseId ?? "unknown"
+  const safeTestId = labelId.replace(/:/g, "-")
 
   return (
     <Popover onOpenChange={handleOpenChange}>
@@ -85,8 +102,8 @@ export function WhyAnchor({ workflowName, phaseId, rationale: rationaleProp, fet
         <button
           type="button"
           className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:underline focus:outline-none focus-visible:ring-1"
-          aria-label={`Show rationale for ${phaseId}`}
-          data-testid={`why-anchor-${phaseId}`}
+          aria-label={`Show rationale for ${labelId}`}
+          data-testid={`why-anchor-${safeTestId}`}
         >
           (why?)
         </button>
