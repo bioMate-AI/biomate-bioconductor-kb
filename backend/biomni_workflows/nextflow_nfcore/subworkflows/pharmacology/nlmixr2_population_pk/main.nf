@@ -383,9 +383,11 @@ process NLMIXR2_POPULATION_PK {
         condition_number_fail_threshold        = CONDITION_NUMBER_FAIL_LIMIT,
         nlmixr2_condition_number_passes        = cn_passes,
         # nlmixr2_ofv_stability (BRONZE; needs multi-fit refit pipeline)
+        # R NULL → jsonlite emits {} under auto_unbox=TRUE; emit NA_real_
+        # instead so the output is a clean null in JSON.
         ofv                                    = results_json\$ofv,
-        ofv_delta_max                          = NULL,
-        nlmixr2_ofv_stability_passes           = NULL,
+        ofv_delta_max                          = NA_real_,
+        nlmixr2_ofv_stability_passes           = NA,
         nlmixr2_ofv_stability_status           = "not_computed (single-fit workflow; ΔOFV gate needs refit pipeline)",
         # context
         convergence_status                     = results_json\$convergence_status,
