@@ -430,6 +430,7 @@ function PhaseGroupSection({
   onQcChange,
   paramGroupToPhaseKey,
   qcAdvisoryByStep,
+  isFirstPhase,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -457,6 +458,11 @@ function PhaseGroupSection({
   paramGroupToPhaseKey: Map<string, string>;
   /** Gap 1 (inverse) — near-threshold advisories keyed by process_name. */
   qcAdvisoryByStep?: Record<string, { metric?: string; value?: any; threshold?: any }[]>;
+  /** True for the first phase in groupedPhases; auto-expanded on panel open
+   *  so the PARAMETERS summary is visible without a click (UI audit
+   *  2026-06-14 found the summary was hidden on first render when no
+   *  phase was already running). */
+  isFirstPhase?: boolean;
 }) {
   const { steps, label, phaseParams } = group;
   const [qcEditorOpen, setQcEditorOpen] = React.useState(false);
@@ -475,7 +481,13 @@ function PhaseGroupSection({
   // Auto-expand when running, failed, or a QC gate/autoloop event fires for this phase
   const hasGateForPhase = !!(autoLoopPanelState?.gateResults &&
     autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase));
-  const [open, setOpen] = useState(() => anyRunning || anyFailed || hasGateForPhase);
+  // Auto-expand first phase on panel open so the PARAMETERS summary line is
+  // visible without a click. UI audit 2026-06-14 (docs/sge-audit-2026-06-14/)
+  // surfaced that schema-grounded prefill was working but the user couldn't
+  // see the filled-in params until they manually expanded a phase.
+  const [open, setOpen] = useState(
+    () => anyRunning || anyFailed || hasGateForPhase || !!isFirstPhase,
+  );
   React.useEffect(() => {
     if (anyRunning || anyFailed || hasGateForPhase) setOpen(true);
   }, [anyRunning, anyFailed, hasGateForPhase]);
@@ -2589,10 +2601,11 @@ export function NextflowWorkflowViewer({
             {/* ── Phase cards ─────────────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (
               <div className="phase-list" data-tour="phase-list">
-                {groupedPhases.map(group => (
+                {groupedPhases.map((group, idx) => (
                   <PhaseGroupSection
                     key={group.key}
                     group={group}
+                    isFirstPhase={idx === 0}
                     renderedParameters={renderedParameters}
                     params={params}
                     onParamChange={handleParamChange}
