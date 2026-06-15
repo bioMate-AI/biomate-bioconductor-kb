@@ -30,6 +30,7 @@ process DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS {
     output:
     tuple val(meta), path("detect_and_annotate_somatic_mutations_results.json"), emit: results
     tuple val(meta), path("detect_and_annotate_somatic_mutations_output.txt"), emit: output
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml", emit: versions
 
     script:
@@ -298,6 +299,71 @@ else:
 
 with open("detect_and_annotate_somatic_mutations_results.json", "w") as f:
     json.dump(output_data, f, indent=2, default=str)
+
+# ── QC gates: cancer_somatic_vaf_min + depth_min + mapping_quality ────────────
+# Track 2 batch 3 (2026-06-15): wire the 3 documented-but-unwired cancer
+# biology gates from qc_evidence.yaml.cancer_biology.*.
+#
+# Thresholds (per the YAML rule_text):
+#   cancer_somatic_vaf_min          (GOLD, GATK Mutect2 default):     ≥ 0.05
+#   cancer_somatic_depth_min        (GOLD, Strelka2 Kim 2018 Table 2): ≥ 30x
+#   cancer_somatic_mapping_quality  (SILVER, Li BWA 2009 Phred-20):    ≥ 20
+#
+# The biomni-wrapped function returns a result dict; when the variant-caller
+# subprocess populates summary stats (mean_vaf, mean_depth, mean_mapq) the
+# gates fire on real values. When the result is text-only (the wrapper's
+# fallback path), we emit None + a 'not_computed' status so the gate row
+# stays in the audit ledger without fabricating a verdict.
+def _summary_stat(res, *keys):
+    """Pull a numeric summary stat from the biomni result dict; tolerate
+    missing keys + non-numeric payloads without raising."""
+    if not isinstance(res, dict):
+        return None
+    for k in keys:
+        v = res.get(k)
+        if isinstance(v, (int, float)):
+            return float(v)
+    return None
+
+VAF_MIN_THRESHOLD   = 0.05
+DEPTH_MIN_THRESHOLD = 30.0
+MAPQ_MIN_THRESHOLD  = 20.0
+
+vaf_min   = _summary_stat(result, "min_vaf",   "vaf_min",   "mean_vaf")
+depth_min = _summary_stat(result, "min_depth", "depth_min", "mean_depth")
+mapq_min  = _summary_stat(result, "min_mapq",  "mapq_min",  "mean_mapq")
+
+vaf_passes   = bool(vaf_min   is not None and vaf_min   >= VAF_MIN_THRESHOLD)   if vaf_min   is not None else None
+depth_passes = bool(depth_min is not None and depth_min >= DEPTH_MIN_THRESHOLD) if depth_min is not None else None
+mapq_passes  = bool(mapq_min  is not None and mapq_min  >= MAPQ_MIN_THRESHOLD)  if mapq_min  is not None else None
+
+qc_metrics = {
+    "success": success,
+    "process": "DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS",
+    "domain":  "cancer_biology",
+    # cancer_somatic_vaf_min (GATK Mutect2, GOLD)
+    "vaf_min": vaf_min,
+    "vaf_min_threshold": VAF_MIN_THRESHOLD,
+    "cancer_somatic_vaf_min_passes": vaf_passes,
+    # cancer_somatic_depth_min (Kim 2018 Strelka2, GOLD)
+    "depth_min": depth_min,
+    "depth_min_threshold": DEPTH_MIN_THRESHOLD,
+    "cancer_somatic_depth_min_passes": depth_passes,
+    # cancer_somatic_mapping_quality (Li 2009 BWA, SILVER)
+    "mapq_min": mapq_min,
+    "mapq_min_threshold": MAPQ_MIN_THRESHOLD,
+    "cancer_somatic_mapping_quality_passes": mapq_passes,
+    # provenance + status
+    "evidence_tier": "GOLD-vaf / GOLD-depth / SILVER-mapq",
+    "citation":      "GATK Mutect2 Best Practices + Kim 2018 Strelka2 + Li 2009 BWA",
+    "status": (
+        "computed" if all(x is not None for x in (vaf_min, depth_min, mapq_min))
+        else "partial" if any(x is not None for x in (vaf_min, depth_min, mapq_min))
+        else "not_computed (variant-caller did not populate per-variant summary stats)"
+    ),
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2, default=str)
 
 # Create human-readable output
 NL = chr(10)  # newline character
