@@ -35,6 +35,7 @@ process TILT_ALIGNMENT {
     output:
     path "tilt_alignment_report.json", emit: report
     path "alignment_xf_files.json",    emit: xf_files
+    path "qc_metrics.json",            emit: qc_metrics
 
     script:
     def patch_align = params.patch_alignment ? 'True' : 'False'
@@ -173,6 +174,29 @@ process TILT_ALIGNMENT {
 
     with open('alignment_xf_files.json', 'w') as f:
         json.dump(xf_output, f, indent=2)
+
+    # ── QC gate: cryo_et_tilt_residual (Mastronarde & Held 2017, SILVER) ───────
+    # Track 2 batch 2 (2026-06-15): wire the tilt-residual gate. Threshold from
+    # qc_evidence.yaml cryo_et.cryo_et_tilt_residual: ≤ 1 px advisory pass,
+    # 1–3 px BRONZE, > 3 px FAIL. Workflow tracks residual in Å — convert to
+    # pixels using the imported pixel_size_angstroms.
+    _resid_px = (overall_mean / pixel_size_a) if pixel_size_a else overall_mean
+    qc_metrics = {
+        "success":                       True,
+        "process":                       "TILT_ALIGNMENT",
+        "domain":                        "cryo_et",
+        "tilt_residual_pixels":          round(_resid_px, 3),
+        "mean_residual_px":              round(_resid_px, 3),
+        "mean_residual_angstroms":       overall_mean,
+        "pixel_size_angstroms":          pixel_size_a,
+        "num_tiltseries":                num_tiltseries,
+        "num_tiltseries_poor_alignment": num_poor,
+        "cryo_et_tilt_residual_passes":  bool(_resid_px <= 1.0),
+        "evidence_tier":                 "SILVER",
+        "citation":                      "Mastronarde & Held 2017 (IMOD tilt alignment)"
+    }
+    with open('qc_metrics.json', 'w') as f:
+        json.dump(qc_metrics, f, indent=2)
 
     print(f"Tilt alignment complete ({alignment_method})")
     print(f"  Tilt series aligned: {num_tiltseries}")

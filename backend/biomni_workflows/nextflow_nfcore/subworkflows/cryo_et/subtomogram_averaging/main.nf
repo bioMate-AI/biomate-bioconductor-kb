@@ -35,7 +35,8 @@ process SUBTOMOGRAM_AVERAGING {
     path tomograms_manifest
 
     output:
-    path "sta_report.json", emit: report
+    path "sta_report.json",  emit: report
+    path "qc_metrics.json",  emit: qc_metrics
 
     script:
     def has_template = params.template_pdb ? 'True' : 'False'
@@ -148,6 +149,28 @@ process SUBTOMOGRAM_AVERAGING {
 
     with open('sta_report.json', 'w') as f:
         json.dump(report, f, indent=2)
+
+    # ── QC gate: cryo_et_sta_fsc_resolution (Rosenthal & Henderson 2003, GOLD
+    # metric / SILVER operational cutoff) ──────────────────────────────────────
+    # Track 2 batch 2 (2026-06-15): wire the STA FSC@0.143 resolution gate.
+    # Threshold from qc_evidence.yaml cryo_et.cryo_et_sta_fsc_resolution:
+    # ≤ 15 Å pass-band, > 30 Å FAIL. Emits both fsc_0143_resolution_angstroms
+    # (qc_gate_reader preferred) and fsc_resolution_angstroms (fallback).
+    qc_metrics = {
+        "success":                            True,
+        "process":                            "SUBTOMOGRAM_AVERAGING",
+        "domain":                             "cryo_et",
+        "fsc_0143_resolution_angstroms":      final_fsc,
+        "fsc_resolution_angstroms":           final_fsc,
+        "num_tomograms":                      num_tomograms,
+        "total_particles_picked":             total_picked,
+        "num_sta_rounds":                     num_sta_rounds,
+        "cryo_et_sta_fsc_resolution_passes":  bool(final_fsc <= 15.0),
+        "evidence_tier":                      "GOLD-metric / SILVER-operational",
+        "citation":                           "Rosenthal & Henderson 2003 (FSC 0.143)"
+    }
+    with open('qc_metrics.json', 'w') as f:
+        json.dump(qc_metrics, f, indent=2)
 
     print(f"Subtomogram averaging complete ({num_sta_rounds} round(s))")
     print(f"  Tomograms: {num_tomograms}  |  Total particles: {total_picked}")
