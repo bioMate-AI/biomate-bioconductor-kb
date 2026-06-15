@@ -159,6 +159,24 @@ qc_metrics = {
     "structures_predicted": len(structures),
     "tool":               "Boltz-2",
 }
+
+# ── QC gates: struct_pred_confident_fraction + struct_pred_max_pae ────────
+# Track 2 batch 2 (2026-06-15): wire pass-band fields for both structure-
+# prediction gates documented in qc_evidence.yaml structure_prediction.
+#   struct_pred_confident_fraction (SILVER, Tunyasuvunakool 2021):
+#       confident_fraction (frac residues pLDDT > 70) ≥ 0.70 → pass
+#   struct_pred_max_pae (SILVER, Tunyasuvunakool 2021):
+#       max inter-domain PAE ≤ 8 Å → pass; skipped (treated as pass) when
+#       max_pae is None (single-domain proteins per the YAML rule_text).
+# All booleans wrapped in bool(...) per f516fd12 numpy-bool fix.
+qc_metrics["confident_fraction_threshold"] = 0.70
+qc_metrics["struct_pred_confident_fraction_passes"] = bool(
+    confident_fraction is not None and confident_fraction >= 0.70
+)
+qc_metrics["max_pae_threshold"] = 8.0
+qc_metrics["struct_pred_max_pae_passes"] = bool(
+    max_pae is None or max_pae <= 8.0
+)
 with open("qc_metrics.json", "w") as f:
     json.dump(qc_metrics, f, indent=2)
 EOF
