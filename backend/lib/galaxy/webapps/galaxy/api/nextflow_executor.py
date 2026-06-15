@@ -4255,6 +4255,15 @@ def execute_nextflow(
 
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.
+    # Stage 3c: ensure the orphan-completion poller is running on this
+    # worker. Idempotent — only the first launch on a worker actually
+    # spawns the thread. See docs/20260615_RUNS_PERSISTENCE_DESIGN.md.
+    try:
+        from galaxy.ai.runs.bootstrap import ensure_poller_started
+        ensure_poller_started()
+    except Exception as _boot_exc:
+        log.debug("[runs.bootstrap] poller start skipped: %s", _boot_exc)
+
     _started_at_now = time.time()
     _run_record_init = {
         "run_id": run_id,

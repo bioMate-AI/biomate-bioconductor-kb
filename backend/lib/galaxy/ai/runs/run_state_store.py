@@ -79,7 +79,10 @@ class RunStateStore(Protocol):
 
 
 # Terminal statuses (mirror existing nextflow_executor semantics).
-_TERMINAL = frozenset({"completed", "failed", "cancelled", "paused", "ok", "error"})
+_TERMINAL = frozenset({
+    "completed", "succeeded", "failed", "interrupted",
+    "cancelled", "paused", "ok", "error",
+})
 
 
 class InMemoryRunStateStore:
