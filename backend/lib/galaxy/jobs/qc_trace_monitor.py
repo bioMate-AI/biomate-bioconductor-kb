@@ -1669,14 +1669,23 @@ class NextflowQCGateHandler:
                 search_prefix = f"{prefix_base}/" if prefix_base else ""
             else:
                 search_prefix = f"{prefix_base}/{step_prefix}/" if prefix_base else f"{step_prefix}/"
-            resp = s3.list_objects_v2(Bucket=bucket, Prefix=search_prefix)
-            report_objects = [
-                obj["Key"] for obj in resp.get("Contents", [])
-                if _fnmatch.fnmatch(obj["Key"].split("/")[-1], report_pattern)
-            ]
+
+            # Paginate list_objects_v2 — a single page is capped at 1000 keys.
+            # HTS / large fan-out workflows (run 193c34ca, 2026-06-15) publish
+            # qc_metrics.json under a step subdir (hts_run/qc_metrics.json) that
+            # alphabetically sorts after thousands of per-plate outputs, so it
+            # is invisible to a single-page listing. LNP worked because its
+            # output set fits in one page. Bug class: path-resolution / listing.
+            report_objects: list = []
+            paginator = s3.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=bucket, Prefix=search_prefix):
+                for obj in page.get("Contents", []) or []:
+                    key = obj["Key"]
+                    if _fnmatch.fnmatch(key.split("/")[-1], report_pattern):
+                        report_objects.append(key)
 
             if not report_objects:
-                log.info("[QC-S3] No report found for %s at s3://%s/%s%s",
+                log.info("[QC-S3] No report found for %s at s3://%s/%s (pattern=%s, paginated)",
                          process_upper, bucket, search_prefix, report_pattern)
                 return None
             log.info("[QC-S3] Reading report for %s from s3://%s/%s",
