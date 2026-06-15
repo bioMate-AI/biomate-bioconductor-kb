@@ -70,7 +70,7 @@ in `_S3_REPORT_PATHS`.
 - cryo_et (3): `cryo_et_sta_fsc_resolution`, `cryo_et_tilt_residual`, `cryo_et_defocus_range`
 - structure_prediction: `struct_pred_confident_fraction`, `struct_pred_max_pae` (Boltz emits both but only `mean_plddt` is currently part of the active gate)
 
-**HTS (1):** `hts_signal_window` (we gate `z_prime` only)
+**HTS (0):** `hts_signal_window` wired in `f516fd12` Track 2 batch 4; verified by run `193c34ca` 2026-06-15 17:49 UTC, qc_metrics.json emits z_prime_passes + signal_window_passes (both true on default fixture).
 
 **Cancer biology (3):** `cancer_somatic_vaf_min`, `cancer_somatic_depth_min`, `cancer_somatic_mapping_quality`
 
@@ -78,7 +78,7 @@ in `_S3_REPORT_PATHS`.
 
 **siRNA / oligo (1):** `sirna_seed_mismatch_count` (categorical labels, no raw counts — flagged 06-09)
 
-**LNP / formulation (2):** `lnp_pdi` (workflow doesn't compute it), `lnp_encapsulation_efficiency`
+**LNP / formulation (1):** `lnp_encapsulation_efficiency` wired in `0a8b44993` Track 2 batch 4; verified by run `a3eff964` 2026-06-15 17:03 UTC, qc_metrics.json emits z_avg_passes + encapsulation_efficiency_passes + pdi_status. `lnp_pdi` remains documented-not-wired (surrogate formulation model can't compute PDI; needs a DLS workflow).
 
 **Stability (2):** `assay_degradation_accelerated`, `shelf_life_projection`
 
