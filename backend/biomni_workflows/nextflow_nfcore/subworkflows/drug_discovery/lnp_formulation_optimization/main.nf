@@ -254,16 +254,39 @@ summary = {'status':'completed', 'ionizable_lipid_pKa': il_pka,
 with open('lnp_results.json','w') as f:
     json.dump(summary, f, indent=2)
 
-# qc_metrics.json — gate metrics consumed by the QC monitor's LNP
-# gates. z_avg_nm proxied by predicted_size_nm (in vitro size predicted
-# from formulation composition; the gate's GOLD-anchor in qc_evidence
-# corresponds to measured DLS Z-average so the predicted value should
-# be interpreted as a design target, not a measurement). pdi is not
-# computed by this workflow — gate skips with None.
+# ── Three-gate QC: z_avg_nm + lnp_pdi + lnp_encapsulation_efficiency
+# Track 2 batch 4 (2026-06-15): wire the encapsulation_efficiency gate
+# alongside the existing z_avg_nm. pdi remains None because this workflow
+# uses a surrogate formulation model that doesn't compute polydispersity —
+# the pdi gate is a "documented design target" only until a measured DLS
+# workflow is wired (out of scope for in-silico formulation optimization).
+#
+# Thresholds from qc_evidence.yaml.lnp_formulation.*:
+#   z_avg_nm     ∈ [60, 120] nm   (community CLT range, SILVER)
+#   lnp_pdi      < 0.2            (Akinc 2019, SILVER) — NOT MEASURED HERE
+#   encap_eff    ≥ 85%            (Akinc 2019 / FDA Liposome 2018, SILVER)
+Z_AVG_MIN, Z_AVG_MAX = 60.0, 120.0
+ENCAP_EFF_THRESHOLD  = 85.0
+
+z_avg_val   = float(best.get("predicted_size_nm")) if best.get("predicted_size_nm") is not None else None
+encap_val   = float(best.get("predicted_EE_pct"))  if best.get("predicted_EE_pct")  is not None else None
+
+z_avg_passes  = z_avg_val is not None and Z_AVG_MIN <= z_avg_val <= Z_AVG_MAX
+encap_passes  = encap_val is not None and encap_val >= ENCAP_EFF_THRESHOLD
+
 qc_metrics = {
-    "z_avg_nm":              float(best.get("predicted_size_nm")) if best.get("predicted_size_nm") is not None else None,
+    # z_avg_nm gate (SILVER, CLT range)
+    "z_avg_nm":              z_avg_val,
+    "z_avg_nm_range":        [Z_AVG_MIN, Z_AVG_MAX],
+    "z_avg_passes":          z_avg_passes,
+    # lnp_pdi gate — workflow can't compute PDI from the surrogate model
     "pdi":                   None,
-    "encapsulation_efficiency_pct": float(best.get("predicted_EE_pct")) if best.get("predicted_EE_pct") is not None else None,
+    "pdi_status":            "not_measured (surrogate formulation model; needs DLS workflow)",
+    # lnp_encapsulation_efficiency gate (SILVER, Akinc 2019 / FDA 2018)
+    "encapsulation_efficiency_pct":            encap_val,
+    "encapsulation_efficiency_threshold_pct":  ENCAP_EFF_THRESHOLD,
+    "encapsulation_efficiency_passes":         encap_passes,
+    # context
     "ionizable_lipid_pKa":   il_pka,
     "pKa_status":            pka_status,
     "endosomal_escape_score": il_ee_score,
