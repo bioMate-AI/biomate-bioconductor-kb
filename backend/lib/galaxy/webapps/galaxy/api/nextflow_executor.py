@@ -4451,10 +4451,20 @@ def _steps_from_db_metadata(nextflow_path: str) -> Dict[str, Any]:
             return out
         for i, s in enumerate(meta):
             nm = (s.get("step") or f"Step {i + 1}").strip()
+            # Per-step params: the enricher (enrich_bioc_step_params.py) stores a rich
+            # `params` LIST [{name,type,default,description,options}] on each step. The UI
+            # (nextflow-workflow-viewer `step.parameters`, step-adjust-modal) consumes a FLAT
+            # `Record<string, value>` — name -> current/default value — and sources widget
+            # type/description from the workflow-level required/optional params by name. So
+            # flatten the list to {name: default} here; keep the rich list under `param_meta`
+            # for any consumer that wants type/options without the workflow-level lookup.
+            _plist = s.get("params") or []
+            _params = {p.get("name"): p.get("default")
+                       for p in _plist if isinstance(p, dict) and p.get("name")}
             out[str(i)] = {
                 "id": str(i), "name": nm, "annotation": nm, "description": nm,
                 "tool_id": _re.sub(r"[^A-Za-z0-9]+", "_", nm).upper()[:48],
-                "type": "tool", "parameters": {}, "inputs": {},
+                "type": "tool", "parameters": _params, "param_meta": _plist, "inputs": {},
                 "phase_group": s.get("phase", "") or "", "phase_label": s.get("phase", "") or "",
                 "visualizations": s.get("visualizations", []) or [],
                 "qc": s.get("qc", []) or [], "outputs": s.get("outputs", []) or [],
