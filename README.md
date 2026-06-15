@@ -75,8 +75,8 @@ This bundle covers 200 Bioconductor packages (top 100 by downloads + 100 rising 
 
 - **Broad Bioconductor coverage** — runnable workflows for **1,818** packages (**~87%** of analysis-package download volume), plus nf-core and drug-discovery pipelines across genomics, proteomics, and more
 - **Efficient parallel computing** — workflows run in the cloud with automatic scaling, no cluster setup required
-- **Output visualization and analysis** — interactive charts, QC dashboards, and AI-generated findings built in
-- **Report generation** — one-click publication-ready methods reports and summary documents
+- **Interactive visualization & analysis** — inspect, filter, and re-run results through linked charts and per-step QC dashboards, with AI-assisted interpretation that links every claim back to the underlying data
+- **Reproducible reporting** — methods and results documents generated with complete parameter and software-version provenance, formatted for publication and audit
 
 **Start using BioMate AI for free at [www.biomate.ai](https://www.biomate.ai)**
 Questions or collaboration inquiries: [contact@biomate.ai](mailto:contact@biomate.ai)
