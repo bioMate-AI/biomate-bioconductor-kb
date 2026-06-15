@@ -72,7 +72,7 @@ in `_S3_REPORT_PATHS`.
 
 **HTS (0):** `hts_signal_window` wired in `f516fd12` Track 2 batch 4; verified by run `193c34ca` 2026-06-15 17:49 UTC, qc_metrics.json emits z_prime_passes + signal_window_passes (both true on default fixture).
 
-**Cancer biology (3):** `cancer_somatic_vaf_min`, `cancer_somatic_depth_min`, `cancer_somatic_mapping_quality`
+**Cancer biology (0):** all 3 (`cancer_somatic_vaf_min`, `cancer_somatic_depth_min`, `cancer_somatic_mapping_quality`) wired in Track 2 batch 3 — qc_metrics.json emitted by `DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS`; process registered in `_S3_REPORT_PATHS`. Status field is `computed`/`partial`/`not_computed` depending on whether the biomni-wrapped variant-caller populates min_vaf/min_depth/min_mapq in its result dict. Verification deferred until a tumor/normal BAM fixture is supplied.
 
 **Antibody / biologics (2):** `ab_tap_surface_hydrophobicity`, `ab_camsol_intrinsic_solubility` (deliberately omitted from the active gate; scale mismatch — see 06-09 doc)
 
