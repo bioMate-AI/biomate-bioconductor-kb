@@ -925,6 +925,25 @@ def _build_rag_context(section_type: str, data: dict, region: str) -> str:
     except Exception:
         pass  # region pack optional — graceful degradation
 
+    # B3 prompt_rules: per-org bullets compiled by
+    # regulatory_training_worker._do_prompt_rules from customer_pairs.jsonl.
+    # Loaded only when the caller passes data['org_id']; absent → no-op,
+    # so existing callers without org context are unaffected.
+    org_id = (data or {}).get("org_id")
+    if org_id:
+        try:
+            from pathlib import Path as _Path
+            from .org_rule_compiler import load_org_rule_block
+            _repo_root = _Path(__file__).resolve().parents[5]
+            _rules_path = _repo_root / "data" / "regulatory_training" / "org_rules" / f"{org_id}.yaml"
+            org_rules = load_org_rule_block(_rules_path, section_type)
+            if org_rules:
+                lines.append(f"Org-specific rules (from {org_id} edit history):")
+                for r in org_rules:
+                    lines.append(f"  • {r}")
+        except Exception:
+            pass  # org pack optional — graceful degradation
+
     # ── Narrative patterns from skills DB ────────────────────────────────────
     try:
         from .regulatory_skills_db import RegulatorySkillsDB
