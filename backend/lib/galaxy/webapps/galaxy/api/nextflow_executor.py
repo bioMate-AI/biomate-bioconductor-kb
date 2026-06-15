@@ -5744,6 +5744,124 @@ def _resolve_qc_evidence_domain(workflow_name: str, available_domains: list) -> 
     return None
 
 
+@router.get("/api/workflows/{workflow_name}/phases/{phase_id}/rationale",
+            summary="Per-phase curated rationale ('why this method') for the (why?) anchor")
+def get_workflow_phase_rationale(workflow_name: str, phase_id: str) -> Dict[str, Any]:
+    """
+    Lookup the curated rationale row for one phase of one workflow chain.
+
+    Reads workflow_phase_rationale (populated by
+    backend/scripts/populate_workflow_phase_rationale.py from BiocTours.jsx
+    + qc_evidence.yaml). Returns 404-shape (empty body) when the row
+    doesn't exist — the frontend hides the anchor in that case.
+
+    Shape (matches §3 of docs/20260614_RATIONALE_ANCHOR_PLAN.md):
+      {
+        "workflow_id": int,
+        "phase_id": str,
+        "rationale_text": str,        # plain text, no JSX
+        "citation": {"doi": str?, "title": str?} | None,
+        "qc_gate_name": str?,
+        "last_curated_at": int        # unix seconds
+      }
+    """
+    import sqlite3 as _sql
+    db_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..",
+        "database", "galaxy_ai_tools.db",
+    ))
+    if not os.path.exists(db_path):
+        return {}
+    try:
+        with _sql.connect(db_path) as conn:
+            # Resolve workflow_name -> id (chain first, then workflows fallback)
+            wid_row = conn.execute(
+                "SELECT id FROM workflow_chains WHERE name=? LIMIT 1",
+                (workflow_name,),
+            ).fetchone()
+            if not wid_row:
+                wid_row = conn.execute(
+                    "SELECT id FROM workflows WHERE name=? LIMIT 1",
+                    (workflow_name,),
+                ).fetchone()
+            if not wid_row:
+                return {}
+            wid = int(wid_row[0])
+            row = conn.execute(
+                "SELECT rationale_text, citation_doi, citation_title, "
+                "qc_gate_name, last_curated_at "
+                "FROM workflow_phase_rationale WHERE workflow_id=? AND phase_id=? LIMIT 1",
+                (wid, phase_id),
+            ).fetchone()
+            if not row:
+                return {}
+            rationale_text, doi, title, gate, ts = row
+            citation: Optional[Dict[str, Any]] = None
+            if doi or title:
+                citation = {"doi": doi, "title": title}
+            return {
+                "workflow_id": wid,
+                "phase_id": phase_id,
+                "rationale_text": rationale_text,
+                "citation": citation,
+                "qc_gate_name": gate,
+                "last_curated_at": int(ts) if ts else None,
+            }
+    except Exception as exc:
+        log.debug("rationale lookup failed for %s/%s: %s", workflow_name, phase_id, exc)
+        return {}
+
+
+@router.get("/api/rationale/{rationale_id:path}",
+            summary="Design-faithful (why?) lookup keyed by rationale_id (e.g. 'chain_name:B')")
+def get_rationale(rationale_id: str) -> Dict[str, Any]:
+    """
+    Per-event rationale lookup matching the design's
+    window.RESEARCH_PHASE_TRACE pattern (research_agents/research-data.js).
+
+    Reads `rationale_registry` (populated by
+    backend/scripts/populate_rationale_registry.py from
+    workflow_phase_rationale + rationale_mapping.yaml + qc_evidence.yaml).
+    Returns {} when no curated row exists so the frontend WhyAnchor hides.
+
+    Phase 3 extension (future): when invocation_id query param is
+    supplied, join in `events`, `params`, `cost` blocks to match the
+    design's 4-section popover.
+    """
+    import sqlite3 as _sql
+    db_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..",
+        "database", "galaxy_ai_tools.db",
+    ))
+    if not os.path.exists(db_path):
+        return {}
+    try:
+        with _sql.connect(db_path) as conn:
+            row = conn.execute(
+                "SELECT rationale_text, citation_doi, citation_title, "
+                "qc_gate_name, curated_by, last_curated_at "
+                "FROM rationale_registry WHERE rationale_id=? LIMIT 1",
+                (rationale_id,),
+            ).fetchone()
+            if not row:
+                return {}
+            text, doi, title, gate, curator, ts = row
+            citation: Optional[Dict[str, Any]] = None
+            if doi or title:
+                citation = {"doi": doi, "title": title}
+            return {
+                "rationale_id": rationale_id,
+                "rationale_text": text,
+                "citation": citation,
+                "qc_gate_name": gate,
+                "curated_by": curator,
+                "last_curated_at": int(ts) if ts else None,
+            }
+    except Exception as exc:
+        log.debug("rationale_registry lookup failed for %s: %s", rationale_id, exc)
+        return {}
+
+
 @router.get("/api/workflows/{workflow_name}/citations",
             summary="Workflow-level paper citations for the AfterRunReport Citations tab")
 def get_workflow_citations(workflow_name: str) -> Dict[str, Any]:
