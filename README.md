@@ -22,7 +22,7 @@ skills/  (200 packages · 12 domains)                  ⭐ = rising star
 └── metabolomics/     (1  — ⭐ rgoslin)
 ```
 
-A package that supports multiple analyses lists each as a `### ` recipe under a **`## Workflows`** section (e.g. DESeq2 → standard / multi-factor / LRT; crisprscore → on-target / off-target / indel scoring). The most-used 100 cover ~56% of Bioconductor analysis-package download volume; the rising-star 100 surface newly-important methods before they reach the top by volume. Beyond this 200-package sample, the full BioMate KB has executable, real-run-validated workflows for **1,818** Bioconductor packages (3,310 workflows) — available via [BioMate Cloud](https://biomate.ai).
+A package that supports multiple analyses lists each as a `### ` recipe under a **`## Workflows`** section (e.g. DESeq2 → standard / multi-factor / LRT; crisprscore → on-target / off-target / indel scoring). The most-used 100 cover ~56% of Bioconductor analysis-package download volume; the rising-star 100 surface newly-important methods before they reach the top by volume. Beyond this 200-package sample, the full BioMate KB has runnable workflows for **1,818** Bioconductor packages — **~87% of analysis-package download volume** — available via [BioMate Cloud](https://biomate.ai).
 
 **Bioconductor version:** these skills are grounded against **Bioconductor 3.21** (pinned explicitly — `release` is a moving pointer that drops packages as it advances, e.g. several rising stars dropped out of 3.23). The pinned version is recorded in `MANIFEST.json` (`bioconductor_version`); re-fetch a different snapshot with `BIOC_VERSION=… python3 extraction/fetch_authoritative_sources.py`.
 
@@ -60,8 +60,8 @@ Two ranked sets of 100:
 Together these 200 packages cover **~57% of Bioconductor's analysis-package download volume**
 (foundational infrastructure / data-container / annotation packages — which alone are ~40% of raw
 downloads — are not counted as analysis volume). The full **BioMate-KB** goes much further:
-executable, real-run-validated workflows for **1,818** analysis packages — **~87% of
-analysis-package download volume**.
+runnable workflows for **1,818** analysis packages — **~87% of analysis-package download
+volume**.
 
 > **Note on domains.** Domain labels come from BioMate's catalog and are intentionally coarse —
 > *transcriptomics* is a broad bucket that also absorbs many single-cell, spatial, and gene-set
@@ -73,7 +73,7 @@ analysis-package download volume**.
 
 This bundle covers 200 Bioconductor packages (top 100 by downloads + 100 rising stars). **[BioMate AI](https://www.biomate.ai)** gives you:
 
-- **Full coverage** — executable workflows for **1,818** Bioconductor packages (**3,310** real-run-validated workflows), plus nf-core and drug-discovery pipelines across genomics, transcriptomics, proteomics, and more
+- **Broad Bioconductor coverage** — runnable workflows for **1,818** packages (**~87%** of analysis-package download volume), plus nf-core and drug-discovery pipelines across genomics, proteomics, and more
 - **Efficient parallel computing** — workflows run in the cloud with automatic scaling, no cluster setup required
 - **Output visualization and analysis** — interactive charts, QC dashboards, and AI-generated findings built in
 - **Report generation** — one-click publication-ready methods reports and summary documents
