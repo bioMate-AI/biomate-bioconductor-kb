@@ -196,3 +196,103 @@ tagging discipline + content-shape refactor described in Phase 1+2.
   Phase 3 is approved.
 
 Reply with answers to the 4 open questions and I can start Phase 1.
+
+---
+
+## Update — your answers + citation source audit (2026-06-14)
+
+You answered:
+1. **Tagging owner**: scientific lead per domain.
+2. **Citations**: must have solid DOIs/source links from existing
+   curated DBs. Audit what we have first; flag gaps.
+3. **Cost block**: commented out for now (matches design's commented
+   state).
+4. **Coverage**: ~150 rationale_ids across 12 domains, audited by
+   per-domain experts.
+
+### Citation-source audit (DB-first survey)
+
+Sources confirmed in the repo:
+
+- `backend/config/qc_evidence.yaml` — **73 gates with paper_doi**, 100%
+  cited. 28 domains.
+- No other `*_citations.yaml`, `references.json`, or DB column carries
+  per-workflow DOIs. Per-workflow rows in the `workflows` table do not
+  carry citations.
+
+Chain-vs-qc_evidence coverage matrix:
+
+| chain domain | # chains | qc_evidence gates available by domain name | category |
+|---|---|---|---|
+| transcriptomics | 15 | 5 | ✅ direct |
+| drug_discovery | 11 | 0 | ⚠️ mapping (admet/pbpk/docking/cyp_ddi/nca_pk/ivive/etc. all exist in qc_evidence, just not by domain name) |
+| epigenomics | 5 | 4 | ✅ direct |
+| single_cell | 5 | 7 | ✅ direct |
+| genomics | 5 | 0 | ❌ true gap |
+| variant_calling | 4 | 0 | ❌ true gap |
+| pharmacology | 3 | 0 | ⚠️ mapping (nlmixr2_poppk + p0_pkpd + allometric exist in qc_evidence) |
+| cryo_em | 1 | 3 | ✅ direct |
+| immunology | 1 | 0 | ❌ true gap |
+| metabolomics | 1 | 0 | ❌ true gap |
+| metagenomics | 1 | 0 | ❌ true gap |
+| proteomics | 1 | 0 | ❌ true gap |
+| rare_disease | 1 | 0 | ❌ true gap |
+
+24 qc_evidence domains have curated DOIs but no chain in the matching
+domain — these are the candidates the **drug_discovery + pharmacology**
+mapping work would consume. Examples: admet (4 gates), pbpk (4),
+docking (2), cyp_ddi (2), structure_prediction (3), antibody_
+developability (3), …
+
+### Total scope estimate
+
+| Category | Chains | ~Phases/chain | Rationale_ids | Citation work |
+|---|---|---|---|---|
+| ✅ Already done (bioc, week-1) | 4 | 6 | 24 | done |
+| ⚠️ Mapping only (drug_discovery + pharmacology) | 14 | 5 | ~70 | scientific lead writes **per-chain phase→gate map** (~30 min/chain). DOIs already exist in qc_evidence. |
+| ❌ True gap (genomics, variant_calling, immunology, metabolomics, metagenomics, proteomics, rare_disease) | 13 | 5 | ~65 | scientific lead **collects new DOIs** + writes per-chain mapping (~2 hr/chain) |
+| | | | **~159 total** | close to your ~150 target |
+
+### Concrete next deliverables
+
+What I can produce mechanically (no science authoring) before any
+scientific-lead review:
+
+1. **A `rationale_mapping.yaml` template** at
+   `backend/config/rationale_mapping.yaml` with one stub block per
+   chain — empty `phase → gate_name` table the scientific lead fills
+   in. For the 14 mapping-only chains I can pre-fill suggested gate
+   matches based on chain step `role` keywords (e.g. step
+   `admet_triage` → likely cites `admet_herg_ic50` / `admet_ames`),
+   marked `suggested: true` for scientific-lead review.
+
+2. **Phase-1 backend refactor**: `rationale_registry` table per
+   the doc above, replacing `workflow_phase_rationale`. Populate
+   script reads `rationale_mapping.yaml` → joins with qc_evidence.yaml
+   → INSERTs rows. Per-event `rationale_id` tagging added to chain
+   narrator.
+
+3. **Phase-2 frontend**: `<WhyAnchor>` prop refactor to expect
+   explicit `rationaleId` from chat metadata. Existing component
+   architecture survives.
+
+4. **A gap-tracker doc** at `docs/20260614_RATIONALE_GAP_TRACKER.md`
+   listing the 13 "true gap" chains with one row per phase, where the
+   scientific lead checks off as DOIs are collected. Reviewer-friendly.
+
+5. **Audit hook**: every row in `rationale_registry` carries
+   `last_curated_at` + `curated_by` (scientific lead's id/email),
+   so domain-expert audit can sign-off per row.
+
+### What's awaiting you
+
+Pick which of (1)–(5) to start with. My recommendation:
+- (1) first — gives the scientific lead the work to schedule.
+- (4) in parallel — surfaces the true gaps separately so they get
+  scheduled with curators.
+- (2) + (3) after — backend/frontend wiring once we know how content
+  arrives.
+
+I will NOT pre-fill any actual citation text from imagination — only
+mechanical mappings (chain role keyword → existing qc_evidence gate
+name), marked as suggestions for scientific-lead review.
