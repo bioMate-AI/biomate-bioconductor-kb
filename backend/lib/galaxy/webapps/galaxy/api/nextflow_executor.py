@@ -3156,6 +3156,16 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _runs[run_id]["returncode"] = returncode
                 _runs[run_id]["completed_at"] = _completed_at_now
             _inv_id = _runs.get(run_id, {}).get("invocation_id")
+        # Stage 2b mirror write — completion path
+        try:
+            get_run_state_store().update_run(
+                run_id,
+                status=final_status,
+                returncode=returncode,
+                completed_at=_completed_at_now,
+            )
+        except Exception as _store_exc:
+            log.debug("[runs] store.update_run completion failed for %s: %s", run_id, _store_exc)
 
         # Friendly chat-progress: emit the right line for the terminal state.
         if _inv_id:
@@ -3287,12 +3297,22 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             with _runs_lock:
                 if run_id in _runs:
                     _runs[run_id]["status"] = "running"
+            # Stage 2b mirror write — launch running
+            try:
+                get_run_state_store().update_run(run_id, status="running")
+            except Exception as _store_exc:
+                log.debug("[runs] store.update_run running failed for %s: %s", run_id, _store_exc)
             return
         final_status = "failed"
         _completed_at_now = time.time()
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["status"] = "failed"
+        # Stage 2b mirror write — launch failed
+        try:
+            get_run_state_store().update_run(run_id, status="failed", completed_at=_completed_at_now)
+        except Exception as _store_exc:
+            log.debug("[runs] store.update_run launch-failed failed for %s: %s", run_id, _store_exc)
     finally:
         # Best-effort: always write completed_at to disk so status endpoint
         # can report a terminal state even after gunicorn worker is recycled.
@@ -3612,6 +3632,11 @@ def _accession_chain_thread(
             if run_id in _runs:
                 _runs[run_id]["status"] = status
                 _runs[run_id].update(extra)
+        # Stage 2b mirror write — accession-chain status updates
+        try:
+            get_run_state_store().update_run(run_id, status=status, **extra)
+        except Exception as _store_exc:
+            log.debug("[runs] store.update_run accession failed for %s: %s", run_id, _store_exc)
 
     log.info(f"[accession chain run_id={run_id}] Starting accession resolution for params: {list(accession_params)}")
 
@@ -4686,10 +4711,17 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
         else:
             note = "no-process-found"
 
+    _terminal_status = "paused" if soft else "cancelled"
+    _completed_at_now = time.time()
     with _runs_lock:
         if run_id in _runs:
-            _runs[run_id]["status"] = "paused" if soft else "cancelled"
-            _runs[run_id]["completed_at"] = time.time()
+            _runs[run_id]["status"] = _terminal_status
+            _runs[run_id]["completed_at"] = _completed_at_now
+    # Stage 2b mirror write — cancel/pause
+    try:
+        get_run_state_store().update_run(run_id, status=_terminal_status, completed_at=_completed_at_now)
+    except Exception as _store_exc:
+        log.debug("[runs] store.update_run cancel failed for %s: %s", run_id, _store_exc)
 
     if invocation_id:
         _narrate_chat(
