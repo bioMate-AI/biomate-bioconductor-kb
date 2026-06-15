@@ -283,3 +283,28 @@ workflows.
 5. **Phase 3c** — rolling Bioc subworkflow adoption.
 
 Proceeding with Phase 3a immediately after this doc lands.
+
+---
+
+## Update 2026-06-15 — Bioc orphan audit outcome (Track 2 Batch 5)
+
+The 14 Bioconductor-specific orphan rows in `qc_evidence.yaml`
+(`apeglm_lfc_shrinkage` … `missmethyl_cpg_corrected_go`) were audited
+against the 23 new `bioconductor_qc:` rows landed in Phase 3a
+(commit `1ab27c2f9`). Result:
+
+- **3 marked SUPERSEDED** by canonical `bioconductor_qc:` rows
+  (`scater_qc_normalization` → `bioc_per_cell_qc_outliers`;
+  `scran_normalization_hvg` → `bioc_hvg_selection`;
+  `minfi_array_processing` → `bioc_array_detection_qc`).
+  Demoted to BRONZE with `superseded_by:` + `note:` fields; citations
+  preserved for audit-trail continuity.
+- **11 flagged for harness routing** as package-specific gates
+  (`harness_owner: BIOC_QC_HARNESS`, `package: <name>`,
+  `superseded_by: null`). These become Phase 3b targets at package
+  granularity (apeglm, clusterProfiler, edgeR, limma×2, MAST, monocle,
+  scran, SingleR, DMRcate, missMethyl).
+- **0 deprecated.**
+
+Full per-entry table + rationale: `docs/20260615_BIOC_ORPHAN_AUDIT.md`.
+No workflow `main.nf` files were modified.
