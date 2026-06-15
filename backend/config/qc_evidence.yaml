@@ -1059,6 +1059,9 @@ transcriptomics:
     - paper_ref: "Zhu A, Ibrahim JG, Love MI. Bioinformatics 2019; 35(12):2084-2092"
       paper_doi: "10.1093/bioinformatics/bty895"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: apeglm
+      superseded_by: null
       paper_supports: >
         apeglm prior for log-fold-change shrinkage — improves ranking of
         low-count genes in DESeq2 output.
@@ -1072,6 +1075,9 @@ transcriptomics:
     - paper_ref: "Yu G, Wang LG, Han Y, He QY. OMICS 2012; 16(5):284-287"
       paper_doi: "10.1089/omi.2012.0118"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: clusterProfiler
+      superseded_by: null
       paper_supports: >
         clusterProfiler — GO + KEGG over-representation and GSEA
         analysis for the post-DE gene list. Standard Bioconductor
@@ -1086,6 +1092,9 @@ transcriptomics:
     - paper_ref: "Chen Y, Lun ATL, Smyth GK. F1000Research 2016; 5:1438"
       paper_doi: "10.12688/f1000research.8987.2"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: edgeR
+      superseded_by: null
       paper_supports: >
         edgeR Quasi-Likelihood F-test — alternative DE method when DESeq2
         assumptions are violated. Listed as a swap-point alternative in
@@ -1100,6 +1109,9 @@ transcriptomics:
     - paper_ref: "Law CW, Chen Y, Shi W, Smyth GK. Genome Biology 2014; 15:R29"
       paper_doi: "10.1186/gb-2014-15-2-r29"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: limma
+      superseded_by: null
       paper_supports: >
         limma-voom — variance-stabilising transformation for RNA-seq
         counts then linear modelling. Third alternative for the
@@ -1114,7 +1126,12 @@ single_cell:
   scater_qc_normalization:
     - paper_ref: "McCarthy DJ, Campbell KR, Lun ATL, Wills QF. Bioinformatics 2017; 33(8):1179-1186"
       paper_doi: "10.1093/bioinformatics/btw777"
-      provenance: GOLD
+      provenance: BRONZE
+      superseded_by: bioconductor_qc.bioc_per_cell_qc_outliers
+      note: >
+        kept for audit-trail continuity; canonical row is
+        bioconductor_qc.bioc_per_cell_qc_outliers (same McCarthy 2017
+        scater citation, isOutlier nmads=3 metric).
       paper_supports: >
         scater — per-cell QC metrics and SingleCellExperiment
         normalization. Step 2 of the scrna_consensus_de_bioc chain.
@@ -1128,6 +1145,9 @@ single_cell:
     - paper_ref: "Finak G, McDavid A, et al. Genome Biology 2015; 16:278"
       paper_doi: "10.1186/s13059-015-0844-5"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: MAST
+      superseded_by: null
       paper_supports: >
         MAST — two-part generalised linear hurdle model for single-cell
         RNA-seq DE that handles zero-inflation. One of the two parallel
@@ -1142,6 +1162,9 @@ single_cell:
     - paper_ref: "Qiu X, Mao Q, et al. Nature Methods 2017; 14(10):979-982"
       paper_doi: "10.1038/nmeth.4402"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: monocle
+      superseded_by: null
       paper_supports: >
         Monocle 3 — pseudotime-aware DE for ordered cell-state
         progression. The second arm of the scRNA consensus DE fan-out.
@@ -1156,7 +1179,13 @@ single_cell:
   scran_normalization_hvg:
     - paper_ref: "Lun ATL, McCarthy DJ, Marioni JC. F1000Research 2016; 5:2122"
       paper_doi: "10.12688/f1000research.9501.2"
-      provenance: GOLD
+      provenance: BRONZE
+      superseded_by: bioconductor_qc.bioc_hvg_selection
+      note: >
+        kept for audit-trail continuity; canonical row is
+        bioconductor_qc.bioc_hvg_selection (HVG count metric covers
+        the scran::modelGeneVar output; normalization portion covered
+        by bioc_count_normalization).
       paper_supports: >
         scran — pooled-cell size factors for single-cell normalization
         and modelGeneVar for HVG selection. Standard step-3 of the
@@ -1171,6 +1200,9 @@ single_cell:
     - paper_ref: "Lun ATL. OSCA book 2024 — Marker detection chapter"
       paper_doi: "https://bioconductor.org/books/release/OSCA/marker-detection.html"
       provenance: SILVER
+      harness_owner: BIOC_QC_HARNESS
+      package: scran
+      superseded_by: null
       paper_supports: >
         scoreMarkers — effect-size-based marker scoring per cluster.
         Used in the OSCA pseudobulk DE chain's parallel branch with
@@ -1185,6 +1217,9 @@ single_cell:
     - paper_ref: "Aran D, Looney AP, et al. Nature Immunology 2019; 20(2):163-172"
       paper_doi: "10.1038/s41590-018-0276-y"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: SingleR
+      superseded_by: null
       paper_supports: >
         SingleR — reference-based per-cell label transfer. The OSCA
         chain runs SingleR against the Human Primary Cell Atlas in
@@ -1217,7 +1252,12 @@ epigenomics:
   minfi_array_processing:
     - paper_ref: "Aryee MJ, Jaffe AE, et al. Bioinformatics 2014; 30(10):1363-1369"
       paper_doi: "10.1093/bioinformatics/btu049"
-      provenance: GOLD
+      provenance: BRONZE
+      superseded_by: bioconductor_qc.bioc_array_detection_qc
+      note: >
+        kept for audit-trail continuity; canonical row is
+        bioconductor_qc.bioc_array_detection_qc (detection-call-rate
+        metric covers minfi's detection-p QC output for 450k/EPIC).
       paper_supports: >
         minfi — read IDATs, detection-p QC, preprocessQuantile
         normalization, GenomicRatioSet assembly. Step 1 of the
@@ -1232,6 +1272,9 @@ epigenomics:
     - paper_ref: "Ritchie ME, Phipson B, et al. NAR 2015; 43(7):e47"
       paper_doi: "10.1093/nar/gkv007"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: limma
+      superseded_by: null
       paper_supports: >
         limma::lmFit + eBayes on M-values is the standard CpG-level
         DMP test on the 450k/EPIC arrays.
@@ -1244,6 +1287,9 @@ epigenomics:
     - paper_ref: "Peters TJ, Buckley MJ, et al. Epigenetics & Chromatin 2015; 8:6"
       paper_doi: "10.1186/1756-8935-8-6"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: DMRcate
+      superseded_by: null
       paper_supports: >
         DMRcate — kernel-smoothing region caller for 450k/EPIC arrays.
         Runs in parallel to limma DMPs on the methylation chain.
@@ -1258,6 +1304,9 @@ epigenomics:
     - paper_ref: "Phipson B, Maksimovic J, Oshlack A. Bioinformatics 2016; 32(2):286-288"
       paper_doi: "10.1093/bioinformatics/btv560"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: missMethyl
+      superseded_by: null
       paper_supports: >
         missMethyl::gometh — CpG-density-corrected GO enrichment.
         Without this correction a generic GO test over-calls CpG-rich
