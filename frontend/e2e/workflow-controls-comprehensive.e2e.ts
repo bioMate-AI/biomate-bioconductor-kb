@@ -34,6 +34,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import { loginAsFixture } from "./_fixture-login";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -73,32 +74,17 @@ const SUITE_AUDIT: RunAuditRecord[] = [];
 // Shared helpers (mirror germline-complete pattern)
 // ---------------------------------------------------------------------------
 
-async function registerAndGoHome(page: Page, label: string): Promise<{ email: string }> {
-  const email = `e2e_wc_${label}_${Date.now()}@biomate.test`;
+// Per CLAUDE.md §"E2E test user": single canonical fixture
+// (lifeifei163361@163.com), shared across tests. Migrated 2026-06-15
+// from per-test register — the fake @biomate.test emails hit Galaxy's
+// provisioning gap and left the test stuck on /login. See
+// docs/20260614_AUTOLOOP_SSE_SILENT_ON_ADMET.md.
+async function registerAndGoHome(page: Page, _label: string): Promise<{ email: string }> {
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
-  await page.context().clearCookies();
-  await page.goto(`${BASE_URL}/register`);
-  await page.waitForLoadState("load");
-  await page.evaluate(() => {
-    try { localStorage.clear(); sessionStorage.clear(); } catch {}
-  }).catch(() => {});
-  try {
-    await page.waitForSelector("#name", { state: "visible", timeout: 10000 });
-    await page.fill("#name", `WC E2E ${label}`);
-    await page.fill("#email", email);
-    await page.fill("#password", "TestPass123!");
-    await page.fill("#confirmPassword", "TestPass123!");
-    await page.click("#terms");
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(2000);
-  } catch { /* already logged in */ }
-  await page.goto(BASE_URL);
-  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch {} });
-  await page.reload();
-  await page.waitForLoadState("load");
+  await loginAsFixture(page);
   await page.waitForSelector("textarea", { state: "visible", timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1000);
-  return { email };
+  return { email: "lifeifei163361@163.com" };
 }
 
 async function waitForAIResponse(page: Page, label: string): Promise<void> {
