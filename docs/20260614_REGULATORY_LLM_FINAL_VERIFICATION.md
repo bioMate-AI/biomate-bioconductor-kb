@@ -160,14 +160,14 @@ Neither would have been caught by pytest+tsc alone.
 
 ### Open (operational — for whoever next interacts)
 
-- [ ] **Propagate the Vite dedupe fix into `bioc/v2-qc-audit-panel`.** The
-  fix lives on `integration/next-phase` as `cdade4f92f`. Until someone
-  merges `integration/next-phase` → `bioc/v2-qc-audit-panel`, the dev
-  server running on the main worktree will re-crash on its next restart.
-  Direction is the same direction the bioc work flows out
-  (per the existing merge pattern `bioc → next-phase`), so the simplest
-  fix is a `git merge origin/integration/next-phase` from
-  `bioc/v2-qc-audit-panel`.
+- [ ] **Whoever owns `bioc/v2-qc-audit-panel` pulls main before next
+  restart.** `integration/next-phase` is main; the Vite dedupe fix is
+  on it at `cdade4f92f`. `bioc/v2-qc-audit-panel` is a feature branch
+  that will pick up the fix automatically on its next `git pull origin
+  integration/next-phase`. Until then, the dev server running from the
+  bioc worktree will re-crash on its next restart with the React
+  `useEffect=null` error. Not a separate fix — just the normal
+  feature-branch-stays-in-sync-with-main hygiene.
 - [ ] **Playwright on port-5050 cookie quirk.** Tests on the merge
   worktree's port 5050 fail `loginAsFixture` — fetch in browser context
   doesn't get the JWT cookie. Direct curl on the same endpoint succeeds.
@@ -175,10 +175,11 @@ Neither would have been caught by pytest+tsc alone.
   for the production deploy (production uses port 5000) but should be
   investigated if anyone wants per-PR matrix runs against ephemeral
   ports.
-- [ ] **Push the topic branch as a checkpoint reference** —
-  `session/regllm-rebuild-20260612` is already on origin
-  (`f2b78f1d24`); delete or rebase when the merge is no longer
-  interesting historically.
+- [ ] **Delete topic branch when no longer interesting.**
+  `session/regllm-rebuild-20260612` is preserved on origin
+  (`f2b78f1d24`) as a checkpoint for this rebuild. Once it shows up in
+  a doc reference and nobody's bisecting, delete with
+  `git push origin --delete session/regllm-rebuild-20260612`.
 
 ### Closed this session
 
