@@ -1,20 +1,21 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026-05-27T13:00:00+00:00",
-  "total_packages": 100,
+  "generated_at": "2026-06-15T00:00:00+00:00",
+  "total_packages": 200,
   "skipped": 0,
   "by_domain": {
-    "transcriptomics": 33,
-    "genomics": 23,
-    "general": 16,
-    "proteomics": 8,
-    "variant-calling": 4,
-    "metagenomics": 4,
-    "single-cell": 3,
-    "epigenomics": 3,
+    "general": 19,
+    "genomics": 33,
+    "transcriptomics": 97,
     "enrichment": 2,
     "annotation": 2,
-    "imaging": 2
+    "single-cell": 8,
+    "variant-calling": 4,
+    "metagenomics": 4,
+    "proteomics": 16,
+    "imaging": 4,
+    "epigenomics": 10,
+    "metabolomics": 1
   },
   "ranking_source": "https://bioconductor.org/packages/stats/bioc/bioc_pkg_scores.tab",
   "packages": [
@@ -22,701 +23,1503 @@
       "name": "Biobase",
       "score": 58775,
       "domain": "general",
-      "chars": 806,
+      "chars": 5205,
       "path": "skills/general/biobase/SKILL.md"
     },
     {
       "name": "Biostrings",
       "score": 53393,
       "domain": "genomics",
-      "chars": 1089,
+      "chars": 5229,
       "path": "skills/genomics/biostrings/SKILL.md"
     },
     {
       "name": "GenomicRanges",
       "score": 52397,
       "domain": "genomics",
-      "chars": 17704,
+      "chars": 18641,
       "path": "skills/genomics/genomicranges/SKILL.md"
     },
     {
       "name": "KEGGREST",
       "score": 42757,
       "domain": "genomics",
-      "chars": 1450,
+      "chars": 5031,
       "path": "skills/genomics/keggrest/SKILL.md"
     },
     {
       "name": "limma",
       "score": 40206,
       "domain": "transcriptomics",
-      "chars": 10690,
+      "chars": 11579,
       "path": "skills/transcriptomics/limma/SKILL.md"
     },
     {
       "name": "ggtree",
       "score": 31029,
       "domain": "genomics",
-      "chars": 1229,
+      "chars": 6148,
       "path": "skills/genomics/ggtree/SKILL.md"
     },
     {
       "name": "DESeq2",
       "score": 29333,
       "domain": "transcriptomics",
-      "chars": 18359,
+      "chars": 19408,
       "path": "skills/transcriptomics/deseq2/SKILL.md"
     },
     {
       "name": "Rsamtools",
       "score": 28863,
       "domain": "genomics",
-      "chars": 1124,
+      "chars": 5178,
       "path": "skills/genomics/rsamtools/SKILL.md"
     },
     {
       "name": "fgsea",
       "score": 28571,
       "domain": "transcriptomics",
-      "chars": 10594,
+      "chars": 9614,
       "path": "skills/transcriptomics/fgsea/SKILL.md"
     },
     {
       "name": "treeio",
       "score": 28414,
       "domain": "transcriptomics",
-      "chars": 1200,
+      "chars": 4048,
       "path": "skills/transcriptomics/treeio/SKILL.md"
     },
     {
       "name": "edgeR",
       "score": 27757,
       "domain": "transcriptomics",
-      "chars": 11265,
+      "chars": 12178,
       "path": "skills/transcriptomics/edger/SKILL.md"
     },
     {
       "name": "enrichplot",
       "score": 26643,
       "domain": "enrichment",
-      "chars": 1128,
+      "chars": 5397,
       "path": "skills/enrichment/enrichplot/SKILL.md"
     },
     {
       "name": "clusterProfiler",
       "score": 25826,
       "domain": "genomics",
-      "chars": 1970,
+      "chars": 4101,
       "path": "skills/genomics/clusterprofiler/SKILL.md"
     },
     {
       "name": "DOSE",
       "score": 25387,
       "domain": "general",
-      "chars": 1147,
+      "chars": 2600,
       "path": "skills/general/dose/SKILL.md"
     },
     {
       "name": "GenomicAlignments",
       "score": 25110,
       "domain": "genomics",
-      "chars": 1335,
+      "chars": 5564,
       "path": "skills/genomics/genomicalignments/SKILL.md"
     },
     {
       "name": "qvalue",
       "score": 24596,
       "domain": "general",
-      "chars": 1424,
+      "chars": 6188,
       "path": "skills/general/qvalue/SKILL.md"
     },
     {
       "name": "biomaRt",
       "score": 23911,
       "domain": "annotation",
-      "chars": 17172,
+      "chars": 18153,
       "path": "skills/annotation/biomart/SKILL.md"
     },
     {
       "name": "GOSemSim",
       "score": 23871,
       "domain": "genomics",
-      "chars": 1260,
+      "chars": 3929,
       "path": "skills/genomics/gosemsim/SKILL.md"
     },
     {
       "name": "rtracklayer",
       "score": 23763,
       "domain": "genomics",
-      "chars": 1347,
+      "chars": 4973,
       "path": "skills/genomics/rtracklayer/SKILL.md"
     },
     {
       "name": "ComplexHeatmap",
       "score": 21260,
       "domain": "genomics",
-      "chars": 1326,
+      "chars": 5616,
       "path": "skills/genomics/complexheatmap/SKILL.md"
     },
     {
       "name": "SingleCellExperiment",
       "score": 20770,
       "domain": "single-cell",
-      "chars": 15294,
+      "chars": 16409,
       "path": "skills/single-cell/singlecellexperiment/SKILL.md"
     },
     {
       "name": "annotate",
       "score": 20151,
       "domain": "genomics",
-      "chars": 12319,
+      "chars": 11858,
       "path": "skills/genomics/annotate/SKILL.md"
     },
     {
       "name": "GenomicFeatures",
       "score": 18777,
       "domain": "genomics",
-      "chars": 1692,
+      "chars": 4899,
       "path": "skills/genomics/genomicfeatures/SKILL.md"
     },
     {
       "name": "AnnotationHub",
       "score": 13874,
       "domain": "variant-calling",
-      "chars": 10792,
+      "chars": 11843,
       "path": "skills/variant-calling/annotationhub/SKILL.md"
     },
     {
       "name": "genefilter",
       "score": 13857,
       "domain": "general",
-      "chars": 865,
+      "chars": 4987,
       "path": "skills/general/genefilter/SKILL.md"
     },
     {
       "name": "BSgenome",
       "score": 13841,
       "domain": "genomics",
-      "chars": 744,
+      "chars": 4813,
       "path": "skills/genomics/bsgenome/SKILL.md"
     },
     {
       "name": "GEOquery",
       "score": 13098,
       "domain": "transcriptomics",
-      "chars": 7897,
+      "chars": 5654,
       "path": "skills/transcriptomics/geoquery/SKILL.md"
     },
     {
       "name": "GSEABase",
       "score": 11381,
       "domain": "transcriptomics",
-      "chars": 572,
+      "chars": 5546,
       "path": "skills/transcriptomics/gseabase/SKILL.md"
     },
     {
       "name": "scuttle",
       "score": 11149,
       "domain": "transcriptomics",
-      "chars": 1042,
+      "chars": 6145,
       "path": "skills/transcriptomics/scuttle/SKILL.md"
     },
     {
       "name": "GSVA",
       "score": 9981,
       "domain": "transcriptomics",
-      "chars": 1410,
+      "chars": 5730,
       "path": "skills/transcriptomics/gsva/SKILL.md"
     },
     {
       "name": "VariantAnnotation",
       "score": 9718,
       "domain": "variant-calling",
-      "chars": 764,
+      "chars": 5981,
       "path": "skills/variant-calling/variantannotation/SKILL.md"
     },
     {
       "name": "sva",
       "score": 9631,
       "domain": "transcriptomics",
-      "chars": 1174,
+      "chars": 6046,
       "path": "skills/transcriptomics/sva/SKILL.md"
     },
     {
       "name": "ExperimentHub",
       "score": 9622,
       "domain": "general",
-      "chars": 1209,
+      "chars": 4285,
       "path": "skills/general/experimenthub/SKILL.md"
     },
     {
       "name": "scater",
       "score": 9135,
       "domain": "transcriptomics",
-      "chars": 14986,
+      "chars": 16195,
       "path": "skills/transcriptomics/scater/SKILL.md"
     },
     {
       "name": "affy",
       "score": 9119,
       "domain": "transcriptomics",
-      "chars": 886,
+      "chars": 5635,
       "path": "skills/transcriptomics/affy/SKILL.md"
     },
     {
       "name": "SpatialExperiment",
       "score": 8001,
       "domain": "transcriptomics",
-      "chars": 1338,
+      "chars": 5584,
       "path": "skills/transcriptomics/spatialexperiment/SKILL.md"
     },
     {
       "name": "MultiAssayExperiment",
       "score": 7796,
       "domain": "general",
-      "chars": 1495,
+      "chars": 5216,
       "path": "skills/general/multiassayexperiment/SKILL.md"
     },
     {
       "name": "phyloseq",
       "score": 7237,
       "domain": "metagenomics",
-      "chars": 963,
+      "chars": 5442,
       "path": "skills/metagenomics/phyloseq/SKILL.md"
     },
     {
       "name": "EnhancedVolcano",
       "score": 7174,
       "domain": "transcriptomics",
-      "chars": 1532,
+      "chars": 5216,
       "path": "skills/transcriptomics/enhancedvolcano/SKILL.md"
     },
     {
       "name": "biomformat",
       "score": 7058,
       "domain": "metagenomics",
-      "chars": 1503,
+      "chars": 4518,
       "path": "skills/metagenomics/biomformat/SKILL.md"
     },
     {
       "name": "ShortRead",
       "score": 7019,
       "domain": "genomics",
-      "chars": 1166,
+      "chars": 5037,
       "path": "skills/genomics/shortread/SKILL.md"
     },
     {
       "name": "scran",
       "score": 6937,
       "domain": "transcriptomics",
-      "chars": 16880,
+      "chars": 18050,
       "path": "skills/transcriptomics/scran/SKILL.md"
     },
     {
       "name": "metapod",
       "score": 6616,
       "domain": "transcriptomics",
-      "chars": 1320,
+      "chars": 5542,
       "path": "skills/transcriptomics/metapod/SKILL.md"
     },
     {
       "name": "KEGGgraph",
       "score": 6536,
       "domain": "annotation",
-      "chars": 1134,
+      "chars": 5358,
       "path": "skills/annotation/kegggraph/SKILL.md"
     },
     {
       "name": "glmGamPoi",
       "score": 6526,
       "domain": "transcriptomics",
-      "chars": 1253,
+      "chars": 5382,
       "path": "skills/transcriptomics/glmgampoi/SKILL.md"
     },
     {
       "name": "vsn",
       "score": 6468,
       "domain": "variant-calling",
-      "chars": 1448,
+      "chars": 7356,
       "path": "skills/variant-calling/vsn/SKILL.md"
     },
     {
       "name": "pcaMethods",
       "score": 6320,
       "domain": "general",
-      "chars": 1420,
+      "chars": 5927,
       "path": "skills/general/pcamethods/SKILL.md"
     },
     {
       "name": "biovizBase",
       "score": 6210,
       "domain": "general",
-      "chars": 1268,
+      "chars": 5448,
       "path": "skills/general/biovizbase/SKILL.md"
     },
     {
       "name": "txdbmaker",
       "score": 6055,
       "domain": "genomics",
-      "chars": 1644,
+      "chars": 5104,
       "path": "skills/genomics/txdbmaker/SKILL.md"
     },
     {
       "name": "apeglm",
       "score": 5873,
       "domain": "transcriptomics",
-      "chars": 956,
+      "chars": 6657,
       "path": "skills/transcriptomics/apeglm/SKILL.md"
     },
     {
       "name": "SingleR",
       "score": 5680,
       "domain": "transcriptomics",
-      "chars": 1084,
+      "chars": 4289,
       "path": "skills/transcriptomics/singler/SKILL.md"
     },
     {
       "name": "pathview",
       "score": 5519,
       "domain": "transcriptomics",
-      "chars": 10234,
+      "chars": 10366,
       "path": "skills/transcriptomics/pathview/SKILL.md"
     },
     {
       "name": "graphite",
       "score": 5247,
       "domain": "general",
-      "chars": 862,
+      "chars": 5555,
       "path": "skills/general/graphite/SKILL.md"
     },
     {
       "name": "biocViews",
       "score": 5169,
       "domain": "genomics",
-      "chars": 1343,
+      "chars": 5025,
       "path": "skills/genomics/biocviews/SKILL.md"
     },
     {
       "name": "DirichletMultinomial",
       "score": 5069,
       "domain": "metagenomics",
-      "chars": 1337,
+      "chars": 3978,
       "path": "skills/metagenomics/dirichletmultinomial/SKILL.md"
     },
     {
       "name": "ReactomePA",
       "score": 5047,
       "domain": "enrichment",
-      "chars": 10199,
+      "chars": 9661,
       "path": "skills/enrichment/reactomepa/SKILL.md"
     },
     {
       "name": "tximport",
       "score": 4848,
       "domain": "transcriptomics",
-      "chars": 9047,
+      "chars": 8211,
       "path": "skills/transcriptomics/tximport/SKILL.md"
     },
     {
       "name": "batchelor",
       "score": 4803,
       "domain": "transcriptomics",
-      "chars": 15936,
+      "chars": 17056,
       "path": "skills/transcriptomics/batchelor/SKILL.md"
     },
     {
       "name": "ResidualMatrix",
       "score": 4742,
       "domain": "general",
-      "chars": 1257,
+      "chars": 5237,
       "path": "skills/general/residualmatrix/SKILL.md"
     },
     {
       "name": "basilisk",
       "score": 4508,
       "domain": "general",
-      "chars": 1238,
+      "chars": 5682,
       "path": "skills/general/basilisk/SKILL.md"
     },
     {
       "name": "mixOmics",
       "score": 4431,
       "domain": "proteomics",
-      "chars": 1299,
+      "chars": 5502,
       "path": "skills/proteomics/mixomics/SKILL.md"
     },
     {
       "name": "gypsum",
       "score": 4427,
       "domain": "general",
-      "chars": 1120,
+      "chars": 5597,
       "path": "skills/general/gypsum/SKILL.md"
     },
     {
       "name": "mzR",
       "score": 4414,
       "domain": "proteomics",
-      "chars": 1264,
+      "chars": 4702,
       "path": "skills/proteomics/mzr/SKILL.md"
     },
     {
       "name": "DNAcopy",
       "score": 4385,
       "domain": "genomics",
-      "chars": 903,
+      "chars": 5582,
       "path": "skills/genomics/dnacopy/SKILL.md"
     },
     {
       "name": "MsCoreUtils",
       "score": 4328,
       "domain": "proteomics",
-      "chars": 1516,
+      "chars": 4855,
       "path": "skills/proteomics/mscoreutils/SKILL.md"
     },
     {
       "name": "MSnbase",
       "score": 4224,
       "domain": "proteomics",
-      "chars": 11631,
+      "chars": 12723,
       "path": "skills/proteomics/msnbase/SKILL.md"
     },
     {
       "name": "geneplotter",
       "score": 4122,
       "domain": "general",
-      "chars": 786,
+      "chars": 4388,
       "path": "skills/general/geneplotter/SKILL.md"
     },
     {
       "name": "monocle",
       "score": 3926,
       "domain": "transcriptomics",
-      "chars": 1337,
+      "chars": 4753,
       "path": "skills/transcriptomics/monocle/SKILL.md"
     },
     {
       "name": "mzID",
       "score": 3868,
       "domain": "proteomics",
-      "chars": 1178,
+      "chars": 4502,
       "path": "skills/proteomics/mzid/SKILL.md"
     },
     {
       "name": "seqLogo",
       "score": 3853,
       "domain": "general",
-      "chars": 868,
+      "chars": 4277,
       "path": "skills/general/seqlogo/SKILL.md"
     },
     {
       "name": "TFBSTools",
       "score": 3804,
       "domain": "genomics",
-      "chars": 1287,
+      "chars": 5935,
       "path": "skills/genomics/tfbstools/SKILL.md"
     },
     {
       "name": "Gviz",
       "score": 3738,
       "domain": "genomics",
-      "chars": 1549,
+      "chars": 5379,
       "path": "skills/genomics/gviz/SKILL.md"
     },
     {
       "name": "DECIPHER",
       "score": 3662,
       "domain": "genomics",
-      "chars": 735,
+      "chars": 6331,
       "path": "skills/genomics/decipher/SKILL.md"
     },
     {
       "name": "AUCell",
       "score": 3658,
       "domain": "transcriptomics",
-      "chars": 1366,
+      "chars": 6252,
       "path": "skills/transcriptomics/aucell/SKILL.md"
     },
     {
       "name": "QFeatures",
       "score": 3657,
       "domain": "proteomics",
-      "chars": 1456,
+      "chars": 6694,
       "path": "skills/proteomics/qfeatures/SKILL.md"
     },
     {
       "name": "siggenes",
       "score": 3641,
       "domain": "transcriptomics",
-      "chars": 1113,
+      "chars": 6245,
       "path": "skills/transcriptomics/siggenes/SKILL.md"
     },
     {
       "name": "OrganismDbi",
       "score": 3387,
       "domain": "genomics",
-      "chars": 1041,
+      "chars": 5520,
       "path": "skills/genomics/organismdbi/SKILL.md"
     },
     {
       "name": "flowCore",
       "score": 3367,
       "domain": "imaging",
-      "chars": 953,
+      "chars": 5125,
       "path": "skills/imaging/flowcore/SKILL.md"
     },
     {
       "name": "EBImage",
       "score": 3335,
       "domain": "imaging",
-      "chars": 1476,
+      "chars": 6135,
       "path": "skills/imaging/ebimage/SKILL.md"
     },
     {
       "name": "ConsensusClusterPlus",
       "score": 3307,
       "domain": "genomics",
-      "chars": 1522,
+      "chars": 4966,
       "path": "skills/genomics/consensusclusterplus/SKILL.md"
     },
     {
       "name": "illuminaio",
       "score": 3258,
       "domain": "transcriptomics",
-      "chars": 841,
+      "chars": 4325,
       "path": "skills/transcriptomics/illuminaio/SKILL.md"
     },
     {
       "name": "zellkonverter",
       "score": 3256,
       "domain": "single-cell",
-      "chars": 1317,
+      "chars": 5038,
       "path": "skills/single-cell/zellkonverter/SKILL.md"
     },
     {
       "name": "MetaboCoreUtils",
       "score": 3219,
       "domain": "transcriptomics",
-      "chars": 1410,
+      "chars": 6176,
       "path": "skills/transcriptomics/metabocoreutils/SKILL.md"
     },
     {
       "name": "scDblFinder",
       "score": 3215,
       "domain": "transcriptomics",
-      "chars": 1336,
+      "chars": 5939,
       "path": "skills/transcriptomics/scdblfinder/SKILL.md"
     },
     {
       "name": "dada2",
       "score": 3203,
       "domain": "transcriptomics",
-      "chars": 1258,
+      "chars": 5413,
       "path": "skills/transcriptomics/dada2/SKILL.md"
     },
     {
       "name": "STRINGdb",
       "score": 3164,
       "domain": "proteomics",
-      "chars": 629,
+      "chars": 5480,
       "path": "skills/proteomics/stringdb/SKILL.md"
     },
     {
       "name": "PSMatch",
       "score": 3162,
       "domain": "proteomics",
-      "chars": 1369,
+      "chars": 5724,
       "path": "skills/proteomics/psmatch/SKILL.md"
     },
     {
       "name": "TrajectoryUtils",
       "score": 3031,
       "domain": "transcriptomics",
-      "chars": 1095,
+      "chars": 5279,
       "path": "skills/transcriptomics/trajectoryutils/SKILL.md"
     },
     {
       "name": "ggbio",
       "score": 2979,
       "domain": "genomics",
-      "chars": 1285,
+      "chars": 4603,
       "path": "skills/genomics/ggbio/SKILL.md"
     },
     {
       "name": "bumphunter",
       "score": 2955,
       "domain": "epigenomics",
-      "chars": 719,
+      "chars": 5676,
       "path": "skills/epigenomics/bumphunter/SKILL.md"
     },
     {
       "name": "DropletUtils",
       "score": 2931,
       "domain": "transcriptomics",
-      "chars": 15573,
+      "chars": 16778,
       "path": "skills/transcriptomics/dropletutils/SKILL.md"
     },
     {
       "name": "ChIPseeker",
       "score": 2896,
       "domain": "epigenomics",
-      "chars": 14081,
+      "chars": 15251,
       "path": "skills/epigenomics/chipseeker/SKILL.md"
     },
     {
       "name": "minfi",
       "score": 2771,
       "domain": "epigenomics",
-      "chars": 15296,
+      "chars": 16568,
       "path": "skills/epigenomics/minfi/SKILL.md"
     },
     {
       "name": "gdsfmt",
       "score": 2734,
       "domain": "general",
-      "chars": 1436,
+      "chars": 4916,
       "path": "skills/general/gdsfmt/SKILL.md"
     },
     {
       "name": "topGO",
       "score": 2731,
       "domain": "general",
-      "chars": 918,
+      "chars": 5908,
       "path": "skills/general/topgo/SKILL.md"
     },
     {
       "name": "MAST",
       "score": 2721,
       "domain": "transcriptomics",
-      "chars": 899,
+      "chars": 6075,
       "path": "skills/transcriptomics/mast/SKILL.md"
     },
     {
       "name": "snpStats",
       "score": 2666,
       "domain": "variant-calling",
-      "chars": 900,
+      "chars": 5693,
       "path": "skills/variant-calling/snpstats/SKILL.md"
     },
     {
       "name": "TreeSummarizedExperiment",
       "score": 2666,
       "domain": "single-cell",
-      "chars": 1169,
+      "chars": 5559,
       "path": "skills/single-cell/treesummarizedexperiment/SKILL.md"
     },
     {
       "name": "msa",
       "score": 2589,
       "domain": "transcriptomics",
-      "chars": 1330,
+      "chars": 4583,
       "path": "skills/transcriptomics/msa/SKILL.md"
     },
     {
       "name": "microbiome",
       "score": 2520,
       "domain": "metagenomics",
-      "chars": 564,
+      "chars": 3658,
       "path": "skills/metagenomics/microbiome/SKILL.md"
+    },
+    {
+      "name": "epigraHMM",
+      "score": 5050,
+      "domain": "epigenomics",
+      "chars": 6919,
+      "path": "skills/epigenomics/epigrahmm/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "extraChIPs",
+      "score": 4609,
+      "domain": "epigenomics",
+      "chars": 4811,
+      "path": "skills/epigenomics/extrachips/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "HiCDCPlus",
+      "score": 4487,
+      "domain": "epigenomics",
+      "chars": 5353,
+      "path": "skills/epigenomics/hicdcplus/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "HiCExperiment",
+      "score": 5135,
+      "domain": "epigenomics",
+      "chars": 4112,
+      "path": "skills/epigenomics/hicexperiment/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "HiContacts",
+      "score": 5036,
+      "domain": "epigenomics",
+      "chars": 4989,
+      "path": "skills/epigenomics/hicontacts/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MACSr",
+      "score": 4281,
+      "domain": "epigenomics",
+      "chars": 3560,
+      "path": "skills/epigenomics/macsr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "miaSim",
+      "score": 4376,
+      "domain": "epigenomics",
+      "chars": 3747,
+      "path": "skills/epigenomics/miasim/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "faers",
+      "score": 4238,
+      "domain": "general",
+      "chars": 3290,
+      "path": "skills/general/faers/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "immunotation",
+      "score": 4380,
+      "domain": "general",
+      "chars": 4072,
+      "path": "skills/general/immunotation/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "mosbi",
+      "score": 4073,
+      "domain": "general",
+      "chars": 5467,
+      "path": "skills/general/mosbi/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "beer",
+      "score": 4053,
+      "domain": "genomics",
+      "chars": 5281,
+      "path": "skills/genomics/beer/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "cogeqc",
+      "score": 4284,
+      "domain": "genomics",
+      "chars": 5194,
+      "path": "skills/genomics/cogeqc/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "doubletrouble",
+      "score": 4368,
+      "domain": "genomics",
+      "chars": 3659,
+      "path": "skills/genomics/doubletrouble/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "epialleleR",
+      "score": 4488,
+      "domain": "genomics",
+      "chars": 6839,
+      "path": "skills/genomics/epialleler/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "ggmanh",
+      "score": 5185,
+      "domain": "genomics",
+      "chars": 5397,
+      "path": "skills/genomics/ggmanh/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "LinTInd",
+      "score": 4543,
+      "domain": "genomics",
+      "chars": 6742,
+      "path": "skills/genomics/lintind/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MSA2dist",
+      "score": 4523,
+      "domain": "genomics",
+      "chars": 5175,
+      "path": "skills/genomics/msa2dist/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "rBLAST",
+      "score": 6570,
+      "domain": "genomics",
+      "chars": 4890,
+      "path": "skills/genomics/rblast/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "supersigs",
+      "score": 4707,
+      "domain": "genomics",
+      "chars": 5907,
+      "path": "skills/genomics/supersigs/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "syntenet",
+      "score": 5824,
+      "domain": "genomics",
+      "chars": 6158,
+      "path": "skills/genomics/syntenet/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "cytoviewer",
+      "score": 4119,
+      "domain": "imaging",
+      "chars": 5759,
+      "path": "skills/imaging/cytoviewer/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "lisaClust",
+      "score": 5913,
+      "domain": "imaging",
+      "chars": 5581,
+      "path": "skills/imaging/lisaclust/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "rgoslin",
+      "score": 5401,
+      "domain": "metabolomics",
+      "chars": 4104,
+      "path": "skills/metabolomics/rgoslin/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "bandle",
+      "score": 4096,
+      "domain": "proteomics",
+      "chars": 5145,
+      "path": "skills/proteomics/bandle/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "BioNAR",
+      "score": 4141,
+      "domain": "proteomics",
+      "chars": 5169,
+      "path": "skills/proteomics/bionar/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "drugTargetInteractions",
+      "score": 4065,
+      "domain": "proteomics",
+      "chars": 4936,
+      "path": "skills/proteomics/drugtargetinteractions/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MatrixQCvis",
+      "score": 4192,
+      "domain": "proteomics",
+      "chars": 4593,
+      "path": "skills/proteomics/matrixqcvis/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MsBackendMassbank",
+      "score": 4348,
+      "domain": "proteomics",
+      "chars": 4139,
+      "path": "skills/proteomics/msbackendmassbank/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MsDataHub",
+      "score": 4940,
+      "domain": "proteomics",
+      "chars": 5040,
+      "path": "skills/proteomics/msdatahub/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "PhIPData",
+      "score": 4289,
+      "domain": "proteomics",
+      "chars": 5439,
+      "path": "skills/proteomics/phipdata/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "TargetDecoy",
+      "score": 4160,
+      "domain": "proteomics",
+      "chars": 5819,
+      "path": "skills/proteomics/targetdecoy/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "cytoMEM",
+      "score": 4310,
+      "domain": "single-cell",
+      "chars": 6095,
+      "path": "skills/single-cell/cytomem/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "demuxmix",
+      "score": 5571,
+      "domain": "single-cell",
+      "chars": 5998,
+      "path": "skills/single-cell/demuxmix/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "hoodscanR",
+      "score": 4582,
+      "domain": "single-cell",
+      "chars": 5789,
+      "path": "skills/single-cell/hoodscanr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MuData",
+      "score": 4165,
+      "domain": "single-cell",
+      "chars": 4180,
+      "path": "skills/single-cell/mudata/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "scReClassify",
+      "score": 4735,
+      "domain": "single-cell",
+      "chars": 3274,
+      "path": "skills/single-cell/screclassify/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "ASURAT",
+      "score": 4197,
+      "domain": "transcriptomics",
+      "chars": 5616,
+      "path": "skills/transcriptomics/asurat/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "awst",
+      "score": 4095,
+      "domain": "transcriptomics",
+      "chars": 4541,
+      "path": "skills/transcriptomics/awst/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "BindingSiteFinder",
+      "score": 4235,
+      "domain": "transcriptomics",
+      "chars": 5958,
+      "path": "skills/transcriptomics/bindingsitefinder/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "BloodGen3Module",
+      "score": 4473,
+      "domain": "transcriptomics",
+      "chars": 5662,
+      "path": "skills/transcriptomics/bloodgen3module/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "BUSseq",
+      "score": 5048,
+      "domain": "transcriptomics",
+      "chars": 5979,
+      "path": "skills/transcriptomics/busseq/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "cageminer",
+      "score": 4134,
+      "domain": "transcriptomics",
+      "chars": 5065,
+      "path": "skills/transcriptomics/cageminer/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "cardelino",
+      "score": 4096,
+      "domain": "transcriptomics",
+      "chars": 5794,
+      "path": "skills/transcriptomics/cardelino/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "CBNplot",
+      "score": 4451,
+      "domain": "transcriptomics",
+      "chars": 5253,
+      "path": "skills/transcriptomics/cbnplot/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "CellBarcode",
+      "score": 4371,
+      "domain": "transcriptomics",
+      "chars": 5547,
+      "path": "skills/transcriptomics/cellbarcode/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "cellxgenedp",
+      "score": 4243,
+      "domain": "transcriptomics",
+      "chars": 4209,
+      "path": "skills/transcriptomics/cellxgenedp/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "condiments",
+      "score": 5548,
+      "domain": "transcriptomics",
+      "chars": 6263,
+      "path": "skills/transcriptomics/condiments/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "COTAN",
+      "score": 4626,
+      "domain": "transcriptomics",
+      "chars": 6774,
+      "path": "skills/transcriptomics/cotan/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "crisprBase",
+      "score": 5438,
+      "domain": "transcriptomics",
+      "chars": 6000,
+      "path": "skills/transcriptomics/crisprbase/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "crisprDesign",
+      "score": 5272,
+      "domain": "transcriptomics",
+      "chars": 4912,
+      "path": "skills/transcriptomics/crisprdesign/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "crisprScore",
+      "score": 5566,
+      "domain": "transcriptomics",
+      "chars": 7433,
+      "path": "skills/transcriptomics/crisprscore/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "crisprViz",
+      "score": 4599,
+      "domain": "transcriptomics",
+      "chars": 5253,
+      "path": "skills/transcriptomics/crisprviz/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "deconvR",
+      "score": 4399,
+      "domain": "transcriptomics",
+      "chars": 6035,
+      "path": "skills/transcriptomics/deconvr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "DESpace",
+      "score": 4229,
+      "domain": "transcriptomics",
+      "chars": 6320,
+      "path": "skills/transcriptomics/despace/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "DExMA",
+      "score": 4173,
+      "domain": "transcriptomics",
+      "chars": 6538,
+      "path": "skills/transcriptomics/dexma/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "Dino",
+      "score": 4181,
+      "domain": "transcriptomics",
+      "chars": 6560,
+      "path": "skills/transcriptomics/dino/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "easier",
+      "score": 5173,
+      "domain": "transcriptomics",
+      "chars": 7405,
+      "path": "skills/transcriptomics/easier/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "epistack",
+      "score": 4064,
+      "domain": "transcriptomics",
+      "chars": 9557,
+      "path": "skills/transcriptomics/epistack/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "escheR",
+      "score": 4959,
+      "domain": "transcriptomics",
+      "chars": 6728,
+      "path": "skills/transcriptomics/escher/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "FindIT2",
+      "score": 4540,
+      "domain": "transcriptomics",
+      "chars": 4909,
+      "path": "skills/transcriptomics/findit2/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "gatom",
+      "score": 4135,
+      "domain": "transcriptomics",
+      "chars": 6827,
+      "path": "skills/transcriptomics/gatom/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "genomicInstability",
+      "score": 4174,
+      "domain": "transcriptomics",
+      "chars": 6213,
+      "path": "skills/transcriptomics/genomicinstability/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "GenomicSuperSignature",
+      "score": 4635,
+      "domain": "transcriptomics",
+      "chars": 8822,
+      "path": "skills/transcriptomics/genomicsupersignature/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "GeoTcgaData",
+      "score": 4241,
+      "domain": "transcriptomics",
+      "chars": 8646,
+      "path": "skills/transcriptomics/geotcgadata/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "granulator",
+      "score": 4638,
+      "domain": "transcriptomics",
+      "chars": 6747,
+      "path": "skills/transcriptomics/granulator/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "HarmonizR",
+      "score": 4260,
+      "domain": "transcriptomics",
+      "chars": 4772,
+      "path": "skills/transcriptomics/harmonizr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "InterCellar",
+      "score": 4660,
+      "domain": "transcriptomics",
+      "chars": 3942,
+      "path": "skills/transcriptomics/intercellar/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "mastR",
+      "score": 4169,
+      "domain": "transcriptomics",
+      "chars": 6212,
+      "path": "skills/transcriptomics/mastr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "mirTarRnaSeq",
+      "score": 4198,
+      "domain": "transcriptomics",
+      "chars": 7840,
+      "path": "skills/transcriptomics/mirtarrnaseq/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "MSstatsLiP",
+      "score": 5260,
+      "domain": "transcriptomics",
+      "chars": 4470,
+      "path": "skills/transcriptomics/msstatslip/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "NanoTube",
+      "score": 5062,
+      "domain": "transcriptomics",
+      "chars": 3868,
+      "path": "skills/transcriptomics/nanotube/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "nnSVG",
+      "score": 5425,
+      "domain": "transcriptomics",
+      "chars": 3702,
+      "path": "skills/transcriptomics/nnsvg/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "omicsViewer",
+      "score": 4133,
+      "domain": "transcriptomics",
+      "chars": 5189,
+      "path": "skills/transcriptomics/omicsviewer/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "ompBAM",
+      "score": 4390,
+      "domain": "transcriptomics",
+      "chars": 3976,
+      "path": "skills/transcriptomics/ompbam/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "ORFhunteR",
+      "score": 4198,
+      "domain": "transcriptomics",
+      "chars": 7690,
+      "path": "skills/transcriptomics/orfhunter/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "ProteoDisco",
+      "score": 4368,
+      "domain": "transcriptomics",
+      "chars": 9153,
+      "path": "skills/transcriptomics/proteodisco/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "ptairMS",
+      "score": 4964,
+      "domain": "transcriptomics",
+      "chars": 6097,
+      "path": "skills/transcriptomics/ptairms/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "RiboDiPA",
+      "score": 4394,
+      "domain": "transcriptomics",
+      "chars": 7275,
+      "path": "skills/transcriptomics/ribodipa/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "scanMiR",
+      "score": 4342,
+      "domain": "transcriptomics",
+      "chars": 4714,
+      "path": "skills/transcriptomics/scanmir/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "scAnnotatR",
+      "score": 4451,
+      "domain": "transcriptomics",
+      "chars": 5302,
+      "path": "skills/transcriptomics/scannotatr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "SCArray",
+      "score": 4382,
+      "domain": "transcriptomics",
+      "chars": 3874,
+      "path": "skills/transcriptomics/scarray/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "sccomp",
+      "score": 4937,
+      "domain": "transcriptomics",
+      "chars": 7465,
+      "path": "skills/transcriptomics/sccomp/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "scDesign3",
+      "score": 4066,
+      "domain": "transcriptomics",
+      "chars": 5011,
+      "path": "skills/transcriptomics/scdesign3/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "sechm",
+      "score": 6282,
+      "domain": "transcriptomics",
+      "chars": 4639,
+      "path": "skills/transcriptomics/sechm/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "SGCP",
+      "score": 4455,
+      "domain": "transcriptomics",
+      "chars": 6120,
+      "path": "skills/transcriptomics/sgcp/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "SimBu",
+      "score": 4184,
+      "domain": "transcriptomics",
+      "chars": 5623,
+      "path": "skills/transcriptomics/simbu/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "simpleSeg",
+      "score": 5635,
+      "domain": "transcriptomics",
+      "chars": 4956,
+      "path": "skills/transcriptomics/simpleseg/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "spatialDE",
+      "score": 4781,
+      "domain": "transcriptomics",
+      "chars": 6145,
+      "path": "skills/transcriptomics/spatialde/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "SpliceWiz",
+      "score": 5009,
+      "domain": "transcriptomics",
+      "chars": 8259,
+      "path": "skills/transcriptomics/splicewiz/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "SpotClean",
+      "score": 4533,
+      "domain": "transcriptomics",
+      "chars": 5905,
+      "path": "skills/transcriptomics/spotclean/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "SpotSweeper",
+      "score": 4620,
+      "domain": "transcriptomics",
+      "chars": 5939,
+      "path": "skills/transcriptomics/spotsweeper/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "standR",
+      "score": 6371,
+      "domain": "transcriptomics",
+      "chars": 5305,
+      "path": "skills/transcriptomics/standr/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "Statial",
+      "score": 4743,
+      "domain": "transcriptomics",
+      "chars": 5858,
+      "path": "skills/transcriptomics/statial/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "tanggle",
+      "score": 4592,
+      "domain": "transcriptomics",
+      "chars": 4463,
+      "path": "skills/transcriptomics/tanggle/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "TDbasedUFEadv",
+      "score": 4120,
+      "domain": "transcriptomics",
+      "chars": 7134,
+      "path": "skills/transcriptomics/tdbasedufeadv/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "transformGamPoi",
+      "score": 4380,
+      "domain": "transcriptomics",
+      "chars": 5222,
+      "path": "skills/transcriptomics/transformgampoi/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "treekoR",
+      "score": 4612,
+      "domain": "transcriptomics",
+      "chars": 5971,
+      "path": "skills/transcriptomics/treekor/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "vissE",
+      "score": 5143,
+      "domain": "transcriptomics",
+      "chars": 5457,
+      "path": "skills/transcriptomics/visse/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "Voyager",
+      "score": 6323,
+      "domain": "transcriptomics",
+      "chars": 6209,
+      "path": "skills/transcriptomics/voyager/SKILL.md",
+      "rising_star": true
+    },
+    {
+      "name": "zenith",
+      "score": 5077,
+      "domain": "transcriptomics",
+      "chars": 4578,
+      "path": "skills/transcriptomics/zenith/SKILL.md",
+      "rising_star": true
     }
-  ]
+  ],
+  "rising_stars_added": 100,
+  "bioconductor_version": "3.21"
 }

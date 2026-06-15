@@ -1,7 +1,7 @@
 ---
 name: bioconductor-gviz
 description: Genomic data analyses requires integrated visualization of known genomic information and new experimental data. Gviz uses the biomaRt and the rtracklayer packages to perform live annotation queries to Ensembl and UCSC and translates this to
-when_to_use: Use when: Plotting genomic data and annotation features (e.g., CpG islands, gene models) in a genome browser-like layout using plotTracks.; Visualizing run-length encoded numeric vectors or matrices (like NGS read coverage or microarray probes) using DataTrack.; Adding a genomic axis with coordinate tick-marks and directional indicators using GenomeAxisTrack.; Displaying chromosome ideograms fetched from UC. Not for: For purely statistical analysis of genomic data without visualization, use dedicated analysis packages instead because Gviz is strictly a visualization framework.; For interactive, web-based genome browsing, use tools like IGV or UCSC Genome Browser 
+when_to_use: "Use when: Plotting genomic data and annotation features (e.g., CpG islands, gene models) in a genome browser-like layout using plotTracks.; Visualizing run-length encoded numeric vectors or matrices (like NGS read coverage or microarray probes) using DataTrack.; Adding a genomic axis with coordinate tick-marks and directional indicators using GenomeAxisTrack.; Displaying chromosome ideograms fetched from UC. Not for: For purely statistical analysis of genomic data without visualization, use dedicated analysis packages instead because Gviz is strictly a visualization framework.; For interactive, web-based genome browsing, use tools like IGV or UCSC Genome Browser"
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/Gviz
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/Gviz/inst/doc/Gviz.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `gviz`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=gviz)** — free to start.
+
+▶ **[Open `gviz` on BioMate →](https://www.biomate.ai?ref=kb&pkg=gviz)**

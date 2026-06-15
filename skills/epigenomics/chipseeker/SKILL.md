@@ -1,7 +1,7 @@
 ---
 name: bioconductor-chipseeker
 description: ChIPseeker is a Bioconductor package for annotating ChIP-seq data analysis. Peak Annotation is performed by the annotatePeak function. The position and strand information of nearest genes are reported, in addition to the distance from the p
-when_to_use: Use when: Annotate ChIP-seq/ATAC-seq peaks to promoters, exons, introns, intergenic regions; Profile read coverage around TSS (transcription start sites); Compare peak sets across experiments; Functional enrichment of annotated peaks
+when_to_use: "Use when: Annotate ChIP-seq/ATAC-seq peaks to promoters, exons, introns, intergenic regions; Profile read coverage around TSS (transcription start sites); Compare peak sets across experiments; Functional enrichment of annotated peaks"
 user-invocable: false
 ---
 
@@ -353,3 +353,12 @@ plotAvgProf(tagMatrix, xlim=c(-3000, 3000),
 - **Paper:** Yu G, Wang LG, He QY (2015). Bioinformatics, 31(14):2382-2383.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `chipseeker`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=chipseeker)** — free to start.
+
+▶ **[Open `chipseeker` on BioMate →](https://www.biomate.ai?ref=kb&pkg=chipseeker)**

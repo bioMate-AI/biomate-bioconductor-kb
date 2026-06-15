@@ -1,7 +1,7 @@
 ---
 name: bioconductor-ggbio
 description: The ggbio package extends and specializes the grammar of graphics for biological data. The graphics are designed to answer common scientific questions, in particular those often asked of high throughput genomics data. All core Bioconductor
-when_to_use: Use when: Construct an ideogram track for a specific genome (e.g., hg19) using Ideogram.; Plot gene models from OrganismDb, TxDb, or EnsDb objects using autoplot.; Visualize zoomed regions on an ideogram by passing a GRanges object to xlim.. Not for: For fetching specific gene/transcript information with a rich filtering system (use ensembldb instead).; For purely retrieving gene annotations without visualization (use Homo.sapiens or TxDb directly).
+when_to_use: "Use when: Construct an ideogram track for a specific genome (e.g., hg19) using Ideogram.; Plot gene models from OrganismDb, TxDb, or EnsDb objects using autoplot.; Visualize zoomed regions on an ideogram by passing a GRanges object to xlim.. Not for: For fetching specific gene/transcript information with a rich filtering system (use ensembldb instead).; For purely retrieving gene annotations without visualization (use Homo.sapiens or TxDb directly)."
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/ggbio
 - Vignette: vignette_0_23da92f0.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `ggbio`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=ggbio)** — free to start.
+
+▶ **[Open `ggbio` on BioMate →](https://www.biomate.ai?ref=kb&pkg=ggbio)**

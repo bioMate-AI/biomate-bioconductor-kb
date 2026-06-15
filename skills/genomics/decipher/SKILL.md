@@ -1,7 +1,7 @@
 ---
 name: bioconductor-decipher
 description: A toolset for deciphering and managing biological sequences.
-when_to_use: Use when: Multiple Sequence Alignment (MSA): Aligning large sets of DNA, RNA, or amino acid sequences directly in R with high accuracy.; Taxonomic Classification: Classifying marker gene sequences (e.g., 16S/18S rRNA, ITS) using the robust IDTAXA algorithm.; Large-Scale Sequence Clustering: Grouping millions of sequences into operational taxonomic units (OTUs) or clusters using memory-efficient database-bac. Not for: For basic, small-scale alignments where simple command-line tools like ClustalW or MUSCLE are already integrated into your pipeline, use msa instead because DECIPHER has a steeper learning curve due to its SQLite database backend.; For ultra-fast, he
+when_to_use: "Use when: Multiple Sequence Alignment (MSA): Aligning large sets of DNA, RNA, or amino acid sequences directly in R with high accuracy.; Taxonomic Classification: Classifying marker gene sequences (e.g., 16S/18S rRNA, ITS) using the robust IDTAXA algorithm.; Large-Scale Sequence Clustering: Grouping millions of sequences into operational taxonomic units (OTUs) or clusters using memory-efficient database-bac. Not for: For basic, small-scale alignments where simple command-line tools like ClustalW or MUSCLE are already integrated into your pipeline, use msa instead because DECIPHER has a steeper learning curve due to its SQLite database backend.; For ultra-fast, he"
 user-invocable: false
 ---
 
@@ -65,3 +65,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/DECIPHER
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/DECIPHER/inst/doc/ArtOfAlignmentInR.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `decipher`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=decipher)** — free to start.
+
+▶ **[Open `decipher` on BioMate →](https://www.biomate.ai?ref=kb&pkg=decipher)**

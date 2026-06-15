@@ -1,7 +1,7 @@
 ---
 name: bioconductor-metapod
 description: Implements a variety of methods for combining p-values in differential analyses of genome-scale datasets. Functions can combine p-values across different tests in the same analysis (e.g., genomic windows in ChIP-seq, exons in RNA-seq) or fo
-when_to_use: Use when: Genomic Window Aggregation: Combining p-values across adjacent genomic windows in ChIP-seq (e.g., inside csaw) using grouped functions like groupedSimes.; Multi-Batch Marker Detection: Merging statistics from multiple batches or pairwise comparisons during marker gene detection (e.g., inside scran) using parallel functions like parallelSimes.; Consensus Direction Summarization: Determining the ove. Not for: For simple multiple testing correction on a single flat list of independent p-values, use base R's p.adjust instead because metapod is designed for hierarchical or multi-test aggregation.; For combining raw effect sizes or variances directly across i
+when_to_use: "Use when: Genomic Window Aggregation: Combining p-values across adjacent genomic windows in ChIP-seq (e.g., inside csaw) using grouped functions like groupedSimes.; Multi-Batch Marker Detection: Merging statistics from multiple batches or pairwise comparisons during marker gene detection (e.g., inside scran) using parallel functions like parallelSimes.; Consensus Direction Summarization: Determining the ove. Not for: For simple multiple testing correction on a single flat list of independent p-values, use base R's p.adjust instead because metapod is designed for hierarchical or multi-test aggregation.; For combining raw effect sizes or variances directly across i"
 user-invocable: false
 ---
 
@@ -57,3 +57,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/metapod
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/metapod/inst/doc/metapod.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `metapod`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=metapod)** — free to start.
+
+▶ **[Open `metapod` on BioMate →](https://www.biomate.ai?ref=kb&pkg=metapod)**

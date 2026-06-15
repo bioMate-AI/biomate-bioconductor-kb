@@ -1,7 +1,7 @@
 ---
 name: bioconductor-experimenthub
 description: This package provides a client for the Bioconductor ExperimentHub web resource. ExperimentHub provides a central location where curated data from experiments, publications or training courses can be accessed. Each resource has associated me
-when_to_use: Use when: Accessing Curated Datasets: Retrieving large files of curated data from experiments, publications, or training courses via the ExperimentHub web service.; Retrieving R Objects: Downloading specific R data objects like SummarizedExperiment, ExpressionSet, or GAlignmentPairs directly into your session.; Interactive Exploration: Interactively querying and exploring available resources using BiocHubsS. Not for: For accessing reference genome annotations, use AnnotationHub because ExperimentHub is focused exclusively on experimental data.
+when_to_use: "Use when: Accessing Curated Datasets: Retrieving large files of curated data from experiments, publications, or training courses via the ExperimentHub web service.; Retrieving R Objects: Downloading specific R data objects like SummarizedExperiment, ExpressionSet, or GAlignmentPairs directly into your session.; Interactive Exploration: Interactively querying and exploring available resources using BiocHubsS. Not for: For accessing reference genome annotations, use AnnotationHub because ExperimentHub is focused exclusively on experimental data."
 user-invocable: false
 ---
 
@@ -54,3 +54,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/ExperimentHub
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/ExperimentHub/inst/doc/ExperimentHub.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `experimenthub`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=experimenthub)** — free to start.
+
+▶ **[Open `experimenthub` on BioMate →](https://www.biomate.ai?ref=kb&pkg=experimenthub)**

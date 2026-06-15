@@ -1,7 +1,7 @@
 ---
 name: bioconductor-biocviews
 description: Infrastructure to support 'views' used to classify Bioconductor packages. 'biocViews' are directed acyclic graphs of terms from a controlled vocabulary. There are three major classifications, corresponding to 'software', 'annotation', and '
-when_to_use: Use when: Generating repository HTML and control files (PACKAGES, VIEWS) for a CRAN-style layout using genReposControlFiles and writeRepositoryHtml.; Extracting package vignettes from source packages to a local directory using extractVignettes.; Querying a repository to generate a list of BiocViews objects for specific top-level terms (e.g., "Software") using getBiocSubViews.; Querying available vocabulary . Not for: For general package development tasks like linting or unit testing; use BiocCheck or devtools instead because biocViews focuses on repository HTML and vocabulary generation.; For searching Bioconductor packages interactively in a user-friendly GUI; u
+when_to_use: "Use when: Generating repository HTML and control files (PACKAGES, VIEWS) for a CRAN-style layout using genReposControlFiles and writeRepositoryHtml.; Extracting package vignettes from source packages to a local directory using extractVignettes.; Querying a repository to generate a list of BiocViews objects for specific top-level terms (e.g., \"Software\") using getBiocSubViews.; Querying available vocabulary . Not for: For general package development tasks like linting or unit testing; use BiocCheck or devtools instead because biocViews focuses on repository HTML and vocabulary generation.; For searching Bioconductor packages interactively in a user-friendly GUI; u"
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/biocViews
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/biocViews/inst/doc/biocViews-HOWTO.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `biocviews`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=biocviews)** — free to start.
+
+▶ **[Open `biocviews` on BioMate →](https://www.biomate.ai?ref=kb&pkg=biocviews)**

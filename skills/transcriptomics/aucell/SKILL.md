@@ -1,7 +1,7 @@
 ---
 name: bioconductor-aucell
 description: AUCell allows to identify cells with active gene sets (e.g. signatures, gene modules...) in single-cell RNA-seq data. AUCell uses the "Area Under the Curve" (AUC) to calculate whether a critical subset of the input gene set is enriched with
-when_to_use: Use when: Single-Cell Signature Scoring: Identifying cells with active gene sets, signatures, or modules in single-cell RNA-seq data using AUCell_run.; Normalization-Independent Scoring: Scoring gene sets across cells independently of the gene expression units and normalization procedures by building rank-based profiles with AUCell_buildRankings.; Cell State Classification: Classifying cell types or states . Not for: Bulk RNA-seq GSEA: For bulk RNA-seq gene set enrichment analysis, use *fgsea* instead because AUCell is specifically optimized for evaluating signatures on individual cells in highly sparse single-cell data.; Differential Expression of Single Genes: 
+when_to_use: "Use when: Single-Cell Signature Scoring: Identifying cells with active gene sets, signatures, or modules in single-cell RNA-seq data using AUCell_run.; Normalization-Independent Scoring: Scoring gene sets across cells independently of the gene expression units and normalization procedures by building rank-based profiles with AUCell_buildRankings.; Cell State Classification: Classifying cell types or states . Not for: Bulk RNA-seq GSEA: For bulk RNA-seq gene set enrichment analysis, use *fgsea* instead because AUCell is specifically optimized for evaluating signatures on individual cells in highly sparse single-cell data.; Differential Expression of Single Genes:"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/AUCell
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/AUCell/inst/doc/AUCell.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `aucell`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=aucell)** — free to start.
+
+▶ **[Open `aucell` on BioMate →](https://www.biomate.ai?ref=kb&pkg=aucell)**

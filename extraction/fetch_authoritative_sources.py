@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Pass-2 source fetcher.
 
@@ -61,8 +62,13 @@ MANIFEST   = REPO / "MANIFEST.json"
 CACHE      = REPO / ".source_cache"
 INDEX_OUT  = CACHE / "_index.json"
 
-BIOC_BASE  = "https://bioconductor.org/packages/release/bioc"
-DESC_BASE  = "https://bioconductor.org/packages/release/bioc/DESCRIPTION"
+# Pin the Bioconductor release EXPLICITLY — "release" is a moving pointer (it advanced to
+# 3.23 and dropped packages like LinTInd/granulator/SGCP that still exist in 3.21). Pinning
+# makes grounding reproducible and keeps it consistent with the BioMate Bioc-3.x execution
+# images. Override with BIOC_VERSION=release|3.21|... if you need a different snapshot.
+BIOC_VERSION = os.environ.get("BIOC_VERSION", "3.21")
+BIOC_BASE  = f"https://bioconductor.org/packages/{BIOC_VERSION}/bioc"
+DESC_BASE  = f"https://bioconductor.org/packages/{BIOC_VERSION}/bioc/DESCRIPTION"
 HEADERS    = {"User-Agent": "biomate-kb-fetcher/1.0 (educational/research)"}
 TIMEOUT    = 30
 THROTTLE_S = 0.10   # be polite — small delay between same-host requests per worker

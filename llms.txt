@@ -1,0 +1,230 @@
+# BioMate-KB — Bioconductor Skills
+
+> Structured, citable knowledge for 200 high-value Bioconductor R packages — the 100 most-used plus the top 100 rising-star packages (newly released, fast-growing) — when to use each, the workflows it supports, key parameters, assumptions, pitfalls, and alternatives. Run any of these analyses on your own data, free, at https://www.biomate.ai
+
+The full 1,818-package knowledge base and managed execution are at https://www.biomate.ai.
+
+
+## annotation
+- [biomaRt](skills/annotation/biomart/SKILL.md): In recent years a wealth of biological data has become available in public data repositories. Easy access to these valuable data resources and firm integra
+- [KEGGgraph](skills/annotation/kegggraph/SKILL.md): KEGGGraph is an interface between KEGG pathway and graph object as well as a collection of tools to analyze, dissect and visualize these graphs. It parses 
+
+## enrichment
+- [enrichplot](skills/enrichment/enrichplot/SKILL.md): The 'enrichplot' package implements several visualization methods for interpreting functional enrichment results obtained from ORA or GSEA analysis. It is 
+- [ReactomePA](skills/enrichment/reactomepa/SKILL.md): Reactome is a free, open-source, curated and peer-reviewed pathway database. Their goal is to provide intuitive bioinformatics tools for the visualization,
+
+## epigenomics
+- [bumphunter](skills/epigenomics/bumphunter/SKILL.md): Tools for finding bumps in genomic data
+- [ChIPseeker](skills/epigenomics/chipseeker/SKILL.md): ChIPseeker is a Bioconductor package for annotating ChIP-seq data analysis. Peak Annotation is performed by the annotatePeak function. The position and str
+- [epigraHMM](skills/epigenomics/epigrahmm/SKILL.md) ⭐: epigraHMM provides a set of tools for the analysis of epigenomic data based on hidden Markov Models. It contains two separate peak callers, one for consens
+- [extraChIPs](skills/epigenomics/extrachips/SKILL.md) ⭐: This package builds on existing tools and adds some simple but extremely useful capabilities for working wth ChIP-Seq data. The focus is on detecting diffe
+- [HiCDCPlus](skills/epigenomics/hicdcplus/SKILL.md) ⭐: Systematic 3D interaction calls and differential analysis for Hi-C and HiChIP. The HiC-DC+ (Hi-C/HiChIP direct caller plus) package enables principled stat
+- [HiCExperiment](skills/epigenomics/hicexperiment/SKILL.md) ⭐: R generic interface to Hi-C contact matrices in `.(m)cool`, `.hic` or HiC-Pro derived formats, as well as other Hi-C processed file formats. Contact matric
+- [HiContacts](skills/epigenomics/hicontacts/SKILL.md) ⭐: HiContacts provides a collection of tools to analyse and visualize Hi-C datasets imported in R by HiCExperiment.
+- [MACSr](skills/epigenomics/macsr/SKILL.md) ⭐: The Model-based Analysis of ChIP-Seq (MACS) is a widely used toolkit for identifying transcript factor binding sites. This package is an R wrapper of the l
+- [miaSim](skills/epigenomics/miasim/SKILL.md) ⭐: Microbiome time series simulation with generalized Lotka-Volterra model, Self-Organized Instability (SOI), and other models. Hubbell's Neutral model is use
+- [minfi](skills/epigenomics/minfi/SKILL.md): Tools to analyze & visualize Illumina Infinium methylation arrays.
+
+## general
+- [basilisk](skills/general/basilisk/SKILL.md): Installs a self-contained conda instance that is managed by the R/Bioconductor installation machinery. This aims to provide a consistent Python environment
+- [Biobase](skills/general/biobase/SKILL.md): Functions that are needed by many other packages or which replace R functions.
+- [biovizBase](skills/general/biovizbase/SKILL.md): The biovizBase package is designed to provide a set of utilities, color schemes and conventions for genomic data. It serves as the base for various high-le
+- [DOSE](skills/general/dose/SKILL.md): This package implements five methods proposed by Resnik, Schlicker, Jiang, Lin and Wang respectively for measuring semantic similarities among DO terms and
+- [ExperimentHub](skills/general/experimenthub/SKILL.md): This package provides a client for the Bioconductor ExperimentHub web resource. ExperimentHub provides a central location where curated data from experimen
+- [faers](skills/general/faers/SKILL.md) ⭐: The FDA Adverse Event Reporting System (FAERS) is a database used for the spontaneous reporting of adverse events and medication errors related to human dr
+- [gdsfmt](skills/general/gdsfmt/SKILL.md): Provides a high-level R interface to CoreArray Genomic Data Structure (GDS) data files. GDS is portable across platforms with hierarchical structure to sto
+- [genefilter](skills/general/genefilter/SKILL.md): Some basic functions for filtering genes.
+- [geneplotter](skills/general/geneplotter/SKILL.md): Functions for plotting genomic data
+- [graphite](skills/general/graphite/SKILL.md): Graph objects from pathway topology derived from KEGG, Panther, PathBank, PharmGKB, Reactome SMPDB and WikiPathways databases.
+- [gypsum](skills/general/gypsum/SKILL.md): "Client for the gypsum REST API (https://gypsum.artifactdb.com), a cloud-based file store in the ArtifactDB ecosystem. This package provides functions for 
+- [immunotation](skills/general/immunotation/SKILL.md) ⭐: MHC (major histocompatibility complex) molecules are cell surface complexes that present antigens to T cells.  The repertoire of antigens presented in a gi
+- [mosbi](skills/general/mosbi/SKILL.md) ⭐: This package is a implementation of biclustering ensemble method MoSBi (Molecular signature Identification from Biclustering). MoSBi provides standardized 
+- [MultiAssayExperiment](skills/general/multiassayexperiment/SKILL.md): Harmonize data management of multiple experimental assays performed on an overlapping set of specimens.  It provides a familiar Bioconductor user experienc
+- [pcaMethods](skills/general/pcamethods/SKILL.md): Provides Bayesian PCA, Probabilistic PCA, Nipals PCA, Inverse Non-Linear PCA and the conventional SVD PCA. A cluster based method for missing value estimat
+- [qvalue](skills/general/qvalue/SKILL.md): This package takes a list of p-values resulting from the simultaneous testing of many hypotheses and estimates their q-values and local FDR values. The q-v
+- [ResidualMatrix](skills/general/residualmatrix/SKILL.md): Provides delayed computation of a matrix of residuals after fitting a linear model to each column of an input matrix. Also supports partial computation of 
+- [seqLogo](skills/general/seqlogo/SKILL.md): seqLogo takes the position weight matrix of a DNA sequence motif and plots the corresponding sequence logo as introduced by Schneider and Stephens (1990).
+- [topGO](skills/general/topgo/SKILL.md): topGO package provides tools for testing GO terms while accounting for the topology of the GO graph. Different test statistics and different methods for el
+
+## genomics
+- [annotate](skills/genomics/annotate/SKILL.md): This tool uses the label-tree function from HyPhy to annotate a phylogenetic tree. It allows users to select a subset of leaves using either a regular expr
+- [beer](skills/genomics/beer/SKILL.md) ⭐: BEER implements a Bayesian model for analyzing phage-immunoprecipitation sequencing (PhIP-seq) data. Given a PhIPData object, BEER returns posterior probab
+- [biocViews](skills/genomics/biocviews/SKILL.md): Infrastructure to support 'views' used to classify Bioconductor packages. 'biocViews' are directed acyclic graphs of terms from a controlled vocabulary. Th
+- [Biostrings](skills/genomics/biostrings/SKILL.md): Memory efficient string containers, string matching algorithms, and other utilities, for fast manipulation of large biological sequences or sets of sequenc
+- [BSgenome](skills/genomics/bsgenome/SKILL.md): Infrastructure shared by all the Biostrings-based genome data packages.
+- [clusterProfiler](skills/genomics/clusterprofiler/SKILL.md): This package supports functional characteristics of both coding and non-coding genomics data for thousands of species with up-to-date gene annotation. It p
+- [cogeqc](skills/genomics/cogeqc/SKILL.md) ⭐: cogeqc aims to facilitate systematic quality checks on standard comparative genomics analyses to help researchers detect issues and select the most suitabl
+- [ComplexHeatmap](skills/genomics/complexheatmap/SKILL.md): Complex heatmaps are efficient to visualize associations between different sources of data sets and reveal potential patterns. Here the ComplexHeatmap pack
+- [ConsensusClusterPlus](skills/genomics/consensusclusterplus/SKILL.md): algorithm for determining cluster count and membership by stability evidence in unsupervised analysis
+- [DECIPHER](skills/genomics/decipher/SKILL.md): A toolset for deciphering and managing biological sequences.
+- [DNAcopy](skills/genomics/dnacopy/SKILL.md): Implements the circular binary segmentation (CBS) algorithm to segment DNA copy number data and identify genomic regions with abnormal copy number.
+- [doubletrouble](skills/genomics/doubletrouble/SKILL.md) ⭐: doubletrouble aims to identify duplicated genes from whole-genome protein sequences and classify them based on their modes of duplication. The duplication 
+- [epialleleR](skills/genomics/epialleler/SKILL.md) ⭐: Epialleles are specific DNA methylation patterns that are mitotically and/or meiotically inherited. This package calls and reports cytosine methylation as 
+- [GenomicAlignments](skills/genomics/genomicalignments/SKILL.md): Provides efficient containers for storing and manipulating short genomic alignments (typically obtained by aligning short reads to a reference genome). Thi
+- [GenomicFeatures](skills/genomics/genomicfeatures/SKILL.md): Extract the genomic locations of genes, transcripts, exons, introns, and CDS, for the gene models stored in a TxDb object. A TxDb object is a small databas
+- [GenomicRanges](skills/genomics/genomicranges/SKILL.md): The ability to efficiently represent and manipulate genomic annotations and alignments is playing a central role when it comes to analyzing high-throughput
+- [ggbio](skills/genomics/ggbio/SKILL.md): The ggbio package extends and specializes the grammar of graphics for biological data. The graphics are designed to answer common scientific questions, in 
+- [ggmanh](skills/genomics/ggmanh/SKILL.md) ⭐: Manhattan plot and QQ Plot are commonly used to visualize the end result of Genome Wide Association Study. The "ggmanh" package aims to keep the generation
+- [ggtree](skills/genomics/ggtree/SKILL.md): "'ggtree' extends the 'ggplot2' plotting system which implemented the grammar of graphics. 'ggtree' is designed for visualization and annotation of phyloge
+- [GOSemSim](skills/genomics/gosemsim/SKILL.md): The semantic comparisons of Gene Ontology (GO) annotations provide quantitative ways to compute similarities between genes and gene groups, and have became
+- [Gviz](skills/genomics/gviz/SKILL.md): Genomic data analyses requires integrated visualization of known genomic information and new experimental data. Gviz uses the biomaRt and the rtracklayer p
+- [KEGGREST](skills/genomics/keggrest/SKILL.md): "A package that provides a client interface to the Kyoto Encyclopedia of Genes and Genomes (KEGG) REST API. Only for academic use by academic users belongi
+- [LinTInd](skills/genomics/lintind/SKILL.md) ⭐: When we combine gene-editing technology and sequencing technology, we need to reconstruct a lineage tree from alleles generated and calculate the similarit
+- [MSA2dist](skills/genomics/msa2dist/SKILL.md) ⭐: MSA2dist calculates pairwise distances between all sequences of a DNAStringSet or a AAStringSet using a custom score matrix and conducts codon based analys
+- [OrganismDbi](skills/genomics/organismdbi/SKILL.md): The package enables a simple unified interface to several annotation packages each of which has its own schema by taking advantage of the fact that each of
+- [rBLAST](skills/genomics/rblast/SKILL.md) ⭐: Seamlessly interfaces the Basic Local Alignment Search Tool (BLAST) to search genetic sequence data bases. This work was partially supported by grant no. R
+- [Rsamtools](skills/genomics/rsamtools/SKILL.md): This package provides an interface to the 'samtools', 'bcftools', and 'tabix' utilities for manipulating SAM (Sequence Alignment / Map), FASTA, binary vari
+- [rtracklayer](skills/genomics/rtracklayer/SKILL.md): Extensible framework for interacting with multiple genome browsers (currently UCSC built-in) and manipulating annotation tracks in various formats (current
+- [ShortRead](skills/genomics/shortread/SKILL.md): This package implements sampling, iteration, and input of FASTQ files. The package includes functions for filtering and trimming reads, and for generating 
+- [supersigs](skills/genomics/supersigs/SKILL.md) ⭐: Generate SuperSigs (supervised mutational signatures) from single nucleotide variants in the cancer genome. Functions included in the package allow the use
+- [syntenet](skills/genomics/syntenet/SKILL.md) ⭐: syntenet can be used to infer synteny networks from whole-genome protein sequences and analyze them. Anchor pairs are detected with the MCScanX algorithm, 
+- [TFBSTools](skills/genomics/tfbstools/SKILL.md): TFBSTools is a package for the analysis and manipulation of transcription factor binding sites. It includes matrices conversion between Position Frequency 
+- [txdbmaker](skills/genomics/txdbmaker/SKILL.md): A set of tools for making TxDb objects from genomic annotations from various sources (e.g. UCSC, Ensembl, and GFF files). These tools allow the user to dow
+
+## imaging
+- [cytoviewer](skills/imaging/cytoviewer/SKILL.md) ⭐: This R package supports interactive visualization of multi-channel images and segmentation masks generated by imaging mass cytometry and other highly multi
+- [EBImage](skills/imaging/ebimage/SKILL.md): EBImage provides general purpose functionality for image processing and analysis. In the context of (high-throughput) microscopy-based cellular assays, EBI
+- [flowCore](skills/imaging/flowcore/SKILL.md): Provides S4 data structures and basic functions to deal with flow cytometry data.
+- [lisaClust](skills/imaging/lisaclust/SKILL.md) ⭐: lisaClust provides a series of functions to identify and visualise regions of tissue where spatial associations between cell-types is similar. This package
+
+## metabolomics
+- [rgoslin](skills/metabolomics/rgoslin/SKILL.md) ⭐: The R implementation for the Grammar of Succint Lipid Nomenclature parses different short hand notation dialects for lipid names. It normalizes them to a s
+
+## metagenomics
+- [biomformat](skills/metagenomics/biomformat/SKILL.md): This is an R package for interfacing with the BIOM format. This package includes basic tools for reading biom-format files, accessing and subsetting data t
+- [DirichletMultinomial](skills/metagenomics/dirichletmultinomial/SKILL.md): "Dirichlet-multinomial mixture models can be used to describe variability in microbial metagenomic data. This package is an interface to code originally ma
+- [microbiome](skills/metagenomics/microbiome/SKILL.md): Utilities for microbiome analysis.
+- [phyloseq](skills/metagenomics/phyloseq/SKILL.md): phyloseq provides a set of classes and tools to facilitate the import, storage, analysis, and graphical display of microbiome census data.
+
+## proteomics
+- [bandle](skills/proteomics/bandle/SKILL.md) ⭐: The Bandle package enables the analysis and visualisation of differential localisation experiments using mass-spectrometry data. Experimental methods suppo
+- [BioNAR](skills/proteomics/bionar/SKILL.md) ⭐: the R package BioNAR, developed to step by step analysis of PPI network. The aim is to quantify and rank each protein’s simultaneous impact into multiple c
+- [drugTargetInteractions](skills/proteomics/drugtargetinteractions/SKILL.md) ⭐: Provides utilities for identifying drug-target interactions for sets of small molecule or gene/protein identifiers. The required drug-target interaction in
+- [MatrixQCvis](skills/proteomics/matrixqcvis/SKILL.md) ⭐: Data quality assessment is an integral part of preparatory data analysis to ensure sound biological information retrieval. We present here the MatrixQCvis 
+- [mixOmics](skills/proteomics/mixomics/SKILL.md): Multivariate methods are well suited to large omics data sets where the number of variables (e.g. genes, proteins, metabolites) is much larger than the num
+- [MsBackendMassbank](skills/proteomics/msbackendmassbank/SKILL.md) ⭐: Mass spectrometry (MS) data backend supporting import and export of MS/MS library spectra from MassBank record files. Different backends are available that
+- [MsCoreUtils](skills/proteomics/mscoreutils/SKILL.md): MsCoreUtils defines low-level functions for mass spectrometry data and is independent of any high-level data structures. These functions include mass spect
+- [MsDataHub](skills/proteomics/msdatahub/SKILL.md) ⭐: The MsDataHub package uses the ExperimentHub infrastructure to distribute raw mass spectrometry data files, peptide spectrum matches or quantitative data f
+- [MSnbase](skills/proteomics/msnbase/SKILL.md): MSnbase provides infrastructure for manipulation, processing and visualisation of mass spectrometry and proteomics data, ranging from raw to quantitative a
+- [mzID](skills/proteomics/mzid/SKILL.md): A parser for mzIdentML files implemented using the XML package. The parser tries to be general and able to handle all types of mzIdentML files with the dra
+- [mzR](skills/proteomics/mzr/SKILL.md): mzR provides a unified API to the common file formats and parsers available for mass spectrometry data. It comes with a subset of the proteowizard library 
+- [PhIPData](skills/proteomics/phipdata/SKILL.md) ⭐: PhIPData defines an S4 class for phage-immunoprecipitation sequencing (PhIP-seq) experiments. Buliding upon the RangedSummarizedExperiment class, PhIPData 
+- [PSMatch](skills/proteomics/psmatch/SKILL.md): The PSMatch package helps proteomics practitioners to load, handle and manage Peptide Spectrum Matches. It provides functions to model peptide-protein rela
+- [QFeatures](skills/proteomics/qfeatures/SKILL.md): The QFeatures infrastructure enables the management and processing of quantitative features for high-throughput mass spectrometry assays. It provides a fam
+- [STRINGdb](skills/proteomics/stringdb/SKILL.md): "tags: [bioconductor, r, proteomics, vignette-grounded]"
+- [TargetDecoy](skills/proteomics/targetdecoy/SKILL.md) ⭐: A first step in the data analysis of Mass Spectrometry (MS) based proteomics data is to identify peptides and proteins. With this respect the huge number o
+
+## single-cell
+- [cytoMEM](skills/single-cell/cytomem/SKILL.md) ⭐: MEM, Marker Enrichment Modeling, automatically generates and displays quantitative labels for cell populations that have been identified from single-cell d
+- [demuxmix](skills/single-cell/demuxmix/SKILL.md) ⭐: A package for demultiplexing single-cell sequencing experiments of pooled cells labeled with barcode oligonucleotides. The package implements methods to fi
+- [hoodscanR](skills/single-cell/hoodscanr/SKILL.md) ⭐: hoodscanR is an user-friendly R package providing functions to assist cellular neighborhood analysis of any spatial transcriptomics data with single-cell r
+- [MuData](skills/single-cell/mudata/SKILL.md) ⭐: Save MultiAssayExperiments to h5mu files supported by muon and mudata. Muon is a Python framework for multimodal omics data analysis. It uses an HDF5-based
+- [scReClassify](skills/single-cell/screclassify/SKILL.md) ⭐: A post hoc cell type classification tool to fine-tune cell type annotations generated by any cell type classification procedure with semi-supervised learni
+- [SingleCellExperiment](skills/single-cell/singlecellexperiment/SKILL.md): Defines a S4 class for storing data from single-cell experiments. This includes specialized methods to store and retrieve spike-in information, dimensional
+- [TreeSummarizedExperiment](skills/single-cell/treesummarizedexperiment/SKILL.md): TreeSummarizedExperiment has extended SingleCellExperiment to include hierarchical information on the rows or columns of the rectangular data.
+- [zellkonverter](skills/single-cell/zellkonverter/SKILL.md): Provides methods to convert between Python AnnData objects and SingleCellExperiment objects. These are primarily intended for use by downstream Bioconducto
+
+## transcriptomics
+- [affy](skills/transcriptomics/affy/SKILL.md): The package contains functions for exploratory oligonucleotide array analysis. The dependence on tkWidgets only concerns few convenience functions. 'affy' 
+- [apeglm](skills/transcriptomics/apeglm/SKILL.md): apeglm provides Bayesian shrinkage estimators for effect sizes for a variety of GLM models, using approximation of the posterior for individual coefficient
+- [ASURAT](skills/transcriptomics/asurat/SKILL.md) ⭐: ASURAT is a software for single-cell data analysis. Using ASURAT, one can simultaneously perform unsupervised clustering and biological interpretation in t
+- [AUCell](skills/transcriptomics/aucell/SKILL.md): AUCell allows to identify cells with active gene sets (e.g. signatures, gene modules...) in single-cell RNA-seq data. AUCell uses the "Area Under the Curve
+- [awst](skills/transcriptomics/awst/SKILL.md) ⭐: We propose an Asymmetric Within-Sample Transformation (AWST) to regularize RNA-seq read counts and reduce the effect of noise on the classification of samp
+- [batchelor](skills/transcriptomics/batchelor/SKILL.md): Implements a variety of methods for batch correction of single-cell (RNA sequencing) data. This includes methods based on detecting mutually nearest neighb
+- [BindingSiteFinder](skills/transcriptomics/bindingsitefinder/SKILL.md) ⭐: Precise knowledge on the binding sites of an RNA-binding protein (RBP) is key to understand (post-) transcriptional regulatory processes. Here we present a
+- [BloodGen3Module](skills/transcriptomics/bloodgen3module/SKILL.md) ⭐: The BloodGen3Module package provides functions for R user performing module repertoire analyses and generating fingerprint representations. Functions can p
+- [BUSseq](skills/transcriptomics/busseq/SKILL.md) ⭐: BUSseq R package fits an interpretable Bayesian hierarchical model---the Batch Effects Correction with Unknown Subtypes for scRNA seq Data (BUSseq)---to co
+- [cageminer](skills/transcriptomics/cageminer/SKILL.md) ⭐: This package aims to integrate GWAS-derived SNPs and coexpression networks to mine candidate genes associated with a particular phenotype. For that, users 
+- [cardelino](skills/transcriptomics/cardelino/SKILL.md) ⭐: Methods to infer clonal tree configuration for a population of cells using single-cell RNA-seq data (scRNA-seq), and possibly other data modalities. Method
+- [CBNplot](skills/transcriptomics/cbnplot/SKILL.md) ⭐: This package provides the visualization of bayesian network inferred from gene expression data. The networks are based on enrichment analysis results infer
+- [CellBarcode](skills/transcriptomics/cellbarcode/SKILL.md) ⭐: The package CellBarcode performs Cellular DNA Barcode analysis. It can handle all kinds of DNA barcodes, as long as the barcode is within a single sequenci
+- [cellxgenedp](skills/transcriptomics/cellxgenedp/SKILL.md) ⭐: The cellxgene data portal (https://cellxgene.cziscience.com/) provides a graphical user interface to collections of single-cell sequence data processed in 
+- [condiments](skills/transcriptomics/condiments/SKILL.md) ⭐: This package encapsulate many functions to conduct a differential topology analysis. It focuses on analyzing an 'omic dataset with multiple conditions. Whi
+- [COTAN](skills/transcriptomics/cotan/SKILL.md) ⭐: Statistical and computational method to analyze the co-expression of gene pairs at single cell level. It provides the foundation for single-cell gene inter
+- [crisprBase](skills/transcriptomics/crisprbase/SKILL.md) ⭐: Provides S4 classes for general nucleases, CRISPR nucleases, CRISPR nickases, and base editors.Several CRISPR-specific genome arithmetic functions are impl
+- [crisprDesign](skills/transcriptomics/crisprdesign/SKILL.md) ⭐: Provides a comprehensive suite of functions to design and annotate CRISPR guide RNA (gRNAs) sequences. This includes on- and off-target search, on-target e
+- [crisprScore](skills/transcriptomics/crisprscore/SKILL.md) ⭐: Provides R wrappers of several on-target and off-target scoring methods for CRISPR guide RNAs (gRNAs). The following nucleases are supported: SpCas9, AsCas
+- [crisprViz](skills/transcriptomics/crisprviz/SKILL.md) ⭐: Provides functionalities to visualize and contextualize CRISPR guide RNAs (gRNAs) on genomic tracks across nucleases and applications. Works in conjunction
+- [dada2](skills/transcriptomics/dada2/SKILL.md): The dada2 package infers exact amplicon sequence variants (ASVs) from high-throughput amplicon sequencing data, replacing the coarser and less accurate OTU
+- [deconvR](skills/transcriptomics/deconvr/SKILL.md) ⭐: This package provides a collection of functions designed for analyzing deconvolution of the bulk sample(s) using an atlas of reference omic signature profi
+- [DESeq2](skills/transcriptomics/deseq2/SKILL.md): Uses DESeq2 to estimate variance-mean dependence in count data from high-throughput sequencing assays and test for differential expression based on a model
+- [DESpace](skills/transcriptomics/despace/SKILL.md) ⭐: Intuitive framework for identifying spatially variable genes (SVGs) via edgeR, a popular method for performing differential expression analyses. Based on p
+- [DExMA](skills/transcriptomics/dexma/SKILL.md) ⭐: performing all the steps of gene expression meta-analysis considering the possible existence of missing genes. It provides the necessary functions to be ab
+- [Dino](skills/transcriptomics/dino/SKILL.md) ⭐: Dino normalizes single-cell, mRNA sequencing data to correct for technical variation, particularly sequencing depth, prior to downstream analysis. The appr
+- [DropletUtils](skills/transcriptomics/dropletutils/SKILL.md): The filtering uses intelligent methods to generate output 10X matrices as would be otherwise generated by CellRanger. The ranking option serves to illustra
+- [easier](skills/transcriptomics/easier/SKILL.md) ⭐: This package provides a workflow for the use of EaSIeR tool, developed to assess patients' likelihood to respond to ICB therapies providing just the patien
+- [edgeR](skills/transcriptomics/edger/SKILL.md): Estimates differential gene expression for short read sequence count using methods appropriate for count data. If you have paired data you may also want to
+- [EnhancedVolcano](skills/transcriptomics/enhancedvolcano/SKILL.md): Volcano plots represent a useful way to visualise the results of differential expression analyses. Here, we present a highly-configurable function that pro
+- [epistack](skills/transcriptomics/epistack/SKILL.md) ⭐: The epistack package main objective is the visualizations of stacks of genomic tracks (such as, but not restricted to, ChIP-seq, ATAC-seq, DNA methyation o
+- [escheR](skills/transcriptomics/escher/SKILL.md) ⭐: The creation of effective visualizations is a fundamental component of data analysis. In biomedical research, new challenges are emerging to visualize mult
+- [fgsea](skills/transcriptomics/fgsea/SKILL.md): A tabular file with gene symbols in the first column, and a ranked statistic (e.g. t-statistic or log fold-change) in the second column
+- [FindIT2](skills/transcriptomics/findit2/SKILL.md) ⭐: This package implements functions to find influential TF and target based on different input type. It have five module: Multi-peak multi-gene annotaion(mmP
+- [gatom](skills/transcriptomics/gatom/SKILL.md) ⭐: This package implements a metabolic network analysis pipeline to identify an active metabolic module based on high throughput data. The pipeline takes as i
+- [genomicInstability](skills/transcriptomics/genomicinstability/SKILL.md) ⭐: This package contain functions to run genomic instability analysis (GIA) from scRNA-Seq data. GIA estimates the association between gene expression and gen
+- [GenomicSuperSignature](skills/transcriptomics/genomicsupersignature/SKILL.md) ⭐: Connect new gene expression profile with the relevant information from the existing databases, such as previous publications, MeSH terms, and gene sets.
+- [GEOquery](skills/transcriptomics/geoquery/SKILL.md): This tool fetches microarray data directly from GEO database, based on the GEOQuery R package. Given a GSE accession ID, it returns an Rdata object contain
+- [GeoTcgaData](skills/transcriptomics/geotcgadata/SKILL.md) ⭐: Gene Expression Omnibus(GEO) and The Cancer Genome Atlas (TCGA) provide us with a wealth of data, such as RNA-seq, DNA Methylation, SNP and Copy number var
+- [glmGamPoi](skills/transcriptomics/glmgampoi/SKILL.md): Fit linear models to overdispersed count data. The package can estimate the overdispersion and fit repeated models for matrix input. It is designed to hand
+- [granulator](skills/transcriptomics/granulator/SKILL.md) ⭐: granulator is an R package for the cell type deconvolution of heterogeneous tissues based on bulk RNA-seq data or single cell RNA-seq expression profiles. 
+- [GSEABase](skills/transcriptomics/gseabase/SKILL.md): This package provides classes and methods to support Gene Set Enrichment Analysis (GSEA).
+- [GSVA](skills/transcriptomics/gsva/SKILL.md): Gene Set Variation Analysis (GSVA) is a non-parametric, unsupervised method for estimating variation of gene set enrichment through the samples of a expres
+- [HarmonizR](skills/transcriptomics/harmonizr/SKILL.md) ⭐: An implementation, which takes input data and makes it available for proper batch effect removal by ComBat or Limma. The implementation appropriately handl
+- [illuminaio](skills/transcriptomics/illuminaio/SKILL.md): Tools for parsing Illumina's microarray output files, including IDAT.
+- [InterCellar](skills/transcriptomics/intercellar/SKILL.md) ⭐: InterCellar is implemented as an R/Bioconductor Package containing a Shiny app that allows users to interactively analyze cell-cell communication from scRN
+- [limma](skills/transcriptomics/limma/SKILL.md): Given a matrix of counts (e.g. from featureCounts) and optional information about the genes, this tool performs differential expression (DE) using the limm
+- [MAST](skills/transcriptomics/mast/SKILL.md): Methods and models for handling zero-inflated single cell assay data.
+- [mastR](skills/transcriptomics/mastr/SKILL.md) ⭐: mastR is an R package designed for automated screening of signatures of interest for specific research questions. The package is developed for generating r
+- [MetaboCoreUtils](skills/transcriptomics/metabocoreutils/SKILL.md): MetaboCoreUtils defines metabolomics-related core functionality provided as low-level functions to allow a data structure-independent usage across various 
+- [metapod](skills/transcriptomics/metapod/SKILL.md): Implements a variety of methods for combining p-values in differential analyses of genome-scale datasets. Functions can combine p-values across different t
+- [mirTarRnaSeq](skills/transcriptomics/mirtarrnaseq/SKILL.md) ⭐: mirTarRnaSeq R package can be used for interactive mRNA miRNA sequencing statistical analysis. This package utilizes expression or differential expression 
+- [monocle](skills/transcriptomics/monocle/SKILL.md): Monocle performs differential expression and time-series analysis for single-cell expression experiments. It orders individual cells according to progress 
+- [msa](skills/transcriptomics/msa/SKILL.md): The 'msa' package provides a unified R/Bioconductor interface to the multiple sequence alignment algorithms ClustalW, ClustalOmega, and Muscle. All three a
+- [MSstatsLiP](skills/transcriptomics/msstatslip/SKILL.md) ⭐: Tools for LiP peptide and protein significance analysis. Provides functions for summarization, estimation of LiP peptide abundance, and detection of change
+- [NanoTube](skills/transcriptomics/nanotube/SKILL.md) ⭐: NanoTube includes functions for the processing, quality control, analysis, and visualization of NanoString nCounter data. Analysis functions include differ
+- [nnSVG](skills/transcriptomics/nnsvg/SKILL.md) ⭐: Method for scalable identification of spatially variable genes (SVGs) in spatially-resolved transcriptomics data. The method is based on nearest-neighbor G
+- [omicsViewer](skills/transcriptomics/omicsviewer/SKILL.md) ⭐: omicsViewer visualizes ExpressionSet (or SummarizedExperiment) in an interactive way. The omicsViewer has a separate back- and front-end. In the back-end, 
+- [ompBAM](skills/transcriptomics/ompbam/SKILL.md) ⭐: This packages provides C++ header files for developers wishing to create R packages that processes BAM files. ompBAM automates file access, memory manageme
+- [ORFhunteR](skills/transcriptomics/orfhunter/SKILL.md) ⭐: The ORFhunteR package is a R and C++ library for an automatic determination and annotation of open reading frames (ORF) in a large set of RNA molecules. It
+- [pathview](skills/transcriptomics/pathview/SKILL.md): Pathview is a stand-alone software package for pathway based data integration and visualization.
+- [ProteoDisco](skills/transcriptomics/proteodisco/SKILL.md) ⭐: ProteoDisco is an R package to facilitate proteogenomics studies. It houses functions to create customized (variant) protein databases based on user-submit
+- [ptairMS](skills/transcriptomics/ptairms/SKILL.md) ⭐: This package implements a suite of methods to preprocess data from PTR-TOF-MS instruments (HDF5 format) and generates the 'sample by features' table of pea
+- [RiboDiPA](skills/transcriptomics/ribodipa/SKILL.md) ⭐: This package performs differential pattern analysis for Ribo-seq data. It identifies genes with significantly different patterns in the ribosome footprint 
+- [scanMiR](skills/transcriptomics/scanmir/SKILL.md) ⭐: A set of tools for working with miRNA affinity models (KdModels), efficiently scanning for miRNA binding sites, and predicting target repression. It suppor
+- [scAnnotatR](skills/transcriptomics/scannotatr/SKILL.md) ⭐: The package comprises a set of pretrained machine learning models to predict basic immune cell types. This enables all users to quickly get a first annotat
+- [SCArray](skills/transcriptomics/scarray/SKILL.md) ⭐: Provides large-scale single-cell omics data manipulation using Genomic Data Structure (GDS) files. It combines dense and sparse matrices stored in GDS file
+- [scater](skills/transcriptomics/scater/SKILL.md): A collection of tools for doing various analyses of single-cell RNA-seq gene expression data, with a focus on quality control and visualization.
+- [sccomp](skills/transcriptomics/sccomp/SKILL.md) ⭐: A robust and outlier-aware method for testing differential tissue composition from single-cell data. This model can infer changes in tissue composition and
+- [scDblFinder](skills/transcriptomics/scdblfinder/SKILL.md): The scDblFinder package gathers various methods for the detection and handling of doublets/multiplets in single-cell sequencing data (i.e. multiple cells c
+- [scDesign3](skills/transcriptomics/scdesign3/SKILL.md) ⭐: We present a statistical simulator, scDesign3, to generate realistic single-cell and spatial omics data, including various cell states, experimental design
+- [scran](skills/transcriptomics/scran/SKILL.md): Implements miscellaneous functions for interpretation of single-cell RNA-seq data. Methods are provided for assignment of cell cycle phase, detection of hi
+- [scuttle](skills/transcriptomics/scuttle/SKILL.md): Provides basic utility functions for performing single-cell analyses, focusing on simple normalization, quality control and data transformations. Also prov
+- [sechm](skills/transcriptomics/sechm/SKILL.md) ⭐: sechm provides a simple interface between SummarizedExperiment objects and the ComplexHeatmap package. It enables plotting annotated heatmaps from SE objec
+- [SGCP](skills/transcriptomics/sgcp/SKILL.md) ⭐: SGC is a semi-supervised pipeline for gene clustering in gene co-expression networks. SGC consists of multiple novel steps that enable the computation of h
+- [siggenes](skills/transcriptomics/siggenes/SKILL.md): Identification of differentially expressed genes and estimation of the False Discovery Rate (FDR) using both the Significance Analysis of Microarrays (SAM)
+- [SimBu](skills/transcriptomics/simbu/SKILL.md) ⭐: SimBu can be used to simulate bulk RNA-seq datasets with known cell type fractions. You can either use your own single-cell study for the simulation or the
+- [simpleSeg](skills/transcriptomics/simpleseg/SKILL.md) ⭐: Image segmentation is the process of identifying the borders of individual objects (in this case cells) within an image. This allows for the features of ce
+- [SingleR](skills/transcriptomics/singler/SKILL.md): Performs unbiased cell type recognition from single-cell RNA sequencing data, by leveraging reference transcriptomic datasets of pure cell types to infer t
+- [spatialDE](skills/transcriptomics/spatialde/SKILL.md) ⭐: SpatialDE is a method to find spatially variable genes (SVG) from spatial transcriptomics data. This package provides wrappers to use the Python SpatialDE 
+- [SpatialExperiment](skills/transcriptomics/spatialexperiment/SKILL.md): Defines an S4 class for storing data from spatial -omics experiments. The class extends SingleCellExperiment to support storage and retrieval of additional
+- [SpliceWiz](skills/transcriptomics/splicewiz/SKILL.md) ⭐: The analysis and visualization of alternative splicing (AS) events from RNA sequencing data remains challenging. SpliceWiz is a user-friendly and performan
+- [SpotClean](skills/transcriptomics/spotclean/SKILL.md) ⭐: SpotClean is a computational method to adjust for spot swapping in spatial transcriptomics data. Recent spatial transcriptomics experiments utilize slides 
+- [SpotSweeper](skills/transcriptomics/spotsweeper/SKILL.md) ⭐: Spatially-aware quality control (QC) software for both spot-level and artifact-level QC in spot-based spatial transcripomics, such as 10x Visium. These met
+- [standR](skills/transcriptomics/standr/SKILL.md) ⭐: standR is an user-friendly R package providing functions to assist conducting good-practice analysis of Nanostring's GeoMX DSP data. All functions in the p
+- [Statial](skills/transcriptomics/statial/SKILL.md) ⭐: Statial is a suite of functions for identifying changes in cell state. The functionality provided by Statial provides robust quantification of cell type lo
+- [sva](skills/transcriptomics/sva/SKILL.md): The sva package contains functions for removing batch effects and other unwanted variation in high-throughput experiment. Specifically, the sva package con
+- [tanggle](skills/transcriptomics/tanggle/SKILL.md) ⭐: Offers functions for plotting split (or implicit) networks (unrooted, undirected) and explicit networks (rooted, directed) with reticulations extending. 'g
+- [TDbasedUFEadv](skills/transcriptomics/tdbasedufeadv/SKILL.md) ⭐: This is an advanced version of TDbasedUFE, which is a comprehensive package to perform Tensor decomposition based unsupervised feature extraction. In contr
+- [TrajectoryUtils](skills/transcriptomics/trajectoryutils/SKILL.md): Implements low-level utilities for single-cell trajectory analysis, primarily intended for re-use inside higher-level packages. Include a function to creat
+- [transformGamPoi](skills/transcriptomics/transformgampoi/SKILL.md) ⭐: Variance-stabilizing transformations help with the analysis of heteroskedastic data (i.e., data where the variance is not constant, like count data). This 
+- [treeio](skills/transcriptomics/treeio/SKILL.md): "'treeio' is an R package to make it easier to import and store phylogenetic tree with associated data; and to link external data from different sources to
+- [treekoR](skills/transcriptomics/treekor/SKILL.md) ⭐: treekoR is a novel framework that aims to utilise the hierarchical nature of single cell cytometry data to find robust and interpretable associations betwe
+- [tximport](skills/transcriptomics/tximport/SKILL.md): "Current version only works in 'merge' mode: A single table of gene summarizations is generated with one column for each sample file."
+- [vissE](skills/transcriptomics/visse/SKILL.md) ⭐: This package enables the interpretation and analysis of results from a gene set enrichment analysis using network-based and text-mining approaches. Most en
+- [Voyager](skills/transcriptomics/voyager/SKILL.md) ⭐: SpatialFeatureExperiment (SFE) is a new S4 class for working with spatial single-cell genomics data. The voyager package implements basic exploratory spati
+- [zenith](skills/transcriptomics/zenith/SKILL.md) ⭐: Zenith performs gene set analysis on the result of differential expression using linear (mixed) modeling with dream by considering the correlation between 
+
+## variant-calling
+- [AnnotationHub](skills/variant-calling/annotationhub/SKILL.md): This package provides a client for the Bioconductor AnnotationHub web resource. The AnnotationHub web resource provides a central location where genomic fi
+- [snpStats](skills/variant-calling/snpstats/SKILL.md): Classes and statistical methods for large SNP association studies. This extends the earlier snpMatrix package, allowing for uncertainty in genotypes.
+- [VariantAnnotation](skills/variant-calling/variantannotation/SKILL.md): Annotate variants, compute amino acid coding changes, predict coding outcomes.
+- [vsn](skills/variant-calling/vsn/SKILL.md): The package implements a method for normalising microarray intensities from single- and multiple-color arrays. It can also be used for data from other tech

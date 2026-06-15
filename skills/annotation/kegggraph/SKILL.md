@@ -1,7 +1,7 @@
 ---
 name: bioconductor-kegggraph
 description: KEGGGraph is an interface between KEGG pathway and graph object as well as a collection of tools to analyze, dissect and visualize these graphs. It parses the regularly updated KGML (KEGG XML) files into graph models maintaining all essenti
-when_to_use: Use when: KGML Parsing: Parsing local or remote KGML (KEGG XML) files into standard R graphNEL objects using parseKGML2Graph.; Pathway Dissection: Subsetting complex pathways into smaller subgraphs based on node types (using subGraphByNodeType) or specific neighborhoods (using subKEGGgraph).; Graph Merging: Combining multiple related pathways (e.g., signaling pathways) into a single unified network using me. Not for: For dynamic visualization, interactive navigation, and manual editing of KEGG pathway diagrams, use KGML-ED instead.; For performing Signaling Pathway Impact Analysis directly without manual graph manipulation, use SPIA instead.; For modern ggplot2-b
+when_to_use: "Use when: KGML Parsing: Parsing local or remote KGML (KEGG XML) files into standard R graphNEL objects using parseKGML2Graph.; Pathway Dissection: Subsetting complex pathways into smaller subgraphs based on node types (using subGraphByNodeType) or specific neighborhoods (using subKEGGgraph).; Graph Merging: Combining multiple related pathways (e.g., signaling pathways) into a single unified network using me. Not for: For dynamic visualization, interactive navigation, and manual editing of KEGG pathway diagrams, use KGML-ED instead.; For performing Signaling Pathway Impact Analysis directly without manual graph manipulation, use SPIA instead.; For modern ggplot2-b"
 user-invocable: false
 ---
 
@@ -57,3 +57,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/KEGGgraph
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/KEGGgraph/inst/doc/KEGGgraph.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `kegggraph`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=kegggraph)** — free to start.
+
+▶ **[Open `kegggraph` on BioMate →](https://www.biomate.ai?ref=kb&pkg=kegggraph)**

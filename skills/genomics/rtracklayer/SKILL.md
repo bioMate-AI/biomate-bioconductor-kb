@@ -1,7 +1,7 @@
 ---
 name: bioconductor-rtracklayer
 description: Extensible framework for interacting with multiple genome browsers (currently UCSC built-in) and manipulating annotation tracks in various formats (currently GFF, BED, bedGraph, BED15, WIG, BigWig and 2bit built-in). The user may export/imp
-when_to_use: Use when: Genomic Track Import/Export: Importing and exporting genomic annotation tracks (e.g., BED, GFF, WIG) into R as GRanges objects using import and export.; UCSC Genome Browser Interaction: Interacting programmatically with the UCSC genome browser via browserSession.; Custom Track Uploads: Uploading custom annotation tracks to a genome browser using the track<- function.; UCSC Table Queries: Querying . Not for: For core manipulation of genomic intervals without file I/O, use GenomicRanges instead.; For parsing raw sequencing alignments, use GenomicAlignments or Rsamtools instead, as rtracklayer is designed for annotation tracks.
+when_to_use: "Use when: Genomic Track Import/Export: Importing and exporting genomic annotation tracks (e.g., BED, GFF, WIG) into R as GRanges objects using import and export.; UCSC Genome Browser Interaction: Interacting programmatically with the UCSC genome browser via browserSession.; Custom Track Uploads: Uploading custom annotation tracks to a genome browser using the track<- function.; UCSC Table Queries: Querying . Not for: For core manipulation of genomic intervals without file I/O, use GenomicRanges instead.; For parsing raw sequencing alignments, use GenomicAlignments or Rsamtools instead, as rtracklayer is designed for annotation tracks."
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/rtracklayer
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/rtracklayer/inst/doc/rtracklayer.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `rtracklayer`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=rtracklayer)** — free to start.
+
+▶ **[Open `rtracklayer` on BioMate →](https://www.biomate.ai?ref=kb&pkg=rtracklayer)**

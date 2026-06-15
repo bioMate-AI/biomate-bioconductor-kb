@@ -1,7 +1,7 @@
 ---
 name: bioconductor-rsamtools
 description: This package provides an interface to the 'samtools', 'bcftools', and 'tabix' utilities for manipulating SAM (Sequence Alignment / Map), FASTA, binary variant call (BCF) and compressed indexed tab-delimited (tabix) files.
-when_to_use: Use when: Low-level Alignment Import: Importing and parsing BAM files directly into R lists or DataFrame objects using scanBam.; Targeted Read Extraction: Extracting specific genomic coordinates and alignment fields (e.g., read sequence, strand, position) using ScanBamParam.; BAM File Management: Managing collections of BAM files and their metadata programmatically using BamViews.; Coverage Calculation: Cal. Not for: For high-level representation of gapped alignments, use GenomicAlignments (specifically readGAlignments) because Rsamtools provides lower-level list-based outputs.; For iterating through BAM files in parallel, use GenomicFiles because it implements h
+when_to_use: "Use when: Low-level Alignment Import: Importing and parsing BAM files directly into R lists or DataFrame objects using scanBam.; Targeted Read Extraction: Extracting specific genomic coordinates and alignment fields (e.g., read sequence, strand, position) using ScanBamParam.; BAM File Management: Managing collections of BAM files and their metadata programmatically using BamViews.; Coverage Calculation: Cal. Not for: For high-level representation of gapped alignments, use GenomicAlignments (specifically readGAlignments) because Rsamtools provides lower-level list-based outputs.; For iterating through BAM files in parallel, use GenomicFiles because it implements h"
 user-invocable: false
 ---
 
@@ -62,3 +62,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/Rsamtools
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/Rsamtools/inst/doc/Rsamtools-Overview.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `rsamtools`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=rsamtools)** — free to start.
+
+▶ **[Open `rsamtools` on BioMate →](https://www.biomate.ai?ref=kb&pkg=rsamtools)**

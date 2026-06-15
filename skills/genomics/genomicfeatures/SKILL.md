@@ -1,7 +1,7 @@
 ---
 name: bioconductor-genomicfeatures
 description: Extract the genomic locations of genes, transcripts, exons, introns, and CDS, for the gene models stored in a TxDb object. A TxDb object is a small database that contains the gene models of a given organism/assembly. Bioconductor provides a
-when_to_use: Use when: Extract genomic coordinates for exons, transcripts, or coding sequences as GRanges objects using transcripts, exons, or cds.; Group genomic features by gene or transcript into a GRangesList using transcriptsBy or exonsBy.; Retrieve actual sequence data by pairing a TxDb with a BSgenome package and using extractTranscriptSeqs.. Not for: For extracting actual sequence data without a BSgenome package (use BSgenome directly instead because GenomicFeatures only stores coordinates).; For finding overlaps between alignments and features without first extracting the features (use findOverl
+when_to_use: "Use when: Extract genomic coordinates for exons, transcripts, or coding sequences as GRanges objects using transcripts, exons, or cds.; Group genomic features by gene or transcript into a GRangesList using transcriptsBy or exonsBy.; Retrieve actual sequence data by pairing a TxDb with a BSgenome package and using extractTranscriptSeqs.. Not for: For extracting actual sequence data without a BSgenome package (use BSgenome directly instead because GenomicFeatures only stores coordinates).; For finding overlaps between alignments and features without first extracting the features (use findOverl"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/GenomicFeatures
 - Vignette: vignette_0_d47eae8b.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `genomicfeatures`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=genomicfeatures)** — free to start.
+
+▶ **[Open `genomicfeatures` on BioMate →](https://www.biomate.ai?ref=kb&pkg=genomicfeatures)**

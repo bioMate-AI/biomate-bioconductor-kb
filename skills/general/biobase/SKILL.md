@@ -1,7 +1,7 @@
 ---
 name: bioconductor-biobase
 description: Functions that are needed by many other packages or which replace R functions.
-when_to_use: Use when: Coordinating high-throughput genomic data (e.g., microarray expression values) and phenotype metadata into a single, structured ExpressionSet object.; Evaluating statistical functions across sample strata defined by covariates using esApply.; Updating older, serialized instances of Bioconductor objects to their current class representations using updateObject().. Not for: For modern single-cell or range-based sequencing data, use SummarizedExperiment or SingleCellExperiment instead because they natively support genomic coordinates and scale better to sparse, multi-assay datasets.; For purely tabular data manipulation,
+when_to_use: "Use when: Coordinating high-throughput genomic data (e.g., microarray expression values) and phenotype metadata into a single, structured ExpressionSet object.; Evaluating statistical functions across sample strata defined by covariates using esApply.; Updating older, serialized instances of Bioconductor objects to their current class representations using updateObject().. Not for: For modern single-cell or range-based sequencing data, use SummarizedExperiment or SingleCellExperiment instead because they natively support genomic coordinates and scale better to sparse, multi-assay datasets.; For purely tabular data manipulation,"
 user-invocable: false
 ---
 
@@ -62,3 +62,12 @@ Functions that are needed by many other packages or which replace R functions.
 ## References
 - Homepage: https://bioconductor.org/packages/Biobase
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `biobase`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=biobase)** — free to start.
+
+▶ **[Open `biobase` on BioMate →](https://www.biomate.ai?ref=kb&pkg=biobase)**

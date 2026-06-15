@@ -1,7 +1,7 @@
 ---
 name: bioconductor-phyloseq
 description: phyloseq provides a set of classes and tools to facilitate the import, storage, analysis, and graphical display of microbiome census data.
-when_to_use: Use when: Importing and storing complex phylogenetic sequencing data (OTU tables, sample metadata, taxonomy, trees) into a single object using import().; Estimating and visualizing alpha diversity using plot_richness() with measures like "Chao1" or "Shannon".; Performing beta diversity ordination (e.g., PCoA, NMDS, CCA) using ordinate() and visualizing the results with plot_ordination().; Creating explorato. Not for: For advanced network analysis beyond basic ecological similarity, use igraph directly because plot_net() provides only a default Jaccard co-occurrence network.; For complex custom plotting beyond standard wrappers, use ggplot2 directly because phylos
+when_to_use: "Use when: Importing and storing complex phylogenetic sequencing data (OTU tables, sample metadata, taxonomy, trees) into a single object using import().; Estimating and visualizing alpha diversity using plot_richness() with measures like \"Chao1\" or \"Shannon\".; Performing beta diversity ordination (e.g., PCoA, NMDS, CCA) using ordinate() and visualizing the results with plot_ordination().; Creating explorato. Not for: For advanced network analysis beyond basic ecological similarity, use igraph directly because plot_net() provides only a default Jaccard co-occurrence network.; For complex custom plotting beyond standard wrappers, use ggplot2 directly because phylos"
 user-invocable: false
 ---
 
@@ -61,3 +61,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/phyloseq
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/phyloseq/inst/doc/phyloseq-analysis.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `phyloseq`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=phyloseq)** — free to start.
+
+▶ **[Open `phyloseq` on BioMate →](https://www.biomate.ai?ref=kb&pkg=phyloseq)**

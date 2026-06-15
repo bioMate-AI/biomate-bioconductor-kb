@@ -1,7 +1,7 @@
 ---
 name: bioconductor-geneplotter
 description: Functions for plotting genomic data
-when_to_use: Use when: Visualizing microarray or high-throughput genomic data along chromosomes using cPlot and cColor.; Plotting characteristics of expression levels over contiguous regions of a single chromosome using alongChrom.; Assembling and plotting chromLocation objects to map experimental probe data to physical chromosome locations via buildChromLocation.. Not for: For modern, highly customizable genomic track visualizations (e.g., plotting RNA-seq coverage, BAM alignments, and gene annotations together), use Gviz or ggbio instead.; For general-purpose high-dimensional data visualization (like PCA, t-SNE, or vo
+when_to_use: "Use when: Visualizing microarray or high-throughput genomic data along chromosomes using cPlot and cColor.; Plotting characteristics of expression levels over contiguous regions of a single chromosome using alongChrom.; Assembling and plotting chromLocation objects to map experimental probe data to physical chromosome locations via buildChromLocation.. Not for: For modern, highly customizable genomic track visualizations (e.g., plotting RNA-seq coverage, BAM alignments, and gene annotations together), use Gviz or ggbio instead.; For general-purpose high-dimensional data visualization (like PCA, t-SNE, or vo"
 user-invocable: false
 ---
 
@@ -57,3 +57,12 @@ Functions for plotting genomic data.
 ## References
 - Homepage: https://bioconductor.org/packages/geneplotter
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/geneplotter/inst/doc/visualizing.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `geneplotter`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=geneplotter)** — free to start.
+
+▶ **[Open `geneplotter` on BioMate →](https://www.biomate.ai?ref=kb&pkg=geneplotter)**

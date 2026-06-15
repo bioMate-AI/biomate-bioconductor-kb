@@ -1,7 +1,7 @@
 ---
 name: bioconductor-gypsum
-description: Client for the gypsum REST API (https://gypsum.artifactdb.com), a cloud-based file store in the ArtifactDB ecosystem. This package provides functions for uploads, downloads, and various adminstrative and management tasks. Check out the docu
-when_to_use: Use when: Programmatically downloading files, manifests, and summaries from the gypsum bucket using saveFile, saveVersion, fetchManifest, and fetchSummary.; Uploading files to the gypsum backend using the upload sequence: startUpload, uploadFiles, and completeUpload.; Creating new versions of existing assets efficiently by deduplicating redundant files using cloneVersion and prepareDirectoryUpload.; Validat. Not for: For general-purpose cloud storage interactions (like raw Google Cloud Storage buckets) without an ArtifactDB backend, use packages like googleCloudStorageR instead.; For downloading standard Bioconductor package source files or annotation resources, 
+description: "Client for the gypsum REST API (https://gypsum.artifactdb.com), a cloud-based file store in the ArtifactDB ecosystem. This package provides functions for uploads, downloads, and various adminstrative and management tasks. Check out the docu"
+when_to_use: "Use when: Programmatically downloading files, manifests, and summaries from the gypsum bucket using saveFile, saveVersion, fetchManifest, and fetchSummary.; Uploading files to the gypsum backend using the upload sequence: startUpload, uploadFiles, and completeUpload.; Creating new versions of existing assets efficiently by deduplicating redundant files using cloneVersion and prepareDirectoryUpload.; Validat. Not for: For general-purpose cloud storage interactions (like raw Google Cloud Storage buckets) without an ArtifactDB backend, use packages like googleCloudStorageR instead.; For downloading standard Bioconductor package source files or annotation resources,"
 user-invocable: false
 ---
 
@@ -62,3 +62,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/gypsum
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/gypsum/inst/doc/userguide.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `gypsum`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=gypsum)** — free to start.
+
+▶ **[Open `gypsum` on BioMate →](https://www.biomate.ai?ref=kb&pkg=gypsum)**

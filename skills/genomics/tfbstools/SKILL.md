@@ -1,7 +1,7 @@
 ---
 name: bioconductor-tfbstools
 description: TFBSTools is a package for the analysis and manipulation of transcription factor binding sites. It includes matrices conversion between Position Frequency Matirx (PFM), Position Weight Matirx (PWM) and Information Content Matrix (ICM). It c
-when_to_use: Use when: Matrix Conversion: Converting Position Frequency Matrices (PFMs) to Position Weight Matrices (PWMs) or Information Content Matrices (ICMs) using toPWM and toICM.; Motif Scanning: Scanning nucleotide sequences or pairwise alignments for transcription factor binding sites using searchSeq or searchAln.; Database Querying: Querying and retrieving matrix data from the JASPAR database using getMatrixSet. Not for: For high-throughput scanning of thousands of large genomic regions, use motifmatchr instead, because searchSeq is optimized for targeted DNAString or DNAStringSet objects rather than massive GRanges peak sets.; For de novo motif discovery without ext
+when_to_use: "Use when: Matrix Conversion: Converting Position Frequency Matrices (PFMs) to Position Weight Matrices (PWMs) or Information Content Matrices (ICMs) using toPWM and toICM.; Motif Scanning: Scanning nucleotide sequences or pairwise alignments for transcription factor binding sites using searchSeq or searchAln.; Database Querying: Querying and retrieving matrix data from the JASPAR database using getMatrixSet. Not for: For high-throughput scanning of thousands of large genomic regions, use motifmatchr instead, because searchSeq is optimized for targeted DNAString or DNAStringSet objects rather than massive GRanges peak sets.; For de novo motif discovery without ext"
 user-invocable: false
 ---
 
@@ -64,3 +64,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/TFBSTools
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/TFBSTools/inst/doc/TFBSTools.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `tfbstools`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=tfbstools)** — free to start.
+
+▶ **[Open `tfbstools` on BioMate →](https://www.biomate.ai?ref=kb&pkg=tfbstools)**

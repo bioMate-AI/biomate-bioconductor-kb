@@ -1,7 +1,7 @@
 ---
 name: bioconductor-mzid
 description: A parser for mzIdentML files implemented using the XML package. The parser tries to be general and able to handle all types of mzIdentML files with the drawback of having less 'pretty' output than a vendor specific parser. Please contact th
-when_to_use: Use when: Parsing mzIdentML Files: Reading HUPO-PSI standard mzIdentML (.mzid) files containing peptide and protein identification results using the mzID() function.; Data Flattening: Converting complex, nested structures of mzIdentML files into flat, easy-to-manipulate R data.frame objects using the flatten() function.; Metadata Extraction: Extracting search database details, peptide-spectrum matches (PSMs. Not for: For parsing raw mass spectrometry spectra (mzML, mzXML) or quantitative data (mzQuantML), use mzR instead because mzID only parses identification files.; For high-level quantitative proteomics data manipulation, use MSnbase instead because mzID is st
+when_to_use: "Use when: Parsing mzIdentML Files: Reading HUPO-PSI standard mzIdentML (.mzid) files containing peptide and protein identification results using the mzID() function.; Data Flattening: Converting complex, nested structures of mzIdentML files into flat, easy-to-manipulate R data.frame objects using the flatten() function.; Metadata Extraction: Extracting search database details, peptide-spectrum matches (PSMs. Not for: For parsing raw mass spectrometry spectra (mzML, mzXML) or quantitative data (mzQuantML), use mzR instead because mzID only parses identification files.; For high-level quantitative proteomics data manipulation, use MSnbase instead because mzID is st"
 user-invocable: false
 ---
 
@@ -51,3 +51,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/mzID
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/mzID/inst/doc/mzID.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `mzid`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=mzid)** — free to start.
+
+▶ **[Open `mzid` on BioMate →](https://www.biomate.ai?ref=kb&pkg=mzid)**

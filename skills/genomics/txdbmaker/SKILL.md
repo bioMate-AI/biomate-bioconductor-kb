@@ -1,7 +1,7 @@
 ---
 name: bioconductor-txdbmaker
 description: A set of tools for making TxDb objects from genomic annotations from various sources (e.g. UCSC, Ensembl, and GFF files). These tools allow the user to download the genomic locations of transcripts, exons, and CDS, for a given assembly, and
-when_to_use: Use when: Creating TxDb objects from UCSC Genome Browser transcript tables using makeTxDbFromUCSC.; Retrieving and assembling transcript annotations from BioMart datasets using makeTxDbFromBiomart.; Extracting transcript information directly from GFF3 or GTF files using makeTxDbFromGFF.; Saving and loading created TxDb objects to/from SQLite database files using saveDb and loadDb to avoid repeated download . Not for: For extracting features (like transcripts, exons, and CDS) from an already created TxDb object, use GenomicFeatures instead, which implements the flexible extraction methods.; For creating TxDb objects from unsupported BioMart datasets (not all BioMa
+when_to_use: "Use when: Creating TxDb objects from UCSC Genome Browser transcript tables using makeTxDbFromUCSC.; Retrieving and assembling transcript annotations from BioMart datasets using makeTxDbFromBiomart.; Extracting transcript information directly from GFF3 or GTF files using makeTxDbFromGFF.; Saving and loading created TxDb objects to/from SQLite database files using saveDb and loadDb to avoid repeated download . Not for: For extracting features (like transcripts, exons, and CDS) from an already created TxDb object, use GenomicFeatures instead, which implements the flexible extraction methods.; For creating TxDb objects from unsupported BioMart datasets (not all BioMa"
 user-invocable: false
 ---
 
@@ -58,3 +58,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/txdbmaker
 - Vignette: vignette_0_4310e349.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `txdbmaker`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=txdbmaker)** — free to start.
+
+▶ **[Open `txdbmaker` on BioMate →](https://www.biomate.ai?ref=kb&pkg=txdbmaker)**

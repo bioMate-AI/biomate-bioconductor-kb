@@ -1,7 +1,7 @@
 ---
 name: bioconductor-singler
 description: Performs unbiased cell type recognition from single-cell RNA sequencing data, by leveraging reference transcriptomic datasets of pure cell types to infer the cell of origin of each single cell independently.
-when_to_use: Use when: Annotating unlabelled single-cell datasets using pre-labelled reference datasets (e.g., HumanPrimaryCellAtlasData()).; Propagating biological knowledge to new datasets in an automated manner without manually interpreting clusters.; Resolving closely related cell type labels using fine-tuning.. Not for: For unsupervised clustering without a reference (use scran instead because SingleR requires known labels).; For manual marker gene definition and cluster interpretation (use Seurat instead because SingleR automates this using a reference).
+when_to_use: "Use when: Annotating unlabelled single-cell datasets using pre-labelled reference datasets (e.g., HumanPrimaryCellAtlasData()).; Propagating biological knowledge to new datasets in an automated manner without manually interpreting clusters.; Resolving closely related cell type labels using fine-tuning.. Not for: For unsupervised clustering without a reference (use scran instead because SingleR requires known labels).; For manual marker gene definition and cluster interpretation (use Seurat instead because SingleR automates this using a reference)."
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/SingleR
 - Vignette: vignette_0_9645ffcc.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `singler`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=singler)** — free to start.
+
+▶ **[Open `singler` on BioMate →](https://www.biomate.ai?ref=kb&pkg=singler)**

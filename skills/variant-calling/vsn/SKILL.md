@@ -1,7 +1,7 @@
 ---
 name: bioconductor-vsn
 description: The package implements a method for normalising microarray intensities from single- and multiple-color arrays. It can also be used for data from other technologies, as long as they have similar format. The method uses a robust variant of th
-when_to_use: Use when: Microarray Normalization: Normalizing and variance-stabilizing unnormalised microarray intensity data (e.g., two-colour spotted cDNA arrays or single-colour arrays) using justvsn or vsn2.; Affymetrix Preprocessing: Applying variance stabilization, background correction, and transformation to Affymetrix genechip data via the vsnrma wrapper.; Reference-Based Normalization: Normalizing new test array. Not for: For summarizing Affymetrix data without VSN's specific variance stabilization, use rma from the affy package because it provides standard robust multi-array average summarization.; For addressing variance dependencies on factors other than the mean i
+when_to_use: "Use when: Microarray Normalization: Normalizing and variance-stabilizing unnormalised microarray intensity data (e.g., two-colour spotted cDNA arrays or single-colour arrays) using justvsn or vsn2.; Affymetrix Preprocessing: Applying variance stabilization, background correction, and transformation to Affymetrix genechip data via the vsnrma wrapper.; Reference-Based Normalization: Normalizing new test array. Not for: For summarizing Affymetrix data without VSN's specific variance stabilization, use rma from the affy package because it provides standard robust multi-array average summarization.; For addressing variance dependencies on factors other than the mean i"
 user-invocable: false
 ---
 
@@ -65,3 +65,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/vsn
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/vsn/inst/doc/vsn.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `vsn`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=vsn)** — free to start.
+
+▶ **[Open `vsn` on BioMate →](https://www.biomate.ai?ref=kb&pkg=vsn)**

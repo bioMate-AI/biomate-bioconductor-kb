@@ -1,7 +1,7 @@
 ---
 name: bioconductor-ebimage
 description: EBImage provides general purpose functionality for image processing and analysis. In the context of (high-throughput) microscopy-based cellular assays, EBImage offers tools to segment cells and extract quantitative cellular descriptors. Thi
-when_to_use: Use when: General Image Manipulation: Reading, writing, and displaying multi-dimensional images (JPEG, PNG, TIFF) using readImage, writeImage, and display.; Spatial Transformations: Applying geometric transformations such as translate, rotate, resize, flip, flop, and affine to image arrays.; Image Filtering: Removing noise or detecting edges using linear filters (filter2, gblur) or non-linear filters (media. Not for: Interactive Whole-Slide Analysis: For interactive, manual annotation of large whole-slide tissue images, use QuPath instead because EBImage is designed for programmatic, batch-oriented processing.; Advanced 3D/4D Rendering: For complex 3D volumetric 
+when_to_use: "Use when: General Image Manipulation: Reading, writing, and displaying multi-dimensional images (JPEG, PNG, TIFF) using readImage, writeImage, and display.; Spatial Transformations: Applying geometric transformations such as translate, rotate, resize, flip, flop, and affine to image arrays.; Image Filtering: Removing noise or detecting edges using linear filters (filter2, gblur) or non-linear filters (media. Not for: Interactive Whole-Slide Analysis: For interactive, manual annotation of large whole-slide tissue images, use QuPath instead because EBImage is designed for programmatic, batch-oriented processing.; Advanced 3D/4D Rendering: For complex 3D volumetric"
 user-invocable: false
 ---
 
@@ -61,3 +61,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/EBImage
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/EBImage/inst/doc/EBImage-introduction.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `ebimage`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=ebimage)** — free to start.
+
+▶ **[Open `ebimage` on BioMate →](https://www.biomate.ai?ref=kb&pkg=ebimage)**

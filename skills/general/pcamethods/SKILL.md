@@ -1,7 +1,7 @@
 ---
 name: bioconductor-pcamethods
 description: Provides Bayesian PCA, Probabilistic PCA, Nipals PCA, Inverse Non-Linear PCA and the conventional SVD PCA. A cluster based method for missing value estimation is included for comparison. BPCA, PPCA and NipalsPCA may be used to perform PCA o
-when_to_use: Use when: Handling Outliers: When performing PCA on metabolite or microarray data corrupted with extreme values using a robust singular value decomposition (method="robustPca").; Missing Value Imputation: When estimating missing values (NA) in incomplete datasets using Probabilistic PCA (method="ppca") or Nipals (method="nipals").; Algorithm Comparison: When comparing multiple PCA formulations (e.g., "svd",. Not for: Sparse Single-Cell Data: For single-cell RNA-seq data with high dropout rates, use scry or GLM-PCA instead because they model the count distribution directly.; Complete Datasets: For standard, complete matrices without missing values or outliers, use
+when_to_use: "Use when: Handling Outliers: When performing PCA on metabolite or microarray data corrupted with extreme values using a robust singular value decomposition (method=\"robustPca\").; Missing Value Imputation: When estimating missing values (NA) in incomplete datasets using Probabilistic PCA (method=\"ppca\") or Nipals (method=\"nipals\").; Algorithm Comparison: When comparing multiple PCA formulations (e.g., \"svd\",. Not for: Sparse Single-Cell Data: For single-cell RNA-seq data with high dropout rates, use scry or GLM-PCA instead because they model the count distribution directly.; Complete Datasets: For standard, complete matrices without missing values or outliers, use"
 user-invocable: false
 ---
 
@@ -65,3 +65,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/pcaMethods
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/pcaMethods/inst/doc/pcaMethods.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `pcamethods`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=pcamethods)** — free to start.
+
+▶ **[Open `pcamethods` on BioMate →](https://www.biomate.ai?ref=kb&pkg=pcamethods)**

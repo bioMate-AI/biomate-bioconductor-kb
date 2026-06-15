@@ -1,7 +1,7 @@
 ---
 name: bioconductor-trajectoryutils
 description: Implements low-level utilities for single-cell trajectory analysis, primarily intended for re-use inside higher-level packages. Include a function to create a cluster-level minimum spanning tree and data structures to hold pseudotime infere
-when_to_use: Use when: Developing custom single-cell trajectory inference workflows or extending existing packages.; Constructing cluster-level minimum spanning trees (MST) from low-dimensional single-cell embeddings using createClusterMST().; Standardizing pseudotime inference results and path structures using the PseudotimeOrdering class.; Guessing possible root nodes for trajectory paths using guessMSTRoots().. Not for: For end-to-end, user-friendly trajectory analysis with built-in visualization, use slingshot or TSCAN instead because TrajectoryUtils provides low-level developer utilities rather than high-level inference.; For standard clustering or dimensionality 
+when_to_use: "Use when: Developing custom single-cell trajectory inference workflows or extending existing packages.; Constructing cluster-level minimum spanning trees (MST) from low-dimensional single-cell embeddings using createClusterMST().; Standardizing pseudotime inference results and path structures using the PseudotimeOrdering class.; Guessing possible root nodes for trajectory paths using guessMSTRoots().. Not for: For end-to-end, user-friendly trajectory analysis with built-in visualization, use slingshot or TSCAN instead because TrajectoryUtils provides low-level developer utilities rather than high-level inference.; For standard clustering or dimensionality"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/TrajectoryUtils
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/TrajectoryUtils/inst/doc/TrajectoryUtils.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `trajectoryutils`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=trajectoryutils)** — free to start.
+
+▶ **[Open `trajectoryutils` on BioMate →](https://www.biomate.ai?ref=kb&pkg=trajectoryutils)**

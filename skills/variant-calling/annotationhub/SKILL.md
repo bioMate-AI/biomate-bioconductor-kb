@@ -1,7 +1,7 @@
 ---
 name: bioconductor-annotationhub
 description: This package provides a client for the Bioconductor AnnotationHub web resource. The AnnotationHub web resource provides a central location where genomic files (e.g., VCF, bed, wig) and other resources from standard locations (e.g., UCSC, En
-when_to_use: Use when: Download organism annotation databases (OrgDb, TxDb, EnsDb); Get GTF/GFF files, chain files, FASTA sequences for any organism; Access reference genome resources without manual downloads
+when_to_use: "Use when: Download organism annotation databases (OrgDb, TxDb, EnsDb); Get GTF/GFF files, chain files, FASTA sequences for any organism; Access reference genome resources without manual downloads"
 user-invocable: false
 ---
 
@@ -305,3 +305,12 @@ ah2 = refreshHub(hubClass="AnnotationHub")
 - **Paper:** Morgan M et al. (2021). Bioconductor package.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `annotationhub`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=annotationhub)** — free to start.
+
+▶ **[Open `annotationhub` on BioMate →](https://www.biomate.ai?ref=kb&pkg=annotationhub)**

@@ -1,7 +1,7 @@
 ---
 name: bioconductor-dada2
 description: The dada2 package infers exact amplicon sequence variants (ASVs) from high-throughput amplicon sequencing data, replacing the coarser and less accurate OTU clustering approach. The dada2 pipeline takes as input demultiplexed fastq files, an
-when_to_use: Use when: Resolving exact Amplicon Sequence Variants (ASVs) from high-throughput amplicon sequencing data using the dada algorithm.; Filtering and trimming raw paired-end or single-end FASTQ files using filterAndTrim.; Modeling and learning sequencing error rates directly from the data using learnErrors.; Removing chimeric sequences from merged sequence tables using removeBimeraDenovo.. Not for: For shotgun metagenomic sequencing data (use MetaPhlAn or HUMAnN instead).; For clustering sequences based on a fixed 97% identity threshold (use vsearch or UCLUST instead).; For downstream ecological statistics and visualization of ASV tables (use p
+when_to_use: "Use when: Resolving exact Amplicon Sequence Variants (ASVs) from high-throughput amplicon sequencing data using the dada algorithm.; Filtering and trimming raw paired-end or single-end FASTQ files using filterAndTrim.; Modeling and learning sequencing error rates directly from the data using learnErrors.; Removing chimeric sequences from merged sequence tables using removeBimeraDenovo.. Not for: For shotgun metagenomic sequencing data (use MetaPhlAn or HUMAnN instead).; For clustering sequences based on a fixed 97% identity threshold (use vsearch or UCLUST instead).; For downstream ecological statistics and visualization of ASV tables (use p"
 user-invocable: false
 ---
 
@@ -64,3 +64,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/dada2
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/dada2/inst/doc/dada2-intro.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `dada2`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=dada2)** — free to start.
+
+▶ **[Open `dada2` on BioMate →](https://www.biomate.ai?ref=kb&pkg=dada2)**

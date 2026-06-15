@@ -1,7 +1,7 @@
 ---
 name: bioconductor-residualmatrix
 description: Provides delayed computation of a matrix of residuals after fitting a linear model to each column of an input matrix. Also supports partial computation of residuals where selected factors are to be preserved in the output matrix. Implements
-when_to_use: Use when: Memory-Efficient Residuals: When computing residuals on large sparse matrices (e.g., rsparsematrix) where explicitly calculating a dense matrix of residuals would exhaust memory.; Approximate PCA: When performing randomized SVD or PCA on residuals using BiocSingular::runPCA() without ever materializing the full residual matrix.; Partial Factor Retention: When regressing out uninteresting covariate. Not for: Explicit Dense Matrices: When downstream tools strictly require an explicit, fully materialized dense matrix in memory, use limma::removeBatchEffect() instead.; Small Datasets: For small datasets where memory is not a constraint, standard in-memory m
+when_to_use: "Use when: Memory-Efficient Residuals: When computing residuals on large sparse matrices (e.g., rsparsematrix) where explicitly calculating a dense matrix of residuals would exhaust memory.; Approximate PCA: When performing randomized SVD or PCA on residuals using BiocSingular::runPCA() without ever materializing the full residual matrix.; Partial Factor Retention: When regressing out uninteresting covariate. Not for: Explicit Dense Matrices: When downstream tools strictly require an explicit, fully materialized dense matrix in memory, use limma::removeBatchEffect() instead.; Small Datasets: For small datasets where memory is not a constraint, standard in-memory m"
 user-invocable: false
 ---
 
@@ -55,3 +55,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/ResidualMatrix
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/ResidualMatrix/inst/doc/ResidualMatrix.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `residualmatrix`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=residualmatrix)** — free to start.
+
+▶ **[Open `residualmatrix` on BioMate →](https://www.biomate.ai?ref=kb&pkg=residualmatrix)**

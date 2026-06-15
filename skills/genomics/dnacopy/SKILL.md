@@ -1,7 +1,7 @@
 ---
 name: bioconductor-dnacopy
 description: Implements the circular binary segmentation (CBS) algorithm to segment DNA copy number data and identify genomic regions with abnormal copy number.
-when_to_use: Use when: Copy Number Segmentation: Finding change-points in array DNA copy number data (e.g., array CGH) using the segment() function.; Identifying Gains and Losses: Determining regions of gained and lost copy number by plotting segment means with plot().; Outlier Smoothing: Smoothing single point outliers in log-ratio data prior to segmentation using smooth.CNA().. Not for: For allele-specific copy number estimation or tumor purity/ploidy correction, use PureCN because DNAcopy only segments total copy number.; For single-cell DNA copy number profiling where specialized noise models are required, use AneuFinder because D
+when_to_use: "Use when: Copy Number Segmentation: Finding change-points in array DNA copy number data (e.g., array CGH) using the segment() function.; Identifying Gains and Losses: Determining regions of gained and lost copy number by plotting segment means with plot().; Outlier Smoothing: Smoothing single point outliers in log-ratio data prior to segmentation using smooth.CNA().. Not for: For allele-specific copy number estimation or tumor purity/ploidy correction, use PureCN because DNAcopy only segments total copy number.; For single-cell DNA copy number profiling where specialized noise models are required, use AneuFinder because D"
 user-invocable: false
 ---
 
@@ -63,3 +63,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/DNAcopy
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/DNAcopy/inst/doc/DNAcopy.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `dnacopy`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=dnacopy)** — free to start.
+
+▶ **[Open `dnacopy` on BioMate →](https://www.biomate.ai?ref=kb&pkg=dnacopy)**

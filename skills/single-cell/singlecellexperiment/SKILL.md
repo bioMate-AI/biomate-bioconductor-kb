@@ -1,7 +1,7 @@
 ---
 name: bioconductor-singlecellexperiment
 description: Defines a S4 class for storing data from single-cell experiments. This includes specialized methods to store and retrieve spike-in information, dimensionality reduction coordinates and size factors for each cell, along with the usual metada
-when_to_use: Use when: Store and manipulate scRNA-seq count matrices + metadata; Add dimensionality reductions (PCA, UMAP, t-SNE) to the object; Track multiple assay representations (counts, logcounts, normalized); Pass data between Bioconductor scRNA-seq tools (scran, scater, batchelor)
+when_to_use: "Use when: Store and manipulate scRNA-seq count matrices + metadata; Add dimensionality reductions (PCA, UMAP, t-SNE) to the object; Track multiple assay representations (counts, logcounts, normalized); Pass data between Bioconductor scRNA-seq tools (scran, scater, batchelor)"
 user-invocable: false
 ---
 
@@ -402,3 +402,12 @@ Manipulation of these internal fields in other packages is possible but requires
 - **Paper:** Amezquita RA et al. (2020). Nature Methods, 17:137-145.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `singlecellexperiment`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=singlecellexperiment)** — free to start.
+
+▶ **[Open `singlecellexperiment` on BioMate →](https://www.biomate.ai?ref=kb&pkg=singlecellexperiment)**

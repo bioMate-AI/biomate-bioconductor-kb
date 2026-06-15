@@ -1,7 +1,7 @@
 ---
 name: bioconductor-scdblfinder
 description: The scDblFinder package gathers various methods for the detection and handling of doublets/multiplets in single-cell sequencing data (i.e. multiple cells captured within the same droplet or reaction volume). It includes methods formerly fou
-when_to_use: Use when: Identifying heterotypic doublets in single-cell RNA sequencing data using the scDblFinder iterative classifier.; Detecting doublets in multiplexed samples by processing each capture separately using the samples argument.; Testing for specific doublet type enrichments (e.g., combinations of clusters) using doubletPairwiseEnrichment or clusterStickiness.; Recovering intra-sample doublets that are ne. Not for: For identifying homotypic doublets or inter-sample doublets in multiplexed experiments (use cell hashing or genotype-based SNP calls instead, as scDblFinder focuses on transcriptionally distinct heterotypic doublets).
+when_to_use: "Use when: Identifying heterotypic doublets in single-cell RNA sequencing data using the scDblFinder iterative classifier.; Detecting doublets in multiplexed samples by processing each capture separately using the samples argument.; Testing for specific doublet type enrichments (e.g., combinations of clusters) using doubletPairwiseEnrichment or clusterStickiness.; Recovering intra-sample doublets that are ne. Not for: For identifying homotypic doublets or inter-sample doublets in multiplexed experiments (use cell hashing or genotype-based SNP calls instead, as scDblFinder focuses on transcriptionally distinct heterotypic doublets)."
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/scDblFinder
 - Vignette: vignette_0_d20f7c0c.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `scdblfinder`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=scdblfinder)** — free to start.
+
+▶ **[Open `scdblfinder` on BioMate →](https://www.biomate.ai?ref=kb&pkg=scdblfinder)**

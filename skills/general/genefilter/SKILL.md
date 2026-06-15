@@ -1,7 +1,7 @@
 ---
 name: bioconductor-genefilter
 description: Some basic functions for filtering genes.
-when_to_use: Use when: Filtering genes from a microarray or expression dataset according to specific or non-specific filtering mechanisms using genefilter.; Selecting genes that have an expression measure above a certain threshold in at least a minimum number of samples using kOverA.; Finding genes that are close to specific genes of interest based on distance measures using genefinder.; Performing independent filtering. Not for: For modern RNA-seq count-based differential expression; use DESeq2 or edgeR built-in filtering because they are optimized for negative binomial distributions.; For single-cell RNA-seq data; use scran or Seurat because they handle high sparsity and dr
+when_to_use: "Use when: Filtering genes from a microarray or expression dataset according to specific or non-specific filtering mechanisms using genefilter.; Selecting genes that have an expression measure above a certain threshold in at least a minimum number of samples using kOverA.; Finding genes that are close to specific genes of interest based on distance measures using genefinder.; Performing independent filtering. Not for: For modern RNA-seq count-based differential expression; use DESeq2 or edgeR built-in filtering because they are optimized for negative binomial distributions.; For single-cell RNA-seq data; use scran or Seurat because they handle high sparsity and dr"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/genefilter
 - Vignette: vignette_0_5fb6bf3b.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `genefilter`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=genefilter)** — free to start.
+
+▶ **[Open `genefilter` on BioMate →](https://www.biomate.ai?ref=kb&pkg=genefilter)**

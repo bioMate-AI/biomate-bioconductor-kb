@@ -1,7 +1,7 @@
 ---
 name: bioconductor-illuminaio
 description: Tools for parsing Illumina's microarray output files, including IDAT.
-when_to_use: Use when: Raw IDAT parsing: Reading raw binary Illumina IDAT files from expression or genotyping microarrays using readIDAT.; Metadata extraction: Extracting per-bead-type values (e.g., MeanBinData, NumBeadsBinData, DevBinData) directly from Illumina BeadChip platforms.; Custom pipeline building: Providing a mechanism for developers of downstream analysis packages to extract all possible information from ID. Not for: High-level analysis: For end-to-end normalization and differential expression analysis, use downstream packages because illuminaio is strictly designed for raw file parsing and leaves data retention choices to the user.; Affymetrix microarrays: For A
+when_to_use: "Use when: Raw IDAT parsing: Reading raw binary Illumina IDAT files from expression or genotyping microarrays using readIDAT.; Metadata extraction: Extracting per-bead-type values (e.g., MeanBinData, NumBeadsBinData, DevBinData) directly from Illumina BeadChip platforms.; Custom pipeline building: Providing a mechanism for developers of downstream analysis packages to extract all possible information from ID. Not for: High-level analysis: For end-to-end normalization and differential expression analysis, use downstream packages because illuminaio is strictly designed for raw file parsing and leaves data retention choices to the user.; Affymetrix microarrays: For A"
 user-invocable: false
 ---
 
@@ -50,3 +50,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/illuminaio
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/illuminaio/inst/doc/Description_of_Encrypted_IDAT_Format.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `illuminaio`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=illuminaio)** — free to start.
+
+▶ **[Open `illuminaio` on BioMate →](https://www.biomate.ai?ref=kb&pkg=illuminaio)**

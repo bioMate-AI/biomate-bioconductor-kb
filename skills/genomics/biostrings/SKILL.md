@@ -1,7 +1,7 @@
 ---
 name: bioconductor-biostrings
 description: Memory efficient string containers, string matching algorithms, and other utilities, for fast manipulation of large biological sequences or sets of sequences.
-when_to_use: Use when: Representing and manipulating biological sequences using specialized classes like BString, DNAString, and RNAString.; Matching sets of probes against each other using PDict and vcountPDict.; Computing base content (e.g., GC content) of sequences using alphabetFrequency.; Handling and masking multiple sequence alignments (DNA, RNA, or amino acids) using DNAMultipleAlignment and rowmask/colmask.; Ca. Not for: For standard character string manipulation not involving biological sequences; use base R character vectors or stringr instead because they have less overhead.; For ultra-fast, genome-scale alignment of millions of short sequencing reads; use externa
+when_to_use: "Use when: Representing and manipulating biological sequences using specialized classes like BString, DNAString, and RNAString.; Matching sets of probes against each other using PDict and vcountPDict.; Computing base content (e.g., GC content) of sequences using alphabetFrequency.; Handling and masking multiple sequence alignments (DNA, RNA, or amino acids) using DNAMultipleAlignment and rowmask/colmask.; Ca. Not for: For standard character string manipulation not involving biological sequences; use base R character vectors or stringr instead because they have less overhead.; For ultra-fast, genome-scale alignment of millions of short sequencing reads; use externa"
 user-invocable: false
 ---
 
@@ -63,3 +63,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/Biostrings
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/Biostrings/inst/doc/BiostringsQuickOverview.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `biostrings`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=biostrings)** — free to start.
+
+▶ **[Open `biostrings` on BioMate →](https://www.biomate.ai?ref=kb&pkg=biostrings)**

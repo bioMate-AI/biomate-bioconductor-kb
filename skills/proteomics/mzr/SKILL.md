@@ -1,7 +1,7 @@
 ---
 name: bioconductor-mzr
 description: mzR provides a unified API to the common file formats and parsers available for mass spectrometry data. It comes with a subset of the proteowizard library for mzXML, mzML and mzIdentML. The netCDF reading code has previously been used in XC
-when_to_use: Use when: Low-Level Raw Data Access: High-performance reading of raw mass spectrometry data formats (mzML, mzXML, netCDF) using openMSfile().; Metadata Extraction: Accessing metadata, instrument configurations, run summaries, and individual scan headers from raw MS files using runInfo(), instrumentInfo(), and header().; Spectral Extraction: Extracting raw mass spectra (m/z and intensity arrays) using the pe. Not for: For high-level, user-friendly mass spectrometry data manipulation and processing, use MSnbase instead because mzR is strictly a low-level data access API.; For high-level metabolomics preprocessing (peak picking, alignment), use xcms instead because 
+when_to_use: "Use when: Low-Level Raw Data Access: High-performance reading of raw mass spectrometry data formats (mzML, mzXML, netCDF) using openMSfile().; Metadata Extraction: Accessing metadata, instrument configurations, run summaries, and individual scan headers from raw MS files using runInfo(), instrumentInfo(), and header().; Spectral Extraction: Extracting raw mass spectra (m/z and intensity arrays) using the pe. Not for: For high-level, user-friendly mass spectrometry data manipulation and processing, use MSnbase instead because mzR is strictly a low-level data access API.; For high-level metabolomics preprocessing (peak picking, alignment), use xcms instead because"
 user-invocable: false
 ---
 
@@ -53,3 +53,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/mzR
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/mzR/inst/doc/mzR.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `mzr`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=mzr)** — free to start.
+
+▶ **[Open `mzr` on BioMate →](https://www.biomate.ai?ref=kb&pkg=mzr)**

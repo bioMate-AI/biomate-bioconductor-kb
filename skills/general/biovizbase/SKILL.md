@@ -1,7 +1,7 @@
 ---
 name: bioconductor-biovizbase
 description: The biovizBase package is designed to provide a set of utilities, color schemes and conventions for genomic data. It serves as the base for various high-level packages for biological data visualization. This saves development effort and enc
-when_to_use: Use when: Generating colorblind-safe palettes for biological data visualization using colorBlindSafePal().; Retrieving standardized, biologically sensible color schemes for cytobands, strands, or nucleotides using getBioColor().; Manipulating GRanges objects for plotting by adding disjoint stepping levels (addStepping()) or shrinking gaps (shrinkageFun()).; Fetching chromosome ideograms from the UCSC genome. Not for: For high-level, out-of-the-box static genomic plotting, use ggbio because biovizBase only provides the low-level utilities and color schemes.; For interactive genomic graphics, use visnab because biovizBase is designed as a foundational infrastructur
+when_to_use: "Use when: Generating colorblind-safe palettes for biological data visualization using colorBlindSafePal().; Retrieving standardized, biologically sensible color schemes for cytobands, strands, or nucleotides using getBioColor().; Manipulating GRanges objects for plotting by adding disjoint stepping levels (addStepping()) or shrinking gaps (shrinkageFun()).; Fetching chromosome ideograms from the UCSC genome. Not for: For high-level, out-of-the-box static genomic plotting, use ggbio because biovizBase only provides the low-level utilities and color schemes.; For interactive genomic graphics, use visnab because biovizBase is designed as a foundational infrastructur"
 user-invocable: false
 ---
 
@@ -58,3 +58,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/biovizBase
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/biovizBase/inst/doc/biovizBase.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `biovizbase`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=biovizbase)** — free to start.
+
+▶ **[Open `biovizbase` on BioMate →](https://www.biomate.ai?ref=kb&pkg=biovizbase)**

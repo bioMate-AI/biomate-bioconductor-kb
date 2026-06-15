@@ -1,7 +1,7 @@
 ---
 name: bioconductor-gseabase
 description: This package provides classes and methods to support Gene Set Enrichment Analysis (GSEA).
-when_to_use: Use when: Gene Set Management: Storing and manipulating gene sets and collections using robust S4 classes like GeneSet() and GeneSetCollection().; Importing Standard Formats: Reading gene sets encoded in XML following the schema and conventions of the Broad Institute using getBroadSets().; Identifier Mapping: Programmatically mapping gene identifiers within gene sets (e.g., Symbol to Entrez) using mapIdenti. Not for: For performing the actual statistical enrichment test (e.g., GSEA, ORA); use the fgsea or limma packages instead because GSEABase is purely for data structure management.; For fast, tidyverse-compatible data frame manipulation of gene sets; use the m
+when_to_use: "Use when: Gene Set Management: Storing and manipulating gene sets and collections using robust S4 classes like GeneSet() and GeneSetCollection().; Importing Standard Formats: Reading gene sets encoded in XML following the schema and conventions of the Broad Institute using getBroadSets().; Identifier Mapping: Programmatically mapping gene identifiers within gene sets (e.g., Symbol to Entrez) using mapIdenti. Not for: For performing the actual statistical enrichment test (e.g., GSEA, ORA); use the fgsea or limma packages instead because GSEABase is purely for data structure management.; For fast, tidyverse-compatible data frame manipulation of gene sets; use the m"
 user-invocable: false
 ---
 
@@ -61,3 +61,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/GSEABase
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/GSEABase
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `gseabase`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=gseabase)** — free to start.
+
+▶ **[Open `gseabase` on BioMate →](https://www.biomate.ai?ref=kb&pkg=gseabase)**

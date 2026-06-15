@@ -1,7 +1,7 @@
 ---
 name: bioconductor-enhancedvolcano
 description: Volcano plots represent a useful way to visualise the results of differential expression analyses. Here, we present a highly-configurable function that produces publication-ready volcano plots. EnhancedVolcano will attempt to fit as many po
-when_to_use: Use when: Publication-Ready Visualization: Creating highly-configurable volcano plots from differential expression results using the EnhancedVolcano() function.; Targeted Gene Labeling: Visualizing specific genes of interest by supplying a vector of variables to the selectLab parameter.; Highlighting Key Variables: Emphasizing specific points by encircling them or shading them using the encircle and shade p. Not for: For performing differential expression analysis: Use DESeq2 (e.g., DESeq() and results()) instead, because EnhancedVolcano only visualizes the statistical output.; For mapping gene identifiers: Use mapIds() from AnnotationDbi instead, as EnhancedVolc
+when_to_use: "Use when: Publication-Ready Visualization: Creating highly-configurable volcano plots from differential expression results using the EnhancedVolcano() function.; Targeted Gene Labeling: Visualizing specific genes of interest by supplying a vector of variables to the selectLab parameter.; Highlighting Key Variables: Emphasizing specific points by encircling them or shading them using the encircle and shade p. Not for: For performing differential expression analysis: Use DESeq2 (e.g., DESeq() and results()) instead, because EnhancedVolcano only visualizes the statistical output.; For mapping gene identifiers: Use mapIds() from AnnotationDbi instead, as EnhancedVolc"
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/EnhancedVolcano
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `enhancedvolcano`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=enhancedvolcano)** — free to start.
+
+▶ **[Open `enhancedvolcano` on BioMate →](https://www.biomate.ai?ref=kb&pkg=enhancedvolcano)**

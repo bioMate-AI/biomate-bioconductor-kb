@@ -1,7 +1,7 @@
 ---
 name: bioconductor-metabocoreutils
 description: MetaboCoreUtils defines metabolomics-related core functionality provided as low-level functions to allow a data structure-independent usage across various R packages. This includes functions to calculate between ion (adduct) and compound ma
-when_to_use: Use when: Mass and m/z Conversions: Converting between exact compound masses and ion mass-to-charge ratios ($m/z$) using mass2mz and mz2mass.; Chemical Formula Manipulation: Standardizing chemical formulas to Hill notation (standardizeFormula), adding/subtracting elements (addElements, subtractElements), and calculating exact masses (calculateMass).; Signal Drift Adjustment: Modeling and adjusting for injec. Not for: Full LC-MS Preprocessing: For end-to-end raw data processing (peak picking, alignment, grouping); use high-level packages like xcms instead because MetaboCoreUtils only provides low-level utility functions.; Complex Statistical Modeling: For modeling
+when_to_use: "Use when: Mass and m/z Conversions: Converting between exact compound masses and ion mass-to-charge ratios ($m/z$) using mass2mz and mz2mass.; Chemical Formula Manipulation: Standardizing chemical formulas to Hill notation (standardizeFormula), adding/subtracting elements (addElements, subtractElements), and calculating exact masses (calculateMass).; Signal Drift Adjustment: Modeling and adjusting for injec. Not for: Full LC-MS Preprocessing: For end-to-end raw data processing (peak picking, alignment, grouping); use high-level packages like xcms instead because MetaboCoreUtils only provides low-level utility functions.; Complex Statistical Modeling: For modeling"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/MetaboCoreUtils
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/MetaboCoreUtils/inst/doc/MetaboCoreUtils.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `metabocoreutils`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=metabocoreutils)** — free to start.
+
+▶ **[Open `metabocoreutils` on BioMate →](https://www.biomate.ai?ref=kb&pkg=metabocoreutils)**

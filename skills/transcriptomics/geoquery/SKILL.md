@@ -1,7 +1,7 @@
 ---
 name: bioconductor-geoquery
 description: This tool fetches microarray data directly from GEO database, based on the GEOQuery R package. Given a GSE accession ID, it returns an Rdata object containing the data and a text file (.cond file) summarizing the conditions of the experimen
-when_to_use: Use when: Downloading a complete GEO Series (GSE) matrix directly into a Bioconductor ExpressionSet using getGEO.; Programmatically searching the GEO database for specific terms or metadata using searchGEO and searchFieldsGEO.; Retrieving NCBI's standardized, precomputed RNA-seq gene expression counts for human and mouse datasets using getRNASeqData.; Downloading supplementary files (e.g., raw single-cell .. Not for: For processing raw FASTQ files from SRA. Use standard alignment/quantification tools instead, as GEOquery is designed to retrieve precomputed counts or matrices.; For analyzing local, non-GEO single-cell data. Use DropletUtils (e.g., read10xCounts) d
+when_to_use: "Use when: Downloading a complete GEO Series (GSE) matrix directly into a Bioconductor ExpressionSet using getGEO.; Programmatically searching the GEO database for specific terms or metadata using searchGEO and searchFieldsGEO.; Retrieving NCBI's standardized, precomputed RNA-seq gene expression counts for human and mouse datasets using getRNASeqData.; Downloading supplementary files (e.g., raw single-cell .. Not for: For processing raw FASTQ files from SRA. Use standard alignment/quantification tools instead, as GEOquery is designed to retrieve precomputed counts or matrices.; For analyzing local, non-GEO single-cell data. Use DropletUtils (e.g., read10xCounts) d"
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/GEOquery
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/GEOquery/inst/doc/GEOquery.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `geoquery`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=geoquery)** — free to start.
+
+▶ **[Open `geoquery` on BioMate →](https://www.biomate.ai?ref=kb&pkg=geoquery)**

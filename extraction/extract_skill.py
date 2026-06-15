@@ -189,6 +189,74 @@ def _emit_section(title: str, body: str) -> str:
     return f"## {title}\n\n{body}\n\n"
 
 
+def _humanize_wf_title(wf_name: str, pkg: str) -> str:
+    """A multi-workflow package stores one row per workflow named `<pkg>` (the main
+    pipeline) or `<pkg>_<task>`. Turn that into a human `### ` heading."""
+    suffix = wf_name[len(pkg):].lstrip("_") if wf_name.lower().startswith(pkg.lower()) else wf_name
+    if not suffix:
+        return "Standard Workflow"
+    return suffix.replace("_", " ").strip().title()
+
+
+def _fetch_workflows(prod_db: Path, pkg: str) -> list[dict]:
+    """All BioMate workflows for a package, matched precisely by the .nf path
+    (.../bioconductor/<pkg>/<wf>.nf) so 'crispr' never grabs 'crisprscore'.
+    Returns [{title, description, steps[]}], richest (most steps) first."""
+    conn = sqlite3.connect(str(prod_db)); conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT name, description, step_metadata, step_count FROM workflows "
+        "WHERE source='bioconductor' AND filename LIKE ? "
+        "ORDER BY step_count DESC, name",
+        (f"%/bioconductor/{pkg.lower()}/%",),
+    ).fetchall()
+    conn.close()
+    out = []
+    for r in rows:
+        steps = []
+        try:
+            for s in json.loads(r["step_metadata"] or "[]"):
+                nm = (s.get("step") or "").strip()
+                # drop degenerate placeholder steps that just echo the workflow name
+                if nm and pkg.lower() not in nm.lower().replace(" ", ""):
+                    steps.append(nm)
+        except Exception:
+            pass
+        out.append({
+            "title": _humanize_wf_title(r["name"], pkg),
+            "description": (r["description"] or "").strip(),
+            "steps": steps,
+        })
+    return out
+
+
+def _emit_workflows_section(workflows: list[dict]) -> str:
+    """Emit `## Workflows` with one `### <title>` recipe per BioMate workflow —
+    the per-package multi-workflow representation. Step bodies are descriptive
+    (the vignette-grounding pass fills in code); a workflow with no usable steps
+    still gets a titled subsection with its one-line scope."""
+    workflows = [w for w in (workflows or []) if w.get("title")]
+    if not workflows:
+        return ""
+    # de-dupe titles (keep first/richest)
+    seen, uniq = set(), []
+    for w in workflows:
+        t = w["title"].lower()
+        if t in seen:
+            continue
+        seen.add(t); uniq.append(w)
+    parts = ["## Workflows\n"]
+    for w in uniq:
+        parts.append(f"### {w['title']}\n")
+        desc = _short(w["description"]) if "_short" in globals() else w["description"]
+        if desc:
+            parts.append(f"{desc}\n")
+        if w["steps"]:
+            parts.append("**Steps:**\n" + "\n".join(
+                f"{i}. {s}" for i, s in enumerate(w["steps"][:12], 1)) + "\n")
+        parts.append("")
+    return "\n".join(parts).rstrip() + "\n\n"
+
+
 def _render_from_curated(name: str, description: str, skill_body: str) -> str:
     """When we have a hand-curated SKILL.md — rewrap frontmatter to valid
     Claude Code format and scrub any internal hints.
@@ -221,7 +289,7 @@ def _render_from_curated(name: str, description: str, skill_body: str) -> str:
 
 
 def _render_auto(name: str, description: str, domain: str,
-                 sci_ctx: dict, tk: dict) -> str:
+                 sci_ctx: dict, tk: dict, workflows: list[dict] | None = None) -> str:
     """Build SKILL.md body as Claude instructions (not API reference docs)."""
     sci_ctx = sci_ctx or {}
     tk = tk or {}
@@ -229,6 +297,10 @@ def _render_auto(name: str, description: str, domain: str,
     # Build frontmatter
     when_to_use = _build_when_to_use(sci_ctx, tk)
     out = _render_frontmatter(name, description, when_to_use)
+
+    # Workflows first — the per-package multi-workflow recipes (each BioMate
+    # workflow becomes a `### ` subsection). This is the actionable core.
+    out += _emit_workflows_section(workflows or [])
 
     # Body: instructions Claude follows when this skill is invoked.
     # Sections are ordered from most-actionable to most-contextual.
@@ -311,6 +383,9 @@ def extract_skill(name: str, prod_db: Path, skill_db: Path | None = None) -> tup
     wf_domain = (wf_row["domain"] if wf_row else "") or ""
     domain = _WF_TO_FOLDER.get(wf_domain) or _select_domain(edam_topics, name)
 
+    # The package's BioMate workflows -> per-package `## Workflows` subsections.
+    workflows = _fetch_workflows(prod_db, name)
+
     # Curated SKILL.md from the skill DB if present
     if skill_db and skill_db.exists():
         s = sqlite3.connect(str(skill_db))
@@ -332,10 +407,11 @@ def extract_skill(name: str, prod_db: Path, skill_db: Path | None = None) -> tup
         # Still emit a thin stub so the package is discoverable
         if not description:
             return None
-        body = _render_frontmatter(name, description) + f"# {name}\n\n{description}\n"
+        body = (_render_frontmatter(name, description) + f"# {name}\n\n{description}\n\n"
+                + _emit_workflows_section(workflows))
         return domain, body
 
-    return domain, _render_auto(name, description, domain, sci, tk)
+    return domain, _render_auto(name, description, domain, sci, tk, workflows)
 
 
 def main() -> int:

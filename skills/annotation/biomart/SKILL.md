@@ -1,7 +1,7 @@
 ---
 name: bioconductor-biomart
 description: In recent years a wealth of biological data has become available in public data repositories. Easy access to these valuable data resources and firm integration with data analysis is needed for comprehensive bioinformatics data analysis. bio
-when_to_use: Use when: Convert between gene IDs (Ensembl → HGNC symbol → Entrez → RefSeq); Retrieve gene coordinates, GO terms, pathway annotations; Get protein sequences or transcript sequences; Cross-species homology / ortholog mapping
+when_to_use: "Use when: Convert between gene IDs (Ensembl → HGNC symbol → Entrez → RefSeq); Retrieve gene coordinates, GO terms, pathway annotations; Get protein sequences or transcript sequences; Cross-species homology / ortholog mapping"
 user-invocable: false
 ---
 
@@ -390,3 +390,12 @@ listEnsemblGenomes()
 - **Paper:** Durinck S et al. (2009). Nature Protocols, 4:1184-1191.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `biomart`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=biomart)** — free to start.
+
+▶ **[Open `biomart` on BioMate →](https://www.biomate.ai?ref=kb&pkg=biomart)**

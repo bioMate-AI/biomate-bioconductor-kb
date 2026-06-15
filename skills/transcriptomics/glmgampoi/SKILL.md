@@ -1,7 +1,7 @@
 ---
 name: bioconductor-glmgampoi
 description: Fit linear models to overdispersed count data. The package can estimate the overdispersion and fit repeated models for matrix input. It is designed to handle large input datasets as they typically occur in single cell RNA-seq experiments.
-when_to_use: Use when: Fitting Gamma-Poisson (negative binomial) generalized linear models on high-dimensional count data using glm_gp().; Performing differential expression analysis on single-cell RNA-seq data using quasi-likelihood ratio testing via test_de().; Aggregating single-cell counts into pseudobulk samples for multi-condition comparisons using pseudobulk().; Processing massive datasets (e.g., millions of cell. Not for: For standard bulk RNA-seq with small sample sizes, use DESeq2 or edgeR instead because they are classical methods heavily optimized for low-replicate bulk data.; For normalized or log-transformed data, use standard linear models instead because glmGa
+when_to_use: "Use when: Fitting Gamma-Poisson (negative binomial) generalized linear models on high-dimensional count data using glm_gp().; Performing differential expression analysis on single-cell RNA-seq data using quasi-likelihood ratio testing via test_de().; Aggregating single-cell counts into pseudobulk samples for multi-condition comparisons using pseudobulk().; Processing massive datasets (e.g., millions of cell. Not for: For standard bulk RNA-seq with small sample sizes, use DESeq2 or edgeR instead because they are classical methods heavily optimized for low-replicate bulk data.; For normalized or log-transformed data, use standard linear models instead because glmGa"
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/glmGamPoi
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/glmGamPoi/inst/doc/glmGamPoi.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `glmgampoi`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=glmgampoi)** — free to start.
+
+▶ **[Open `glmgampoi` on BioMate →](https://www.biomate.ai?ref=kb&pkg=glmgampoi)**

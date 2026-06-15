@@ -1,7 +1,7 @@
 ---
 name: bioconductor-biomformat
 description: This is an R package for interfacing with the BIOM format. This package includes basic tools for reading biom-format files, accessing and subsetting data tables from a biom object (which is more complex than a single table), as well as limi
-when_to_use: Use when: Reading BIOM format files (JSON or HDF5) into R using read_biom().; Extracting core observation data (OTU tables) as sparse matrices using biom_data().; Converting BIOM objects to SummarizedExperiment objects using biom_to_SummarizedExperiment().; Constructing a BIOM object from standard R matrices and data frames using make_biom().; Converting BIOM data into a tidy long-format data frame for down. Not for: For statistical analysis of microbiome data, use phyloseq or DESeq2 because biomformat is strictly an I/O and utility package.; For raw sequence processing, use dada2 because biomformat operates on already-constructed contingency tables.
+when_to_use: "Use when: Reading BIOM format files (JSON or HDF5) into R using read_biom().; Extracting core observation data (OTU tables) as sparse matrices using biom_data().; Converting BIOM objects to SummarizedExperiment objects using biom_to_SummarizedExperiment().; Constructing a BIOM object from standard R matrices and data frames using make_biom().; Converting BIOM data into a tidy long-format data frame for down. Not for: For statistical analysis of microbiome data, use phyloseq or DESeq2 because biomformat is strictly an I/O and utility package.; For raw sequence processing, use dada2 because biomformat operates on already-constructed contingency tables."
 user-invocable: false
 ---
 
@@ -52,8 +52,17 @@ user-invocable: false
 - `SummarizedExperiment`: The standard Bioconductor container for rectangular feature-by-sample assay data (though `biomformat` interoperates with it).
 
 ## Citations
-- Paul J. McMurdie and Joseph N Paulson (2015). biomformat: An interface package for the BIOM file format. R/Bioconductor package version 1.34.0.
+- Paul J. McMurdie and Joseph N Paulson (2015). biomformat: An interface package for the BIOM file format. R/Bioconductor package version 1.0.0.
 
 ## References
 - Homepage: https://bioconductor.org/packages/biomformat
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/biomformat/inst/doc/biomformat.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `biomformat`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=biomformat)** — free to start.
+
+▶ **[Open `biomformat` on BioMate →](https://www.biomate.ai?ref=kb&pkg=biomformat)**

@@ -1,7 +1,7 @@
 ---
 name: bioconductor-affy
 description: The package contains functions for exploratory oligonucleotide array analysis. The dependence on tkWidgets only concerns few convenience functions. 'affy' is fully functional without it.
-when_to_use: Use when: Importing and summarizing raw Affymetrix probe-level data into an ExpressionSet using classic algorithms like rma() or mas5().; Performing quality control and exploratory data analysis on Affymetrix expression microarrays using MAplot(), boxplot(), and image().; Assessing 5'-to-3' RNA degradation gradients across samples using AffyRNAdeg() and plotAffyRNAdeg().. Not for: For newer Affymetrix Gene ST or Exon ST arrays, use oligo instead, because affy does not correctly handle the probe-design structure of these newer generation chips.; For Illumina, Agilent, or other non-Affymetrix microarray platforms, use limma or b
+when_to_use: "Use when: Importing and summarizing raw Affymetrix probe-level data into an ExpressionSet using classic algorithms like rma() or mas5().; Performing quality control and exploratory data analysis on Affymetrix expression microarrays using MAplot(), boxplot(), and image().; Assessing 5'-to-3' RNA degradation gradients across samples using AffyRNAdeg() and plotAffyRNAdeg().. Not for: For newer Affymetrix Gene ST or Exon ST arrays, use oligo instead, because affy does not correctly handle the probe-design structure of these newer generation chips.; For Illumina, Agilent, or other non-Affymetrix microarray platforms, use limma or b"
 user-invocable: false
 ---
 
@@ -63,3 +63,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/affy
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/affy/inst/doc/builtinMethods.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `affy`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=affy)** — free to start.
+
+▶ **[Open `affy` on BioMate →](https://www.biomate.ai?ref=kb&pkg=affy)**

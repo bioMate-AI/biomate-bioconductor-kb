@@ -1,7 +1,7 @@
 ---
 name: bioconductor-keggrest
-description: A package that provides a client interface to the Kyoto Encyclopedia of Genes and Genomes (KEGG) REST API. Only for academic use by academic users belonging to academic institutions (see <https://www.kegg.jp/kegg/rest/>). Note that KEGGREST
-when_to_use: Use when: Exploring available KEGG databases and organisms using listDatabases() and keggList().; Retrieving specific KEGG entries, including amino acid (aaseq) or nucleotide (ntseq) sequences as AAStringSet or DNAStringSet objects using keggGet().; Downloading KEGG pathway maps as PNG images using keggGet() with the "image" option.; Searching for genes or compounds by keywords, chemical formulas, or exact . Not for: For commercial applications, use ReactomePA instead because the KEGG API is strictly restricted to academic use by academic institutions.; For offline or high-throughput batch queries of thousands of genes, use local annotation packages like org.Hs.e
+description: "A package that provides a client interface to the Kyoto Encyclopedia of Genes and Genomes (KEGG) REST API. Only for academic use by academic users belonging to academic institutions (see <https://www.kegg.jp/kegg/rest/>). Note that KEGGREST"
+when_to_use: "Use when: Exploring available KEGG databases and organisms using listDatabases() and keggList().; Retrieving specific KEGG entries, including amino acid (aaseq) or nucleotide (ntseq) sequences as AAStringSet or DNAStringSet objects using keggGet().; Downloading KEGG pathway maps as PNG images using keggGet() with the \"image\" option.; Searching for genes or compounds by keywords, chemical formulas, or exact . Not for: For commercial applications, use ReactomePA instead because the KEGG API is strictly restricted to academic use by academic institutions.; For offline or high-throughput batch queries of thousands of genes, use local annotation packages like org.Hs.e"
 user-invocable: false
 ---
 
@@ -58,3 +58,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/KEGGREST
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/KEGGREST/inst/doc/KEGGREST-vignette.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `keggrest`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=keggrest)** — free to start.
+
+▶ **[Open `keggrest` on BioMate →](https://www.biomate.ai?ref=kb&pkg=keggrest)**

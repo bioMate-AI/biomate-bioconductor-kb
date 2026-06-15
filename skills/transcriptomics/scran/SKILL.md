@@ -1,7 +1,7 @@
 ---
 name: bioconductor-scran
 description: Implements miscellaneous functions for interpretation of single-cell RNA-seq data. Methods are provided for assignment of cell cycle phase, detection of highly variable and significantly correlated genes, identification of marker genes, and
-when_to_use: Use when: Pooling-based normalisation (handles zero inflation); Detecting highly variable genes for HVG selection; Graph-based clustering of single cells; Marker gene detection with pairwise tests; Pseudobulk DE analysis with aggregateAcrossCells
+when_to_use: "Use when: Pooling-based normalisation (handles zero inflation); Detecting highly variable genes for HVG selection; Graph-based clustering of single cells; Marker gene detection with pairwise tests; Pseudobulk DE analysis with aggregateAcrossCells"
 user-invocable: false
 ---
 
@@ -407,3 +407,12 @@ y <- convertTo(sce, type="edgeR")
 - **Paper:** Lun ATL, McCarthy DJ, Marioni JC (2016). Genome Biology, 17:75.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `scran`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=scran)** — free to start.
+
+▶ **[Open `scran` on BioMate →](https://www.biomate.ai?ref=kb&pkg=scran)**

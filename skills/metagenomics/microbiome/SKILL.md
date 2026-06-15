@@ -1,7 +1,7 @@
 ---
 name: bioconductor-microbiome
 description: Utilities for microbiome analysis.
-when_to_use: Use when: Facilitating phyloseq-based exploration and analysis of taxonomic profiling data.; Performing manipulation, statistical analysis, and visualization of taxonomic profiling data.; Standardizing analyses and developing best practices for targeted microbiome analysis.. Not for: For new projects or multi-omics data analysis, use the miaverse project instead, as microbiome development has been discontinued.; For workflows based on the new TreeSummarizedExperiment data container, use miaverse packages instead of microbiome.
+when_to_use: "Use when: Facilitating phyloseq-based exploration and analysis of taxonomic profiling data.; Performing manipulation, statistical analysis, and visualization of taxonomic profiling data.; Standardizing analyses and developing best practices for targeted microbiome analysis.. Not for: For new projects or multi-omics data analysis, use the miaverse project instead, as microbiome development has been discontinued.; For workflows based on the new TreeSummarizedExperiment data container, use miaverse packages instead of microbiome."
 user-invocable: false
 ---
 
@@ -51,3 +51,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/microbiome
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/microbiome
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `microbiome`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=microbiome)** — free to start.
+
+▶ **[Open `microbiome` on BioMate →](https://www.biomate.ai?ref=kb&pkg=microbiome)**

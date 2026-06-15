@@ -1,7 +1,7 @@
 ---
 name: bioconductor-basilisk
 description: Installs a self-contained conda instance that is managed by the R/Bioconductor installation machinery. This aims to provide a consistent Python environment that can be used reliably by Bioconductor packages. Functions are also provided to e
-when_to_use: Use when: Developing Bioconductor packages that require a reliable, self-contained Python environment using BasiliskEnvironment to freeze dependencies.; Executing Python-based calculations (e.g., scikit-learn's TruncatedSVD) on R matrices safely in an isolated process via basiliskRun.; Managing multiple, isolated Python environments within a single R session using createLocalBasiliskEnv and basiliskRun to p. Not for: For interactive, ad-hoc Python development where you want to use your pre-existing global environment, use reticulate directly because basilisk is primarily intended for package developers to freeze dependencies.; For simple R-native tasks, use nativ
+when_to_use: "Use when: Developing Bioconductor packages that require a reliable, self-contained Python environment using BasiliskEnvironment to freeze dependencies.; Executing Python-based calculations (e.g., scikit-learn's TruncatedSVD) on R matrices safely in an isolated process via basiliskRun.; Managing multiple, isolated Python environments within a single R session using createLocalBasiliskEnv and basiliskRun to p. Not for: For interactive, ad-hoc Python development where you want to use your pre-existing global environment, use reticulate directly because basilisk is primarily intended for package developers to freeze dependencies.; For simple R-native tasks, use nativ"
 user-invocable: false
 ---
 
@@ -61,3 +61,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/basilisk
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/basilisk/inst/doc/motivation.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `basilisk`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=basilisk)** — free to start.
+
+▶ **[Open `basilisk` on BioMate →](https://www.biomate.ai?ref=kb&pkg=basilisk)**

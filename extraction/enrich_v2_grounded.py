@@ -61,7 +61,15 @@ PROMPT = """You are a Bioconductor expert curating a public skill library. I'll 
 - Do NOT reference: docker images, Nextflow pipeline paths, Galaxy tool IDs, AWS Batch, S3 URIs, BioMate Cloud / execution platform.
 - Output ONLY the SKILL.md content for each package wrapped in delimiters (see OUTPUT FORMAT). No prose, no fences, no chatter.
 
-# SKILL.md TEMPLATE (use exactly these 9 sections after the frontmatter + `# Pkg` heading)
+# SKILL.md TEMPLATE (use these sections after the frontmatter + `# Pkg` heading)
+
+## Workflows
+PRESERVE every `### <Title>` subsection that appears in the input SKILL.md's `## Workflows`
+section — do NOT drop, rename, merge, or reorder them. For each subsection, ground its recipe in
+the vignette: turn the listed Steps into a short runnable R code block (```r ... ```) whose
+functions all appear verbatim in the vignette, plus a one-line note on inputs/outputs. If the
+input subsection has no steps, write the minimal vignette-grounded recipe for that named task. If
+the input SKILL.md has no `## Workflows` section, omit this section entirely.
 
 ## When to Use
 2-5 concrete scenarios. Cite specific functions or data types from the vignette.

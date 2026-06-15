@@ -1,7 +1,7 @@
 ---
 name: bioconductor-snpstats
 description: Classes and statistical methods for large SNP association studies. This extends the earlier snpMatrix package, allowing for uncertainty in genotypes.
-when_to_use: Use when: Performing genome-wide association studies (GWAS) on large cohorts with hundreds of thousands of SNPs.; Analyzing imputed genotype data where genotypes are represented as posterior probabilities (uncertainty) rather than hard calls.; Calculating linkage disequilibrium (LD) statistics ($r^2$ and $D'$) and performing haplotype-based association testing.; Conducting family-based association tests, su. Not for: For modern, multi-million variant biobank-scale GWAS with complex population structure, use REGENIE or PLINK2 because snpStats is single-threaded and runs entirely in R memory.; For sequencing-based rare variant association tests (e.g., burden tests,
+when_to_use: "Use when: Performing genome-wide association studies (GWAS) on large cohorts with hundreds of thousands of SNPs.; Analyzing imputed genotype data where genotypes are represented as posterior probabilities (uncertainty) rather than hard calls.; Calculating linkage disequilibrium (LD) statistics ($r^2$ and $D'$) and performing haplotype-based association testing.; Conducting family-based association tests, su. Not for: For modern, multi-million variant biobank-scale GWAS with complex population structure, use REGENIE or PLINK2 because snpStats is single-threaded and runs entirely in R memory.; For sequencing-based rare variant association tests (e.g., burden tests,"
 user-invocable: false
 ---
 
@@ -57,9 +57,18 @@ user-invocable: false
 - `GWASTools`: For comprehensive quality control and data management of genome-wide association studies.
 
 ## Citations
-- Clayton, D. (2021). snpStats: SnpMatrix and XSnpMatrix classes and methods. *R package version 1.56.0*.
+- Clayton, D. (2021). snpStats: SnpMatrix and XSnpMatrix classes and methods. *R package version 1.44.0*.
 - Clayton, D., & Leung, H. T. (2007). An R package for association studies on locus-specific and genome-wide scales. *Human Heredity*, 64(1), 45-51.
 
 ## References
 - Homepage: https://bioconductor.org/packages/snpStats
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/snpStats/inst/doc/snpStats-vignette.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `snpstats`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=snpstats)** — free to start.
+
+▶ **[Open `snpstats` on BioMate →](https://www.biomate.ai?ref=kb&pkg=snpstats)**

@@ -1,7 +1,7 @@
 ---
 name: bioconductor-ggtree
-description: 'ggtree' extends the 'ggplot2' plotting system which implemented the grammar of graphics. 'ggtree' is designed for visualization and annotation of phylogenetic trees and other tree-like structures with their annotation data.
-when_to_use: Use when: Visualizing complex phylogenetic trees (e.g., from RAxML, IQ-TREE, or BEAST) integrated with multi-omics metadata (such as microbiome abundance, genomic features, or clinical traits).; Annotating tree nodes, clades, and leaves with custom shapes, colors, images, or subplots (e.g., barplots, pie charts) using the grammar of graphics.; Displaying circular, radial, rectangular, or slanted tree layout. Not for: For interactive, web-based tree exploration, use phylocanvas or iTOL instead because ggtree produces static vector graphics.; For simple, quick tree plotting without complex annotations, use ape::plot.phylo instead because it has zero overhead and re
+description: "'ggtree' extends the 'ggplot2' plotting system which implemented the grammar of graphics. 'ggtree' is designed for visualization and annotation of phylogenetic trees and other tree-like structures with their annotation data."
+when_to_use: "Use when: Visualizing complex phylogenetic trees (e.g., from RAxML, IQ-TREE, or BEAST) integrated with multi-omics metadata (such as microbiome abundance, genomic features, or clinical traits).; Annotating tree nodes, clades, and leaves with custom shapes, colors, images, or subplots (e.g., barplots, pie charts) using the grammar of graphics.; Displaying circular, radial, rectangular, or slanted tree layout. Not for: For interactive, web-based tree exploration, use phylocanvas or iTOL instead because ggtree produces static vector graphics.; For simple, quick tree plotting without complex annotations, use ape::plot.phylo instead because it has zero overhead and re"
 user-invocable: false
 ---
 
@@ -63,3 +63,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/ggtree
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/ggtree/inst/doc/ggtree.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `ggtree`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=ggtree)** — free to start.
+
+▶ **[Open `ggtree` on BioMate →](https://www.biomate.ai?ref=kb&pkg=ggtree)**

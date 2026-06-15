@@ -1,7 +1,7 @@
 ---
 name: bioconductor-siggenes
 description: Identification of differentially expressed genes and estimation of the False Discovery Rate (FDR) using both the Significance Analysis of Microarrays (SAM) and the Empirical Bayes Analyses of Microarrays (EBAM).
-when_to_use: Use when: Significance Analysis of Microarrays: When identifying differentially expressed genes and estimating the False Discovery Rate (FDR) using permutation-based methods via sam().; Empirical Bayes Analysis: When computing posterior probabilities of differential expression using the Empirical Bayes Analysis of Microarrays via ebam().; Threshold Selection: When visualizing the relationship between the tu. Not for: For raw RNA-seq count data: Use DESeq2 or edgeR instead because siggenes assumes continuous, approximately normal or symmetric data and does not model negative binomial distributions.; For complex experimental designs: For complex experimental design
+when_to_use: "Use when: Significance Analysis of Microarrays: When identifying differentially expressed genes and estimating the False Discovery Rate (FDR) using permutation-based methods via sam().; Empirical Bayes Analysis: When computing posterior probabilities of differential expression using the Empirical Bayes Analysis of Microarrays via ebam().; Threshold Selection: When visualizing the relationship between the tu. Not for: For raw RNA-seq count data: Use DESeq2 or edgeR instead because siggenes assumes continuous, approximately normal or symmetric data and does not model negative binomial distributions.; For complex experimental designs: For complex experimental design"
 user-invocable: false
 ---
 
@@ -63,3 +63,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/siggenes
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/siggenes/inst/doc/siggenes.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `siggenes`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=siggenes)** — free to start.
+
+▶ **[Open `siggenes` on BioMate →](https://www.biomate.ai?ref=kb&pkg=siggenes)**

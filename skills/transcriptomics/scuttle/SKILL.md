@@ -1,7 +1,7 @@
 ---
 name: bioconductor-scuttle
 description: Provides basic utility functions for performing single-cell analyses, focusing on simple normalization, quality control and data transformations. Also provides some helper functions to assist development of other packages.
-when_to_use: Use when: Quality Control Metrics: When you need to compute basic feature-level statistics (mean counts, detection rates) using perFeatureQCMetrics or calculateAverage.; Gene Identifier Conversion: When you need to replace stable Ensembl identifiers with unique, non-missing gene symbols using uniquifyFeatureNames.; Data Extraction for Visualization: When you need to extract expression profiles and metadata . Not for: For state-of-the-art single-cell pipelines: Use scran instead because many of scuttle's low-level utilities are legacy functions that have been superseded by more efficient implementations in other packages.; For complex clustering: Use quickCluster 
+when_to_use: "Use when: Quality Control Metrics: When you need to compute basic feature-level statistics (mean counts, detection rates) using perFeatureQCMetrics or calculateAverage.; Gene Identifier Conversion: When you need to replace stable Ensembl identifiers with unique, non-missing gene symbols using uniquifyFeatureNames.; Data Extraction for Visualization: When you need to extract expression profiles and metadata . Not for: For state-of-the-art single-cell pipelines: Use scran instead because many of scuttle's low-level utilities are legacy functions that have been superseded by more efficient implementations in other packages.; For complex clustering: Use quickCluster"
 user-invocable: false
 ---
 
@@ -61,3 +61,12 @@ Provides basic utility functions for performing single-cell analyses, focusing o
 ## References
 - Homepage: https://bioconductor.org/packages/scuttle
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/scuttle/inst/doc/QC.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `scuttle`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=scuttle)** — free to start.
+
+▶ **[Open `scuttle` on BioMate →](https://www.biomate.ai?ref=kb&pkg=scuttle)**

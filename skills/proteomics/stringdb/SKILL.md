@@ -1,7 +1,7 @@
 ---
 name: bioconductor-stringdb
-description: tags: [bioconductor, r, proteomics, vignette-grounded]
-when_to_use: Use when: Mapping a list of differentially expressed genes to STRING database identifiers using the map method.; Computing functional enrichment (e.g., Gene Ontology, KEGG) for a set of proteins using get_enrichment.; Visualizing protein-protein interaction networks with custom node colors based on log fold-change using add_diff_exp_color and plot_network.; Retrieving specific interaction partners and exper. Not for: For offline network analysis with custom, non-STRING interaction networks, use igraph instead because STRINGdb is designed to query the online STRING database.; For primary differential expression analysis of microarray data, use limma instead becaus
+description: "tags: [bioconductor, r, proteomics, vignette-grounded]"
+when_to_use: "Use when: Mapping a list of differentially expressed genes to STRING database identifiers using the map method.; Computing functional enrichment (e.g., Gene Ontology, KEGG) for a set of proteins using get_enrichment.; Visualizing protein-protein interaction networks with custom node colors based on log fold-change using add_diff_exp_color and plot_network.; Retrieving specific interaction partners and exper. Not for: For offline network analysis with custom, non-STRING interaction networks, use igraph instead because STRINGdb is designed to query the online STRING database.; For primary differential expression analysis of microarray data, use limma instead becaus"
 user-invocable: false
 ---
 
@@ -62,3 +62,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/STRINGdb
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/STRINGdb/inst/doc/STRINGdb.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `stringdb`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=stringdb)** — free to start.
+
+▶ **[Open `stringdb` on BioMate →](https://www.biomate.ai?ref=kb&pkg=stringdb)**

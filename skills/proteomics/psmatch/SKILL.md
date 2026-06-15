@@ -1,7 +1,7 @@
 ---
 name: bioconductor-psmatch
 description: The PSMatch package helps proteomics practitioners to load, handle and manage Peptide Spectrum Matches. It provides functions to model peptide-protein relations as adjacency matrices and connected components, visualise these as graphs and m
-when_to_use: Use when: Fragment Ion Calculation: Calculating theoretical MS2 fragment ions (b and y ions) for a peptide sequence using calculateFragments.; Fragment Visualisation: Visualising matched b- and y-ion fragment sequences directly on an MS spectrum using plotSpectraPTM.; Peptide-Protein Modelling: Modelling the relation between peptides and proteins as an adjacency matrix using makeAdjacencyMatrix.; Protein Gr. Not for: For handling and processing raw mass spectrometry spectra, use Spectra because PSMatch relies on it for raw data representation and extraction.; For managing multi-level quantitative proteomics data, use QFeatures because PSMatch focuses on PSM-level
+when_to_use: "Use when: Fragment Ion Calculation: Calculating theoretical MS2 fragment ions (b and y ions) for a peptide sequence using calculateFragments.; Fragment Visualisation: Visualising matched b- and y-ion fragment sequences directly on an MS spectrum using plotSpectraPTM.; Peptide-Protein Modelling: Modelling the relation between peptides and proteins as an adjacency matrix using makeAdjacencyMatrix.; Protein Gr. Not for: For handling and processing raw mass spectrometry spectra, use Spectra because PSMatch relies on it for raw data representation and extraction.; For managing multi-level quantitative proteomics data, use QFeatures because PSMatch focuses on PSM-level"
 user-invocable: false
 ---
 
@@ -62,3 +62,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/PSMatch
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/PSMatch/inst/doc/PSMatch.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `psmatch`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=psmatch)** — free to start.
+
+▶ **[Open `psmatch` on BioMate →](https://www.biomate.ai?ref=kb&pkg=psmatch)**

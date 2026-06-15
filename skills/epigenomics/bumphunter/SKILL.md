@@ -1,7 +1,7 @@
 ---
 name: bioconductor-bumphunter
 description: Tools for finding bumps in genomic data
-when_to_use: Use when: Finding continuous, spatially clustered genomic regions ("bumps") that differ significantly between conditions using bumphunter().; Grouping genomic locations into distinct clusters based on maximum distance using clusterMaker().; Extracting positive, near-zero, and negative segments from a vector of test statistics using getSegments().; Packaging segmented regions into a table of bump characteris. Not for: For basic linear modeling of independent, unclustered genomic features, use limma because bumphunter is specifically designed to share information between nearby clustered locations.; For end-to-end analysis of Illumina 450k arrays without manual mat
+when_to_use: "Use when: Finding continuous, spatially clustered genomic regions (\"bumps\") that differ significantly between conditions using bumphunter().; Grouping genomic locations into distinct clusters based on maximum distance using clusterMaker().; Extracting positive, near-zero, and negative segments from a vector of test statistics using getSegments().; Packaging segmented regions into a table of bump characteris. Not for: For basic linear modeling of independent, unclustered genomic features, use limma because bumphunter is specifically designed to share information between nearby clustered locations.; For end-to-end analysis of Illumina 450k arrays without manual mat"
 user-invocable: false
 ---
 
@@ -63,3 +63,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/bumphunter
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/bumphunter/inst/doc/bumphunter.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `bumphunter`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=bumphunter)** — free to start.
+
+▶ **[Open `bumphunter` on BioMate →](https://www.biomate.ai?ref=kb&pkg=bumphunter)**

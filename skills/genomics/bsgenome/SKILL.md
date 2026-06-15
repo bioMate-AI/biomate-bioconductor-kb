@@ -1,7 +1,7 @@
 ---
 name: bioconductor-bsgenome
 description: Infrastructure shared by all the Biostrings-based genome data packages.
-when_to_use: Use when: Chromosome Pattern Matching: Finding or counting the occurrences of an arbitrary nucleotide pattern in a specific chromosome using matchPattern() or countPattern().; Genome-Wide Dictionary Searches: Finding all occurrences of a constant-width dictionary of patterns across an entire genome using PDict() and matchPDict().; Sequence Masking: Applying or toggling masks (e.g., assembly gaps, repeats) o. Not for: For querying remote sequence databases on-the-fly without local storage, use biomaRt instead, as BSgenome relies on locally installed data packages.; For extracting transcript or exon sequences, use GenomicFeatures instead, because BSgenome provides 
+when_to_use: "Use when: Chromosome Pattern Matching: Finding or counting the occurrences of an arbitrary nucleotide pattern in a specific chromosome using matchPattern() or countPattern().; Genome-Wide Dictionary Searches: Finding all occurrences of a constant-width dictionary of patterns across an entire genome using PDict() and matchPDict().; Sequence Masking: Applying or toggling masks (e.g., assembly gaps, repeats) o. Not for: For querying remote sequence databases on-the-fly without local storage, use biomaRt instead, as BSgenome relies on locally installed data packages.; For extracting transcript or exon sequences, use GenomicFeatures instead, because BSgenome provides"
 user-invocable: false
 ---
 
@@ -55,3 +55,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/BSgenome
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/BSgenome/inst/doc/GenomeSearching.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `bsgenome`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=bsgenome)** — free to start.
+
+▶ **[Open `bsgenome` on BioMate →](https://www.biomate.ai?ref=kb&pkg=bsgenome)**

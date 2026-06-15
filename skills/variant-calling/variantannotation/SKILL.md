@@ -1,7 +1,7 @@
 ---
 name: bioconductor-variantannotation
 description: Annotate variants, compute amino acid coding changes, predict coding outcomes.
-when_to_use: Use when: VCF File Parsing: Reading, exploring, and subsetting Variant Call Format (VCF) files using readVcf() and ScanVcfParam().; Genomic Context Annotation: Locating variants in and around genes (e.g., coding, intron, 5' UTR, splice site) relative to a transcript database using locateVariants().; Coding Consequence Prediction: Computing amino acid coding changes (e.g., synonymous, nonsynonymous, frameshi. Not for: For primary variant calling from raw BAM/FASTQ files. Use tools like GATK or bcftools instead.; For high-throughput annotation of millions of variants where execution speed is the absolute priority. Command-line tools like Ensembl VEP or SnpEff are f
+when_to_use: "Use when: VCF File Parsing: Reading, exploring, and subsetting Variant Call Format (VCF) files using readVcf() and ScanVcfParam().; Genomic Context Annotation: Locating variants in and around genes (e.g., coding, intron, 5' UTR, splice site) relative to a transcript database using locateVariants().; Coding Consequence Prediction: Computing amino acid coding changes (e.g., synonymous, nonsynonymous, frameshi. Not for: For primary variant calling from raw BAM/FASTQ files. Use tools like GATK or bcftools instead.; For high-throughput annotation of millions of variants where execution speed is the absolute priority. Command-line tools like Ensembl VEP or SnpEff are f"
 user-invocable: false
 ---
 
@@ -61,3 +61,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/VariantAnnotation
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/VariantAnnotation/inst/doc/VariantAnnotation.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `variantannotation`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=variantannotation)** — free to start.
+
+▶ **[Open `variantannotation` on BioMate →](https://www.biomate.ai?ref=kb&pkg=variantannotation)**

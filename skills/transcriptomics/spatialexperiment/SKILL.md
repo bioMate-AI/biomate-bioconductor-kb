@@ -1,7 +1,7 @@
 ---
 name: bioconductor-spatialexperiment
 description: Defines an S4 class for storing data from spatial -omics experiments. The class extends SingleCellExperiment to support storage and retrieval of additional information from spot-based and molecule-based platforms, including spatial coordina
-when_to_use: Use when: Spot-Based Spatial Transcriptomics: Representing and manipulating data from spot-based spatial transcriptomics platforms (e.g., 10x Genomics Visium) containing gene expression, spatial coordinates, and histology images using SpatialExperiment() and imgData().; Molecule-Resolved Spatial Data: Storing and querying molecule-resolved spatial data (e.g., seqFISH) where exact X-Y coordinates of individu. Not for: For standard single-cell RNA-seq data lacking spatial coordinates, use SingleCellExperiment instead because the spatial-specific slots like spatialCoords and imgData will remain empty and add unnecessary overhead.; For pure image processing without t
+when_to_use: "Use when: Spot-Based Spatial Transcriptomics: Representing and manipulating data from spot-based spatial transcriptomics platforms (e.g., 10x Genomics Visium) containing gene expression, spatial coordinates, and histology images using SpatialExperiment() and imgData().; Molecule-Resolved Spatial Data: Storing and querying molecule-resolved spatial data (e.g., seqFISH) where exact X-Y coordinates of individu. Not for: For standard single-cell RNA-seq data lacking spatial coordinates, use SingleCellExperiment instead because the spatial-specific slots like spatialCoords and imgData will remain empty and add unnecessary overhead.; For pure image processing without t"
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/SpatialExperiment
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `spatialexperiment`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=spatialexperiment)** — free to start.
+
+▶ **[Open `spatialexperiment` on BioMate →](https://www.biomate.ai?ref=kb&pkg=spatialexperiment)**

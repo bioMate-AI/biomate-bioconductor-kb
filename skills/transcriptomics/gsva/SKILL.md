@@ -1,7 +1,7 @@
 ---
 name: bioconductor-gsva
 description: Gene Set Variation Analysis (GSVA) is a non-parametric, unsupervised method for estimating variation of gene set enrichment through the samples of a expression data set. GSVA performs a change in coordinate systems, transforming the data fr
-when_to_use: Use when: Sample-Wise Pathway Scoring: Calculating sample-specific pathway enrichment scores from a gene expression matrix using gsva.; Dimensionality Reduction: Transforming a high-dimensional gene-by-sample matrix into a lower-dimensional pathway-by-sample matrix for downstream analysis.; Method-Specific Enrichment: Applying specific single-sample enrichment methods like PLAGE, z-score, or ssGSEA using pl. Not for: For Simple Differential Expression: For simple differential expression of individual genes, use edgeR because it is designed for gene-level count data modeling rather than gene set enrichment.; For Purely Managing Gene Sets: For purely importing and 
+when_to_use: "Use when: Sample-Wise Pathway Scoring: Calculating sample-specific pathway enrichment scores from a gene expression matrix using gsva.; Dimensionality Reduction: Transforming a high-dimensional gene-by-sample matrix into a lower-dimensional pathway-by-sample matrix for downstream analysis.; Method-Specific Enrichment: Applying specific single-sample enrichment methods like PLAGE, z-score, or ssGSEA using pl. Not for: For Simple Differential Expression: For simple differential expression of individual genes, use edgeR because it is designed for gene-level count data modeling rather than gene set enrichment.; For Purely Managing Gene Sets: For purely importing and"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/GSVA
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/GSVA/inst/doc/GSVA.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `gsva`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=gsva)** — free to start.
+
+▶ **[Open `gsva` on BioMate →](https://www.biomate.ai?ref=kb&pkg=gsva)**

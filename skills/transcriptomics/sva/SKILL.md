@@ -1,7 +1,7 @@
 ---
 name: bioconductor-sva
 description: The sva package contains functions for removing batch effects and other unwanted variation in high-throughput experiment. Specifically, the sva package contains functions for the identifying and building surrogate variables for high-dimensi
-when_to_use: Use when: Surrogate Variable Analysis (SVA): Identifying and adjusting for hidden, unmodeled, or latent sources of variation in high-dimensional datasets using sva and num.sv.; Known Batch Effect Correction (ComBat): Adjusting for known batch effects in normalized gene expression data using ComBat.; RNA-seq Count Correction (ComBat-seq): Removing batch effects from raw RNA-seq count data using ComBat_seq wh. Not for: For single-cell RNA-seq batch correction, use Seurat or batchelor instead because ComBat/sva can overcorrect and destroy single-cell biological heterogeneity.; When the batch effect is completely confounded with the biological variable of interest, d
+when_to_use: "Use when: Surrogate Variable Analysis (SVA): Identifying and adjusting for hidden, unmodeled, or latent sources of variation in high-dimensional datasets using sva and num.sv.; Known Batch Effect Correction (ComBat): Adjusting for known batch effects in normalized gene expression data using ComBat.; RNA-seq Count Correction (ComBat-seq): Removing batch effects from raw RNA-seq count data using ComBat_seq wh. Not for: For single-cell RNA-seq batch correction, use Seurat or batchelor instead because ComBat/sva can overcorrect and destroy single-cell biological heterogeneity.; When the batch effect is completely confounded with the biological variable of interest, d"
 user-invocable: false
 ---
 
@@ -67,3 +67,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/sva
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/sva/inst/doc/sva.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `sva`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=sva)** — free to start.
+
+▶ **[Open `sva` on BioMate →](https://www.biomate.ai?ref=kb&pkg=sva)**

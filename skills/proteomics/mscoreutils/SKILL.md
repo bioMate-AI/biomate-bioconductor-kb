@@ -1,7 +1,7 @@
 ---
 name: bioconductor-mscoreutils
 description: MsCoreUtils defines low-level functions for mass spectrometry data and is independent of any high-level data structures. These functions include mass spectra processing functions (noise estimation, smoothing, binning, baseline estimation),
-when_to_use: Use when: Quantitative Aggregation: Calculating the robust summary of matrix columns (e.g., summarizing peptide quantitation values into protein intensities) using robustSummary().; Spectra Processing: Performing low-level mass spectra processing such as noise estimation, smoothing, and binning using functions like noise(), smooth(), and bin().; Missing Data Imputation: Imputing missing data in quantitative. Not for: For high-level, formal data structure manipulation of MS data, use Spectra or MSnbase instead because MsCoreUtils only provides low-level functions independent of high-level data structures.; For complete end-to-end LC-MS preprocessing workflows, use
+when_to_use: "Use when: Quantitative Aggregation: Calculating the robust summary of matrix columns (e.g., summarizing peptide quantitation values into protein intensities) using robustSummary().; Spectra Processing: Performing low-level mass spectra processing such as noise estimation, smoothing, and binning using functions like noise(), smooth(), and bin().; Missing Data Imputation: Imputing missing data in quantitative. Not for: For high-level, formal data structure manipulation of MS data, use Spectra or MSnbase instead because MsCoreUtils only provides low-level functions independent of high-level data structures.; For complete end-to-end LC-MS preprocessing workflows, use"
 user-invocable: false
 ---
 
@@ -55,3 +55,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/MsCoreUtils
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/MsCoreUtils/inst/doc/MsCoreUtils.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `mscoreutils`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=mscoreutils)** — free to start.
+
+▶ **[Open `mscoreutils` on BioMate →](https://www.biomate.ai?ref=kb&pkg=mscoreutils)**

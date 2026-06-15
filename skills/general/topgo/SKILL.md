@@ -1,7 +1,7 @@
 ---
 name: bioconductor-topgo
 description: topGO package provides tools for testing GO terms while accounting for the topology of the GO graph. Different test statistics and different methods for eliminating local similarities and dependencies between GO terms can be implemented and
-when_to_use: Use when: Performing Gene Ontology (GO) enrichment analysis using the runTest function on gene lists derived from differential expression.; Accounting for the hierarchical structure and dependencies of the GO DAG using algorithms like elim, weight, or weight01.; Testing enrichment using continuous statistical tests (e.g., Kolmogorov-Smirnov via statistic = "ks") on gene scores rather than just binary gene l. Not for: For pathway databases other than Gene Ontology (e.g., KEGG, Reactome) (use clusterProfiler because topGO is strictly designed for GO graph topologies).; For fast, simple over-representation analysis without graph-topology correction (use gprofiler2 o
+when_to_use: "Use when: Performing Gene Ontology (GO) enrichment analysis using the runTest function on gene lists derived from differential expression.; Accounting for the hierarchical structure and dependencies of the GO DAG using algorithms like elim, weight, or weight01.; Testing enrichment using continuous statistical tests (e.g., Kolmogorov-Smirnov via statistic = \"ks\") on gene scores rather than just binary gene l. Not for: For pathway databases other than Gene Ontology (e.g., KEGG, Reactome) (use clusterProfiler because topGO is strictly designed for GO graph topologies).; For fast, simple over-representation analysis without graph-topology correction (use gprofiler2 o"
 user-invocable: false
 ---
 
@@ -62,3 +62,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/topGO
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/topGO/inst/doc/topGO.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `topgo`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=topgo)** — free to start.
+
+▶ **[Open `topgo` on BioMate →](https://www.biomate.ai?ref=kb&pkg=topgo)**

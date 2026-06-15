@@ -1,7 +1,7 @@
 ---
 name: bioconductor-organismdbi
 description: The package enables a simple unified interface to several annotation packages each of which has its own schema by taking advantage of the fact that each of these packages implements a select methods.
-when_to_use: Use when: Unified Annotation Queries: Querying multiple annotation resources (e.g., TxDb and OrgDb) simultaneously through a single unified interface using select.; Custom Meta-Package Building: Building custom OrganismDbi meta-packages (like Homo.sapiens) that link genome-centric and gene-centric databases using makeOrganismPackage.; Feature Extraction: Extracting genomic features (transcripts, exons, cds). Not for: Non-Model Organisms: When working with non-model organisms that do not have pre-built OrgDb or TxDb packages available to link together.; Cyclic Graph Relationships: When the relationships between your annotation packages present more than one pathwa
+when_to_use: "Use when: Unified Annotation Queries: Querying multiple annotation resources (e.g., TxDb and OrgDb) simultaneously through a single unified interface using select.; Custom Meta-Package Building: Building custom OrganismDbi meta-packages (like Homo.sapiens) that link genome-centric and gene-centric databases using makeOrganismPackage.; Feature Extraction: Extracting genomic features (transcripts, exons, cds). Not for: Non-Model Organisms: When working with non-model organisms that do not have pre-built OrgDb or TxDb packages available to link together.; Cyclic Graph Relationships: When the relationships between your annotation packages present more than one pathwa"
 user-invocable: false
 ---
 
@@ -60,3 +60,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/OrganismDbi
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/OrganismDbi/inst/doc/OrganismDbi.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `organismdbi`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=organismdbi)** — free to start.
+
+▶ **[Open `organismdbi` on BioMate →](https://www.biomate.ai?ref=kb&pkg=organismdbi)**

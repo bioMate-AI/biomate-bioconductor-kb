@@ -1,7 +1,7 @@
 ---
 name: bioconductor-msnbase
 description: MSnbase provides infrastructure for manipulation, processing and visualisation of mass spectrometry and proteomics data, ranging from raw to quantitative and annotated data.
-when_to_use: Use when: Read mzML/mzXML files into R for proteomics or metabolomics workflows; Process MS2 spectra: deisotoping, centroiding, filtering; TMT/iTRAQ isobaric quantification; Feature quantification from LC-MS data
+when_to_use: "Use when: Read mzML/mzXML files into R for proteomics or metabolomics workflows; Process MS2 spectra: deisotoping, centroiding, filtering; TMT/iTRAQ isobaric quantification; Feature quantification from LC-MS data"
 user-invocable: false
 ---
 
@@ -359,3 +359,12 @@ validity (in addition to calling validObject ).
 - **Paper:** Gatto L, Lilley KS (2012). Bioinformatics, 28(2):288-289.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `msnbase`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=msnbase)** — free to start.
+
+▶ **[Open `msnbase` on BioMate →](https://www.biomate.ai?ref=kb&pkg=msnbase)**

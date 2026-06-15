@@ -1,7 +1,7 @@
 ---
 name: bioconductor-treesummarizedexperiment
 description: TreeSummarizedExperiment has extended SingleCellExperiment to include hierarchical information on the rows or columns of the rectangular data.
-when_to_use: Use when: Storing rectangular experimental data alongside hierarchical tree structures using the TreeSummarizedExperiment class.; Aggregating data to different taxonomic levels (e.g., phylum or class) using aggTSE.; Subsetting data by specific tree nodes or leaves using subsetByNode.; Storing reference sequence data per feature using the referenceSeq slot.. Not for: For standard single-cell RNA-seq without hierarchical relationships, use SingleCellExperiment because the tree-related slots and overhead are unnecessary.; For purely manipulating or visualizing phylogenetic trees without rectangular assay data, use 
+when_to_use: "Use when: Storing rectangular experimental data alongside hierarchical tree structures using the TreeSummarizedExperiment class.; Aggregating data to different taxonomic levels (e.g., phylum or class) using aggTSE.; Subsetting data by specific tree nodes or leaves using subsetByNode.; Storing reference sequence data per feature using the referenceSeq slot.. Not for: For standard single-cell RNA-seq without hierarchical relationships, use SingleCellExperiment because the tree-related slots and overhead are unnecessary.; For purely manipulating or visualizing phylogenetic trees without rectangular assay data, use"
 user-invocable: false
 ---
 
@@ -66,3 +66,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/TreeSummarizedExperiment
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/TreeSummarizedExperiment/inst/doc/Introduction_to_treeSE.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `treesummarizedexperiment`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=treesummarizedexperiment)** — free to start.
+
+▶ **[Open `treesummarizedexperiment` on BioMate →](https://www.biomate.ai?ref=kb&pkg=treesummarizedexperiment)**

@@ -1,7 +1,7 @@
 ---
 name: bioconductor-zellkonverter
 description: Provides methods to convert between Python AnnData objects and SingleCellExperiment objects. These are primarily intended for use by downstream Bioconductor packages that wrap Python methods for single-cell data analysis. It also includes f
-when_to_use: Use when: Reading a SingleCellExperiment from a .h5ad file using readH5AD.; Writing a SingleCellExperiment to a .h5ad file using writeH5AD.; Converting directly between SingleCellExperiment and Python AnnData objects in memory using SCE2AnnData and AnnData2SCE.; Setting up consistent Python environments for package developers using AnnDataDependencies.. Not for: For converting Seurat objects directly to Python, use SeuratDisk or convert to SingleCellExperiment first, because zellkonverter strictly interfaces with SingleCellExperiment.; For managing Python environments generally, use basilisk directly, as zel
+when_to_use: "Use when: Reading a SingleCellExperiment from a .h5ad file using readH5AD.; Writing a SingleCellExperiment to a .h5ad file using writeH5AD.; Converting directly between SingleCellExperiment and Python AnnData objects in memory using SCE2AnnData and AnnData2SCE.; Setting up consistent Python environments for package developers using AnnDataDependencies.. Not for: For converting Seurat objects directly to Python, use SeuratDisk or convert to SingleCellExperiment first, because zellkonverter strictly interfaces with SingleCellExperiment.; For managing Python environments generally, use basilisk directly, as zel"
 user-invocable: false
 ---
 
@@ -58,3 +58,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/zellkonverter
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/zellkonverter/inst/doc/zellkonverter.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `zellkonverter`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=zellkonverter)** — free to start.
+
+▶ **[Open `zellkonverter` on BioMate →](https://www.biomate.ai?ref=kb&pkg=zellkonverter)**

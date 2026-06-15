@@ -1,7 +1,7 @@
 ---
 name: bioconductor-monocle
 description: Monocle performs differential expression and time-series analysis for single-cell expression experiments. It orders individual cells according to progress through a biological process, without knowing ahead of time which genes define progre
-when_to_use: Use when: Analyzing single-cell RNA-Seq experiments to study complex biological processes.; Ordering single cells in pseudotime to place them along a trajectory corresponding to a biological process such as cell differentiation.; Performing differential gene expression and clustering to identify important genes and cell states.; Visualizing data distributions or trajectories using plot().. Not for: For bulk RNA-Seq differential expression, use DESeq2 instead because Monocle is specifically designed for single-cell RNA-Seq experiments.; For Python-based single-cell workflows, use Scanpy instead because Monocle is an R package.
+when_to_use: "Use when: Analyzing single-cell RNA-Seq experiments to study complex biological processes.; Ordering single cells in pseudotime to place them along a trajectory corresponding to a biological process such as cell differentiation.; Performing differential gene expression and clustering to identify important genes and cell states.; Visualizing data distributions or trajectories using plot().. Not for: For bulk RNA-Seq differential expression, use DESeq2 instead because Monocle is specifically designed for single-cell RNA-Seq experiments.; For Python-based single-cell workflows, use Scanpy instead because Monocle is an R package."
 user-invocable: false
 ---
 
@@ -57,3 +57,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/monocle
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/monocle/inst/doc/monocle-vignette.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `monocle`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=monocle)** — free to start.
+
+▶ **[Open `monocle` on BioMate →](https://www.biomate.ai?ref=kb&pkg=monocle)**

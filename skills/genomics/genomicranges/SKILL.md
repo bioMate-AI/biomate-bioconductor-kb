@@ -1,7 +1,7 @@
 ---
 name: bioconductor-genomicranges
 description: The ability to efficiently represent and manipulate genomic annotations and alignments is playing a central role when it comes to analyzing high-throughput sequencing data (a.k.a. NGS data). The GenomicRanges package defines general purpose
-when_to_use: Use when: Overlap queries between genomic features; Peak annotation and TSS proximity; Windowed genome coverage computation; Import/export BED/GFF/VCF/BigWig regions; Tiling genome for ChIP-seq/ATAC-seq windows
+when_to_use: "Use when: Overlap queries between genomic features; Peak annotation and TSS proximity; Windowed genome coverage computation; Import/export BED/GFF/VCF/BigWig regions; Tiling genome for ChIP-seq/ATAC-seq windows"
 user-invocable: false
 ---
 
@@ -494,3 +494,12 @@ grl
 - **Paper:** Lawrence M et al. (2013). PLOS Computational Biology, 9:e1003118.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `genomicranges`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=genomicranges)** — free to start.
+
+▶ **[Open `genomicranges` on BioMate →](https://www.biomate.ai?ref=kb&pkg=genomicranges)**

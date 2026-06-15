@@ -1,7 +1,7 @@
 ---
 name: bioconductor-gosemsim
 description: The semantic comparisons of Gene Ontology (GO) annotations provide quantitative ways to compute similarities between genes and gene groups, and have became important basis for many bioinformatics analysis approaches. GOSemSim is an R packag
-when_to_use: Use when: Measuring semantic similarity among GO terms.; Computing functional similarity among gene products.; Performing GO semantic similarity analyses within stem cell transcriptional networks or other biomedical contexts.. Not for: For general biomedical knowledge mining tasks that do not involve Gene Ontology semantic similarity, refer to broader biomedical knowledge mining resources.; When performing analyses that do not require quantitative semantic comparisons of GO annotat
+when_to_use: "Use when: Measuring semantic similarity among GO terms.; Computing functional similarity among gene products.; Performing GO semantic similarity analyses within stem cell transcriptional networks or other biomedical contexts.. Not for: For general biomedical knowledge mining tasks that do not involve Gene Ontology semantic similarity, refer to broader biomedical knowledge mining resources.; When performing analyses that do not require quantitative semantic comparisons of GO annotat"
 user-invocable: false
 ---
 
@@ -52,3 +52,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/gosemsim
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/GOSemSim/inst/doc/GOSemSim.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `gosemsim`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=gosemsim)** — free to start.
+
+▶ **[Open `gosemsim` on BioMate →](https://www.biomate.ai?ref=kb&pkg=gosemsim)**

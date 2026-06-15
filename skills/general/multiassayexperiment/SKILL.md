@@ -1,7 +1,7 @@
 ---
 name: bioconductor-multiassayexperiment
 description: Harmonize data management of multiple experimental assays performed on an overlapping set of specimens.  It provides a familiar Bioconductor user experience by extending concepts from SummarizedExperiment, supporting an open-ended mix of st
-when_to_use: Use when: Integrating multi-omics experiments (e.g., DNA mutations, RNA abundance) measured on the same biological specimens into a single object.; Managing complex experimental designs where a single patient maps to multiple assays, missing assays, or technical replicates using a sampleMap.; Subsetting multiple experimental assays simultaneously by patient IDs, genomic ranges, or column metadata using [, i. Not for: For sets of assays with the exact same information across all rows (e.g., identical genes or genomic ranges), use SummarizedExperiment instead.
+when_to_use: "Use when: Integrating multi-omics experiments (e.g., DNA mutations, RNA abundance) measured on the same biological specimens into a single object.; Managing complex experimental designs where a single patient maps to multiple assays, missing assays, or technical replicates using a sampleMap.; Subsetting multiple experimental assays simultaneously by patient IDs, genomic ranges, or column metadata using [, i. Not for: For sets of assays with the exact same information across all rows (e.g., identical genes or genomic ranges), use SummarizedExperiment instead."
 user-invocable: false
 ---
 
@@ -56,3 +56,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/MultiAssayExperiment
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/MultiAssayExperiment/inst/doc/MultiAssayExperiment.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `multiassayexperiment`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=multiassayexperiment)** — free to start.
+
+▶ **[Open `multiassayexperiment` on BioMate →](https://www.biomate.ai?ref=kb&pkg=multiassayexperiment)**

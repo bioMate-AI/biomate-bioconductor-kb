@@ -1,7 +1,7 @@
 ---
 name: bioconductor-apeglm
 description: apeglm provides Bayesian shrinkage estimators for effect sizes for a variety of GLM models, using approximation of the posterior for individual coefficients.
-when_to_use: Use when: Log Fold Change Shrinkage: Shrinking effect sizes for negative binomial GLMs in RNA-seq differential expression analysis (typically called via the DESeq2::lfcShrink wrapper).; Beta-Binomial Modeling: Estimating and shrinking GLM coefficients for binomial or beta-binomial rate data, such as allele-specific count ratios.; False Sign Rate Evaluation: Calculating local false sign rates (FSR) and s-val. Not for: Direct Log2 Scale Requirements: If you require coefficients directly estimated on the log2 scale without manual conversion, note that apeglm natively estimates coefficients on the natural log scale (though DESeq2::lfcShrink converts these to log2 int
+when_to_use: "Use when: Log Fold Change Shrinkage: Shrinking effect sizes for negative binomial GLMs in RNA-seq differential expression analysis (typically called via the DESeq2::lfcShrink wrapper).; Beta-Binomial Modeling: Estimating and shrinking GLM coefficients for binomial or beta-binomial rate data, such as allele-specific count ratios.; False Sign Rate Evaluation: Calculating local false sign rates (FSR) and s-val. Not for: Direct Log2 Scale Requirements: If you require coefficients directly estimated on the log2 scale without manual conversion, note that apeglm natively estimates coefficients on the natural log scale (though DESeq2::lfcShrink converts these to log2 int"
 user-invocable: false
 ---
 
@@ -67,3 +67,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/apeglm
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/apeglm/inst/doc/apeglm.html
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `apeglm`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=apeglm)** — free to start.
+
+▶ **[Open `apeglm` on BioMate →](https://www.biomate.ai?ref=kb&pkg=apeglm)**

@@ -1,7 +1,7 @@
 ---
 name: bioconductor-dirichletmultinomial
-description: Dirichlet-multinomial mixture models can be used to describe variability in microbial metagenomic data. This package is an interface to code originally made available by Holmes, Harris, and Quince, 2012, PLoS ONE 7(2): 1-15, as discussed fu
-when_to_use: Use when: Fitting Dirichlet-Multinomial models to microbial metagenomic count data using dmn().; Identifying the optimal number of Dirichlet components (clusters) by comparing laplace(), AIC(), or BIC() scores.; Building generative classifiers for phenotypic groups using dmngroup().; Assigning new samples to classes using predict().. Not for: For continuous covariate modeling, use alternative regression frameworks because dmngroup() is designed for discrete phenotypic categories (e.g., 'Lean', 'Obese').
+description: "Dirichlet-multinomial mixture models can be used to describe variability in microbial metagenomic data. This package is an interface to code originally made available by Holmes, Harris, and Quince, 2012, PLoS ONE 7(2): 1-15, as discussed fu"
+when_to_use: "Use when: Fitting Dirichlet-Multinomial models to microbial metagenomic count data using dmn().; Identifying the optimal number of Dirichlet components (clusters) by comparing laplace(), AIC(), or BIC() scores.; Building generative classifiers for phenotypic groups using dmngroup().; Assigning new samples to classes using predict().. Not for: For continuous covariate modeling, use alternative regression frameworks because dmngroup() is designed for discrete phenotypic categories (e.g., 'Lean', 'Obese')."
 user-invocable: false
 ---
 
@@ -55,3 +55,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/DirichletMultinomial
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/DirichletMultinomial/inst/doc/DirichletMultinomial.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `dirichletmultinomial`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=dirichletmultinomial)** — free to start.
+
+▶ **[Open `dirichletmultinomial` on BioMate →](https://www.biomate.ai?ref=kb&pkg=dirichletmultinomial)**

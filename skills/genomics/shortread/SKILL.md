@@ -1,7 +1,7 @@
 ---
 name: bioconductor-shortread
 description: This package implements sampling, iteration, and input of FASTQ files. The package includes functions for filtering and trimming reads, and for generating a quality assessment report. Data are represented as DNAStringSet-derived objects, an
-when_to_use: Use when: Iterative FASTQ Processing: Processing massive FASTQ files in memory-efficient chunks using FastqStreamer() and yield().; Random Subsampling: Drawing a random sample of reads from a FASTQ file using FastqSampler() for quick inspection.; Quality Assessment: Generating HTML quality assessment reports across multiple FASTQ files using qa() and report().; Filtering and Trimming: Removing low-quality r. Not for: For whole-genome alignments or flexible pairwise alignment, use Biostrings or pwalign instead because ShortRead is designed for basic input, QA, and filtering rather than complex alignments.
+when_to_use: "Use when: Iterative FASTQ Processing: Processing massive FASTQ files in memory-efficient chunks using FastqStreamer() and yield().; Random Subsampling: Drawing a random sample of reads from a FASTQ file using FastqSampler() for quick inspection.; Quality Assessment: Generating HTML quality assessment reports across multiple FASTQ files using qa() and report().; Filtering and Trimming: Removing low-quality r. Not for: For whole-genome alignments or flexible pairwise alignment, use Biostrings or pwalign instead because ShortRead is designed for basic input, QA, and filtering rather than complex alignments."
 user-invocable: false
 ---
 
@@ -59,3 +59,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/ShortRead
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/ShortRead/inst/doc/Overview.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `shortread`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=shortread)** — free to start.
+
+▶ **[Open `shortread` on BioMate →](https://www.biomate.ai?ref=kb&pkg=shortread)**

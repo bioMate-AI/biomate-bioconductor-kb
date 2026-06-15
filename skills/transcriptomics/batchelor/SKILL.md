@@ -1,7 +1,7 @@
 ---
 name: bioconductor-batchelor
 description: Implements a variety of methods for batch correction of single-cell (RNA sequencing) data. This includes methods based on detecting mutually nearest neighbors, as well as several efficient variants of linear regression of the log-expression
-when_to_use: Use when: Integrate scRNA-seq data from multiple batches/studies; Correct for technical batch effects while preserving biology; Merge datasets for joint clustering and visualization
+when_to_use: "Use when: Integrate scRNA-seq data from multiple batches/studies; Correct for technical batch effects while preserving biology; Merge datasets for joint clustering and visualization"
 user-invocable: false
 ---
 
@@ -406,3 +406,12 @@ sce1
 - **Paper:** Haghverdi L et al. (2018). Nature Biotechnology, 36:421-427.
 
 ---
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `batchelor`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=batchelor)** — free to start.
+
+▶ **[Open `batchelor` on BioMate →](https://www.biomate.ai?ref=kb&pkg=batchelor)**

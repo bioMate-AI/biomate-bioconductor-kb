@@ -1,7 +1,7 @@
 ---
 name: bioconductor-graphite
 description: Graph objects from pathway topology derived from KEGG, Panther, PathBank, PharmGKB, Reactome SMPDB and WikiPathways databases.
-when_to_use: Use when: Retrieving pathway topologies as directed/undirected graph objects from major databases (KEGG, Reactome, WikiPathways, Panther, PathBank, PharmGKB) using the pathways function.; Converting pathway identifiers (e.g., from UNIPROT to SYMBOL or ENTREZID) to match experimental data using convertIdentifiers.; Preparing and running topology-aware pathway enrichment analyses like SPIA (prepareSPIA, runSP. Not for: For simple over-representation analysis (ORA) or gene set enrichment analysis (GSEA) that ignores pathway topology, use clusterProfiler or fgsea instead because they do not require graph construction.; For de novo gene co-expression network construct
+when_to_use: "Use when: Retrieving pathway topologies as directed/undirected graph objects from major databases (KEGG, Reactome, WikiPathways, Panther, PathBank, PharmGKB) using the pathways function.; Converting pathway identifiers (e.g., from UNIPROT to SYMBOL or ENTREZID) to match experimental data using convertIdentifiers.; Preparing and running topology-aware pathway enrichment analyses like SPIA (prepareSPIA, runSP. Not for: For simple over-representation analysis (ORA) or gene set enrichment analysis (GSEA) that ignores pathway topology, use clusterProfiler or fgsea instead because they do not require graph construction.; For de novo gene co-expression network construct"
 user-invocable: false
 ---
 
@@ -57,3 +57,12 @@ user-invocable: false
 ## References
 - Homepage: https://bioconductor.org/packages/graphite
 - Vignette: https://bioconductor.org/packages/release/bioc/vignettes/graphite/inst/doc/graphite.pdf
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `graphite`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=graphite)** — free to start.
+
+▶ **[Open `graphite` on BioMate →](https://www.biomate.ai?ref=kb&pkg=graphite)**

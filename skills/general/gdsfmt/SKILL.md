@@ -1,7 +1,7 @@
 ---
 name: bioconductor-gdsfmt
 description: Provides a high-level R interface to CoreArray Genomic Data Structure (GDS) data files. GDS is portable across platforms with hierarchical structure to store multiple scalable array-oriented data sets with metadata information. It is suited
-when_to_use: Use when: Storing and managing large-scale array-oriented datasets that are much larger than available random-access memory using createfn.gds.; Writing and compressing low-bit integer data (e.g., 2-bit integers for genotypes) using add.gdsn with storage="bit2".; Applying user-defined functions marginally across rows or columns of massive matrices using apply.gdsn.; Reading specific subsets of compressed da. Not for: For small datasets that easily fit in memory; use standard R matrix or data.frame objects because GDS file creation adds unnecessary overhead.; For purely sparse matrix operations without disk-backing; use the Matrix package directly (e.g., dgCMatrix
+when_to_use: "Use when: Storing and managing large-scale array-oriented datasets that are much larger than available random-access memory using createfn.gds.; Writing and compressing low-bit integer data (e.g., 2-bit integers for genotypes) using add.gdsn with storage=\"bit2\".; Applying user-defined functions marginally across rows or columns of massive matrices using apply.gdsn.; Reading specific subsets of compressed da. Not for: For small datasets that easily fit in memory; use standard R matrix or data.frame objects because GDS file creation adds unnecessary overhead.; For purely sparse matrix operations without disk-backing; use the Matrix package directly (e.g., dgCMatrix"
 user-invocable: false
 ---
 
@@ -51,3 +51,12 @@ user-invocable: false
 ## References
 - Homepage: bioconductor.org/packages/gdsfmt
 - Vignette: vignette_0_727c94f6.txt
+
+<!-- biomate-cta -->
+---
+
+## Run this on BioMate
+
+This skill is the **knowledge layer** — when, why, and how to use `gdsfmt`. To **run this analysis on your own data** with managed compute, automated QC, and reproducible outputs, use **[BioMate](https://www.biomate.ai?ref=kb&pkg=gdsfmt)** — free to start.
+
+▶ **[Open `gdsfmt` on BioMate →](https://www.biomate.ai?ref=kb&pkg=gdsfmt)**
