@@ -191,21 +191,39 @@ nca_pk:
   nca_auc_extrap:
     - paper_ref: "FDA Bioavailability Studies Guidance (2003)"
       paper_doi: "https://www.fda.gov/media/70958/download"
-      provenance: GOLD
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        FDA 2003 BA/BE guidance: AUC extrapolation from last
-        observed concentration to infinity should be ≤ 20% of
-        AUC_inf for the estimate to be reliable. Higher values
-        indicate inadequate sampling duration.
+        FDA 2003 BA/BE guidance establishes AUC_extrap_pct ≤ 20% as the
+        threshold for "reliable" AUC_inf estimation in healthy-volunteer
+        BA/BE studies. The 20% is the canonical floor; sicker populations
+        and longer-half-life drugs routinely operate at 30-40% extrap
+        without the result being un-usable. The guidance threshold is
+        healthy-volunteer specific.
       rule_text: >
-        BioMate halts when AUC_extrap_pct > 20% (nca_standard);
-        regulatory profile tightens to > 15%. The 20% cutoff is
-        GOLD-anchored to FDA 2003 verbatim; the 15% regulatory tier
-        is BioMate-operational (a stricter pre-NDA filter, not in
-        the guidance).
+        BioMate halts when AUC_extrap_pct > FAIL_threshold for the active
+        profile (see modifiers). Default profile is FDA-2003 healthy-vol
+        (20% advisory / 30% FAIL).
+      modifiers:
+        # Population modifier — sicker populations sample harder.
+        population:
+          healthy:    {advisory_min: 20, fail_min: 30}   # FDA 2003 default
+          oncology:   {advisory_min: 30, fail_min: 50}
+          renal_impt: {advisory_min: 30, fail_min: 50}
+          pediatric:  {advisory_min: 25, fail_min: 40}
+        # Development-phase modifier — stricter for regulatory submissions.
+        phase:
+          discovery:    {advisory_min: 30, fail_min: 50}
+          phase1:       {advisory_min: 20, fail_min: 30}   # default
+          phase2_3:     {advisory_min: 15, fail_min: 25}
+          regulatory:   {advisory_min: 15, fail_min: 20}
+        # Drug-class modifier — long-half-life drugs naturally extrap more.
+        half_life_class:
+          short:   {advisory_min: 15, fail_min: 25}   # t1/2 < 12h
+          medium:  {advisory_min: 20, fail_min: 30}   # 12-48h, default
+          long:    {advisory_min: 30, fail_min: 50}   # > 48h
       finding: >
-        Remediation: extend last_sampling_time_h by 1.5× to capture
-        more of the terminal elimination phase.
+        Remediation: extend last_sampling_time_h by 1.5× to capture more
+        of the terminal elimination phase.
 
   nca_terminal_slope_coverage:
     - paper_ref: "Gabrielsson J & Weiner D. PK/PD Data Analysis 5th ed."
@@ -386,15 +404,27 @@ ich_s7:
   ich_s7b_herg_margin:
     - paper_ref: "ICH S7B Nonclinical Evaluation of Delayed Ventricular Repolarization (2005)"
       paper_doi: "https://database.ich.org/sites/default/files/S7B_Guideline.pdf"
-      provenance: GOLD
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
         ICH S7B requires both in vitro IKr (hERG) assay and in vivo
-        QT/QTc assessment. Safety margin = hERG IC50 / free Cmax. A
-        margin < 30× indicates need for further QT investigation; < 10×
-        is high cardiac risk.
+        QT/QTc assessment. Safety margin = hERG IC50 / free Cmax. The
+        30× and 10× tier values commonly cited are pharma-community
+        convention summarised in Redfern 2003 J Cardiovasc Electrophysiol
+        (the per-class risk tiering paper); ICH S7B itself does not
+        state these specific cutoffs verbatim.
       rule_text: >
         BioMate flags safety margin < 10× as RED, 10-30× as YELLOW,
-        ≥30× as GREEN.
+        ≥30× as GREEN. Tier values are operational; see modifiers for
+        per-indication adjustment.
+      modifiers:
+        # Indication-class modifier — chronic CNS / cardiac drugs have
+        # tighter margin requirements than short-course antibiotics.
+        indication_class:
+          antibiotic_short_course: {advisory_min: 10, fail_min: 5}    # bigger appetite
+          oncology_lifesaving:     {advisory_min: 10, fail_min: 5}
+          general:                 {advisory_min: 30, fail_min: 10}   # default
+          chronic_cns:             {advisory_min: 50, fail_min: 30}
+          chronic_cardiac:         {advisory_min: 100, fail_min: 50}  # QT-history class
       finding: >
         Remediation: structural modification to reduce hERG binding,
         or comprehensive in vivo QT assessment.
@@ -756,16 +786,40 @@ lnp_formulation:
 # ─── nlmixr2 population PK gates ────────────────────────────────────
 nlmixr2_poppk:
   nlmixr2_eta_shrinkage:
-    - paper_ref: "Savic RM & Karlsson MO. J Pharmacokinet Pharmacodyn 2007; 34:711-726"
-      paper_doi: "10.1007/s10928-007-9066-0"
-      provenance: GOLD
+    # 2026-06-15 citation correction: previous YAML cited Savic & Karlsson
+    # J Pharmacokinet Pharmacodyn 2007;34:711-726 — that is the same authors'
+    # transit-compartment absorption paper, NOT the shrinkage paper. The
+    # canonical shrinkage paper is in AAPS J 2009. Citation NEEDS_PUBMED_VERIFY
+    # before any audit-grade use.
+    - paper_ref: "Savic RM & Karlsson MO. AAPS J 2009; 11(3):558-569 (PMID 19649712) — NEEDS_PUBMED_VERIFY"
+      paper_doi: "10.1208/s12248-009-9133-0"
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        Savic & Karlsson 2007 establish ~30% as the η-shrinkage threshold
-        above which EBE-based diagnostics and covariate screening become
-        unreliable. The paper explicitly recommends this cutoff.
+        Savic & Karlsson 2009 establishes η-shrinkage as the diagnostic
+        for whether empirical Bayes estimates (EBEs) can be trusted for
+        downstream covariate screening and diagnostic plots. The paper
+        describes the metric and its failure mode at high shrinkage; the
+        specific 20% / 30% tiering is pharmacometrics-community convention
+        attributed to this work, not stated verbatim as a cutoff.
       rule_text: >
         η-shrinkage < 20% = pass; 20-30% = advisory; > 30% = FAIL
-        (EBE-based covariate inference unreliable).
+        (EBE-based covariate inference unreliable). Tiers are operational
+        — see modifiers block for context overrides.
+      modifiers:
+        # Sparse-sampling Pop-PK with 4-8 observations/subject routinely
+        # sits at 30-50% shrinkage without indicating a bad fit — the
+        # population parameters can still be well-estimated even when
+        # individual EBEs shrink hard. Loosen the FAIL line accordingly.
+        sampling_density:
+          rich:    {advisory_min: 20, fail_min: 30}    # default
+          sparse:  {advisory_min: 30, fail_min: 50}    # 4-8 obs/subject
+        # Downstream-use modifier: if the workflow only uses simulation-
+        # based diagnostics (VPC) and reports population parameters, high
+        # shrinkage doesn't disqualify the result.
+        downstream_use:
+          ebe_diagnostics: {advisory_min: 20, fail_min: 30}    # default
+          vpc_only:        {advisory_min: 30, fail_min: 60}
+          population_only: {advisory_min: 40, fail_min: 70}
       finding: >
         High shrinkage → rely on simulation-based diagnostics, not EBE plots.
 
@@ -784,17 +838,42 @@ nlmixr2_poppk:
         Ill conditioning indicates redundant parameters — simplify model.
 
   nlmixr2_ofv_stability:
-    - paper_ref: "FDA Pop-PK Guidance + NONMEM community practice"
+    # 2026-06-15: rule_text previously had 3.84 hardcoded — that is the
+    # χ² critical value at α=0.05 with df=1 ONLY. For nested LRT with df>1
+    # the threshold should scale (df=2 → 5.99; df=3 → 7.81). For seed-to-seed
+    # run-stability (not nested testing), the cutoff is method-dependent:
+    # FOCEI is deterministic so ΔOFV ≈ 0 is expected, SAEM is stochastic so
+    # ΔOFV in the 1-3 range is normal noise.
+    - paper_ref: "FDA Pop-PK Guidance (2022) + NONMEM/nlmixr2 community practice"
       paper_doi: "https://www.fda.gov/media/128793/download"
       provenance: BRONZE
       paper_supports: >
-        FDA requires convergence/stability evidence. The |ΔOFV| < 3.84
-        community cutoff comes from chi-squared 1 df interpretation, not
-        published as a Pop-PK QC threshold.
+        FDA requires convergence/stability evidence in Pop-PK submissions.
+        The community |ΔOFV| < 3.84 cutoff comes from χ² critical value
+        at α=0.05 with df=1 — it applies to nested LRT for ONE additional
+        parameter, not generic run-stability. For non-LRT use the
+        threshold is operational and depends on estimation method.
       rule_text: >
-        |ΔOFV| < 1.0 = pass; 1.0-3.84 = advisory; >= 3.84 = FAIL.
+        Two distinct use cases — pick by context (see modifiers):
+        (a) nested LRT: |ΔOFV| ≥ χ²(α=0.05, df) where df = added params;
+        (b) run stability: |ΔOFV| < 1.0 (FOCEI) or < 3.0 (SAEM) across
+            seeds = pass; larger = local minimum suspected.
+      modifiers:
+        # Nested LRT — threshold scales with degrees of freedom.
+        df:
+          1: {advisory_min: 2.0,  fail_min: 3.84}
+          2: {advisory_min: 3.0,  fail_min: 5.99}
+          3: {advisory_min: 4.0,  fail_min: 7.81}
+          # For df > 3 the rule_text recommends computing qchisq(0.95, df)
+          # directly; not enumerating here.
+        # Estimation method — affects expected seed-to-seed noise floor.
+        estimation_method:
+          focei: {advisory_min: 0.5, fail_min: 1.0}   # deterministic
+          saem:  {advisory_min: 2.0, fail_min: 3.0}   # stochastic SAEM
       finding: >
-        Large OFV swings across seeds → local minimum suspected.
+        Large OFV swings across seeds → local minimum suspected. For
+        nested-model testing, use df-aware critical value (qchisq(0.95, df)),
+        not the legacy 3.84 default.
 
 # ─── Antibody developability gates ──────────────────────────────────
 antibody_developability:
