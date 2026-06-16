@@ -977,6 +977,13 @@ export function ChatInterface({
           // chat-with-artifacts panel auto-open merges this into workflow.inline_parameters
           // as a fallback in case workflowData mutation gets serialized away (Bug A+C).
           inlineParameters: data.metadata?.inlineParameters,
+          // Forward clarification payloads to chat-message so the UI cards render.
+          // Without these the IntentClarificationCard / ParamClarificationCard
+          // never appears even when the backend emits the data (caught
+          // 2026-06-16 by the intent-clarification e2e: backend friendly
+          // message rendered but card didn't).
+          intentClarification: data.metadata?.intentClarification,
+          paramClarifications: data.metadata?.paramClarifications,
           sources: data.metadata?.sources || {},
           memoryUsed: data.metadata?.memoryUsed || false,
           domainGuard: data.metadata?.domainGuard,
