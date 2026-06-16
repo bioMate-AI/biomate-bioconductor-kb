@@ -944,6 +944,25 @@ def _build_rag_context(section_type: str, data: dict, region: str) -> str:
         except Exception:
             pass  # org pack optional — graceful degradation
 
+    # B3 few_shot_index: top-K exemplar paragraphs from this org's edit
+    # history filtered to section_type, ranked by token overlap with the
+    # accompanying prompt (data['user_prompt'] when present, else recency).
+    # Same org_id gate as prompt_rules above.
+    if org_id:
+        try:
+            from pathlib import Path as _Path
+            from .org_fewshot_index import load_fewshot_block
+            _repo_root = _Path(__file__).resolve().parents[5]
+            _idx_path = _repo_root / "data" / "regulatory_training" / "org_fewshot" / f"{org_id}.jsonl"
+            _prompt = str((data or {}).get("user_prompt") or "")
+            shots = load_fewshot_block(_idx_path, section_type, prompt_text=_prompt, k=2)
+            if shots:
+                lines.append(f"Few-shot exemplars from {org_id} edit history:")
+                for s in shots:
+                    lines.append(f"  • {s}")
+        except Exception:
+            pass  # few_shot index optional — graceful degradation
+
     # ── Narrative patterns from skills DB ────────────────────────────────────
     try:
         from .regulatory_skills_db import RegulatorySkillsDB
