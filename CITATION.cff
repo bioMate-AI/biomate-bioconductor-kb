@@ -1,13 +1,15 @@
 cff-version: 1.2.0
 title: "BioMate-KB Bioconductor Skills"
 abstract: >-
-  Top 100 Bioconductor packages by official download score, formatted as
-  Claude Code Skills (Anthropic SKILL.md format) with structured decision-support
-  fields: when-to-use, best practices, key parameters, common pitfalls, result
+  Top Bioconductor packages by official download score, formatted as Claude Code
+  Skills (Anthropic SKILL.md format) with structured decision-support fields:
+  when-to-use, best practices, key parameters, common pitfalls, result
   interpretation, and alternatives. Designed for use with Claude Code agents in
-  bioinformatics workflows.
+  bioinformatics workflows. Backed by a real-execution-validated workflow
+  knowledge base for Bioconductor.
 authors:
-  - name: BioMate
+  - family-names: Zhang
+    given-names: Y.
     website: https://biomate.ai
 type: dataset
 keywords:
@@ -19,9 +21,10 @@ keywords:
   - single-cell
   - differential-expression
   - skill-library
+  - real-execution-validation
 license: CC-BY-4.0
-version: 1.0.0
-date-released: 2026-06-01
+version: 3.0.0
+date-released: 2026-06-09
 url: https://github.com/bioMate-AI/biomate-bioconductor-kb
 repository-code: https://github.com/bioMate-AI/biomate-bioconductor-kb
 identifiers:
@@ -43,7 +46,7 @@ preferred-citation:
   doi: 10.5281/zenodo.20616355
   url: https://doi.org/10.5281/zenodo.20616355
   notes: >-
-    Concept DOI (all versions). Version v3 DOI: 10.5281/zenodo.20616356
+    Concept DOI (all versions, always resolves to latest). Version v3 DOI: 10.5281/zenodo.20616356
 references:
   - type: article
     title: >-
