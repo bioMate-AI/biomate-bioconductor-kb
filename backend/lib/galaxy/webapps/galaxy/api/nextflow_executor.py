@@ -67,6 +67,64 @@ _nf_max_concurrent = int(os.environ.get("BIOMATE_NF_MAX_CONCURRENT", "10"))
 _nf_launch_semaphore = threading.BoundedSemaphore(_nf_max_concurrent)
 
 
+def _resolve_rationale_id(
+    work_dir: Optional[str], process_name: Optional[str]
+) -> Optional[str]:
+    """Best-effort `'chain_name:phase_letter'` lookup for the (why?) anchor.
+
+    Safe-fail: returns None for any of:
+      - no work_dir / process_name supplied
+      - no `chain_meta.json` sidecar in the work_dir (most one-off
+        workflow runs)
+      - sidecar present but no entry for this process_name
+      - any I/O / parse error
+
+    Returns None means: the chat event ships without `rationale_id`, the
+    frontend WhyAnchor renders nothing for that line — exactly the
+    "no curated rationale" path. Wrong rationale never shows.
+
+    Wiring contract (when the chain composer is taught to drop a meta
+    sidecar at submit time):
+
+      chain_meta.json shape (sidecar in work_dir at chain submit):
+        { "chain_name": "bulk_rnaseq_consensus_de_bioc",
+          "phases": [
+             {"process_name_pattern": "NFCORE_RNASEQ:.*", "phase_letter": "A"},
+             {"process_name_pattern": ".*DESEQ2.*", "phase_letter": "B"},
+             ...
+          ] }
+
+    See docs/20260616_RATIONALE_NARRATOR_HANDOFF.md.
+    """
+    if not work_dir or not process_name:
+        return None
+    try:
+        import json as _json
+        import os as _os
+        import re as _re
+        meta_path = _os.path.join(str(work_dir), "chain_meta.json")
+        if not _os.path.exists(meta_path):
+            return None
+        with open(meta_path) as fh:
+            meta = _json.load(fh)
+        chain_name = meta.get("chain_name")
+        if not chain_name:
+            return None
+        for entry in meta.get("phases") or []:
+            pat = entry.get("process_name_pattern")
+            letter = entry.get("phase_letter")
+            if not pat or not letter:
+                continue
+            try:
+                if _re.search(pat, process_name):
+                    return f"{chain_name}:{letter}"
+            except _re.error:
+                continue
+        return None
+    except Exception:
+        return None
+
+
 def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, Any]] = None) -> None:
     """
     Emit a workflow-progress chat line to the frontend's SSE inject endpoint.
@@ -2446,11 +2504,15 @@ def _start_qc_monitor(
                 if process_name and process_name not in seen_phase_started:
                     seen_phase_started.add(process_name)
                     try:
-                        _narrate_chat(
-                            invocation_id,
-                            "workflow.phase_started",
-                            {"phase_name": _short_phase_name(process_name)},
-                        )
+                        # Best-effort rationale_id for the (why?) anchor on this
+                        # chat line. Returns None for non-chain runs / missing
+                        # chain_meta.json sidecar; frontend hides the anchor
+                        # cleanly when absent. See docs/20260616_RATIONALE_NARRATOR_HANDOFF.md.
+                        _rid = _resolve_rationale_id(str(work_dir), process_name)
+                        _technical: Dict[str, Any] = {"phase_name": _short_phase_name(process_name)}
+                        if _rid:
+                            _technical["rationale_id"] = _rid
+                        _narrate_chat(invocation_id, "workflow.phase_started", _technical)
                     except Exception as exc:
                         log.debug("[QC Monitor] phase_started emit failed for %s: %s", process_name, exc)
 
