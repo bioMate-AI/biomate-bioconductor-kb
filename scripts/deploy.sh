@@ -98,12 +98,18 @@ ssm_run() {
 
   echo "$description..."
 
+  # base64-encode the command so multiline / quotes / $(...) survive the AWS CLI
+  # `commands=["..."]` shorthand parser (which breaks on raw newlines and quotes).
+  # The host decodes and runs it under bash (SSM RunShellScript runs as root).
+  local cmd_b64
+  cmd_b64=$(printf '%s' "$cmd" | base64 | tr -d '\n')
+
   local cmd_id
   cmd_id=$(aws ssm send-command \
     --region "$AWS_REGION" \
     --instance-ids "$INSTANCE_ID" \
     --document-name "AWS-RunShellScript" \
-    --parameters "commands=[\"$cmd\"]" \
+    --parameters "commands=[\"echo $cmd_b64 | base64 -d | bash\"]" \
     --query 'Command.CommandId' \
     --output text)
 
@@ -201,18 +207,24 @@ else
 fi
 echo ""
 
-# Step 3: Pull docker-compose.deploy.yml
-echo "=== Step 3: Pull docker-compose.deploy.yml ==="
-ssm_run "
-  set -e
-  mkdir -p /opt/biomate
-  cd /opt/biomate
-
-  # Download latest docker-compose file from repo
-  curl -fsSL https://raw.githubusercontent.com/bioMate-AI/biomate/main/deploy/docker-compose.deploy.yml -o docker-compose.deploy.yml
-
-  echo 'Downloaded docker-compose.deploy.yml'
-" "Downloading docker-compose.deploy.yml"
+# Step 3: Ship docker-compose.deploy.yml to the host (from THIS checkout, via SSM)
+echo "=== Step 3: Ship docker-compose.deploy.yml ==="
+#
+# Previously curled from GitHub `main`, but the file lives on the deploy branch
+# (integration/next-phase), not main, so that 404'd. Shipping the local copy via
+# SSM base64 removes the branch/network coupling and guarantees the host runs the
+# exact compose from the deploying checkout — mirroring how Step 2 ships the loader.
+COMPOSE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/deploy/docker-compose.deploy.yml"
+if [[ ! -f "$COMPOSE_SRC" ]]; then
+  echo "Error: $COMPOSE_SRC not found"
+  exit 1
+fi
+COMPOSE_B64=$(base64 < "$COMPOSE_SRC" | tr -d '\n')
+# NOTE: keep this ssm_run command free of double quotes and $(...) — ssm_run wraps
+# it in commands=["..."] and the AWS CLI shorthand parser breaks on either. The
+# trailing grep -c prints the image-ref count as a sanity signal.
+ssm_run "mkdir -p /opt/biomate && echo $COMPOSE_B64 | base64 -d > /opt/biomate/docker-compose.deploy.yml && grep -c 'image:' /opt/biomate/docker-compose.deploy.yml" \
+  "Shipping docker-compose.deploy.yml"
 echo ""
 
 # Step 4: Login to ECR
