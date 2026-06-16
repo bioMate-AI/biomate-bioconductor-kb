@@ -317,6 +317,14 @@ export interface ChatContext {
    * picks a candidate from the clarification card.
    */
   intentOverride?: string;
+  /**
+   * TEST-ONLY: force the intent classifier to a specific type, BEFORE the
+   * cross-intent ambiguity check. Allows E2E tests to reproducibly trigger
+   * the IntentClarificationCard render path without relying on Gemini's
+   * non-determinism. Honored only when the request also carries a valid
+   * E2E_TEST_TOKEN header (enforced in routes.ts). Has no effect in prod.
+   */
+  testForceIntent?: string;
 }
 
 export interface ToolRecommendation {
@@ -2511,6 +2519,19 @@ Rules:
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
     this._applyNamedWorkflowOverridesToDecomposition(decomposition, message);
+    // TEST-ONLY: force classification BEFORE cross-intent ambiguity check.
+    // Allows e2e tests to reliably trigger the IntentClarificationCard path
+    // without relying on Gemini non-determinism. Gated by E2E_TEST_TOKEN
+    // header in routes.ts so prod cannot exploit it.
+    if (context.testForceIntent) {
+      const apply = (i: DecomposedIntent) => {
+        i.type = context.testForceIntent!;
+        i.actions = inferActionsFromType(context.testForceIntent!);
+      };
+      apply(decomposition.primaryIntent);
+      for (const i of decomposition.intents) apply(i);
+      log(`Step 1: testForceIntent applied → ${context.testForceIntent}`);
+    }
     // If a prior IntentClarificationCard click set context.intentOverride,
     // apply it now so downstream sees the user-confirmed intent.
     if (context.intentOverride) {

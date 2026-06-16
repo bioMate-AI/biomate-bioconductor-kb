@@ -5156,6 +5156,17 @@ ${paramLines || '(none recorded)'}`;
         return;
       }
 
+      // Gate test-only context fields behind the E2E bypass token. Prod
+      // requests with no E2E header silently strip testForceIntent so it
+      // cannot be used to manipulate intent classification.
+      if (context && (context as any).testForceIntent) {
+        const e2eToken = req.headers['x-e2e-test-token'];
+        const validToken = process.env.E2E_TEST_TOKEN;
+        if (!validToken || e2eToken !== validToken) {
+          delete (context as any).testForceIntent;
+        }
+      }
+
       // ── Safety guardrails (PHI strip + content blocklist + scope filter) ──
       const safetyResult = checkSafety(String(message));
       if (!safetyResult.safe) {
