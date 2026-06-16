@@ -73,32 +73,36 @@ volume**.
 
 ## How this compares
 
-Public Claude-Code / agent **skill libraries** are almost all **Python-centric or general-science**.
-This is the only one built **for R / Bioconductor** — and the deepest by a wide margin:
+Other public agent **skill libraries** are organized by *task* (alignment, trimming, quantification…)
+and target **Python / CLI tools** or general science. This is the only one organized **per
+R / Bioconductor package** — a different, complementary thing, and the only deep R/Bioconductor
+knowledge layer among them:
 
-| Skill library | Language | R / Bioconductor pkgs | Total skills |
-|---|---|--:|--:|
-| **BioMate-KB** (this bundle) | **R / Bioconductor** | **200** | 200 |
-| GPTomics/bioSkills | mixed | ~50–100 | 497 |
-| jaechang-hits/SciAgent-Skills | Python | ~0 | 197 |
-| K-Dense-AI/scientific-agent-skills | Python | a handful | 138 |
-| ClawBio | mixed | 67 | — |
-| wolf5996/agentic-skills | Python | ~10 | — |
+| Library | Language | Organized by | Scope / domains | Skills |
+|---|---|---|---|--:|
+| **BioMate-KB** (this bundle) | **R / Bioconductor** | **per package** | Bioconductor analysis — RNA-seq, single-cell, genomics, proteomics, epigenomics, variant calling, … | **200** |
+| GPTomics/bioSkills | Python / CLI | per task | general bioinformatics tasks (alignment, quant, trimming, ADMET, …) | ~537 |
+| ClawBio | Python | per task | bioinformatics agent (OpenClaw, local-first) | ~363 |
+| jaechang-hits/SciAgent-Skills | Python | per task / workflow | RNA-seq, single-cell, drug discovery, proteomics | ~206 |
+| K-Dense-AI/scientific-agent-skills | Python | per task + 100+ DBs | biology, chemistry, medicine, drug discovery | ~155 |
+| wolf5996/agentic-skills | R | per task | R-package *development* + scientific writing | 13 |
 
-*Public-skill landscape as surveyed in 2026 (it moves fast); the third column counts **R/Bioconductor**
-packages specifically, not total skills.*
+*Skill counts read live from each repo (2026-06); the landscape moves fast. Mind the **different unit**:
+the others count per-task skills (mostly Python tools), so a larger "Skills" total is broader **task**
+coverage — not deeper R-package knowledge. BioMate-KB's 200 are 200 distinct **R/Bioconductor packages**.*
 
-**Our contribution** — what no other public skill set offers for R / Bioconductor at this depth:
+**Our contribution** — unique among public skill libraries:
 
-1. **R / Bioconductor depth** — **200** packages here, **1,818** in the full KB — vs a handful in
-   any other library; the rest target Python tooling or general science.
-2. **Vignette-grounded & fact-verified** — every R function named in a skill is verified to appear
-   in that package's own Bioconductor vignette (mean verify **0.91**), not free-form LLM prose.
+1. **The only per-R/Bioconductor-package library** — **200** packages here, **1,818** in the full KB.
+   Every other public set is task-oriented or Python-centric; none provide per-package R/Bioconductor
+   knowledge at this depth (the closest R one, wolf5996, has 13 skills and covers R *packaging*, not
+   Bioconductor analysis).
+2. **Vignette-grounded & fact-verified** — every R function named in a skill is verified to appear in
+   that package's own Bioconductor vignette (mean verify **0.91**), not free-form LLM prose.
 3. **Per-package workflow recipes** — a package's distinct analyses are explicit `### ` recipes
    (**390** across the 200) — *how to run it*, not just *what it is*.
 4. **Executable backing** — the same knowledge runs as managed, validated workflows on
-   [BioMate Cloud](https://www.biomate.ai) for **1,818** packages — a skill is a starting point for
-   real execution, not a dead end.
+   [BioMate Cloud](https://www.biomate.ai) for **1,818** packages.
 
 
 ## Want the full collection?
