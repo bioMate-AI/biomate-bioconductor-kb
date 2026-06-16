@@ -4489,6 +4489,14 @@ def execute_nextflow(
             close_fds=True,
         )
         _log_fh.close()  # child holds its own fd; parent doesn't need it
+        # Stage 3d — record the detached subprocess PID in the store so the
+        # orphan poller can detect exit from any worker. The primary launch
+        # path (this one, used for ADMET / nf-core / Bioc / etc.) doesn't
+        # stash the Popen in _runs[]; the slot-release thread holds it.
+        try:
+            get_run_state_store().set_pid(run_id, process.pid)
+        except Exception as _store_exc:
+            log.debug("[runs] store.set_pid failed for %s: %s", run_id, _store_exc)
         # Release the semaphore slot when the head process exits.
         def _release_slot(p: subprocess.Popen, rid: str) -> None:
             try:
