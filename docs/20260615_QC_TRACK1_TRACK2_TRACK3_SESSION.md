@@ -95,6 +95,7 @@ Batched by domain for minimum sync cycles:
 | 4 | HTS signal_window + LNP encap_efficiency | `0a8b449934`, `f516fd12a` (bool fix), `cbcb91f11a` (doc) | ✓ both live |
 | 5 | Bioc 14 orphans — classify against Phase 3a canonical rows | `98ac767749`, `3ceadca9d9` | doc-only, no run needed |
 | 6 | nlmixr2 cond_number + ofv + admet_dili + antibody documentation | `70b4551329`, `0d9d2617c6` (NULL fix) | ✓ nlmixr2 + ADMET live |
+| 7 | docking + openfe gates (2026-06-16) | `dd6a885c23` | pending receptor PDB / closed-cycle fixtures |
 
 ### Final live verification run IDs
 
@@ -121,17 +122,32 @@ Each row emits a structured `*_status: not_used (…)` field in
 qc_metrics.json so the audit trail records why the gate didn't fire
 instead of leaving it silently dark.
 
-### Remaining 2 unwired (Track 2 follow-up)
+### Batch 7 closure (2026-06-16) — docking + openfe wired
 
-- `docking_binding_score` + `docking_valid_poses` — workflow requires
-  a receptor PDB fixture; the qc_metrics emit schema is ready but the
-  run path needs a real ligand+receptor pair.
-- `openfe_cycle_closure` — RBFE cycle topology; needs an OpenFE input
-  graph fixture.
+**Commit:** `dd6a885c23`
 
-Both can be handled by the same "emit schema; status=not_computed when
-inputs absent" pattern used for the cancer-biology batch. Saved for the
-next session.
+- `DOCKING_AUTODOCK_VINA` now emits `docking_binding_score_passes`
+  (best_score ≤ -7 kcal/mol; BRONZE Trott & Olson 2010) and
+  `docking_valid_poses_passes` (n_poses ≥ 3; BRONZE AutoDock community)
+  alongside the existing best_score / n_ligands_docked fields. Status
+  becomes `not_computed (no receptor supplied; gate awaits
+  receptor_pdb_file fixture)` when no receptor PDB is given.
+- `OPENFE_ANALYSIS` (renamed from generic `ANALYSIS` to avoid a
+  `_S3_REPORT_PATHS` keyword collision risk) emits
+  `openfe_cycle_closure_passes` (max |ΔG_sum| ≤ 1 kcal/mol; GOLD
+  Mey 2020) plus context (ddg + sem + MBAR overlap quality). When the
+  run is a single edge (no closed-cycle topology) the status records
+  `not_computed (single-edge run; cycle closure needs ≥3-edge closed
+  loop)`.
+- Both registered in `_S3_REPORT_PATHS`.
+
+### Remaining unwired after batch 7 — exactly 1
+
+- `ivive_well_stirred_consistency` — gate requires the IVIVE workflow
+  to compute the same CL prediction under multiple liver models
+  (well-stirred vs parallel-tube vs dispersion) and compare. That's
+  workflow-logic work, not a metric emit. Deferred — different shape
+  of work than batches 1-7.
 
 ## Track 3 — Bioc gate layer
 
@@ -177,13 +193,13 @@ prefix; (3) true-absence returns None.
 | Bucket | Session start | Session end |
 |---|---:|---:|
 | Verified end-to-end live (with [QC-S3] + [QC Gate] proof) | 20 | 24+ |
-| Documented-but-unwired pharma | 12 | 2 |
+| Documented-but-unwired pharma | 12 | 1 (only `ivive_well_stirred_consistency` — needs workflow-logic change, not just an emit) |
 | Documented-but-unwired imaging/structural | 8 | 0 |
 | Documented-but-unwired cancer biology | 3 | 0 |
 | Documented-but-unwired HTS/LNP | 3 | 0 |
 | Documented-but-unwired antibody/biologics | 2 | 0 (documented-not-used) |
 | Documented-but-unwired Bioc orphans | 14 | 0 (classified) |
-| Documented-but-unwired total | 38 | 2 |
+| Documented-but-unwired total | 38 | **1** (`ivive_well_stirred_consistency`) |
 | Honestly skipped (workflow-scope mismatch) | 0 | 5 |
 | New Bioc gate rows (Phase 3a) | 0 | 23 |
 | Citations corrected | 0 | 4 |
@@ -219,13 +235,19 @@ prefix; (3) true-absence returns None.
 
 ## What's left for next session
 
-1. Wire docking + openfe gates with the emit-schema pattern.
-2. Complete Track 1 step 3 — sweep the remaining ~70 entries to demote
+1. ~~Wire docking + openfe gates with the emit-schema pattern.~~ ✓ done 06-16 (`dd6a885c23`)
+2. **Implement `ivive_well_stirred_consistency`** — gate the IVIVE
+   workflow to run the well-stirred prediction alongside parallel-tube
+   and dispersion models, then compare. Pure workflow-logic change;
+   the metric is `(CL_ws - CL_pt) / CL_ws` or similar tolerance check
+   per Pang & Rowland 1977.
+3. Complete Track 1 step 3 — sweep the remaining ~70 entries to demote
    overclaiming `paper_supports` language.
-3. Track 3 Phase 3b — build `BIOC_QC_HARNESS` process + wire the
+4. Track 3 Phase 3b — build `BIOC_QC_HARNESS` process + wire the
    `qc_gate_reader.bioc_qc_metric_map` lookup.
-4. Schedule end-to-end verification runs for the gate batches that
+5. Schedule end-to-end verification runs for the gate batches that
    landed schema-only but didn't get a live run (Batch 2 imaging/
-   structural; Batch 3 cancer biology — both need fixtures).
-5. Audit-grade PubMed cross-check for the citations tagged
+   structural; Batch 3 cancer biology; Batch 7 docking + openfe — all
+   need fixtures).
+6. Audit-grade PubMed cross-check for the citations tagged
    `NEEDS_PUBMED_VERIFY` (mainly the η-shrinkage 2009 AAPS J entry).
