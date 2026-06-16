@@ -165,22 +165,40 @@ ssm_run "if [ -f /opt/biomate/.env ]; then cp /opt/biomate/.env /opt/biomate/.en
   "Backing up existing .env"
 echo ""
 
-# Step 2: Verify host-managed env is present
-echo "=== Step 2: Environment variables (host-managed) ==="
+# Step 2: Materialize runtime env from AWS Secrets Manager (GitLab-style external config)
+echo "=== Step 2: Load runtime env from Secrets Manager ==="
 #
-# /opt/biomate/.env on the host is the source of truth for runtime env, injected
-# into the containers via `env_file:` in docker-compose.deploy.yml. It is managed
-# OUT OF BAND, not by this deploy:
-#   - edit it directly on the host, or
-#   - push it with: BIOMATE_PUSH_ENV=1 bash scripts/sync_to_dev.sh
-#     (manifest-driven, scp-based; see scripts/render_env_manifest.sh +
-#      deploy/biomate.env.manifest).
+# Runtime env VALUES live in AWS Secrets Manager at <env>/biomate/galaxy-env; the
+# repo holds only variable NAMES (deploy/biomate.env.manifest). Values never transit
+# GitHub, the repo, or a developer workstation. The deploy host pulls them with its
+# EC2 instance role (BioMateEc2DeployRole has secretsmanager:GetSecretValue on
+# <env>/biomate/*) and per-key upserts them into /opt/biomate/.env — host-only keys
+# are preserved. See scripts/load_env_from_secrets.sh + deploy/biomate.env.manifest.
 #
-# CI does NOT inject env here: the only SSM-reachable transport is S3, but the
-# EC2 instance role has no S3 read access and there is no deploy-temp bucket, so
-# an S3 hop would fail on the EC2 side. Step 1 already backed up the host .env.
-ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::warning:: /opt/biomate/.env missing — app may fail to start'; fi" \
-  "Checking host /opt/biomate/.env"
+# The loader is shipped to the host via SSM (base64-inlined; the instance role has no
+# S3 read, so no S3 hop is used). If the secret is missing/unreadable we fall back —
+# LOUDLY — to the host-managed /opt/biomate/.env so a not-yet-provisioned env still
+# deploys. Containers (Step 6) start AFTER this, so they read the refreshed .env.
+case "$ENVIRONMENT" in
+  production) SECRETS_ENV="prod" ;;
+  *)          SECRETS_ENV="$ENVIRONMENT" ;;
+esac
+LOAD_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load_env_from_secrets.sh"
+if [[ -f "$LOAD_SCRIPT_PATH" ]]; then
+  LOAD_B64=$(base64 < "$LOAD_SCRIPT_PATH" | tr -d '\n')
+  if ssm_run "echo $LOAD_B64 | base64 -d > /tmp/load_env_from_secrets.sh && BIOMATE_ENV='$SECRETS_ENV' bash /tmp/load_env_from_secrets.sh; rc=\$?; rm -f /tmp/load_env_from_secrets.sh; exit \$rc" \
+       "Loading env from Secrets Manager ($SECRETS_ENV/biomate/galaxy-env)"; then
+    echo "✓ Runtime env materialized from Secrets Manager"
+  else
+    echo "::warning:: Secrets Manager load failed for $SECRETS_ENV/biomate/galaxy-env — falling back to host-managed /opt/biomate/.env"
+    ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::error:: /opt/biomate/.env missing AND Secrets Manager load failed — app will not start'; exit 1; fi" \
+      "Verifying host /opt/biomate/.env (fallback)"
+  fi
+else
+  echo "::warning:: $LOAD_SCRIPT_PATH not found — using host-managed /opt/biomate/.env"
+  ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::error:: /opt/biomate/.env missing — app will not start'; exit 1; fi" \
+    "Verifying host /opt/biomate/.env"
+fi
 echo ""
 
 # Step 3: Pull docker-compose.deploy.yml
