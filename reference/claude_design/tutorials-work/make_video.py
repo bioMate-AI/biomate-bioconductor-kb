@@ -31,6 +31,8 @@ NODE_TOOL  = "/tmp/biomate_video_tool"
 # The correct Cryo Tutorial Package lives in a dedicated subdirectory with updated src/
 RESEARCH_URL_PATH = "cyro_tutorial/Research Agent UI.html"
 IND_URL_PATH      = "IND Report/BioMate IND Report.html"
+# New Bioconductor UI — Research Agent_UI_bio_drug (updated components + BiocTours.jsx)
+BIOC_URL_PATH     = "Research Agent_UI_bio_drug/Research Agent UI.html"
 
 
 # ── Local HTTP server ─────────────────────────────────────────────────────────
@@ -82,6 +84,28 @@ TUTORIALS = {
     "url_path": IND_URL_PATH,
     "tour_label": None,   # IND .tut-btn starts tour directly (no picker)
     "lead_in_ms": 1200,
+    "trail_ms": 2000,
+  },
+
+  # ── Bioconductor tutorials — new Research Agent_UI_bio_drug HTML ──────────────
+  # BiocTours.jsx overrides Tour.jsx steps; 27 / 25 / 25 steps per tour.
+  # Picker label prefix[:30] must match tour's label field in Tour.jsx.
+  "bioc_kb": {
+    "url_path": BIOC_URL_PATH,
+    "tour_label": "BIO — Bioconductor · KB routing & execution",
+    "lead_in_ms": 1000,   # extra lead: Babel transpile is heavier in new HTML
+    "trail_ms": 2000,
+  },
+  "bioc_sc": {
+    "url_path": BIOC_URL_PATH,
+    "tour_label": "BIO2 — Bioconductor · scRNA-seq → pseudobulk DE",
+    "lead_in_ms": 1000,
+    "trail_ms": 2000,
+  },
+  "bioc_methyl": {
+    "url_path": BIOC_URL_PATH,
+    "tour_label": "BIO3 — Bioconductor · 450k methylation → DMRs",
+    "lead_in_ms": 1000,
     "trail_ms": 2000,
   },
 }
@@ -190,7 +214,7 @@ const TRAIL   = {trail_ms};
 
   const page = await browser.newPage();
   await page.goto(HTML, {{ waitUntil: 'load', timeout: 30000 }});
-  await new Promise(r => setTimeout(r, 5000));   // wait for Babel transpile + React init (JSX loads async)
+  await new Promise(r => setTimeout(r, 7000));   // wait for Babel transpile + React init (JSX loads async; bioc HTML has extra scripts)
 
   // Disable all autoAdvance timers so WE control step timing
   await page.evaluate(() => {{
@@ -213,7 +237,7 @@ const TRAIL   = {trail_ms};
 
   // ── Start CDP screencast AFTER tour is active (no picker in frames) ──
   // Stream frames directly to disk to avoid OOM on long videos.
-  // everyNthFrame:2 ≈ 24fps (halves memory vs every frame).
+  // everyNthFrame:1 = every frame ≈ 30fps; higher quality than :2 for tutorial vids.
   const client = await page.createCDPSession();
   let frameIdx = 0;
   const tsStream = fs.createWriteStream(path.join(FRAMES, 'timestamps.ndjson'));
@@ -231,7 +255,7 @@ const TRAIL   = {trail_ms};
   }});
 
   await client.send('Page.startScreencast', {{
-    format: 'png', maxWidth: 1920, maxHeight: 1080, everyNthFrame: 2,
+    format: 'png', maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1,
   }});
 
   console.log(`Screencast started — ${{STEPS.length}} steps, lead=${{LEAD}}ms`);
@@ -307,7 +331,7 @@ def build_video(key, cfg, timings, frames_dir):
     r = subprocess.run([
         "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_path,
         "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
-        "-c:v", "h264_videotoolbox", "-b:v", "10M",
+        "-c:v", "h264_videotoolbox", "-b:v", "18M",
         "-t", f"{total_s:.3f}", stitched,
     ], capture_output=True)
     if r.returncode != 0:
@@ -318,7 +342,7 @@ def build_video(key, cfg, timings, frames_dir):
         r2 = subprocess.run([
             "ffmpeg", "-y", "-i", stitched,
             "-vf", f"tpad=stop_mode=clone:stop_duration={extend_s:.3f}",
-            "-c:v", "h264_videotoolbox", "-b:v", "10M",
+            "-c:v", "h264_videotoolbox", "-b:v", "18M",
             "-pix_fmt", "yuv420p", raw_video,
         ], capture_output=True)
         if r2.returncode != 0:
