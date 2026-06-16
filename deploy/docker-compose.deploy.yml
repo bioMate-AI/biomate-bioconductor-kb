@@ -13,7 +13,8 @@
 # retires the sync containers once deploy.sh has proven itself).
 #
 # Secrets (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) come from /opt/biomate/.env
-# on the host today. P2.3 will replace this with AWS Secrets Manager.
+# on the host, which scripts/deploy.sh (Step 2) materializes from AWS Secrets
+# Manager (<env>/biomate/galaxy-env) via the EC2 instance role on every deploy.
 
 services:
   galaxy-backend-deploy:
@@ -62,7 +63,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      # The app force-redirects HTTP->HTTPS in production, so a plain-HTTP probe
+      # gets a 301 (not 200) and the container is wrongly marked unhealthy. Send
+      # X-Forwarded-Proto: https (as Caddy does) so /api/health returns 200.
+      test: ["CMD", "node", "-e", "require('http').get({host:'127.0.0.1',port:3000,path:'/api/health',headers:{'X-Forwarded-Proto':'https'}}, (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
