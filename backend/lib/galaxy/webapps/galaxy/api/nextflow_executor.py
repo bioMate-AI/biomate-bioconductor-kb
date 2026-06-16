@@ -59,6 +59,29 @@ _runs_lock = threading.Lock()
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
 
 
+def _find_run_by_invocation_id(invocation_id: str) -> Optional[tuple]:
+    """Search both the in-process _runs[] and the RunStateStore for a run
+    whose invocation_id matches. Returns (run_id, record) or None.
+
+    Stage 2d helper — replaces 4 manual `for ... in _runs.items():` loops
+    that scanned only the worker-local dict. Cross-worker visibility was
+    broken: a worker that didn't launch the run would never find it.
+    """
+    with _runs_lock:
+        for rid, info in _runs.items():
+            if info.get("invocation_id") == invocation_id:
+                return (rid, info)
+    try:
+        store = get_run_state_store()
+        for rid in store.list_active_runs():
+            rec = store.get_run(rid)
+            if rec and rec.get("invocation_id") == invocation_id:
+                return (rid, rec)
+    except Exception as _store_exc:
+        log.debug("[runs] _find_run_by_invocation_id store scan failed: %s", _store_exc)
+    return None
+
+
 def _run_lookup(run_id: str) -> Optional[Dict[str, Any]]:
     """Read a run record, with cross-worker fallback to RunStateStore.
 
@@ -2571,11 +2594,11 @@ def _start_qc_monitor(
         def _is_run_terminal() -> bool:
             # Look up the run by invocation_id → run_id and check status.
             try:
-                with _runs_lock:
-                    for _rid, _r in _runs.items():
-                        if _r.get("invocation_id") == invocation_id:
-                            st = (_r.get("status") or "").lower()
-                            return st in ("succeeded", "completed", "failed", "interrupted")
+                hit = _find_run_by_invocation_id(invocation_id)
+                if hit is not None:
+                    _rid, _r = hit
+                    st = (_r.get("status") or "").lower()
+                    return st in ("succeeded", "completed", "failed", "interrupted")
             except Exception:
                 pass
             return False
@@ -6067,13 +6090,11 @@ def download_invocation_methods_report(
                         except Exception:
                             pass
 
-        # Look up run_id from in-process registry
+        # Look up run_id from store (worker-local _runs first, Redis fallback)
         if run_id == "n/a":
-            with _runs_lock:
-                for rid, info in _runs.items():
-                    if info.get("invocation_id") == invocation_id:
-                        run_id = rid
-                        break
+            hit = _find_run_by_invocation_id(invocation_id)
+            if hit is not None:
+                run_id = hit[0]
 
         lines = [
             "BioMate AI — Methods Report",
@@ -6120,11 +6141,10 @@ def _lookup_work_dir_for_invocation(invocation_id: str) -> Optional[Path]:
     Searches the in-process _runs registry (keyed by run_id) for a run whose
     invocation_id matches.  Returns None if no matching run is found.
     """
-    with _runs_lock:
-        for run_info in _runs.values():
-            if run_info.get("invocation_id") == invocation_id:
-                wd = run_info.get("work_dir")
-                return Path(wd) if wd else None
+    hit = _find_run_by_invocation_id(invocation_id)
+    if hit is not None:
+        wd = hit[1].get("work_dir")
+        return Path(wd) if wd else None
     return None
 
 
@@ -6687,14 +6707,12 @@ def get_invocation_manifest(
     """
     import json as _json
 
-    # Locate outdir for this invocation from the in-process run registry
+    # Locate outdir for this invocation (store + in-process fallback)
     outdir: Optional[Path] = None
-    with _runs_lock:
-        for run_info in _runs.values():
-            if run_info.get("invocation_id") == invocation_id:
-                raw = run_info.get("outdir")
-                outdir = Path(raw) if raw else None
-                break
+    hit = _find_run_by_invocation_id(invocation_id)
+    if hit is not None:
+        raw = hit[1].get("outdir")
+        outdir = Path(raw) if raw else None
 
     if outdir is None:
         raise HTTPException(
