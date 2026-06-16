@@ -4202,6 +4202,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Can't easily re-stream multipart here — skip body forwarding
           // (ingest-assay uses its own dedicated handler above this wildcard)
         } else {
+          // B3 — inject org_id into IND assembly bodies so the backend
+          // _build_rag_context can load the per-org prompt_rules YAML +
+          // few_shot_index. Matches both /ind-assembly and
+          // /ind-assembly/supersede. Caller's org_id wins if already set.
+          const u: any = (req as any).user;
+          const isIndAssembly = /\/ind-assembly(?:\/supersede)?$/.test(targetPath);
+          if (isIndAssembly && u) {
+            const orgId =
+              (u.organization && String(u.organization).trim()) ||
+              (u.id ? String(u.id) : "");
+            if (orgId && (!req.body || !req.body.org_id)) {
+              req.body = { ...(req.body || {}), org_id: orgId };
+            }
+          }
           fetchOpts.body = JSON.stringify(req.body);
         }
       }
