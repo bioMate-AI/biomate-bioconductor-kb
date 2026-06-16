@@ -55,15 +55,15 @@ YAML row exists with citation + rule; either the workflow doesn't emit
 the matching `qc_metrics.json` shape, OR the workflow isn't registered
 in `_S3_REPORT_PATHS`.
 
-**Pharmacology (12):**
-- pbpk: `pbpk_cl_min`, `pbpk_mass_balance`, `pbpk_auc_fold_error`
-- nca: `nca_terminal_slope_coverage`
-- docking: `docking_binding_score`, `docking_valid_poses`
-- ivive: `ivive_well_stirred_consistency`
-- openfe: `openfe_cycle_closure`
-- nlmixr2: `nlmixr2_condition_number`, `nlmixr2_ofv_stability`
-- admet: `admet_dili_probability` (the verified row gates the combined `admet` shape; DILI alone is its own row)
-- polymorph: 3 entries
+**Pharmacology (1):** all gates wired by 2026-06-16 except `ivive_well_stirred_consistency`
+- pbpk: ✓ `pbpk_cl_min`, `pbpk_mass_balance`, `pbpk_auc_fold_error` wired in Track 2 batch 1 (`f5f8b28b25`); PBPK verified live `b65d5b14` 2026-06-15 22:58
+- nca: ✓ `nca_terminal_slope_coverage` wired in `f5f8b28b25`
+- docking: ✓ `docking_binding_score` + `docking_valid_poses` wired in Track 2 batch 7 (2026-06-16) — qc_metrics emit with status='not_computed' when no receptor_pdb_file supplied; full live verification deferred until receptor fixture
+- ivive: `ivive_well_stirred_consistency` — needs scaling-model consistency check additions to the ivive workflow; not in this session's scope
+- openfe: ✓ `openfe_cycle_closure` wired in Track 2 batch 7 (2026-06-16) — qc_metrics emit with status='not_computed' for single-edge runs; computes max |ΔG_sum| when network.closed_cycles + parsed fe_results both present. Process renamed `ANALYSIS` → `OPENFE_ANALYSIS` to avoid generic process-keyword collisions in `_S3_REPORT_PATHS`.
+- nlmixr2: ✓ `nlmixr2_condition_number` + `nlmixr2_ofv_stability` wired in Track 2 batch 6 (`70b4551329`); nlmixr2 verified live `34ce4a2a` 2026-06-15 22:55 with cond_number_passes=true (6.9 < 100), ofv_stability_status="not_computed (single-fit workflow)"
+- admet: ✓ `admet_dili_probability` wired in `70b4551329`; ADMET verified live `7c9b5f1e` 2026-06-15 22:56 with admet_dili_probability_passes=false (terfenadine high-risk DILI, correct positive control)
+- polymorph: 3 honestly-skipped entries — in-silico screening workflow can't produce in-vitro stability-study measurements
 
 **Imaging / structural (0):** all 8 imaging/structural gates wired in Track 2 batch 2 (2026-06-15) — verification runs pending on dev:
 - cryo_em (3): `cryo_em_fsc_resolution`, `cryo_em_motion_drift`, `cryo_em_particle_count` wired in `794726dc0` (cryosparc_standard_spa)

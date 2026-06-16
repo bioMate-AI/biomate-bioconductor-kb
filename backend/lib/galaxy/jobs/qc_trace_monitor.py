@@ -1630,6 +1630,8 @@ class NextflowQCGateHandler:
         "PBPK_SIMULATION":           ("*", "qc_metrics.json"),  # tmax_fraction ≤ 0.8 (SILVER, FDA 2018 PBPK)
         "GENOTOXICITY_AMES_PREDICTION": ("*", "qc_metrics.json"),  # Ames clean = 0 POSITIVE / 0 SUSPECT (SILVER, Kazius 2005 / ICH S2R1)
         "DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS": ("*", "qc_metrics.json"),  # VAF≥0.05 + depth≥30x + MAPQ≥20 (GOLD GATK + Kim 2018 + Li 2009)
+        "DOCKING_AUTODOCK_VINA":     ("*", "qc_metrics.json"),  # best_score ≤ -7 + n_poses ≥ 3 (BRONZE, Trott & Olson 2010)
+        "OPENFE_ANALYSIS":           ("*", "qc_metrics.json"),  # openfe_rbfe cycle_closure ≤ 1 kcal/mol (GOLD, Mey 2020)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
