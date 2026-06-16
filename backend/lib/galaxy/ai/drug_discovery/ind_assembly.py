@@ -695,6 +695,7 @@ def _llm_narrative(
     region: str = "FDA",
     audit_constraint: str = "",
     user_prompt_override: str = "",
+    org_id: Optional[str] = None,
 ) -> str:
     """
     Generate a 2-4 sentence regulatory narrative paragraph for a given IND section.
@@ -828,6 +829,15 @@ def _llm_narrative(
         # B1: append deterministic MRSD numbers so the LLM uses them verbatim
         if _mrsd_anchor:
             user_prompt = user_prompt + _mrsd_anchor
+
+        # B3: ensure org_id reaches _build_rag_context. The kwarg wins
+        # if explicit; otherwise the caller may have stuffed it into data
+        # itself. Pass via a shallow copy so callers' dicts aren't mutated.
+        if org_id and (data is None or "org_id" not in data):
+            data = {**(data or {}), "org_id": org_id}
+        # Also forward user_prompt so few_shot_index can score relevance.
+        if data is not None and "user_prompt" not in data and user_prompt:
+            data = {**data, "user_prompt": user_prompt}
 
         # ── RAG: inject narrative patterns from regulatory_skills_db ─────────
         rag_block = _build_rag_context(section_type, data, region)
@@ -1069,6 +1079,7 @@ class INDSectionAssembler:
         glp_recognition: str = "",
         ethnic_bridging_note: str = "",
         wetlab_data: Optional[dict] = None,
+        org_id: Optional[str] = None,
     ) -> AssemblyResult:
         """
         Generate CTD Sections 2.6.1–2.6.3 for the given campaign.
@@ -1130,6 +1141,10 @@ class INDSectionAssembler:
             glp_facility=glp_facility,
             glp_recognition=glp_recognition,
             ethnic_bridging_note=ethnic_bridging_note,
+            # B3 per-org adaptation — when set, every _llm_narrative call
+            # in this assembly will reach the per-org prompt_rules YAML +
+            # few_shot_index via _build_rag_context.
+            org_id=org_id,
         )
 
         title          = self._title_page(ctx)
@@ -1501,7 +1516,7 @@ class INDSectionAssembler:
         )
 
         narrative = _llm_narrative("nonclinical_overview", data, region=region,
-                                   user_prompt_override=user_prompt)
+                                   user_prompt_override=user_prompt, org_id=ctx.get("org_id"))
 
         # Region-specific regulatory framing
         submission_note = {
@@ -1600,7 +1615,7 @@ FDA/EMA Joint Guidance on Good AI Practice in Drug Development (January 2026).*{
             "target_name": ctx["target_name"],
             "indication": ctx["indication"],
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_block = f"\n\n{narrative}" if narrative else ""
 
         # GLP declaration — required by NMPA Announcement No. 35 (2019)
@@ -1709,8 +1724,7 @@ The GLP declaration above applies to any wet-lab validation studies cited herein
                 "within_2fold_AUC": _pct(m.get("within_2fold_AUC")),
                 "ema_criterion_met": ema_met,
             },
-            region=ctx.get("region", "FDA"),
-        )
+            region=ctx.get("region", "FDA"), org_id=ctx.get("org_id"))
         if _autoloop_constraints:
             log.debug("[IND autoloop] pbpk regenerated under constraints: %s", _autoloop_constraints)
 
@@ -1816,7 +1830,7 @@ PK literature).
             "passing_compounds": passing,
             "pass_rate": pass_rate,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_block = f"\n{narrative}\n" if narrative else ""
 
         return f"""\
@@ -1860,7 +1874,7 @@ screening pipeline.
             "total_compounds": total,
             "top_score": top_score,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_block = f"\n{narrative}\n" if narrative else ""
 
         proposal_section = ""
@@ -1904,7 +1918,7 @@ The Bayesian optimizer employs:
         if auto_p and auto_p.get("n_proposed"):
             ad_summary = f"\nThe most recent proposal ({auto_p['n_proposed']} compounds) included applicability domain status for all proposed structures."
 
-        narrative = _llm_narrative("ad", {}, region=ctx.get("region","FDA"))
+        narrative = _llm_narrative("ad", {}, region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_block = f"\n{narrative}\n" if narrative else ""
 
         return f"""\
@@ -2022,12 +2036,12 @@ Each signature is linked to its corresponding audit record via `audit_record_id`
             "molecule_name": ctx["molecule_name"],
             **pk_data,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_adme = _llm_narrative("pk_adme", {
             "molecule_name": ctx["molecule_name"],
             "n_compounds": n_compounds,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
 
         intro_block = f"\n{narrative_intro}\n" if narrative_intro else ""
         adme_block = f"\n{narrative_adme}\n" if narrative_adme else ""
@@ -2574,7 +2588,7 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
             "dili_flagged": dili_flagged,
             "ames_flagged": ames_flagged,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         # B4: citation-critical sections — autoloop covers CITE_002 (S2(R1))
         # and CONTENT_002 (Ames mention) for genotox, CITE_003 (S7B) for
         # cardiac. Each gets up to 3 attempts with failed-rule constraint.
@@ -2587,8 +2601,7 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
                 "ames_flagged": ames_flagged,
                 "ames_result": lead_ames,
             },
-            region=ctx.get("region", "FDA"),
-        )
+            region=ctx.get("region", "FDA"), org_id=ctx.get("org_id"))
         if _gt_constraints:
             log.debug("[IND autoloop] tox_genotox regenerated under constraints: %s", _gt_constraints)
         narrative_cardiac, _ca_constraints = llm_narrative_with_retry(
@@ -2599,8 +2612,7 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
                 "herg_flagged": herg_flagged,
                 "lead_herg_ic50": lead_herg,
             },
-            region=ctx.get("region", "FDA"),
-        )
+            region=ctx.get("region", "FDA"), org_id=ctx.get("org_id"))
         if _ca_constraints:
             log.debug("[IND autoloop] tox_cardiac regenerated under constraints: %s", _ca_constraints)
 
@@ -3499,7 +3511,7 @@ before IND filing per ICH M3(R2) Table 1 (Phase I single ascending dose).*"""
             "noael": noael_val,
             "noael_species": noael_species,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_genotox = _llm_narrative("tox_written_genotox", {
             "molecule_name": mol,
             "ames_result": lead_ames,
@@ -3508,7 +3520,7 @@ before IND filing per ICH M3(R2) Table 1 (Phase I single ascending dose).*"""
             "rm_summary": rm_summary,
             "has_glp_data": has_wetlab,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
         narrative_cardiac = _llm_narrative("tox_written_cardiac", {
             "molecule_name": mol,
             "lead_herg_ic50": lead_herg,
@@ -3516,7 +3528,7 @@ before IND filing per ICH M3(R2) Table 1 (Phase I single ascending dose).*"""
             "herg_flagged": herg_flagged,
             "total_compounds": total,
         },
-            region=ctx.get("region","FDA"))
+            region=ctx.get("region","FDA"), org_id=ctx.get("org_id"))
 
         intro = f"\n{narrative_summary}\n" if narrative_summary else ""
         genotox_prose = f"\n{narrative_genotox}\n" if narrative_genotox else ""
