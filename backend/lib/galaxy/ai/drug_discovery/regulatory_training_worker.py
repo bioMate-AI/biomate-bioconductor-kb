@@ -73,20 +73,25 @@ def _do_prompt_rules(job: rj.TrainingJob) -> rj.TrainingJob:
 
 
 def _do_few_shot_index(job: rj.TrainingJob) -> rj.TrainingJob:
-    """Build a per-org retrieval index over customer edit pairs. Stub
-    writes a placeholder; real implementation indexes with BGE or
-    similar local embeddings."""
+    """Build a per-org retrieval index over customer edit pairs.
+
+    Replaces the prior placeholder with the real index at
+    org_fewshot_index.build_and_write — emits one JSONL row per chosen
+    text with section_type + tokens for keyword-overlap retrieval.
+
+    Pure-stdlib token-Jaccard retrieval at inference time (no BGE / no
+    sklearn / no model download). The index lands at
+    data/regulatory_training/org_fewshot/<org>.jsonl and is loaded by
+    ind_assembly._build_rag_context when data['org_id'] is set.
+    """
+    from galaxy.ai.drug_discovery.org_fewshot_index import build_and_write
     ORG_FEWSHOT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = ORG_FEWSHOT_DIR / f"{job.org_id}.jsonl"
-    out_path.write_text(json.dumps({
-        "org_id": job.org_id,
-        "pair_count": job.edit_pair_count,
-        "note": "stub — real implementation builds a BGE/Qwen embedding index",
-    }) + "\n")
+    n_rows = build_and_write(rj.DPO_PAIRS_PATH, out_path, job.org_id)
     return rj.mark_status(
         job.job_id,
         "succeeded",
-        message=f"few_shot_index indexed {job.edit_pair_count} pairs",
+        message=f"few_shot_index built {n_rows} exemplar rows from {job.edit_pair_count} pairs",
         adapter_path=str(out_path),
     )
 
