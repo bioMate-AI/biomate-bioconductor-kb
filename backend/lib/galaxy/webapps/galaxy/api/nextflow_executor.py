@@ -3808,6 +3808,14 @@ def _accession_chain_thread(
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["process"] = process
+        # Stage 3d — record the detached subprocess PID in the store so the
+        # orphan poller can detect exit from any worker, including ones that
+        # didn't launch this run. Without this the poller has no signal at
+        # all (test_missing_pid_skips_run in test_completion_poller.py).
+        try:
+            get_run_state_store().set_pid(run_id, process.pid)
+        except Exception as _store_exc:
+            log.debug("[runs] store.set_pid failed for %s: %s", run_id, _store_exc)
     except Exception as exc:
         _set_status("failed", error=f"Failed to launch main workflow: {exc}")
         log.error(f"[accession chain run_id={run_id}] Launch error: {exc}")
