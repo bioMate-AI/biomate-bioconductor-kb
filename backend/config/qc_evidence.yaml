@@ -95,12 +95,20 @@ admet:
   admet_herg_ic50:
     - paper_ref: "Redfern P et al. Cardiovasc Res 2003; 58(1):32-45"
       paper_doi: "10.1016/S0008-6363(02)00846-5"
-      provenance: GOLD
+      # 2026-06-16 split-grade per Track 1 step 3: Redfern 2003 establishes
+      # the HERG margin → arrhythmia-risk correlation across drug classes;
+      # the specific 30× / 10 µM tier values are pharma-community convention
+      # (Bowes 2012 cross-pharma consensus). Metric is GOLD-anchored to the
+      # paper; tier numbers are SILVER-operational.
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        Redfern 2003 establishes the 30× safety margin between hERG
-        IC50 and free therapeutic Cmax as the industry-accepted cardiac
-        liability cutoff; for a typical small-molecule free Cmax of
-        ~0.3 µM this corresponds to an IC50 ≥ 10 µM.
+        Redfern 2003 documents the correlation between hERG IC50 / free
+        Cmax safety margin and clinical arrhythmia risk across drug
+        classes. The paper describes the metric; the specific 30× safety-
+        margin tier (and the typical-free-Cmax-derived 10 µM IC50 floor)
+        is pharma-community operational convention summarised by Bowes
+        2012 Nat Rev Drug Discov 11:909-922 (DOI 10.1038/nrd3845), not
+        stated verbatim in Redfern 2003.
       rule_text: >
         BioMate halts if hERG IC50 ≤ 10 µM (admet_standard profile).
         The 10 µM operational threshold is confirmed in Bowes 2012
@@ -565,12 +573,19 @@ pocket_detection:
   pocket_druggability_score:
     - paper_ref: "Le Guilloux V, Schmidtke P, Tuffery P. BMC Bioinformatics 2009; 10:168"
       paper_doi: "10.1186/1471-2105-10-168"
-      provenance: GOLD
+      # 2026-06-16 split-grade per Track 1 step 3: Le Guilloux 2009 introduces
+      # the druggability score as a continuous function of pocket descriptors
+      # (volume, hydrophobicity, polarity). The ≥ 0.5 druggable / < 0.3
+      # non-druggable tiers are reported as observed distributions on the
+      # paper's benchmark set, not prescribed as operational cutoffs.
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        Le Guilloux 2009 introduces fpocket and establishes the
-        druggability score (combining pocket volume, hydrophobicity,
-        and polarity). Score ≥ 0.5 indicates a druggable pocket;
-        < 0.3 is non-druggable.
+        Le Guilloux 2009 introduces fpocket and the druggability score
+        combining pocket volume, hydrophobicity, and polarity. The paper
+        reports the observed distribution on its benchmark set — most
+        druggable pockets score ≥ 0.5; most non-druggable ones score
+        < 0.3 — but does not prescribe these as binary acceptance cutoffs.
+        BioMate adopts the tiers as operational defaults.
       rule_text: >
         BioMate gates pocket druggability ≥ 0.5 as PASS; 0.3-0.5
         as borderline; < 0.3 as FAIL.
