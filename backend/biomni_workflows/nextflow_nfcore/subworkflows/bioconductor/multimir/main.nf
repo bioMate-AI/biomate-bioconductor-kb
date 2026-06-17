@@ -182,7 +182,7 @@ process BIOC_MULTIMIR_MIRNA_TARGET_PIPELINE {
     .qc_metrics_path <- "qc_metrics.json"
     .gates_by_label <- list()
 
-    # TMM normalization — DGEList$samples$norm.factors set (Robinson & Oshlack 2010).
+    # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
     .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
     for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)

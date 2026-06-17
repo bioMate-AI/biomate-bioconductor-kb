@@ -167,7 +167,7 @@ library(regsplice)
                else "not_computed (no count matrix .rds artifact present)"
     )
 
-    # voom — limma EList$weights present, range > 0 (Law 2014 GB).
+    # voom — limma EList\$weights present, range > 0 (Law 2014 GB).
     .voom_w_range <- NA_real_
     for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
@@ -183,7 +183,7 @@ library(regsplice)
       metric_name = "voom_weight_range",
       metric_value = .voom_w_range,
       passes = isTRUE(is.finite(.voom_w_range) && .voom_w_range > 0),
-      status = if (is.finite(.voom_w_range)) "computed (EList$weights range)"
+      status = if (is.finite(.voom_w_range)) "computed (EList\$weights range)"
                else "not_computed (no limma EList .rds artifact present)"
     )
 
