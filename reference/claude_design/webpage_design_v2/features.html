@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BioMate AI Features | 2,000+ Bioinformatics Workflows</title>
-  <meta name="description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 2,000+ validated workflows for drug discovery, RNA-seq, genomics, and structural biology." />
+  <title>BioMate AI Features | 4,000+ Bioinformatics Workflows</title>
+  <meta name="description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 4,000+ indexed workflows for drug discovery, RNA-seq, genomics, and structural biology." />
   <link rel="canonical" href="https://biomate.ai/features.html" />
   <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="BioMate AI Features | 2,000+ Bioinformatics Workflows" />
-  <meta property="og:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 2,000+ validated workflows for drug discovery, RNA-seq, genomics, and structural biology." />
+  <meta property="og:title" content="BioMate AI Features | 4,000+ Bioinformatics Workflows" />
+  <meta property="og:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 4,000+ indexed workflows for drug discovery, RNA-seq, genomics, and structural biology." />
   <meta property="og:url" content="https://biomate.ai/features.html" />
   <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
   <meta property="og:site_name" content="BioMate AI" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="BioMate AI Features | 2,000+ Bioinformatics Workflows" />
-  <meta name="twitter:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 2,000+ validated workflows for drug discovery, RNA-seq, genomics, and structural biology." />
+  <meta name="twitter:title" content="BioMate AI Features | 4,000+ Bioinformatics Workflows" />
+  <meta name="twitter:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 4,000+ indexed workflows for drug discovery, RNA-seq, genomics, and structural biology." />
   <link rel="stylesheet" href="fonts/fonts.css" />
   <link rel="stylesheet" href="styles.css" />
   <!-- Google tag (gtag.js) -->
@@ -36,7 +36,7 @@
         "name": "How does BioMate AI select the right workflow from a plain-English request?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "BioMate AI uses a hybrid search system that combines dense vector embeddings (semantic similarity), domain scoring (matching biological discipline), and LLM reasoning to interpret ambiguous requests and route them to the correct workflow. When a request matches multiple workflows, BioMate presents ranked alternatives with confidence scores. This system covers 2,455 workflows across 34 biological domains."
+          "text": "BioMate AI uses a hybrid search system that combines dense vector embeddings (semantic similarity), domain scoring (matching biological discipline), and LLM reasoning to interpret ambiguous requests and route them to the correct workflow. When a request matches multiple workflows, BioMate presents ranked alternatives with confidence scores. This system covers 4,015 workflows across 36 biological domains."
         }
       },
       {
@@ -281,8 +281,8 @@
     <div class="bm-section-inner">
       <div class="bm-section-head">
         <span class="bm-eyebrow">Workflow catalog</span>
-        <h2 class="bm-h2">2,455+ validated workflows across 37 biological domains.</h2>
-        <p class="bm-lead">Container‑pinned, version‑locked, community‑validated. Bring your own when you need to.</p>
+        <h2 class="bm-h2">4,000+ indexed workflows across 36 biological domains.</h2>
+        <p class="bm-lead">Container‑pinned and version‑locked, spanning 36 biological domains. Counts shown are indexed workflows. Bring your own when you need to.</p>
       </div>
       <div id="bm-wf-grid">
         <noscript>
@@ -426,11 +426,11 @@
       <div class="bm-section-head">
         <span class="bm-eyebrow">Platform overview</span>
         <h2 class="bm-h2">Everything in one platform &mdash; from raw data to audit-ready result.</h2>
-        <p class="bm-lead">BioMate connects your instruments, AI clients, and messaging tools to 2,455+ validated workflows across 37 biological domains, then delivers structured reports and compliance packages.</p>
+        <p class="bm-lead">BioMate connects your instruments, AI clients, and messaging tools to 4,000+ indexed workflows across 36 biological domains, then delivers structured reports and compliance packages.</p>
       </div>
       <figure style="margin:0;">
         <img src="assets/platform-diagram.svg"
-             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, WeChat Work, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 2,455+ workflows across 37 domains, executed on AWS Batch via Nextflow) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
+             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, WeChat Work, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 4,000+ workflows across 36 domains, executed on AWS Batch via Nextflow) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
              width="1200" height="700"
              style="width:100%;height:auto;border-radius:12px;border:1px solid rgba(143,214,234,0.15);"
              loading="lazy" />
@@ -519,22 +519,20 @@
       </article>
     `).join('');
 
-    // Workflow catalog — grouped by domain category, no stale counts
+    // Workflow catalog — all 36 domains with indexed-workflow counts (sums to 4,015).
     const DOMAIN_GROUPS = [
       { label: 'Omics &amp; Sequencing',
-        domains: ['Transcriptomics','Genomics','Epigenomics','Single Cell','Variant Calling','Metagenomics','Proteomics','Metabolomics','Multi-omics'] },
-      { label: 'Drug Discovery',
-        domains: ['Drug Discovery','Pharmacology','Molecular Biology','Genetics','Biochemistry'] },
+        domains: [['Transcriptomics',1692],['Genomics',750],['Epigenomics',262],['Variant Calling',181],['Proteomics',179],['Single Cell',93],['Metagenomics',75],['Metabolomics',57],['Multi-omics',1]] },
+      { label: 'Drug Discovery &amp; Pharmacology',
+        domains: [['Drug Discovery',111],['Pharmacology',39],['Genetics',35],['Molecular Biology',33],['Biochemistry',10]] },
       { label: 'Structural &amp; Imaging',
-        domains: ['Cryo-EM','Cryo-ET','Structural Biology','Bioimaging','Imaging'] },
+        domains: [['Imaging',77],['Bioimaging',24],['Cryo-EM',11],['Structural Biology',3],['Biophysics',3],['Cryo-ET',2]] },
       { label: 'Biology &amp; Medicine',
-        domains: ['Immunology','Microbiology','Cell Biology','Cancer Biology','Pathology','Physiology','Bioengineering','Biophysics','Rare Disease','Glycoengineering'] },
-      { label: 'Computational',
-        domains: ['Systems Biology','Synthetic Biology','Virtual Cell','Lab Automation'] },
-      { label: 'R / Bioconductor',
-        domains: ['R / Bioconductor'] },
+        domains: [['Immunology',24],['Microbiology',19],['Physiology',14],['Bioengineering',13],['Synthetic Biology',12],['Cancer Biology',7],['Pathology',7],['Cell Biology',5],['Immuno-Oncology',3],['Glycoengineering',3],['Population Genetics',2]] },
+      { label: 'Computational &amp; Data',
+        domains: [['Systems Biology',108],['General / Utility',143],['Lab Automation',8],['Database APIs',5],['Literature Mining',4]] },
     ];
-    const chip = (name) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div></div>`;
+    const chip = ([name, count]) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div><div class="bm-tech-chip-count" style="font-size:.7rem;font-weight:700;color:var(--accent,#8FD6EA);margin-top:2px;">${count.toLocaleString()}</div></div>`;
     const groupLabel = (text) => `<div style="grid-column:1/-1;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:1.25rem;margin-bottom:.25rem;">${text}</div>`;
     document.getElementById('bm-wf-grid').style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;';
     document.getElementById('bm-wf-grid').innerHTML = DOMAIN_GROUPS.map(
