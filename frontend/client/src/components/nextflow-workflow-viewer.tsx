@@ -1284,7 +1284,29 @@ export function NextflowWorkflowViewer({
     }
 
     let derivedStatus: ViewerPhaseStatus = phase.status;
-    if (status === "completed") {
+    // Prefer per-process status from nextflowStatus.processes (P1 fix
+    // 2026-06-17): when the backend reports per-process state, use it
+    // directly so phases B/C/D can render `running` independently —
+    // the workflow-level progress-based heuristic below could only
+    // make ONE phase running at a time and would force all phases to
+    // `completed` the moment the workflow finished, breaking the
+    // per-phase live-narration story the tier-0 tutorial demos depend on.
+    const nfProcLookup =
+      nfProcessByName[phase.id.toLowerCase()] ||
+      nfProcessByName[phase.name.toLowerCase()] ||
+      null;
+    const rawProcStatus = String(nfProcLookup?.status || nfProcLookup?.state || '').toLowerCase();
+    const procStatus: ViewerPhaseStatus | null =
+      rawProcStatus.includes('fail') || rawProcStatus.includes('error') || rawProcStatus.includes('cancel')
+        ? 'failed'
+        : rawProcStatus.includes('run') || rawProcStatus === 'submitted'
+          ? 'running'
+          : rawProcStatus.includes('complet') || rawProcStatus === 'succeeded' || rawProcStatus === 'ok'
+            ? 'completed'
+            : null;
+    if (procStatus) {
+      derivedStatus = procStatus;
+    } else if (status === "completed") {
       derivedStatus = "completed";
     } else if (status === "running") {
       const totalPhases = phases.length;
