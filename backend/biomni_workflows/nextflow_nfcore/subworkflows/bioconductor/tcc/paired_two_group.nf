@@ -33,6 +33,7 @@ process BIOC_TCC_PAIRED_TWO_GROUP {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -143,6 +144,45 @@ process BIOC_TCC_PAIRED_TWO_GROUP {
         cat("- tcc_deg_summary.csv\n")
         cat("- tcc_completed_object.rds\n")
         cat("- tcc_ma_plot.pdf\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # TMM normalization — DGEList$samples$norm.factors set (Robinson & Oshlack 2010).
+    .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
+    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
+      if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
+        .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)
+        if (!is.null(.tmm_f) && length(.tmm_f) > 0) {
+          .tmm_factors <- .tmm_f; .tmm_n_nontrivial <- sum(abs(.tmm_f - 1.0) > 1e-6); break
+        }
+      }
+    }
+    .gates_by_label[["TMM normalization"]] <- list(
+      gate_row = "bioc_tmm_normalization",
+      metric_name = "n_nontrivial_norm_factors",
+      metric_value = .tmm_n_nontrivial,
+      passes = isTRUE(is.finite(.tmm_n_nontrivial) && .tmm_n_nontrivial > 0),
+      status = if (is.finite(.tmm_n_nontrivial)) paste0("computed (n=", length(.tmm_factors), ", nontrivial=", .tmm_n_nontrivial, ")")
+               else "not_computed (no DGEList .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_TCC_PAIRED_TWO_GROUP",
+      domain  = "bioconductor",
+      declared_qc_steps = c("TMM normalization"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_TCC_PAIRED_TWO_GROUP":',

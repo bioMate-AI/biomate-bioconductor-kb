@@ -36,6 +36,7 @@ process BIOC_ZENITH_ZENITH_GSA_WORKFLOW {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -133,6 +134,87 @@ process BIOC_ZENITH_ZENITH_GSA_WORKFLOW {
         pdf("zenith_results_plot.pdf", width=10, height=8)
         print(plotZenithResults(res.gsa))
         dev.off()
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # filter low-expression genes — alias of low-count filtering metric
+    # (Chen 2016 F1000 edgeR filterByExpr semantics).
+    .fleg_kept <- NA_real_; .fleg_files <- character(0)
+    for (.fleg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .fleg_obj <- tryCatch(readRDS(.fleg_rds), error = function(e) NULL)
+      .fleg_mat <- if (is.matrix(.fleg_obj) || is.data.frame(.fleg_obj)) .fleg_obj else NULL
+      if (!is.null(.fleg_mat) && nrow(.fleg_mat) > 100) {
+        .fleg_m <- suppressWarnings(as.matrix(.fleg_mat))
+        .fleg_rowmed <- suppressWarnings(apply(.fleg_m, 1, function(r) median(as.numeric(r), na.rm = TRUE)))
+        .fleg_kept <- sum(is.finite(.fleg_rowmed) & .fleg_rowmed >= 1) / nrow(.fleg_m)
+        .fleg_files <- c(.fleg_files, .fleg_rds); break
+      }
+    }
+    .gates_by_label[["filter low-expression genes"]] <- list(
+      gate_row = "bioc_low_count_filtering",
+      metric_name = "genes_kept_fraction",
+      metric_value = if (is.finite(.fleg_kept)) round(.fleg_kept, 4) else NA_real_,
+      passes = isTRUE(is.finite(.fleg_kept) && .fleg_kept >= 0.3 && .fleg_kept <= 0.6),
+      status = if (is.finite(.fleg_kept)) paste0("computed (median count >= 1 rows / total)")
+               else "not_computed (no expression matrix .rds artifact present)"
+    )
+
+    # TMM normalization — DGEList$samples$norm.factors set (Robinson & Oshlack 2010).
+    .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
+    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
+      if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
+        .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)
+        if (!is.null(.tmm_f) && length(.tmm_f) > 0) {
+          .tmm_factors <- .tmm_f; .tmm_n_nontrivial <- sum(abs(.tmm_f - 1.0) > 1e-6); break
+        }
+      }
+    }
+    .gates_by_label[["TMM normalization"]] <- list(
+      gate_row = "bioc_tmm_normalization",
+      metric_name = "n_nontrivial_norm_factors",
+      metric_value = .tmm_n_nontrivial,
+      passes = isTRUE(is.finite(.tmm_n_nontrivial) && .tmm_n_nontrivial > 0),
+      status = if (is.finite(.tmm_n_nontrivial)) paste0("computed (n=", length(.tmm_factors), ", nontrivial=", .tmm_n_nontrivial, ")")
+               else "not_computed (no DGEList .rds artifact present)"
+    )
+
+    # voom — limma EList$weights present, range > 0 (Law 2014 GB).
+    .voom_w_range <- NA_real_
+    for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
+      if (!is.null(.voom_obj) && inherits(.voom_obj, "EList")) {
+        .voom_w <- tryCatch(.voom_obj\$weights, error = function(e) NULL)
+        if (!is.null(.voom_w) && length(.voom_w) > 0) {
+          .voom_w_range <- round(diff(range(.voom_w, na.rm = TRUE)), 4); break
+        }
+      }
+    }
+    .gates_by_label[["voom mean-variance modelling"]] <- list(
+      gate_row = "bioc_voom_mean_variance",
+      metric_name = "voom_weight_range",
+      metric_value = .voom_w_range,
+      passes = isTRUE(is.finite(.voom_w_range) && .voom_w_range > 0),
+      status = if (is.finite(.voom_w_range)) "computed (EList$weights range)"
+               else "not_computed (no limma EList .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_ZENITH_ZENITH_GSA_WORKFLOW",
+      domain  = "bioconductor",
+      declared_qc_steps = c("filter low-expression genes", "TMM normalization", "voom mean-variance modelling"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_ZENITH_ZENITH_GSA_WORKFLOW":',

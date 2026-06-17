@@ -35,6 +35,7 @@ process BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -188,6 +189,85 @@ process BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS {
     
     # Save the final CellDataSet object
     saveRDS(cds, "monocle_output_cds.rds")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # dispersion/size-factor estimation — object-type-aware. Try DESeq2
+    # DESeqDataSet (mcols$dispOutlier), then edgeR DGEList (common.dispersion).
+    .dsf_value <- NA_real_; .dsf_kind <- "none"
+    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
+      if (!is.null(.dsf_obj)) {
+        if (inherits(.dsf_obj, "DESeqDataSet")) {
+          .dsf_o <- tryCatch(mcols(.dsf_obj)\$dispOutlier, error = function(e) NULL)
+          if (!is.null(.dsf_o)) { .dsf_value <- round(mean(.dsf_o, na.rm = TRUE), 4); .dsf_kind <- "deseq2"; break }
+        } else if (inherits(.dsf_obj, "DGEList")) {
+          .dsf_v <- tryCatch(.dsf_obj\$common.dispersion, error = function(e) NULL)
+          if (!is.null(.dsf_v) && is.finite(.dsf_v)) { .dsf_value <- round(sqrt(.dsf_v), 4); .dsf_kind <- "edger_bcv"; break }
+        }
+      }
+    }
+    .gates_by_label[["dispersion/size-factor estimation"]] <- list(
+      gate_row = "bioc_dispersion_size_factor",
+      metric_name = if (.dsf_kind == "edger_bcv") "common_bcv" else "disp_outlier_fraction",
+      metric_value = .dsf_value,
+      passes = isTRUE(
+        (.dsf_kind == "deseq2" && is.finite(.dsf_value) && .dsf_value <= 0.01) ||
+        (.dsf_kind == "edger_bcv" && is.finite(.dsf_value) && .dsf_value > 0 && .dsf_value < 1.0)
+      ),
+      status = if (is.finite(.dsf_value)) paste0("computed (", .dsf_kind, ")")
+               else "not_computed (no DESeqDataSet/DGEList .rds artifact present)"
+    )
+
+    # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
+    .clu_n <- NA_real_
+    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
+      .clu_v <- NULL
+      if (!is.null(.clu_obj)) {
+        if (inherits(.clu_obj, "SingleCellExperiment")) {
+          .clu_cd <- tryCatch(colData(.clu_obj), error = function(e) NULL)
+          if (!is.null(.clu_cd)) {
+            .clu_col <- intersect(c("cluster","clusters","seurat_clusters","label"), colnames(.clu_cd))
+            if (length(.clu_col) > 0) .clu_v <- .clu_cd[[.clu_col[1]]]
+          }
+        } else if (inherits(.clu_obj, "Seurat")) {
+          .clu_md <- tryCatch(.clu_obj@meta.data, error = function(e) NULL)
+          if (!is.null(.clu_md)) {
+            .clu_col <- intersect(c("seurat_clusters","cluster","clusters"), colnames(.clu_md))
+            if (length(.clu_col) > 0) .clu_v <- .clu_md[[.clu_col[1]]]
+          }
+        }
+      }
+      if (!is.null(.clu_v) && length(.clu_v) > 0) {
+        .clu_n <- length(unique(as.character(.clu_v[!is.na(.clu_v)]))); break
+      }
+    }
+    .gates_by_label[["clustering QC"]] <- list(
+      gate_row = "bioc_clustering_qc",
+      metric_name = "n_clusters",
+      metric_value = .clu_n,
+      passes = isTRUE(is.finite(.clu_n) && .clu_n >= 2 && .clu_n <= 50),
+      status = if (is.finite(.clu_n)) paste0("computed (n_clusters=", .clu_n, ")")
+               else "not_computed (no SCE/Seurat with cluster column present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS",
+      domain  = "bioconductor",
+      declared_qc_steps = c("dispersion/size-factor estimation", "clustering QC"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS":',

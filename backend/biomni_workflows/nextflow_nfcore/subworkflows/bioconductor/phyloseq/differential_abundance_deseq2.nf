@@ -27,6 +27,7 @@ process BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2 {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -103,6 +104,52 @@ process BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2 {
     write.csv(as.data.frame(sigtab), "deseq2_results_significant.csv", row.names = TRUE)
     saveRDS(diagdds, "deseq2_dataset.rds")
     ggsave("differential_abundance_plot.pdf", plot = p, width = 12, height = 8)
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # dispersion/size-factor estimation — object-type-aware. Try DESeq2
+    # DESeqDataSet (mcols$dispOutlier), then edgeR DGEList (common.dispersion).
+    .dsf_value <- NA_real_; .dsf_kind <- "none"
+    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
+      if (!is.null(.dsf_obj)) {
+        if (inherits(.dsf_obj, "DESeqDataSet")) {
+          .dsf_o <- tryCatch(mcols(.dsf_obj)\$dispOutlier, error = function(e) NULL)
+          if (!is.null(.dsf_o)) { .dsf_value <- round(mean(.dsf_o, na.rm = TRUE), 4); .dsf_kind <- "deseq2"; break }
+        } else if (inherits(.dsf_obj, "DGEList")) {
+          .dsf_v <- tryCatch(.dsf_obj\$common.dispersion, error = function(e) NULL)
+          if (!is.null(.dsf_v) && is.finite(.dsf_v)) { .dsf_value <- round(sqrt(.dsf_v), 4); .dsf_kind <- "edger_bcv"; break }
+        }
+      }
+    }
+    .gates_by_label[["dispersion/size-factor estimation"]] <- list(
+      gate_row = "bioc_dispersion_size_factor",
+      metric_name = if (.dsf_kind == "edger_bcv") "common_bcv" else "disp_outlier_fraction",
+      metric_value = .dsf_value,
+      passes = isTRUE(
+        (.dsf_kind == "deseq2" && is.finite(.dsf_value) && .dsf_value <= 0.01) ||
+        (.dsf_kind == "edger_bcv" && is.finite(.dsf_value) && .dsf_value > 0 && .dsf_value < 1.0)
+      ),
+      status = if (is.finite(.dsf_value)) paste0("computed (", .dsf_kind, ")")
+               else "not_computed (no DESeqDataSet/DGEList .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2",
+      domain  = "bioconductor",
+      declared_qc_steps = c("dispersion/size-factor estimation"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2":',

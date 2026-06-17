@@ -30,6 +30,7 @@ process BIOC_SCMETH_COMPREHENSIVE_QC_REPORT {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -87,6 +88,51 @@ process BIOC_SCMETH_COMPREHENSIVE_QC_REPORT {
     } else {
       warning("QC report file was not found in the output directory.")
     }
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # array detection QC — ExpressionSet detection p-values or detection-column data.frame.
+    .adq_rate <- NA_real_
+    for (.adq_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .adq_obj <- tryCatch(readRDS(.adq_rds), error = function(e) NULL)
+      .adq_pv <- NULL
+      if (!is.null(.adq_obj)) {
+        if (inherits(.adq_obj, "ExpressionSet")) {
+          .adq_pv <- tryCatch(Biobase::assayDataElement(.adq_obj, "Detection"), error = function(e) NULL)
+        } else if (is.matrix(.adq_obj) || is.data.frame(.adq_obj)) {
+          .adq_cols <- grep("(?i)(detection|pvalue|pval)", colnames(.adq_obj), value = TRUE)
+          if (length(.adq_cols) > 0) .adq_pv <- as.matrix(.adq_obj[, .adq_cols, drop = FALSE])
+        }
+      }
+      if (!is.null(.adq_pv) && length(.adq_pv) > 0) {
+        .adq_rate <- round(mean(as.numeric(.adq_pv) < 0.05, na.rm = TRUE), 4); break
+      }
+    }
+    .gates_by_label[["array detection QC"]] <- list(
+      gate_row = "bioc_array_detection_qc",
+      metric_name = "detection_rate",
+      metric_value = .adq_rate,
+      passes = isTRUE(is.finite(.adq_rate) && .adq_rate >= 0.75),
+      status = if (is.finite(.adq_rate)) "computed (probe-detection p<0.05 fraction)"
+               else "not_computed (no ExpressionSet/detection-p .rds present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_SCMETH_COMPREHENSIVE_QC_REPORT",
+      domain  = "bioconductor",
+      declared_qc_steps = c("array detection QC"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_SCMETH_COMPREHENSIVE_QC_REPORT":',

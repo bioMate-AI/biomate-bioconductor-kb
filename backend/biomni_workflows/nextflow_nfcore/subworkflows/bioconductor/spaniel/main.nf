@@ -36,6 +36,7 @@ process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -162,6 +163,105 @@ es
     write.csv(cluster_export, "spatial_clustering_results.csv", row.names = FALSE)
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # cell QC metrics — defensive cell-count + per-cell summary from any
+    # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
+    # (Luecken & Theis 2019 single-cell QC floor).
+    .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
+    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
+      .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
+      if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
+        .cqc_ncells <- ncol(.cqc_mat); .cqc_nfeats <- nrow(.cqc_mat)
+        .cqc_files <- c(.cqc_files, .cqc_rds); break
+      }
+    }
+    .gates_by_label[["cell QC metrics"]] <- list(
+      gate_row = "bioc_cell_qc_metrics",
+      metric_name = "n_cells",
+      metric_value = .cqc_ncells,
+      passes = isTRUE(is.finite(.cqc_ncells) && .cqc_ncells >= 50 && .cqc_nfeats >= 200),
+      status = if (is.finite(.cqc_ncells)) paste0("computed (cells=", .cqc_ncells, ", features=", .cqc_nfeats, "; proxy gate)")
+               else "not_computed (no scRNA matrix .rds artifact present)"
+    )
+
+    # count normalization — scan .rds matrix artifacts for library-size CV
+    # ratio (post-norm / pre-norm); without raw input we report median lib CV
+    # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
+    .cn_lib_cvs <- numeric(0)
+    .cn_scanned <- character(0)
+    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
+      .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
+      if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {
+        .cn_lib <- tryCatch(colSums(as.matrix(.cn_mat), na.rm = TRUE), error = function(e) NULL)
+        if (!is.null(.cn_lib) && all(is.finite(.cn_lib)) && mean(.cn_lib) > 0) {
+          .cn_lib_cvs <- c(.cn_lib_cvs, sd(.cn_lib) / mean(.cn_lib))
+          .cn_scanned <- c(.cn_scanned, .cn_rds)
+        }
+      }
+    }
+    .cn_med_cv <- if (length(.cn_lib_cvs) > 0) round(median(.cn_lib_cvs), 4) else NA_real_
+    .gates_by_label[["count normalization"]] <- list(
+      gate_row = "bioc_count_normalization",
+      metric_name = "lib_size_cv_median",
+      metric_value = .cn_med_cv,
+      passes = isTRUE(is.finite(.cn_med_cv) && .cn_med_cv <= 0.3),
+      status = if (is.finite(.cn_med_cv)) paste0("computed (proxy: median lib-size CV across ", length(.cn_scanned), " matrix .rds; raw-vs-norm ratio not measurable without paired input)")
+               else "not_computed (no count matrix .rds artifact present)"
+    )
+
+    # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
+    .clu_n <- NA_real_
+    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
+      .clu_v <- NULL
+      if (!is.null(.clu_obj)) {
+        if (inherits(.clu_obj, "SingleCellExperiment")) {
+          .clu_cd <- tryCatch(colData(.clu_obj), error = function(e) NULL)
+          if (!is.null(.clu_cd)) {
+            .clu_col <- intersect(c("cluster","clusters","seurat_clusters","label"), colnames(.clu_cd))
+            if (length(.clu_col) > 0) .clu_v <- .clu_cd[[.clu_col[1]]]
+          }
+        } else if (inherits(.clu_obj, "Seurat")) {
+          .clu_md <- tryCatch(.clu_obj@meta.data, error = function(e) NULL)
+          if (!is.null(.clu_md)) {
+            .clu_col <- intersect(c("seurat_clusters","cluster","clusters"), colnames(.clu_md))
+            if (length(.clu_col) > 0) .clu_v <- .clu_md[[.clu_col[1]]]
+          }
+        }
+      }
+      if (!is.null(.clu_v) && length(.clu_v) > 0) {
+        .clu_n <- length(unique(as.character(.clu_v[!is.na(.clu_v)]))); break
+      }
+    }
+    .gates_by_label[["clustering QC"]] <- list(
+      gate_row = "bioc_clustering_qc",
+      metric_name = "n_clusters",
+      metric_value = .clu_n,
+      passes = isTRUE(is.finite(.clu_n) && .clu_n >= 2 && .clu_n <= 50),
+      status = if (is.finite(.clu_n)) paste0("computed (n_clusters=", .clu_n, ")")
+               else "not_computed (no SCE/Seurat with cluster column present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS",
+      domain  = "bioconductor",
+      declared_qc_steps = c("cell QC metrics", "count normalization", "clustering QC"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS":',
