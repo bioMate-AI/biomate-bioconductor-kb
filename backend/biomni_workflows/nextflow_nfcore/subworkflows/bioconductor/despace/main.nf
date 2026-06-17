@@ -35,6 +35,7 @@ process BIOC_DESPACE_SPATIAL_VARIABLE_GENES {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -264,6 +265,49 @@ process BIOC_DESPACE_SPATIAL_VARIABLE_GENES {
     saveRDS(batch_results, "batch_corrected_results.rds")
     
     message("Pipeline completed successfully!")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # per-cell QC metrics — alias semantics to cell QC metrics; reports
+    # cells-flagged fraction by detecting library-size outliers via MAD.
+    .pcqc_outlier_frac <- NA_real_; .pcqc_files <- character(0)
+    for (.pcqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .pcqc_obj <- tryCatch(readRDS(.pcqc_rds), error = function(e) NULL)
+      .pcqc_mat <- if (is.matrix(.pcqc_obj) || is.data.frame(.pcqc_obj)) .pcqc_obj else NULL
+      if (!is.null(.pcqc_mat) && ncol(.pcqc_mat) >= 10) {
+        .pcqc_lib <- suppressWarnings(colSums(as.matrix(.pcqc_mat), na.rm = TRUE))
+        if (length(.pcqc_lib) > 0 && all(is.finite(.pcqc_lib))) {
+          .pcqc_med <- median(.pcqc_lib); .pcqc_mad <- mad(.pcqc_lib)
+          .pcqc_outlier_frac <- if (.pcqc_mad > 0) mean(abs(.pcqc_lib - .pcqc_med) > 3 * .pcqc_mad) else 0
+          .pcqc_files <- c(.pcqc_files, .pcqc_rds); break
+        }
+      }
+    }
+    .gates_by_label[["per-cell QC metrics"]] <- list(
+      gate_row = "bioc_per_cell_qc_outliers",
+      metric_name = "cells_flagged_outlier_fraction",
+      metric_value = if (is.finite(.pcqc_outlier_frac)) round(.pcqc_outlier_frac, 4) else NA_real_,
+      passes = isTRUE(is.finite(.pcqc_outlier_frac) && .pcqc_outlier_frac <= 0.1),
+      status = if (is.finite(.pcqc_outlier_frac)) "computed (nmads=3 on lib sizes; scater::isOutlier proxy)"
+               else "not_computed (no cell-count matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_DESPACE_SPATIAL_VARIABLE_GENES",
+      domain  = "bioconductor",
+      declared_qc_steps = c("per-cell QC metrics"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_DESPACE_SPATIAL_VARIABLE_GENES":',
