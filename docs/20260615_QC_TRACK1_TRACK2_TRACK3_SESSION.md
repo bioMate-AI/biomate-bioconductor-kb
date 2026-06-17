@@ -96,6 +96,7 @@ Batched by domain for minimum sync cycles:
 | 5 | Bioc 14 orphans — classify against Phase 3a canonical rows | `98ac767749`, `3ceadca9d9` | doc-only, no run needed |
 | 6 | nlmixr2 cond_number + ofv + admet_dili + antibody documentation | `70b4551329`, `0d9d2617c6` (NULL fix) | ✓ nlmixr2 + ADMET live |
 | 7 | docking + openfe gates (2026-06-16) | `dd6a885c23` | pending receptor PDB / closed-cycle fixtures |
+| 8 | ivive_well_stirred_consistency (2026-06-16) | `dff1dd88a` | closes the inventory — runs all 3 liver models on every IVIVE call; verification on next IVIVE re-run |
 
 ### Final live verification run IDs
 
@@ -193,13 +194,13 @@ prefix; (3) true-absence returns None.
 | Bucket | Session start | Session end |
 |---|---:|---:|
 | Verified end-to-end live (with [QC-S3] + [QC Gate] proof) | 20 | 24+ |
-| Documented-but-unwired pharma | 12 | 1 (only `ivive_well_stirred_consistency` — needs workflow-logic change, not just an emit) |
+| Documented-but-unwired pharma | 12 | 0 |
 | Documented-but-unwired imaging/structural | 8 | 0 |
 | Documented-but-unwired cancer biology | 3 | 0 |
 | Documented-but-unwired HTS/LNP | 3 | 0 |
 | Documented-but-unwired antibody/biologics | 2 | 0 (documented-not-used) |
 | Documented-but-unwired Bioc orphans | 14 | 0 (classified) |
-| Documented-but-unwired total | 38 | **1** (`ivive_well_stirred_consistency`) |
+| Documented-but-unwired total | 38 | **0** (inventory closed 2026-06-16 batch 8) |
 | Honestly skipped (workflow-scope mismatch) | 0 | 5 |
 | New Bioc gate rows (Phase 3a) | 0 | 23 |
 | Citations corrected | 0 | 4 |
@@ -236,11 +237,7 @@ prefix; (3) true-absence returns None.
 ## What's left for next session
 
 1. ~~Wire docking + openfe gates with the emit-schema pattern.~~ ✓ done 06-16 (`dd6a885c23`)
-2. **Implement `ivive_well_stirred_consistency`** — gate the IVIVE
-   workflow to run the well-stirred prediction alongside parallel-tube
-   and dispersion models, then compare. Pure workflow-logic change;
-   the metric is `(CL_ws - CL_pt) / CL_ws` or similar tolerance check
-   per Pang & Rowland 1977.
+2. ~~Implement `ivive_well_stirred_consistency`~~ ✓ done 06-16 (`dff1dd88a`) — IVIVE workflow now runs all 3 liver models on every call and emits clh_spread_fraction + pass-band. **Inventory of documented-but-unwired gates is now empty.**
 3. Complete Track 1 step 3 — sweep the remaining ~70 entries to demote
    overclaiming `paper_supports` language.
 4. Track 3 Phase 3b — build `BIOC_QC_HARNESS` process + wire the
