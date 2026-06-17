@@ -92,8 +92,8 @@ process BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT {
     
     sacCer3 <- readRDS(sacCer3_path)
     
-    ## constrain to "chrI"
-    seqlevels(txdb) <- "chrI"
+    ## constrain to the first chromosome (was hardcoded "chrI"/sacCer3) so any genome works
+    seqlevels(txdb) <- seqlevels(txdb)[1]
     
     ## view the lengths of first ten transcripts
     print("Transcript lengths before truncation:")

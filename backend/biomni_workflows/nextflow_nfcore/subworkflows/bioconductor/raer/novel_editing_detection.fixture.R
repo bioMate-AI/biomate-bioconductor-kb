@@ -21,24 +21,30 @@ ref[sites_pos] <- "A"                                   # reference A at every e
 writeXStringSet(DNAStringSet(setNames(paste(ref, collapse = ""), CHR)), "fasta.fasta")
 indexFa("fasta.fasta")
 
-# --- bams.bam : indexed BAM, both strands, A->G edits at the sites -------------------------
+# --- rna.bam / dna.bam : novel editing = variant present in RNA but ABSENT in matched DNA.
+# The RNA BAM carries A->G edits at the sites; the DNA BAM has the reference base (no edits),
+# so the workflow's "not a DNA SNP" filter keeps the editing sites. Both indexed, both strands.
 RL <- 50L
 rc <- function(s) as.character(reverseComplement(DNAString(s)))
-sam <- c("@HD\tVN:1.6\tSO:coordinate", sprintf("@SQ\tSN:%s\tLN:%d", CHR, L))
-rid <- 0L
-for (start in seq(1L, L - RL, by = 3L)) {
-  read <- ref[start:(start + RL - 1L)]
-  for (s in sites_pos) {
-    if (s >= start && s < start + RL && runif(1) < 0.6) read[s - start + 1L] <- "G"
+emit_bam <- function(name, do_edit) {
+  sam <- c("@HD\tVN:1.6\tSO:coordinate", sprintf("@SQ\tSN:%s\tLN:%d", CHR, L))
+  rid <- 0L
+  for (start in seq(1L, L - RL, by = 3L)) {
+    read <- ref[start:(start + RL - 1L)]
+    if (do_edit) for (s in sites_pos) {
+      if (s >= start && s < start + RL && runif(1) < 0.6) read[s - start + 1L] <- "G"
+    }
+    fwd <- paste(read, collapse = "")
+    rid <- rid + 1L
+    sam <- c(sam, sprintf("r%dF\t0\t%s\t%d\t255\t%dM\t*\t0\t0\t%s\t%s",  rid, CHR, start, RL, fwd,     strrep("I", RL)),
+                  sprintf("r%dR\t16\t%s\t%d\t255\t%dM\t*\t0\t0\t%s\t%s", rid, CHR, start, RL, rc(fwd), strrep("I", RL)))
   }
-  fwd <- paste(read, collapse = "")
-  rid <- rid + 1L
-  sam <- c(sam, sprintf("r%dF\t0\t%s\t%d\t255\t%dM\t*\t0\t0\t%s\t%s",  rid, CHR, start, RL, fwd,     strrep("I", RL)),
-                sprintf("r%dR\t16\t%s\t%d\t255\t%dM\t*\t0\t0\t%s\t%s", rid, CHR, start, RL, rc(fwd), strrep("I", RL)))
+  writeLines(sam, paste0(name, ".sam"))
+  asBam(paste0(name, ".sam"), name, overwrite = TRUE)   # -> <name>.bam + <name>.bam.bai
+  unlink(paste0(name, ".sam"))
 }
-writeLines(sam, "reads.sam")
-asBam("reads.sam", "bams", overwrite = TRUE)            # -> bams.bam + bams.bam.bai
-unlink("reads.sam")
+emit_bam("rna", TRUE)    # RNA: A->G edits at the sites
+emit_bam("dna", FALSE)   # DNA: reference base (no edits) -> sites survive the DNA-SNP filter
 stopifnot(file.exists("bams.bam"), file.exists("bams.bam.bai"))
 
 # --- txdb.sqlite : a TxDb (loadDb-compatible) on chr4 --------------------------------------
