@@ -250,16 +250,20 @@ the 14 Bioc-side rows which go in Track 3).
 - Pure data, no code change yet. The audit ledger contains the gates
   even before they fire.
 
-**Phase 3b — harness process (~3 days):**
-- Add a `BIOC_QC_HARNESS` Nextflow process template that Bioc
-  workflows include after their core step. It reads the workflow's
-  own `qc_steps` declaration (DB-driven), computes the matching
-  metrics from the workflow's output artifacts (counts matrix /
-  Seurat object / SCE / Bsseq, etc.), and emits `qc_metrics.json`
-  keyed by label.
-- Register `BIOC_QC_HARNESS` in `_S3_REPORT_PATHS`.
-- Extend `qc_gate_reader.py` with a `bioc_qc_metric_map` that looks up
-  thresholds by `(label, profile, context_axes)` — reuses Track 1.
+**Phase 3b — harness process (~3 days):** ✓ MVP landed 2026-06-16 (`6433a0f64`)
+- ✓ Added `BIOC_QC_HARNESS` Nextflow process at
+  `backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/_qc_harness/main.nf`.
+  Standalone DSL2 process that any Bioc subworkflow can include.
+- ✓ LABEL_TO_GATE table routes each of the 25 qc_steps labels to a
+  canonical `bioconductor_qc.*` YAML row + a metric name.
+- ✓ Registered `BIOC_QC_HARNESS` in `_S3_REPORT_PATHS`.
+- ✓ Emit shape: gates_by_label dict keyed by declared qc_step labels;
+  each entry carries gate_row + metric_name + value + passes + status.
+  MVP behavior is status='not_computed (harness MVP; metric impl
+  pending)' per label — adoption can start while individual metric
+  R impls land in Phase 3c.
+- pending: extend `qc_gate_reader.py` with `bioc_qc_metric_map`
+  threshold lookup (Track 1 modifier-aware path; small follow-up).
 
 **Phase 3c — rolling adoption:**
 - For each Bioc subworkflow, append the `BIOC_QC_HARNESS` call.
