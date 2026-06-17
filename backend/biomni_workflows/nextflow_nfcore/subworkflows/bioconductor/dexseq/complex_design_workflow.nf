@@ -129,7 +129,7 @@ process BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW {
     .gates_by_label <- list()
 
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
-    # DESeqDataSet (mcols$dispOutlier), then edgeR DGEList (common.dispersion).
+    # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
     for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)

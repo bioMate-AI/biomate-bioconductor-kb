@@ -242,7 +242,7 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
                else "not_computed (no expression matrix .rds artifact present)"
     )
 
-    # TMM normalization — DGEList$samples$norm.factors set (Robinson & Oshlack 2010).
+    # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
     .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
     for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
@@ -263,7 +263,7 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
     )
 
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
-    # DESeqDataSet (mcols$dispOutlier), then edgeR DGEList (common.dispersion).
+    # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
     for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)

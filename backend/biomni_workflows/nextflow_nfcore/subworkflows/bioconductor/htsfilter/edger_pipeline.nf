@@ -146,7 +146,7 @@ process BIOC_HTSFILTER_EDGER_PIPELINE {
     .qc_metrics_path <- "qc_metrics.json"
     .gates_by_label <- list()
 
-    # TMM normalization — DGEList$samples$norm.factors set (Robinson & Oshlack 2010).
+    # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
     .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
     for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
@@ -167,7 +167,7 @@ process BIOC_HTSFILTER_EDGER_PIPELINE {
     )
 
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
-    # DESeqDataSet (mcols$dispOutlier), then edgeR DGEList (common.dispersion).
+    # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
     for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
