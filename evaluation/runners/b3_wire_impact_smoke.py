@@ -85,13 +85,40 @@ def main() -> int:
     )
     assert rj.count_edit_pairs(org_id) == 2, "feedback pair count mismatch"
 
-    # 2. Compile via worker tick.
-    rj.submit(user_id="smoke", org_id=org_id)
-    done = rw.tick(max_jobs=1)
-    if not done or done[0].status != "succeeded":
-        print(f"ERROR: worker tick failed: {done}", file=sys.stderr)
+    # 2. Compile via worker tick. The training_jobs.jsonl queue is
+    #    shared across all org_ids — `tick(max_jobs=1)` would consume
+    #    whichever job is FIFO-next, not necessarily ours. Drain the
+    #    queue until we observe our own job_id in the done list, OR
+    #    bail with a clear error.
+    submitted_job = rj.submit(user_id="smoke", org_id=org_id)
+    print(f"[submit] queued job_id={submitted_job.job_id}")
+    drained = []
+    for tick_round in range(20):  # generous; queue is rarely >5 deep
+        round_done = rw.tick(max_jobs=50)
+        drained.extend(round_done)
+        if any(j.job_id == submitted_job.job_id for j in round_done):
+            break
+        if not round_done:
+            # queue empty + our job not seen → it never made it
+            break
+    my_job = next(
+        (j for j in drained if j.job_id == submitted_job.job_id), None,
+    )
+    if my_job is None:
+        print(
+            f"ERROR: our job {submitted_job.job_id} never appeared in {len(drained)} drained jobs",
+            file=sys.stderr,
+        )
         return 3
-    print(f"[compile] worker tick succeeded; rule pack written")
+    if my_job.status != "succeeded":
+        print(
+            f"ERROR: our job ended with status={my_job.status} msg={my_job.message}",
+            file=sys.stderr,
+        )
+        return 3
+    print(
+        f"[compile] our job succeeded after draining {len(drained)} queued jobs total"
+    )
 
     # 3. Verify the rule pack injects the citation into RAG context.
     ctx_with = _build_rag_context("pbpk", {"org_id": org_id}, "FDA")
