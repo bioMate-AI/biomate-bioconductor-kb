@@ -46,14 +46,9 @@ const CHAINS: ChainSpec[] = [
     expectedPhases: 4,
     expectedRationaleContains: 'fractional-anisotropy',
   },
-  {
-    id: 'Z02', researcher: 'zhi',
-    chainName: 'fda_ligand_screen_chain',
-    workflows: ['fda_protein_ligand_affinity'],
-    firstRationaleId: 'fda_ligand_screen_chain:A',
-    expectedPhases: 4,
-    expectedRationaleContains: 'protein structure prediction',
-  },
+  // Z02 (FDA) dropped 2026-06-17 — upstream repo is a paper-reproduction
+  // pipeline (2 conda envs, no inference CLI). See
+  // docs/20260617_RESEARCHER_INTEGRATION_OPEN_ITEMS.md.
   {
     id: 'ZZ01', researcher: 'zhao',
     chainName: 'tumor_reactive_t_cell_chain',
