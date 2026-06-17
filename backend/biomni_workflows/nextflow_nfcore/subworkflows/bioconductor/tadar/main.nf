@@ -28,7 +28,7 @@ process BIOC_TADAR_DAR_ANALYSIS_AND_P_VALUE_MODERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')

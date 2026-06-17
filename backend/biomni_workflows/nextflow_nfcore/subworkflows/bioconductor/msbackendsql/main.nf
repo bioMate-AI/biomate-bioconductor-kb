@@ -20,7 +20,7 @@ process BIOC_MSBACKENDSQL {
     label 'process_medium'
 
     conda "bioconductor-msbackendsql"
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20-slim"
 
     input:
     tuple val(meta), path(spectra_mzml)

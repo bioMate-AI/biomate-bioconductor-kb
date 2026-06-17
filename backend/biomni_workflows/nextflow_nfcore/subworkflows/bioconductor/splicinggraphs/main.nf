@@ -160,7 +160,9 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
         stop("No BAM files (*.bam) found in the working directory.")
     }
     names(bam_files) <- gsub("\\\\.bam\$", "", basename(bam_files))
-    
+    # Ensure each BAM is indexed — readGAlignmentPairs/ranged access needs a .bai.
+    for (.b in bam_files) if (!file.exists(paste0(.b, ".bai"))) Rsamtools::indexBam(.b)
+
     flag0 <- scanBamFlag(isSecondaryAlignment=FALSE, isNotPassingQualityControls=FALSE, isDuplicate=FALSE)
     param0 <- ScanBamParam(flag=flag0)
     

@@ -21,7 +21,7 @@ process BIOC_CLUSTERJUDGE {
     label 'process_medium'
 
     conda "bioconductor-clusterjudge"
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(clusters_csv), path(associations_csv)

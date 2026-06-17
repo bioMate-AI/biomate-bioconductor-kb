@@ -26,7 +26,7 @@ process BIOC_SIMILARPEAK_CHIPSEQ_PROFILE_SIMILARITY {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -85,6 +85,8 @@ process BIOC_SIMILARPEAK_CHIPSEQ_PROFILE_SIMILARITY {
             }
             
             # Stage 3: Extract raw coverage for the region from the BAM file
+            # Ensure the BAM is indexed — a ranged read (which=) requires a .bai.
+            if (!file.exists(paste0(bamFile01, ".bai"))) Rsamtools::indexBam(bamFile01)
             param <- ScanBamParam(which = region)
             alignments <- readGAlignments(bamFile01, param = param)
             

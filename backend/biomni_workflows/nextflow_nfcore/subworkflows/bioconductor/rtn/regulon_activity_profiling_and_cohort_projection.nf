@@ -24,7 +24,7 @@ process BIOC_RTN_REGULON_ACTIVITY_PROFILING_AND_COHORT_PROJECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')

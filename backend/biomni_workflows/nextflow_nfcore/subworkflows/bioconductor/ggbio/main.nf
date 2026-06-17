@@ -26,7 +26,7 @@ process BIOC_GGBIO_GENOMIC_TRACKS_CONSTRUCTION_AND_NAVIGATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -94,6 +94,8 @@ process BIOC_GGBIO_GENOMIC_TRACKS_CONSTRUCTION_AND_NAVIGATION {
         # Define the BAM and VCF file paths
         fl.bam <- "indexed_bam_file.bam"
         fl.vcf <- "variants_file.vcf.bgz"
+        # Ensure the BAM is indexed — BamFile()/readGAlignments ranged access needs a .bai.
+        if (file.exists(fl.bam) && !file.exists(paste0(fl.bam, ".bai"))) Rsamtools::indexBam(fl.bam)
         
         # -----------------------------------------------------------------------------
         # 2. Determine Genomic Region of Interest (wh) Dynamically

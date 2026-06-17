@@ -21,7 +21,7 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_WITH_DEFAULTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
