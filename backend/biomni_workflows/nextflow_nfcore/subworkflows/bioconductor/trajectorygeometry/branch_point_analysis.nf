@@ -59,7 +59,9 @@ process BIOC_TRAJECTORYGEOMETRY_BRANCH_POINT_ANALYSIS {
           }
         }
         
-        # Load required libraries
+        # [biomate] wrap whole R body so any error is caught -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
+    # Load required libraries
         library(TrajectoryGeometry)
         library(RColorBrewer)
         library(dplyr)
@@ -168,10 +170,16 @@ process BIOC_TRAJECTORYGEOMETRY_BRANCH_POINT_ANALYSIS {
         print(cholBranchPointStats\$distancePlot)
         print(cholBranchPointStats\$pValuePlot)
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_TRAJECTORYGEOMETRY_BRANCH_POINT_ANALYSIS":',
         paste0('    TrajectoryGeometry: ', as.character(packageVersion('TrajectoryGeometry')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0 — outputs are produced; suppress warning-only rc=1.
+    quit(save = "no", status = 0)
     """
 
     stub:

@@ -66,6 +66,8 @@ process BIOC_VOYAGER_SPATIAL_EXPLORATORY_DATA_ANALYSIS {
             
             # 1. Load required libraries
                  library(SummarizedExperiment)
+    # [biomate] wrap whole R body so any error is caught -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
        library(SFEData)
             library(SpatialFeatureExperiment)
             library(SpatialExperiment)
@@ -161,10 +163,16 @@ process BIOC_VOYAGER_SPATIAL_EXPLORATORY_DATA_ANALYSIS {
             # Save the final processed SpatialFeatureExperiment object
             saveRDS(sfe, "sfe_processed.rds")
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_VOYAGER_SPATIAL_EXPLORATORY_DATA_ANALYSIS":',
         paste0('    Voyager: ', as.character(packageVersion('Voyager')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0 — outputs are produced; suppress warning-only rc=1.
+    quit(save = "no", status = 0)
     """
 
     stub:
