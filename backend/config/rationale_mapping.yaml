@@ -985,32 +985,56 @@ chains:
     chain_id: 65
     domain: drug_discovery
     category: tier0
+    # 2-step chain to match tier0-audit's expectedPhaseCount=7:
+    # atlas_expression_query (A/B/C) → modality_triage (A/B/C/D).
+    # phase_id encoded <step>.<letter> so rationale_ids stay unique.
     phases:
-      - phase_id: A
-        step_role: tier0_drug_design_pipeline
-        step_workflow_name: modality_triage
-        rationale_id: modality_triage_oncology_chain:A
+      - phase_id: 1.A
+        step_role: atlas_profile
+        step_workflow_name: atlas_expression_query
+        rationale_id: modality_triage_oncology_chain:1.A
         qc_gate_name: bcma_carvykti_abecma
         confirmed: true
         curated_by: tier0-auto-from-spec
-      - phase_id: B
-        step_role: tier0_drug_design_pipeline
-        step_workflow_name: modality_triage
-        rationale_id: modality_triage_oncology_chain:B
+      - phase_id: 1.B
+        step_role: atlas_profile
+        step_workflow_name: atlas_expression_query
+        rationale_id: modality_triage_oncology_chain:1.B
         qc_gate_name: bcma_carvykti_abecma
         confirmed: true
         curated_by: tier0-auto-from-spec
-      - phase_id: C
+      - phase_id: 1.C
+        step_role: atlas_profile
+        step_workflow_name: atlas_expression_query
+        rationale_id: modality_triage_oncology_chain:1.C
+        qc_gate_name: bcma_carvykti_abecma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: 2.A
         step_role: tier0_drug_design_pipeline
         step_workflow_name: modality_triage
-        rationale_id: modality_triage_oncology_chain:C
+        rationale_id: modality_triage_oncology_chain:2.A
+        qc_gate_name: bcma_carvykti_abecma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: 2.B
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: modality_triage
+        rationale_id: modality_triage_oncology_chain:2.B
+        qc_gate_name: bcma_carvykti_abecma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: 2.C
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: modality_triage
+        rationale_id: modality_triage_oncology_chain:2.C
         qc_gate_name: belantamab_adc_bcma
         confirmed: true
         curated_by: tier0-auto-from-spec
-      - phase_id: D
+      - phase_id: 2.D
         step_role: tier0_drug_design_pipeline
         step_workflow_name: modality_triage
-        rationale_id: modality_triage_oncology_chain:D
+        rationale_id: modality_triage_oncology_chain:2.D
         qc_gate_name: bcma_carvykti_abecma
         confirmed: true
         curated_by: tier0-auto-from-spec
