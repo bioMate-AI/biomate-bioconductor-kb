@@ -310,21 +310,6 @@ export interface ChatContext {
    * generation returns "currently unavailable".
    */
   galaxyAPIOverride?: any;
-  /**
-   * Forced intent type from a prior IntentClarificationCard click. When set,
-   * the intent decomposer's classification is overridden and ambiguity
-   * detection is skipped. Used by the chat re-submit handler when the user
-   * picks a candidate from the clarification card.
-   */
-  intentOverride?: string;
-  /**
-   * TEST-ONLY: force the intent classifier to a specific type, BEFORE the
-   * cross-intent ambiguity check. Allows E2E tests to reproducibly trigger
-   * the IntentClarificationCard render path without relying on Gemini's
-   * non-determinism. Honored only when the request also carries a valid
-   * E2E_TEST_TOKEN header (enforced in routes.ts). Has no effect in prod.
-   */
-  testForceIntent?: string;
 }
 
 export interface ToolRecommendation {
@@ -481,10 +466,14 @@ export const DOMAIN_CATALOGS: Partial<Record<string, string>> = {
 - transcriptomic_biomarker: Biomarker discovery from bulk or single-cell expression data.`,
 
   single_cell: `Available BioMate single-cell workflows (within the genomics domain directory):
+- scrnaseq_standard_endtoend (id 14435): End-to-end standard scRNA-seq. Raw 10X FASTQ + samplesheet → annotated h5ad with cell types, UMAP, marker genes. Composes nf-core/scrnaseq (alignment) + scDblFinder QC + Harmony batch integration + Leiden + celltypist. Chains downstream to iSEE (id 11653). Use for: any "run standard scRNA-seq" / "annotate cell types" / "10X analysis" / "FASTQ → cell types" request. Required inputs: fastq_dir, samplesheet.csv. Key params: aligner (starsolo/cellranger/salmon_alevin), harmony_batch_key, celltypist_model. For TME / immune-oncology datasets, set celltypist_model=Immune_All_High.
+- scrnaseq_trajectory_pseudotime (id 14436): Trajectory inference + pseudotime + lineage-DE for a clustered + annotated h5ad. Slingshot + tradeSeq + condiments. Use for: pseudotime analysis, T-cell exhaustion trajectory, hematopoietic differentiation, branching lineage analysis. Required: annotated.h5ad (from id 14435 or equivalent) + start_cluster OR start_celltype. T2 CPU 16 vCPU / 64 GB locked (no GPU path for tradeSeq).
+- scrnaseq_cellcell_communication (id 14437): Cell-cell signaling INFERENCE via LIANA+ (consensus across CellChat/CellPhoneDB/NATMI/SCA/Connectome/logFC). Identifies ligand-receptor pairs between celltypes. Optional condition-stratified comparison (e.g. treatment-naive vs resistant). Optional decoupler TF-activity follow-up. Chains downstream to CCPlotR (id 11052) + InterCellar (id 11646) for visualization. Use for: "signaling between celltypes" / "immune-checkpoint pathways" / "ligand-receptor analysis" / "CellChat" / "LIANA" / "NicheNet" requests. Required: annotated.h5ad with celltype column.
+- visium_voyager_spatial_esda (id 14438): End-to-end SPATIAL transcriptomics ESDA for 10X Visium. Composes nf-core/spatialvi (id 12783) sub-workflow + VisiumIO (id 12616) + Voyager univariate (Moran's I, Geary's C, Getis-Ord Gi*) + bivariate (Lee's L) + MULTISPATI PCA + spatial-cluster stratified spatial statistics. Chains downstream to iSEE (id 11653). Use for: any "Visium spatial analysis" / "Voyager ESDA" / "Moran's I" / "spatial autocorrelation" / "spatial transcriptomics" request on Space Ranger output. Required: spaceranger_dir + samplesheet.csv. NOT for cell-cell communication (use id 14437); NOT for Xenium (separate workflow needed).
 - annotate_celltype_scRNA: Cell type annotation using reference-based label transfer (PanHuman atlas). Input: AnnData h5ad. Outputs: annotated h5ad with cell type labels.
 - create_harmony_embeddings_scRNA: Batch-corrected UMAP via Harmony integration. Input: AnnData h5ad with batch column. Outputs: corrected embedding.
 - create_scvi_embeddings_scRNA: Deep learning (scVI) latent embedding. Input: AnnData h5ad. Outputs: scVI latent space + UMAP.
-- trajectory_inference: Pseudotime (Monocle3) + RNA velocity (scVelo) — see genomics catalog.
+- trajectory_inference: Pseudotime (Monocle3) + RNA velocity (scVelo) — see genomics catalog. Note: scrnaseq_trajectory_pseudotime (id 14436) is the preferred composed workflow.
 - perturb_seq_analysis: CRISPR perturbation-seq analysis — see genomics catalog.
 - unsupervised_celltype_transfer_between_scRNA_datasets: Cross-dataset label transfer without reference atlas.`,
 
@@ -707,7 +696,11 @@ const DOMAIN_ROUTING_RULES: Record<string, string> = {
 - "MD simulation", "molecular dynamics", "AMBER", "pmemd", "protein stability in explicit solvent", or "post-docking MM-GBSA refinement": suggest the amber_pmemd_md workflow (AMBER pmemd.cuda GPU MD, 7-step pipeline: GAFF2 parametrization → tleap → EM → NVT/NPT equilibration → production MD → cpptraj RMSD/RMSF → MMPBSA.py ΔGbind. License: free academic since AMBER24.)
 - "GROMACS", "GROMACS MD", "GROMOS force field", or explicit mention of GROMACS: suggest the gromacs_protein_md workflow (GROMACS 2025 + gmx_MMPBSA, 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory)`,
 
-  single_cell: `- "virtual cell", "perturbation prediction", "cell response to drug", "predict gene KO effect", "predict gene knockout", "CRISPR perturbation prediction", "drug effect on cell state", "cell state after perturbation", "transcriptomic perturbation response", "in silico KO", "in silico knockout", "predict scRNA-seq after treatment", "GEARS perturbation", "STATE model", "state perturbation", "predict combinatorial perturbation", "multi-gene perturbation", or "gene expression after CRISPR": use the state_perturbation_prediction workflow as primary and offer gears_perturbation_prediction as an alternative. STATE model (Singlecell Transcriptomics for Arbitrary Treatment Effects) predicts single-cell gene expression responses to unseen drug or genetic perturbations using a transformer trained on Perturb-seq data; GEARS uses a graph neural network over gene co-expression to predict combinatorial perturbation effects. Both accept: cell_type, perturbation_name (gene symbol or drug name), and optionally a reference h5ad. Outputs: predicted_expression.h5ad + differential_genes.csv + UMAP comparison. Use STATE for drug perturbations; prefer GEARS when querying multi-gene combinatorial KO panels.`,
+  single_cell: `- "run standard scRNA-seq", "10X analysis", "scRNA-seq pipeline", "annotate cell types from FASTQ", "FASTQ to cell types", "Jerby-Arnon analysis", "process 10X data and annotate", "scRNA-seq from raw reads", or any request to take raw 10X Genomics FASTQ to annotated cell types: use the scrnaseq_standard_endtoend workflow (id 14435). Composes nf-core/scrnaseq alignment + scDblFinder QC + Harmony batch integration + Leiden + celltypist annotation. Chains downstream to iSEE (id 11653) for interactive Shiny app. Required: fastq_dir + samplesheet.csv. Default celltypist_model is Immune_All_Low; for TME / immune-oncology datasets (Jerby-Arnon melanoma, TCGA single-cell), set celltypist_model=Immune_All_High. harmony_batch_key auto-detected from samplesheet (typically 'sample' or 'patient').
+- "trajectory analysis", "pseudotime", "lineage trajectory", "Slingshot", "tradeSeq", "T-cell exhaustion trajectory", "developmental trajectory", "differentiation pseudotime", "branching lineage", "GAM along pseudotime", "trajectory differential expression", "condiments comparison", "monocle alternative", "pseudotime DE", or any request to infer cell trajectories from an annotated single-cell h5ad: use the scrnaseq_trajectory_pseudotime workflow (id 14436). Slingshot lineage fit + tradeSeq GAM + optional condiments condition comparison. Required: annotated.h5ad (from id 14435 or equivalent clustered + annotated SC object) + start_cluster OR start_celltype. T2 CPU 16 vCPU / 64 GB tier locked (no GPU path for tradeSeq; mgcv has no CUDA). For >20K cells, the workflow lineage-splits automatically to stay under the 56 GB memory ceiling.
+- "cell-cell communication", "LIANA", "CellChat", "NicheNet", "CellPhoneDB", "ligand-receptor analysis", "signaling between celltypes", "intercellular signaling", "tumor-immune signaling", "immune-checkpoint pathways", "PD-L1 signaling", "TIGIT signaling", "ligand-receptor pairs", "signaling pathway analysis between cell types", or any request to identify cell-cell signaling from an annotated scRNA-seq h5ad: use the scrnaseq_cellcell_communication workflow (id 14437). LIANA+ inference (consensus across CellChat / CellPhoneDB / NATMI / SCA / Connectome / logFC) + optional condition-stratified comparison (e.g. treatment-naive vs resistant) + optional decoupler TF-activity follow-up. Chains downstream to CCPlotR (id 11052) for heatmap/dotplot/network viz + InterCellar (id 11646) for interactive Shiny exploration. Required: annotated.h5ad with celltype column. LIANA+ requires raw counts — workflow halts with remediation if log-normalized input is detected.
+- "Visium analysis", "Voyager", "spatial ESDA", "spatial exploratory data analysis", "Moran's I", "Geary's C", "Getis-Ord", "spatial autocorrelation", "MULTISPATI", "Lee's L", "spatial transcriptomics analysis", "Space Ranger output analysis", "10X Visium", "spatial neighborhood graph", "spatially variable genes", "spatial clustering of spots", "Maynard DLPFC", "Visium FFPE Breast Cancer", "tissue compartment analysis", or any request to analyze 10X Visium Space Ranger output for spatial structure: use the visium_voyager_spatial_esda workflow (id 14438). End-to-end Visium ESDA — composes nf-core/spatialvi sub-workflow for Space Ranger → SpatialExperiment + VisiumIO + SpatialFeatureExperiment (SFE) conversion + Voyager univariate Moran's I / Geary's C / Getis-Ord Gi* + bivariate Lee's L + MULTISPATI PCA + spatial spot clustering with per-cluster stratified ESDA. Required: spaceranger_dir + samplesheet.csv. Output is a Voyager-vignette-style ranked-genes table by spatial autocorrelation + per-cluster top genes + SFE rds + interactive iSEE app (chained id 11653). NOT for Xenium data (different workflow needed); NOT for scRNA-seq (no spatial coords). Note: depends on the bioc-fix container update that installs Voyager + sf + spdep — currently 5 spatial workflows are exec_error pending that fix.
+- "virtual cell", "perturbation prediction", "cell response to drug", "predict gene KO effect", "predict gene knockout", "CRISPR perturbation prediction", "drug effect on cell state", "cell state after perturbation", "transcriptomic perturbation response", "in silico KO", "in silico knockout", "predict scRNA-seq after treatment", "GEARS perturbation", "STATE model", "state perturbation", "predict combinatorial perturbation", "multi-gene perturbation", or "gene expression after CRISPR": use the state_perturbation_prediction workflow as primary and offer gears_perturbation_prediction as an alternative. STATE model (Singlecell Transcriptomics for Arbitrary Treatment Effects) predicts single-cell gene expression responses to unseen drug or genetic perturbations using a transformer trained on Perturb-seq data; GEARS uses a graph neural network over gene co-expression to predict combinatorial perturbation effects. Both accept: cell_type, perturbation_name (gene symbol or drug name), and optionally a reference h5ad. Outputs: predicted_expression.h5ad + differential_genes.csv + UMAP comparison. Use STATE for drug perturbations; prefer GEARS when querying multi-gene combinatorial KO panels.`,
 
   genomics: `- "AlphaGenome", "Alpha Genome", "DeepMind genomics 2025", "Enformer successor", "genomic track prediction", "predict ATAC-seq from sequence", "predict gene expression from DNA", "predict chromatin from sequence", "in-silico mutagenesis regulatory", "ISM variant regulatory", "enhancer prediction from sequence", "1Mb DNA prediction", "TF binding prediction sequence", or "cell-type gene expression from DNA": use the alphagenome_track_prediction workflow (AlphaGenome DeepMind 2025; predicts 5000+ tracks: ATAC, ChIP, RNA-seq, splicing, histones, CTCF across 100+ cell types. Enformer fallback if no API key. Input: genomic_region (chrom:start-end) + optional variant_vcf. Output: track predictions TSV + variant effects JSON + HTML report.)
 - "Evo 2", "Evo-2", "Evo2", "Arc Institute DNA model", "DNA language model variant", "nucleotide language model", "whole genome language model", "genomic foundation model variant", "log likelihood ratio variant", "LLR variant", "non-coding variant score DNA model", "CRISPR guide scoring Evo", or "DNA sequence fitness": use the evo2_variant_effect workflow (Evo 2 Arc Institute 40B-param DNA LM; scores variants via log-likelihood ratio LLR=log P(alt)-log P(ref); negative LLR = deleterious. API: Together AI or local HF weights. Input: input_vcf + reference_genome. Output: scored TSV + ranked VCF + summary JSON.)`,
@@ -1167,21 +1160,6 @@ export interface GalaxyAssistantResponse {
     | { kind: 'missing_required'; paramName: string; hint?: string; examples?: string[] }
     | { kind: 'enum_violation'; paramName: string; userValue: string; allowed: string[] }
   >;
-
-  // Intent ambiguity clarification — rendered as IntentClarificationCard.
-  // Surfaces when the intent decomposer's classification looks like it might
-  // be wrong for the query (design verbs + therapeutic modality but routed
-  // as tool_search, etc.). The primary candidate is highlighted in the UI;
-  // user click re-submits the query with `context.intentOverride` set so the
-  // backend skips ambiguity detection on the second pass.
-  intentClarification?: {
-    originalIntent: string;
-    candidates: Array<{ type: string; label: string; primary?: boolean }>;
-    /** Diagnostic / telemetry — which heuristic triggered the card. */
-    reason: string;
-    /** Echo of the user's message so the re-submit handler doesn't need a state lookup. */
-    originalMessage: string;
-  };
 
   // Extracted typed facts from user message (for ConversationState)
   extractedFacts?: ExtractedFact[];
@@ -1695,16 +1673,7 @@ export class GalaxyAssistant {
           systemInstruction: 'Based on the code execution results, provide the final answer concisely. Print only the answer value, no explanation.',
           generationConfig: { maxOutputTokens: 512, temperature: 0 },
         });
-        const summaryHistoryRaw = await chat.getHistory();
-        // Defensive: Gemini requires history to start with a user turn —
-        // strip any leading model turns (can happen if tool-only turns
-        // re-ordered the conversation prefix).
-        const summaryFirstUser = summaryHistoryRaw.findIndex(
-          (h: any) => h.role === 'user',
-        );
-        const summaryHistory = summaryFirstUser < 0
-          ? []
-          : summaryHistoryRaw.slice(summaryFirstUser);
+        const summaryHistory = await chat.getHistory();
         const summaryChatObj = noToolModel.startChat({ history: summaryHistory });
         const summaryResult = await summaryChatObj.sendMessage(
           'Based on all the code results above, what is the final answer? Reply with ONLY the answer value.'
@@ -2171,67 +2140,6 @@ export class GalaxyAssistant {
     );
   }
 
-  /**
-   * Cross-intent ambiguity detector — surface a user-facing
-   * IntentClarificationCard when the LLM-classified intent type itself
-   * might be wrong (e.g. tool_search vs workflow_generation).
-   *
-   * This is COMPLEMENTARY to (not a duplicate of) the existing
-   * `_clarificationGate` + `intent.workflowAmbiguity` + `AMBIGUITY_RESOLVERS`
-   * machinery. The split:
-   *
-   *   `_clarificationGate` (intra-workflow ambiguity):
-   *     fires when LLM already classified as `workflow_generation` and the
-   *     LLM populated `workflowAmbiguity` (e.g. "rnaseq vs scrnaseq?").
-   *     Returns a free-text clarifying question generated by Haiku.
-   *
-   *   `_detectCrossIntentAmbiguity` (THIS — cross-intent ambiguity):
-   *     fires when LLM did NOT classify as workflow_generation but the
-   *     query has features that signal an executable design task. Returns
-   *     a structured candidate card with the design-workflow option first.
-   *     User picks → re-submit with `context.intentOverride`.
-   *
-   * Triggers when ALL of:
-   *   - LLM did NOT classify as workflow_generation
-   *   - Query matches design-verb + therapeutic-modality pattern, OR
-   *     "modalities for X", OR "in-vivo therapy" pattern
-   */
-  private _detectCrossIntentAmbiguity(
-    message: string,
-    primaryIntent: DecomposedIntent,
-  ): {
-    shouldClarify: boolean;
-    candidates: Array<{ type: string; label: string; primary?: boolean }>;
-    reason: string;
-  } {
-    if (primaryIntent.type === 'workflow_generation') {
-      return { shouldClarify: false, candidates: [], reason: '' };
-    }
-    const m = message;
-    const designVerb =
-      /\b(design|triage|compare|co-?design|bake[-\s]?off|engineer|propose|generate|build)\b/i;
-    const modalityToken =
-      /\b(bispecific|bsab|crossmab|kih|bite|car[-\s]?t|carT|car\s+construct|base[-\s]?edit|prime[-\s]?edit|knock[-\s]?(out|down|in)|glp[-\s]?1|glp1\b|modalit(y|ies)|adc|protac|mrna(\s+therap)?|aav(\s+serotype)?|aso(\s+gapmer)?|sirna|si[-\s]?rna|gapmer|peptide\s+therapeutic)\b/i;
-    const triggers: string[] = [];
-    if (designVerb.test(m) && modalityToken.test(m)) triggers.push('design-verb+modality');
-    if (/\b(triage|compare|bake[-\s]?off)\b.*\bmodalit(y|ies)\b/i.test(m))
-      triggers.push('verb+modalities');
-    if (/\bin[-\s]?vivo\b.*\b(car[-\s]?t|base[-\s]?edit|knock[-\s]?(out|down|in))\b/i.test(m))
-      triggers.push('in-vivo therapy');
-    if (triggers.length === 0) {
-      return { shouldClarify: false, candidates: [], reason: '' };
-    }
-    return {
-      shouldClarify: true,
-      candidates: [
-        { type: 'workflow_generation', label: 'Run a design workflow', primary: true },
-        { type: 'tool_search', label: 'Just search for tools' },
-        { type: 'research_question', label: 'Answer as a research question' },
-      ],
-      reason: triggers.join(', '),
-    };
-  }
-
   /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
   private _applyNamedWorkflowOverridesToDecomposition(
     decomposition: IntentDecomposition,
@@ -2519,69 +2427,8 @@ Rules:
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
     this._applyNamedWorkflowOverridesToDecomposition(decomposition, message);
-    // TEST-ONLY: force classification BEFORE cross-intent ambiguity check.
-    // Allows e2e tests to reliably trigger the IntentClarificationCard path
-    // without relying on Gemini non-determinism. Gated by E2E_TEST_TOKEN
-    // header in routes.ts so prod cannot exploit it.
-    if (context.testForceIntent) {
-      const apply = (i: DecomposedIntent) => {
-        i.type = context.testForceIntent!;
-        i.actions = inferActionsFromType(context.testForceIntent!);
-      };
-      apply(decomposition.primaryIntent);
-      for (const i of decomposition.intents) apply(i);
-      log(`Step 1: testForceIntent applied → ${context.testForceIntent}`);
-    }
-    // If a prior IntentClarificationCard click set context.intentOverride,
-    // apply it now so downstream sees the user-confirmed intent.
-    if (context.intentOverride) {
-      const apply = (i: DecomposedIntent) => {
-        i.type = context.intentOverride!;
-        i.actions = inferActionsFromType(context.intentOverride!);
-      };
-      apply(decomposition.primaryIntent);
-      for (const i of decomposition.intents) apply(i);
-      log(`Step 1: intentOverride applied → ${context.intentOverride}`);
-    }
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
-
-    // Cross-intent ambiguity check (Section "Intent ambiguity clarification"
-    // in docs/20260612_SCHEMA_GROUNDED_EXTRACTION_PROPOSAL.md). Complements
-    // the existing `_clarificationGate` which handles intra-workflow
-    // ambiguity only. Skipped when the user already picked via a prior
-    // IntentClarificationCard (context.intentOverride).
-    if (!context.intentOverride) {
-      const ambiguity = this._detectCrossIntentAmbiguity(message, intent);
-      if (ambiguity.shouldClarify) {
-        log(`Step 1.5: ambiguity detected (${ambiguity.reason}) — emitting clarification card`);
-        const friendly =
-          'I want to make sure I do the right thing. Did you mean to run a design workflow, or are you asking something else?';
-        if (onResponseDelta) onResponseDelta(friendly);
-        return {
-          message: friendly,
-          intentType: intent.type,
-          intentConfidence: intent.confidence,
-          intentClarification: {
-            originalIntent: intent.type,
-            candidates: ambiguity.candidates,
-            reason: ambiguity.reason,
-            originalMessage: message,
-          },
-          suggestions: [],
-          truncated: false,
-          isMultiIntent: false,
-          sources: {
-            toolSearchUsed: false,
-            datasetRAGUsed: false,
-            workflowGenerated: false,
-            thinkingUsed: false,
-            researchAgentUsed: false,
-            benchmarkAgentUsed: false,
-          },
-        };
-      }
-    }
 
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
@@ -4097,39 +3944,6 @@ Describe the user's information need with a descriptive label. You may use these
 You may also create a novel label if none of the above fit (e.g., "cost_estimation", "regulatory_compliance", "multi_step_procedure").
 
 ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
-
-### Therapeutic-design queries are workflow_generation — never tool_search
-
-**FIRST CHECK** before any other rule: does the user's request fit the shape **"<action verb> <therapeutic modality> for <target/indication>"** where the action verb is one of design / triage / compare / co-design / bake-off / engineer / propose / generate?
-
-If YES → **workflow_generation** (NEVER tool_search, NEVER experiment_design, NEVER research_question). BioMate has executable design pipelines that take a target + indication as input and emit a scored, ranked therapeutic design. No file upload is required — the target/indication itself is the workflow input. **This rule overrides every other rule below.**
-
-The executable design pipelines are:
-- **bispecific antibody design** → bispecific_format_triage (CrossMab, KiH, BiTE, …)
-- **in-vivo CAR-T co-design** → in_vivo_cart_codesign (CAR target + LNP delivery + persistence)
-- **in-vivo base-edit knockout** → in_vivo_base_edit_design (target gene + editor + tissue delivery)
-- **GLP-1 modality bake-off** → glp1_modality_bakeoff (peptide vs mRNA vs gene therapy)
-- **modality triage** → modality_triage (compare biologics across modalities for a single target)
-- **ADC design** → adc_design (antigen + linker + payload)
-- **PROTAC design** → protac_design (target protein + E3 ligase preference)
-- **mRNA therapeutic** → mrna_therapeutic_design (protein sequence + tissue)
-- **AAV serotype selection** → aav_serotype_selection (tissue + payload size)
-- **ASO gapmer design** → aso_gapmer_design (target mRNA)
-- **siRNA design** → sirna_design_full (mRNA sequence + region)
-
-**Required routing — these queries MUST be classified workflow_generation, NOT tool_search:**
-
-  ✓ "Design a PD-1 x VEGF bispecific in CrossMab format for NSCLC" → workflow_generation
-  ✓ "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery" → workflow_generation
-  ✓ "Compare GLP-1 modalities for MASH — peptide vs mRNA vs gene therapy" → workflow_generation
-  ✓ "Triage modalities for a BCMA oncology target" → workflow_generation
-  ✓ "Design an ADC for HER2 in gastric cancer" → workflow_generation
-  ✓ "Design an in-vivo base-edit knockout of PCSK9 for hypercholesterolemia" → workflow_generation
-  ✓ "Engineer a bispecific antibody against CTLA-4 and PD-L1" → workflow_generation
-
-**Classifying any of these as tool_search is a hard error.** "Compare modalities" / "Triage modalities" / "Design <modality>" do not mean "search for tools" — they mean "run the design pipeline".
-
-### Otherwise:
 
 Ask a single question: **"Does completing this task require running a computational pipeline or tool on user-provided data — files, accession IDs, or molecular inputs?"**
 
