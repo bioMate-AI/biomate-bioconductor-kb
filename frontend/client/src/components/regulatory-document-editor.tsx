@@ -56,6 +56,13 @@ export interface RegulatoryDocumentEditorProps {
     section_type: string
     prompt?: string
   }) => Promise<void> | void
+  /**
+   * Fires once the underlying TipTap editor instance is constructed and
+   * the initial baseline snapshot has been taken. Parents can hold the
+   * handle for programmatic content access (parameter override panels,
+   * test drivers, etc.). Optional — most callers don't need it.
+   */
+  onEditorReady?: (editor: unknown) => void
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -304,6 +311,7 @@ export function RegulatoryDocumentEditor({
   generatedAt,
   recordEditPairs = true,
   recordPairFn,
+  onEditorReady,
 }: RegulatoryDocumentEditorProps) {
   // Original block texts captured at load time for diff tracking
   const originalBlocksRef = useRef<string[]>([])
@@ -396,7 +404,10 @@ export function RegulatoryDocumentEditor({
     // Fresh document → reset dedupe set so re-runs can re-record pairs.
     recordedIndicesRef.current = new Set()
     // Snapshot the post-TipTap-normalisation baseline once the DOM settles.
-    requestAnimationFrame(() => snapshotLiveBaseline())
+    requestAnimationFrame(() => {
+      snapshotLiveBaseline()
+      if (onEditorReady) onEditorReady(editor)
+    })
 
     // Initial AI span count
     requestAnimationFrame(() => {
