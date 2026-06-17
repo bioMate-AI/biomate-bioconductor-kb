@@ -52,18 +52,12 @@ async function loginShared(page: Page): Promise<boolean> {
   let token = "";
   if (resp.ok()) {
     token = (await resp.json())?.token || "";
-  } else if (resp.status() === 401 || resp.status() === 404) {
-    const reg = await page.request.post(`${BASE_URL}/api/auth/register`, {
-      headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
-      data: {
-        fullName: "After Run Audit",
-        email: FIXTURE_EMAIL,
-        password: FIXTURE_PASSWORD,
-        termsAccepted: true,
-        privacyAccepted: true,
-      },
-    });
-    if (reg.ok()) token = (await reg.json())?.token || "";
+  } else {
+    // NEVER register-on-fail. Per CLAUDE.md the fixture user must already
+    // exist (lifeifei163361@163.com). Login failure means a credential or
+    // account-state issue; surface it instead of creating accounts.
+    console.error(`[login] FAILED status=${resp.status()} — fixture user must already exist; not registering`);
+    return false;
   }
   if (!token) return false;
   const url = new URL(BASE_URL);
@@ -276,6 +270,15 @@ test.describe("After-run comprehensive audit", () => {
     const finalStatus = await waitForCompletion(page, 1_500_000);
     await transitionRecording;
     console.log("[audit] final workflow status:", finalStatus);
+    // Give the server's post-terminal nextflowStatus refresh path
+    // (routes.ts: see P0 v2 fix 2026-06-17) one full poll cycle to fire.
+    // Without this wait, the audit captures the tab state BEFORE the live
+    // Galaxy s3_output_files listing has been written back to the DB, so
+    // the Outputs tab still shows "No output files registered yet".
+    if (finalStatus === "completed") {
+      console.log("[audit] waiting 45s for post-terminal nextflowStatus refresh…");
+      await page.waitForTimeout(45_000);
+    }
     await page.screenshot({ path: path.join(outDir, "03-after-completion.png"), fullPage: true });
 
     // Audit each after-run tab
