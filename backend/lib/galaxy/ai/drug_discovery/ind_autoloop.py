@@ -35,6 +35,7 @@ def llm_narrative_with_retry(
     region: str = "FDA",
     user_prompt_override: str = "",
     max_attempts: int = 3,
+    org_id: str | None = None,
 ) -> tuple[str, list[str]]:
     """Generate narrative; on _quick_audit failure inject the rule as a
     constraint and regenerate up to max_attempts.
@@ -42,6 +43,13 @@ def llm_narrative_with_retry(
     Returns (text, list_of_constraints_tried). Always returns the cleanest
     of the attempted outputs (zero audit failures preferred; if none clean,
     the attempt with fewest failures).
+
+    `org_id` forwards to `_llm_narrative` so the autoloop retries get the
+    same per-org rule pack + few-shot exemplars in their RAG context as
+    the first-pass call (B3 plumbing). Without this forward the PBPK,
+    genotox, and cardiac autoloop paths would silently fall back to
+    region-only RAG on retry, undoing per-org adaptation for the most
+    quality-critical sections.
     """
     from galaxy.ai.drug_discovery.ind_assembly import _llm_narrative, _quick_audit
 
@@ -56,6 +64,7 @@ def llm_narrative_with_retry(
             region=region,
             audit_constraint=constraint,
             user_prompt_override=user_prompt_override,
+            org_id=org_id,
         )
         findings = _quick_audit(narrative, section_type) if narrative else []
         attempts.append((narrative, findings))
