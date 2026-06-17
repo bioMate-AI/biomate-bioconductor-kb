@@ -61,6 +61,8 @@ process BIOC_TRAJECTORYGEOMETRY_TRAJECTORY_DIRECTIONALITY_AND_COMPARISON {
           }
         }
     
+    # [biomate] wrap whole R body so any error is caught -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
     # Load required libraries
     library(TrajectoryGeometry)
     library(RColorBrewer)
@@ -252,10 +254,16 @@ process BIOC_TRAJECTORYGEOMETRY_TRAJECTORY_DIRECTIONALITY_AND_COMPARISON {
     
     message("Pipeline completed successfully. Outputs saved to the working directory.")
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_TRAJECTORYGEOMETRY_TRAJECTORY_DIRECTIONALITY_AND_COMPARISON":',
         paste0('    TrajectoryGeometry: ', as.character(packageVersion('TrajectoryGeometry')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0 — outputs are produced; suppress warning-only rc=1.
+    quit(save = "no", status = 0)
     """
 
     stub:

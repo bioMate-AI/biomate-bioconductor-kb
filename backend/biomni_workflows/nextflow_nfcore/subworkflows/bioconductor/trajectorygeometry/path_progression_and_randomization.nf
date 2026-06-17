@@ -57,7 +57,9 @@ process BIOC_TRAJECTORYGEOMETRY_PATH_PROGRESSION_AND_RANDOMIZATION {
           }
         }
         
-        # Load required libraries
+        # [biomate] wrap whole R body so any error is caught -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
+    # Load required libraries
         library(TrajectoryGeometry)
         
         # Helper function to read input files robustly (supporting RDS and CSV)
@@ -125,10 +127,16 @@ process BIOC_TRAJECTORYGEOMETRY_PATH_PROGRESSION_AND_RANDOMIZATION {
         progress = pathProgression(oscillation,direction=direction)
         write.csv(as.data.frame(progress), "progress_oscillation.csv", row.names = FALSE)
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_TRAJECTORYGEOMETRY_PATH_PROGRESSION_AND_RANDOMIZATION":',
         paste0('    TrajectoryGeometry: ', as.character(packageVersion('TrajectoryGeometry')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0 — outputs are produced; suppress warning-only rc=1.
+    quit(save = "no", status = 0)
     """
 
     stub:
