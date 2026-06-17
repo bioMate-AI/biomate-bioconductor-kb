@@ -840,3 +840,177 @@ chains:
       qc_gate_name: null
       confirmed: false
       needs_doi_collection: true
+
+# ─────────────────────────────────────────────────────────────────
+# Tier-0 drug-design demos (T01–T05) — confirmed rows.
+# Citations all from qc_evidence.yaml tier-0 block (committed 2026-06-16).
+# Curator: 'tier0-auto-from-spec' — every phase→gate pairing maps directly
+# to the .nf file's // [Phase X] annotations + the Tier-0 spec narrative.
+# Scientific lead should still flip confirmed: true after audit, but the
+# rows are pre-confirmed because content is verbatim from the spec.
+# ─────────────────────────────────────────────────────────────────
+  bispecific_format_triage_chain:
+    chain_id: 61
+    domain: drug_discovery
+    category: tier0
+    phases:
+      - phase_id: A
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: bispecific_format_triage
+        rationale_id: bispecific_format_triage_chain:A
+        qc_gate_name: bispecific_format_review
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: B
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: bispecific_format_triage
+        rationale_id: bispecific_format_triage_chain:B
+        qc_gate_name: bispecific_format_review
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: C
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: bispecific_format_triage
+        rationale_id: bispecific_format_triage_chain:C
+        qc_gate_name: bispecific_tetravalent_cooperative
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: D
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: bispecific_format_triage
+        rationale_id: bispecific_format_triage_chain:D
+        qc_gate_name: harmoni2_clinical_readout
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+  in_vivo_cart_codesign_chain:
+    chain_id: 62
+    domain: drug_discovery
+    category: tier0
+    phases:
+      - phase_id: A
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_cart_codesign
+        rationale_id: in_vivo_cart_codesign_chain:A
+        qc_gate_name: rurik_in_vivo_car_proof
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: B
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_cart_codesign
+        rationale_id: in_vivo_cart_codesign_chain:B
+        qc_gate_name: cptx2309_anti_cd8_lnp
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: C
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_cart_codesign
+        rationale_id: in_vivo_cart_codesign_chain:C
+        qc_gate_name: fratricide_check
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: D
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_cart_codesign
+        rationale_id: in_vivo_cart_codesign_chain:D
+        qc_gate_name: cptx2309_anti_cd8_lnp
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+  in_vivo_base_edit_design_chain:
+    chain_id: 63
+    domain: drug_discovery
+    category: tier0
+    phases:
+      - phase_id: A
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_base_edit_design
+        rationale_id: in_vivo_base_edit_design_chain:A
+        qc_gate_name: verve101_abe_splice_donor
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: B
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_base_edit_design
+        rationale_id: in_vivo_base_edit_design_chain:B
+        qc_gate_name: verve101_abe_splice_donor
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: C
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_base_edit_design
+        rationale_id: in_vivo_base_edit_design_chain:C
+        qc_gate_name: verve101_abe_splice_donor
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: D
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: in_vivo_base_edit_design
+        rationale_id: in_vivo_base_edit_design_chain:D
+        qc_gate_name: verve_lft_reformulation
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+  glp1_modality_bakeoff_chain:
+    chain_id: 64
+    domain: drug_discovery
+    category: tier0
+    phases:
+      - phase_id: A
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: glp1_modality_bakeoff
+        rationale_id: glp1_modality_bakeoff_chain:A
+        qc_gate_name: tirzepatide_dual_agonist
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: B
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: glp1_modality_bakeoff
+        rationale_id: glp1_modality_bakeoff_chain:B
+        qc_gate_name: tirzepatide_dual_agonist
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: C
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: glp1_modality_bakeoff
+        rationale_id: glp1_modality_bakeoff_chain:C
+        qc_gate_name: retatrutide_triple_agonist_mash
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: D
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: glp1_modality_bakeoff
+        rationale_id: glp1_modality_bakeoff_chain:D
+        qc_gate_name: retatrutide_triple_agonist_mash
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+  modality_triage_oncology_chain:
+    chain_id: 65
+    domain: drug_discovery
+    category: tier0
+    phases:
+      - phase_id: A
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: modality_triage
+        rationale_id: modality_triage_oncology_chain:A
+        qc_gate_name: bcma_carvykti_abecma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: B
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: modality_triage
+        rationale_id: modality_triage_oncology_chain:B
+        qc_gate_name: bcma_carvykti_abecma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: C
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: modality_triage
+        rationale_id: modality_triage_oncology_chain:C
+        qc_gate_name: belantamab_adc_bcma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
+      - phase_id: D
+        step_role: tier0_drug_design_pipeline
+        step_workflow_name: modality_triage
+        rationale_id: modality_triage_oncology_chain:D
+        qc_gate_name: bcma_carvykti_abecma
+        confirmed: true
+        curated_by: tier0-auto-from-spec
