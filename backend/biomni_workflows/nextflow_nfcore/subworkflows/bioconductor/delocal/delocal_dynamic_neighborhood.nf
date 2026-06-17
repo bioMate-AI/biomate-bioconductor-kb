@@ -58,9 +58,9 @@ process BIOC_DELOCAL_DELOCAL_DYNAMIC_NEIGHBORHOOD {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(DELocal)
+    library(SummarizedExperiment)
     library(dplyr)
     
     # 1. Read raw count values and define sample conditions

@@ -63,8 +63,8 @@ process BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION {
         }
         
         # Load required libraries
-        lib        library(SummarizedExperiment)
-rary(DaMiRseq)
+        library(DaMiRseq)
+        library(SummarizedExperiment)
         
         # 1. Read user input files
         if (!file.exists("count_data.txt") || !file.exists("covariate_data.txt")) {

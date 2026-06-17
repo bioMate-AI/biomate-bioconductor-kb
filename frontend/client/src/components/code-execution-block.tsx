@@ -29,7 +29,22 @@ export interface ToolResultEvent {
   duration_ms?: number;
 }
 
-export type AgentToolEvent = ToolCallEvent | ToolResultEvent;
+/**
+ * Status events share the SSE 'tool_event' channel for observability of
+ * non-tool work (schema-grounded extraction stage progress, etc.). They are
+ * not rendered as tool calls in the chat UI — the chat-interface handler
+ * filters them out — but the type widens AgentToolEvent so the discriminant
+ * check (event.type === 'status') type-narrows correctly.
+ */
+export interface StatusEvent {
+  type: 'status';
+  tool_use_id: string;
+  name: string;
+  message?: string;
+  payload?: Record<string, unknown>;
+}
+
+export type AgentToolEvent = ToolCallEvent | ToolResultEvent | StatusEvent;
 
 // A merged call+result pair, keyed by tool_use_id
 export interface ToolBlock {

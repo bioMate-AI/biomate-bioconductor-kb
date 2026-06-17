@@ -52,9 +52,9 @@ process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(gdsfmt)
+    library(SummarizedExperiment)
     library(GDSArray)
     library(S4Vectors)
     

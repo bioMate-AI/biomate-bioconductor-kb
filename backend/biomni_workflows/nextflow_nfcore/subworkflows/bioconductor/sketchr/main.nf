@@ -65,9 +65,9 @@ process BIOC_SKETCHR_SINGLE_CELL_SKETCHING_AND_PROJECTION {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({      library(SummarizedExperiment)
-
+    suppressPackageStartupMessages({
       library(sketchR)
+      library(SummarizedExperiment)
       library(scran)
       library(scater)
       library(snifter)

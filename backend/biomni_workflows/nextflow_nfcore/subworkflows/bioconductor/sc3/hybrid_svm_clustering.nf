@@ -60,9 +60,9 @@ process BIOC_SC3_HYBRID_SVM_CLUSTERING {
           }
         }
         
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(SC3)
+    library(SummarizedExperiment)
     library(scater)
     
     # Read user input files

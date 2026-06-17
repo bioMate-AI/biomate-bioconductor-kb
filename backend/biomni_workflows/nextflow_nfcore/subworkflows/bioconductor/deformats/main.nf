@@ -55,9 +55,9 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
           }
         }
     
-    # --- Load required libraries     library(SummarizedExperiment)
----
+    # --- Load required libraries---
     library(DESeq2)
+    library(SummarizedExperiment)
     library(edgeR)
     library(DEFormats)
     

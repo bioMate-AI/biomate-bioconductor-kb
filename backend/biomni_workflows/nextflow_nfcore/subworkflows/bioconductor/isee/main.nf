@@ -53,9 +53,9 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
           }
         }
     
-    # --- Load libraries and read input data ---    library(SummarizedExperiment)
-
+    # --- Load libraries and read input data ---
     library(iSEE)
+    library(SummarizedExperiment)
     
     # Read counts.csv (gene-by-cell count matrix, column 'gene_id' contains row names)
     counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)

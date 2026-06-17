@@ -62,9 +62,9 @@ process BIOC_MAST_SCRNASEQ_HURDLE_ANALYSIS {
           }
         }
     
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(MAST)
+    library(SummarizedExperiment)
     library(data.table)
     library(ggplot2)
     

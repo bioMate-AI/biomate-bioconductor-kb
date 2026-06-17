@@ -60,8 +60,8 @@ process BIOC_VARIANTANNOTATION_VCF_FILTERING {
         }
         
         # Load required library
-        library(Vari        library(SummarizedExperiment)
-antAnnotation)
+        library(VariantAnnotation)
+        library(SummarizedExperiment)
         
         # --- Define prefilter functions using fast string matching ---
         isGermlinePrefilter <- function(x) {
@@ -73,12 +73,22 @@ antAnnotation)
         }
         
         # --- Define filter functions evaluating parsed VCF objects ---
+        # AD (FORMAT Number=R) is parsed by VariantAnnotation as a samples-by-
+        # variants matrix of per-allele depth vectors (each cell = c(ref, alt, ...)),
+        # NOT a 3-D numeric array. Keep variants where the tumour (sample 1) OR the
+        # normal (sample 2) shows an alternate-allele fraction > 0.1.
         allelicDepth <- function(x) {
-          ad <- geno(x)\$AD
-          tumorPct <- ad[,1,2,drop=FALSE] / rowSums(ad[,1,,drop=FALSE])
-          normPct <- ad[,2,1, drop=FALSE] / rowSums(ad[,2,,drop=FALSE])
-          test <- (tumorPct > 0.1) | (normPct > 0.1)
-          as.vector(!is.na(test) & test)
+          ad <- geno(x)\$AD                       # dim: [variants x samples], list cells
+          altFrac <- function(cell) {
+            v <- as.numeric(unlist(cell))
+            if (length(v) < 2 || all(is.na(v)) || sum(v, na.rm=TRUE) == 0) return(NA_real_)
+            sum(v[-1], na.rm=TRUE) / sum(v, na.rm=TRUE)   # alt depth / total depth
+          }
+          tumorPct <- vapply(ad[, 1], altFrac, numeric(1))
+          normPct  <- if (ncol(ad) >= 2) vapply(ad[, 2], altFrac, numeric(1))
+                      else rep(NA_real_, nrow(ad))
+          test <- (!is.na(tumorPct) & tumorPct > 0.1) | (!is.na(normPct) & normPct > 0.1)
+          as.vector(test)
         }
         
         # --- Combine prefilters and filters using FilterRules ---

@@ -54,9 +54,9 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
       }
     }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(monaLisa)
+    library(SummarizedExperiment)
     library(GenomicRanges)
     library(rtracklayer)
     library(Biostrings)

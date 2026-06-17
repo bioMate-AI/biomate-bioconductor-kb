@@ -6,21 +6,20 @@ Tests the LLM-propose-then-validate workflow generation approach.
 
 import pytest
 import json
-import sys
-import os
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from propose_validate_workflow_generator import (
+# Import via the proper galaxy.ai package path — the module uses
+# relative imports internally (from .workflow_proposal_validator) which
+# only resolve when loaded as part of the galaxy.ai package, not as a
+# top-level module.
+from galaxy.ai.propose_validate_workflow_generator import (
     ProposeValidateWorkflowGenerator,
-    create_propose_validate_generator
+    create_propose_validate_generator,
 )
-from workflow_proposal_validator import (
+from galaxy.ai.workflow_proposal_validator import (
     WorkflowProposalValidator,
     ToolIndexValidator,
     KnowledgeValidator,
-    create_workflow_validator
+    create_workflow_validator,
 )
 
 

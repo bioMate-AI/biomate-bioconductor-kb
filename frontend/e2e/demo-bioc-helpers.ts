@@ -53,21 +53,23 @@ export const BIOC_TOURS = {
   kb: {
     id: 'bioc-kb-routing',
     label: 'BIO — Bioconductor · KB routing & execution',
-    nSteps: 21,
+    // Step count grew to 22 after Interactive Launcher step was added to
+    // afterRunSteps (REQUEST_ADD_INTERACTIVE_PANEL.md request landed).
+    nSteps: 22,
     /** D1 fix: extend disambig (step 3) dwell so viewer can read both scores */
     pauseOverride: { 2: 7_500 } as Record<number, number>,
   },
   sc: {
     id: 'bioc-sc-routing',
     label: 'BIO2 — Bioconductor · scRNA-seq → pseudobulk DE',
-    nSteps: 19,
+    nSteps: 20,
     /** D4 fix: extend pseudobulk centerpiece (step 8 → index 7) to 8s */
     pauseOverride: { 7: 8_000 } as Record<number, number>,
   },
   methyl: {
     id: 'bioc-methyl-routing',
     label: 'BIO3 — Bioconductor · 450k methylation → DMRs',
-    nSteps: 19,
+    nSteps: 20,
     /** D5 fix: extend CpG-bias centerpiece (step 8 → index 7) to 8s */
     pauseOverride: { 7: 8_000 } as Record<number, number>,
   },

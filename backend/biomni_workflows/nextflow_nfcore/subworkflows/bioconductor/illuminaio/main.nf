@@ -54,8 +54,8 @@ process BIOC_ILLUMINAIO_ILLUMINA_MICROARRAY_PIPELINE {
         }
     
     # Load required libraries
-    l    library(SummarizedExperiment)
-ibrary(illuminaio)
+    library(illuminaio)
+    library(SummarizedExperiment)
     
     # ==========================================
     # --- Load Metadata and Discover Files ---

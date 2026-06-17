@@ -621,6 +621,23 @@ push_managed_env() {
   log "[push-env] Done. Apply with BIOMATE_RESYNC_GALAXY_ENV=1 (frontend picks it up on next recreate)."
 }
 
+load_env_from_secrets() {
+  # GitLab-style external config: pull runtime env from AWS Secrets Manager into
+  # the EC2's /opt/biomate/.env, using the instance role (no static creds, no
+  # GitHub, no workstation values). Values are configured in Secrets Manager
+  # (see scripts/put_env_to_secret.sh); the repo holds only names (the manifest).
+  #
+  # Trigger via: BIOMATE_LOAD_ENV=1 [BIOMATE_ENV=test] bash scripts/sync_to_dev.sh
+  # Pair with BIOMATE_RESYNC_GALAXY_ENV=1 to apply to the Galaxy container.
+  local script="$REPO_ROOT/scripts/load_env_from_secrets.sh"
+  [[ -f "$script" ]] || { log "[load-env] FATAL: $script missing"; return 1; }
+  log "[load-env] Pulling env from Secrets Manager (${BIOMATE_ENV:-test}/biomate/galaxy-env) into EC2 /opt/biomate/.env..."
+  ec2_scp "$script" "${EC2_USER}@${EC2_HOST}:/tmp/load_env_from_secrets.sh"
+  # Runs as ubuntu (owns /opt/biomate/.env); the instance role supplies AWS creds.
+  ec2_ssh "BIOMATE_ENV='${BIOMATE_ENV:-test}' bash /tmp/load_env_from_secrets.sh && rm -f /tmp/load_env_from_secrets.sh"
+  log "[load-env] Done. Apply with BIOMATE_RESYNC_GALAXY_ENV=1."
+}
+
 restart_galaxy() {
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
@@ -769,9 +786,15 @@ do_sync() {
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db marketing=$do_marketing"
 
-  # Optional: render the manifest-managed env locally and push it into the
-  # EC2's /opt/biomate/.env (per-key upsert; host-only keys preserved). Runs
-  # BEFORE resync so the freshly-pushed file is what gets applied below.
+  # Optional (RECOMMENDED): pull runtime env from AWS Secrets Manager into the
+  # EC2's /opt/biomate/.env using the instance role. Values live in Secrets
+  # Manager, repo holds only names — nothing through GitHub or local files.
+  # Trigger via BIOMATE_LOAD_ENV=1 [BIOMATE_ENV=test].
+  [[ "${BIOMATE_LOAD_ENV:-}" == "1" ]] && load_env_from_secrets
+
+  # Optional (legacy/alternative): render the manifest-managed env from a LOCAL
+  # source and push it into the EC2's /opt/biomate/.env (per-key upsert; host-only
+  # keys preserved). Prefer BIOMATE_LOAD_ENV above (Secrets Manager) for secrets.
   # Trigger via BIOMATE_PUSH_ENV=1 [BIOMATE_ENV_SOURCE=path].
   [[ "${BIOMATE_PUSH_ENV:-}" == "1" ]] && push_managed_env
 

@@ -54,8 +54,8 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
         }
     
     # Load required libraries
-    l    library(SummarizedExperiment)
-ibrary(GSEABenchmarkeR)
+    library(GSEABenchmarkeR)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # ==========================================

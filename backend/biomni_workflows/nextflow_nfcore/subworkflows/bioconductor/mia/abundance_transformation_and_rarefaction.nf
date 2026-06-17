@@ -59,9 +59,9 @@ process BIOC_MIA_ABUNDANCE_TRANSFORMATION_AND_RAREFACTION {
           }
         }
     
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(mia)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     
     # --- Load user input files ---

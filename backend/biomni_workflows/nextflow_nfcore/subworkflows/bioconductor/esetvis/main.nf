@@ -60,9 +60,9 @@ process BIOC_ESETVIS_SPECTRAL_MAP_VISUALIZATION {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(esetVis)
+    library(SummarizedExperiment)
     library(Biobase)
     
     # --- Load the dataset and format metadata ---

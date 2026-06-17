@@ -60,9 +60,9 @@ process BIOC_DEGREPORT_EXPRESSION_PATTERN_CLUSTERING {
           }
         }
             
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(DESeq2)
+    library(SummarizedExperiment)
     library(DEGreport)
     
     # Check if input files exist

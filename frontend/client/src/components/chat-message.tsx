@@ -59,6 +59,7 @@ import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
 import { WhyAnchor } from "./why-anchor"
 import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
+import { IntentClarificationCard, type IntentCandidate } from "./intent-clarification-card"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
@@ -421,6 +422,34 @@ export function ChatMessage({
                 In panel
               </span>
             </div>
+          )}
+
+          {/* IntentClarificationCard — surfaces cross-intent ambiguity
+              (e.g. tool_search vs workflow_generation) from the backend's
+              _detectCrossIntentAmbiguity. User pick re-submits the query
+              with context.intentOverride set. */}
+          {!isUser && (message.metadata as any)?.intentClarification?.candidates?.length > 0 && (
+            <IntentClarificationCard
+              originalMessage={(message.metadata as any).intentClarification.originalMessage || ''}
+              originalIntent={(message.metadata as any).intentClarification.originalIntent || ''}
+              candidates={(message.metadata as any).intentClarification.candidates as IntentCandidate[]}
+              reason={(message.metadata as any).intentClarification.reason}
+              onPick={(intentType, originalMessage) => {
+                window.dispatchEvent(
+                  new CustomEvent('biomate:intent-clarification-resolved', {
+                    detail: { messageId: message.id, intentType, originalMessage },
+                  }),
+                )
+              }}
+              onSkip={() => {
+                window.dispatchEvent(
+                  new CustomEvent('biomate:intent-clarification-skipped', {
+                    detail: { messageId: message.id },
+                  }),
+                )
+              }}
+              className="mt-2"
+            />
           )}
 
           {/* ParamClarificationCard — surfaces missing-required / enum-violation

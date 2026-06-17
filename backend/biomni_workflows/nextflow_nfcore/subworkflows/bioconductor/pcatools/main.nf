@@ -55,9 +55,9 @@ process BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(PCAtools)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # ==========================================

@@ -132,6 +132,11 @@
             <article><h3><a href="blog-auto-discovery.html">Keeping Current: How BioMate Discovers and Validates New Analytical Tools</a></h3><p>Apr 18, 2026 · 8 min · BioMate continuously monitors primary tool sources, tests candidates against sample datasets, and adds validated workflows after human review.</p></article>
             <article><h3><a href="blog-memory.html">Context That Compounds: BioMate's Hierarchical Memory for Scientific Research</a></h3><p>Apr 17, 2026 · 6 min · BioMate's multi-tier memory hierarchy learns your lab's preferences, QC standards, and workflows — improving recommendations with every session.</p></article>
             <article><h3><a href="blog-workflow-routing.html">Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search</a></h3><p>Apr 15, 2026 · 7 min · Hybrid semantic search combining vector embeddings, domain scoring, and reasoning resolves ambiguous requests to the right workflow — or surfaces ranked alternatives.</p></article>
+            <article><h3><a href="blog-bispecific-triage.html">Bispecific Format Triage — Ivonescimab CrossMab from Two Protein Names</a></h3><p>Jun 16, 2026 · 7 min · A 4-phase pipeline infers bispecific mechanism, scores 5 formats across 6 axes, and outputs the CrossMab architecture — recovering the Akeso ivonescimab design from PD-1 + VEGF alone.</p></article>
+            <article><h3><a href="blog-invivo-cart.html">In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide</a></h3><p>Jun 16, 2026 · 7 min · A 4-phase co-design pipeline that does atlas safety check, LNP tropism selection, fratricide verification, and CAR construct assembly — recovering the Capstan CPTX2309 architecture from biology alone.</p></article>
+            <article><h3><a href="blog-base-edit.html">In Vivo Base Editing — How BioMate Reconstructs VERVE-102</a></h3><p>Jun 16, 2026 · 8 min · A 5-phase pipeline infers editor class, guide RNA, delivery platform, and IND-readiness flags — reconstructing VERVE-102's ABE reformulation after the VERVE-101 LFT failure.</p></article>
+            <article><h3><a href="blog-glp1-modality.html">GLP-1 Modality Bakeoff — Indication Decides Which Receptor Pattern Wins</a></h3><p>Jun 16, 2026 · 7 min · A 4-phase receptor bakeoff scores 6 GLP-1 candidates across 6 axes — GCGR is therapeutic for MASH and a liability for T2D, and the same pipeline returns a different winner by changing one parameter.</p></article>
+            <article><h3><a href="blog-modality-triage.html">Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals</a></h3><p>Jun 16, 2026 · 8 min · A two-workflow chain (atlas_expression_query → modality_triage) recovers 7 of 7 Q4 2024 FDA oncology modality choices from target expression alone — BCMA to CAR-T, DLL3 to bispecific, TROP2 to ADC.</p></article>
             <article><h3><a href="blog-drug-1-target.html">Before the First Compound: Computational Target Discovery and Validation</a></h3><p>Apr 22, 2026 · 8 min · Computational target validation — structure prediction, pocket druggability, CRISPR essentiality, and functional genomics — before any chemistry begins.</p></article>
             <article><h3><a href="blog-drug-2-hit.html">From Chemical Space to Hit List: AI-Guided Virtual Screening at Scale</a></h3><p>Apr 21, 2026 · 8 min · AI-powered virtual screening filters millions of compounds by binding geometry, pharmacophore fit, and ADMET liability before a single assay is run.</p></article>
             <article><h3><a href="blog-drug-3-admet.html">The ADMET Bottleneck: Profiling Drug-Like Properties Before Synthesis</a></h3><p>Apr 19, 2026 · 10 min · Full ADMET profiling, CYP DDI analysis, molecular dynamics, and generative design close the lead optimization loop in silico.</p></article>
@@ -187,6 +192,17 @@
           </script>
 
           <div class="bm-side-widget">
+            <h3>Drug Program Case Studies</h3>
+            <ul>
+              <li><a href="blog-bispecific-triage.html">Bispecific Format Triage — Ivonescimab</a></li>
+              <li><a href="blog-invivo-cart.html">In Vivo CAR-T — CD19 / No Fratricide</a></li>
+              <li><a href="blog-base-edit.html">Base Editing — VERVE-102 / PCSK9</a></li>
+              <li><a href="blog-glp1-modality.html">GLP-1 Bakeoff — MASH vs T2D</a></li>
+              <li><a href="blog-modality-triage.html">Modality Triage — 7-of-7 FDA 2024</a></li>
+            </ul>
+          </div>
+
+          <div class="bm-side-widget">
             <h3>Series: Computational Drug Development</h3>
             <ul>
               <li><a href="blog-drug-1-target.html">Part 1 &mdash; Target Discovery &amp; Validation</a></li>
@@ -222,6 +238,11 @@
               <a href="blog-cryosparc-spa.html" class="bm-topic-chip">Cryo&#8209;EM</a>
               <a href="blog-gatk-deepvariant.html" class="bm-topic-chip">Genomics</a>
               <a href="blog-bioconductor.html" class="bm-topic-chip">Bioconductor</a>
+              <a href="blog-bispecific-triage.html" class="bm-topic-chip">Bispecific</a>
+              <a href="blog-invivo-cart.html" class="bm-topic-chip">CAR-T</a>
+              <a href="blog-base-edit.html" class="bm-topic-chip">Base Editing</a>
+              <a href="blog-glp1-modality.html" class="bm-topic-chip">GLP-1</a>
+              <a href="blog-modality-triage.html" class="bm-topic-chip">Modality Triage</a>
               <a href="blog-auto-qc-loop.html" class="bm-topic-chip">Auto&#8209;QC</a>
               <a href="blog-memory.html" class="bm-topic-chip">Memory</a>
               <a href="blog-workflow-routing.html" class="bm-topic-chip">Workflow Routing</a>
@@ -364,8 +385,26 @@
       </svg>`;
     }
 
-    // Real posts from the BioMate blog
+    // Real posts from the BioMate blog — newest first
     const POSTS = [
+      // Drug Program Case Studies (Jun 16, 2026)
+      // blog-llm-comparison: pending final experiment results — not listed until approved
+      { cat: 'Drug Development', title: 'Bispecific Format Triage — Ivonescimab CrossMab from Two Protein Names',
+        date: 'Jun 16, 2026', read: '7 min', href: 'blog-bispecific-triage.html',
+        desc: "A 4-phase pipeline infers bispecific mechanism, scores 5 formats across 6 axes, and outputs the CrossMab architecture — recovering the Akeso ivonescimab design from PD-1 + VEGF alone." },
+      { cat: 'Drug Development', title: 'In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide',
+        date: 'Jun 16, 2026', read: '7 min', href: 'blog-invivo-cart.html',
+        desc: "A 4-phase co-design pipeline that does atlas safety check, LNP tropism selection, fratricide verification, and CAR construct assembly — recovering the Capstan CPTX2309 architecture from biology alone." },
+      { cat: 'Drug Development', title: 'In Vivo Base Editing — How BioMate Reconstructs VERVE-102',
+        date: 'Jun 16, 2026', read: '8 min', href: 'blog-base-edit.html',
+        desc: "A 5-phase pipeline infers editor class, guide RNA, delivery platform, and IND-readiness flags — reconstructing VERVE-102's ABE reformulation after the VERVE-101 LFT failure." },
+      { cat: 'Drug Development', title: 'GLP-1 Modality Bakeoff — Indication Decides Which Receptor Pattern Wins',
+        date: 'Jun 16, 2026', read: '7 min', href: 'blog-glp1-modality.html',
+        desc: "A 4-phase receptor bakeoff scores 6 GLP-1 candidates across 6 axes — GCGR is therapeutic for MASH and a liability for T2D, and the same pipeline returns a different winner by changing one parameter." },
+      { cat: 'Drug Development', title: 'Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals',
+        date: 'Jun 16, 2026', read: '8 min', href: 'blog-modality-triage.html',
+        desc: "A two-workflow chain (atlas_expression_query → modality_triage) recovers 7 of 7 Q4 2024 FDA oncology modality choices from target expression alone — BCMA to CAR-T, DLL3 to bispecific, TROP2 to ADC." },
+
       { cat: 'Research', title: "Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It",
         date: 'Jun 9, 2026', read: '7 min', href: 'blog-why-ai-bioconductor-doesnt-run.html',
         desc: "Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding lifts it to 88.2% — and real execution is the ground truth." },

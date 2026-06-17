@@ -61,8 +61,8 @@ process BIOC_SPOTSWEEPER_SPOT_LEVEL_LOCAL_OUTLIER_DETECTION {
         }
     
     # Load required libraries
-    lib    library(SummarizedExperiment)
-rary(SpatialExperiment)
+    library(SpatialExperiment)
+    library(SummarizedExperiment)
     library(SpotSweeper)
     library(scuttle)
     library(escheR)

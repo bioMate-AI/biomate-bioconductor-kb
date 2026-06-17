@@ -63,9 +63,9 @@ process BIOC_BANKSY_SPATIAL_INTEGRATION_WITH_HARMONY {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(Banksy)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     library(harmony)
     library(scater)

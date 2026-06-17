@@ -66,6 +66,42 @@ process BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS {
     # Load required libraries
     library(monocle)
     library(Biobase)
+
+    # [biomate-shim] Monocle 2.x calls the defunct dplyr underscore variants
+    # (group_by_, select_, filter_, ...) that were removed in dplyr 0.7.0.
+    # The Bioc 3.20 container ships current dplyr → the calls error. Restore
+    # working aliases for every variant Monocle's internals touch.
+    if (requireNamespace("dplyr", quietly = TRUE)) {
+      .bm_str_args <- function(x) {
+        # dplyr underscore variants took string column names; current dplyr
+        # functions take bare symbols. Convert with rlang::sym() so the call
+        # works for both string and quoted inputs.
+        if (requireNamespace("rlang", quietly = TRUE)) {
+          lapply(x, function(a) if (is.character(a)) rlang::sym(a) else a)
+        } else { x }
+      }
+      try(utils::assignInNamespace("group_by_", function(.data, ..., add = FALSE) {
+        dplyr::group_by(.data, !!!.bm_str_args(list(...)), .add = add)
+      }, ns = "dplyr"), silent = TRUE)
+      try(utils::assignInNamespace("select_", function(.data, ...) {
+        dplyr::select(.data, !!!.bm_str_args(list(...)))
+      }, ns = "dplyr"), silent = TRUE)
+      try(utils::assignInNamespace("filter_", function(.data, ...) {
+        dplyr::filter(.data, !!!.bm_str_args(list(...)))
+      }, ns = "dplyr"), silent = TRUE)
+      try(utils::assignInNamespace("mutate_", function(.data, ...) {
+        dplyr::mutate(.data, !!!.bm_str_args(list(...)))
+      }, ns = "dplyr"), silent = TRUE)
+      try(utils::assignInNamespace("summarise_", function(.data, ...) {
+        dplyr::summarise(.data, !!!.bm_str_args(list(...)))
+      }, ns = "dplyr"), silent = TRUE)
+      try(utils::assignInNamespace("arrange_", function(.data, ...) {
+        dplyr::arrange(.data, !!!.bm_str_args(list(...)))
+      }, ns = "dplyr"), silent = TRUE)
+      try(utils::assignInNamespace("rename_", function(.data, ...) {
+        dplyr::rename(.data, !!!.bm_str_args(list(...)))
+      }, ns = "dplyr"), silent = TRUE)
+    }
     
     # 1. Create a CellDataSet object using newCellDataSet
     # Read user input files from the working directory
@@ -103,9 +139,18 @@ process BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS {
                           featureData = fd,
                           expressionFamily = negbinomial.size())
     
-    # Estimate size factors and dispersions (essential preprocessing steps in Monocle)
+    # Estimate size factors and dispersions (essential preprocessing steps in Monocle).
+    # parametric fit is the Monocle default but fails on small / sparse data
+    # ("Parametric dispersion fit failed"). Fall back to a local fit which works
+    # on the same data class — same statistical model family, just non-parametric.
     cds <- estimateSizeFactors(cds)
-    cds <- estimateDispersions(cds)
+    cds <- tryCatch(
+      estimateDispersions(cds),
+      error = function(e) {
+        message("[biomate] parametric dispersion fit failed; retrying with fitType='local': ", conditionMessage(e))
+        estimateDispersions(cds, fitType = "local")
+      }
+    )
     
     # 2. Filter genes and detect expressed genes using detectGenes
     cds <- detectGenes(cds, min_expr = 0.1)

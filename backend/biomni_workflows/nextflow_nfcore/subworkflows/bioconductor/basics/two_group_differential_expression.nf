@@ -60,8 +60,8 @@ process BIOC_BASICS_TWO_GROUP_DIFFERENTIAL_EXPRESSION {
         }
         
         # Load required libraries
-        l        library(SummarizedExperiment)
-ibrary(BASiCS)
+        library(BASiCS)
+        library(SummarizedExperiment)
         
         # Check for user input files
         if (!file.exists("chain1.RData") || !file.exists("chain2.RData")) {

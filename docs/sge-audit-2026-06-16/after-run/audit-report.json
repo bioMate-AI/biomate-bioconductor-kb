@@ -1,0 +1,100 @@
+{
+  "url": "https://dev-public.biomate.ai",
+  "workflow": "in_vivo_cart_codesign",
+  "query": "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to T cells, transient persistence",
+  "finalStatus": "completed",
+  "phases": [
+    {
+      "key": "A",
+      "testid": "phase-group-A",
+      "observedStatuses": [
+        "running",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 1
+    },
+    {
+      "key": "B",
+      "testid": "phase-group-B",
+      "observedStatuses": [
+        "pending",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 0
+    },
+    {
+      "key": "C",
+      "testid": "phase-group-C",
+      "observedStatuses": [
+        "pending",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 0
+    },
+    {
+      "key": "D",
+      "testid": "phase-group-D",
+      "observedStatuses": [
+        "pending",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 0
+    }
+  ],
+  "tabs": [
+    {
+      "tabId": "findings",
+      "visible": true,
+      "contentLength": 197,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nParameters\nAnalyzing outputs…\nFindings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-findings.png"
+    },
+    {
+      "tabId": "outputs",
+      "visible": true,
+      "contentLength": 136,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nParameters\n\nNo output files registered yet.\n\n↓ Download all as ZIP\n↓ Reproducibility bundle",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-outputs.png"
+    },
+    {
+      "tabId": "methods",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-methods.png"
+    },
+    {
+      "tabId": "params",
+      "visible": true,
+      "contentLength": 173,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nParameters\n↻ Run again with edits\nindication\tDLBCL\npersistence\ttransient\ncar_target\tCD19\ndelivery_cell\tT_cell\nlnp_targeting\tauto",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-params.png"
+    },
+    {
+      "tabId": "software",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-software.png"
+    },
+    {
+      "tabId": "citations",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-citations.png"
+    },
+    {
+      "tabId": "qc",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-audit/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-qc.png"
+    }
+  ],
+  "timestamp": "2026-06-16T20:38:23.677Z"
+}

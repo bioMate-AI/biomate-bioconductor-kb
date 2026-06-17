@@ -430,6 +430,7 @@ function PhaseGroupSection({
   onQcChange,
   paramGroupToPhaseKey,
   qcAdvisoryByStep,
+  isFirstPhase,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -457,6 +458,11 @@ function PhaseGroupSection({
   paramGroupToPhaseKey: Map<string, string>;
   /** Gap 1 (inverse) — near-threshold advisories keyed by process_name. */
   qcAdvisoryByStep?: Record<string, { metric?: string; value?: any; threshold?: any }[]>;
+  /** True for the first phase in groupedPhases; auto-expanded on panel open
+   *  so the PARAMETERS summary is visible without a click (UI audit
+   *  2026-06-14 found the summary was hidden on first render when no
+   *  phase was already running). */
+  isFirstPhase?: boolean;
 }) {
   const { steps, label, phaseParams } = group;
   const [qcEditorOpen, setQcEditorOpen] = React.useState(false);
@@ -475,7 +481,13 @@ function PhaseGroupSection({
   // Auto-expand when running, failed, or a QC gate/autoloop event fires for this phase
   const hasGateForPhase = !!(autoLoopPanelState?.gateResults &&
     autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase));
-  const [open, setOpen] = useState(() => anyRunning || anyFailed || hasGateForPhase);
+  // Auto-expand first phase on panel open so the PARAMETERS summary line is
+  // visible without a click. UI audit 2026-06-14 (docs/sge-audit-2026-06-14/)
+  // surfaced that schema-grounded prefill was working but the user couldn't
+  // see the filled-in params until they manually expanded a phase.
+  const [open, setOpen] = useState(
+    () => anyRunning || anyFailed || hasGateForPhase || !!isFirstPhase,
+  );
   React.useEffect(() => {
     if (anyRunning || anyFailed || hasGateForPhase) setOpen(true);
   }, [anyRunning, anyFailed, hasGateForPhase]);
@@ -1272,7 +1284,29 @@ export function NextflowWorkflowViewer({
     }
 
     let derivedStatus: ViewerPhaseStatus = phase.status;
-    if (status === "completed") {
+    // Prefer per-process status from nextflowStatus.processes (P1 fix
+    // 2026-06-17): when the backend reports per-process state, use it
+    // directly so phases B/C/D can render `running` independently —
+    // the workflow-level progress-based heuristic below could only
+    // make ONE phase running at a time and would force all phases to
+    // `completed` the moment the workflow finished, breaking the
+    // per-phase live-narration story the tier-0 tutorial demos depend on.
+    const nfProcLookup =
+      nfProcessByName[phase.id.toLowerCase()] ||
+      nfProcessByName[phase.name.toLowerCase()] ||
+      null;
+    const rawProcStatus = String(nfProcLookup?.status || nfProcLookup?.state || '').toLowerCase();
+    const procStatus: ViewerPhaseStatus | null =
+      rawProcStatus.includes('fail') || rawProcStatus.includes('error') || rawProcStatus.includes('cancel')
+        ? 'failed'
+        : rawProcStatus.includes('run') || rawProcStatus === 'submitted'
+          ? 'running'
+          : rawProcStatus.includes('complet') || rawProcStatus === 'succeeded' || rawProcStatus === 'ok'
+            ? 'completed'
+            : null;
+    if (procStatus) {
+      derivedStatus = procStatus;
+    } else if (status === "completed") {
       derivedStatus = "completed";
     } else if (status === "running") {
       const totalPhases = phases.length;
@@ -2378,6 +2412,32 @@ export function NextflowWorkflowViewer({
               : undefined
             }
             errorMessage={errorMessage}
+            // P0 fix (2026-06-16 after-run audit): the viewer never forwarded
+            // outputs, so the Outputs tab always showed "No output files
+            // registered yet" even after a successful AWS Batch run. Build
+            // the OutputFile[] from nextflowStatus.s3_output_files — same
+            // shape chat-with-artifacts.tsx uses. Galaxy invocations use a
+            // different path (outputDatasets); the viewer's surface is
+            // nextflow-native so s3_output_files is the source.
+            outputs={(() => {
+              const s3: any[] = Array.isArray(nextflowStatus?.s3_output_files)
+                ? nextflowStatus.s3_output_files
+                : [];
+              if (s3.length === 0) return [];
+              return s3.map((f: any) => {
+                const filePath = typeof f === 'string'
+                  ? f
+                  : (f.s3_uri || f.path || f.key || f.name || '');
+                const name = filePath.split('/').filter(Boolean).pop() || '';
+                const ext = (name.split('.').pop() || '').toLowerCase();
+                // Step label = the prefix segment that looks like a process
+                // name (e.g. INVIVO_CART_ATLAS_SAFETY/) — mirrors the
+                // chat-with-artifacts derivation so styling is consistent.
+                const parts = filePath.split('/');
+                const step = parts.length >= 2 ? parts[parts.length - 2] : '';
+                return { step, name, path: filePath, ext };
+              });
+            })()}
           />
         </div>
       )}
@@ -2589,10 +2649,11 @@ export function NextflowWorkflowViewer({
             {/* ── Phase cards ─────────────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (
               <div className="phase-list" data-tour="phase-list">
-                {groupedPhases.map(group => (
+                {groupedPhases.map((group, idx) => (
                   <PhaseGroupSection
                     key={group.key}
                     group={group}
+                    isFirstPhase={idx === 0}
                     renderedParameters={renderedParameters}
                     params={params}
                     onParamChange={handleParamChange}

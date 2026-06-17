@@ -55,8 +55,8 @@ process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
         }
     
     # Load required libraries
-    lib    library(SummarizedExperiment)
-rary(singleCellTK)
+    library(singleCellTK)
+    library(SummarizedExperiment)
     
     # ==========================================
     # --- Data Loading & SCE Construction ---

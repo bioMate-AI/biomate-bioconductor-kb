@@ -61,9 +61,9 @@ process BIOC_DESPACE_DIFFERENTIAL_SPATIAL_PATTERNS {
         }
     
     # Load required libraries
-    suppressMessages({      library(SummarizedExperiment)
-
+    suppressMessages({
       library(DESpace)
+      library(SummarizedExperiment)
       library(ggplot2)
       library(SpatialExperiment)
       library(reshape2)

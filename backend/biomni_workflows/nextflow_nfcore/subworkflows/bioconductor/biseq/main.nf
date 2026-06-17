@@ -66,9 +66,9 @@ process BIOC_BISEQ_GROUP_WISE_DMR_DETECTION {
           }
         }
         
-        # Load required libraries        library(SummarizedExperiment)
-
+        # Load required libraries
         library(BiSeq)
+        library(SummarizedExperiment)
         library(GenomicRanges)
         
         # ==========================================

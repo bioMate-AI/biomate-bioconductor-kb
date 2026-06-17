@@ -2,7 +2,7 @@
 // ============================================================
 // Bioconductor workflow: tximeta — mixed_reference_oarfish_import
 // Import and update metadata for mixed reference transcripts (annotated + novel) quantified with oarfish.
-// Input: sgnex_h9_rep2.quant.gz, coldata, novel_gr
+// Input: sgnex_h9_rep2.quant.gz, sgnex_h9_rep2.meta_info.json, coldata, novel_gr
 // Container: quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0
 // R packages: GenomicRanges, SummarizedExperiment, tximeta
 // Bioconductor: 3.21 | R: 4.5
@@ -58,7 +58,13 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
       library(GenomicRanges)
       library(SummarizedExperiment)
     })
-    
+
+    # Point tximeta's BiocFileCache at a writable, non-interactive temp location so
+    # makeLinkedTxpData() / loadLinkedTxome() never prompt for a cache directory.
+    temp_bfc <- file.path(tempdir(), "tximeta_bfc")
+    dir.create(temp_bfc, showWarnings = FALSE, recursive = TRUE)
+    setTximetaBFC(temp_bfc, quiet = TRUE)
+
     # ==========================================
     # --- Read User Input Files ---
     # ==========================================
@@ -143,12 +149,42 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
     # Inspect reference digests using inspectDigests
     digests <- inspectDigests(se)
     digests_full <- inspectDigests(se, fullDigest=TRUE)
-    
-    # Update metadata (transcripts preserved, NA filled for missing metadata)
-    se_update <- updateMetadata(se)
-    
-    # Manually add novel transcript ranges using updateMetadata with txpData and ranges=TRUE
-    se_with_ranges <- updateMetadata(se, txpData=novel_gr, ranges=TRUE)
+
+    # Link the user-provided NOVEL transcript metadata to the novel reference
+    # digest that oarfish recorded for this index. This is the documented
+    # mixed-reference step: makeLinkedTxpData registers the novel GRanges against
+    # its sequence digest so that updateMetadata can resolve the 'novel' index.
+    # Without this, updateMetadata cannot attach any metadata for an unregistered
+    # custom/novel reference (tximeta only ranges indices it can resolve).
+    digestList <- metadata(se)\$quantInfo\$digest[, 1]
+    novel_seq_digest <- digestList\$novel_transcripts_digest\$sha256_digests\$sha256_seqs
+    makeLinkedTxpData(
+        digest    = novel_seq_digest,
+        indexName = "novel",
+        txpData   = novel_gr,
+        source    = "LocalNovel",
+        organism  = "Homo sapiens",
+        release   = "NA",
+        genome    = "NA"
+    )
+
+    # Resolve which reference indices actually carry registered metadata, so we
+    # only ask updateMetadata for those (it errors on an index with no metadata).
+    # The 'novel' index is now linked above; 'annotated' would be added the same
+    # way if the user registered a linkedTxome for the annotated reference.
+    resolvable <- intersect(c("annotated", "novel"),
+                            digests\$index[!is.na(digests\$linkedTxpData) |
+                                           !is.na(digests\$linkedTxome) |
+                                           digests\$index == "novel"])
+    if (length(resolvable) == 0) resolvable <- "novel"
+
+    # Update metadata: attach the registered (novel) transcript annotation.
+    se_update <- updateMetadata(se, order = resolvable)
+
+    # Manually add novel transcript ranges using updateMetadata with txpData and
+    # ranges=TRUE -> builds a RangedSummarizedExperiment for the matched novel txps.
+    se_with_ranges <- updateMetadata(se, txpData = novel_gr, ranges = TRUE,
+                                     order = c(resolvable, "user"))
     
     # ==========================================
     # --- Save Outputs ---

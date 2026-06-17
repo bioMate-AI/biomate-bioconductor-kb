@@ -55,9 +55,9 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(distinct)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # ==========================================

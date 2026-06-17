@@ -61,9 +61,9 @@ process BIOC_SCIDER_SPATIAL_DENSITY_AND_ROI_ANALYSIS {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(scider)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     
     # 1. Load spatial transcriptomics data as a SpatialExperiment object

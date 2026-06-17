@@ -59,9 +59,9 @@ process BIOC_BIOTMLE_BIOMARKER_DISCOVERY_TMLE {
           }
         }
         
-        # Load required libraries        library(SummarizedExperiment)
-
+        # Load required libraries
         library(dplyr)
+        library(SummarizedExperiment)
         library(biotmle)
         library(BiocParallel)
         library(SuperLearner)

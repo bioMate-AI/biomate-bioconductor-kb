@@ -58,9 +58,9 @@ process BIOC_ZFPKM_ZFPKM_ACTIVE_GENE_FILTERING {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(zFPKM)
+    library(SummarizedExperiment)
     library(dplyr)
     library(tidyr)
     

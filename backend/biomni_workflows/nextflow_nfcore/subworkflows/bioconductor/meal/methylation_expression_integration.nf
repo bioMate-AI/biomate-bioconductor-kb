@@ -59,9 +59,9 @@ process BIOC_MEAL_METHYLATION_EXPRESSION_INTEGRATION {
           }
         }
     
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(MEAL)
+    library(SummarizedExperiment)
     library(MultiDataSet)
     library(GenomicRanges)
     library(minfi)

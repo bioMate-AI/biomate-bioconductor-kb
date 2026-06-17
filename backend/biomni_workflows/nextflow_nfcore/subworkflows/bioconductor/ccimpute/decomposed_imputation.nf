@@ -63,9 +63,9 @@ process BIOC_CCIMPUTE_DECOMPOSED_IMPUTATION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(ccImpute)
+    library(SummarizedExperiment)
     library(BiocParallel)
     
     # 1. Read the input SingleCellExperiment object from the working directory

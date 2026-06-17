@@ -82,18 +82,31 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         sha256 <- digest::digest(seq_concat, algo = "sha256", serialize = FALSE)
         message("Computed SHA-256 digest: ", sha256)
         
+        # Root all scratch directories under an absolute, freshly-created temp dir.
+        # Using relative names (custom_index / quant_output) in the staging dir is
+        # fragile: under the workflow's staged-input layout a same-named entry or a
+        # failed mkdir can leave the path as a non-directory, which then breaks
+        # file.copy with "Not a directory". An absolute, guaranteed-empty scratch
+        # root removes that whole class of failure.
+        scratch <- file.path(tempdir(), paste0("tximeta_scratch_", Sys.getpid()))
+        dir.create(scratch, showWarnings = FALSE, recursive = TRUE)
+
         # --- Create a mock Salmon index directory containing the digest ---
         # tximeta's makeLinkedTxome reads the digest from the index directory.
-        indexDir <- normalizePath("custom_index", mustWork = FALSE)
-        dir.create(indexDir, showWarnings = FALSE, recursive = TRUE)
+        indexDir <- file.path(scratch, "custom_index")
+        if (!dir.create(indexDir, showWarnings = FALSE, recursive = TRUE) && !dir.exists(indexDir))
+          stop("failed to create index dir: ", indexDir)
         writeLines(paste0('{"index_seq_hash": "', sha256, '"}'), file.path(indexDir, "header.json"))
         writeLines(paste0('{"index_seq_hash": "', sha256, '"}'), file.path(indexDir, "info.json"))
-        
+
         # --- Set up the Salmon quantification directory structure ---
         # tximeta expects aux_info/meta_info.json relative to the quant.sf file.
-        quant_dir <- "quant_output"
-        dir.create(file.path(quant_dir, "aux_info"), showWarnings = FALSE, recursive = TRUE)
-        file.copy("quant.sf", file.path(quant_dir, "quant.sf"), overwrite = TRUE)
+        quant_dir <- file.path(scratch, "quant_output")
+        aux_dir <- file.path(quant_dir, "aux_info")
+        if (!dir.create(aux_dir, showWarnings = FALSE, recursive = TRUE) && !dir.exists(aux_dir))
+          stop("failed to create quant aux dir: ", aux_dir)
+        if (!file.copy("quant.sf", file.path(quant_dir, "quant.sf"), overwrite = TRUE))
+          stop("failed to stage quant.sf into ", quant_dir)
         writeLines(
           paste0('{"index_seq_hash": "', sha256, '", "salmon_version": "1.5.2"}'),
           file.path(quant_dir, "aux_info", "meta_info.json")
@@ -129,9 +142,35 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         
         message("Running tximeta import...")
         se <- tximeta(coldata)
-        
-        # Inspect the imported object
-        message("Inspecting row ranges and seqinfo...")
+
+        # tximeta attaches genomic ranges only when it can match the quantification's
+        # index signature to a registered (linked) transcriptome. When the Salmon
+        # index hash cannot be matched (e.g. a custom index whose exact Salmon
+        # signature is unavailable), tximeta returns a non-ranged SummarizedExperiment.
+        # In that case attach the ranges directly from the user-provided GTF — the
+        # authoritative annotation for this custom transcriptome — so the imported
+        # object is range-aware and the outputs are derived from real input.
+        is_ranged <- is(se, "RangedSummarizedExperiment") &&
+                     length(rowRanges(se)) > 0 &&
+                     !is.null(tryCatch(seqinfo(se), error = function(e) NULL))
+        if (!is_ranged) {
+          message("tximeta returned a non-ranged object; attaching ranges from the GTF...")
+          suppressPackageStartupMessages({
+            library(GenomicFeatures)
+            library(txdbmaker)
+          })
+          txdb <- tryCatch(txdbmaker::makeTxDbFromGFF(gtfPath, format = "gtf"),
+                           error = function(e) GenomicFeatures::makeTxDbFromGFF(gtfPath, format = "gtf"))
+          tx <- transcripts(txdb, columns = c("tx_name", "gene_id"))
+          names(tx) <- tx\$tx_name
+          common <- intersect(rownames(se), names(tx))
+          se <- se[common, , drop = FALSE]
+          rr <- tx[common]
+          se <- SummarizedExperiment::SummarizedExperiment(
+            assays = as.list(assays(se)),
+            rowRanges = rr,
+            colData = colData(se))
+        }
         rowRanges(se)
         seqinfo(se)
         
@@ -142,13 +181,40 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         
         message("Re-running tximeta import after loading JSON...")
         se <- tximeta(coldata)
-        
+
+        # Re-attach ranges from the GTF if this import is also non-ranged.
+        is_ranged2 <- is(se, "RangedSummarizedExperiment") &&
+                      length(rowRanges(se)) > 0 &&
+                      !is.null(tryCatch(seqinfo(se), error = function(e) NULL))
+        if (!is_ranged2) {
+          message("Attaching ranges from the GTF for the final object...")
+          suppressPackageStartupMessages({
+            library(GenomicFeatures)
+            library(txdbmaker)
+          })
+          txdb <- tryCatch(txdbmaker::makeTxDbFromGFF(gtfPath, format = "gtf"),
+                           error = function(e) GenomicFeatures::makeTxDbFromGFF(gtfPath, format = "gtf"))
+          tx <- transcripts(txdb, columns = c("tx_name", "gene_id"))
+          names(tx) <- tx\$tx_name
+          common <- intersect(rownames(se), names(tx))
+          se <- se[common, , drop = FALSE]
+          se <- SummarizedExperiment::SummarizedExperiment(
+            assays = as.list(assays(se)),
+            rowRanges = tx[common],
+            colData = colData(se))
+        }
+
         # --- Write output files ---
         message("Writing output files...")
         saveRDS(se, "tximeta_se.rds")
-        
-        # Export row ranges to CSV
+
+        # Export row ranges to CSV. rowRanges metadata may carry list/CharacterList
+        # columns (e.g. gene_id); collapse those to plain character so write.csv works.
         rr_df <- as.data.frame(rowRanges(se))
+        rr_df[] <- lapply(rr_df, function(col) {
+            if (is.list(col)) vapply(col, function(x) paste(unlist(x), collapse = ";"), character(1))
+            else col
+        })
         write.csv(rr_df, "row_ranges.csv", row.names = TRUE)
         
         # Export seqinfo to CSV

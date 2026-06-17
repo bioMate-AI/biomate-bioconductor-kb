@@ -13,14 +13,25 @@ suppressPackageStartupMessages({
 
 set.seed(123)
 
-n_genes <- 100
-n_cells <- 50
+# Larger, more dispersed counts so Monocle's parametric dispersion fit
+# converges. The previous 100 x 50 / mu=10 had insufficient between-gene
+# variance — parametricDispersionFit failed with "Parametric dispersion
+# fit failed. Try a local fit."  500 x 150 with a wider mu distribution
+# matches the scale of the Monocle vignette example data.
+n_genes <- 500
+n_cells <- 150
 
 gene_ids <- paste0("ENSG000000", 10000:(10000 + n_genes - 1))
 cell_ids <- paste0("Cell_", 1:n_cells)
 
-# Expression matrix (counts)
-exprs_mat <- matrix(rnbinom(n_genes * n_cells, size = 1, mu = 10), nrow = n_genes, ncol = n_cells)
+# Heterogeneous per-gene means + variable size (dispersion) -> realistic
+# overdispersion the parametric model can actually fit.
+gene_means <- exp(rnorm(n_genes, mean = 2.0, sd = 1.2))
+gene_sizes <- pmax(0.5, rnorm(n_genes, mean = 2, sd = 1))
+exprs_mat <- matrix(
+  rnbinom(n_genes * n_cells, size = gene_sizes, mu = gene_means),
+  nrow = n_genes, ncol = n_cells
+)
 rownames(exprs_mat) <- gene_ids
 colnames(exprs_mat) <- cell_ids
 

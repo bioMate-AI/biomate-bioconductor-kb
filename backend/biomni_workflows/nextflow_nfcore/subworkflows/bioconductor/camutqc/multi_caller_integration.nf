@@ -85,7 +85,7 @@ process BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION {
 
     writeLines(c(
         '"BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION":',
-        paste0('        camutqc: ', as.character(packageVersion("camutqc")))
+        paste0('        camutqc: ', as.character(packageVersion("CaMutQC")))
     ), "versions.yml")
     """
 

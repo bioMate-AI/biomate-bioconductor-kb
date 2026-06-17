@@ -23,7 +23,7 @@ galaxy:
   check_migrate_tools: false
   # Include standard Galaxy tools, Biomni tools, and Biomate AI tools
   # Use absolute paths for custom tools
-  tool_config_file: tool_conf.xml.sample,/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml,/home/yzhang/biomate/backend/tools/biomate_ai_tools/tool_conf.xml
+  tool_config_file: tool_conf.xml.sample,/app/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml,/app/tools/biomate_ai_tools/tool_conf.xml
 
   # Memory optimization - load tools on demand instead of preloading
   preload_tool_panel: false
@@ -55,10 +55,10 @@ gravity:
     preload: false
     # Environment variables for AI Assistant
     environment:
-      PYTHONPATH: '/home/yzhang/biomate/backend/lib'
+      PYTHONPATH: '/app/lib'
       ANTHROPIC_API_KEY: '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'
       GITHUB_TOKEN: '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'
   celery:
     environment:
-      PYTHONPATH: '/home/yzhang/biomate/backend/lib'
+      PYTHONPATH: '/app/lib'
       ANTHROPIC_API_KEY: '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'

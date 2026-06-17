@@ -59,8 +59,8 @@ process BIOC_TRANSFORMGAMPOI_DELTA_METHOD_TRANSFORMATION {
         }
         
         # Load required libraries
-        l        library(SummarizedExperiment)
-ibrary(transformGamPoi)
+        library(transformGamPoi)
+        library(SummarizedExperiment)
         library(MatrixGenerics)
         
         # 1. Load the data from the specified user input file

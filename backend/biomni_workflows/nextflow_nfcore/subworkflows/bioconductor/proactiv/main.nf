@@ -56,9 +56,9 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
       }
     }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(proActiv)
+    library(SummarizedExperiment)
     library(AnnotationDbi)
     library(ggplot2)
     library(dplyr)

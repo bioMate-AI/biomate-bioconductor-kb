@@ -63,9 +63,9 @@ process BIOC_MILOR_DA_GLMM_RANDOM_EFFECTS {
           }
         }
         
-        # Load required libraries        library(SummarizedExperiment)
-
+        # Load required libraries
         library(miloR)
+        library(SummarizedExperiment)
         library(scater)
         library(scran)
         library(dplyr)

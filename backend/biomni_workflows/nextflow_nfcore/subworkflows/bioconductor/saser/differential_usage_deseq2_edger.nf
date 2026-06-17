@@ -64,9 +64,9 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_DESEQ2_EDGER {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(saseR)
+    library(SummarizedExperiment)
     library(edgeR)
     library(DESeq2)
     library(dplyr)

@@ -60,9 +60,9 @@ process BIOC_TPSVG_COVARIATE_ADJUSTED_MODEL {
           }
         }
         
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(tpSVG)
+    library(SummarizedExperiment)
     library(SpatialExperiment)
     
     # Parse command-line arguments for covariate name

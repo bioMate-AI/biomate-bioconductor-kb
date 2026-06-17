@@ -59,9 +59,9 @@ process BIOC_CORRAL_MULTI_BATCH_INTEGRATION {
           }
         }
             
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(corral)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # 1. Read user input files from the working directory
