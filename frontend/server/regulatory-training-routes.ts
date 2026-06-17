@@ -59,6 +59,26 @@ function runCli(args: string[]): Promise<CliResult> {
   });
 }
 
+function runCliWithStdin(args: string[], stdin: string): Promise<CliResult> {
+  return new Promise((resolve) => {
+    const child = execFile(
+      PY_BIN,
+      ["-m", "galaxy.ai.drug_discovery.regulatory_training_jobs_cli", ...args],
+      { cwd: PY_CWD, env: PY_ENV, timeout: 10_000 },
+      (err: any, stdout: string, stderr: string) => {
+        resolve({
+          stdout: String(stdout || ""),
+          stderr: String(stderr || ""),
+          code: err?.code ?? 0,
+        });
+      }
+    );
+    if (child.stdin) {
+      child.stdin.end(stdin);
+    }
+  });
+}
+
 function orgFor(u: any): string {
   // Real organization claim wins; otherwise fall back to the user's own id
   // so single-tenant users still get a per-user adapter slot.
@@ -176,6 +196,55 @@ export function registerRegulatoryTrainingRoutes(app: Express): void {
       return res.json(
         Array.isArray(done) ? done.filter((j: any) => j.user_id === userId) : []
       );
+    }
+  );
+
+  // ─── B3 upstream: record a customer feedback pair ──────────────────────
+  // POST /api/regulatory_llm/pairs
+  // Body: {chosen, rejected, section_type?, task?, prompt?, meta?}
+  // org_id is stamped server-side from req.user (Node never trusts a
+  // client-supplied org_id here — the user can only record pairs for
+  // their own org).
+  app.post(
+    "/api/regulatory_llm/pairs",
+    authenticateToken,
+    async (req: any, res) => {
+      const userId = String(req.user?.id ?? "");
+      const orgId = orgFor(req.user);
+      if (!userId || !orgId) {
+        return res.status(400).json({ error: "missing user/org" });
+      }
+      const body = req.body ?? {};
+      const chosen = String(body.chosen ?? "");
+      const rejected = String(body.rejected ?? "");
+      if (!chosen && !rejected) {
+        return res
+          .status(400)
+          .json({ error: "missing_chosen_or_rejected" });
+      }
+      const cliBody = {
+        chosen,
+        rejected,
+        section_type: body.section_type ?? "",
+        task: body.task ?? "",
+        prompt: body.prompt ?? "",
+        meta: body.meta && typeof body.meta === "object" ? body.meta : undefined,
+      };
+      const r = await runCliWithStdin(
+        ["record_pair", userId, orgId],
+        JSON.stringify(cliBody)
+      );
+      if (r.code !== 0) {
+        const detail = r.stderr.trim() || r.stdout.trim() || "cli_error";
+        return res.status(400).json({ error: "record_failed", detail });
+      }
+      try {
+        return res.status(201).json(JSON.parse(r.stdout));
+      } catch {
+        return res
+          .status(500)
+          .json({ error: "bad_cli_output", raw: r.stdout.slice(0, 500) });
+      }
     }
   );
 }
