@@ -396,6 +396,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
   }, [])
 
+  // IntentClarificationCard → re-submit with intentOverride.
+  // When the card emits `biomate:intent-clarification-resolved`, re-send
+  // the original message with context.intentOverride set so the backend
+  // skips the cross-intent ambiguity check on the second pass and routes
+  // straight to the user's picked intent.
+  useEffect(() => {
+    const onResolved = (e: Event) => {
+      const ce = e as CustomEvent<{ messageId?: string; intentType?: string; originalMessage?: string }>
+      const intentType = ce.detail?.intentType
+      const originalMessage = ce.detail?.originalMessage
+      if (!intentType || !originalMessage) return
+      if (!sendChatMessageRef.current) {
+        console.warn('[intent-clarification-resolved] no send handler registered')
+        return
+      }
+      sendChatMessageRef.current(originalMessage, { intentOverride: intentType })
+    }
+    const onSkipped = (_e: Event) => {
+      // No-op for now; user is expected to rephrase + resend in the input.
+    }
+    window.addEventListener('biomate:intent-clarification-resolved', onResolved as EventListener)
+    window.addEventListener('biomate:intent-clarification-skipped', onSkipped as EventListener)
+    return () => {
+      window.removeEventListener('biomate:intent-clarification-resolved', onResolved as EventListener)
+      window.removeEventListener('biomate:intent-clarification-skipped', onSkipped as EventListener)
+    }
+  }, [])
+
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(840)
   const panelResizingRef = useRef(false)
@@ -403,6 +431,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const panelResizeStartW = useRef(0)
   // Ref to ChatInterface's setChatDraft — set when ChatInterface registers it
   const setChatDraftRef = useRef<((draft: string) => void) | undefined>(undefined)
+  // Refs registered by ChatInterface so we can trigger sends from the parent
+  // (e.g. IntentClarificationCard re-submit, run-again-with-edits).
+  const sendChatMessageRef = useRef<
+    ((message: string, contextOverride?: Record<string, unknown>) => void) | undefined
+  >(undefined)
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
@@ -1936,6 +1969,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
             onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
+            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender }}
           />
         </div>
 
