@@ -1,7 +1,17 @@
 # Phase 3c Adoption Recipe — adding BIOC_QC_HARNESS gates to a Bioc workflow
 
 **Worktree:** `/home/yzhang/biomate` · **Branch:** `qc/coverage-and-rebuilds`
-**Status as of 2026-06-16:** 1 of 396 Bioc workflows adopted (`deseq2_transformation_and_qc`, commit `67b92c0a1`); 395 candidates remaining. Use `python3 backend/scripts/bioc_qc_harness_rollout.py` for the priority-ordered queue.
+**Status as of 2026-06-17:** **290 of 396** Bioc workflows adopted (73%); 106 candidates remaining. Use `python3 backend/scripts/bioc_qc_harness_rollout.py` for the priority-ordered queue.
+
+Adoption history:
+| Date | Commit | Adopted | Coverage | Method |
+|---|---|---:|---:|---|
+| 2026-06-16 | `67b92c0a1` | 1 | 0.3% | canonical inline (DESeq2 transformation_and_qc) |
+| 2026-06-17 | `27db1eefb3` | 109 | 27% | bulk patcher: `bioc_qc_harness_inject_mv.py` (MV-only) |
+| 2026-06-17 | `1e95237bbf` | 191 | 48% | multi-label patcher v0.1: MV + count-norm + low-count-filter + input-val |
+| 2026-06-17 | `6b237b91f` | **290** | **73%** | multi-label patcher v0.2: +11 labels (cell QC, PCA, HVG, plots, alignment, outlier) |
+
+The 106 remaining each declare ≥1 label whose metric needs object-type-specific R: dispersion/size-factor estimation (DESeq2 dds), batch-effect correction (kBET), variance-stabilizing normalization (vsd), TMM normalization (edgeR DGEList), doublet detection (Seurat/SCE), clustering QC, voom mean-variance, prevalence/abundance filtering, array detection QC, between-array normalization.
 
 This recipe captures the canonical pattern from `67b92c0a1` so anyone can adopt the next workflow in ~15 minutes.
 
