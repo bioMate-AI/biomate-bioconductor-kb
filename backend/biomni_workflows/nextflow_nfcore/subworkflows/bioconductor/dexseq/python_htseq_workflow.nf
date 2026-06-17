@@ -27,6 +27,7 @@ process BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -120,6 +121,65 @@ process BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW {
       plotDEXSeq(dxr, top_gene, legend = TRUE, cex.axis = 1.2, cex = 1.3, lwd = 2)
       dev.off()
     }
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # dispersion QC plot — file-exists check for any PDF with "disp" or "bcv"
+    # in the filename. Pairs with bioc_dispersion_size_factor.
+    .dqp_pdfs <- list.files(".", pattern = "(?i)(disp|bcv).*\\.pdf\$")
+    .dqp_passes <- length(.dqp_pdfs) > 0
+    .gates_by_label[["dispersion QC plot"]] <- list(
+      gate_row = "bioc_dispersion_qc_plot",
+      metric_name = "dispersion_plot_exists",
+      metric_value = if (.dqp_passes) 1 else 0,
+      passes = .dqp_passes,
+      status = if (.dqp_passes) paste0("computed (", length(.dqp_pdfs), " dispersion PDF(s) emitted)")
+               else "not_computed (no dispersion PDF found)"
+    )
+
+    # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
+    # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
+    .pca_pc1 <- NA_real_; .pca_files <- character(0)
+    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
+      .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
+      if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
+        .pca_m <- suppressWarnings(as.matrix(.pca_mat))
+        .pca_kept <- apply(.pca_m, 1, function(r) all(is.finite(r)) && var(r) > 0)
+        if (sum(.pca_kept) >= 50) {
+          .pca_fit <- tryCatch(prcomp(t(.pca_m[.pca_kept, , drop = FALSE])), error = function(e) NULL)
+          if (!is.null(.pca_fit)) {
+            .pca_vars <- (.pca_fit\$sdev^2) / sum(.pca_fit\$sdev^2)
+            .pca_pc1 <- round(.pca_vars[1] * 100, 2); .pca_files <- c(.pca_files, .pca_rds); break
+          }
+        }
+      }
+    }
+    .gates_by_label[["diagnostic MA/PCA QC"]] <- list(
+      gate_row = "bioc_diagnostic_ma_pca_qc",
+      metric_name = "pc1_var_explained",
+      metric_value = .pca_pc1,
+      passes = isTRUE(is.finite(.pca_pc1) && .pca_pc1 > 10),
+      status = if (is.finite(.pca_pc1)) paste0("computed (PC1=", .pca_pc1, "%)")
+               else "not_computed (no large numeric matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW",
+      domain  = "bioconductor",
+      declared_qc_steps = c("dispersion QC plot", "diagnostic MA/PCA QC"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_DEXSEQ_PYTHON_HTSEQ_WORKFLOW":',

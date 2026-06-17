@@ -27,6 +27,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -162,6 +163,74 @@ ries
     dev.off()
     
     message("Pipeline completed successfully. Outputs written to working directory.")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # filter low-expression genes — alias of low-count filtering metric
+    # (Chen 2016 F1000 edgeR filterByExpr semantics).
+    .fleg_kept <- NA_real_; .fleg_files <- character(0)
+    for (.fleg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .fleg_obj <- tryCatch(readRDS(.fleg_rds), error = function(e) NULL)
+      .fleg_mat <- if (is.matrix(.fleg_obj) || is.data.frame(.fleg_obj)) .fleg_obj else NULL
+      if (!is.null(.fleg_mat) && nrow(.fleg_mat) > 100) {
+        .fleg_m <- suppressWarnings(as.matrix(.fleg_mat))
+        .fleg_rowmed <- suppressWarnings(apply(.fleg_m, 1, function(r) median(as.numeric(r), na.rm = TRUE)))
+        .fleg_kept <- sum(is.finite(.fleg_rowmed) & .fleg_rowmed >= 1) / nrow(.fleg_m)
+        .fleg_files <- c(.fleg_files, .fleg_rds); break
+      }
+    }
+    .gates_by_label[["filter low-expression genes"]] <- list(
+      gate_row = "bioc_low_count_filtering",
+      metric_name = "genes_kept_fraction",
+      metric_value = if (is.finite(.fleg_kept)) round(.fleg_kept, 4) else NA_real_,
+      passes = isTRUE(is.finite(.fleg_kept) && .fleg_kept >= 0.3 && .fleg_kept <= 0.6),
+      status = if (is.finite(.fleg_kept)) paste0("computed (median count >= 1 rows / total)")
+               else "not_computed (no expression matrix .rds artifact present)"
+    )
+
+    # low-count filtering — fraction of genes retained (heuristic on matrix artifacts).
+    # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
+    .lcf_kept_fractions <- numeric(0)
+    .lcf_scanned <- character(0)
+    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
+      .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
+      if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
+        .lcf_m <- tryCatch(as.matrix(.lcf_mat), error = function(e) NULL)
+        if (!is.null(.lcf_m)) {
+          .lcf_row_med <- suppressWarnings(apply(.lcf_m, 1, function(r) median(as.numeric(r), na.rm = TRUE)))
+          .lcf_kept <- sum(is.finite(.lcf_row_med) & .lcf_row_med >= 1) / nrow(.lcf_m)
+          .lcf_kept_fractions <- c(.lcf_kept_fractions, .lcf_kept)
+          .lcf_scanned <- c(.lcf_scanned, .lcf_rds)
+        }
+      }
+    }
+    .lcf_kept <- if (length(.lcf_kept_fractions) > 0) round(median(.lcf_kept_fractions), 4) else NA_real_
+    .gates_by_label[["low-count filtering"]] <- list(
+      gate_row = "bioc_low_count_filtering",
+      metric_name = "genes_kept_fraction",
+      metric_value = .lcf_kept,
+      passes = isTRUE(is.finite(.lcf_kept) && .lcf_kept >= 0.3 && .lcf_kept <= 0.6),
+      status = if (is.finite(.lcf_kept)) paste0("computed (proxy: rows w/ median count >=1 across ", length(.lcf_scanned), " matrix .rds)")
+               else "not_computed (no count matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS",
+      domain  = "bioconductor",
+      declared_qc_steps = c("filter low-expression genes", "low-count filtering"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS":',

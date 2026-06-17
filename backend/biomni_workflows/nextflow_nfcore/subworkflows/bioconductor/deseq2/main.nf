@@ -36,6 +36,7 @@ process BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -151,6 +152,79 @@ process BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX {
         saveRDS(dds, "dds.rds")
         saveRDS(res, "res.rds")
         saveRDS(resLFC, "resLFC.rds")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
+    # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
+    .pca_pc1 <- NA_real_; .pca_files <- character(0)
+    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
+      .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
+      if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
+        .pca_m <- suppressWarnings(as.matrix(.pca_mat))
+        .pca_kept <- apply(.pca_m, 1, function(r) all(is.finite(r)) && var(r) > 0)
+        if (sum(.pca_kept) >= 50) {
+          .pca_fit <- tryCatch(prcomp(t(.pca_m[.pca_kept, , drop = FALSE])), error = function(e) NULL)
+          if (!is.null(.pca_fit)) {
+            .pca_vars <- (.pca_fit\$sdev^2) / sum(.pca_fit\$sdev^2)
+            .pca_pc1 <- round(.pca_vars[1] * 100, 2); .pca_files <- c(.pca_files, .pca_rds); break
+          }
+        }
+      }
+    }
+    .gates_by_label[["diagnostic MA/PCA QC"]] <- list(
+      gate_row = "bioc_diagnostic_ma_pca_qc",
+      metric_name = "pc1_var_explained",
+      metric_value = .pca_pc1,
+      passes = isTRUE(is.finite(.pca_pc1) && .pca_pc1 > 10),
+      status = if (is.finite(.pca_pc1)) paste0("computed (PC1=", .pca_pc1, "%)")
+               else "not_computed (no large numeric matrix .rds artifact present)"
+    )
+
+    # low-count filtering — fraction of genes retained (heuristic on matrix artifacts).
+    # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
+    .lcf_kept_fractions <- numeric(0)
+    .lcf_scanned <- character(0)
+    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
+      .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
+      if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
+        .lcf_m <- tryCatch(as.matrix(.lcf_mat), error = function(e) NULL)
+        if (!is.null(.lcf_m)) {
+          .lcf_row_med <- suppressWarnings(apply(.lcf_m, 1, function(r) median(as.numeric(r), na.rm = TRUE)))
+          .lcf_kept <- sum(is.finite(.lcf_row_med) & .lcf_row_med >= 1) / nrow(.lcf_m)
+          .lcf_kept_fractions <- c(.lcf_kept_fractions, .lcf_kept)
+          .lcf_scanned <- c(.lcf_scanned, .lcf_rds)
+        }
+      }
+    }
+    .lcf_kept <- if (length(.lcf_kept_fractions) > 0) round(median(.lcf_kept_fractions), 4) else NA_real_
+    .gates_by_label[["low-count filtering"]] <- list(
+      gate_row = "bioc_low_count_filtering",
+      metric_name = "genes_kept_fraction",
+      metric_value = .lcf_kept,
+      passes = isTRUE(is.finite(.lcf_kept) && .lcf_kept >= 0.3 && .lcf_kept <= 0.6),
+      status = if (is.finite(.lcf_kept)) paste0("computed (proxy: rows w/ median count >=1 across ", length(.lcf_scanned), " matrix .rds)")
+               else "not_computed (no count matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX",
+      domain  = "bioconductor",
+      declared_qc_steps = c("diagnostic MA/PCA QC", "low-count filtering"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX":',
