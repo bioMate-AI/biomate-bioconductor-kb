@@ -3,24 +3,25 @@ Simple tests for ProposeValidateWorkflowGenerator (no pytest required)
 """
 
 import json
-import sys
-import os
 import traceback
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from propose_validate_workflow_generator import (
+# Import via the proper galaxy.ai package path. The bare-name imports
+# the original file used (`from propose_validate_workflow_generator
+# import ...`) can't work because the module itself uses relative
+# imports (`from .workflow_proposal_validator import ...`) which
+# require it to be loaded as part of the galaxy.ai package, not as a
+# top-level module.
+from galaxy.ai.propose_validate_workflow_generator import (
     ProposeValidateWorkflowGenerator,
-    create_propose_validate_generator
+    create_propose_validate_generator,
 )
-from workflow_proposal_validator import (
+from galaxy.ai.workflow_proposal_validator import (
     WorkflowProposalValidator,
     ToolIndexValidator,
     KnowledgeValidator,
     WorkflowValidation,
     StepValidation,
-    ToolValidation
+    ToolValidation,
 )
 
 
