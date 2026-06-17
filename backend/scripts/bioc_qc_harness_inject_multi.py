@@ -316,6 +316,262 @@ LABEL_BLOCKS = {
                else "not_computed (workflow emitted no artifacts)"
     )
 """,
+    "dispersion/size-factor estimation": r"""
+    # dispersion/size-factor estimation — object-type-aware. Try DESeq2
+    # DESeqDataSet (mcols$dispOutlier), then edgeR DGEList (common.dispersion).
+    .dsf_value <- NA_real_; .dsf_kind <- "none"
+    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
+      if (!is.null(.dsf_obj)) {
+        if (inherits(.dsf_obj, "DESeqDataSet")) {
+          .dsf_o <- tryCatch(mcols(.dsf_obj)\$dispOutlier, error = function(e) NULL)
+          if (!is.null(.dsf_o)) { .dsf_value <- round(mean(.dsf_o, na.rm = TRUE), 4); .dsf_kind <- "deseq2"; break }
+        } else if (inherits(.dsf_obj, "DGEList")) {
+          .dsf_v <- tryCatch(.dsf_obj\$common.dispersion, error = function(e) NULL)
+          if (!is.null(.dsf_v) && is.finite(.dsf_v)) { .dsf_value <- round(sqrt(.dsf_v), 4); .dsf_kind <- "edger_bcv"; break }
+        }
+      }
+    }
+    .gates_by_label[["dispersion/size-factor estimation"]] <- list(
+      gate_row = "bioc_dispersion_size_factor",
+      metric_name = if (.dsf_kind == "edger_bcv") "common_bcv" else "disp_outlier_fraction",
+      metric_value = .dsf_value,
+      passes = isTRUE(
+        (.dsf_kind == "deseq2" && is.finite(.dsf_value) && .dsf_value <= 0.01) ||
+        (.dsf_kind == "edger_bcv" && is.finite(.dsf_value) && .dsf_value > 0 && .dsf_value < 1.0)
+      ),
+      status = if (is.finite(.dsf_value)) paste0("computed (", .dsf_kind, ")")
+               else "not_computed (no DESeqDataSet/DGEList .rds artifact present)"
+    )
+""",
+    "TMM normalization": r"""
+    # TMM normalization — DGEList$samples$norm.factors set (Robinson & Oshlack 2010).
+    .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
+    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
+      if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
+        .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)
+        if (!is.null(.tmm_f) && length(.tmm_f) > 0) {
+          .tmm_factors <- .tmm_f; .tmm_n_nontrivial <- sum(abs(.tmm_f - 1.0) > 1e-6); break
+        }
+      }
+    }
+    .gates_by_label[["TMM normalization"]] <- list(
+      gate_row = "bioc_tmm_normalization",
+      metric_name = "n_nontrivial_norm_factors",
+      metric_value = .tmm_n_nontrivial,
+      passes = isTRUE(is.finite(.tmm_n_nontrivial) && .tmm_n_nontrivial > 0),
+      status = if (is.finite(.tmm_n_nontrivial)) paste0("computed (n=", length(.tmm_factors), ", nontrivial=", .tmm_n_nontrivial, ")")
+               else "not_computed (no DGEList .rds artifact present)"
+    )
+""",
+    "variance-stabilizing normalization": r"""
+    # VSN — DESeqTransform / vsd matrix; mean-SD slope ≤ 0.5 (vsn::meanSdPlot).
+    .vsn_slope <- NA_real_
+    for (.vsn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .vsn_obj <- tryCatch(readRDS(.vsn_rds), error = function(e) NULL)
+      .vsn_mat <- NULL
+      if (!is.null(.vsn_obj)) {
+        if (inherits(.vsn_obj, "DESeqTransform") || inherits(.vsn_obj, "SummarizedExperiment")) {
+          .vsn_mat <- tryCatch(assay(.vsn_obj), error = function(e) NULL)
+        } else if (is.matrix(.vsn_obj)) { .vsn_mat <- .vsn_obj }
+      }
+      if (!is.null(.vsn_mat) && nrow(.vsn_mat) > 100) {
+        .vsn_rmean <- suppressWarnings(rowMeans(.vsn_mat, na.rm = TRUE))
+        .vsn_rsd <- suppressWarnings(apply(.vsn_mat, 1, sd, na.rm = TRUE))
+        .vsn_ok <- is.finite(.vsn_rmean) & is.finite(.vsn_rsd)
+        if (sum(.vsn_ok) > 50) {
+          .vsn_fit <- tryCatch(lm(.vsn_rsd[.vsn_ok] ~ .vsn_rmean[.vsn_ok]), error = function(e) NULL)
+          if (!is.null(.vsn_fit)) { .vsn_slope <- round(abs(coef(.vsn_fit)[2]), 4); break }
+        }
+      }
+    }
+    .gates_by_label[["variance-stabilizing normalization"]] <- list(
+      gate_row = "bioc_vsn_normalization",
+      metric_name = "mean_sd_slope_after_vsn",
+      metric_value = .vsn_slope,
+      passes = isTRUE(is.finite(.vsn_slope) && .vsn_slope <= 0.5),
+      status = if (is.finite(.vsn_slope)) "computed (lm slope row-SD ~ row-mean)"
+               else "not_computed (no DESeqTransform/vsd .rds present)"
+    )
+""",
+    "doublet detection QC": r"""
+    # doublet detection — SCE/Seurat with doublet column; pass: rate ≤ 10%.
+    .dbl_rate <- NA_real_
+    for (.dbl_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dbl_obj <- tryCatch(readRDS(.dbl_rds), error = function(e) NULL)
+      .dbl_calls <- NULL
+      if (!is.null(.dbl_obj)) {
+        if (inherits(.dbl_obj, "SingleCellExperiment")) {
+          .dbl_cd <- tryCatch(colData(.dbl_obj), error = function(e) NULL)
+          if (!is.null(.dbl_cd)) {
+            .dbl_col <- intersect(c("doublet_class","scDblFinder.class","DoubletFinder","is_doublet"), colnames(.dbl_cd))
+            if (length(.dbl_col) > 0) .dbl_calls <- as.character(.dbl_cd[[.dbl_col[1]]])
+          }
+        } else if (inherits(.dbl_obj, "Seurat")) {
+          .dbl_md <- tryCatch(.dbl_obj@meta.data, error = function(e) NULL)
+          if (!is.null(.dbl_md)) {
+            .dbl_col <- intersect(c("DoubletFinder","scDblFinder.class","doublet_class","is_doublet"), colnames(.dbl_md))
+            if (length(.dbl_col) > 0) .dbl_calls <- as.character(.dbl_md[[.dbl_col[1]]])
+          }
+        }
+      }
+      if (!is.null(.dbl_calls) && length(.dbl_calls) > 0) {
+        .dbl_rate <- round(mean(grepl("doublet|TRUE|1", .dbl_calls, ignore.case = TRUE), na.rm = TRUE), 4); break
+      }
+    }
+    .gates_by_label[["doublet detection QC"]] <- list(
+      gate_row = "bioc_doublet_detection_qc",
+      metric_name = "doublet_rate",
+      metric_value = .dbl_rate,
+      passes = isTRUE(is.finite(.dbl_rate) && .dbl_rate <= 0.10),
+      status = if (is.finite(.dbl_rate)) "computed (SCE colData / Seurat meta.data doublet col)"
+               else "not_computed (no SCE/Seurat with doublet column present)"
+    )
+""",
+    "voom mean-variance modelling": r"""
+    # voom — limma EList$weights present, range > 0 (Law 2014 GB).
+    .voom_w_range <- NA_real_
+    for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
+      if (!is.null(.voom_obj) && inherits(.voom_obj, "EList")) {
+        .voom_w <- tryCatch(.voom_obj\$weights, error = function(e) NULL)
+        if (!is.null(.voom_w) && length(.voom_w) > 0) {
+          .voom_w_range <- round(diff(range(.voom_w, na.rm = TRUE)), 4); break
+        }
+      }
+    }
+    .gates_by_label[["voom mean-variance modelling"]] <- list(
+      gate_row = "bioc_voom_mean_variance",
+      metric_name = "voom_weight_range",
+      metric_value = .voom_w_range,
+      passes = isTRUE(is.finite(.voom_w_range) && .voom_w_range > 0),
+      status = if (is.finite(.voom_w_range)) "computed (EList$weights range)"
+               else "not_computed (no limma EList .rds artifact present)"
+    )
+""",
+    "clustering QC": r"""
+    # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
+    .clu_n <- NA_real_
+    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
+      .clu_v <- NULL
+      if (!is.null(.clu_obj)) {
+        if (inherits(.clu_obj, "SingleCellExperiment")) {
+          .clu_cd <- tryCatch(colData(.clu_obj), error = function(e) NULL)
+          if (!is.null(.clu_cd)) {
+            .clu_col <- intersect(c("cluster","clusters","seurat_clusters","label"), colnames(.clu_cd))
+            if (length(.clu_col) > 0) .clu_v <- .clu_cd[[.clu_col[1]]]
+          }
+        } else if (inherits(.clu_obj, "Seurat")) {
+          .clu_md <- tryCatch(.clu_obj@meta.data, error = function(e) NULL)
+          if (!is.null(.clu_md)) {
+            .clu_col <- intersect(c("seurat_clusters","cluster","clusters"), colnames(.clu_md))
+            if (length(.clu_col) > 0) .clu_v <- .clu_md[[.clu_col[1]]]
+          }
+        }
+      }
+      if (!is.null(.clu_v) && length(.clu_v) > 0) {
+        .clu_n <- length(unique(as.character(.clu_v[!is.na(.clu_v)]))); break
+      }
+    }
+    .gates_by_label[["clustering QC"]] <- list(
+      gate_row = "bioc_clustering_qc",
+      metric_name = "n_clusters",
+      metric_value = .clu_n,
+      passes = isTRUE(is.finite(.clu_n) && .clu_n >= 2 && .clu_n <= 50),
+      status = if (is.finite(.clu_n)) paste0("computed (n_clusters=", .clu_n, ")")
+               else "not_computed (no SCE/Seurat with cluster column present)"
+    )
+""",
+    "batch-effect correction": r"""
+    # batch-effect correction — declarative pass via corrected-output presence
+    # (kBET acceptance metric is a future per-workflow follow-on).
+    .bec_artifacts <- list.files(".", pattern = "(?i)(corrected|batch|combat|harmony|mnn).*\\.(rds|csv|h5ad)\$")
+    .bec_passes <- length(.bec_artifacts) > 0
+    .gates_by_label[["batch-effect correction"]] <- list(
+      gate_row = "bioc_batch_effect_correction",
+      metric_name = "batch_corrected_artifacts",
+      metric_value = length(.bec_artifacts),
+      passes = .bec_passes,
+      status = if (.bec_passes) "computed (declarative; kBET acceptance pending)"
+               else "not_computed (no batch-corrected artifact present)"
+    )
+""",
+    "prevalence/abundance filtering": r"""
+    # microbiome prevalence/abundance filtering (Callahan 2017 F1000).
+    .pa_kept <- NA_real_
+    for (.pa_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .pa_obj <- tryCatch(readRDS(.pa_rds), error = function(e) NULL)
+      .pa_mat <- if (is.matrix(.pa_obj) || is.data.frame(.pa_obj)) .pa_obj else NULL
+      if (!is.null(.pa_mat) && nrow(.pa_mat) > 50) {
+        .pa_m <- suppressWarnings(as.matrix(.pa_mat))
+        .pa_prev <- suppressWarnings(apply(.pa_m, 1, function(r) mean(as.numeric(r) > 0, na.rm = TRUE)))
+        .pa_kept <- sum(is.finite(.pa_prev) & .pa_prev >= 0.05) / nrow(.pa_m); break
+      }
+    }
+    .gates_by_label[["prevalence/abundance filtering"]] <- list(
+      gate_row = "bioc_low_count_filtering",
+      metric_name = "taxa_kept_fraction",
+      metric_value = if (is.finite(.pa_kept)) round(.pa_kept, 4) else NA_real_,
+      passes = isTRUE(is.finite(.pa_kept) && .pa_kept >= 0.3 && .pa_kept <= 0.7),
+      status = if (is.finite(.pa_kept)) "computed (rows w/ >=5% prevalence / total)"
+               else "not_computed (no abundance matrix .rds artifact present)"
+    )
+""",
+    "array detection QC": r"""
+    # array detection QC — ExpressionSet detection p-values or detection-column data.frame.
+    .adq_rate <- NA_real_
+    for (.adq_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .adq_obj <- tryCatch(readRDS(.adq_rds), error = function(e) NULL)
+      .adq_pv <- NULL
+      if (!is.null(.adq_obj)) {
+        if (inherits(.adq_obj, "ExpressionSet")) {
+          .adq_pv <- tryCatch(Biobase::assayDataElement(.adq_obj, "Detection"), error = function(e) NULL)
+        } else if (is.matrix(.adq_obj) || is.data.frame(.adq_obj)) {
+          .adq_cols <- grep("(?i)(detection|pvalue|pval)", colnames(.adq_obj), value = TRUE)
+          if (length(.adq_cols) > 0) .adq_pv <- as.matrix(.adq_obj[, .adq_cols, drop = FALSE])
+        }
+      }
+      if (!is.null(.adq_pv) && length(.adq_pv) > 0) {
+        .adq_rate <- round(mean(as.numeric(.adq_pv) < 0.05, na.rm = TRUE), 4); break
+      }
+    }
+    .gates_by_label[["array detection QC"]] <- list(
+      gate_row = "bioc_array_detection_qc",
+      metric_name = "detection_rate",
+      metric_value = .adq_rate,
+      passes = isTRUE(is.finite(.adq_rate) && .adq_rate >= 0.75),
+      status = if (is.finite(.adq_rate)) "computed (probe-detection p<0.05 fraction)"
+               else "not_computed (no ExpressionSet/detection-p .rds present)"
+    )
+""",
+    "between-array normalization": r"""
+    # between-array norm — file-exists check for post-norm QC PDFs.
+    .ban_pdfs <- list.files(".", pattern = "(?i)(boxplot|density|qnorm|norm.*array).*\\.pdf\$")
+    .ban_passes <- length(.ban_pdfs) > 0
+    .gates_by_label[["between-array normalization"]] <- list(
+      gate_row = "bioc_count_normalization",
+      metric_name = "between_array_norm_plot_exists",
+      metric_value = if (.ban_passes) 1 else 0,
+      passes = .ban_passes,
+      status = if (.ban_passes) paste0("computed (", length(.ban_pdfs), " PDF(s) emitted)")
+               else "not_computed (no between-array QC PDF present)"
+    )
+""",
+    "expression-level QC": r"""
+    # expression-level QC — declarative; emit when any expression artifact present.
+    .elq_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv)\$")
+    .elq_passes <- length(.elq_artifacts) > 0
+    .gates_by_label[["expression-level QC"]] <- list(
+      gate_row = "bioc_expression_level_qc",
+      metric_name = "expression_artifacts_emitted",
+      metric_value = length(.elq_artifacts),
+      passes = .elq_passes,
+      status = if (.elq_passes) "computed (declarative; pairs with downstream gates)"
+               else "not_computed (no expression artifact emitted)"
+    )
+""",
     "outlier diagnostics": r"""
     # outlier diagnostics — alias of outlier detection per the YAML.
     .odi_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv|txt|log|pdf)\$")

@@ -32,6 +32,7 @@ process BIOC_RANKPROD_METABOLOMICS_RANK_SUM {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -131,6 +132,54 @@ process BIOC_RANKPROD_METABOLOMICS_RANK_SUM {
     dev.off()
     
     cat("Pipeline completed successfully. Outputs written to 'rank_sum_results.rds', 'significant_metabolites_up.csv', 'significant_metabolites_down.csv', 'selected_metabolites.txt', and 'rank_sum_plots.pdf'.\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # VSN — DESeqTransform / vsd matrix; mean-SD slope ≤ 0.5 (vsn::meanSdPlot).
+    .vsn_slope <- NA_real_
+    for (.vsn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .vsn_obj <- tryCatch(readRDS(.vsn_rds), error = function(e) NULL)
+      .vsn_mat <- NULL
+      if (!is.null(.vsn_obj)) {
+        if (inherits(.vsn_obj, "DESeqTransform") || inherits(.vsn_obj, "SummarizedExperiment")) {
+          .vsn_mat <- tryCatch(assay(.vsn_obj), error = function(e) NULL)
+        } else if (is.matrix(.vsn_obj)) { .vsn_mat <- .vsn_obj }
+      }
+      if (!is.null(.vsn_mat) && nrow(.vsn_mat) > 100) {
+        .vsn_rmean <- suppressWarnings(rowMeans(.vsn_mat, na.rm = TRUE))
+        .vsn_rsd <- suppressWarnings(apply(.vsn_mat, 1, sd, na.rm = TRUE))
+        .vsn_ok <- is.finite(.vsn_rmean) & is.finite(.vsn_rsd)
+        if (sum(.vsn_ok) > 50) {
+          .vsn_fit <- tryCatch(lm(.vsn_rsd[.vsn_ok] ~ .vsn_rmean[.vsn_ok]), error = function(e) NULL)
+          if (!is.null(.vsn_fit)) { .vsn_slope <- round(abs(coef(.vsn_fit)[2]), 4); break }
+        }
+      }
+    }
+    .gates_by_label[["variance-stabilizing normalization"]] <- list(
+      gate_row = "bioc_vsn_normalization",
+      metric_name = "mean_sd_slope_after_vsn",
+      metric_value = .vsn_slope,
+      passes = isTRUE(is.finite(.vsn_slope) && .vsn_slope <= 0.5),
+      status = if (is.finite(.vsn_slope)) "computed (lm slope row-SD ~ row-mean)"
+               else "not_computed (no DESeqTransform/vsd .rds present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_RANKPROD_METABOLOMICS_RANK_SUM",
+      domain  = "bioconductor",
+      declared_qc_steps = c("variance-stabilizing normalization"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_RANKPROD_METABOLOMICS_RANK_SUM":',

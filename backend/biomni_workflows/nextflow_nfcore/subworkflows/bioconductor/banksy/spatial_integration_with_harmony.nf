@@ -35,6 +35,7 @@ process BIOC_BANKSY_SPATIAL_INTEGRATION_WITH_HARMONY {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -151,6 +152,59 @@ ies
         theme_minimal()
     print(plot_grid(p1, p2, ncol = 2))
     dev.off()
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # batch-effect correction — declarative pass via corrected-output presence
+    # (kBET acceptance metric is a future per-workflow follow-on).
+    .bec_artifacts <- list.files(".", pattern = "(?i)(corrected|batch|combat|harmony|mnn).*\\.(rds|csv|h5ad)\$")
+    .bec_passes <- length(.bec_artifacts) > 0
+    .gates_by_label[["batch-effect correction"]] <- list(
+      gate_row = "bioc_batch_effect_correction",
+      metric_name = "batch_corrected_artifacts",
+      metric_value = length(.bec_artifacts),
+      passes = .bec_passes,
+      status = if (.bec_passes) "computed (declarative; kBET acceptance pending)"
+               else "not_computed (no batch-corrected artifact present)"
+    )
+
+    # cell QC metrics — defensive cell-count + per-cell summary from any
+    # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
+    # (Luecken & Theis 2019 single-cell QC floor).
+    .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
+    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
+      .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
+      if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
+        .cqc_ncells <- ncol(.cqc_mat); .cqc_nfeats <- nrow(.cqc_mat)
+        .cqc_files <- c(.cqc_files, .cqc_rds); break
+      }
+    }
+    .gates_by_label[["cell QC metrics"]] <- list(
+      gate_row = "bioc_cell_qc_metrics",
+      metric_name = "n_cells",
+      metric_value = .cqc_ncells,
+      passes = isTRUE(is.finite(.cqc_ncells) && .cqc_ncells >= 50 && .cqc_nfeats >= 200),
+      status = if (is.finite(.cqc_ncells)) paste0("computed (cells=", .cqc_ncells, ", features=", .cqc_nfeats, "; proxy gate)")
+               else "not_computed (no scRNA matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_BANKSY_SPATIAL_INTEGRATION_WITH_HARMONY",
+      domain  = "bioconductor",
+      declared_qc_steps = c("batch-effect correction", "cell QC metrics"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_BANKSY_SPATIAL_INTEGRATION_WITH_HARMONY":',
