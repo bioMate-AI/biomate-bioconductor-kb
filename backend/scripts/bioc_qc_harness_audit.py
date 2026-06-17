@@ -47,8 +47,16 @@ def main() -> int:
         "brace_mismatch": [],
         "no_writeLines_after_block": [],
         "missing_label_entry": [],
+        "no_s3_registry_keyword": [],
     }
     adopted = 0
+
+    # Extract _S3_REPORT_PATHS keywords from qc_trace_monitor for the
+    # 7th dimension check — process name must match some keyword via
+    # substring lookup or qc_trace_monitor won't fetch the report.
+    tm_src = (ROOT / "backend/lib/galaxy/jobs/qc_trace_monitor.py").read_text()
+    tm_m = re.search(r"_S3_REPORT_PATHS:.*?=\s*\{(.*?)\n    \}", tm_src, re.DOTALL)
+    s3_keywords = re.findall(r'"([A-Z][A-Z0-9_]*)"\s*:', tm_m.group(1)) if tm_m else []
 
     for name, filename, qc_json in rows:
         p = ROOT / "backend/biomni_workflows" / filename
@@ -88,6 +96,13 @@ def main() -> int:
         missing = [l for l in declared if f'.gates_by_label[["{l}"]]' not in block]
         if missing:
             issues["missing_label_entry"].append((name, missing))
+
+        # 7th dimension: process name must match some _S3_REPORT_PATHS keyword
+        pm = re.search(r"^process\s+(\w+)\s*\{", src, re.MULTILINE)
+        if pm:
+            pname = pm.group(1).upper()
+            if not any(k in pname for k in s3_keywords):
+                issues["no_s3_registry_keyword"].append((name, pname))
 
     print(f"Adopted Bioc workflows audited: {adopted}")
     any_issue = False
