@@ -2390,6 +2390,32 @@ export function NextflowWorkflowViewer({
               : undefined
             }
             errorMessage={errorMessage}
+            // P0 fix (2026-06-16 after-run audit): the viewer never forwarded
+            // outputs, so the Outputs tab always showed "No output files
+            // registered yet" even after a successful AWS Batch run. Build
+            // the OutputFile[] from nextflowStatus.s3_output_files — same
+            // shape chat-with-artifacts.tsx uses. Galaxy invocations use a
+            // different path (outputDatasets); the viewer's surface is
+            // nextflow-native so s3_output_files is the source.
+            outputs={(() => {
+              const s3: any[] = Array.isArray(nextflowStatus?.s3_output_files)
+                ? nextflowStatus.s3_output_files
+                : [];
+              if (s3.length === 0) return [];
+              return s3.map((f: any) => {
+                const filePath = typeof f === 'string'
+                  ? f
+                  : (f.s3_uri || f.path || f.key || f.name || '');
+                const name = filePath.split('/').filter(Boolean).pop() || '';
+                const ext = (name.split('.').pop() || '').toLowerCase();
+                // Step label = the prefix segment that looks like a process
+                // name (e.g. INVIVO_CART_ATLAS_SAFETY/) — mirrors the
+                // chat-with-artifacts derivation so styling is consistent.
+                const parts = filePath.split('/');
+                const step = parts.length >= 2 ? parts[parts.length - 2] : '';
+                return { step, name, path: filePath, ext };
+              });
+            })()}
           />
         </div>
       )}

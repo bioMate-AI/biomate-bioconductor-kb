@@ -1,0 +1,109 @@
+{
+  "url": "https://dev-public.biomate.ai",
+  "workflow": "in_vivo_base_edit_design",
+  "query": "Design an in-vivo base-edit knockout of PCSK9 for hypercholesterolemia",
+  "finalStatus": "completed",
+  "phases": [
+    {
+      "key": "all",
+      "testid": "phase-group-all",
+      "observedStatuses": [
+        "pending"
+      ],
+      "finalStatus": "pending",
+      "stepCount": 0
+    },
+    {
+      "key": "A",
+      "testid": "phase-group-A",
+      "observedStatuses": [
+        "running",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 1
+    },
+    {
+      "key": "B",
+      "testid": "phase-group-B",
+      "observedStatuses": [
+        "pending",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 0
+    },
+    {
+      "key": "C",
+      "testid": "phase-group-C",
+      "observedStatuses": [
+        "pending",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 0
+    },
+    {
+      "key": "D",
+      "testid": "phase-group-D",
+      "observedStatuses": [
+        "pending",
+        "completed"
+      ],
+      "finalStatus": "completed",
+      "stepCount": 0
+    }
+  ],
+  "tabs": [
+    {
+      "tabId": "findings",
+      "visible": true,
+      "contentLength": 424,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nMethods\nParameters\nFindings Summary\n\nin_vivo_base_edit_design completed. Output files are not yet readable — check the Outputs tab for results.\n\nCaveats\n\nFindings analysis requires readable output files. Re-check when outputs are available.\nDownload report\nFindings are generated directly from the run manifest. Numbers and figures in this section come fr",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-findings.png"
+    },
+    {
+      "tabId": "outputs",
+      "visible": true,
+      "contentLength": 144,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nMethods\nParameters\n\nNo output files registered yet.\n\n↓ Download all as ZIP\n↓ Reproducibility bundle",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-outputs.png"
+    },
+    {
+      "tabId": "methods",
+      "visible": true,
+      "contentLength": 3699,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nMethods\nParameters\nBioMate AI — Report\n============================================================\nGenerated: 2026-06-17T02:46:18.848Z\nWorkflow: in_vivo_base_edit_design\nInvocation ID: e0e7654f-12a9-4988-a9b3-ecc5d8a1fa48\nNextflow Run ID: 5f6aa489-ceec-4231-ba71-cf9abb0c7702\nWall Time: N/A\n============================================================\n\n#",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-methods.png"
+    },
+    {
+      "tabId": "params",
+      "visible": true,
+      "contentLength": 192,
+      "textSample": "AFTER RUN\n↓ Download report\nFindings\nOutputs\nMethods\nParameters\n↻ Run again with edits\nindication\thypercholesterolemia\nedit_goal\tknockout\ntarget_gene\tPCSK9\ndelivery\tauto\neditor_preference\tauto",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-params.png"
+    },
+    {
+      "tabId": "software",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-software.png"
+    },
+    {
+      "tabId": "citations",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-citations.png"
+    },
+    {
+      "tabId": "qc",
+      "visible": false,
+      "contentLength": 0,
+      "textSample": "",
+      "screenshotPath": "/tmp/after-run-T03/after-run-audit.e2e.ts-Aft-eed11-ign-—-every-phase-every-tab-chromium/tab-qc.png"
+    }
+  ],
+  "timestamp": "2026-06-17T03:08:37.939Z"
+}

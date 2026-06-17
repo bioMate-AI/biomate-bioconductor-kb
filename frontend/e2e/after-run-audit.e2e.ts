@@ -30,8 +30,12 @@ const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "";
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 
-const WORKFLOW = "in_vivo_cart_codesign";
+// Workflow + query can be overridden per-run via env vars so the same test
+// script audits T01/T03/T04/T05 by re-running with different env. Defaults
+// to T02 (in_vivo_cart_codesign).
+const WORKFLOW = process.env.AUDIT_WORKFLOW || "in_vivo_cart_codesign";
 const QUERY =
+  process.env.AUDIT_QUERY ||
   "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to T cells, transient persistence";
 
 const TAB_IDS = ["findings", "outputs", "methods", "params", "software", "citations", "qc"] as const;
@@ -221,6 +225,27 @@ async function auditAfterRunTabs(
 
 test.describe("After-run comprehensive audit", () => {
   test("T02 in_vivo_cart_codesign — every phase + every tab", async ({ page }, testInfo) => {
+    // Force workflow_generation routing to eliminate Gemini non-determinism
+    // when classifying "design"/"compare"/"triage" queries. Without this the
+    // audit silently lands on tool_search and never opens a panel.
+    await page.route("**/api/chat/stream", async (route) => {
+      const request = route.request();
+      if (request.method() !== "POST") return route.continue();
+      try {
+        const orig = request.postDataJSON();
+        if (orig && typeof orig === "object") {
+          orig.context = orig.context || {};
+          orig.context.intentOverride = "workflow_generation";
+          return route.continue({
+            postData: JSON.stringify(orig),
+            headers: { ...request.headers(), "content-type": "application/json" },
+          });
+        }
+      } catch {
+        // pass through unmodified
+      }
+      return route.continue();
+    });
     test.setTimeout(1_800_000); // 30 min for cold-start Batch run
     const outDir = testInfo.outputDir;
     fs.mkdirSync(outDir, { recursive: true });
