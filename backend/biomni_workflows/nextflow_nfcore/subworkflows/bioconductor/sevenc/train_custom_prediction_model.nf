@@ -25,7 +25,7 @@ process BIOC_SEVENC_TRAIN_CUSTOM_PREDICTION_MODEL {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')

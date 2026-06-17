@@ -27,7 +27,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -82,6 +82,8 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     
     # Verify input files exist
     all_files <- c(shiftedBamfile, bamfiles)
+    # Ensure each BAM is indexed — ranged reads (ScanBamParam which=) require a .bai.
+    for (.b in all_files) if (file.exists(.b) && !file.exists(paste0(.b, ".bai"))) Rsamtools::indexBam(.b)
     missing_files <- all_files[!file.exists(all_files)]
     if (length(missing_files) > 0) {
       stop(paste("Missing required input files in the working directory:", 

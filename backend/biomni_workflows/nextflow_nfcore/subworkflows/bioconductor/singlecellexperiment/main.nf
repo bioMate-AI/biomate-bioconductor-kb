@@ -18,7 +18,7 @@ process BIOC_SINGLECELLEXPERIMENT {
     label 'process_medium'
 
     conda "bioconductor-singlecellexperiment"
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20-slim"
 
     input:
     tuple val(meta), path(singlecellexperiment)

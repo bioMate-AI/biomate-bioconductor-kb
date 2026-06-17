@@ -18,7 +18,7 @@ process BIOC_GENOMICSCORES {
     label 'process_medium'
 
     conda "bioconductor-genomicscores"
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-slim"
 
     input:
     tuple val(meta), path(count_data)
