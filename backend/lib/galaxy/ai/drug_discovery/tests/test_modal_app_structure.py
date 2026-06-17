@@ -1,6 +1,11 @@
 """Modal app structural validation + adapter discovery unit tests.
 
-These run as part of the normal pytest suite (no Modal account required).
+These run as part of the pytest suite when the `modal` SDK is
+importable (no Modal account or network required — pure structural
+inspection of `infra/modal/regulatory_llm_app.py`). When `modal` is
+not installed (the default local-dev state) the file skips cleanly
+via `pytest.importorskip` rather than producing 15 ERRORs that mask
+real regressions in the rest of the drug_discovery test suite.
 They catch:
 
   1. Modal SDK API drift (deprecated kwargs, missing decorators) that
@@ -22,6 +27,23 @@ import json
 from pathlib import Path
 
 import pytest
+
+# The Modal app file does `import modal` at module top + uses
+# `modal.Image/Volume/App` at module body — none of those can be
+# lazy-imported without rewriting the entire deploy artifact (the
+# `@app.function` decorators need the app object at decoration time).
+# When modal isn't installed (the default local-dev state — Modal is
+# only needed at `modal deploy` time), skip the entire structural
+# validation file. CI environments that DO have modal installed
+# (the deploy gate) still run every check. This is the standard
+# pytest idiom for an optional-dep test module, not a workaround:
+# without modal there is no Modal artifact to validate.
+pytest.importorskip(
+    "modal",
+    reason="modal SDK not installed locally; structural validation of "
+    "infra/modal/regulatory_llm_app.py runs in the deploy gate where "
+    "`pip install modal` is part of the image.",
+)
 
 
 # ---------------------------------------------------------------------------
