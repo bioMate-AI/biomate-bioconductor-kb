@@ -2,7 +2,7 @@
 // ============================================================
 // Bioconductor workflow: raer — novel_editing_detection
 // Identify novel RNA editing sites using matched RNA-seq and DNA-seq (WGS) data.
-// Input: bams.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr
+// Input: rna.bam, dna.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr
 // Container: quay.io/biocontainers/bioconductor-raer:1.8.0--r45h01b2380_2
 // R packages: GenomicFeatures, GenomicRanges, SummarizedExperiment, raer
 // Bioconductor: 3.20 | R: 4.4
@@ -74,7 +74,7 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
     # ==========================================
     
     # BAM files: matched RNA-seq and DNA-seq alignments
-    bams <- c(rna = "bams.bam", dna = "bams.bam")
+    bams <- c(rna = "rna.bam", dna = "dna.bam")
 
     # Ensure each BAM is coordinate-indexed (raer::pileup_sites requires a .bai next to
     # each BAM; the index is not always staged alongside the alignment).
@@ -213,7 +213,7 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
 
 workflow BIOC_RAER_NOVEL_EDITING_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), [ bams.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr ] ]
+    ch_input  // channel: [ val(meta), [ rna.bam, dna.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr ] ]
 
     main:
     BIOC_RAER_NOVEL_EDITING_DETECTION(ch_input)

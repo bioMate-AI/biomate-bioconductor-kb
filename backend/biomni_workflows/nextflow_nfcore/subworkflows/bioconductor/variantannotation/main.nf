@@ -80,7 +80,9 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
     # --- Align chromosome naming styles (seqlevels) between the ---
     message("Aligning seqlevels...")
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    seqlevels(vcf) <- "chr22"
+    # Align naming style to UCSC (the TxDb's style: 22 -> chr22) for ALL contigs,
+    # instead of hardcoding a rename to "chr22".
+    seqlevelsStyle(vcf) <- "UCSC"
     rd <- rowRanges(vcf)
     
     # --- Locate variants in coding regions using locateVariants ---
