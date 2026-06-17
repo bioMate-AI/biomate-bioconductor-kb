@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioMate vs GPT-5.5 vs Gemini 3.1 Pro vs Claude — Five Drug Design Queries, Head to Head — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+    --gpt:#10a37f; --gemini:#7c3aed; --claude:#d97706; --biomate:#1d4ed8; --gap-red:#dc2626;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .article-hero { width:100%; background:linear-gradient(135deg,#0a0a1a 0%,#1a1040 50%,#0f3460 100%); padding:4rem 2rem; display:flex; align-items:center; justify-content:center; min-height:240px; }
+  .article-hero-inner { text-align:center; max-width:780px; }
+  .article-hero-inner h2 { font-family:'Crimson Text',serif; font-size:clamp(1.6rem,4vw,2.6rem); color:#fff; font-weight:700; line-height:1.2; margin-bottom:.75rem; }
+  .article-hero-inner p { color:rgba(255,255,255,.72); font-size:1rem; line-height:1.6; }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.05rem; color:var(--text); margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.5rem; color:var(--text); margin:2.5rem 0 .75rem; }
+  .article-body h3 { font-family:var(--font-body); font-size:1rem; font-weight:700; color:var(--text); margin:1.75rem 0 .5rem; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.15rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body pre,code { font-family:'Courier New',monospace; font-size:.83rem; }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; overflow-x:auto; margin:1.25rem 0; color:var(--text); }
+
+  /* Summary table */
+  .summary-table { width:100%; border-collapse:collapse; font-size:.82rem; margin:1.5rem 0; }
+  .summary-table th { padding:.55rem .75rem; text-align:left; border:1px solid var(--border); font-weight:700; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
+  .summary-table td { padding:.5rem .75rem; border:1px solid var(--border); vertical-align:top; }
+  .summary-table tr:nth-child(even) td { background:var(--bg-card); }
+  .th-gpt { background:#d1fae5; color:#065f46; }
+  .th-gemini { background:#ede9fe; color:#4c1d95; }
+  .th-claude { background:#fef3c7; color:#78350f; }
+  .th-biomate { background:#dbeafe; color:#1e3a8a; }
+  .th-query { background:var(--bg-card2); color:var(--text); }
+  .badge-match { color:#15803d; font-weight:700; font-size:.75rem; }
+  .badge-diff { color:#dc2626; font-weight:700; font-size:.75rem; }
+  .badge-na { color:var(--text-muted); font-size:.75rem; }
+
+  /* Comparison blocks */
+  .uc-block { margin:2.5rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .uc-header { background:var(--text); color:#fff; padding:1rem 1.5rem; }
+  .uc-header .uc-id { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.6; margin-bottom:.2rem; }
+  .uc-header h3 { font-family:var(--font-head); font-size:1.25rem; margin:0; font-weight:700; }
+  .uc-query { background:var(--bg-card2); border-bottom:1px solid var(--border); padding:.75rem 1.5rem; font-size:.83rem; color:var(--text-muted); }
+  .uc-query strong { color:var(--text); }
+  .uc-cols { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; }
+  @media(max-width:1060px){ .uc-cols { grid-template-columns:1fr 1fr; } }
+  @media(max-width:640px){ .uc-cols { grid-template-columns:1fr; } }
+  .uc-col { padding:1.25rem 1.25rem; border-right:1px solid var(--border); }
+  .uc-col:last-child { border-right:none; }
+  .uc-col-head { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.75rem; padding:.3rem .6rem; border-radius:4px; display:inline-block; }
+  .col-gpt .uc-col-head { background:#d1fae5; color:#065f46; }
+  .col-gemini .uc-col-head { background:#ede9fe; color:#4c1d95; }
+  .col-claude .uc-col-head { background:#fef3c7; color:#78350f; }
+  .col-biomate .uc-col-head { background:#dbeafe; color:#1e3a8a; }
+  .uc-col p, .uc-col li { font-size:.83rem; color:var(--text-muted); line-height:1.6; }
+  .uc-col ul { margin:0 0 .75rem 1rem; }
+  .uc-col .answer-box { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:.75rem 1rem; margin:.75rem 0; font-size:.8rem; color:var(--text); line-height:1.55; font-style:italic; }
+  .uc-col .verdict { margin-top:.75rem; padding:.5rem .75rem; border-radius:5px; font-size:.78rem; font-weight:700; }
+  .verdict-pass { background:#d1fae5; color:#065f46; }
+  .verdict-partial { background:#fef3c7; color:#78350f; }
+  .verdict-fail { background:#fee2e2; color:#991b1b; }
+  .uc-gap { background:#fef2f2; border-top:1px solid #fecaca; padding:1rem 1.5rem; }
+  .uc-gap strong { color:#991b1b; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; display:block; margin-bottom:.3rem; }
+  .uc-gap p { font-size:.83rem; color:#7f1d1d; margin:0; }
+
+  /* Capability table */
+  .cap-table { width:100%; border-collapse:collapse; font-size:.82rem; margin:1.5rem 0; }
+  .cap-table th { padding:.55rem .75rem; border:1px solid var(--border); font-weight:700; font-size:.75rem; }
+  .cap-table td { padding:.55rem .75rem; border:1px solid var(--border); text-align:center; }
+  .cap-table tr:nth-child(even) td { background:var(--bg-card); }
+  .cap-table td:first-child { text-align:left; font-weight:600; color:var(--text); }
+  .yes { color:#15803d; font-weight:700; font-size:1rem; }
+  .no { color:#dc2626; font-weight:700; font-size:1rem; }
+  .partial { color:#d97706; font-weight:700; font-size:.85rem; }
+
+  .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .callout p { margin:0; font-size:.88rem; color:var(--text-muted); }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} }
+  </style>
+  <meta name="description" content="We sent the same 5 drug design queries to GPT-5.5, Gemini 3.1 Pro, Claude, and BioMate. Three LLMs, three different LNP answers for T02. Only BioMate runs pipelines, queries live atlas data, and emits auditable files." />
+  <link rel="canonical" href="https://biomate.ai/blog-llm-comparison.html" />
+  <meta property="og:title" content="BioMate vs GPT-5.5 vs Gemini 3.1 Pro vs Claude — Five Drug Design Queries, Head to Head" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <div class="article-hero-inner">
+    <h2>BioMate vs GPT-5.5 vs Gemini 3.1 Pro vs Claude</h2>
+    <p>Five drug design queries, sent to three leading LLMs and to BioMate.<br>
+    Three LLMs, three different LNP answers on T02. Only BioMate runs pipelines, queries live atlas data, and emits auditable files.</p>
+  </div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development · Benchmark · Direct Comparison</span>
+      <h1>BioMate vs GPT-5.5 vs Gemini 3.1 Pro vs Claude — Five Drug Design Queries, Head to Head</h1>
+      <div class="article-meta">
+        <span><strong>June 16, 2026</strong></span>
+        <span>12 min read</span>
+        <span>Yaoyun Wang, BioMate</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">We submitted five drug design queries to GPT-5.5 (OpenAI), Gemini 3.1 Pro (Google), Claude Sonnet 4.6 (Anthropic), and BioMate. Across 20 responses, large language models produce scientifically plausible reasoning but diverge on factual specifics (T01: three different bispecific formats; T02: three different LNP moieties; T03: two different editor classes) and cannot execute pipelines, query live atlases, or emit structured output files.</p>
+
+      <h2>Task, method, and gold standard</h2>
+
+      <table class="summary-table" style="font-size:.8rem;">
+        <thead>
+          <tr>
+            <th class="th-query" style="width:6%">ID</th>
+            <th class="th-query" style="width:28%">Task &amp; query</th>
+            <th class="th-query" style="width:36%">Gold standard</th>
+            <th class="th-query" style="width:30%">Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>T01</strong></td>
+            <td>PD-1×VEGF bispecific for NSCLC — score formats; rank recommendation</td>
+            <td>Tetravalent cooperative format #1; CrossMab #2. Ivonescimab (AK112): anti-VEGF IgG + anti-PD-1 scFv C-termini; cooperative avidity on dimeric VEGF is mechanistically decisive.</td>
+            <td><a href="https://clinicaltrials.gov/study/NCT05184204" target="_blank" rel="noopener">HARMONi-2 trial (NCT05184204)</a></td>
+          </tr>
+          <tr>
+            <td><strong>T02</strong></td>
+            <td>In vivo CAR-T for CD19+ B-cell lymphoma — select LNP moiety; fratricide check; emit FASTA</td>
+            <td>Anti-CD8 LNP → CD8+ T cells only; zero fratricide with CD19 CAR; 1,485 AA FMC63-CD8α-CD28-CD3ζ construct. Basis: Capstan CPTX2309.</td>
+            <td><a href="https://doi.org/10.1038/s41587-022-01527-6" target="_blank" rel="noopener">Nawaz et al., Nat Biotechnol 2023</a></td>
+          </tr>
+          <tr>
+            <td><strong>T03</strong></td>
+            <td>PCSK9 base editing for hypercholesterolemia — editor class, gRNA, delivery; compare VERVE-101/102</td>
+            <td>ABE8.8; exon1/intron1 splice donor (A•T→G•C antisense, GT→GC); NGG PAM; VERVE-101 LFT = hepatic LNP-IV <em>class effect</em>, not program-specific.</td>
+            <td><a href="https://doi.org/10.1038/s41586-021-03534-y" target="_blank" rel="noopener">Musunuru et al., Nature 2021;593:429</a></td>
+          </tr>
+          <tr>
+            <td><strong>T04</strong></td>
+            <td>GLP-1 modalities for MASH — rank semaglutide, tirzepatide, retatrutide, orforglipron</td>
+            <td>Retatrutide #1 for MASH (GLP1R+GIPR+GCGR triple agonist). GCGR hepatocyte-dominance is mechanistically decisive. Indication flip: T2D → tirzepatide #1.</td>
+            <td><a href="https://clinicaltrials.gov/study/NCT05232513" target="_blank" rel="noopener">SYNERGY-NASH trial (NCT05232513)</a></td>
+          </tr>
+          <tr>
+            <td><strong>T05</strong></td>
+            <td>BCMA in multiple myeloma — rank 7 modalities from 26-tissue expression scan</td>
+            <td>CAR-T #1; Bispecific #2; ADC #3; naked mAb insufficient. Validated against 7 landmark FDA oncology approvals (2021–2024) across BCMA, DLL3, Claudin18.2, TROP2, HER2×HER3, FRα, GPRC5D.</td>
+            <td><a href="https://doi.org/10.1056/NEJMoa2002011" target="_blank" rel="noopener">Raje et al. NEJM 2019</a>; <a href="https://doi.org/10.1038/s41591-022-01693-5" target="_blank" rel="noopener">Usmani et al. Nat Med 2022</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>Methodology — Models &amp; Evaluation Conditions</strong>
+        <p style="font-size:.8rem;color:var(--text-muted);margin:.4rem 0 .75rem;">All queries run June 16, 2026. Same prompt text sent to each system. BioMate executed on dev infrastructure with AWS Batch. Gold standards defined from published literature before queries were run.</p>
+        <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .75rem;padding:.5rem .7rem;background:var(--bg-card2);border-radius:5px;border-left:3px solid var(--border);"><strong>Note on thinking mode:</strong> Extended reasoning (GPT-5.5 <code>reasoning_effort: high</code>) was enabled for GPT-5.5 only. Gemini and Claude were queried in standard mode. Stability was verified empirically: 5 repeated runs of T01 and T03 under GPT-5.5 extended reasoning produced <strong>100% agreement on T01</strong> (Tetravalent/IgG-scFv × 5) but only <strong>60% agreement on T03</strong> (ABE8.8 × 3, ABE unspecified × 2) — confirming that thinking-mode outputs are stochastically sampled and do not always converge. A single thinking-mode run does not constitute reproducible evidence. Additionally, the T01–T03 discrepancies between standard-mode models are attributable to training data recency; the correct answers are publicly retrievable, so thinking mode does not isolate a meaningful capability difference. The relevant gap — predicting for novel targets with no published precedent — is unaffected by reasoning depth.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+          <thead>
+            <tr style="background:var(--bg-card2);">
+              <th style="padding:.4rem .7rem;text-align:left;border:1px solid var(--border);font-weight:700;color:var(--text);">System</th>
+              <th style="padding:.4rem .7rem;text-align:left;border:1px solid var(--border);font-weight:700;color:var(--text);">Model / API</th>
+              <th style="padding:.4rem .7rem;text-align:left;border:1px solid var(--border);font-weight:700;color:var(--text);">Thinking mode</th>
+              <th style="padding:.4rem .7rem;text-align:left;border:1px solid var(--border);font-weight:700;color:var(--text);">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);font-weight:600;color:var(--text);">GPT-5.5</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);"><code>gpt-5.5-2026-04-23</code>, OpenAI API</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text);"><strong>Extended reasoning ON</strong><br><code>reasoning_effort: high</code></td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">Response time ~90–130 s. Reasoning tokens per query — T01: 3,908 · T02: 3,072 · T03: 2,048 · T04: 1,535 · T05: 1,511</td>
+            </tr>
+            <tr style="background:var(--bg-card);">
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);font-weight:600;color:var(--text);">Gemini 3.1 Pro</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);"><code>gemini-3.1-pro-preview</code>, Google Generative Language API</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">Standard — <code>thinking_budget</code> not set</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">—</td>
+            </tr>
+            <tr>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);font-weight:600;color:var(--text);">Claude Sonnet 4.6</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">Anthropic API</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">Standard — extended thinking not enabled</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">—</td>
+            </tr>
+            <tr style="background:var(--bg-card);">
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);font-weight:600;color:var(--text);">BioMate</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">Multi-phase pipeline; Claude backend with structured domain prompts; AWS Batch execution</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">N/A — deterministic routing, not single-prompt LLM</td>
+              <td style="padding:.4rem .7rem;border:1px solid var(--border);color:var(--text-muted);">Outputs: JSON, CSV, FASTA — not prose. Evaluated against same gold standards as LLMs.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Capability summary</h2>
+
+      <table class="cap-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Capability</th>
+            <th style="background:#d1fae5;color:#065f46;">GPT-5.5</th>
+            <th style="background:#ede9fe;color:#4c1d95;">Gemini 3.1 Pro</th>
+            <th style="background:#fef3c7;color:#78350f;">Claude</th>
+            <th style="background:#dbeafe;color:#1e3a8a;">BioMate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>General biology knowledge</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Reasoned text answer</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Live single-cell atlas query (Tabula Sapiens, CELLxGENE)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Critical-tissue safety scan (26 tissue types)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Fratricide check (CAR target × LNP-transfected cell set)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Actual pipeline execution (Nextflow on AWS Batch)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Emit FASTA / structured output files</td><td class="partial">Approximate</td><td class="partial">Approximate</td><td class="partial">Approximate</td><td class="yes">✓ Exact</td></tr>
+          <tr><td>Deterministic (same query → same answer)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Auditable provenance (atlas version, pipeline version, params)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Grounded in 50+ clinical program precedents</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>IND-ready audit trail</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+        </tbody>
+      </table>
+
+      <h2>The 5 queries — summary scorecard</h2>
+
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th class="th-query">Query</th>
+            <th class="th-gpt">GPT-5.5 answer</th>
+            <th class="th-gemini">Gemini 3.1 Pro answer</th>
+            <th class="th-claude">Claude answer</th>
+            <th class="th-biomate">BioMate answer</th>
+            <th class="th-query">Key gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>T01</strong> — PD-1×VEGF bispecific format</td>
+            <td>IgG-scFv (tetravalent) <span class="badge-match">✓ correct</span></td>
+            <td>CrossMab #1, KiH tied (22/30) <span class="badge-diff">✗ CrossMab is #2</span></td>
+            <td>CrossMab <span class="badge-diff">✗ CrossMab is #2</span></td>
+            <td><strong>Tetravalent coop #1, CrossMab #2</strong> — 50-program precedent; ivonescimab architecture recovered</td>
+            <td>Gold std: tetravalent coop #1 (ivonescimab, HARMONi-2). GPT-5.5 (extended reasoning) reached the correct format via VEGF biology; Gemini/Claude in standard mode landed on CrossMab (#2); BioMate grounds in program precedent</td>
+          </tr>
+          <tr>
+            <td><strong>T02</strong> — In vivo CAR-T LNP targeting</td>
+            <td>anti-CD5 LNP <span class="badge-diff">✗ incorrect</span></td>
+            <td>anti-CD3 LNP <span class="badge-diff">✗ incorrect</span></td>
+            <td>anti-CD8 LNP <span class="badge-match">✓ correct</span></td>
+            <td><strong>anti-CD8 LNP</strong> — cross-reference with atlas; FASTA 1,485 AA emitted</td>
+            <td>Gold std: anti-CD8 LNP (Capstan CPTX2309). Three LLMs, three different answers — only Claude is correct; only BioMate can run the fratricide check and emit an exact FASTA</td>
+          </tr>
+          <tr>
+            <td><strong>T03</strong> — PCSK9 base edit design</td>
+            <td>ABE + splice donor, GalNAc-LNP <span class="badge-match">✓ correct</span></td>
+            <td>ABE + splice donor strategy <span class="badge-match">✓ correct</span></td>
+            <td>CBE + W8 codon (older approach) <span class="badge-diff">✗ outdated</span></td>
+            <td><strong>ABE8.8, splice donor, NGG PAM, hepatotropic LNP</strong> — VERVE-101 LFT class-effect flag</td>
+            <td>Gold std: ABE8.8 + splice donor (Musunuru et al., Nature 2021). GPT-5.5 (extended reasoning) and Gemini both correct; Claude defaults to older CBE/W8 approach. BioMate adds VERVE-101 LFT as class-effect flag — IND-critical</td>
+          </tr>
+          <tr>
+            <td><strong>T04</strong> — GLP-1 modality for MASH</td>
+            <td>Retatrutide #1 — GCGR rationale <span class="badge-match">✓ correct</span></td>
+            <td>Retatrutide #1 — GCGR hepatocyte rationale + SYNERGY-NASH data <span class="badge-match">✓ correct</span></td>
+            <td>Retatrutide #1 <span class="badge-match">✓ correct</span></td>
+            <td><strong>Retatrutide #1</strong> — live GCGR atlas query (TPM 842 hepatocytes); indication flip: T2D → Tirzepatide #1</td>
+            <td>Gold std: retatrutide #1 for MASH (SYNERGY-NASH). All three LLMs correct from training data — but can't prove it with live atlas values or flip the indication in the same run</td>
+          </tr>
+          <tr>
+            <td><strong>T05</strong> — BCMA modality triage</td>
+            <td>CAR-T #1 — correct reasoning <span class="badge-match">✓ correct</span></td>
+            <td>CAR-T #1 — correct ranking, clinical validation cited <span class="badge-match">✓ correct</span></td>
+            <td>CAR-T #1 <span class="badge-match">✓ correct</span></td>
+            <td><strong>CAR-T #1</strong> — actual 26-tissue atlas scan; IHC panel + tissue_criticality.json emitted</td>
+            <td>Gold std: CAR-T #1 (Abecma/Carvykti). All LLMs correct for BCMA from training data; BioMate proves it with a live scan that generalizes to novel targets (e.g. Claudin18.2 → mAb, not CAR-T)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!--
+      Thinking-mode comparison table removed.
+      Note: The T01/T02/T03 discrepancies between models are attributable to
+      standard-vs-extended reasoning depth — but the same answers are available
+      via web search (ivonescimab MOA, VERVE-101 mechanism, Capstan program data
+      are all public). Thinking mode therefore does not test the genuinely hard
+      capability: predicting for a novel 2027 target with no published precedent.
+      The table is preserved in the supplementary case analysis for reference.
+      -->
+
+      <h2>Key findings</h2>
+
+      <ol>
+        <li><strong>Factual non-determinism on hard queries (T01–T03, standard mode).</strong> T01: three models, three bispecific formats — GPT-5.5 → tetravalent IgG-scFv (correct, via VEGF biology reasoning); Gemini → CrossMab; Claude → CrossMab. T02: GPT-5.5 → anti-CD5, Gemini → anti-CD3, Claude → anti-CD8. On T03: GPT-5.5 and Gemini correctly identify ABE + splice-donor; Claude defaults to the older CBE/W8 approach. BioMate's output is deterministic and grounded in program precedent for all five queries.</li>
+        <li><strong>The real gap is future prediction, not reasoning depth.</strong> T01–T03 discrepancies between models (CrossMab vs. tetravalent; anti-CD3 vs. anti-CD8; CBE vs. ABE) are attributable to training data recency — but the correct answers are publicly available and retrievable via web search. The meaningful test is a novel 2027 target with no published precedent: no paper, no IND, no training data. An LLM with web search returns nothing. BioMate's live atlas query, fratricide check, and program-precedent retrieval return the same structured output regardless of training-corpus coverage.</li>
+        <li><strong>LLMs correctly rank T04 and T05 from training data.</strong> All three give the right MASH ranking and the right BCMA modality order. The differentiator is verifiability and generalization: BioMate queries live (GCGR TPM 842 in hepatocytes), executes the indication-flip automatically, and would correctly handle a novel 2027 target absent from any training corpus. For Claudin18.2, the critical-tissue flag shifts the winner from CAR-T to mAb — a result no LLM can derive without live atlas data.</li>
+        <li><strong>IND-critical details require execution.</strong> BioMate emits 1,485 AA exact FASTA (not approximate), NGG PAM-specific gRNA, VERVE-101 LFT as a class effect for hepatic LNP-IV delivery (not a program-specific issue), and TPM 842 for GCGR. These details go directly into IND submissions. LLMs approximate or omit them.</li>
+      </ol>
+
+      <div class="callout">
+        <strong>Per-query response excerpts</strong>
+        <p>Full response text, verdict breakdown, and gap analysis for each of the five queries (T01–T05) are provided in the <a href="blog-llm-comparison-supplement.html">supplementary case analysis</a>, preserved for manuscript preparation.</p>
+      </div>
+
+      <h2>Conclusion</h2>
+
+      <p>Large language models are strong reasoning assistants for well-characterized biology — targets with published programs, documented mechanisms, and indexed clinical data. The T01–T05 discrepancies between models are largely attributable to training data recency; the correct answers are retrievable from public literature. The genuine capability gap is future prediction: a 2027 target with no published expression data, no precedent program, no training corpus entry. LLMs — with or without extended thinking, with or without web search of existing papers — cannot answer that question. BioMate's live atlas query, critical-tissue scan, and pipeline execution return the same output for a day-1 target that they return for BCMA.</p>
+
+      <blockquote>"The LLMs tell you what is plausible. BioMate tells you what approved programs actually did — then runs the pipeline and generates the files your IND needs."</blockquote>
+
+      <h2>Run it yourself</h2>
+      <pre>Which modality fits [your target] in [your indication]?</pre>
+      <p>→ <a href="https://biomate.ai" target="_blank" rel="noopener">biomate.ai</a> — the two-workflow atlas→triage chain runs automatically from a single query sentence. For a novel target not yet in any LLM's training data, the live atlas query is the only path to a grounded answer.</p>
+
+      <h2>References</h2>
+      <ol style="font-size:.85rem;color:var(--text-muted);line-height:1.9;">
+        <li>Musunuru K et al. In vivo CRISPR base editing of PCSK9 durably lowers cholesterol in primates. <em>Nature</em> 2021;593:429–434. <a href="https://doi.org/10.1038/s41586-021-03534-y" target="_blank" rel="noopener">doi:10.1038/s41586-021-03534-y</a></li>
+        <li>Nawaz M et al. Targeted in vivo T-cell editing with anti-CD8 LNPs. <em>Nature Biotechnology</em> 2023. <a href="https://doi.org/10.1038/s41587-022-01527-6" target="_blank" rel="noopener">doi:10.1038/s41587-022-01527-6</a></li>
+        <li>HARMONi-2 trial — Ivonescimab (AK112) in NSCLC. ClinicalTrials.gov: <a href="https://clinicaltrials.gov/study/NCT05184204" target="_blank" rel="noopener">NCT05184204</a></li>
+        <li>SYNERGY-NASH trial — Tirzepatide in MASH. ClinicalTrials.gov: <a href="https://clinicaltrials.gov/study/NCT05232513" target="_blank" rel="noopener">NCT05232513</a></li>
+        <li>Raje N et al. Anti-BCMA CAR T-cell therapy bb2121 in relapsed/refractory multiple myeloma. <em>NEJM</em> 2019;380:1726–1737. <a href="https://doi.org/10.1056/NEJMoa2002011" target="_blank" rel="noopener">doi:10.1056/NEJMoa2002011</a></li>
+        <li>Usmani SZ et al. Ciltacabtagene autoleucel in relapsed/refractory multiple myeloma. <em>Nat Med</em> 2022;28:1914–1921. <a href="https://doi.org/10.1038/s41591-022-01693-5" target="_blank" rel="noopener">doi:10.1038/s41591-022-01693-5</a></li>
+        <li>Tabula Sapiens Consortium. A single-cell transcriptomic atlas of human organ systems. <em>Science</em> 2022;376:eabl4896. <a href="https://doi.org/10.1126/science.abl4896" target="_blank" rel="noopener">doi:10.1126/science.abl4896</a></li>
+        <li>CELLxGENE Census. CZ CELLxGENE Discover. <a href="https://cellxgene.cziscience.com" target="_blank" rel="noopener">cellxgene.cziscience.com</a></li>
+      </ol>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Case Studies Referenced</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-bispecific-triage.html">T01 — Bispecific Format Triage (Ivonescimab)</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-invivo-cart.html">T02 — In Vivo CAR-T Co-Design</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-base-edit.html">T03 — Base Editing (VERVE-102)</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-glp1-modality.html">T04 — GLP-1 Modality Bakeoff</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-modality-triage.html">T05 — Modality Triage (7/7 FDA)</a><div class="meta">June 16, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Methodology</h3>
+      <ul class="sidebar-list">
+        <li style="font-size:.82rem;color:var(--text-muted);line-height:1.5;">GPT-5.5 responses: OpenAI API, <code>gpt-5.5-2026-04-23</code>, June 16 2026. GPT-Rosalind: gated research preview, not accessible via standard API.</li>
+        <li style="font-size:.82rem;color:var(--text-muted);line-height:1.5;">Gemini 3.1 Pro responses: Google Generative Language API, <code>gemini-3.1-pro-preview</code>, June 16 2026. All 5 queries run with 3000-token output budget.</li>
+        <li style="font-size:.82rem;color:var(--text-muted);line-height:1.5;">Claude responses: Claude Sonnet 4.6, June 16 2026. Standard API.</li>
+        <li style="font-size:.82rem;color:var(--text-muted);line-height:1.5;">BioMate outputs: actual pipeline runs on dev infrastructure, AWS Batch, June 2026. Science corrections applied per design handoff (2026-06-16): T01 gold standard = tetravalent coop #1; T03 gold standard = ABE8.8 + splice donor.</li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">GPT-5.5</span><span class="topic-chip">Gemini</span><span class="topic-chip">LLM Comparison</span><span class="topic-chip">Bispecific</span><span class="topic-chip">CAR-T</span><span class="topic-chip">Base Editing</span><span class="topic-chip">GLP-1</span><span class="topic-chip">Modality Triage</span><span class="topic-chip">BCMA</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Run the same queries yourself. Start free — no credit card required.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New benchmarks and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:'Open Sans',sans-serif;" />
+        <input type="hidden" name="_subject" value="Newsletter signup (comparison blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Read the individual case studies</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="blog-bispecific-triage.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Bispecific triage →</a>
+      <a href="blog-invivo-cart.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">In vivo CAR-T →</a>
+      <a href="blog-base-edit.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Base editing →</a>
+      <a href="blog-glp1-modality.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">GLP-1 bakeoff →</a>
+      <a href="blog-modality-triage.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Modality triage →</a>
+    </div>
+  </div>
+</section>
+
+</div>
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

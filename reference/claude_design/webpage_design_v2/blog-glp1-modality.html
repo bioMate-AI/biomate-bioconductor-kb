@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GLP-1 Modality Bakeoff — Why "The Next GLP-1" Is an Indication Question — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.85rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; }
+  .article-body table { width:100%; border-collapse:collapse; font-size:.85rem; margin:1.25rem 0; }
+  .article-body th { background:var(--bg-card2); color:var(--text); font-weight:700; padding:.55rem .75rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.5rem .75rem; border:1px solid var(--border); color:var(--text-muted); }
+  .article-body tr:nth-child(even) td { background:var(--bg-card); }
+  .tick { color:#15803d; font-weight:700; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="Semaglutide hit $42B. Tirzepatide $36B. Retatrutide is queued behind. The next GLP-1 depends on the indication — not the chemistry. BioMate's 4-phase receptor bakeoff shows why GCGR is therapeutic for MASH and a liability for T2D." />
+  <link rel="canonical" href="https://biomate.ai/blog-glp1-modality.html" />
+  <meta property="og:title" content="GLP-1 Modality Bakeoff — Why 'The Next GLP-1' Is an Indication Question" />
+  <meta property="og:description" content="A 4-phase pipeline that scores 6 GLP-1 candidates across 6 axes and flips the winner by changing the indication: retatrutide for MASH, tirzepatide for T2D, orforglipron for cost-sensitive markets." />
+  <meta property="og:url" content="https://biomate.ai/blog-glp1-modality.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Article","headline":"GLP-1 Modality Bakeoff — Why The Next GLP-1 Is an Indication Question","description":"BioMate's 4-phase receptor bakeoff scores 6 GLP-1 candidates across 6 axes. GCGR is therapeutic for MASH and a liability for T2D — the same pipeline returns a different winner by changing one parameter.","datePublished":"2026-06-16","publisher":{"@type":"Organization","name":"BioMate AI","url":"https://biomate.ai"},"url":"https://biomate.ai/blog-glp1-modality.html","articleSection":"Drug Development"}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},{"@type":"ListItem","position":3,"name":"GLP-1 Modality Bakeoff","item":"https://biomate.ai/blog-glp1-modality.html"}]}
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-glp1-modality-hero.png" alt="GLP-1 Modality Bakeoff — BioMate" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div style="width:100%;background:#f8fafc;border-bottom:1px solid #e2e8f0;overflow:hidden;">
+  <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <rect x="0" y="0" width="820" height="33" fill="#1a0a00"/>
+    <text x="410" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">GLP-1 Modality Bakeoff — Indication Decides the Winner</text>
+    <!-- LEFT: MASH ranking -->
+    <rect x="18" y="37" width="262" height="148" rx="6" fill="#f0fdf4" stroke="#15803d" stroke-width="2"/>
+    <rect x="18" y="37" width="262" height="22" rx="6" fill="#14532d"/>
+    <text x="149" y="52" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">MASH · GCGR weight +10</text>
+    <rect x="28" y="64" width="242" height="26" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+    <text x="50" y="75" fill="#047857" font-size="10" font-weight="700">#1</text>
+    <text x="66" y="75" fill="#047857" font-size="9.5" font-weight="700">Retatrutide</text>
+    <text x="66" y="86" fill="#059669" font-size="7.5">GLP1R+GIPR+GCGR · GCGR hepatic ↑</text>
+    <rect x="28" y="96" width="242" height="26" rx="4" fill="#dcfce7" stroke="#15803d" stroke-width="1.5"/>
+    <text x="50" y="107" fill="#14532d" font-size="10" font-weight="700">#2</text>
+    <text x="66" y="107" fill="#14532d" font-size="9.5">Tirzepatide</text>
+    <text x="66" y="118" fill="#065f46" font-size="7.5">GLP1R+GIPR · no GCGR</text>
+    <rect x="28" y="128" width="242" height="26" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+    <text x="50" y="139" fill="#475569" font-size="10" font-weight="700">#3</text>
+    <text x="66" y="139" fill="#475569" font-size="9.5">Semaglutide</text>
+    <text x="66" y="150" fill="#64748b" font-size="7.5">GLP1R only · no GCGR benefit</text>
+    <text x="149" y="174" text-anchor="middle" fill="#047857" font-size="8" font-weight="600">GCGR in liver → therapeutic in MASH</text>
+    <!-- CENTER: Mechanism -->
+    <rect x="286" y="37" width="248" height="148" rx="6" fill="#fffbeb" stroke="#b45309" stroke-width="1.5"/>
+    <rect x="286" y="37" width="248" height="22" rx="6" fill="#92400e"/>
+    <text x="410" y="52" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">Phase C — Indication Weight</text>
+    <text x="410" y="72" text-anchor="middle" fill="#1e293b" font-size="9" font-weight="700">GCGR tissue expression</text>
+    <text x="340" y="90" text-anchor="middle" fill="#475569" font-size="8">Liver</text>
+    <text x="410" y="90" text-anchor="middle" fill="#475569" font-size="8">Adipose</text>
+    <text x="480" y="90" text-anchor="middle" fill="#475569" font-size="8">Pancreas</text>
+    <rect x="304" y="94" width="70" height="30" rx="2" fill="#bbf7d0" stroke="#047857" stroke-width="3"/>
+    <text x="339" y="113" text-anchor="middle" fill="#064e3b" font-size="9" font-weight="700">HIGH ★</text>
+    <rect x="375" y="94" width="70" height="30" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="410" y="113" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+    <rect x="446" y="94" width="70" height="30" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="481" y="113" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+    <rect x="296" y="132" width="228" height="18" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+    <text x="410" y="145" text-anchor="middle" fill="#78350f" font-size="8.5" font-weight="700">MASH: GCGR +10 pts · T2D: GCGR −10 pts</text>
+    <rect x="296" y="156" width="228" height="22" rx="3" fill="#fff3cd" stroke="#fbbf24" stroke-width="1"/>
+    <text x="410" y="166" text-anchor="middle" fill="#92400e" font-size="8.5" font-weight="700">Same pipeline · same data · indication flips winner</text>
+    <text x="410" y="177" text-anchor="middle" fill="#b45309" font-size="7.5">Retatrutide: #1 MASH → #3 T2D</text>
+    <!-- RIGHT: T2D ranking -->
+    <rect x="538" y="37" width="262" height="148" rx="6" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.5"/>
+    <rect x="538" y="37" width="262" height="22" rx="6" fill="#1e3a8a"/>
+    <text x="669" y="52" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">T2D · GCGR weight −10</text>
+    <rect x="548" y="64" width="242" height="26" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+    <text x="570" y="75" fill="#1d4ed8" font-size="10" font-weight="700">#1</text>
+    <text x="586" y="75" fill="#1d4ed8" font-size="9.5" font-weight="700">Semaglutide</text>
+    <text x="586" y="86" fill="#1e40af" font-size="7.5">GLP1R dominant · GI safety profile</text>
+    <rect x="548" y="96" width="242" height="26" rx="4" fill="#e0f2fe" stroke="#0284c7" stroke-width="1"/>
+    <text x="570" y="107" fill="#0369a1" font-size="10" font-weight="700">#2</text>
+    <text x="586" y="107" fill="#0369a1" font-size="9.5">Tirzepatide</text>
+    <text x="586" y="118" fill="#0369a1" font-size="7.5">Dual GLP1R+GIPR · no GCGR penalty</text>
+    <rect x="548" y="128" width="242" height="26" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+    <text x="570" y="139" fill="#64748b" font-size="10" font-weight="700">#3</text>
+    <text x="586" y="139" fill="#64748b" font-size="9.5">Retatrutide</text>
+    <text x="586" y="150" fill="#94a3b8" font-size="7.5">GCGR risk in T2D · hypoglycemia</text>
+    <text x="669" y="174" text-anchor="middle" fill="#1d4ed8" font-size="8" font-weight="600">GCGR liability in T2D → Reta drops to #3</text>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development · Case Study</span>
+      <h1>GLP-1 Modality Bakeoff — Why "The Next GLP-1" Is an Indication Question, Not a Chemistry Question</h1>
+      <div class="article-meta">
+        <span><strong>June 16, 2026</strong></span>
+        <span>7 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Semaglutide (Ozempic/Wegovy, Novo Nordisk) hit $42 billion in 2024. Tirzepatide (Mounjaro/Zepbound, Eli Lilly) hit $36 billion. Retatrutide (Lilly Phase III) and orforglipron (Lilly Phase III oral) are queued behind. Every pharma in the world is asking the same question: what's the next GLP-1? The answer depends on what you're treating — not what you'd like to put in a vial.</p>
+
+      <h2>The receptor pattern decides everything</h2>
+      <p>The GLP-1 family has three receptors, and what changes between the approved and emerging drugs is which of those receptors get hit:</p>
+
+      <table>
+        <thead>
+          <tr><th>Drug</th><th>GLP1R</th><th>GIPR</th><th>GCGR</th><th>Indication</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Semaglutide</td><td class="tick">✓</td><td></td><td></td><td>T2D, obesity</td></tr>
+          <tr><td>Liraglutide</td><td class="tick">✓</td><td></td><td></td><td>T2D</td></tr>
+          <tr><td>Tirzepatide</td><td class="tick">✓</td><td class="tick">✓</td><td></td><td>T2D, obesity (best weight loss)</td></tr>
+          <tr><td>Retatrutide</td><td class="tick">✓</td><td class="tick">✓</td><td class="tick">✓</td><td>MASH, obesity, severe T2D</td></tr>
+          <tr><td>Orforglipron (oral)</td><td class="tick">✓</td><td></td><td></td><td>T2D, obesity (cost-sensitive markets)</td></tr>
+        </tbody>
+      </table>
+
+      <p>Retatrutide is the only triple agonist. GCGR is the third receptor — and that is the receptor that is the <strong>liability for T2D</strong> and the <strong>therapeutic for MASH</strong>. Glucagon raises blood sugar (bad for T2D) and burns hepatic fat (good for MASH). GLP1R is broadly expressed across pancreas, brainstem, and adipose. GIPR is adipose-dominant. But GCGR is hepatocyte-dominant — that one data point from the single-cell atlas is what separates the MASH answer from the T2D answer.</p>
+
+      <h2>The 4-phase receptor bakeoff</h2>
+
+      <div class="figure-wrap">
+        <svg viewBox="0 0 820 390" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#fff;font-family:'Open Sans',Arial,sans-serif;">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
+          </defs>
+          <!-- Header -->
+          <rect x="0" y="0" width="820" height="36" fill="#1a0a00"/>
+          <text x="410" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">GLP-1 Modality Bakeoff — GCGR Hepatic Expression Decides the Winner</text>
+
+          <!-- === 4 PHASE CIRCLES === -->
+          <!-- cy=88, r=26, cx: 95,295,515,715 -->
+          <circle cx="95" cy="88" r="26" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.5"/>
+          <text x="95" y="84" text-anchor="middle" fill="#1e3a8a" font-size="14" font-weight="700">A</text>
+          <text x="95" y="97" text-anchor="middle" fill="#1e3a8a" font-size="8">Atlas Profile</text>
+          <text x="95" y="125" text-anchor="middle" fill="#64748b" font-size="8">receptor expression</text>
+          <text x="95" y="136" text-anchor="middle" fill="#64748b" font-size="8">across tissues</text>
+          <line x1="121" y1="88" x2="269" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="295" cy="88" r="26" fill="#dcfce7" stroke="#15803d" stroke-width="2.5"/>
+          <text x="295" y="84" text-anchor="middle" fill="#14532d" font-size="14" font-weight="700">B</text>
+          <text x="295" y="97" text-anchor="middle" fill="#14532d" font-size="8">Scoring</text>
+          <text x="295" y="125" text-anchor="middle" fill="#64748b" font-size="8">6 candidates ×</text>
+          <text x="295" y="136" text-anchor="middle" fill="#64748b" font-size="8">6 axes</text>
+          <line x1="321" y1="88" x2="489" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="515" cy="88" r="26" fill="#fef3c7" stroke="#b45309" stroke-width="2.5"/>
+          <text x="515" y="84" text-anchor="middle" fill="#78350f" font-size="14" font-weight="700">C</text>
+          <text x="515" y="97" text-anchor="middle" fill="#78350f" font-size="8">Ind. Weighting</text>
+          <text x="515" y="125" text-anchor="middle" fill="#64748b" font-size="8">GCGR+10 (MASH)</text>
+          <text x="515" y="136" text-anchor="middle" fill="#64748b" font-size="8">GCGR−10 (T2D)</text>
+          <line x1="541" y1="88" x2="689" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="715" cy="88" r="26" fill="#fce7f3" stroke="#9d174d" stroke-width="2.5"/>
+          <text x="715" y="84" text-anchor="middle" fill="#831843" font-size="14" font-weight="700">D</text>
+          <text x="715" y="97" text-anchor="middle" fill="#831843" font-size="8">Report</text>
+          <text x="715" y="125" text-anchor="middle" fill="#64748b" font-size="8">ranked CSV</text>
+          <text x="715" y="136" text-anchor="middle" fill="#64748b" font-size="8">Phase III citations</text>
+
+          <!-- Divider -->
+          <line x1="22" y1="150" x2="798" y2="150" stroke="#e2e8f0" stroke-width="1.5"/>
+
+          <!-- === LEFT PANEL: Receptor Expression Heatmap === -->
+          <!-- Panel: x=22-393, y=155-330 -->
+          <rect x="22" y="155" width="371" height="175" rx="6" fill="#f8fafc" stroke="#1d4ed8" stroke-width="1.5"/>
+          <rect x="22" y="155" width="371" height="22" rx="6" fill="#1e3a8a"/>
+          <text x="207" y="170" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Phase A — Receptor Tissue Expression (Tabula Sapiens)</text>
+          <!-- Column headers -->
+          <text x="154" y="191" text-anchor="middle" fill="#475569" font-size="9" font-weight="600">Pancreas</text>
+          <text x="226" y="191" text-anchor="middle" fill="#475569" font-size="9" font-weight="600">Adipose</text>
+          <text x="297" y="191" text-anchor="middle" fill="#475569" font-size="9" font-weight="600">Liver</text>
+          <text x="368" y="191" text-anchor="middle" fill="#475569" font-size="9" font-weight="600">CNS</text>
+          <!-- Row headers -->
+          <text x="96" y="217" text-anchor="middle" fill="#1e293b" font-size="9.5" font-weight="700">GLP1R</text>
+          <text x="96" y="257" text-anchor="middle" fill="#1e293b" font-size="9.5" font-weight="700">GIPR</text>
+          <text x="96" y="297" text-anchor="middle" fill="#1e293b" font-size="9.5" font-weight="700">GCGR</text>
+          <!-- Heatmap cells: GLP1R row (y=197-236, h=39) -->
+          <rect x="119" y="197" width="69" height="39" rx="2" fill="#86efac" stroke="#15803d" stroke-width="1"/>
+          <text x="153" y="220" text-anchor="middle" fill="#14532d" font-size="9" font-weight="700">HIGH</text>
+          <rect x="191" y="197" width="69" height="39" rx="2" fill="#d1fae5" stroke="#6ee7b7" stroke-width="1"/>
+          <text x="225" y="220" text-anchor="middle" fill="#065f46" font-size="9">med</text>
+          <rect x="263" y="197" width="69" height="39" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="297" y="220" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+          <rect x="335" y="197" width="69" height="39" rx="2" fill="#d1fae5" stroke="#6ee7b7" stroke-width="1"/>
+          <text x="369" y="220" text-anchor="middle" fill="#065f46" font-size="9">med</text>
+          <!-- GIPR row (y=237-276, h=39) -->
+          <rect x="119" y="237" width="69" height="39" rx="2" fill="#d1fae5" stroke="#6ee7b7" stroke-width="1"/>
+          <text x="153" y="260" text-anchor="middle" fill="#065f46" font-size="9">med</text>
+          <rect x="191" y="237" width="69" height="39" rx="2" fill="#86efac" stroke="#15803d" stroke-width="1"/>
+          <text x="225" y="260" text-anchor="middle" fill="#14532d" font-size="9" font-weight="700">HIGH</text>
+          <rect x="263" y="237" width="69" height="39" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="297" y="260" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+          <rect x="335" y="237" width="69" height="39" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="369" y="260" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+          <!-- GCGR row (y=277-316, h=39) -->
+          <rect x="119" y="277" width="69" height="39" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="153" y="300" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+          <rect x="191" y="277" width="69" height="39" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="225" y="300" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+          <!-- GCGR × Liver: KEY data point (special highlight) -->
+          <rect x="263" y="277" width="69" height="39" rx="2" fill="#bbf7d0" stroke="#047857" stroke-width="3"/>
+          <text x="297" y="295" text-anchor="middle" fill="#047857" font-size="9" font-weight="700">HIGH★</text>
+          <text x="297" y="308" text-anchor="middle" fill="#047857" font-size="7.5">hepatocytes</text>
+          <rect x="335" y="277" width="69" height="39" rx="2" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="369" y="300" text-anchor="middle" fill="#94a3b8" font-size="9">—</text>
+          <!-- GCGR callout arrow -->
+          <line x1="297" y1="316" x2="297" y2="328" stroke="#047857" stroke-width="1.5"/>
+          <text x="207" y="340" text-anchor="middle" fill="#047857" font-size="8.5" font-weight="700">★ GCGR liver-dominant → MASH therapeutic target</text>
+
+          <!-- === RIGHT PANEL: MASH Score Bars === -->
+          <!-- Panel: x=415-798, y=155-330 -->
+          <rect x="415" y="155" width="383" height="175" rx="6" fill="#f8fafc" stroke="#15803d" stroke-width="1.5"/>
+          <rect x="415" y="155" width="383" height="22" rx="6" fill="#14532d"/>
+          <text x="606" y="170" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Phase C — MASH Score (GCGR+10 indication weight)</text>
+          <!-- Scale: x=505(0) to x=785(100), 1 unit=2.8px -->
+          <line x1="505" y1="178" x2="505" y2="322" stroke="#e2e8f0" stroke-width="1.5"/>
+          <line x1="645" y1="178" x2="645" y2="322" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="785" y1="178" x2="785" y2="322" stroke="#e2e8f0" stroke-width="1.5"/>
+          <text x="505" y="332" text-anchor="middle" fill="#94a3b8" font-size="8">0</text>
+          <text x="645" y="332" text-anchor="middle" fill="#94a3b8" font-size="8">50</text>
+          <text x="785" y="332" text-anchor="middle" fill="#94a3b8" font-size="8">100</text>
+          <!-- Row 1: Retatrutide 95 → width=266 -->
+          <text x="498" y="200" text-anchor="end" fill="#1e293b" font-size="9" font-weight="700">Retatrutide</text>
+          <text x="498" y="211" text-anchor="end" fill="#94a3b8" font-size="7.5">G+I+C</text>
+          <rect x="505" y="190" width="266" height="22" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+          <text x="765" y="205" text-anchor="end" fill="#047857" font-size="9" font-weight="700">95 ✓ #1</text>
+          <!-- Row 2: Tirzepatide 73 → width=204 -->
+          <text x="498" y="238" text-anchor="end" fill="#1e293b" font-size="9">Tirzepatide</text>
+          <text x="498" y="249" text-anchor="end" fill="#94a3b8" font-size="7.5">G+I</text>
+          <rect x="505" y="228" width="204" height="22" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="703" y="243" text-anchor="end" fill="#1d4ed8" font-size="9" font-weight="600">73 #2</text>
+          <!-- Row 3: Semaglutide 52 → width=146 -->
+          <text x="498" y="276" text-anchor="end" fill="#1e293b" font-size="9">Semaglutide</text>
+          <text x="498" y="287" text-anchor="end" fill="#94a3b8" font-size="7.5">G only</text>
+          <rect x="505" y="266" width="146" height="22" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="514" y="281" fill="#64748b" font-size="9">52</text>
+          <!-- Row 4: Orforglipron 48 → width=134 -->
+          <text x="498" y="314" text-anchor="end" fill="#1e293b" font-size="9">Orforglipron</text>
+          <text x="498" y="325" text-anchor="end" fill="#94a3b8" font-size="7.5">G oral</text>
+          <rect x="505" y="304" width="134" height="22" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="514" y="319" fill="#64748b" font-size="9">48</text>
+          <!-- T2D note -->
+          <text x="606" y="342" text-anchor="middle" fill="#c2410c" font-size="8.5" font-style="italic">T2D param → tirzepatide #1 (GCGR−10 flips ranking)</text>
+
+          <!-- === RESULT BANNER === -->
+          <rect x="22" y="352" width="776" height="26" rx="7" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
+          <text x="410" y="369" text-anchor="middle" fill="#064e3b" font-size="10.5" font-weight="700">MASH → Retatrutide (GLP1R+GIPR+GCGR) · GCGR hepatic oxidation is therapeutic · T2D → tirzepatide · same pipeline, different indication</text>
+        </svg>
+        <div class="figure-caption">Figure 1 — GLP-1 modality bakeoff pipeline: 4 phases from query to ranked recommendation. Phase A pulls receptor tissue expression from Tabula Sapiens — GCGR's hepatocyte-dominance is the key data point. Phase C applies indication-specific weights that flip the winner. Changing <code>indication=mash</code> to <code>indication=t2d</code> returns a different drug from the same pipeline.</div>
+      </div>
+
+      <h2>Why "which GLP-1 should I develop?" doesn't have one answer</h2>
+      <p>The receptor pattern isn't arbitrary drug design — it's downstream of the biology of the target indication. Glucagon (GCGR's endogenous ligand) has two clinically relevant effects:</p>
+      <ol>
+        <li><strong>Hepatic glucose output</strong> — raises blood glucose. For T2D patients already managing hyperglycemia, GCGR agonism is counterproductive. This is why triple-agonist programs had a harder time in T2D: you're adding a glucose-raising receptor to a glucose-lowering drug.</li>
+        <li><strong>Hepatic lipid oxidation and fat burning</strong> — GCGR activation reduces hepatic fat accumulation by increasing beta-oxidation. For MASH, where the primary problem is hepatic steatosis, GCGR agonism is directly therapeutic.</li>
+      </ol>
+      <p>The atlas data makes this explicit: GCGR expression is concentrated in hepatocytes, the cell type whose dysfunction underlies MASH. That's the biological justification for why retatrutide-class programs are prioritizing MASH in Phase III while pulling back on T2D positioning.</p>
+
+      <h2>What BioMate does in 4 phases</h2>
+      <p><strong>Phase A — Receptor atlas profile.</strong> Pulls GLP1R, GIPR, and GCGR tissue expression from Tabula Sapiens single-cell data. The atlas data is what makes the indication question answerable from biology rather than clinical intuition.</p>
+      <p><strong>Phase B — Modality scoring.</strong> Scores 6 candidate classes across 6 axes: receptor coverage match, weight-loss potency, metabolic-correction potency (HbA1c, lipids, hepatic fat), safety profile, delivery format, and IP whitespace. Each candidate gets a numeric score per axis.</p>
+      <p><strong>Phase C — Indication weighting.</strong> Applies indication-specific multipliers to the scoring matrix. For MASH, GCGR engagement gets a +10 bonus (the therapeutic mechanism). For T2D, GCGR engagement gets a −10 penalty (the glucagon counter-regulation liability). The weights are exposed as editable parameters.</p>
+      <p><strong>Phase D — Top recommendation.</strong> Outputs a ranked CSV plus rationale narrative plus clinical-program comparator citations. For MASH: retatrutide-class wins. For T2D: tirzepatide-class wins. For cost-sensitive obesity (Indian subcontinent, LMIC): orforglipron wins on oral delivery economics.</p>
+
+      <h2>Why this isn't a single-prompt LLM question</h2>
+      <p>Ask any general-purpose LLM "what's the next GLP-1 for MASH?" and you'll get a thoughtful paragraph mentioning semaglutide, tirzepatide, and retatrutide without a definitive ranking. It won't give you a ranked answer because ranking requires three things that general LLMs can't provide:</p>
+      <ul>
+        <li>The receptor expression heatmap from a single-cell atlas (not in pre-training; requires a live query)</li>
+        <li>The mechanistic weighting — GCGR good for MASH, bad for T2D — which is a published consensus but is blended in pre-training with conflicting prior literature</li>
+        <li>The IP whitespace check (Lilly already has retatrutide in Phase III; developing another triple agonist has a freedom-to-operate question)</li>
+      </ul>
+      <p>BioMate combines all three deterministically. Atlas query is live data. Scoring matrix is canonical with literature citations. Indication weights are exposed as overridable parameters — so a program team can adjust the GCGR weight if they have proprietary data showing different tissue behavior.</p>
+
+      <blockquote>"Run the same workflow with indication=t2d and the top recommendation flips from retatrutide-class to tirzepatide-class. Same pipeline. Different weights."</blockquote>
+
+      <h2>The indication-indexing insight</h2>
+      <p>The practical takeaway for any new GLP-1 program is this: the receptor pattern you choose should be downstream of the indication you're targeting, not upstream of it. Programs that start with "we want to make a triple agonist" and then look for indications are working backward. Programs that start with "our target indication is MASH; what receptor pattern does that require?" get the right drug faster.</p>
+      <p>BioMate makes the indexing explicit: the same pipeline, the same scoring matrix, the same data. Change one parameter and get a different drug. The answer isn't "which GLP-1 is best" — it's "which GLP-1 is best for which indication." BioMate returns six answers indexed by six indications in one run.</p>
+
+      <h2>Try it yourself</h2>
+      <pre>Compare GLP-1 modalities for MASH: semaglutide vs tirzepatide vs retatrutide</pre>
+      <p>→ <a href="https://biomate.ai" target="_blank" rel="noopener">biomate.ai</a> · 30 seconds · 4 phases · retatrutide-class returns at the top with a GCGR-engagement rationale.</p>
+      <p>Switch to <code>indication=T2D</code> → tirzepatide-class wins. Switch to <code>indication=obesity, market=India</code> → orforglipron wins on oral delivery economics. The pipeline propagates the indication change through all four phases.</p>
+
+      <p class="bm-external-refs">Further reading: <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8505109/" rel="noopener" target="_blank">Davies et al. 2021 — Tirzepatide vs semaglutide, SURPASS-2 (NEJM)</a>; <a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(23)01691-2/fulltext" rel="noopener" target="_blank">Jastreboff et al. 2023 — Retatrutide Phase 2 for obesity (Lancet)</a>; <a href="https://www.tabula-sapiens.org" rel="noopener" target="_blank">Tabula Sapiens Consortium (Chan Zuckerberg Biohub)</a>; <a href="https://www.niddk.nih.gov/health-information/liver-disease/nafld-nash" rel="noopener" target="_blank">NIDDK — MASH (NASH) biology</a>.</p>
+
+      <div class="callout">
+        <strong>What this means for GLP-1 pipeline decisions</strong>
+        <p>A pharma team evaluating "which GLP-1 agonist to develop next" needs a receptor × indication scoring matrix, not a literature survey. BioMate's 4-phase pipeline provides that matrix in 30 seconds, with the atlas data and the indication weights made explicit and editable. The answer is different for every indication — the pipeline makes those differences transparent and auditable rather than leaving them in a slide deck.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Case Studies</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-modality-triage.html">Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-bispecific-triage.html">Bispecific Format Triage — Ivonescimab CrossMab from Two Protein Names</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-invivo-cart.html">In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-base-edit.html">In Vivo Base Editing — How BioMate Reconstructs VERVE-102</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-drug-1-target.html">Computational Target Discovery and Validation</a><div class="meta">April 22, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">GLP-1</span><span class="topic-chip">MASH</span><span class="topic-chip">GCGR</span><span class="topic-chip">Retatrutide</span><span class="topic-chip">Tirzepatide</span><span class="topic-chip">Semaglutide</span><span class="topic-chip">Metabolic Disease</span><span class="topic-chip">Receptor Atlas</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">GLP-1 modality scoring, receptor atlas profiling, and indication-indexed drug ranking are available on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New case studies and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:'Open Sans',sans-serif;" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#drug-discovery" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Drug Discovery services →</a>
+      <a href="blog-modality-triage.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Modality triage from atlas →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div>
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+<style>
+.fig-lightbox-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
+.fig-lightbox-overlay.active{display:flex;}
+.fig-lightbox-inner{background:#fff;border-radius:10px;padding:1.25rem;max-width:94vw;max-height:92vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.6);position:relative;}
+.fig-lightbox-inner svg{width:min(1300px,88vw);height:auto;display:block;}
+.fig-lightbox-close{position:fixed;top:1.1rem;right:1.4rem;font-size:2rem;color:#fff;cursor:pointer;line-height:1;user-select:none;}
+.figure-wrap{cursor:zoom-in;}
+</style>
+<div class="fig-lightbox-overlay" id="figLightbox" onclick="this.classList.remove('active')">
+  <span class="fig-lightbox-close" onclick="document.getElementById('figLightbox').classList.remove('active')">&#x2715;</span>
+  <div class="fig-lightbox-inner" id="figLightboxInner" onclick="event.stopPropagation()"></div>
+</div>
+<script>
+(function(){
+  document.querySelectorAll('.figure-wrap').forEach(function(fw){
+    fw.addEventListener('click',function(){
+      var svg=fw.querySelector('svg');
+      if(!svg)return;
+      document.getElementById('figLightboxInner').innerHTML=svg.outerHTML;
+      document.getElementById('figLightbox').classList.add('active');
+    });
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('figLightbox').classList.remove('active');});
+})();
+</script>
+</body>
+</html>
