@@ -9301,7 +9301,7 @@ ${paramLines || '(none recorded)'}`;
             // stored one. Hide-when-empty: never overwrite a populated
             // snapshot with an empty one (defends against transient Galaxy
             // hiccups).
-            (run.execution.status === 'completed' || run.execution.status === 'failed') &&
+            ['completed', 'succeeded', 'failed'].includes(String(run.execution.status)) &&
             Array.isArray(nextflowStatus?.s3_output_files)
           ) {
             const storedCount = Array.isArray(run.execution.nextflowStatus?.s3_output_files)
