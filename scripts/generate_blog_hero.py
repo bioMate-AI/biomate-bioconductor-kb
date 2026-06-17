@@ -13,11 +13,12 @@ from pathlib import Path
 from PIL import Image
 
 KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-IMG_DIR = Path("/home/yzhang/biomate/reference/claude_design/webpage_design_v2/images")
+IMG_DIR = Path(os.environ.get("HERO_IMG_DIR",
+    str(Path(__file__).parent.parent / "reference/claude_design/webpage_design_v2/images")))
 SIZE = (1408, 768)
 
-STYLE = (" Cinematic photorealistic editorial photograph, 35mm, shallow depth of field, soft bokeh, "
-         "moody warm amber and cool teal lighting, modern office at dusk, high detail, no text overlays, "
+STYLE = (" Photorealistic editorial photograph, 35mm, natural daylight, bright modern laboratory or office, "
+         "clean well-lit environment, practical scientific setting, high detail, no text overlays, "
          "no logos, no watermarks.")
 
 

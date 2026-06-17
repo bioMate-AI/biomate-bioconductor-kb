@@ -296,13 +296,27 @@ class LLMJudge:
         """Call Google Gemini Flash as fallback."""
         import urllib.request
         import json
+        # Pinned to gemini-3.1-pro-preview — matches the backend's
+        # REGULATORY_LLM_FRONTIER_MODEL default in scripts/start_backend.sh and
+        # is the cross-judge-eval-validated standard (docs/20260604_DEFENSIBLE_
+        # EVAL_GPT5_WINS.md: gemini-3.1-pro CIs overlap GPT-5 at 8× lower cost).
+        # Do NOT use gemini-flash-latest — aliases break benchmark reproducibility.
+        # Previous gemini-2.0-flash returned 404 as of 2026-06.
         api_url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={self._gemini_key}"
+            f"gemini-3.1-pro-preview:generateContent?key={self._gemini_key}"
         )
         payload = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens or self.max_tokens, "temperature": 0.0},
+            # Gemini 2.5/3.x charges thinking tokens against maxOutputTokens.
+            # If the budget is small (default 50/200) thinking eats the budget
+            # before any output is produced → MAX_TOKENS finishReason + empty
+            # text. Floor at 1024 as per the Gemini-model-selection feedback
+            # memo. See docs/PRE_SYNC_CHECKLIST.md gemini thinking-tokens entry.
+            "generationConfig": {
+                "maxOutputTokens": max(max_tokens or self.max_tokens, 1024),
+                "temperature": 0.0,
+            },
         }).encode()
         req = urllib.request.Request(api_url, data=payload,
                                      headers={"Content-Type": "application/json"})

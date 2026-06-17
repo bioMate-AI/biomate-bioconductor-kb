@@ -16,7 +16,8 @@ BASE      = os.path.dirname(os.path.abspath(__file__))
 FONT_SANS = "/System/Library/Fonts/HelveticaNeue.ttc"
 W, H      = 1920, 1080
 
-TUTORIALS = ["cryosparc", "outputs_report", "drug_screen", "ind_report"]
+TUTORIALS = ["cryosparc", "outputs_report", "drug_screen", "ind_report",
+             "bioc_kb", "bioc_sc", "bioc_methyl"]
 
 
 def draw_pill(draw, x, y, w, h, fill, radius=18):

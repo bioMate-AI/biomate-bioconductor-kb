@@ -1,0 +1,217 @@
+/* ============================================================
+   Research Agent UI — readability overlay
+   Bumps the small text sizes used by layout.css + research-layout.css
+   so the page reads cleanly in screen-recorded videos.
+   Loaded AFTER the other stylesheets; selectors mirror originals.
+   ============================================================ */
+
+/* ---------- 1. Base bump ---------- */
+body {
+  font-size: 16px;
+}
+
+/* ---------- 2. Sidebar / brand ---------- */
+.brand-name      { font-size: 17px; }
+.brand-ai        { font-size: 11.5px; }
+.brand-sub       { font-size: 13px; }
+.side-section-label { font-size: 12.5px; }
+.side-link       { font-size: 15px; }
+.side-history .side-link { font-size: 14.5px; }
+.user-chip       { font-size: 13px; }
+
+/* ---------- 3. Chat / message column ---------- */
+.chat-top .title          { font-size: 16.5px; }
+.msg                       { font-size: 15.5px; line-height: 1.55; }
+.msg .who                  { font-size: 12.5px; }
+.wf-chip .name             { font-size: 15.5px; }
+.wf-chip .sub              { font-size: 14px; }
+.chat-input                { font-size: 16px; }
+
+/* ---------- 4. Workflow panel head ---------- */
+.panel-head .kicker        { font-size: 12.5px; }
+.panel-head .name          { font-size: 19px; }
+.panel-head .sub           { font-size: 14.5px; }
+.run-bar .pct,
+.run-bar .meta             { font-size: 13.5px; }
+
+/* ---------- 5. Phase cards / steps ---------- */
+.phase-head .letter        { font-size: 13.5px; }
+.phase-head .title         { font-size: 15.5px; }
+.phase-head .sub,
+.phase-head .progress-chip { font-size: 13.5px; }
+.step-head .name           { font-size: 15px; }
+.step-head .runcount       { font-size: 13px; }
+.step-head .actions .btn.sm{ font-size: 13px; height: 26px; padding: 0 8px; }
+.step-meta                 { font-size: 13.5px; }
+.output-file               { font-size: 13.5px; }
+
+/* QC / gates */
+.qc-head                   { font-size: 13px; }
+.qc-gate                   { font-size: 14px; }
+.run-foot-meta             { font-size: 13.5px; }
+.run-foot-meta .linkish    { font-size: 13.5px; }
+.run-primary .btn.primary  { font-size: 15.5px; }
+
+/* Strips, params, results */
+.strip                     { font-size: 14.5px; }
+.strip .hint               { font-size: 13.5px; }
+.param-row                 { font-size: 14.5px; }
+.param-row .note           { font-size: 13px; }
+.results-links             { font-size: 14.5px; }
+.suggest-step-row,
+.suggest-step-row .linkish { font-size: 14.5px; }
+.cap-hint                  { font-size: 13.5px; }
+.watcher-bar               { font-size: 14px; }
+
+/* Auto-loop / disambig / metrics / findings cards */
+.autoloop-card             { font-size: 14.5px; }
+.autoloop-card .al-row     { font-size: 13.5px; }
+.autoloop-card .al-cite    { font-size: 13px; }
+.disambig-card .h          { font-size: 15px; }
+.disambig-card .opt .name  { font-size: 15px; }
+.disambig-card .opt .sub   { font-size: 13.5px; }
+.disambig-card .opt .score { font-size: 13px; }
+.alert                     { font-size: 14.5px; }
+.metrics-strip .cell .lbl  { font-size: 12.5px; }
+.metrics-strip .cell .val  { font-size: 15px; }
+.findings-card             { font-size: 14.5px; }
+.findings-card .f-table    { font-size: 13.5px; }
+.findings-card .f-cite     { font-size: 13px; }
+
+/* Toast + tweaks panel */
+.wf-toast                  { font-size: 14.5px; }
+.tweaks                    { font-size: 14.5px; }
+.tweaks-body .label        { font-size: 13px; }
+.tweaks-body .opt          { font-size: 14px; }
+.field label               { font-size: 14px; }
+.field input,
+.field select,
+.field textarea            { font-size: 15px; }
+.inline-params .inline-row { font-size: 14px; }
+.inline-params .inline-row input { font-size: 13.5px; }
+
+/* Generic chip / button bumps so they don't look tiny next to bigger text */
+.chip                      { font-size: 13.5px; }
+.btn                       { font-size: 15px; height: 34px; }
+.btn.sm                    { font-size: 13.5px; height: 28px; }
+.kbd                       { font-size: 13px; }
+
+/* ============================================================
+   Research-Agent surface overrides
+   ============================================================ */
+
+/* Plan checklist (Surface 1) */
+.plan-checklist            { /* container */ }
+.plan-head                 { font-size: 14px; }
+.plan-head .count          { font-size: 13.5px; }
+.plan-head .iconbtn        { font-size: 13px; }
+.plan-checklist.collapsed  { max-height: 44px; }
+.plan-item                 { font-size: 15px; }
+.plan-item .pi-status      { font-size: 12px; width: 18px; height: 18px; }
+.plan-item.done .pi-status::after,
+.plan-item.warn .pi-status::after,
+.plan-item.skipped .pi-status::after { font-size: 12px; }
+.plan-item.failed .pi-status::after  { font-size: 14px; }
+.plan-item .pi-meta        { font-size: 13px; }
+.plan-item .pi-running-label{ font-size: 13.5px; }
+.plan-item .pi-parallel    { font-size: 12.5px; }
+.plan-item .pi-grip        { font-size: 14px; }
+.plan-item-fail            { font-size: 14px; }
+.plan-item-fail .pf-actions .btn.sm { font-size: 13px; height: 26px; }
+.plan-add                  { font-size: 14px; }
+.plan-countdown            { font-size: 13.5px; }
+
+/* Chat stream pills + speaker lines (Surface 2) */
+.chat-line                 { font-size: 14.5px; line-height: 1.6; }
+.chat-line .marker         { font-size: 12px; }
+.chat-line .pill           {
+  font-size: 11.5px;
+  height: 20px;
+  min-width: 44px;
+  padding: 2px 7px;
+}
+.chat-line .ts             { font-size: 12.5px; }
+.chat-collapsed            { font-size: 13.5px; }
+
+/* Progress fold (claude/chatgpt-style thinking block) */
+.progress-fold .pf-head    { font-size: 13.5px; }
+.progress-fold .pf-caret   { font-size: 11px; width: 11px; }
+.progress-fold .pf-trail,
+.progress-fold .pf-hint    { font-size: 12px; }
+
+/* Speaker / rationale tooltips */
+.speaker-tooltip           { font-size: 13.5px; padding: 7px 11px; }
+.why-anchor                { font-size: 13px; }
+.rationale-tooltip         { font-size: 14px; max-width: 400px; }
+.rationale-tooltip .rt-h   { font-size: 12px; }
+.rationale-tooltip .rt-cite{ font-size: 12.5px; }
+
+/* Phase trace expansion */
+.phase-trace               { font-size: 14.5px; }
+.trace-section .ts-head    { font-size: 14px; }
+.trace-section .ts-head .meta { font-size: 13px; }
+.trace-section .ts-body    { font-size: 14.5px; }
+.trace-rationale .cite     { font-size: 13px; }
+.trace-events .te          { font-size: 14px; }
+.trace-events .te .marker  { font-size: 11px; }
+.trace-events .te .ts      { font-size: 12.5px; }
+.trace-events .te-show     { font-size: 13.5px; }
+.trace-params              { font-size: 14px; }
+.trace-params .row .tag    { font-size: 12px; }
+.trace-params .rerun-link  { font-size: 14px; }
+.trace-cost                { font-size: 14px; }
+.trace-cost .delta         { font-size: 13px; }
+.phase-trace-modal .pt-head .title { font-size: 16px; }
+.phase-trace-modal .pt-head .sub   { font-size: 13.5px; }
+
+/* Comparison chat card (Surface 4) */
+.compare-card              { font-size: 15px; }
+.compare-card .cc-head .title { font-size: 15.5px; }
+.compare-card .rec-badge   { font-size: 13.5px; }
+.compare-card .rec-badge .trophy { font-size: 14px; }
+.compare-card .metric-table{ font-size: 14px; }
+.compare-card .metric-table th { font-size: 12.5px; }
+.compare-card .cc-section-label { font-size: 13px; }
+.compare-card .param-diff-row   { font-size: 14px; }
+.compare-card .param-diff-row .origin { font-size: 12px; }
+.compare-card .recommendation .ic { font-size: 16px; }
+.compare-card .recommendation .text { font-size: 14.5px; }
+.compare-card .recommendation .conf { font-size: 13px; }
+.compare-card .countdown-note { font-size: 13.5px; }
+.compare-side-panel .csp-head .title { font-size: 16px; }
+
+/* Pilot toggle + promotion (Surface 5) */
+.pilot-toggle              { font-size: 14px; }
+.pilot-toggle .radio       { font-size: 14.5px; }
+.pilot-toggle .strategy    { font-size: 13.5px; }
+.pilot-toggle .strategy select { font-size: 13.5px; }
+.pilot-toggle .cost-row    { font-size: 13.5px; }
+.pilot-toggle .cta .btn    { font-size: 14.5px; height: 36px; }
+
+.pilot-promotion .pp-head  { font-size: 15px; }
+.pilot-promotion .pp-head .ic { font-size: 16px; }
+.pilot-promotion .pp-head .status { font-size: 13.5px; }
+.pilot-promotion .pp-meta  { font-size: 13.5px; }
+.pilot-promotion .pp-summary .sl { font-size: 13px; }
+.pilot-promotion .qc-row   { font-size: 14px; }
+.pilot-promotion .qc-row .ic { font-size: 13px; }
+.pilot-promotion .qc-row .name { font-size: 13.5px; }
+.pilot-promotion .pp-suggest { font-size: 14px; }
+.pilot-promotion .pp-suggest .ic { font-size: 16px; }
+.pilot-promotion .pp-question { font-size: 14.5px; }
+.pilot-promotion .pp-question .sub { font-size: 13.5px; }
+.pilot-promotion .pp-countdown { font-size: 13.5px; }
+
+/* Findings chat card */
+.findings-chat-card        { font-size: 14.5px; }
+.findings-chat-card .fcc-table { font-size: 13.5px; }
+
+/* Scenario bar (prototype-only chrome at top of chat) */
+.scenario-bar              { font-size: 13.5px; }
+.scenario-bar .lbl         { font-size: 11.5px; }
+.scenario-bar .seg button  { font-size: 13px; padding: 5px 11px; }
+.scenario-bar .iconbtn     { font-size: 13px; height: 30px; }
+
+/* Tweaks panel — research */
+.tweaks.research-tweaks .group .sub { font-size: 12.5px; }
+.tweaks.research-tweaks .group .row { font-size: 14px; }

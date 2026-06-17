@@ -28,7 +28,7 @@ SRC="$REPO_ROOT/reference/claude_design"
 PROBE_ONLY="${1:-}"
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
-SSH="ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o ConnectTimeout=20"
+SSH="ssh -i $KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20"
 
 inject_key() {
   [[ -f "${KEY_FILE}" ]] || ssh-keygen -t ed25519 -f "$KEY_FILE" -N "" -q
@@ -63,7 +63,7 @@ TAR=/tmp/biomate_marketing_only.tar.gz
 tar -czf "$TAR" -C "$SRC" webpage_design_v2/
 log "Archive: $(du -sh "$TAR" | cut -f1), $(tar tzf "$TAR" | grep -c '\.html$') html files"
 inject_key >/dev/null
-scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
+scp -i "$KEY_FILE" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
   "$TAR" "${EC2_USER}@${EC2_HOST}:/tmp/marketing_only.tar.gz" || { log "FATAL: scp failed"; exit 1; }
 
 # Deploy into EVERY docroot that nginx serves biomate.ai from (discovered above),
@@ -79,7 +79,10 @@ $SSH "${EC2_USER}@${EC2_HOST}" '
   for R in $ROOTS /var/www/biomate-marketing; do
     R=$(echo "$R" | xargs)
     sudo mkdir -p "$R"
-    sudo rsync -a --delete /tmp/mkt_only/webpage_design_v2/ "$R"/ 2>/dev/null \
+    sudo rsync -a --delete \
+      --exclude='blog-llm-comparison.html' \
+      --exclude='blog-llm-comparison-supplement.html' \
+      /tmp/mkt_only/webpage_design_v2/ "$R"/ 2>/dev/null \
       || sudo cp -r /tmp/mkt_only/webpage_design_v2/. "$R"/
     sudo chown -R www-data:www-data "$R"/ 2>/dev/null || true
     echo "[deploy] $R -> 14-day now: $(grep -c "14-day\|14 day" "$R/pricing.html" 2>/dev/null || echo NA)"
