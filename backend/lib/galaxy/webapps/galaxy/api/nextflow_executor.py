@@ -850,6 +850,10 @@ class NextflowExecuteRequest(BaseModel):
     is_pilot: Optional[bool] = None  # pilot study: bypass billing; tag in KPI logs
     resume_from_run_id: Optional[str] = None  # if set, passes -resume -w <prev_work_dir>
     credentials: Optional[Dict[str, Any]] = None  # {tool_id: {username, token} | {license_key}}
+    # Chain-composer sidecar — when supplied, dropped into work_dir as
+    # chain_meta.json so _resolve_rationale_id can light up the (why?) anchor
+    # on each phase. Shape: {"chain_name": str, "phases": [{...}, ...]}.
+    chain_meta: Optional[Dict[str, Any]] = None
 
 
 class NextflowStatusRequest(BaseModel):
@@ -3808,6 +3812,17 @@ def execute_nextflow(
         outdir_path.mkdir(parents=True, exist_ok=True)
         work_dir.mkdir(parents=True, exist_ok=True)
         outdir = str(outdir_path)
+
+    # Chain-composer sidecar — write chain_meta.json so the (why?) anchor
+    # (resolved via _resolve_rationale_id) can find the chain/phase mapping
+    # at SSE-event time. Local mode only; S3 mode would need s3 cp.
+    if request.chain_meta and not is_s3:
+        try:
+            import json as _json
+            with open(work_dir / "chain_meta.json", "w") as _fh:
+                _json.dump(request.chain_meta, _fh)
+        except Exception as _exc:
+            log.debug("[chain_meta] write failed for run %s: %s", run_id, _exc)
 
     # Detect whether any param contains multi-line content (inline CSV/SMILES/FASTA).
     # If so, write ALL params to a JSON file and use --params-file instead of individual
