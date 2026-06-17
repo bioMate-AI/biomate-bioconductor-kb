@@ -58,6 +58,51 @@ _runs_lock = threading.Lock()
 
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
 
+
+def _find_run_by_invocation_id(invocation_id: str) -> Optional[tuple]:
+    """Search both the in-process _runs[] and the RunStateStore for a run
+    whose invocation_id matches. Returns (run_id, record) or None.
+
+    Stage 2d helper — replaces 4 manual `for ... in _runs.items():` loops
+    that scanned only the worker-local dict. Cross-worker visibility was
+    broken: a worker that didn't launch the run would never find it.
+    """
+    with _runs_lock:
+        for rid, info in _runs.items():
+            if info.get("invocation_id") == invocation_id:
+                return (rid, info)
+    try:
+        store = get_run_state_store()
+        for rid in store.list_active_runs():
+            rec = store.get_run(rid)
+            if rec and rec.get("invocation_id") == invocation_id:
+                return (rid, rec)
+    except Exception as _store_exc:
+        log.debug("[runs] _find_run_by_invocation_id store scan failed: %s", _store_exc)
+    return None
+
+
+def _run_lookup(run_id: str) -> Optional[Dict[str, Any]]:
+    """Read a run record, with cross-worker fallback to RunStateStore.
+
+    Stage 2c of the persistence refactor (docs/20260615_RUNS_PERSISTENCE_DESIGN.md).
+    Worker A (which launched the run) holds the Popen handle in _runs[];
+    Worker B (after gunicorn recycle) sees an empty _runs[] but can recover
+    serializable state (status, outdir, qc_overrides, etc.) from the store.
+
+    Returns None if neither source has the record.
+    """
+    with _runs_lock:
+        info = _runs.get(run_id)
+    if info is not None:
+        return info
+    try:
+        snap = get_run_state_store().get_run(run_id)
+        return snap if snap else None
+    except Exception as _store_exc:
+        log.debug("[runs] store.get_run fallback failed for %s: %s", run_id, _store_exc)
+        return None
+
 # Concurrency throttle for Nextflow head-process launches.
 # Each NF head JVM is ~500MB–1GB resident. Without a cap, parallel-fired
 # workflow submissions OOM-kill the Galaxy container (observed 2026-06-07
@@ -71,6 +116,64 @@ from galaxy.ai.runs import get_run_state_store  # noqa: E402
 # upper bound for 16GB hosts is ~20 with the same per-head budget.
 _nf_max_concurrent = int(os.environ.get("BIOMATE_NF_MAX_CONCURRENT", "10"))
 _nf_launch_semaphore = threading.BoundedSemaphore(_nf_max_concurrent)
+
+
+def _resolve_rationale_id(
+    work_dir: Optional[str], process_name: Optional[str]
+) -> Optional[str]:
+    """Best-effort `'chain_name:phase_letter'` lookup for the (why?) anchor.
+
+    Safe-fail: returns None for any of:
+      - no work_dir / process_name supplied
+      - no `chain_meta.json` sidecar in the work_dir (most one-off
+        workflow runs)
+      - sidecar present but no entry for this process_name
+      - any I/O / parse error
+
+    Returns None means: the chat event ships without `rationale_id`, the
+    frontend WhyAnchor renders nothing for that line — exactly the
+    "no curated rationale" path. Wrong rationale never shows.
+
+    Wiring contract (when the chain composer is taught to drop a meta
+    sidecar at submit time):
+
+      chain_meta.json shape (sidecar in work_dir at chain submit):
+        { "chain_name": "bulk_rnaseq_consensus_de_bioc",
+          "phases": [
+             {"process_name_pattern": "NFCORE_RNASEQ:.*", "phase_letter": "A"},
+             {"process_name_pattern": ".*DESEQ2.*", "phase_letter": "B"},
+             ...
+          ] }
+
+    See docs/20260616_RATIONALE_NARRATOR_HANDOFF.md.
+    """
+    if not work_dir or not process_name:
+        return None
+    try:
+        import json as _json
+        import os as _os
+        import re as _re
+        meta_path = _os.path.join(str(work_dir), "chain_meta.json")
+        if not _os.path.exists(meta_path):
+            return None
+        with open(meta_path) as fh:
+            meta = _json.load(fh)
+        chain_name = meta.get("chain_name")
+        if not chain_name:
+            return None
+        for entry in meta.get("phases") or []:
+            pat = entry.get("process_name_pattern")
+            letter = entry.get("phase_letter")
+            if not pat or not letter:
+                continue
+            try:
+                if _re.search(pat, process_name):
+                    return f"{chain_name}:{letter}"
+            except _re.error:
+                continue
+        return None
+    except Exception:
+        return None
 
 
 def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, Any]] = None) -> None:
@@ -2491,11 +2594,11 @@ def _start_qc_monitor(
         def _is_run_terminal() -> bool:
             # Look up the run by invocation_id → run_id and check status.
             try:
-                with _runs_lock:
-                    for _rid, _r in _runs.items():
-                        if _r.get("invocation_id") == invocation_id:
-                            st = (_r.get("status") or "").lower()
-                            return st in ("succeeded", "completed", "failed", "interrupted")
+                hit = _find_run_by_invocation_id(invocation_id)
+                if hit is not None:
+                    _rid, _r = hit
+                    st = (_r.get("status") or "").lower()
+                    return st in ("succeeded", "completed", "failed", "interrupted")
             except Exception:
                 pass
             return False
@@ -2562,11 +2665,15 @@ def _start_qc_monitor(
                 if process_name and process_name not in seen_phase_started:
                     seen_phase_started.add(process_name)
                     try:
-                        _narrate_chat(
-                            invocation_id,
-                            "workflow.phase_started",
-                            {"phase_name": _short_phase_name(process_name)},
-                        )
+                        # Best-effort rationale_id for the (why?) anchor on this
+                        # chat line. Returns None for non-chain runs / missing
+                        # chain_meta.json sidecar; frontend hides the anchor
+                        # cleanly when absent. See docs/20260616_RATIONALE_NARRATOR_HANDOFF.md.
+                        _rid = _resolve_rationale_id(str(work_dir), process_name)
+                        _technical: Dict[str, Any] = {"phase_name": _short_phase_name(process_name)}
+                        if _rid:
+                            _technical["rationale_id"] = _rid
+                        _narrate_chat(invocation_id, "workflow.phase_started", _technical)
                     except Exception as exc:
                         log.debug("[QC Monitor] phase_started emit failed for %s: %s", process_name, exc)
 
@@ -3086,7 +3193,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         except Exception:
             pass
         with _runs_lock:
-            _run_snap = dict(_runs.get(run_id) or {})
+            _run_snap = _run_lookup(run_id) or {}
         _duration_s: Optional[int] = None
         _started = _run_snap.get("started_at")
         if _started:
@@ -3155,7 +3262,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _runs[run_id]["status"] = final_status
                 _runs[run_id]["returncode"] = returncode
                 _runs[run_id]["completed_at"] = _completed_at_now
-            _inv_id = _runs.get(run_id, {}).get("invocation_id")
+            _inv_id = (_run_lookup(run_id) or {}).get("invocation_id")
+        # Stage 2b mirror write — completion path
+        try:
+            get_run_state_store().update_run(
+                run_id,
+                status=final_status,
+                returncode=returncode,
+                completed_at=_completed_at_now,
+            )
+        except Exception as _store_exc:
+            log.debug("[runs] store.update_run completion failed for %s: %s", run_id, _store_exc)
 
         # Friendly chat-progress: emit the right line for the terminal state.
         if _inv_id:
@@ -3287,12 +3404,22 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             with _runs_lock:
                 if run_id in _runs:
                     _runs[run_id]["status"] = "running"
+            # Stage 2b mirror write — launch running
+            try:
+                get_run_state_store().update_run(run_id, status="running")
+            except Exception as _store_exc:
+                log.debug("[runs] store.update_run running failed for %s: %s", run_id, _store_exc)
             return
         final_status = "failed"
         _completed_at_now = time.time()
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["status"] = "failed"
+        # Stage 2b mirror write — launch failed
+        try:
+            get_run_state_store().update_run(run_id, status="failed", completed_at=_completed_at_now)
+        except Exception as _store_exc:
+            log.debug("[runs] store.update_run launch-failed failed for %s: %s", run_id, _store_exc)
     finally:
         # Best-effort: always write completed_at to disk so status endpoint
         # can report a terminal state even after gunicorn worker is recycled.
@@ -3612,6 +3739,11 @@ def _accession_chain_thread(
             if run_id in _runs:
                 _runs[run_id]["status"] = status
                 _runs[run_id].update(extra)
+        # Stage 2b mirror write — accession-chain status updates
+        try:
+            get_run_state_store().update_run(run_id, status=status, **extra)
+        except Exception as _store_exc:
+            log.debug("[runs] store.update_run accession failed for %s: %s", run_id, _store_exc)
 
     log.info(f"[accession chain run_id={run_id}] Starting accession resolution for params: {list(accession_params)}")
 
@@ -3699,6 +3831,14 @@ def _accession_chain_thread(
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["process"] = process
+        # Stage 3d — record the detached subprocess PID in the store so the
+        # orphan poller can detect exit from any worker, including ones that
+        # didn't launch this run. Without this the poller has no signal at
+        # all (test_missing_pid_skips_run in test_completion_poller.py).
+        try:
+            get_run_state_store().set_pid(run_id, process.pid)
+        except Exception as _store_exc:
+            log.debug("[runs] store.set_pid failed for %s: %s", run_id, _store_exc)
     except Exception as exc:
         _set_status("failed", error=f"Failed to launch main workflow: {exc}")
         log.error(f"[accession chain run_id={run_id}] Launch error: {exc}")
@@ -3961,7 +4101,7 @@ def execute_nextflow(
     # Nextflow -resume: reuse cached work from a prior run if requested.
     if request.resume_from_run_id:
         with _runs_lock:
-            prev = _runs.get(request.resume_from_run_id, {})
+            prev = _run_lookup(request.resume_from_run_id) or {}
         prev_work = prev.get("work_dir")
         # Fallback: reconstruct S3 work dir from the known naming pattern.
         # This works even after gunicorn restarts when _runs is empty.
@@ -4208,6 +4348,15 @@ def execute_nextflow(
 
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.
+    # Stage 3c: ensure the orphan-completion poller is running on this
+    # worker. Idempotent — only the first launch on a worker actually
+    # spawns the thread. See docs/20260615_RUNS_PERSISTENCE_DESIGN.md.
+    try:
+        from galaxy.ai.runs.bootstrap import ensure_poller_started
+        ensure_poller_started()
+    except Exception as _boot_exc:
+        log.debug("[runs.bootstrap] poller start skipped: %s", _boot_exc)
+
     _started_at_now = time.time()
     _run_record_init = {
         "run_id": run_id,
@@ -4363,6 +4512,14 @@ def execute_nextflow(
             close_fds=True,
         )
         _log_fh.close()  # child holds its own fd; parent doesn't need it
+        # Stage 3d — record the detached subprocess PID in the store so the
+        # orphan poller can detect exit from any worker. The primary launch
+        # path (this one, used for ADMET / nf-core / Bioc / etc.) doesn't
+        # stash the Popen in _runs[]; the slot-release thread holds it.
+        try:
+            get_run_state_store().set_pid(run_id, process.pid)
+        except Exception as _store_exc:
+            log.debug("[runs] store.set_pid failed for %s: %s", run_id, _store_exc)
         # Release the semaphore slot when the head process exits.
         def _release_slot(p: subprocess.Popen, rid: str) -> None:
             try:
@@ -4526,7 +4683,7 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
     execution panel of nextflow-workflow-viewer.tsx.
     """
     with _runs_lock:
-        prev = dict(_runs.get(run_id, {}))
+        prev = _run_lookup(run_id) or {}
 
     if not prev:
         nextflow_path = body.nextflow_path
@@ -4686,10 +4843,17 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
         else:
             note = "no-process-found"
 
+    _terminal_status = "paused" if soft else "cancelled"
+    _completed_at_now = time.time()
     with _runs_lock:
         if run_id in _runs:
-            _runs[run_id]["status"] = "paused" if soft else "cancelled"
-            _runs[run_id]["completed_at"] = time.time()
+            _runs[run_id]["status"] = _terminal_status
+            _runs[run_id]["completed_at"] = _completed_at_now
+    # Stage 2b mirror write — cancel/pause
+    try:
+        get_run_state_store().update_run(run_id, status=_terminal_status, completed_at=_completed_at_now)
+    except Exception as _store_exc:
+        log.debug("[runs] store.update_run cancel failed for %s: %s", run_id, _store_exc)
 
     if invocation_id:
         _narrate_chat(
@@ -4737,8 +4901,7 @@ def get_nextflow_status(
     run_id: str,
 ) -> Dict[str, Any]:
     """Return current status of a Nextflow run."""
-    with _runs_lock:
-        info = _runs.get(run_id)
+    info = _run_lookup(run_id)
 
     if info is not None:
         info = _apply_disk_timing_terminal_state(info, run_id)
@@ -5251,8 +5414,7 @@ def download_s3_output(
     """
     from starlette.responses import RedirectResponse
 
-    with _runs_lock:
-        info = _runs.get(run_id)
+    info = _run_lookup(run_id)
     if info is None:
         # Same multi-worker fallback as get_nextflow_status: reconstruct from disk
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
@@ -5298,8 +5460,7 @@ def list_run_output_files(run_id: str) -> Any:
     List all output files for a completed run, with presigned S3 download URLs.
     Returns [{name, s3_uri, size, extension, download_url}].
     """
-    with _runs_lock:
-        info = _runs.get(run_id)
+    info = _run_lookup(run_id)
     if info is None:
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
         output_dir = work_base / run_id / "output"
@@ -5576,7 +5737,7 @@ def get_invocation_software(invocation_id: str) -> Dict[str, Any]:
     import glob as _glob
     import yaml as _yaml
 
-    run = _runs.get(invocation_id) or {}
+    run = _run_lookup(invocation_id) or {}
     workdir = run.get("nextflowOutputDir") or run.get("work_dir") or \
         os.path.join("/tmp/nextflow_runs", invocation_id)
 
@@ -5688,6 +5849,124 @@ def _resolve_qc_evidence_domain(workflow_name: str, available_domains: list) -> 
         if set(_re.split(r"[_\-]", domain.lower())) & wf_tokens:
             return domain
     return None
+
+
+@router.get("/api/workflows/{workflow_name}/phases/{phase_id}/rationale",
+            summary="Per-phase curated rationale ('why this method') for the (why?) anchor")
+def get_workflow_phase_rationale(workflow_name: str, phase_id: str) -> Dict[str, Any]:
+    """
+    Lookup the curated rationale row for one phase of one workflow chain.
+
+    Reads workflow_phase_rationale (populated by
+    backend/scripts/populate_workflow_phase_rationale.py from BiocTours.jsx
+    + qc_evidence.yaml). Returns 404-shape (empty body) when the row
+    doesn't exist — the frontend hides the anchor in that case.
+
+    Shape (matches §3 of docs/20260614_RATIONALE_ANCHOR_PLAN.md):
+      {
+        "workflow_id": int,
+        "phase_id": str,
+        "rationale_text": str,        # plain text, no JSX
+        "citation": {"doi": str?, "title": str?} | None,
+        "qc_gate_name": str?,
+        "last_curated_at": int        # unix seconds
+      }
+    """
+    import sqlite3 as _sql
+    db_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..",
+        "database", "galaxy_ai_tools.db",
+    ))
+    if not os.path.exists(db_path):
+        return {}
+    try:
+        with _sql.connect(db_path) as conn:
+            # Resolve workflow_name -> id (chain first, then workflows fallback)
+            wid_row = conn.execute(
+                "SELECT id FROM workflow_chains WHERE name=? LIMIT 1",
+                (workflow_name,),
+            ).fetchone()
+            if not wid_row:
+                wid_row = conn.execute(
+                    "SELECT id FROM workflows WHERE name=? LIMIT 1",
+                    (workflow_name,),
+                ).fetchone()
+            if not wid_row:
+                return {}
+            wid = int(wid_row[0])
+            row = conn.execute(
+                "SELECT rationale_text, citation_doi, citation_title, "
+                "qc_gate_name, last_curated_at "
+                "FROM workflow_phase_rationale WHERE workflow_id=? AND phase_id=? LIMIT 1",
+                (wid, phase_id),
+            ).fetchone()
+            if not row:
+                return {}
+            rationale_text, doi, title, gate, ts = row
+            citation: Optional[Dict[str, Any]] = None
+            if doi or title:
+                citation = {"doi": doi, "title": title}
+            return {
+                "workflow_id": wid,
+                "phase_id": phase_id,
+                "rationale_text": rationale_text,
+                "citation": citation,
+                "qc_gate_name": gate,
+                "last_curated_at": int(ts) if ts else None,
+            }
+    except Exception as exc:
+        log.debug("rationale lookup failed for %s/%s: %s", workflow_name, phase_id, exc)
+        return {}
+
+
+@router.get("/api/rationale/{rationale_id:path}",
+            summary="Design-faithful (why?) lookup keyed by rationale_id (e.g. 'chain_name:B')")
+def get_rationale(rationale_id: str) -> Dict[str, Any]:
+    """
+    Per-event rationale lookup matching the design's
+    window.RESEARCH_PHASE_TRACE pattern (research_agents/research-data.js).
+
+    Reads `rationale_registry` (populated by
+    backend/scripts/populate_rationale_registry.py from
+    workflow_phase_rationale + rationale_mapping.yaml + qc_evidence.yaml).
+    Returns {} when no curated row exists so the frontend WhyAnchor hides.
+
+    Phase 3 extension (future): when invocation_id query param is
+    supplied, join in `events`, `params`, `cost` blocks to match the
+    design's 4-section popover.
+    """
+    import sqlite3 as _sql
+    db_path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..",
+        "database", "galaxy_ai_tools.db",
+    ))
+    if not os.path.exists(db_path):
+        return {}
+    try:
+        with _sql.connect(db_path) as conn:
+            row = conn.execute(
+                "SELECT rationale_text, citation_doi, citation_title, "
+                "qc_gate_name, curated_by, last_curated_at "
+                "FROM rationale_registry WHERE rationale_id=? LIMIT 1",
+                (rationale_id,),
+            ).fetchone()
+            if not row:
+                return {}
+            text, doi, title, gate, curator, ts = row
+            citation: Optional[Dict[str, Any]] = None
+            if doi or title:
+                citation = {"doi": doi, "title": title}
+            return {
+                "rationale_id": rationale_id,
+                "rationale_text": text,
+                "citation": citation,
+                "qc_gate_name": gate,
+                "curated_by": curator,
+                "last_curated_at": int(ts) if ts else None,
+            }
+    except Exception as exc:
+        log.debug("rationale_registry lookup failed for %s: %s", rationale_id, exc)
+        return {}
 
 
 @router.get("/api/workflows/{workflow_name}/citations",
@@ -5811,13 +6090,11 @@ def download_invocation_methods_report(
                         except Exception:
                             pass
 
-        # Look up run_id from in-process registry
+        # Look up run_id from store (worker-local _runs first, Redis fallback)
         if run_id == "n/a":
-            with _runs_lock:
-                for rid, info in _runs.items():
-                    if info.get("invocation_id") == invocation_id:
-                        run_id = rid
-                        break
+            hit = _find_run_by_invocation_id(invocation_id)
+            if hit is not None:
+                run_id = hit[0]
 
         lines = [
             "BioMate AI — Methods Report",
@@ -5864,11 +6141,10 @@ def _lookup_work_dir_for_invocation(invocation_id: str) -> Optional[Path]:
     Searches the in-process _runs registry (keyed by run_id) for a run whose
     invocation_id matches.  Returns None if no matching run is found.
     """
-    with _runs_lock:
-        for run_info in _runs.values():
-            if run_info.get("invocation_id") == invocation_id:
-                wd = run_info.get("work_dir")
-                return Path(wd) if wd else None
+    hit = _find_run_by_invocation_id(invocation_id)
+    if hit is not None:
+        wd = hit[1].get("work_dir")
+        return Path(wd) if wd else None
     return None
 
 
@@ -6431,14 +6707,12 @@ def get_invocation_manifest(
     """
     import json as _json
 
-    # Locate outdir for this invocation from the in-process run registry
+    # Locate outdir for this invocation (store + in-process fallback)
     outdir: Optional[Path] = None
-    with _runs_lock:
-        for run_info in _runs.values():
-            if run_info.get("invocation_id") == invocation_id:
-                raw = run_info.get("outdir")
-                outdir = Path(raw) if raw else None
-                break
+    hit = _find_run_by_invocation_id(invocation_id)
+    if hit is not None:
+        raw = hit[1].get("outdir")
+        outdir = Path(raw) if raw else None
 
     if outdir is None:
         raise HTTPException(
@@ -7932,8 +8206,8 @@ async def get_reproducibility_bundle(run_id: str):
             except Exception:
                 pass
 
-    # Add parameter summary if run is in memory
-    run = _runs.get(run_id)
+    # Add parameter summary if run is in memory (or recoverable via store)
+    run = _run_lookup(run_id)
     if run:
         files["run_params.json"] = _json.dumps({
             "run_id": run_id,

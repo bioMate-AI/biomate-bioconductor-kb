@@ -59,6 +59,7 @@ import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
 import { WhyAnchor } from "./why-anchor"
 import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
+import { IntentClarificationCard, type IntentCandidate } from "./intent-clarification-card"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
@@ -230,8 +231,12 @@ export function ChatMessage({
     //   <WhyAnchor> renders nothing when either context is missing or when
     //   the rationale endpoint returns no curated row — safe to mount
     //   unconditionally.
-    const wfName = currentExecutionRun?.workflowName
     const tech = (message.metadata as any)?.technical as Record<string, any> | undefined
+    // Phase 2 design-faithful: prefer explicit rationale_id from the narrator
+    // when present (matches research_agents/research-data.js `rationaleId:'rnaseq:B'`).
+    // Falls back to legacy (workflow_name + phase_id) derivation otherwise.
+    const rationaleId = tech?.rationale_id as string | undefined
+    const wfName = currentExecutionRun?.workflowName
     const phaseId = (tech?.phase_id ?? tech?.phase_name ?? tech?.name) as string | undefined
     return (
       <div
@@ -251,7 +256,7 @@ export function ChatMessage({
         <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
         <span>{message.content}</span>
-        <WhyAnchor workflowName={wfName} phaseId={phaseId} />
+        <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} />
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
         )}
@@ -417,6 +422,34 @@ export function ChatMessage({
                 In panel
               </span>
             </div>
+          )}
+
+          {/* IntentClarificationCard — surfaces cross-intent ambiguity
+              (e.g. tool_search vs workflow_generation) from the backend's
+              _detectCrossIntentAmbiguity. User pick re-submits the query
+              with context.intentOverride set. */}
+          {!isUser && (message.metadata as any)?.intentClarification?.candidates?.length > 0 && (
+            <IntentClarificationCard
+              originalMessage={(message.metadata as any).intentClarification.originalMessage || ''}
+              originalIntent={(message.metadata as any).intentClarification.originalIntent || ''}
+              candidates={(message.metadata as any).intentClarification.candidates as IntentCandidate[]}
+              reason={(message.metadata as any).intentClarification.reason}
+              onPick={(intentType, originalMessage) => {
+                window.dispatchEvent(
+                  new CustomEvent('biomate:intent-clarification-resolved', {
+                    detail: { messageId: message.id, intentType, originalMessage },
+                  }),
+                )
+              }}
+              onSkip={() => {
+                window.dispatchEvent(
+                  new CustomEvent('biomate:intent-clarification-skipped', {
+                    detail: { messageId: message.id },
+                  }),
+                )
+              }}
+              className="mt-2"
+            />
           )}
 
           {/* ParamClarificationCard — surfaces missing-required / enum-violation

@@ -98,12 +98,18 @@ ssm_run() {
 
   echo "$description..."
 
+  # base64-encode the command so multiline / quotes / $(...) survive the AWS CLI
+  # `commands=["..."]` shorthand parser (which breaks on raw newlines and quotes).
+  # The host decodes and runs it under bash (SSM RunShellScript runs as root).
+  local cmd_b64
+  cmd_b64=$(printf '%s' "$cmd" | base64 | tr -d '\n')
+
   local cmd_id
   cmd_id=$(aws ssm send-command \
     --region "$AWS_REGION" \
     --instance-ids "$INSTANCE_ID" \
     --document-name "AWS-RunShellScript" \
-    --parameters "commands=[\"$cmd\"]" \
+    --parameters "commands=[\"echo $cmd_b64 | base64 -d | bash\"]" \
     --query 'Command.CommandId' \
     --output text)
 
@@ -165,36 +171,60 @@ ssm_run "if [ -f /opt/biomate/.env ]; then cp /opt/biomate/.env /opt/biomate/.en
   "Backing up existing .env"
 echo ""
 
-# Step 2: Verify host-managed env is present
-echo "=== Step 2: Environment variables (host-managed) ==="
+# Step 2: Materialize runtime env from AWS Secrets Manager (GitLab-style external config)
+echo "=== Step 2: Load runtime env from Secrets Manager ==="
 #
-# /opt/biomate/.env on the host is the source of truth for runtime env, injected
-# into the containers via `env_file:` in docker-compose.deploy.yml. It is managed
-# OUT OF BAND, not by this deploy:
-#   - edit it directly on the host, or
-#   - push it with: BIOMATE_PUSH_ENV=1 bash scripts/sync_to_dev.sh
-#     (manifest-driven, scp-based; see scripts/render_env_manifest.sh +
-#      deploy/biomate.env.manifest).
+# Runtime env VALUES live in AWS Secrets Manager at <env>/biomate/galaxy-env; the
+# repo holds only variable NAMES (deploy/biomate.env.manifest). Values never transit
+# GitHub, the repo, or a developer workstation. The deploy host pulls them with its
+# EC2 instance role (BioMateEc2DeployRole has secretsmanager:GetSecretValue on
+# <env>/biomate/*) and per-key upserts them into /opt/biomate/.env — host-only keys
+# are preserved. See scripts/load_env_from_secrets.sh + deploy/biomate.env.manifest.
 #
-# CI does NOT inject env here: the only SSM-reachable transport is S3, but the
-# EC2 instance role has no S3 read access and there is no deploy-temp bucket, so
-# an S3 hop would fail on the EC2 side. Step 1 already backed up the host .env.
-ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::warning:: /opt/biomate/.env missing — app may fail to start'; fi" \
-  "Checking host /opt/biomate/.env"
+# The loader is shipped to the host via SSM (base64-inlined; the instance role has no
+# S3 read, so no S3 hop is used). If the secret is missing/unreadable we fall back —
+# LOUDLY — to the host-managed /opt/biomate/.env so a not-yet-provisioned env still
+# deploys. Containers (Step 6) start AFTER this, so they read the refreshed .env.
+case "$ENVIRONMENT" in
+  production) SECRETS_ENV="prod" ;;
+  *)          SECRETS_ENV="$ENVIRONMENT" ;;
+esac
+LOAD_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load_env_from_secrets.sh"
+if [[ -f "$LOAD_SCRIPT_PATH" ]]; then
+  LOAD_B64=$(base64 < "$LOAD_SCRIPT_PATH" | tr -d '\n')
+  if ssm_run "echo $LOAD_B64 | base64 -d > /tmp/load_env_from_secrets.sh && BIOMATE_ENV='$SECRETS_ENV' bash /tmp/load_env_from_secrets.sh; rc=\$?; rm -f /tmp/load_env_from_secrets.sh; exit \$rc" \
+       "Loading env from Secrets Manager ($SECRETS_ENV/biomate/galaxy-env)"; then
+    echo "✓ Runtime env materialized from Secrets Manager"
+  else
+    echo "::warning:: Secrets Manager load failed for $SECRETS_ENV/biomate/galaxy-env — falling back to host-managed /opt/biomate/.env"
+    ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::error:: /opt/biomate/.env missing AND Secrets Manager load failed — app will not start'; exit 1; fi" \
+      "Verifying host /opt/biomate/.env (fallback)"
+  fi
+else
+  echo "::warning:: $LOAD_SCRIPT_PATH not found — using host-managed /opt/biomate/.env"
+  ssm_run "if [ -f /opt/biomate/.env ]; then echo \"env present: \$(grep -c '=' /opt/biomate/.env) var(s)\"; else echo '::error:: /opt/biomate/.env missing — app will not start'; exit 1; fi" \
+    "Verifying host /opt/biomate/.env"
+fi
 echo ""
 
-# Step 3: Pull docker-compose.deploy.yml
-echo "=== Step 3: Pull docker-compose.deploy.yml ==="
-ssm_run "
-  set -e
-  mkdir -p /opt/biomate
-  cd /opt/biomate
-
-  # Download latest docker-compose file from repo
-  curl -fsSL https://raw.githubusercontent.com/bioMate-AI/biomate/main/deploy/docker-compose.deploy.yml -o docker-compose.deploy.yml
-
-  echo 'Downloaded docker-compose.deploy.yml'
-" "Downloading docker-compose.deploy.yml"
+# Step 3: Ship docker-compose.deploy.yml to the host (from THIS checkout, via SSM)
+echo "=== Step 3: Ship docker-compose.deploy.yml ==="
+#
+# Previously curled from GitHub `main`, but the file lives on the deploy branch
+# (integration/next-phase), not main, so that 404'd. Shipping the local copy via
+# SSM base64 removes the branch/network coupling and guarantees the host runs the
+# exact compose from the deploying checkout — mirroring how Step 2 ships the loader.
+COMPOSE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/deploy/docker-compose.deploy.yml"
+if [[ ! -f "$COMPOSE_SRC" ]]; then
+  echo "Error: $COMPOSE_SRC not found"
+  exit 1
+fi
+COMPOSE_B64=$(base64 < "$COMPOSE_SRC" | tr -d '\n')
+# NOTE: keep this ssm_run command free of double quotes and $(...) — ssm_run wraps
+# it in commands=["..."] and the AWS CLI shorthand parser breaks on either. The
+# trailing grep -c prints the image-ref count as a sanity signal.
+ssm_run "mkdir -p /opt/biomate && echo $COMPOSE_B64 | base64 -d > /opt/biomate/docker-compose.deploy.yml && grep -c 'image:' /opt/biomate/docker-compose.deploy.yml" \
+  "Shipping docker-compose.deploy.yml"
 echo ""
 
 # Step 4: Login to ECR

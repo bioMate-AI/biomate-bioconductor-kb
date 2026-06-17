@@ -405,6 +405,40 @@ Run with AWS env vars set — the test is skipped (not failed) when `LAGO_API_KE
 
 ---
 
+## Run-State Persistence (Galaxy `_runs[]` → Redis)
+
+`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py` previously
+tracked every in-flight Nextflow run in an in-process Python dict
+(`_runs[]`). Galaxy's gunicorn recycles its single worker every ~3 min
+on dev (`workers:1, max_requests:1000`), which wiped that dict — runs
+got stuck in `running` forever, autoloop SSE never fired, every long
+workflow leaked silently.
+
+Stages 1–3c (commits `e92f06287` through `ee2556faf7`) shipped:
+- `RunStateStore` Protocol + `InMemoryRunStateStore` + `RedisRunStateStore`
+- `CompletionPoller` background thread that detects orphaned subprocesses
+  from any worker and runs the completion path
+- `orphan_finalizer.finalize_orphaned_run` — the handler the poller calls
+
+Dev env vars (set on `biomate-galaxy-dev` container):
+```
+RUN_STATE_STORE=redis     # opt into RedisRunStateStore
+REDIS_URL=rediss://...    # AWS ElastiCache (already set, billing-shared)
+```
+
+Without `RUN_STATE_STORE=redis`, the store falls back to InMemory (no
+crash) but the L3 fix is INACTIVE — cross-worker visibility requires
+Redis. Verify with:
+```
+docker exec biomate-galaxy-dev printenv RUN_STATE_STORE
+# expect: redis
+```
+
+Design doc: `docs/20260615_RUNS_PERSISTENCE_DESIGN.md`.
+Diagnosis: `docs/20260614_AUTOLOOP_SSE_SILENT_ON_ADMET.md`.
+
+---
+
 ## Local Service Map
 
 When running locally, all services are on `localhost`:

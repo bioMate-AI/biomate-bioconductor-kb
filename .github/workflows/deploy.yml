@@ -128,10 +128,11 @@ jobs:
         if: steps.verify.outputs.skip != 'true'
         # Deploys with the OIDC deploy-role creds configured above (SSM + EC2
         # describe + ECR describe — sufficient for pull/restart/healthcheck).
-        # Runtime env is NOT injected here: /opt/biomate/.env is host-managed
-        # (edit on host, or `BIOMATE_PUSH_ENV=1 bash scripts/sync_to_dev.sh`).
-        # The EC2 instance role has no S3 read, so an SSM→S3 env hop can't work;
-        # env injection lives in sync_to_dev.sh (scp-based) instead.
+        # Runtime env IS materialized in deploy.sh Step 2: the host pulls
+        # <env>/biomate/galaxy-env from AWS Secrets Manager with its EC2 instance
+        # role (no secret values transit GitHub) and upserts /opt/biomate/.env.
+        # Repo holds only var NAMES (deploy/biomate.env.manifest). If the secret
+        # is absent it falls back loudly to the host-managed .env.
         run: |
           chmod +x scripts/deploy.sh
           bash scripts/deploy.sh test "${{ steps.tag.outputs.tag }}"
