@@ -197,6 +197,37 @@ function extractBlockTexts(html: string): string[] {
 
 const SECTION_TABS = ["2.6.1", "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6"]
 
+/**
+ * Map CTD §2.6.X tab-id → the `section_type` vocabulary the
+ * IND assembler queries with in `_build_rag_context` (see
+ * ind_assembly.py:497–505). Without this mapping the recorder would
+ * emit `section_type:"2.6.4"` but the few-shot retriever asks for
+ * `"pbpk"` — the data lands but section-filtered retrieval misses
+ * and falls back to any-section ranking, losing precision.
+ *
+ * §2.6.1 nonclinical overview / introduction → "nonclinical_overview"
+ * §2.6.2 pharmacology written summary       → "pk_overview" (no dedicated
+ *                                              pharmacology slot in the
+ *                                              assembler vocab; PK is the
+ *                                              closest sibling for shared
+ *                                              prose conventions)
+ * §2.6.3 pharmacology tabulated             → "pk_overview"
+ * §2.6.4 pharmacokinetics written summary   → "pbpk"
+ * §2.6.5 pharmacokinetics tabulated         → "pbpk"
+ * §2.6.6 toxicology written summary         → "tox_genotox" (cardiac is a
+ *                                              sibling section in the
+ *                                              vocab; genotox is the
+ *                                              broader §2.6.6 default)
+ */
+export const SECTION_TYPE_BY_TAB: Record<string, string> = {
+  "2.6.1": "nonclinical_overview",
+  "2.6.2": "pk_overview",
+  "2.6.3": "pk_overview",
+  "2.6.4": "pbpk",
+  "2.6.5": "pbpk",
+  "2.6.6": "tox_genotox",
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,12 +245,21 @@ async function defaultRecordPairFn(payload: {
   prompt?: string
 }): Promise<void> {
   try {
-    await fetch("/api/regulatory_llm/pairs", {
+    const res = await fetch("/api/regulatory_llm/pairs", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
+    // Best-effort by design — never throw to the editor — but DO surface
+    // non-2xx in the console so a silently-401'd route doesn't make us
+    // think customer feedback is landing when it isn't.
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[regulatory-document-editor] /api/regulatory_llm/pairs ${res.status}`,
+      )
+    }
   } catch {
     // Recording is best-effort feedback; never disrupt the editor.
   }
@@ -396,12 +436,16 @@ export function RegulatoryDocumentEditor({
       if (!original || !current) continue
       if (current === original) continue
       recordedIndicesRef.current.add(i)
+      const tabId = sections[i] || ""
+      // Translate §2.6.X → assembler vocab so section-filtered few-shot
+      // retrieval in _build_rag_context can find these rows.
+      const sectionType = SECTION_TYPE_BY_TAB[tabId] || tabId
       try {
         const maybe = recordFn({
           chosen: current,
           rejected: original,
-          section_type: sections[i] || "",
-          prompt: molecule ? `IND §${sections[i] || ""} for ${molecule}` : "",
+          section_type: sectionType,
+          prompt: molecule ? `IND §${tabId} for ${molecule}` : "",
         })
         if (maybe && typeof (maybe as Promise<void>).catch === "function") {
           ;(maybe as Promise<void>).catch(() => {
