@@ -662,8 +662,48 @@ function OutputsTab({
   runId,
   invocationId,
 }: { outputs: OutputFile[]; runId: string; invocationId?: string }) {
+  // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
+  // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
+  // for completed runs because the Galaxy /api/nextflow/status endpoint is
+  // single-worker and slow, so the Node poller hits its 8s timeout and
+  // never refreshes the DB row. Workaround: when the prop is empty, hit
+  // /api/workflows/runs/:id/output_files which has its own S3 ListObjectsV2
+  // fallback (routes.ts:10160+) and presigns each entry.
+  const [fetched, setFetched] = useState<OutputFile[]>([]);
+  useEffect(() => {
+    if (outputs.length > 0 || !runId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(
+          `/api/workflows/runs/${encodeURIComponent(runId)}/output_files`,
+          { credentials: "include" },
+        );
+        if (!r.ok || cancelled) return;
+        const j = await r.json();
+        const arr = (j?.output_files || j?.outputs || []) as any[];
+        if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
+        setFetched(
+          arr.map((f) => {
+            const filePath = String(f?.s3_uri || f?.path || f?.s3_key || f?.name || "");
+            const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
+            const ext = String(
+              f?.extension ||
+                (name.includes(".") ? name.split(".").pop() : "") ||
+                "",
+            ).toLowerCase();
+            const parts = filePath.split("/").filter(Boolean);
+            const step = parts.length >= 2 ? parts[parts.length - 2] : "";
+            return { step, name, path: filePath, ext };
+          }),
+        );
+      } catch { /* silent — empty state still useful */ }
+    })();
+    return () => { cancelled = true; };
+  }, [runId, outputs.length]);
+  const effectiveOutputs = outputs.length > 0 ? outputs : fetched;
   // Total size summary (when present in the output records)
-  const totalCount = outputs.length;
+  const totalCount = effectiveOutputs.length;
   const reproUrl = `/api/nextflow/runs/${runId}/reproducibility`;
   // Phase 1 of docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md §11 — bulk ZIP is now
   // produced asynchronously by the jobs subsystem; the user clicks a
@@ -700,7 +740,7 @@ function OutputsTab({
     );
   }
 
-  const byStep = outputs.reduce<Record<string, OutputFile[]>>((acc, o) => {
+  const byStep = effectiveOutputs.reduce<Record<string, OutputFile[]>>((acc, o) => {
     (acc[o.step] = acc[o.step] || []).push(o);
     return acc;
   }, {});
