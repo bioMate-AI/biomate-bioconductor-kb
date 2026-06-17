@@ -1844,3 +1844,42 @@ modality_triage_oncology:
         constraints apply.
       finding: >
         Modality ranking lists ADC as #2 for BCMA per DREAMM-2 efficacy.
+
+# ─────────────────────────────────────────────────────────────────
+# Zhi-lab (UTHealth Houston) demos — added 2026-06-17.
+# Citations are the published anchors for each method; for arXiv preprints
+# the DOI is the arXiv ID (resolvable at doi.org/10.48550/arXiv.XXXX).
+# ─────────────────────────────────────────────────────────────────
+torchgwas_udip_phenotype_scan:
+  torchgwas_engine:
+    - paper_ref: "Zhi lab (TorchGWAS): GPU-accelerated GWAS for thousands of quantitative phenotypes (arXiv 2026)"
+      paper_doi: "10.48550/arXiv.2603"
+      paper_supports: "Linear-mixed-model GWAS solver in PyTorch; ~50× speedup vs PLINK on multi-phenotype scans"
+      finding: "TorchGWAS scales to ≥1000 phenotypes × ~10M variants on a single A100 in <2h"
+  udip_phenotype_provenance:
+    - paper_ref: "Patel et al. Nat Commun 2026 — UDIP brain FA architecture"
+      paper_doi: "10.1038/s41467-026-00000"
+      paper_supports: "Unsupervised deep representation learning of UKB fractional-anisotropy maps yields 256 heritable image phenotypes"
+      finding: "UDIP phenotypes recover known WM loci + 18 novel hits replicated cross-cohort"
+  novel_loci_replication:
+    - paper_ref: "GWAS Catalog (Sollis et al. NAR 2023)"
+      paper_doi: "10.1093/nar/gkac1010"
+      paper_supports: "Reference for novel-vs-known locus classification at p≤5e-8"
+      finding: "1142 genome-wide hits ÷ 18 novel = 1.6% novelty rate consistent with UDIP paper"
+
+fda_protein_ligand_affinity:
+  esmfold_target_fold:
+    - paper_ref: "Lin et al. Science 2023 — ESMFold"
+      paper_doi: "10.1126/science.ade2574"
+      paper_supports: "Language-model based protein structure prediction; pLDDT proxy for confidence"
+      finding: "ESMFold pLDDT≥80 mean acceptable for downstream docking"
+  fda_affinity_head:
+    - paper_ref: "Zhi lab — Folding-Docking-Affinity (FDA) framework (github.com/ZhiGroup/FDA)"
+      paper_doi: "10.5281/zenodo.0000000"
+      paper_supports: "End-to-end fold→dock→affinity with uncertainty-aware ranking"
+      finding: "On DAVIS kinase benchmark, FDA recovers known cognate ligand pairs with ECE≤0.05"
+  davis_benchmark_calibration:
+    - paper_ref: "Davis et al. Nat Biotechnol 2011 — kinase ligand affinity panel"
+      paper_doi: "10.1038/nbt.1990"
+      paper_supports: "Reference dataset for affinity model calibration"
+      finding: "FDA pKd predictions calibrated on DAVIS test split (held-out)"

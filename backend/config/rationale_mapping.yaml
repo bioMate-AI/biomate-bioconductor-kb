@@ -1038,3 +1038,74 @@ chains:
         qc_gate_name: bcma_carvykti_abecma
         confirmed: true
         curated_by: tier0-auto-from-spec
+
+# ─────────────────────────────────────────────────────────────────
+# Zhi-lab chains (2026-06-17). Phase→gate mapping derived from .nf
+# header comments. Curator: zhi-auto-from-spec.
+# ─────────────────────────────────────────────────────────────────
+  torchgwas_udip_chain:
+    chain_id: 69
+    domain: population_genetics
+    category: zhi_lab
+    phases:
+      - phase_id: A
+        step_role: zhi_lab_pipeline
+        step_workflow_name: torchgwas_udip_phenotype_scan
+        rationale_id: torchgwas_udip_chain:A
+        qc_gate_name: udip_phenotype_provenance
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+      - phase_id: B
+        step_role: zhi_lab_pipeline
+        step_workflow_name: torchgwas_udip_phenotype_scan
+        rationale_id: torchgwas_udip_chain:B
+        qc_gate_name: torchgwas_engine
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+      - phase_id: C
+        step_role: zhi_lab_pipeline
+        step_workflow_name: torchgwas_udip_phenotype_scan
+        rationale_id: torchgwas_udip_chain:C
+        qc_gate_name: torchgwas_engine
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+      - phase_id: D
+        step_role: zhi_lab_pipeline
+        step_workflow_name: torchgwas_udip_phenotype_scan
+        rationale_id: torchgwas_udip_chain:D
+        qc_gate_name: novel_loci_replication
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+  fda_ligand_screen_chain:
+    chain_id: 70
+    domain: drug_discovery
+    category: zhi_lab
+    phases:
+      - phase_id: A
+        step_role: zhi_lab_pipeline
+        step_workflow_name: fda_protein_ligand_affinity
+        rationale_id: fda_ligand_screen_chain:A
+        qc_gate_name: esmfold_target_fold
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+      - phase_id: B
+        step_role: zhi_lab_pipeline
+        step_workflow_name: fda_protein_ligand_affinity
+        rationale_id: fda_ligand_screen_chain:B
+        qc_gate_name: fda_affinity_head
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+      - phase_id: C
+        step_role: zhi_lab_pipeline
+        step_workflow_name: fda_protein_ligand_affinity
+        rationale_id: fda_ligand_screen_chain:C
+        qc_gate_name: fda_affinity_head
+        confirmed: true
+        curated_by: zhi-auto-from-spec
+      - phase_id: D
+        step_role: zhi_lab_pipeline
+        step_workflow_name: fda_protein_ligand_affinity
+        rationale_id: fda_ligand_screen_chain:D
+        qc_gate_name: davis_benchmark_calibration
+        confirmed: true
+        curated_by: zhi-auto-from-spec
