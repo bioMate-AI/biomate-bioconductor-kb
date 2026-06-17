@@ -9292,6 +9292,33 @@ ${paramLines || '(none recorded)'}`;
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
+          } else if (
+            // P0 fix (2026-06-17 after-run audit): the terminal-transition
+            // branch above writes nextflowStatus ONCE, but s3_output_files
+            // can lag the status flip by seconds → the saved snapshot has
+            // empty outputs. Refresh the snapshot post-terminal when the
+            // current Nextflow status has MORE s3_output_files than the
+            // stored one. Hide-when-empty: never overwrite a populated
+            // snapshot with an empty one (defends against transient Galaxy
+            // hiccups).
+            (run.execution.status === 'completed' || run.execution.status === 'failed') &&
+            Array.isArray(nextflowStatus?.s3_output_files)
+          ) {
+            const storedCount = Array.isArray(run.execution.nextflowStatus?.s3_output_files)
+              ? run.execution.nextflowStatus.s3_output_files.length
+              : 0;
+            const liveCount = nextflowStatus.s3_output_files.length;
+            if (liveCount > storedCount) {
+              console.log(
+                `[ExecutionRun] post-terminal nextflowStatus refresh: ${run.id} s3_output_files ${storedCount} → ${liveCount}`,
+              );
+              run = await storage.updateExecutionRun(run.id, {
+                execution: {
+                  ...run.execution,
+                  nextflowStatus: nextflowStatus,
+                },
+              }) || run;
+            }
           }
         } catch (statusError: any) {
           console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
