@@ -1109,3 +1109,100 @@ chains:
         qc_gate_name: davis_benchmark_calibration
         confirmed: true
         curated_by: zhi-auto-from-spec
+
+  # ── Zhao-lab chains (2026-06-17) ──
+  tumor_reactive_t_cell_chain:
+    chain_id: 71
+    domain: immuno_oncology
+    category: zhao_lab
+    # 3-step chain — phase_id encoded as <step>.<letter>
+    phases:
+      - phase_id: 1.A
+        step_role: zhao_lab_turep
+        step_workflow_name: turep
+        rationale_id: tumor_reactive_t_cell_chain:1.A
+        qc_gate_name: scrnaseq_input_qc
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 1.B
+        step_role: zhao_lab_turep
+        step_workflow_name: turep
+        rationale_id: tumor_reactive_t_cell_chain:1.B
+        qc_gate_name: turep_tumor_reactive_prediction
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 1.C
+        step_role: zhao_lab_turep
+        step_workflow_name: turep
+        rationale_id: tumor_reactive_t_cell_chain:1.C
+        qc_gate_name: turep_tumor_reactive_prediction
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 2.A
+        step_role: zhao_lab_polarization
+        step_workflow_name: scupa_polarization
+        rationale_id: tumor_reactive_t_cell_chain:2.A
+        qc_gate_name: scupa_polarization_scoring
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 2.B
+        step_role: zhao_lab_polarization
+        step_workflow_name: scupa_polarization
+        rationale_id: tumor_reactive_t_cell_chain:2.B
+        qc_gate_name: scupa_polarization_scoring
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 2.C
+        step_role: zhao_lab_polarization
+        step_workflow_name: scupa_polarization
+        rationale_id: tumor_reactive_t_cell_chain:2.C
+        qc_gate_name: scupa_polarization_scoring
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 3.A
+        step_role: zhao_lab_neoantigen
+        step_workflow_name: immuneapp_hla_screen
+        rationale_id: tumor_reactive_t_cell_chain:3.A
+        qc_gate_name: immuneapp_mhc_i_prediction
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 3.B
+        step_role: zhao_lab_neoantigen
+        step_workflow_name: immuneapp_hla_screen
+        rationale_id: tumor_reactive_t_cell_chain:3.B
+        qc_gate_name: immuneapp_mhc_i_prediction
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: 3.C
+        step_role: zhao_lab_neoantigen
+        step_workflow_name: immuneapp_hla_screen
+        rationale_id: tumor_reactive_t_cell_chain:3.C
+        qc_gate_name: neoantigen_ranking
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+  scgwas_immunology_chain:
+    chain_id: 72
+    domain: population_genetics
+    category: zhao_lab
+    phases:
+      - phase_id: A
+        step_role: zhao_lab_scgwas
+        step_workflow_name: scgwas_immune_cell
+        rationale_id: scgwas_immunology_chain:A
+        qc_gate_name: gwas_sumstats_input
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: B
+        step_role: zhao_lab_scgwas
+        step_workflow_name: scgwas_immune_cell
+        rationale_id: scgwas_immunology_chain:B
+        qc_gate_name: scgwas_cell_type_enrichment
+        confirmed: true
+        curated_by: zhao-auto-from-spec
+      - phase_id: C
+        step_role: zhao_lab_scgwas
+        step_workflow_name: scgwas_immune_cell
+        rationale_id: scgwas_immunology_chain:C
+        qc_gate_name: scgwas_cell_type_enrichment
+        confirmed: true
+        curated_by: zhao-auto-from-spec
