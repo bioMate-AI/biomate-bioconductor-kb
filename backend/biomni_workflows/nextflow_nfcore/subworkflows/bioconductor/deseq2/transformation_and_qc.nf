@@ -178,7 +178,7 @@ process BIOC_DESEQ2_TRANSFORMATION_AND_QC {
     # > 2 standard deviations above the fitted curve.
     .disp_outlier_pct <- tryCatch({
       .dds_disp <- tryCatch(estimateDispersions(dds), error = function(e) dds)
-      .outliers <- mcols(.dds_disp)$dispOutlier
+      .outliers <- mcols(.dds_disp)\$dispOutlier
       if (!is.null(.outliers)) round(mean(.outliers, na.rm = TRUE), 4) else NA_real_
     }, error = function(e) NA_real_)
     .gates_by_label[["dispersion/size-factor estimation"]] <- list(
@@ -192,7 +192,7 @@ process BIOC_DESEQ2_TRANSFORMATION_AND_QC {
     # diagnostic MA/PCA QC → pc1_var_explained
     .pc1_var <- tryCatch({
       .pca <- prcomp(t(assay(vsd)))
-      .vars <- (.pca$sdev^2) / sum(.pca$sdev^2)
+      .vars <- (.pca\$sdev^2) / sum(.pca\$sdev^2)
       round(.vars[1] * 100, 2)
     }, error = function(e) NA_real_)
     .gates_by_label[["diagnostic MA/PCA QC"]] <- list(
