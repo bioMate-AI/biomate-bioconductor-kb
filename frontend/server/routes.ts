@@ -4423,6 +4423,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rationale lookup — per-event (why?) anchor backing for chain phases.
+  // Backend is /api/rationale/{rationale_id:path} in nextflow_executor.py.
+  // Unauthed (curated rationale is non-sensitive); returns {} when no row.
+  app.get(/^\/api\/rationale\/(.+)$/, async (req: any, res: any) => {
+    try {
+      const rid = req.params[0];
+      const response = await (galaxyAPIProxy.client as any).get(
+        `/api/rationale/${encodeURIComponent(rid)}`
+      );
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 404;
+      return res.status(status).json(err.response?.data || {});
+    }
+  });
+
   // Methods report download — generates a publication-quality report.
   // Routing:
   //   a) If invocationId is a Galaxy Invocation (has galaxyInvocationId) → proxy to Galaxy backend
@@ -6676,6 +6692,12 @@ ${paramLines || '(none recorded)'}`;
     if (missing.length) {
       return res.status(400).json({ error: "missing_required_fields", missing });
     }
+    try {
+      // The interaction-record path was removed in a prior refactor; the handler
+      // currently acks the validated payload without persisting. Re-add the
+      // memoryService.recordInteraction(...) call when re-introducing memory writes.
+      res.json({ success: true, recorded: false, sessionId });
+    } catch (error: any) {
       // Foreign-key violation = session row doesn't exist yet → 404 is more honest than 500
       const msg = String(error?.message ?? "");
       if (msg.includes("violates foreign key constraint") && msg.includes("session_id")) {
