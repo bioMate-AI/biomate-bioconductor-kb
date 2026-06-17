@@ -52,18 +52,12 @@ async function loginShared(page: Page): Promise<boolean> {
   let token = "";
   if (resp.ok()) {
     token = (await resp.json())?.token || "";
-  } else if (resp.status() === 401 || resp.status() === 404) {
-    const reg = await page.request.post(`${BASE_URL}/api/auth/register`, {
-      headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
-      data: {
-        fullName: "After Run Audit",
-        email: FIXTURE_EMAIL,
-        password: FIXTURE_PASSWORD,
-        termsAccepted: true,
-        privacyAccepted: true,
-      },
-    });
-    if (reg.ok()) token = (await reg.json())?.token || "";
+  } else {
+    // NEVER register-on-fail. Per CLAUDE.md the fixture user must already
+    // exist (lifeifei163361@163.com). Login failure means a credential or
+    // account-state issue; surface it instead of creating accounts.
+    console.error(`[login] FAILED status=${resp.status()} — fixture user must already exist; not registering`);
+    return false;
   }
   if (!token) return false;
   const url = new URL(BASE_URL);
