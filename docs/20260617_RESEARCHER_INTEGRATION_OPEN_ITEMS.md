@@ -25,7 +25,44 @@ Repo recon revealed the four tools are NOT equally ready. Updated table:
 3. **ZZ01 turep only** (not the full 3-step chain) — wrap the `predict_tr()` Python API as a single workflow. Stub Scupa + ImmuneApp until later. ~1 week.
 4. **Z02 FDA** — **defer until a clean inference entry point exists.** Reach out to Zhi lab asking: "do you have a `predict(target_fasta, ligand_sdf) → affinity` function we can call, or do we need to build the inference wrapper ourselves?" If yes → ~3 days; if no → ~3 weeks.
 
-**Implication for the demo recording schedule:** ZZ02 + Z01 can record real-data demos within 1–2 weeks. The Zhi-lab Z02 demo + Zhao-lab ZZ01 full-chain demo are ≥1 month out; record stub-data versions of those for pitch material in the interim.
+**Implication for the demo recording schedule:** ZZ02 + Z01 can record real-data demos within 1–2 weeks. **Z02 (FDA) is dropped from the integration backlog** — the README is a paper-reproduction recipe (2 conda envs, no inference CLI, no example data). Revisit only if Zhi lab provides a clean `predict(target, ligand)` function. The Zhao-lab ZZ01 full-chain demo is ≥1 month out (Scupa license + 3-tool orchestration); record stub-data version for pitch material in the interim.
+
+## Verified test data — from the actual papers
+
+Looked up each paper's published-cohort / shipped-example to ground the real-data demos:
+
+### Z01 — TorchGWAS + UDIP (medRxiv 2025.07.04.25330856; PMC12458571)
+
+> "Trained an unsupervised deep neural network using FA images from **6,000 UK Biobank participants** to derive a 128-dimensional representation (UDIP-FAs). A GWAS was performed on the UDIP-FAs using **25,875 UKB participants**. Explored genetic associations and causal effects associated with **24 brain disorder traits**."
+
+- **TorchGWAS-only smoke test (today):** shipped `examples/toy/` — 64 samples × 12 variants × 3 phenotypes × 4 covariates. Tiny but runs the full preprocessing + LMM solver. Sufficient to prove the wrap works end-to-end.
+- **Realistic-scale demo without UKB credential:** 1000 Genomes Phase 3 (2,504 samples, ~80M variants, fully open) + simulated quantitative phenotypes drawn from a small heritable component. Demonstrates the GPU scaling claim without UKB gating. ~30 GPU-min for 256 phenotypes × 80M variants.
+- **Paper-faithful demo (requires UKB approval):** 25,875 UKB participants × 256 UDIP-FA phenotypes × UKB imputed variants. Recovers the paper's headline findings (e.g. HFE/HLA region). UKB application cycle is ~3 months — defer.
+- **UDIP-FA encoder data (Phase A):** the lab's encoder was trained on the UKB 6,000-subject FA cohort. For an open-data analog, **Human Connectome Project** (1,200 subjects, FA maps available) is the closest, but the encoder may not transfer without retraining. For the demo, use a **pre-computed UDIP-FA phenotype CSV** if the lab will share one, or just use a synthetic 256-column phenotype matrix labeled "UDIP_FA_001…256" and disclose it in the tip card.
+
+### ZZ02 — scGWAS (Jia et al., Genome Biology 2022, PMC9575201)
+
+> "Demonstrated scGWAS in **40 GWAS datasets (avg N ≈ 154,000)** using **18 scRNA-seq datasets from 9 major human/mouse tissues (totaling 1.08 million cells)** and identified **2,533 trait × cell-type associations.**"
+
+- **All test data ships with the repo.** `bsml320/scGWAS/example/` plus the 18 pre-processed scRNA panels in the repo cover every demo we'd want. No download, no UKB, no GPU.
+- **Suggested demo trait:** Schizophrenia × pyramidal neurons (iconic published result) or Crohn's disease × Tregs. Both are within the 2,533 documented associations and resonate clinically.
+- **Compute estimate:** 1× CPU node, ~15 min for the full example. Runs locally without AWS.
+
+### ZZ01 Step 1 — turep alone (bsml320/turep)
+
+- **Pretrained weights auto-download on first run** via `load_model()`. No setup data needed.
+- **Test dataset:** the lab maintains a separate `turep_notebooks` repo with example PBMC/tumor h5ad. Need to fetch one. Alternatively, **any public 10x melanoma scRNA dataset** (e.g. Sade-Feldman 2018, GEO GSE120575 — 16k cells, melanoma TILs) works because turep is a cross-cancer classifier.
+- **Compute:** 1× GPU, ~15–30 min depending on cell count.
+
+## Practical demo-data plan (week-by-week)
+
+| Week | Action | Cost |
+|---|---|---|
+| 1 | Wrap **scGWAS** real-data using shipped `example/`. Record ZZ02 demo. | Dev time only, no GPU |
+| 1 | Wrap **TorchGWAS** with shipped `examples/toy/` for smoke + 1000G + simulated phenotypes for realistic scale. Record Z01 demo (use synthetic UDIP-FA phenotype labels with disclosure tip). | ~30 GPU-min per run |
+| 2 | Apply for UKB credential (parallel to demo work; for future paper-faithful demos) | Free, ~3 mo cycle |
+| 3 | Wrap **turep alone** with Sade-Feldman GSE120575 (downloadable melanoma scRNA). Record a ZZ01-stub variant. | ~30 GPU-min |
+| 4 | Outreach to both labs with the 3 working demos + ask for (a) Scupa license, (b) FDA inference entry-point, (c) UKB credential sponsorship if needed | — |
 
 ## License blockers
 
