@@ -53,9 +53,9 @@ process BIOC_TCGAUTILS_TCGA_BARCODE_AND_ASSAY_PIPELINE {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(TCGAutils)
+    library(SummarizedExperiment)
     library(rtracklayer)
     library(MultiAssayExperiment)
     library(GenomicRanges)

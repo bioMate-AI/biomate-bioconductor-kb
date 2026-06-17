@@ -52,9 +52,9 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(CoreGx)
+    library(SummarizedExperiment)
     library(data.table)
     
     # ==========================================

@@ -53,9 +53,9 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
           }
         }
     
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(Rarr)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # ==========================================

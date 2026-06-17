@@ -58,9 +58,9 @@ process BIOC_NEWWAVE_SCRNA_DIMENSIONALITY_REDUCTION_BATCH_CORRECTION {
           }
         }
         
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(NewWave)
+    library(SummarizedExperiment)
     library(Rtsne)
     library(ggplot2)
     

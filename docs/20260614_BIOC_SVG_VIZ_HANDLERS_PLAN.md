@@ -1,28 +1,8 @@
-# Bioconductor SVG Viz Handlers — Plan (closed as redundant)
+# Bioconductor SVG Viz Handlers — Plan (not yet wired)
 
 Date: 2026-06-14
 Branch: `bioc/v2-qc-audit-panel`
-Status: **CLOSED — not needed in dev.** Audit (2026-06-14 follow-up) found:
-
-| viz type | Dev rendering today | Need a custom component? |
-|---|---|---|
-| volcano / dmp_volcano / pb_volcano | real PNG → existing `case 'image'` in `step-output-preview.tsx` | No |
-| umap | real PNG | No |
-| dmr_tracks / manhattan | real PNG | No |
-| gsea_bar / go_bar / bar | structured data via Wave 2-2 `findings_data.json` `figures[]` adapter → existing `FigBars` in `v2/AfterRunReport.tsx` | No |
-| qc_violin / probe_retention | same `figures[]` path → existing `FigQc` | No |
-| composition-style | same `figures[]` path → existing `FigComposition` | No |
-| marker_heatmap / celltype heatmap | real PNG (no dedicated heatmap component in dev — image fallback works) | Future enhancement, not blocking |
-
-The bioc handoff *prototype* needs synthetic SVG previews because the prototype has no real files. The *dev product* doesn't — real bioc runs emit real PNGs that the existing image renderer handles, and structured numbers route through F's `figures[]` adapter into existing `FigBars / FigComposition / FigQc` (shipped task #40).
-
-The dispatch-path gap (the `viz` token from the prototype's `data.js` never reaches dev's `step-output-preview.tsx`) is also moot — dev routes by file extension, not by viz token.
-
-If future tutorial recordings need fresh synthetic previews, the work belongs in the prototype `Modals.jsx`, not in dev.
-
----
-
-## Original plan (kept for reference)
+Status: PLAN ONLY — no v2 dispatcher exists to wire SVG viz handlers into.
 
 ## Problem
 

@@ -53,9 +53,9 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
           }
         }
     
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(scp)
+    library(SummarizedExperiment)
     library(QFeatures)
     library(ggplot2)
     

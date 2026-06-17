@@ -60,9 +60,9 @@ process BIOC_CLUSTERFOLDSIMILARITY_SINGLE_CELL_CLUSTER_SIMILARITY {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(Seurat)
+    library(SummarizedExperiment)
     library(ClusterFoldSimilarity)
     library(BiocParallel)
     library(dplyr)

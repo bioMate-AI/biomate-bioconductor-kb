@@ -1,0 +1,3010 @@
+{
+  "timestamp": "20260617_140705",
+  "stats": {
+    "biomate": {
+      "T01": {
+        "acc_mean": 8.4,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 80,
+        "stable": false
+      },
+      "T02": {
+        "acc_mean": 3.0,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 100,
+        "stable": true
+      },
+      "T03": {
+        "acc_mean": 8.0,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 100,
+        "stable": true
+      },
+      "T04": {
+        "acc_mean": 4.0,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 100,
+        "stable": true
+      },
+      "T05": {
+        "acc_mean": 8.2,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 60,
+        "stable": false
+      }
+    },
+    "gemini": {
+      "T01": {
+        "acc_mean": 5.6,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 80,
+        "stable": false
+      },
+      "T02": {
+        "acc_mean": 4.0,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 60,
+        "stable": false
+      },
+      "T03": {
+        "acc_mean": 9.0,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 60,
+        "stable": false
+      },
+      "T04": {
+        "acc_mean": 8.0,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 100,
+        "stable": true
+      },
+      "T05": {
+        "acc_mean": 3.8,
+        "acc_max": 10,
+        "struct_mean": 5.0,
+        "stability_pct": 80,
+        "stable": false
+      }
+    }
+  },
+  "raw_results": {
+    "biomate": {
+      "T01": [
+        {
+          "run": 1,
+          "elapsed_s": 4.9,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "24",
+                "rank": "3"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "5",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "5",
+                "adcc_score": "5",
+                "manufacturability_score": "5",
+                "composite_score": "30",
+                "rank": "1"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "3",
+                "tumor_penetration_score": "3",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "18",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "4",
+                "immunogenicity_score": "3",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "23",
+                "rank": "4"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "5",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "5",
+                "adcc_score": "4",
+                "manufacturability_score": "5",
+                "composite_score": "28",
+                "rank": "2"
+              }
+            ],
+            "recommendation": "IgG-scFv",
+            "disqualified": "BiTE | Low overall composite score due to limited half-life and tumor penetration.",
+            "key_mechanism": "IgG-scFv ranks highest due to superior manufacturability and balanced efficacy across all evaluated parameters.",
+            "rank1_extracted": "IgG-scFv",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 0,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 4.2,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "24",
+                "rank": "3"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "5",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "4",
+                "adcc_score": "5",
+                "manufacturability_score": "5",
+                "composite_score": "29",
+                "rank": "1"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "3",
+                "tumor_penetration_score": "5",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "20",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "3",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "23",
+                "rank": "4"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "5",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "5",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "27",
+                "rank": "2"
+              }
+            ],
+            "recommendation": "IgG-scFv",
+            "disqualified": "BiTE | Limited half-life and manufacturability issues",
+            "key_mechanism": "IgG-scFv offers superior manufacturability and immunogenicity balance, crucial for NSCLC treatment.",
+            "rank1_extracted": "IgG-scFv",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 0,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 7.3,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "24",
+                "rank": "3"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "5",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "5",
+                "adcc_score": "5",
+                "manufacturability_score": "5",
+                "composite_score": "30",
+                "rank": "1"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "3",
+                "tumor_penetration_score": "5",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "20",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "24",
+                "rank": "3"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "25",
+                "rank": "2"
+              }
+            ],
+            "recommendation": "IgG-scFv",
+            "disqualified": "BiTE | Limited half-life and manufacturability issues",
+            "key_mechanism": "IgG-scFv offers superior overall scores, particularly in manufacturability and ADCC, making it the best candidate for NSCLC treatment.",
+            "rank1_extracted": "IgG-scFv",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 0,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 4.1,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "3",
+                "manufacturability_score": "4",
+                "composite_score": "23",
+                "rank": "2"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "5",
+                "immunogenicity_score": "3",
+                "half_life_score": "5",
+                "tumor_penetration_score": "3",
+                "adcc_score": "4",
+                "manufacturability_score": "5",
+                "composite_score": "25",
+                "rank": "1"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "3",
+                "immunogenicity_score": "2",
+                "half_life_score": "2",
+                "tumor_penetration_score": "5",
+                "adcc_score": "2",
+                "manufacturability_score": "3",
+                "composite_score": "17",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "4",
+                "immunogenicity_score": "3",
+                "half_life_score": "3",
+                "tumor_penetration_score": "4",
+                "adcc_score": "3",
+                "manufacturability_score": "4",
+                "composite_score": "21",
+                "rank": "3"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "3",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "3",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "22",
+                "rank": "4"
+              }
+            ],
+            "recommendation": "IgG-scFv",
+            "disqualified": "BiTE | Low half-life and immunogenicity scores",
+            "key_mechanism": "IgG-scFv offers superior manufacturability and half-life, crucial for therapeutic efficacy in NSCLC.",
+            "rank1_extracted": "IgG-scFv",
+            "structure_score": 5
+          },
+          "accuracy_score": 10,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 2,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 6.3,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "4",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "24",
+                "rank": "3"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "5",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "4",
+                "adcc_score": "5",
+                "manufacturability_score": "5",
+                "composite_score": "29",
+                "rank": "1"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "3",
+                "tumor_penetration_score": "5",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "20",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "4",
+                "immunogenicity_score": "4",
+                "half_life_score": "4",
+                "tumor_penetration_score": "3",
+                "adcc_score": "4",
+                "manufacturability_score": "4",
+                "composite_score": "23",
+                "rank": "4"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "5",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "4",
+                "adcc_score": "5",
+                "manufacturability_score": "4",
+                "composite_score": "27",
+                "rank": "2"
+              }
+            ],
+            "recommendation": "IgG-scFv",
+            "disqualified": "BiTE | Limited half-life and manufacturability issues",
+            "key_mechanism": "IgG-scFv offers superior immunogenicity and manufacturability, crucial for effective NSCLC treatment.",
+            "rank1_extracted": "IgG-scFv",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 0,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        }
+      ],
+      "T02": [
+        {
+          "run": 1,
+          "elapsed_s": 6.2,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "Anti-CD3 targets T cells, facilitating efficient delivery to the immune system.",
+            "fratricide_moiety": "anti-CD8",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Kymriah / Novartis",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 3.4,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "Anti-CD3 targets T cells, facilitating efficient delivery to the immune system.",
+            "fratricide_moiety": "anti-CD8",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Kymriah / Novartis",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 5.4,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "Anti-CD3 targets T cells, facilitating efficient delivery to the immune system.",
+            "fratricide_moiety": "anti-CD8",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Kymriah / Novartis",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 4.0,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "Anti-CD3 targets T cells, facilitating efficient delivery to the immune system.",
+            "fratricide_moiety": "anti-CD8",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Kymriah / Novartis",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 3.0,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "Anti-CD3 targets T cells, facilitating efficient delivery to the immune system.",
+            "fratricide_moiety": "anti-CD8",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Kymriah / Novartis",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 0
+          },
+          "structure_score": 5
+        }
+      ],
+      "T03": [
+        {
+          "run": 1,
+          "elapsed_s": 4.1,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8.8",
+            "mechanism": "nonsense-codon",
+            "grna_site": "Exon 1",
+            "verve102_preferred": "YES",
+            "verve101_issue": "Potential immunogenicity due to off-target effects.",
+            "publication": "Musunuru et al. 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 0,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 3.5,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8.8",
+            "mechanism": "Nonsense-codon",
+            "grna_site": "Exon 1",
+            "verve102_preferred": "YES",
+            "verve101_issue": "Potential immunogenicity due to off-target effects",
+            "publication": "Musunuru et al. 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 0,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 3.5,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8.8",
+            "mechanism": "nonsense-codon",
+            "grna_site": "Exon 4",
+            "verve102_preferred": "YES",
+            "verve101_issue": "Potential immunogenicity due to off-target effects.",
+            "publication": "Musunuru 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 0,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 4.5,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8.8",
+            "mechanism": "nonsense-codon",
+            "grna_site": "Exon 4",
+            "verve102_preferred": "YES",
+            "verve101_issue": "Potential immunogenicity due to off-target effects.",
+            "publication": "Musunuru 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 0,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 5.5,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8.8",
+            "mechanism": "nonsense-codon",
+            "grna_site": "Exon 4",
+            "verve102_preferred": "YES",
+            "verve101_issue": "Potential immunogenicity due to off-target effects.",
+            "publication": "Musunuru 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 0,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        }
+      ],
+      "T04": [
+        {
+          "run": 1,
+          "elapsed_s": 6.7,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "2",
+                "gcgr_score": "3",
+                "mash_composite": "4",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "4",
+                "gipr_score": "5",
+                "gcgr_score": "3",
+                "mash_composite": "5",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "3",
+                "gipr_score": "4",
+                "gcgr_score": "5",
+                "mash_composite": "3",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "2",
+                "gipr_score": "3",
+                "gcgr_score": "2",
+                "mash_composite": "2",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "tirzepatide",
+            "t2d_winner": "semaglutide",
+            "gcgr_liver": "medium",
+            "key_insight": "Tirzepatide's dual receptor activity provides superior efficacy for MASH, while semaglutide's GLP-1 specificity is more effective for T2D.",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 0,
+            "t2d_winner_correct": 2,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 5.1,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "2",
+                "mash_composite": "8",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "4",
+                "gipr_score": "5",
+                "gcgr_score": "3",
+                "mash_composite": "12",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "3",
+                "gipr_score": "4",
+                "gcgr_score": "5",
+                "mash_composite": "12",
+                "mash_rank": "1",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "2",
+                "gipr_score": "2",
+                "gcgr_score": "1",
+                "mash_composite": "5",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "tirzepatide",
+            "t2d_winner": "semaglutide",
+            "gcgr_liver": "medium",
+            "key_insight": "Tirzepatide's dual receptor activity provides superior efficacy in MASH, while semaglutide's GLP-1 specificity is more effective for T2D.",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 0,
+            "t2d_winner_correct": 2,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 3.7,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "2",
+                "gcgr_score": "1",
+                "mash_composite": "4",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "4",
+                "gipr_score": "5",
+                "gcgr_score": "2",
+                "mash_composite": "5",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "3",
+                "gipr_score": "4",
+                "gcgr_score": "5",
+                "mash_composite": "3",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "2",
+                "gipr_score": "3",
+                "gcgr_score": "3",
+                "mash_composite": "2",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "tirzepatide",
+            "t2d_winner": "semaglutide",
+            "gcgr_liver": "medium",
+            "key_insight": "Tirzepatide's dual receptor activity provides superior efficacy in MASH compared to semaglutide, which is more effective for T2D due to its specific GLP1R targeting.",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 0,
+            "t2d_winner_correct": 2,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 3.9,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "2",
+                "mash_composite": "4",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "4",
+                "gipr_score": "5",
+                "gcgr_score": "3",
+                "mash_composite": "5",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "3",
+                "gipr_score": "4",
+                "gcgr_score": "5",
+                "mash_composite": "3",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "2",
+                "gipr_score": "2",
+                "gcgr_score": "1",
+                "mash_composite": "2",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "tirzepatide",
+            "t2d_winner": "semaglutide",
+            "gcgr_liver": "medium",
+            "key_insight": "Tirzepatide's dual receptor activity provides superior efficacy in MASH compared to semaglutide's GLP-1 specificity, which is more effective for T2D.",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 0,
+            "t2d_winner_correct": 2,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 5.3,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "2",
+                "mash_composite": "8",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "4",
+                "gipr_score": "5",
+                "gcgr_score": "3",
+                "mash_composite": "12",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "3",
+                "gipr_score": "4",
+                "gcgr_score": "5",
+                "mash_composite": "12",
+                "mash_rank": "1",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "2",
+                "gipr_score": "2",
+                "gcgr_score": "1",
+                "mash_composite": "5",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "tirzepatide",
+            "t2d_winner": "semaglutide",
+            "gcgr_liver": "medium",
+            "key_insight": "Tirzepatide's dual receptor activity provides superior efficacy in MASH, while semaglutide's GLP-1 specificity is more effective for T2D.",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 0,
+            "t2d_winner_correct": 2,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 0
+          },
+          "structure_score": 5
+        }
+      ],
+      "T05": [
+        {
+          "run": 1,
+          "elapsed_s": 4.5,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "25",
+                "rank": "1"
+              },
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "6",
+                "safety_score": "5",
+                "efficacy_precedent": "6",
+                "cmc_score": "6",
+                "composite": "23",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "5",
+                "safety_score": "4",
+                "efficacy_precedent": "5",
+                "cmc_score": "7",
+                "composite": "21",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "4",
+                "safety_score": "3",
+                "efficacy_precedent": "4",
+                "cmc_score": "6",
+                "composite": "17",
+                "rank": "4"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "3",
+                "safety_score": "2",
+                "efficacy_precedent": "3",
+                "cmc_score": "4",
+                "composite": "12",
+                "rank": "5"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "2",
+                "safety_score": "1",
+                "efficacy_precedent": "2",
+                "cmc_score": "3",
+                "composite": "8",
+                "rank": "6"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "1",
+                "efficacy_precedent": "1",
+                "cmc_score": "2",
+                "composite": "5",
+                "rank": "7"
+              }
+            ],
+            "rank1": "CAR-T",
+            "rank2": "bispecific-Ab",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Limited efficacy and safety concerns in multiple myeloma",
+            "approved_drugs": "ide-cel, cilta-cel",
+            "structure_score": 5
+          },
+          "accuracy_score": 9,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 2,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 4.3,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "25",
+                "rank": "1"
+              },
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "6",
+                "safety_score": "5",
+                "efficacy_precedent": "6",
+                "cmc_score": "6",
+                "composite": "23",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "5",
+                "safety_score": "4",
+                "efficacy_precedent": "5",
+                "cmc_score": "7",
+                "composite": "21",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "4",
+                "safety_score": "3",
+                "efficacy_precedent": "4",
+                "cmc_score": "6",
+                "composite": "17",
+                "rank": "4"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "3",
+                "safety_score": "2",
+                "efficacy_precedent": "3",
+                "cmc_score": "4",
+                "composite": "12",
+                "rank": "5"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "2",
+                "safety_score": "1",
+                "efficacy_precedent": "2",
+                "cmc_score": "3",
+                "composite": "8",
+                "rank": "6"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "2",
+                "composite": "6",
+                "rank": "7"
+              }
+            ],
+            "rank1": "CAR-T",
+            "rank2": "bispecific-Ab",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Limited efficacy in targeting BCMA due to lack of cell-specific targeting.",
+            "approved_drugs": "ide-cel, cilta-cel",
+            "structure_score": 5
+          },
+          "accuracy_score": 9,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 2,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 4.3,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "6.25",
+                "rank": "1"
+              },
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "6",
+                "safety_score": "5",
+                "efficacy_precedent": "6",
+                "cmc_score": "6",
+                "composite": "5.75",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "5",
+                "safety_score": "4",
+                "efficacy_precedent": "5",
+                "cmc_score": "7",
+                "composite": "5.25",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "4",
+                "safety_score": "7",
+                "efficacy_precedent": "4",
+                "cmc_score": "4",
+                "composite": "4.75",
+                "rank": "4"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "3",
+                "safety_score": "3",
+                "efficacy_precedent": "3",
+                "cmc_score": "3",
+                "composite": "3.00",
+                "rank": "7"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "2",
+                "safety_score": "2",
+                "efficacy_precedent": "2",
+                "cmc_score": "2",
+                "composite": "2.00",
+                "rank": "6"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "1",
+                "efficacy_precedent": "1",
+                "cmc_score": "1",
+                "composite": "1.00",
+                "rank": "5"
+              }
+            ],
+            "rank1": "CAR-T",
+            "rank2": "bispecific-Ab",
+            "rank3": "ADC",
+            "naked_mab_verdict": "VIABLE | High safety score but moderate efficacy",
+            "approved_drugs": "ide-cel, cilta-cel",
+            "structure_score": 5
+          },
+          "accuracy_score": 7,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 2,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 0,
+            "approved_drugs_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 4.9,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "25",
+                "rank": "1"
+              },
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "6",
+                "safety_score": "5",
+                "efficacy_precedent": "6",
+                "cmc_score": "6",
+                "composite": "23",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "5",
+                "safety_score": "4",
+                "efficacy_precedent": "5",
+                "cmc_score": "7",
+                "composite": "21",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "4",
+                "safety_score": "7",
+                "efficacy_precedent": "4",
+                "cmc_score": "4",
+                "composite": "19",
+                "rank": "4"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "3",
+                "safety_score": "3",
+                "efficacy_precedent": "3",
+                "cmc_score": "3",
+                "composite": "12",
+                "rank": "5"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "2",
+                "safety_score": "2",
+                "efficacy_precedent": "2",
+                "cmc_score": "2",
+                "composite": "8",
+                "rank": "6"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "1",
+                "efficacy_precedent": "1",
+                "cmc_score": "1",
+                "composite": "4",
+                "rank": "7"
+              }
+            ],
+            "rank1": "CAR-T",
+            "rank2": "bispecific-Ab",
+            "rank3": "ADC",
+            "naked_mab_verdict": "VIABLE | Naked monoclonal antibodies have a strong safety profile but moderate efficacy in multiple myeloma.",
+            "approved_drugs": "ide-cel, cilta-cel (approved agents for CAR-T targeting BCMA)",
+            "structure_score": 5
+          },
+          "accuracy_score": 7,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 2,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 0,
+            "approved_drugs_correct": 0
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 4.2,
+          "meta": {
+            "source": "research_agent",
+            "confidence": 0.8
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "25",
+                "rank": "1"
+              },
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "6",
+                "safety_score": "5",
+                "efficacy_precedent": "6",
+                "cmc_score": "6",
+                "composite": "23",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "5",
+                "safety_score": "4",
+                "efficacy_precedent": "5",
+                "cmc_score": "7",
+                "composite": "21",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "4",
+                "safety_score": "3",
+                "efficacy_precedent": "4",
+                "cmc_score": "6",
+                "composite": "17",
+                "rank": "4"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "3",
+                "safety_score": "2",
+                "efficacy_precedent": "3",
+                "cmc_score": "4",
+                "composite": "12",
+                "rank": "5"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "2",
+                "safety_score": "1",
+                "efficacy_precedent": "2",
+                "cmc_score": "3",
+                "composite": "8",
+                "rank": "6"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "1",
+                "efficacy_precedent": "1",
+                "cmc_score": "2",
+                "composite": "5",
+                "rank": "7"
+              }
+            ],
+            "rank1": "CAR-T",
+            "rank2": "bispecific-Ab",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Limited efficacy and safety concerns in multiple myeloma",
+            "approved_drugs": "ide-cel, cilta-cel",
+            "structure_score": 5
+          },
+          "accuracy_score": 9,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 4,
+            "rank2_correct": 2,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 0
+          },
+          "structure_score": 5
+        }
+      ]
+    },
+    "gemini": {
+      "T01": [
+        {
+          "run": 1,
+          "elapsed_s": 28.9,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 222,
+            "thinking_tokens": 3332
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "3",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "25",
+                "rank": "2"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "3",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "22",
+                "rank": "4"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "1",
+                "manufacturability_score": "4",
+                "composite_score": "17",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "3",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "3",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "23",
+                "rank": "3"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "3",
+                "adcc_score": "5",
+                "manufacturability_score": "4",
+                "composite_score": "26",
+                "rank": "1"
+              }
+            ],
+            "recommendation": "KiH",
+            "disqualified": "BiTE | Its extremely short half-life necessitates complex dosing regimens and it lacks desirable Fc effector functions.",
+            "key_mechanism": "The KiH format provides the best combination of IgG-like stability, low immunogenicity, long half-life, and mature, high-yield manufacturing processes.",
+            "rank1_extracted": "KiH",
+            "structure_score": 5
+          },
+          "accuracy_score": 6,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 2,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 31.5,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 239,
+            "thinking_tokens": 3494
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "KiH",
+                "cmc_score": "5",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "4",
+                "composite_score": "26",
+                "rank": "1"
+              },
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "4",
+                "composite_score": "25",
+                "rank": "2"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "3",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "22",
+                "rank": "3"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "3",
+                "immunogenicity_score": "4",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "1",
+                "manufacturability_score": "3",
+                "composite_score": "17",
+                "rank": "4"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "2",
+                "immunogenicity_score": "3",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "1",
+                "manufacturability_score": "3",
+                "composite_score": "15",
+                "rank": "5"
+              }
+            ],
+            "recommendation": "KiH",
+            "disqualified": "BiTE | The lack of an Fc domain results in a clinically impractical half-life and eliminates ADCC, a key effector function for the PD-1 arm.",
+            "key_mechanism": "The KiH format provides an optimal balance of robust manufacturability and low immunogenicity while preserving essential IgG-like properties, notably a long half-life and ADCC effector function.",
+            "rank1_extracted": "KiH",
+            "structure_score": 5
+          },
+          "accuracy_score": 6,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 2,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 31.8,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 244,
+            "thinking_tokens": 3626
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "3",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "23",
+                "rank": "2"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "21",
+                "rank": "4"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "2",
+                "immunogenicity_score": "2",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "5",
+                "manufacturability_score": "2",
+                "composite_score": "17",
+                "rank": "5"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "4",
+                "immunogenicity_score": "3",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "4",
+                "composite_score": "23",
+                "rank": "3"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "5",
+                "composite_score": "26",
+                "rank": "1"
+              }
+            ],
+            "recommendation": "KiH",
+            "disqualified": "BiTE | The lack of an Fc region results in a very short serum half-life, requiring inconvenient dosing regimens for a solid tumor indication.",
+            "key_mechanism": "The Knobs-in-Holes format provides an optimal balance of IgG-like properties, including long half-life and low immunogenicity, with a highly robust and efficient manufacturing process for producing a heterodimeric bispecific antibody.",
+            "rank1_extracted": "KiH",
+            "structure_score": 5
+          },
+          "accuracy_score": 6,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 2,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 31.8,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 227,
+            "thinking_tokens": 3712
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "KiH",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "4",
+                "composite_score": "25",
+                "rank": "1"
+              },
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "24",
+                "rank": "2"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "5",
+                "tumor_penetration_score": "1",
+                "adcc_score": "5",
+                "manufacturability_score": "3",
+                "composite_score": "20",
+                "rank": "3"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "1",
+                "manufacturability_score": "3",
+                "composite_score": "16",
+                "rank": "4"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "2",
+                "immunogenicity_score": "2",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "1",
+                "manufacturability_score": "3",
+                "composite_score": "14",
+                "rank": "5"
+              }
+            ],
+            "recommendation": "KiH",
+            "disqualified": "BiTE | The extremely short half-life necessitates a continuous infusion dosing regimen unsuitable for broad NSCLC treatment.",
+            "key_mechanism": "The KiH format provides an optimal balance of IgG-like properties, including long half-life and low immunogenicity, with a highly efficient and manufacturable heterodimerization technology.",
+            "rank1_extracted": "KiH",
+            "structure_score": 5
+          },
+          "accuracy_score": 6,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 2,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 28.7,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 228,
+            "thinking_tokens": 3317
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "format": "CrossMab",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "3",
+                "manufacturability_score": "4",
+                "composite_score": "23",
+                "rank": "1"
+              },
+              {
+                "format": "KiH",
+                "cmc_score": "4",
+                "immunogenicity_score": "5",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "22",
+                "rank": "2"
+              },
+              {
+                "format": "DART",
+                "cmc_score": "3",
+                "immunogenicity_score": "4",
+                "half_life_score": "5",
+                "tumor_penetration_score": "3",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "21",
+                "rank": "3"
+              },
+              {
+                "format": "IgG-scFv",
+                "cmc_score": "3",
+                "immunogenicity_score": "3",
+                "half_life_score": "5",
+                "tumor_penetration_score": "2",
+                "adcc_score": "3",
+                "manufacturability_score": "3",
+                "composite_score": "19",
+                "rank": "4"
+              },
+              {
+                "format": "BiTE",
+                "cmc_score": "2",
+                "immunogenicity_score": "3",
+                "half_life_score": "1",
+                "tumor_penetration_score": "5",
+                "adcc_score": "5",
+                "manufacturability_score": "2",
+                "composite_score": "18",
+                "rank": "5"
+              }
+            ],
+            "recommendation": "CrossMab",
+            "disqualified": "BiTE | Extremely short half-life necessitates continuous infusion, which is a major clinical and commercial disadvantage.",
+            "key_mechanism": "The CrossMab format provides an optimal balance of IgG-like stability, low immunogenicity, and long half-life with a robust manufacturing solution for correct heavy and light chain pairing.",
+            "rank1_extracted": "CrossMab",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 0,
+            "disqualified_correct": 2,
+            "disqualify_reason_correct": 2
+          },
+          "structure_score": 5
+        }
+      ],
+      "T02": [
+        {
+          "run": 1,
+          "elapsed_s": 26.2,
+          "meta": {
+            "prompt_tokens": 286,
+            "candidates_tokens": 142,
+            "thinking_tokens": 2921
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD5",
+            "lnp_reason": "It enables broad targeting of both CD4+ and CD8+ T-cell populations required for a durable response.",
+            "fratricide_moiety": "anti-CD7",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Capstan Therapeutics",
+            "structure_score": 5
+          },
+          "accuracy_score": 6,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 2,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 39.8,
+          "meta": {
+            "prompt_tokens": 286,
+            "candidates_tokens": 169,
+            "thinking_tokens": 4597
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "CD3 is a pan-T-cell marker integral to the T-cell receptor complex, enabling robust delivery of the CAR construct to both CD4+ and CD8+ T-cell subsets.",
+            "fratricide_moiety": "anti-CD3",
+            "car_domains": "FMC63_scFv+CD8a_hinge+4-1BB+CD3z",
+            "precedent": "Capstan Therapeutics",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 0,
+            "precedent_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 38.4,
+          "meta": {
+            "prompt_tokens": 286,
+            "candidates_tokens": 156,
+            "thinking_tokens": 4565
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "The CD3 complex is a pan-T-cell marker, enabling payload delivery to both CD4+ helper and CD8+ cytotoxic T-cell populations.",
+            "fratricide_moiety": "anti-CD3",
+            "car_domains": "FMC63_scFv+CD8a_hinge+4-1BB+CD3z",
+            "precedent": "Capstan Therapeutics",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 0,
+            "precedent_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 46.6,
+          "meta": {
+            "prompt_tokens": 286,
+            "candidates_tokens": 161,
+            "thinking_tokens": 5446
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "Anti-CD3 enables broad in vivo delivery to the entire T-cell population, engaging both CD4+ helper and CD8+ cytotoxic subsets for a comprehensive response.",
+            "fratricide_moiety": "anti-CD5",
+            "car_domains": "FMC63_scFv+CD8a_hinge+4-1BB+CD3z",
+            "precedent": "Capstan Therapeutics",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 0,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 0,
+            "precedent_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 31.6,
+          "meta": {
+            "prompt_tokens": 286,
+            "candidates_tokens": 158,
+            "thinking_tokens": 3798
+          },
+          "parsed": {
+            "lnp_moiety": "anti-CD3",
+            "lnp_reason": "CD3 is a pan-T-cell marker that ensures broad delivery of the CAR transgene to both CD4+ and CD8+ T-cell populations.",
+            "fratricide_moiety": "anti-CD7",
+            "car_domains": "FMC63_scFv+CD8a_hinge+CD28+CD3z",
+            "precedent": "Umoja Biopharma",
+            "structure_score": 5
+          },
+          "accuracy_score": 5,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "lnp_moiety_correct": 0,
+            "fratricide_moiety_correct": 2,
+            "fmc63_in_domains": 2,
+            "cd28_in_domains": 1,
+            "precedent_correct": 0
+          },
+          "structure_score": 5
+        }
+      ],
+      "T03": [
+        {
+          "run": 1,
+          "elapsed_s": 14.8,
+          "meta": {
+            "prompt_tokens": 236,
+            "candidates_tokens": 133,
+            "thinking_tokens": 1490
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8e",
+            "mechanism": "nonsense-codon",
+            "grna_site": "PCSK9 Exon 1",
+            "verve102_preferred": "YES",
+            "verve101_issue": "The conventional LNP delivery system was associated with transient liver enzyme elevations and thrombocytopenia.",
+            "publication": "Musunuru K et al. 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 0,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 19.6,
+          "meta": {
+            "prompt_tokens": 236,
+            "candidates_tokens": 132,
+            "thinking_tokens": 2091
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8e",
+            "mechanism": "splice-disruption",
+            "grna_site": "Intron 1 splice donor site",
+            "verve102_preferred": "YES",
+            "verve101_issue": "The standard LNP delivery system was associated with transient liver transaminase elevations in early clinical trials.",
+            "publication": "Chadwick 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 10,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 2,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 26.1,
+          "meta": {
+            "prompt_tokens": 236,
+            "candidates_tokens": 142,
+            "thinking_tokens": 2736
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8e",
+            "mechanism": "splice-disruption",
+            "grna_site": "Intron, creating a cryptic splice acceptor site",
+            "verve102_preferred": "YES",
+            "verve101_issue": "The gRNA exhibited a single-nucleotide mismatch off-target edit on chromosome 8.",
+            "publication": "Musunuru 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 10,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 2,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 21.1,
+          "meta": {
+            "prompt_tokens": 236,
+            "candidates_tokens": 144,
+            "thinking_tokens": 2120
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE7.10",
+            "mechanism": "splice-disruption",
+            "grna_site": "PCSK9 exon 1 canonical splice donor site",
+            "verve102_preferred": "YES",
+            "verve101_issue": "The standard LNP formulation is associated with dose-dependent, transient elevations in liver enzymes.",
+            "publication": "Musunuru et al. 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 7,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 0,
+            "mechanism_correct": 2,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 22.9,
+          "meta": {
+            "prompt_tokens": 236,
+            "candidates_tokens": 145,
+            "thinking_tokens": 2261
+          },
+          "parsed": {
+            "editor_class": "ABE",
+            "editor_variant": "ABE8e",
+            "mechanism": "splice-disruption",
+            "grna_site": "Exon 1 / Intron 1 canonical splice donor site",
+            "verve102_preferred": "YES",
+            "verve101_issue": "The LNP formulation is associated with transient, dose-dependent elevations in liver transaminases.",
+            "publication": "Rothgangl et al. 2021 Nature",
+            "structure_score": 5
+          },
+          "accuracy_score": 10,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "editor_class_correct": 3,
+            "editor_variant_correct": 3,
+            "mechanism_correct": 2,
+            "verve102_preferred_correct": 1,
+            "publication_correct": 1
+          },
+          "structure_score": 5
+        }
+      ],
+      "T04": [
+        {
+          "run": 1,
+          "elapsed_s": 21.3,
+          "meta": {
+            "prompt_tokens": 270,
+            "candidates_tokens": 209,
+            "thinking_tokens": 2509
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "4",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "1.9",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "1",
+                "mash_composite": "3.0",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "5",
+                "mash_composite": "5.0",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "4",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "1.9",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "retatrutide",
+            "t2d_winner": "tirzepatide",
+            "gcgr_liver": "high",
+            "key_insight": "Retatrutide's unique GCGR agonism directly targets hepatic steatosis and energy expenditure, key drivers of MASH, while tirzepatide's optimized GLP-1/GIP dual agonism provides superior glycemic control for T2D.",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 4,
+            "t2d_winner_correct": 0,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 25.3,
+          "meta": {
+            "prompt_tokens": 270,
+            "candidates_tokens": 202,
+            "thinking_tokens": 2805
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "2.2",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "1",
+                "mash_composite": "3.0",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "5",
+                "mash_composite": "5.0",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "2.2",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "retatrutide",
+            "t2d_winner": "tirzepatide",
+            "gcgr_liver": "high",
+            "key_insight": "The MASH winner's superiority stems from direct hepatic fat reduction via GCGR agonism, a mechanism not engaged by the T2D winner which relies on a potent GLP-1/GIP combination for glycemic control.",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 4,
+            "t2d_winner_correct": 0,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 24.1,
+          "meta": {
+            "prompt_tokens": 270,
+            "candidates_tokens": 220,
+            "thinking_tokens": 2596
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "2.2",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "1",
+                "mash_composite": "3.0",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "5",
+                "mash_composite": "5.0",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "2.2",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "retatrutide",
+            "t2d_winner": "tirzepatide",
+            "gcgr_liver": "high",
+            "key_insight": "Retatrutide's superiority for MASH is driven by direct targeting of high hepatic glucagon receptor (GCGR) expression to increase fat oxidation, whereas tirzepatide's GIPR/GLP1R co-agonism is more optimized for pancreatic-driven glycemic control in T2D.",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 4,
+            "t2d_winner_correct": 0,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 29.4,
+          "meta": {
+            "prompt_tokens": 270,
+            "candidates_tokens": 211,
+            "thinking_tokens": 3355
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "14",
+                "mash_rank": "3",
+                "t2d_rank": "3"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "1",
+                "mash_composite": "18",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "5",
+                "mash_composite": "30",
+                "mash_rank": "1",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "14",
+                "mash_rank": "4",
+                "t2d_rank": "4"
+              }
+            ],
+            "mash_winner": "retatrutide",
+            "t2d_winner": "tirzepatide",
+            "gcgr_liver": "high",
+            "key_insight": "The MASH winner, retatrutide, excels due to direct hepatic fat reduction via GCGR agonism, while the T2D winner, tirzepatide, has a superior incretin-based mechanism for glycemic control through dual GIPR/GLP1R agonism.",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 4,
+            "t2d_winner_correct": 0,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 2
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 28.3,
+          "meta": {
+            "prompt_tokens": 270,
+            "candidates_tokens": 199,
+            "thinking_tokens": 3240
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "candidate": "retatrutide",
+                "glp1r_score": "5",
+                "gipr_score": "4",
+                "gcgr_score": "5",
+                "mash_composite": "5",
+                "mash_rank": "1",
+                "t2d_rank": "4"
+              },
+              {
+                "candidate": "tirzepatide",
+                "glp1r_score": "5",
+                "gipr_score": "5",
+                "gcgr_score": "1",
+                "mash_composite": "4",
+                "mash_rank": "2",
+                "t2d_rank": "1"
+              },
+              {
+                "candidate": "semaglutide",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "2",
+                "mash_rank": "3",
+                "t2d_rank": "2"
+              },
+              {
+                "candidate": "orforglipron",
+                "glp1r_score": "5",
+                "gipr_score": "1",
+                "gcgr_score": "1",
+                "mash_composite": "2",
+                "mash_rank": "4",
+                "t2d_rank": "3"
+              }
+            ],
+            "mash_winner": "retatrutide",
+            "t2d_winner": "tirzepatide",
+            "gcgr_liver": "high",
+            "key_insight": "Retatrutide's superiority in MASH is driven by direct hepatic fat metabolism via GCGR agonism, while tirzepatide's dual GIP/GLP-1 agonism is more specifically optimized for T2D glycemic control.",
+            "structure_score": 5
+          },
+          "accuracy_score": 8,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "mash_winner_correct": 4,
+            "t2d_winner_correct": 0,
+            "gcgr_liver_correct": 2,
+            "key_insight_correct": 2
+          },
+          "structure_score": 5
+        }
+      ],
+      "T05": [
+        {
+          "run": 1,
+          "elapsed_s": 94.4,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 250,
+            "thinking_tokens": 10796
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "7",
+                "safety_score": "4",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "23",
+                "rank": "1"
+              },
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "3",
+                "efficacy_precedent": "7",
+                "cmc_score": "1",
+                "composite": "18",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "6",
+                "safety_score": "4",
+                "efficacy_precedent": "5",
+                "cmc_score": "5",
+                "composite": "20",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "4",
+                "safety_score": "7",
+                "efficacy_precedent": "1",
+                "cmc_score": "6",
+                "composite": "18",
+                "rank": "4"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "2",
+                "safety_score": "3",
+                "efficacy_precedent": "2",
+                "cmc_score": "7",
+                "composite": "14",
+                "rank": "5"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "4",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "13",
+                "rank": "6"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "2",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "6",
+                "composite": "11",
+                "rank": "7"
+              }
+            ],
+            "rank1": "bispecific-Ab",
+            "rank2": "CAR-T",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Lack of efficacy is due to high levels of shed soluble BCMA acting as a decoy antigen sink.",
+            "approved_drugs": "idecabtagene vicleucel, ciltacabtagene autoleucel, teclistamab, elranatamab, belantamab mafodotin",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 0,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 2,
+          "elapsed_s": 49.4,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 227,
+            "thinking_tokens": 5767
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "7",
+                "safety_score": "5",
+                "efficacy_precedent": "7",
+                "cmc_score": "6",
+                "composite": "6.3",
+                "rank": "1"
+              },
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "4",
+                "efficacy_precedent": "7",
+                "cmc_score": "1",
+                "composite": "5.5",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "7",
+                "safety_score": "3",
+                "efficacy_precedent": "5",
+                "cmc_score": "5",
+                "composite": "4.8",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "4.3",
+                "rank": "4"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "6",
+                "safety_score": "3",
+                "efficacy_precedent": "1",
+                "cmc_score": "4",
+                "composite": "2.9",
+                "rank": "5"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "4",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "2.5",
+                "rank": "6"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "3",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "6",
+                "composite": "2.2",
+                "rank": "7"
+              }
+            ],
+            "rank1": "bispecific-Ab",
+            "rank2": "CAR-T",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Lacks significant single-agent efficacy due to non-critical signaling role and target shedding.",
+            "approved_drugs": "Abecma, Tecvayli",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 0,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 3,
+          "elapsed_s": 51.4,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 226,
+            "thinking_tokens": 5681
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "7",
+                "safety_score": "5",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "24",
+                "rank": "1"
+              },
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "4",
+                "efficacy_precedent": "7",
+                "cmc_score": "1",
+                "composite": "22",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "7",
+                "safety_score": "4",
+                "efficacy_precedent": "6",
+                "cmc_score": "4",
+                "composite": "21",
+                "rank": "3"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "2",
+                "safety_score": "5",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "15",
+                "rank": "4"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "1",
+                "cmc_score": "6",
+                "composite": "14",
+                "rank": "5"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "4",
+                "safety_score": "3",
+                "efficacy_precedent": "2",
+                "cmc_score": "3",
+                "composite": "12",
+                "rank": "6"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "3",
+                "safety_score": "3",
+                "efficacy_precedent": "1",
+                "cmc_score": "2",
+                "composite": "9",
+                "rank": "7"
+              }
+            ],
+            "rank1": "bispecific-Ab",
+            "rank2": "CAR-T",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Lacks a potent effector mechanism sufficient for tumor cell killing.",
+            "approved_drugs": "Abecma, Carvykti, Tecvayli, Elrexfio, Blenrep",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 0,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 4,
+          "elapsed_s": 59.1,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 231,
+            "thinking_tokens": 7152
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "7",
+                "safety_score": "5",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "24",
+                "rank": "1"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "7",
+                "safety_score": "4",
+                "efficacy_precedent": "6",
+                "cmc_score": "4",
+                "composite": "21",
+                "rank": "2"
+              },
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "3",
+                "efficacy_precedent": "7",
+                "cmc_score": "1",
+                "composite": "18",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "2",
+                "safety_score": "6",
+                "efficacy_precedent": "1",
+                "cmc_score": "6",
+                "composite": "15",
+                "rank": "4"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "11",
+                "rank": "5"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "3",
+                "safety_score": "3",
+                "efficacy_precedent": "1",
+                "cmc_score": "2",
+                "composite": "9",
+                "rank": "6"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "1",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "3",
+                "composite": "7",
+                "rank": "7"
+              }
+            ],
+            "rank1": "bispecific-Ab",
+            "rank2": "ADC",
+            "rank3": "CAR-T",
+            "naked_mab_verdict": "FAILS | Insufficient anti-tumor activity as monotherapy due to lack of reliance on BCMA signaling for tumor survival.",
+            "approved_drugs": "Abecma, Carvykti, Tecvayli, Elrexfio",
+            "structure_score": 5
+          },
+          "accuracy_score": 3,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 0,
+            "rank3_correct": 0,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 1
+          },
+          "structure_score": 5
+        },
+        {
+          "run": 5,
+          "elapsed_s": 53.0,
+          "meta": {
+            "prompt_tokens": 249,
+            "candidates_tokens": 257,
+            "thinking_tokens": 6269
+          },
+          "parsed": {
+            "csv_rows": [
+              {
+                "modality": "bispecific-Ab",
+                "expression_score": "7",
+                "safety_score": "5",
+                "efficacy_precedent": "7",
+                "cmc_score": "5",
+                "composite": "6.0",
+                "rank": "1"
+              },
+              {
+                "modality": "CAR-T",
+                "expression_score": "7",
+                "safety_score": "4",
+                "efficacy_precedent": "7",
+                "cmc_score": "1",
+                "composite": "4.8",
+                "rank": "2"
+              },
+              {
+                "modality": "ADC",
+                "expression_score": "7",
+                "safety_score": "3",
+                "efficacy_precedent": "5",
+                "cmc_score": "4",
+                "composite": "4.8",
+                "rank": "3"
+              },
+              {
+                "modality": "naked-mAb",
+                "expression_score": "7",
+                "safety_score": "6",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "5.3",
+                "rank": "4"
+              },
+              {
+                "modality": "ASO",
+                "expression_score": "6",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "4",
+                "composite": "3.3",
+                "rank": "5"
+              },
+              {
+                "modality": "small-molecule",
+                "expression_score": "1",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "7",
+                "composite": "2.8",
+                "rank": "6"
+              },
+              {
+                "modality": "PROTAC",
+                "expression_score": "2",
+                "safety_score": "2",
+                "efficacy_precedent": "1",
+                "cmc_score": "3",
+                "composite": "2.0",
+                "rank": "7"
+              }
+            ],
+            "rank1": "bispecific-Ab",
+            "rank2": "CAR-T",
+            "rank3": "ADC",
+            "naked_mab_verdict": "FAILS | Lacks sufficient single-agent efficacy as simple receptor blockade or effector function is inadequate to drive deep clinical responses.",
+            "approved_drugs": "Idecabtagene vicleucel, Ciltacabtagene autoleucel, Teclistamab, Belantamab mafodotin",
+            "structure_score": 5
+          },
+          "accuracy_score": 4,
+          "accuracy_max": 10,
+          "accuracy_breakdown": {
+            "rank1_correct": 0,
+            "rank2_correct": 0,
+            "rank3_correct": 1,
+            "naked_mab_fails_correct": 2,
+            "approved_drugs_correct": 1
+          },
+          "structure_score": 5
+        }
+      ]
+    }
+  }
+}

@@ -61,8 +61,8 @@ process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
         }
     
     # Load required libraries
-    lib    library(SummarizedExperiment)
-rary(VariantAnnotation)
+    library(VariantAnnotation)
+    library(SummarizedExperiment)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(BSgenome.Hsapiens.UCSC.hg19)
     library(PolyPhen.Hsapiens.dbSNP131)

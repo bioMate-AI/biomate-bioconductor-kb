@@ -58,9 +58,9 @@ process BIOC_PMP_SIGNAL_DRIFT_AND_BATCH_CORRECTION {
           }
         }
         
-        # Load required librari        library(SummarizedExperiment)
-es
+        # Load required libraries
         library(pmp)
+        library(SummarizedExperiment)
         library(ggplot2)
         
         # Read the input SummarizedExperiment object from the working directory

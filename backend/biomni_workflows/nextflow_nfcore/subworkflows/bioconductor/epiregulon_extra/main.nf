@@ -53,9 +53,9 @@ process BIOC_EPIREGULON_EXTRA_EPIREGULON_EXTRA_DOWNSTREAM_ANALYSIS {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(S4Vectors)
+    library(SummarizedExperiment)
     library(epiregulon)
     library(epiregulon.extra)
     

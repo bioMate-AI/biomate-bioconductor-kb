@@ -199,6 +199,66 @@ Unit tests may use mocks only for external third-party services (e.g. AWS, Strip
 
 If you write a new e2e test that uses any other email, that's a regression — fix it before merging.
 
+### E2E plan discipline — consolidate, don't multiply
+
+Hard rules for e2e harnesses that hit the live dev stack. Failure to
+follow these wastes LLM tokens, rate-limit budget, and hours of
+flaky-test debugging:
+
+1. **Login once per harness, not once per test case.** A POST
+   `/api/auth/login` is a real DB hit. Logging in 9 times to run 9
+   independent test cases is 9× the budget for zero added confidence.
+   Cache the JWT at the top of the run; re-use it everywhere below.
+
+2. **Create one project per harness, not one per test.** Same logic.
+   Set the project up at the top of the canonical flow, tear it down
+   in an `EXIT` trap (so partial runs don't leak rows). Sub-tests
+   that need a project just use the one already created.
+
+3. **NEVER call `/api/auth/register` from an e2e harness.** The
+   canonical fixture is already registered. Calling register on it
+   is at best a no-op that costs rate-limit credit, at worst a 4xx
+   that makes the harness look broken. **Registration round-trip
+   testing belongs in a server-side unit test** (
+   `server/auth-fixes-20260612.test.ts`), not in an e2e harness.
+
+4. **One canonical fixture only.** Do NOT create timestamped
+   `e2e-secondary-$(date +%s)@example.com` accounts to test
+   "cross-user isolation." Those rules are already enforced by
+   `server/project-routes.test.ts` (ownership check, 404-not-403)
+   and `scripts/audit_project_framework.sh` (S3 — runs 7
+   cross-user assertions with the dev `users` table seeded
+   appropriately). An e2e harness with one fixture can still cover
+   the auth-gate surface (`STATUS GET /api/projects` → 401,
+   `STATUS GET /api/projects/<fake uuid>` → 404).
+
+5. **Consolidate test cases into 1–2 flows, not 9–13.** A real user
+   journey IS a chain: login → create context → exercise feature A
+   → exercise feature B → exercise feature C. Test the chain that
+   way. The "Flow A + Flow B" pattern in `scripts/e2e_use_cases.sh`
+   is the canonical example: A is the long sequential journey, B is
+   the cheap auth-gate probe.
+
+6. **Generous per-call timeouts for LLM paths.** A workflow-
+   generation call can spend 30–90 s on the LLM. A 45 s timeout
+   catches it mid-thinking and returns `workflow_failed` for
+   timing, not behaviour. Default to **90 s** for any chat-stream
+   call that needs a workflow card. Bake the budget into the
+   harness; document it next to the call.
+
+7. **Coverage map > coverage maximalism.** Before adding a new e2e
+   assertion, ask: "is this already covered by a faster unit /
+   integration test?" If yes, document the pointer in the e2e
+   harness as a `note`. The harness is not the place to
+   re-implement coverage that the vitest suite already gives you.
+
+The canonical implementation of all seven points lives in
+`scripts/e2e_use_cases.sh` (Flow A + Flow B, single fixture, single
+project, 90 s LLM timeouts, coverage notes pointing at
+`audit_project_framework.sh` / `project-routes.test.ts` /
+`chat-audit-followups.test.ts` for things the harness intentionally
+does NOT re-verify).
+
 ---
 
 ## UX E2E Completeness Standard
@@ -342,6 +402,40 @@ Run with AWS env vars set — the test is skipped (not failed) when `LAGO_API_KE
 ### Dev-sync note
 
 `scripts/sync_to_dev.sh` does not sync billing env vars — those are set on the dev EC2 instance directly. After any change to `billing_router.py`, `billing_internal.py`, or `nextflow_executor.py` billing paths, run the sync script and then verify `/api/billing/usage` returns correct data on dev.
+
+---
+
+## Run-State Persistence (Galaxy `_runs[]` → Redis)
+
+`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py` previously
+tracked every in-flight Nextflow run in an in-process Python dict
+(`_runs[]`). Galaxy's gunicorn recycles its single worker every ~3 min
+on dev (`workers:1, max_requests:1000`), which wiped that dict — runs
+got stuck in `running` forever, autoloop SSE never fired, every long
+workflow leaked silently.
+
+Stages 1–3c (commits `e92f06287` through `ee2556faf7`) shipped:
+- `RunStateStore` Protocol + `InMemoryRunStateStore` + `RedisRunStateStore`
+- `CompletionPoller` background thread that detects orphaned subprocesses
+  from any worker and runs the completion path
+- `orphan_finalizer.finalize_orphaned_run` — the handler the poller calls
+
+Dev env vars (set on `biomate-galaxy-dev` container):
+```
+RUN_STATE_STORE=redis     # opt into RedisRunStateStore
+REDIS_URL=rediss://...    # AWS ElastiCache (already set, billing-shared)
+```
+
+Without `RUN_STATE_STORE=redis`, the store falls back to InMemory (no
+crash) but the L3 fix is INACTIVE — cross-worker visibility requires
+Redis. Verify with:
+```
+docker exec biomate-galaxy-dev printenv RUN_STATE_STORE
+# expect: redis
+```
+
+Design doc: `docs/20260615_RUNS_PERSISTENCE_DESIGN.md`.
+Diagnosis: `docs/20260614_AUTOLOOP_SSE_SILENT_ON_ADMET.md`.
 
 ---
 

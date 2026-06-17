@@ -68,9 +68,9 @@ process BIOC_ASURAT_MULTIFACETED_SIGN_ANALYSIS {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(ASURAT)
+    library(SummarizedExperiment)
     library(AnnotationDbi)
     library(org.Hs.eg.db)
     library(Rtsne)

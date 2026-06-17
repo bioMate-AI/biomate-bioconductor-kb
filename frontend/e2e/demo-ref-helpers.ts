@@ -132,7 +132,12 @@ export async function runTourDemo(
     await page.waitForTimeout(baseHold - 500);
     const nextBtn = page.locator('.tour-callout .btn.primary').first();
     await nextBtn.waitFor({ state: 'visible', timeout: 5_000 });
-    await nextBtn.click();
+    // force:true bypasses the "element is stable" check — the bioc tour's
+    // engine tape can keep pushing DOM mutations behind the callout for
+    // up to 2 min on long center-positioned step 1, which makes the
+    // default stability check time out. The button is itself stable;
+    // only the surrounding DOM is mutating.
+    await nextBtn.click({ force: true });
     await page.waitForTimeout(700);
   }
 

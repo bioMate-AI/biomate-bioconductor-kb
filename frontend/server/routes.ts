@@ -4202,6 +4202,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Can't easily re-stream multipart here — skip body forwarding
           // (ingest-assay uses its own dedicated handler above this wildcard)
         } else {
+          // B3 — inject org_id into IND assembly bodies so the backend
+          // _build_rag_context can load the per-org prompt_rules YAML +
+          // few_shot_index. Matches both /ind-assembly and
+          // /ind-assembly/supersede. Caller's org_id wins if already set.
+          const u: any = (req as any).user;
+          const isIndAssembly = /\/ind-assembly(?:\/supersede)?$/.test(targetPath);
+          if (isIndAssembly && u) {
+            const orgId =
+              (u.organization && String(u.organization).trim()) ||
+              (u.id ? String(u.id) : "");
+            if (orgId && (!req.body || !req.body.org_id)) {
+              req.body = { ...(req.body || {}), org_id: orgId };
+            }
+          }
           fetchOpts.body = JSON.stringify(req.body);
         }
       }
@@ -5172,6 +5186,17 @@ ${paramLines || '(none recorded)'}`;
         return;
       }
 
+      // Gate test-only context fields behind the E2E bypass token. Prod
+      // requests with no E2E header silently strip testForceIntent so it
+      // cannot be used to manipulate intent classification.
+      if (context && (context as any).testForceIntent) {
+        const e2eToken = req.headers['x-e2e-test-token'];
+        const validToken = process.env.E2E_TEST_TOKEN;
+        if (!validToken || e2eToken !== validToken) {
+          delete (context as any).testForceIntent;
+        }
+      }
+
       // ── Safety guardrails (PHI strip + content blocklist + scope filter) ──
       const safetyResult = checkSafety(String(message));
       if (!safetyResult.safe) {
@@ -5555,6 +5580,7 @@ ${paramLines || '(none recorded)'}`;
           intentType: assistantResponse.intentType,
           inlineParameters: assistantResponse.inlineParameters,
           paramClarifications: assistantResponse.paramClarifications,
+          intentClarification: assistantResponse.intentClarification,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: false,
@@ -6692,12 +6718,24 @@ ${paramLines || '(none recorded)'}`;
     if (missing.length) {
       return res.status(400).json({ error: "missing_required_fields", missing });
     }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(sessionId))) {
+      return res.status(400).json({ error: "invalid_session_id", message: "sessionId must be a UUID" });
+    }
+
     try {
-      // The interaction-record path was removed in a prior refactor; the handler
-      // currently acks the validated payload without persisting. Re-add the
-      // memoryService.recordInteraction(...) call when re-introducing memory writes.
-      res.json({ success: true, recorded: false, sessionId });
+      const result = await memoryService.recordInteraction({
+        sessionId,
+        projectId,
+        userMessage,
+        assistantResponse,
+        userIntent,
+        toolsUsed,
+        workflowGenerated,
+        workflowId,
+      });
+      res.json(result);
     } catch (error: any) {
+      console.error('[API] Record interaction failed:', error);
       // Foreign-key violation = session row doesn't exist yet → 404 is more honest than 500
       const msg = String(error?.message ?? "");
       if (msg.includes("violates foreign key constraint") && msg.includes("session_id")) {
@@ -9270,6 +9308,33 @@ ${paramLines || '(none recorded)'}`;
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
+          } else if (
+            // P0 fix (2026-06-17 after-run audit): the terminal-transition
+            // branch above writes nextflowStatus ONCE, but s3_output_files
+            // can lag the status flip by seconds → the saved snapshot has
+            // empty outputs. Refresh the snapshot post-terminal when the
+            // current Nextflow status has MORE s3_output_files than the
+            // stored one. Hide-when-empty: never overwrite a populated
+            // snapshot with an empty one (defends against transient Galaxy
+            // hiccups).
+            ['completed', 'succeeded', 'failed'].includes(String(run.execution.status)) &&
+            Array.isArray(nextflowStatus?.s3_output_files)
+          ) {
+            const storedCount = Array.isArray(run.execution.nextflowStatus?.s3_output_files)
+              ? run.execution.nextflowStatus.s3_output_files.length
+              : 0;
+            const liveCount = nextflowStatus.s3_output_files.length;
+            if (liveCount > storedCount) {
+              console.log(
+                `[ExecutionRun] post-terminal nextflowStatus refresh: ${run.id} s3_output_files ${storedCount} → ${liveCount}`,
+              );
+              run = await storage.updateExecutionRun(run.id, {
+                execution: {
+                  ...run.execution,
+                  nextflowStatus: nextflowStatus,
+                },
+              }) || run;
+            }
           }
         } catch (statusError: any) {
           console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
@@ -12179,6 +12244,12 @@ Respond ONLY with valid JSON (no markdown wrapper):
     try {
       const { session_id, title, messages, workflows, datasets } = req.body;
       if (!session_id) return res.status(400).json({ error: 'session_id required' });
+      // Cap incoming dataset list at MAX_DATASET_REFS (32, drop oldest)
+      // to match the same defense applied at the PUT site + the in-memory
+      // req.session.uploadedDatasets sites. Without this, a client can
+      // bypass the cap on first-write. See frontend/server/dataset-cap.ts
+      // and docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+      const cappedDatasets = capDatasetReferences(datasets || []);
       const rows = await pool.query(
         `INSERT INTO chat_sessions (session_id, user_id, title, messages, workflows, datasets)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -12188,7 +12259,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
            last_activity = NOW()
          RETURNING *`,
         [session_id, req.user.id, title || 'New Chat',
-         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(datasets || [])]
+         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(cappedDatasets)]
       );
       res.status(201).json(rows.rows[0]);
     } catch (err: any) {

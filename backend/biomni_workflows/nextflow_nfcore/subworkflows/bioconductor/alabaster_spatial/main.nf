@@ -54,8 +54,8 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
         }
     
     # Load required libraries
-    lib    library(SummarizedExperiment)
-rary(SpatialExperiment)
+    library(SpatialExperiment)
+    library(SummarizedExperiment)
     library(alabaster.base)
     library(alabaster.spatial)
     

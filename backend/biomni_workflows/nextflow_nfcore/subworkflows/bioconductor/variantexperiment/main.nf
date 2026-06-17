@@ -46,8 +46,8 @@ process BIOC_VARIANTEXPERIMENT {
       .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
       suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    lib    library(SummarizedExperiment)
-rary(VariantExperiment)
+    library(VariantExperiment)
+    library(SummarizedExperiment)
     library(GDSArray)
     library(jsonlite)
 

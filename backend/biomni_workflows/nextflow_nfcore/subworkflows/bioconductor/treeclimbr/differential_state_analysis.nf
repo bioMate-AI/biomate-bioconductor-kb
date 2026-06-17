@@ -63,8 +63,8 @@ process BIOC_TREECLIMBR_DIFFERENTIAL_STATE_ANALYSIS {
     
     # Load required libraries
     suppressPackageStartupMessages({
-        library(Tr        library(SummarizedExperiment)
-eeSummarizedExperiment)
+        library(TreeSummarizedExperiment)
+        library(SummarizedExperiment)
         library(treeclimbR)
         library(ggtree)
         library(dplyr)

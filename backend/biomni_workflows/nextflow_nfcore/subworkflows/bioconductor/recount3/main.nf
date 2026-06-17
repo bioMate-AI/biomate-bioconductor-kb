@@ -53,9 +53,9 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(recount3)
+    library(SummarizedExperiment)
     library(S4Vectors)
     library(GenomicRanges)
     library(BiocGenerics)

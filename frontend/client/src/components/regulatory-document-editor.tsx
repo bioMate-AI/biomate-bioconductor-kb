@@ -39,6 +39,30 @@ export interface RegulatoryDocumentEditorProps {
   onEdit: (text: string) => void
   molecule: string
   generatedAt: string
+  /**
+   * When true, every paragraph the user edits away from its AI-generated
+   * original is POSTed to /api/regulatory_llm/pairs as a DPO feedback row
+   * (rejected = original AI text, chosen = user edit). Defaults to true
+   * for production; tests pass false to disable network calls.
+   */
+  recordEditPairs?: boolean
+  /**
+   * Test hook — replaces the live fetch call so vitest can assert payloads
+   * without network. Default: real fetch().
+   */
+  recordPairFn?: (payload: {
+    chosen: string
+    rejected: string
+    section_type: string
+    prompt?: string
+  }) => Promise<void> | void
+  /**
+   * Fires once the underlying TipTap editor instance is constructed and
+   * the initial baseline snapshot has been taken. Parents can hold the
+   * handle for programmatic content access (parameter override panels,
+   * test drivers, etc.). Optional — most callers don't need it.
+   */
+  onEditorReady?: (editor: unknown) => void
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,9 +204,104 @@ function extractBlockTexts(html: string): string[] {
 
 const SECTION_TABS = ["2.6.1", "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6"]
 
+/**
+ * Map CTD §2.6.X tab-id → the `section_type` vocabulary the
+ * IND assembler queries with in `_build_rag_context` (see
+ * ind_assembly.py:497–505). Without this mapping the recorder would
+ * emit `section_type:"2.6.4"` but the few-shot retriever asks for
+ * `"pbpk"` — the data lands but section-filtered retrieval misses
+ * and falls back to any-section ranking, losing precision.
+ *
+ * §2.6.1 nonclinical overview / introduction → "nonclinical_overview"
+ * §2.6.2 pharmacology written summary       → "pk_overview" (no dedicated
+ *                                              pharmacology slot in the
+ *                                              assembler vocab; PK is the
+ *                                              closest sibling for shared
+ *                                              prose conventions)
+ * §2.6.3 pharmacology tabulated             → "pk_overview"
+ * §2.6.4 pharmacokinetics written summary   → "pbpk"
+ * §2.6.5 pharmacokinetics tabulated         → "pbpk"
+ * §2.6.6 toxicology written summary         → "tox_genotox" (cardiac is a
+ *                                              sibling section in the
+ *                                              vocab; genotox is the
+ *                                              broader §2.6.6 default)
+ */
+export const SECTION_TYPE_BY_TAB: Record<string, string> = {
+  "2.6.1": "nonclinical_overview",
+  "2.6.2": "pk_overview",
+  "2.6.3": "pk_overview",
+  "2.6.4": "pbpk",
+  "2.6.5": "pbpk",
+  "2.6.6": "tox_genotox",
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Default network impl: POST to the Node route. The Node route stamps
+ * org_id from req.user server-side (the client cannot supply it — see
+ * regulatory-training-routes.ts), so we only send the four fields the
+ * route accepts. credentials:"include" so the JWT cookie rides along.
+ */
+async function defaultRecordPairFn(payload: {
+  chosen: string
+  rejected: string
+  section_type: string
+  prompt?: string
+}): Promise<void> {
+  try {
+    const res = await fetch("/api/regulatory_llm/pairs", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    // Best-effort by design — never throw to the editor — but DO surface
+    // non-2xx in the console so a silently-401'd route doesn't make us
+    // think customer feedback is landing when it isn't.
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[regulatory-document-editor] /api/regulatory_llm/pairs ${res.status}`,
+      )
+    }
+  } catch {
+    // Recording is best-effort feedback; never disrupt the editor.
+  }
+}
+
+/**
+ * Walk the editor DOM block-by-block and decide which block belongs to
+ * which §X.Y.Z section by tracking the most recent heading whose text
+ * contains a §-id. Returns parallel arrays so block index → section_type
+ * lookups stay O(1) during the flush pass.
+ */
+function indexBlocksAndSections(
+  container: HTMLElement,
+): { blocks: HTMLElement[]; sections: string[] } {
+  const blocks: HTMLElement[] = []
+  const sections: string[] = []
+  let current = "2.6.1"
+  const all = container.querySelectorAll("p, h1, h2, h3")
+  for (const el of Array.from(all)) {
+    const tag = el.tagName.toLowerCase()
+    const text = el.textContent || ""
+    if (tag === "h1" || tag === "h2" || tag === "h3") {
+      for (const s of SECTION_TABS) {
+        if (text.includes(s)) {
+          current = s
+          break
+        }
+      }
+      continue
+    }
+    blocks.push(el as HTMLElement)
+    sections.push(current)
+  }
+  return { blocks, sections }
+}
 
 export function RegulatoryDocumentEditor({
   content,
@@ -190,21 +309,49 @@ export function RegulatoryDocumentEditor({
   onEdit,
   molecule,
   generatedAt,
+  recordEditPairs = true,
+  recordPairFn,
+  onEditorReady,
 }: RegulatoryDocumentEditorProps) {
   // Original block texts captured at load time for diff tracking
   const originalBlocksRef = useRef<string[]>([])
+  // Set of block indices we've already POSTed a pair for, so a chain of
+  // micro-edits to the same paragraph doesn't generate a JSONL row per
+  // keystroke. Cleared whenever the source content reloads.
+  const recordedIndicesRef = useRef<Set<number>>(new Set())
+  // Debounce handle for the flush pass — coalesces rapid typing.
+  const flushTimerRef = useRef<number | null>(null)
   // Tracks which paragraph indices have been human-edited (highlight removed)
   const [humanEditedCount, setHumanEditedCount] = useState(0)
   const [aiSpanCount, setAiSpanCount] = useState(0)
   const [activeSection, setActiveSection] = useState("2.6.1")
   const editorContainerRef = useRef<HTMLDivElement>(null)
+  const recordFn = recordPairFn ?? defaultRecordPairFn
 
-  // Build the initial HTML with AI highlights
+  // Build the initial HTML with AI highlights. We seed originalBlocksRef
+  // from the raw HTML as a fallback for the diff-badge counter, but the
+  // pair-recorder baseline is re-captured from the live DOM after TipTap
+  // mounts (see snapshotLiveBaseline below) — TipTap normalises whitespace
+  // and unknown attributes, so the raw-HTML extract doesn't match the
+  // post-mount textContent exactly. Using the post-mount snapshot for the
+  // recorder prevents spurious "edited" emissions on initial load.
   const buildInitialHtml = useCallback((md: string) => {
     const html = markdownToHtml(md)
     const withHighlights = wrapWithAiHighlight(html)
     originalBlocksRef.current = extractBlockTexts(html)
     return withHighlights
+  }, [])
+
+  // Re-anchor the original-block snapshot from the live DOM after TipTap
+  // has finished parsing + rendering, so the pair-recorder's `original ===
+  // current` comparison is exact for un-edited blocks.
+  const snapshotLiveBaseline = useCallback(() => {
+    const container = editorContainerRef.current
+    if (!container) return
+    const { blocks } = indexBlocksAndSections(container)
+    originalBlocksRef.current = blocks.map((b) =>
+      (b.textContent || "").trim(),
+    )
   }, [])
 
   const editor = useEditor({
@@ -233,6 +380,18 @@ export function RegulatoryDocumentEditor({
 
       // Notify parent with plain text
       onEdit(ed.getText())
+
+      // ── B3 upstream: emit DPO feedback pair for newly-edited blocks ──
+      // Debounced — coalesces a multi-keystroke edit into one POST.
+      if (recordEditPairs && !isLocked) {
+        if (flushTimerRef.current != null) {
+          window.clearTimeout(flushTimerRef.current)
+        }
+        flushTimerRef.current = window.setTimeout(() => {
+          flushTimerRef.current = null
+          flushEditPairs()
+        }, 1200)
+      }
     },
   })
 
@@ -242,6 +401,13 @@ export function RegulatoryDocumentEditor({
     const newHtml = buildInitialHtml(content)
     editor.commands.setContent(newHtml, { emitUpdate: false })
     setHumanEditedCount(0)
+    // Fresh document → reset dedupe set so re-runs can re-record pairs.
+    recordedIndicesRef.current = new Set()
+    // Snapshot the post-TipTap-normalisation baseline once the DOM settles.
+    requestAnimationFrame(() => {
+      snapshotLiveBaseline()
+      if (onEditorReady) onEditorReady(editor)
+    })
 
     // Initial AI span count
     requestAnimationFrame(() => {
@@ -259,6 +425,59 @@ export function RegulatoryDocumentEditor({
     if (!editor) return
     editor.setEditable(!isLocked)
   }, [isLocked, editor])
+
+  // ── B3 upstream: flush newly-edited blocks as DPO pairs ───────────────────
+  // A block is "newly edited" when (a) its original AI-highlighted mark is
+  // gone, (b) its current text differs from the snapshot we stored at load
+  // time, and (c) we haven't already POSTed a pair for this block index.
+  const flushEditPairs = useCallback(() => {
+    const container = editorContainerRef.current
+    if (!container) return
+    const originals = originalBlocksRef.current
+    if (originals.length === 0) return
+    const { blocks, sections } = indexBlocksAndSections(container)
+    const limit = Math.min(blocks.length, originals.length)
+    for (let i = 0; i < limit; i++) {
+      if (recordedIndicesRef.current.has(i)) continue
+      const block = blocks[i]
+      const stillAi = block.querySelector(`mark[${AI_DATA_ATTR}="true"]`)
+      if (stillAi) continue
+      const original = (originals[i] || "").trim()
+      const current = (block.textContent || "").trim()
+      if (!original || !current) continue
+      if (current === original) continue
+      recordedIndicesRef.current.add(i)
+      const tabId = sections[i] || ""
+      // Translate §2.6.X → assembler vocab so section-filtered few-shot
+      // retrieval in _build_rag_context can find these rows.
+      const sectionType = SECTION_TYPE_BY_TAB[tabId] || tabId
+      try {
+        const maybe = recordFn({
+          chosen: current,
+          rejected: original,
+          section_type: sectionType,
+          prompt: molecule ? `IND §${tabId} for ${molecule}` : "",
+        })
+        if (maybe && typeof (maybe as Promise<void>).catch === "function") {
+          ;(maybe as Promise<void>).catch(() => {
+            /* swallow — feedback is best-effort */
+          })
+        }
+      } catch {
+        /* swallow — feedback is best-effort */
+      }
+    }
+  }, [recordFn, molecule])
+
+  // Cancel pending flush on unmount so we don't fire after teardown.
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current != null) {
+        window.clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
+      }
+    }
+  }, [])
 
   // ── Section tab scroll ────────────────────────────────────────────────────
   const scrollToSection = useCallback(

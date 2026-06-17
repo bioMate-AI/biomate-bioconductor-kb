@@ -62,9 +62,9 @@ process BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(weitrix)
+    library(SummarizedExperiment)
     library(limma)
     library(topconfects)
     library(dplyr)

@@ -1978,10 +1978,18 @@ class UnifiedWorkflowSearch:
         # so queries mentioning raw data types (fastq, bam) score lower for chains
         # that require processed inputs.
         if chain.required_inputs:
-            input_tokens = " ".join(
-                f"{inp.get('name','')} {inp.get('type','')} {inp.get('description','')[:40]}"
-                for inp in chain.required_inputs
-            )
+            # Legacy rows (bioc_*_v2 chains) store required_inputs as plain strings
+            # like "count_matrix"; canonical form is a list of dicts with name/type/
+            # description. Handle both so a single malformed row doesn't take down
+            # the whole chain embedding index.
+            def _inp_tokens(inp):
+                if isinstance(inp, str):
+                    return inp
+                if isinstance(inp, dict):
+                    return (f"{inp.get('name','')} {inp.get('type','')} "
+                            f"{str(inp.get('description',''))[:40]}")
+                return ""
+            input_tokens = " ".join(_inp_tokens(inp) for inp in chain.required_inputs)
             parts.append(f"requires inputs: {input_tokens}")
         parts.extend(chain.example_queries)
         parts.extend(chain.tags)

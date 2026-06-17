@@ -62,9 +62,9 @@ process BIOC_SCMERGE_SC_MERGE_V1 {
           }
         }
             
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(scMerge)
+    library(SummarizedExperiment)
     library(scater)
     library(BiocSingular)
     library(BiocParallel)

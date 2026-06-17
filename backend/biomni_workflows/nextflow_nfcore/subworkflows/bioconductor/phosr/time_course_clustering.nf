@@ -55,9 +55,9 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
       }
     }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(PhosR)
+    library(SummarizedExperiment)
     library(reactome.db)
     library(org.Mm.eg.db)
     library(annotate)

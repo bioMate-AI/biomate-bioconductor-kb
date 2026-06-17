@@ -53,9 +53,9 @@ process BIOC_PAIRKAT_PAIRKAT_PATHWAY_ASSOCIATION {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(pairkat)
+    library(SummarizedExperiment)
     library(dplyr)
     
     # ==========================================

@@ -54,9 +54,9 @@ process BIOC_GLIMMA_DESEQ2_GLIMMA {
           }
         }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(Glimma)
+    library(SummarizedExperiment)
     library(DESeq2)
     library(htmlwidgets)
     

@@ -60,9 +60,9 @@ process BIOC_UCELL_SINGLE_CELL_EXPERIMENT_WORKFLOW {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(UCell)
+    library(SummarizedExperiment)
     library(scater)
     library(scuttle)
     library(ggplot2)

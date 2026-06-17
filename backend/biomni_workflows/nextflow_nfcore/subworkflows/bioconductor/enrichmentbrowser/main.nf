@@ -55,8 +55,8 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     }
     
     # Load required libraries
-    library(    library(SummarizedExperiment)
-EnrichmentBrowser)
+    library(EnrichmentBrowser)
+    library(SummarizedExperiment)
     
     # Define input files as specified by the user
     exprs.file <- "exprs.tab"

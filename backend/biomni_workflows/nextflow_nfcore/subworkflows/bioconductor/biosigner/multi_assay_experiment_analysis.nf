@@ -56,9 +56,9 @@ process BIOC_BIOSIGNER_MULTI_ASSAY_EXPERIMENT_ANALYSIS {
           }
         }
         
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(biosigner)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     
     # Read the input MultiAssayExperiment object from the working directory

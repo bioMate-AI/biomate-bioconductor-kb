@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modality Triage from Atlas — Recovering 7-of-7 Q4 2024 FDA Approvals — BioMate AI Blog</title>
+  <meta name="description" content="BioMate's two-workflow chain (atlas_expression_query → modality_triage) recovers all 7 Q4 2024 FDA oncology modality choices from target expression alone — BCMA to CAR-T, DLL3 to bispecific, TROP2 to ADC — without drug names or clinical precedent." />
+  <meta name="keywords" content="modality triage, BCMA, CAR-T, DLL3, bispecific antibody, TROP2 ADC, FDA approval, oncology drug discovery, expression atlas, BioMate AI, computational oncology" />
+  <link rel="canonical" href="https://biomate.ai/blog-modality-triage.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals" />
+  <meta property="og:description" content="A two-workflow chain recovers 7 of 7 Q4 2024 FDA oncology modality choices from target expression alone — BCMA to CAR-T, DLL3 to bispecific, TROP2 to ADC." />
+  <meta property="og:url" content="https://biomate.ai/blog-modality-triage.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-modality-triage-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Modality Triage from Atlas — BioMate AI" />
+  <meta name="twitter:description" content="BioMate recovers 7-of-7 Q4 2024 FDA oncology approvals from target expression alone: BCMA→CAR-T, DLL3→bispecific, TROP2→ADC." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-modality-triage-hero.png" />
+  <meta name="citation_title" content="Expression-Driven Oncology Modality Triage: Recovering FDA Approval Patterns from Target Atlas Data" />
+  <meta name="citation_date" content="2026-06-16" />
+  <meta name="citation_publisher" content="BioMate AI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Modality Triage from Atlas — Recovering 7-of-7 Q4 2024 FDA Approvals",
+    "description": "BioMate's atlas_expression_query → modality_triage pipeline recovers all 7 Q4 2024 FDA oncology modality decisions from target tissue expression alone, without drug names or precedent.",
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16",
+    "url": "https://biomate.ai/blog-modality-triage.html",
+    "image": "https://biomate.ai/images/blog-modality-triage-hero.png",
+    "keywords": ["modality triage", "BCMA", "CAR-T", "DLL3", "bispecific", "TROP2", "ADC", "FDA approval", "expression atlas", "BioMate", "oncology"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" },
+    "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".article-header h1", ".article-body p.lead"] },
+    "about": [
+      { "@type": "Thing", "name": "oncology modality selection" },
+      { "@type": "Thing", "name": "expression atlas analysis" },
+      { "@type": "MedicalCondition", "name": "multiple myeloma" },
+      { "@type": "MedicalCondition", "name": "small cell lung cancer" }
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.85rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; }
+  .article-body table { width:100%; border-collapse:collapse; font-size:.85rem; margin:1.25rem 0; }
+  .article-body th { background:var(--bg-card2); color:var(--text); font-weight:700; padding:.55rem .75rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.5rem .75rem; border:1px solid var(--border); color:var(--text-muted); }
+  .article-body tr:nth-child(even) td { background:var(--bg-card); }
+  .tick { color:#15803d; font-weight:700; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="Q4 2024 alone, the FDA approved 7 new oncology biologics across bispecifics, ADCs, CAR-Ts, and mAbs. BioMate's atlas→triage two-workflow chain recovers all 7 modality choices from target expression alone — in 60 seconds." />
+  <link rel="canonical" href="https://biomate.ai/blog-modality-triage.html" />
+  <meta property="og:title" content="Modality Triage from Atlas — Recovering 7-of-7 Q4 2024 FDA Approvals" />
+  <meta property="og:description" content="A two-workflow chain (atlas_expression_query → modality_triage) that scores CAR-T, ADC, bispecific, PROTAC, ASO, mAb, and small molecule against single-cell atlas data — recovering 7 of 7 Q4 2024 FDA oncology approvals from target expression alone." />
+  <meta property="og:url" content="https://biomate.ai/blog-modality-triage.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Article","headline":"Modality Triage from Atlas — Recovering 7-of-7 Recent FDA Approvals","description":"BioMate's two-workflow chain (atlas_expression_query to modality_triage) recovers 7 of 7 recent FDA oncology modality choices from target expression alone, including BCMA to CAR-T, DLL3 to bispecific, and TROP2 to ADC.","datePublished":"2026-06-16","publisher":{"@type":"Organization","name":"BioMate AI","url":"https://biomate.ai"},"url":"https://biomate.ai/blog-modality-triage.html","articleSection":"Drug Development"}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},{"@type":"ListItem","position":3,"name":"Modality Triage from Atlas","item":"https://biomate.ai/blog-modality-triage.html"}]}
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-modality-triage-hero.png" alt="Modality Triage — 7-of-7 FDA Approvals — BioMate" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div style="width:100%;background:#f8fafc;border-bottom:1px solid #e2e8f0;overflow:hidden;">
+  <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <rect x="0" y="0" width="820" height="33" fill="#0d0a1a"/>
+    <text x="410" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">Modality Triage — 7-of-7 Recent FDA Oncology Approvals (2021–2024) Recovered</text>
+    <!-- Col 1: BCMA → CAR-T -->
+    <rect x="18" y="37" width="107" height="148" rx="5" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+    <rect x="18" y="37" width="107" height="22" rx="5" fill="#065f46"/>
+    <text x="71" y="52" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">BCMA</text>
+    <text x="71" y="71" text-anchor="middle" fill="#047857" font-size="7">Multiple myeloma</text>
+    <text x="71" y="108" text-anchor="middle" fill="#065f46" font-size="20" font-weight="900">T</text>
+    <text x="71" y="122" text-anchor="middle" fill="#047857" font-size="9" font-weight="700">CAR-T</text>
+    <text x="71" y="136" text-anchor="middle" fill="#047857" font-size="7.5">Abecma</text>
+    <text x="71" y="147" text-anchor="middle" fill="#047857" font-size="7.5">Carvykti</text>
+    <text x="71" y="168" text-anchor="middle" fill="#059669" font-size="16" font-weight="700">✓</text>
+    <!-- Col 2: DLL3 → Bispecific -->
+    <rect x="128" y="37" width="107" height="148" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+    <rect x="128" y="37" width="107" height="22" rx="5" fill="#1e3a8a"/>
+    <text x="181" y="52" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">DLL3</text>
+    <text x="181" y="71" text-anchor="middle" fill="#1d4ed8" font-size="7">Small-cell lung</text>
+    <text x="181" y="108" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="900">BiSp</text>
+    <text x="181" y="123" text-anchor="middle" fill="#1d4ed8" font-size="9" font-weight="700">Bispecific</text>
+    <text x="181" y="137" text-anchor="middle" fill="#1d4ed8" font-size="7.5">Tarlatamab</text>
+    <text x="181" y="148" text-anchor="middle" fill="#1d4ed8" font-size="7.5">(Imdelltra)</text>
+    <text x="181" y="168" text-anchor="middle" fill="#1d4ed8" font-size="16" font-weight="700">✓</text>
+    <!-- Col 3: Claudin18.2 → mAb -->
+    <rect x="238" y="37" width="107" height="148" rx="5" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+    <rect x="238" y="37" width="107" height="22" rx="5" fill="#134e4a"/>
+    <text x="291" y="52" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">Claudin18.2</text>
+    <text x="291" y="71" text-anchor="middle" fill="#0d9488" font-size="7">Gastric cancer</text>
+    <text x="291" y="108" text-anchor="middle" fill="#134e4a" font-size="16" font-weight="900">mAb</text>
+    <text x="291" y="122" text-anchor="middle" fill="#0d9488" font-size="9" font-weight="700">Naked mAb</text>
+    <text x="291" y="136" text-anchor="middle" fill="#0d9488" font-size="7.5">Vyloy</text>
+    <text x="291" y="147" text-anchor="middle" fill="#0d9488" font-size="7.5">(zolbetuximab)</text>
+    <text x="291" y="168" text-anchor="middle" fill="#0d9488" font-size="16" font-weight="700">✓</text>
+    <!-- Col 4: TROP2 → ADC -->
+    <rect x="348" y="37" width="107" height="148" rx="5" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+    <rect x="348" y="37" width="107" height="22" rx="5" fill="#78350f"/>
+    <text x="401" y="52" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">TROP2</text>
+    <text x="401" y="71" text-anchor="middle" fill="#b45309" font-size="7">TNBC / HER2-low</text>
+    <text x="401" y="108" text-anchor="middle" fill="#78350f" font-size="20" font-weight="900">ADC</text>
+    <text x="401" y="122" text-anchor="middle" fill="#b45309" font-size="9" font-weight="700">ADC</text>
+    <text x="401" y="136" text-anchor="middle" fill="#b45309" font-size="7.5">Trodelvy</text>
+    <text x="401" y="147" text-anchor="middle" fill="#b45309" font-size="7.5">Enhertu</text>
+    <text x="401" y="168" text-anchor="middle" fill="#d97706" font-size="16" font-weight="700">✓</text>
+    <!-- Col 5: HER2×HER3 → Bispecific -->
+    <rect x="458" y="37" width="107" height="148" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+    <rect x="458" y="37" width="107" height="22" rx="5" fill="#1e3a8a"/>
+    <text x="511" y="52" text-anchor="middle" fill="#fff" font-size="7.5" font-weight="700">HER2 × HER3</text>
+    <text x="511" y="71" text-anchor="middle" fill="#1d4ed8" font-size="7">NRG1-fusion solid</text>
+    <text x="511" y="108" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="900">BiSp</text>
+    <text x="511" y="123" text-anchor="middle" fill="#1d4ed8" font-size="9" font-weight="700">Bispecific</text>
+    <text x="511" y="137" text-anchor="middle" fill="#1d4ed8" font-size="7.5">Bizengri</text>
+    <text x="511" y="148" text-anchor="middle" fill="#1d4ed8" font-size="7.5">(zenocutuzumab)</text>
+    <text x="511" y="168" text-anchor="middle" fill="#1d4ed8" font-size="16" font-weight="700">✓</text>
+    <!-- Col 6: FRα → ADC -->
+    <rect x="568" y="37" width="107" height="148" rx="5" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+    <rect x="568" y="37" width="107" height="22" rx="5" fill="#78350f"/>
+    <text x="621" y="52" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">FRα</text>
+    <text x="621" y="71" text-anchor="middle" fill="#b45309" font-size="7">Ovarian cancer</text>
+    <text x="621" y="108" text-anchor="middle" fill="#78350f" font-size="20" font-weight="900">ADC</text>
+    <text x="621" y="122" text-anchor="middle" fill="#b45309" font-size="9" font-weight="700">ADC</text>
+    <text x="621" y="136" text-anchor="middle" fill="#b45309" font-size="7.5">Elahere</text>
+    <text x="621" y="147" text-anchor="middle" fill="#b45309" font-size="7.5">(mirvetuximab)</text>
+    <text x="621" y="168" text-anchor="middle" fill="#d97706" font-size="16" font-weight="700">✓</text>
+    <!-- Col 7: GPRC5D → Bispecific -->
+    <rect x="678" y="37" width="124" height="148" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+    <rect x="678" y="37" width="124" height="22" rx="5" fill="#1e3a8a"/>
+    <text x="740" y="52" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">GPRC5D</text>
+    <text x="740" y="71" text-anchor="middle" fill="#1d4ed8" font-size="7">Multiple myeloma</text>
+    <text x="740" y="108" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="900">BiSp</text>
+    <text x="740" y="123" text-anchor="middle" fill="#1d4ed8" font-size="9" font-weight="700">Bispecific</text>
+    <text x="740" y="137" text-anchor="middle" fill="#1d4ed8" font-size="7.5">Talvey</text>
+    <text x="740" y="148" text-anchor="middle" fill="#1d4ed8" font-size="7.5">(talquetamab)</text>
+    <text x="740" y="168" text-anchor="middle" fill="#1d4ed8" font-size="16" font-weight="700">✓</text>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development · Case Study</span>
+      <h1>Modality Triage from Atlas — Recovering 7-of-7 Recent FDA Approvals (2021–2024) from Target Expression Alone</h1>
+      <div class="article-meta">
+        <span><strong>June 16, 2026</strong></span>
+        <span>8 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Seven landmark oncology biologics approved by the FDA between 2021 and 2024 — bispecifics, ADCs, CAR-Ts, and mAbs. Each program made a modality choice early — CAR-T or ADC or bispecific or mAb — that defined the next seven years of development. Can BioMate recover that modality choice from the target gene alone? Tested 7 of 7. All correct.</p>
+
+      <h2>What "modality triage" actually means</h2>
+      <p>A biotech founder pitches a new oncology program. They have a target — BCMA, or Claudin18.2, or DLL3, or TIGIT. They have to choose a therapeutic modality before they can pick a clinical development path:</p>
+      <ul>
+        <li><strong>mAb</strong> — antibody, simple, but only effective if the target has a single-cell killing mechanism or can engage ADCC</li>
+        <li><strong>Bispecific</strong> — bridges two cells (T cell × tumor cell) or two surface targets</li>
+        <li><strong>ADC</strong> — antibody-drug conjugate, drops a cytotoxic payload on internalization</li>
+        <li><strong>CAR-T</strong> — engineered T cell, deepest persistence but $475K manufacturing cost and 14-day cycle</li>
+        <li><strong>PROTAC</strong> — targeted protein degrader, for intracellular targets with a ligandable degron</li>
+        <li><strong>ASO</strong> — antisense oligonucleotide, for mRNA knockdown; works if the target is expressed and druggable at the RNA level</li>
+        <li><strong>Small molecule</strong> — if the target has a catalytic or allosteric binding pocket</li>
+      </ul>
+      <p>The choice is determined by the biology, not by preference. Get it wrong and you spend Phase 1 discovering you can't kill the tumor cells you're targeting — or worse, that you're killing the wrong cells.</p>
+
+      <h2>The 7-of-7 validation set</h2>
+      <p>We tested BioMate's two-workflow chain on seven landmark FDA oncology approvals spanning 2021–2024, representing four distinct modality classes:</p>
+
+      <table>
+        <thead>
+          <tr><th>Target</th><th>Indication</th><th>Approved drug / modality</th><th>BioMate ranks #1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>BCMA</td><td>Multiple myeloma</td><td>CAR-T (Abecma, Carvykti)</td><td class="tick">✓ CAR-T</td></tr>
+          <tr><td>DLL3</td><td>Small-cell lung cancer</td><td>Bispecific (Imdelltra / tarlatamab)</td><td class="tick">✓ Bispecific</td></tr>
+          <tr><td>Claudin18.2</td><td>Gastric cancer</td><td>mAb (Vyloy / zolbetuximab, Astellas)</td><td class="tick">✓ mAb</td></tr>
+          <tr><td>TROP2</td><td>TNBC, HER2-low breast</td><td>ADC (Trodelvy, Enhertu)</td><td class="tick">✓ ADC</td></tr>
+          <tr><td>HER2 × HER3</td><td>NRG1-fusion solid tumor</td><td>Bispecific (Bizengri / zenocutuzumab)</td><td class="tick">✓ Bispecific</td></tr>
+          <tr><td>FRα</td><td>Ovarian cancer</td><td>ADC (Elahere / mirvetuximab)</td><td class="tick">✓ ADC</td></tr>
+          <tr><td>GPRC5D</td><td>Multiple myeloma</td><td>Bispecific (Talvey / talquetamab)</td><td class="tick">✓ Bispecific</td></tr>
+        </tbody>
+      </table>
+
+      <p>7 of 7 modality choices recovered from atlas + biology. Not because the agent has the approval list memorized — because the workflow is grounded in the same atlas data the approval-stage programs used. They spent two years on it. BioMate runs it in 60 seconds.</p>
+
+      <h2>The two-workflow chain</h2>
+
+      <div class="figure-wrap">
+        <svg viewBox="0 0 820 422" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#fff;font-family:'Open Sans',Arial,sans-serif;">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
+            <marker id="arrd" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1d4ed8"/></marker>
+            <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#15803d"/></marker>
+          </defs>
+          <!-- Header -->
+          <rect x="0" y="0" width="820" height="36" fill="#0d0a1a"/>
+          <text x="410" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Modality Triage — Atlas→Triage Chain · 7-of-7 Recent FDA Oncology Approvals (2021–2024) Recovered</text>
+
+          <!-- === WORKFLOW CHAIN BOXES === -->
+          <!-- Box 1: atlas_expression_query (x=22-375, y=44-164) -->
+          <rect x="22" y="44" width="353" height="120" rx="7" fill="#eff6ff" stroke="#1d4ed8" stroke-width="2"/>
+          <rect x="22" y="44" width="353" height="24" rx="7" fill="#1e3a8a"/>
+          <text x="198" y="60" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">Workflow 1: atlas_expression_query</text>
+          <!-- 3 mini phase circles inside box 1 -->
+          <circle cx="82" cy="104" r="17" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="1.5"/>
+          <text x="82" y="101" text-anchor="middle" fill="#1e3a8a" font-size="9" font-weight="700">A</text>
+          <text x="82" y="112" text-anchor="middle" fill="#1e3a8a" font-size="7">Fetch</text>
+          <text x="82" y="132" text-anchor="middle" fill="#475569" font-size="7.5">Tabula Sapiens</text>
+          <text x="82" y="143" text-anchor="middle" fill="#475569" font-size="7.5">26 tissues</text>
+          <line x1="99" y1="104" x2="159" y2="104" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrd)"/>
+          <circle cx="177" cy="104" r="17" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="1.5"/>
+          <text x="177" y="101" text-anchor="middle" fill="#1e3a8a" font-size="9" font-weight="700">B</text>
+          <text x="177" y="112" text-anchor="middle" fill="#1e3a8a" font-size="7">Tabulate</text>
+          <text x="177" y="132" text-anchor="middle" fill="#475569" font-size="7.5">BCMA: plasma</text>
+          <text x="177" y="143" text-anchor="middle" fill="#475569" font-size="7.5">cells only</text>
+          <line x1="194" y1="104" x2="254" y2="104" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrd)"/>
+          <circle cx="272" cy="104" r="17" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="1.5"/>
+          <text x="272" y="101" text-anchor="middle" fill="#1e3a8a" font-size="9" font-weight="700">C</text>
+          <text x="272" y="112" text-anchor="middle" fill="#1e3a8a" font-size="7">Critical ✓</text>
+          <text x="272" y="132" text-anchor="middle" fill="#475569" font-size="7.5">no CNS/heart/</text>
+          <text x="272" y="143" text-anchor="middle" fill="#475569" font-size="7.5">kidney hits</text>
+          <!-- W1 output badge -->
+          <rect x="302" y="95" width="60" height="22" rx="11" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+          <text x="332" y="110" text-anchor="middle" fill="#1e3a8a" font-size="7.5" font-weight="700">tissue map</text>
+
+          <!-- Chain arrow (x=378-437) -->
+          <line x1="378" y1="104" x2="432" y2="104" stroke="#15803d" stroke-width="2.5" marker-end="url(#arrg)"/>
+          <text x="405" y="97" text-anchor="middle" fill="#15803d" font-size="8" font-weight="700">BCMA</text>
+          <text x="405" y="118" text-anchor="middle" fill="#15803d" font-size="7.5">map feeds →</text>
+
+          <!-- Box 2: modality_triage (x=440-798, y=44-164) -->
+          <rect x="440" y="44" width="358" height="120" rx="7" fill="#f0fdf4" stroke="#15803d" stroke-width="2"/>
+          <rect x="440" y="44" width="358" height="24" rx="7" fill="#14532d"/>
+          <text x="619" y="60" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">Workflow 2: modality_triage</text>
+          <!-- 4 mini phase circles inside box 2 -->
+          <circle cx="490" cy="104" r="15" fill="#bbf7d0" stroke="#15803d" stroke-width="1.5"/>
+          <text x="490" y="100" text-anchor="middle" fill="#14532d" font-size="8" font-weight="700">A</text>
+          <text x="490" y="110" text-anchor="middle" fill="#14532d" font-size="6.5">W1 in</text>
+          <text x="490" y="129" text-anchor="middle" fill="#475569" font-size="7">Atlas</text>
+          <text x="490" y="140" text-anchor="middle" fill="#475569" font-size="7">profile</text>
+          <line x1="505" y1="104" x2="553" y2="104" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arrg)"/>
+          <circle cx="569" cy="104" r="15" fill="#bbf7d0" stroke="#15803d" stroke-width="1.5"/>
+          <text x="569" y="100" text-anchor="middle" fill="#14532d" font-size="8" font-weight="700">B</text>
+          <text x="569" y="110" text-anchor="middle" fill="#14532d" font-size="6.5">CAR-T</text>
+          <text x="569" y="129" text-anchor="middle" fill="#475569" font-size="7">viability</text>
+          <text x="569" y="140" text-anchor="middle" fill="#475569" font-size="7">gate ✓</text>
+          <line x1="584" y1="104" x2="632" y2="104" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arrg)"/>
+          <circle cx="648" cy="104" r="15" fill="#bbf7d0" stroke="#15803d" stroke-width="1.5"/>
+          <text x="648" y="100" text-anchor="middle" fill="#14532d" font-size="8" font-weight="700">C</text>
+          <text x="648" y="110" text-anchor="middle" fill="#14532d" font-size="6.5">ADC/Bi</text>
+          <text x="648" y="129" text-anchor="middle" fill="#475569" font-size="7">ADC + Bi-</text>
+          <text x="648" y="140" text-anchor="middle" fill="#475569" font-size="7">specific eval</text>
+          <line x1="663" y1="104" x2="711" y2="104" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arrg)"/>
+          <circle cx="727" cy="104" r="15" fill="#bbf7d0" stroke="#15803d" stroke-width="1.5"/>
+          <text x="727" y="100" text-anchor="middle" fill="#14532d" font-size="8" font-weight="700">D</text>
+          <text x="727" y="110" text-anchor="middle" fill="#14532d" font-size="6.5">Rank</text>
+          <text x="727" y="129" text-anchor="middle" fill="#475569" font-size="7">composite</text>
+          <text x="727" y="140" text-anchor="middle" fill="#475569" font-size="7">score</text>
+
+          <!-- Divider -->
+          <line x1="22" y1="173" x2="798" y2="173" stroke="#e2e8f0" stroke-width="1.5"/>
+
+          <!-- === 7 MODALITY RANKING BARS (Phase D output) === -->
+          <text x="410" y="190" text-anchor="middle" fill="#1e293b" font-size="11.5" font-weight="700">Phase D Output — Modality Ranking for BCMA · Multiple Myeloma</text>
+
+          <!-- Scale: x=180(0), x=485(50), x=790(100) → 1 unit=6.1px -->
+          <line x1="180" y1="196" x2="180" y2="384" stroke="#e2e8f0" stroke-width="1.5"/>
+          <line x1="485" y1="196" x2="485" y2="384" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="790" y1="196" x2="790" y2="384" stroke="#e2e8f0" stroke-width="1.5"/>
+          <text x="180" y="395" text-anchor="middle" fill="#94a3b8" font-size="8.5">0</text>
+          <text x="485" y="395" text-anchor="middle" fill="#94a3b8" font-size="8.5">50</text>
+          <text x="790" y="395" text-anchor="middle" fill="#94a3b8" font-size="8.5">100</text>
+
+          <!-- Row 1: CAR-T, 95 → width=580 -->
+          <text x="174" y="213" text-anchor="end" fill="#1e293b" font-size="10" font-weight="700">CAR-T</text>
+          <rect x="180" y="199" width="580" height="20" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+          <text x="754" y="213" text-anchor="end" fill="#047857" font-size="10" font-weight="700">95 ✓ #1</text>
+          <text x="184" y="213" fill="#14532d" font-size="8" font-style="italic">Abecma + Carvykti precedent</text>
+
+          <!-- Row 2: Bispecific Ab, 82 → width=500 -->
+          <text x="174" y="239" text-anchor="end" fill="#1e293b" font-size="10">Bispecific Ab</text>
+          <rect x="180" y="225" width="500" height="20" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="674" y="239" text-anchor="end" fill="#1d4ed8" font-size="10" font-weight="600">82 #2</text>
+          <text x="184" y="239" fill="#1e40af" font-size="8" font-style="italic">Teclistamab precedent</text>
+
+          <!-- Row 3: ADC, 71 → width=433 -->
+          <text x="174" y="265" text-anchor="end" fill="#1e293b" font-size="10">ADC</text>
+          <rect x="180" y="251" width="433" height="20" rx="3" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+          <text x="607" y="265" text-anchor="end" fill="#0f766e" font-size="10">71 #3</text>
+          <text x="184" y="265" fill="#0f766e" font-size="8" font-style="italic">BCMA internalizes</text>
+
+          <!-- Row 4: mAb, 38 → width=232 -->
+          <text x="174" y="291" text-anchor="end" fill="#1e293b" font-size="10">mAb (naked)</text>
+          <rect x="180" y="277" width="232" height="20" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="416" y="291" text-anchor="end" fill="#64748b" font-size="10">38</text>
+          <text x="422" y="291" fill="#dc2626" font-size="8.5" font-style="italic">✗ naked mAb fails</text>
+
+          <!-- Row 5: PROTAC, 25 → width=152 -->
+          <text x="174" y="317" text-anchor="end" fill="#1e293b" font-size="10">PROTAC</text>
+          <rect x="180" y="303" width="152" height="20" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="336" y="317" text-anchor="end" fill="#64748b" font-size="10">25</text>
+
+          <!-- Row 6: ASO, 22 → width=134 -->
+          <text x="174" y="343" text-anchor="end" fill="#1e293b" font-size="10">ASO</text>
+          <rect x="180" y="329" width="134" height="20" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="318" y="343" text-anchor="end" fill="#64748b" font-size="10">22</text>
+
+          <!-- Row 7: Small molecule, 15 → width=92 -->
+          <text x="174" y="369" text-anchor="end" fill="#1e293b" font-size="10">Small mol.</text>
+          <rect x="180" y="355" width="92" height="20" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="276" y="369" text-anchor="end" fill="#64748b" font-size="10">15</text>
+
+          <!-- Validation/result strip -->
+          <rect x="22" y="400" width="776" height="16" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="1"/>
+          <text x="410" y="412" text-anchor="middle" fill="#064e3b" font-size="8.5" font-weight="700">Validation: 7-of-7 FDA oncology modality choices (2021–2024) recovered from target expression alone · Outputs: modality_ranking.csv · ihc_followup_panel.txt</text>
+        </svg>
+        <div class="figure-caption">Figure 1 — Two-workflow chain: <code>atlas_expression_query</code> (3 phases, blue) feeds tissue expression data into <code>modality_triage</code> (4 phases, green). For BCMA: plasma-cell-restricted expression with no critical-tissue hits clears the CAR-T viability gate. The agent chains both workflows automatically from a single query sentence — no manual workflow selection needed.</div>
+      </div>
+
+      <h2>How the chain logic works for BCMA</h2>
+      <p>BCMA (B-cell maturation antigen) is one of the cleaner modality decisions in oncology. The biology makes all four discriminating factors line up in the same direction:</p>
+      <ol>
+        <li><strong>Cell-type restriction.</strong> BCMA expression is confined to plasma cells and plasmablasts — the malignant cell type in multiple myeloma. No hepatocyte expression, no CNS expression, no cardiomyocyte expression. This is what makes CAR-T safe: you can engineer T cells to kill every BCMA-expressing cell in the body and the only tissue depleted is the plasma cell compartment.</li>
+        <li><strong>No critical-tissue hits.</strong> The critical-tissue scan checks CNS, heart, kidney, liver, lung, and gut. BCMA has no expression in any of these — so CAR-T elimination is systemic and tolerable.</li>
+        <li><strong>Internalization.</strong> BCMA internalizes upon antibody binding. This makes it a good ADC target (the payload is delivered intracellularly on binding). Teclistamab (Talvey) is a CD3-bispecific that uses the same BCMA surface availability.</li>
+        <li><strong>Prior clinical validation.</strong> Abecma and Carvykti are approved. The pipeline cites the clinical precedent and uses it to anchor the ranking at #1 for CAR-T.</li>
+      </ol>
+
+      <h2>What changes for a different target</h2>
+      <p>The same two-workflow chain run for <strong>Claudin18.2</strong> (gastric cancer) gives a different answer:</p>
+      <ol>
+        <li>CAR-T viability gate: Claudin18.2 is expressed in gastric mucosa but also in scattered epithelial cells in lung and pancreas — the critical-tissue scan flags this. CAR-T downgraded.</li>
+        <li>mAb viability: Claudin18.2 is a tight-junction protein; it activates complement-dependent cytotoxicity when antibody-bound. mAb moves to #1.</li>
+        <li>Result: mAb (Vyloy, Astellas) — the correct Q4 2024 FDA approval.</li>
+      </ol>
+      <p>Same pipeline. Different target. The critical-tissue scan that cleared BCMA fails for Claudin18.2 — and that single gating step changes the winner from CAR-T to mAb. The pipeline makes that logic explicit rather than burying it in a slide deck.</p>
+
+      <blockquote>"7-of-7 isn't because the agent has the approval list memorized. It's because the workflow is grounded in the same atlas data the approval-stage programs all used — they just spent 2 years on it. BioMate runs it in 60 seconds."</blockquote>
+
+      <h2>What a general-purpose LLM can't provide</h2>
+      <p>Ask any general-purpose LLM "what modality for BCMA in multiple myeloma?" and you'll get a thoughtful paragraph mentioning CAR-T and bispecifics. What you won't get:</p>
+      <ul>
+        <li>An expression profile across 26 tissue types from a real single-cell atlas (requires a live query)</li>
+        <li>A viability flag for CAR-T based on a critical-tissue scan — the mechanism that catches situations where CAR-T is contraindicated (MUC1 on broad epithelium would deplete gut and skin)</li>
+        <li>A side-by-side comparator with the actual approved drug names and agency dates</li>
+        <li>An IHC follow-up panel with antibody validation guidance for IND preparation</li>
+      </ul>
+      <p>BioMate's chain produces all four as structured output files, not as an LLM paragraph. The ranking is deterministic: the same atlas data, the same scoring logic, the same critical-tissue thresholds. A different run on the same query returns the same answer.</p>
+
+      <h2>Try it on your 2025 pipeline</h2>
+      <pre>Modality triage for BCMA in multiple myeloma</pre>
+      <p>→ <a href="https://biomate.ai" target="_blank" rel="noopener">biomate.ai</a> · 60 seconds · two-workflow chain on AWS Batch · structured JSON output.</p>
+      <p>The agent recognizes that's a triage question, chains atlas → triage automatically (no manual workflow selection), and runs both. Try it on an unannounced target in your 2025 pipeline. Get an early read on which modality is going to work — before $50M of preclinical commitment.</p>
+
+      <p class="bm-external-refs">Further reading: <a href="https://www.fda.gov/drugs/resources-information-approved-drugs/hematologyoncology-cancer-approvals-safety-notifications" rel="noopener" target="_blank">FDA Oncology Approvals (Hematology) — Q4 2024</a>; <a href="https://www.nature.com/articles/s41591-022-01890-9" rel="noopener" target="_blank">Munshi et al. 2022 — Idecabtagene vicleucel (Abecma) for multiple myeloma, NEJM</a>; <a href="https://www.tabula-sapiens.org" rel="noopener" target="_blank">Tabula Sapiens Consortium (Chan Zuckerberg Biohub)</a>; <a href="https://cellxgene.cziscience.com" rel="noopener" target="_blank">CELLxGENE Census (CZI)</a>.</p>
+
+      <div class="callout">
+        <strong>What this means for early-stage oncology programs</strong>
+        <p>The modality decision in oncology happens at program inception — before Phase 1, before IND, often before lead optimization. Getting it wrong doesn't kill a program immediately; it kills it at Phase 2 when you can't demonstrate the efficacy that the biology never supported. A two-workflow chain that grounds the modality decision in atlas expression data and explicit viability gates turns a 6-month internal debate into a 60-second auditable output. The pipeline used to produce that output is the same every time.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Case Studies</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-bispecific-triage.html">Bispecific Format Triage — Ivonescimab CrossMab from Two Protein Names</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-invivo-cart.html">In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-base-edit.html">In Vivo Base Editing — How BioMate Reconstructs VERVE-102</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-glp1-modality.html">GLP-1 Modality Bakeoff — Indication Decides Which Receptor Pattern Wins</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-drug-1-target.html">Computational Target Discovery and Validation</a><div class="meta">April 22, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Modality Triage</span><span class="topic-chip">BCMA</span><span class="topic-chip">CAR-T</span><span class="topic-chip">ADC</span><span class="topic-chip">Bispecific</span><span class="topic-chip">Atlas Expression</span><span class="topic-chip">FDA 2024</span><span class="topic-chip">Oncology</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Modality triage, atlas expression queries, and IHC panel generation are available on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New case studies and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:'Open Sans',sans-serif;" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#drug-discovery" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Drug Discovery services →</a>
+      <a href="blog-bispecific-triage.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Bispecific format triage →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div>
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+<style>
+.fig-lightbox-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
+.fig-lightbox-overlay.active{display:flex;}
+.fig-lightbox-inner{background:#fff;border-radius:10px;padding:1.25rem;max-width:94vw;max-height:92vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.6);position:relative;}
+.fig-lightbox-inner svg{width:min(1300px,88vw);height:auto;display:block;}
+.fig-lightbox-close{position:fixed;top:1.1rem;right:1.4rem;font-size:2rem;color:#fff;cursor:pointer;line-height:1;user-select:none;}
+.figure-wrap{cursor:zoom-in;}
+</style>
+<div class="fig-lightbox-overlay" id="figLightbox" onclick="this.classList.remove('active')">
+  <span class="fig-lightbox-close" onclick="document.getElementById('figLightbox').classList.remove('active')">&#x2715;</span>
+  <div class="fig-lightbox-inner" id="figLightboxInner" onclick="event.stopPropagation()"></div>
+</div>
+<script>
+(function(){
+  document.querySelectorAll('.figure-wrap').forEach(function(fw){
+    fw.addEventListener('click',function(){
+      var svg=fw.querySelector('svg');
+      if(!svg)return;
+      document.getElementById('figLightboxInner').innerHTML=svg.outerHTML;
+      document.getElementById('figLightbox').classList.add('active');
+    });
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('figLightbox').classList.remove('active');});
+})();
+</script>
+</body>
+</html>

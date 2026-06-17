@@ -54,9 +54,9 @@ process BIOC_SCRUFF_TENX_BAM_QC {
       }
     }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(scruff)
+    library(SummarizedExperiment)
     library(SingleCellExperiment)
     library(ggplot2)
     

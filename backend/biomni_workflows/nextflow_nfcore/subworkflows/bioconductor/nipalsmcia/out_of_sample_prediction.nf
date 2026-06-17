@@ -59,9 +59,9 @@ process BIOC_NIPALSMCIA_OUT_OF_SAMPLE_PREDICTION {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(ggplot2)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     library(nipalsMCIA)
     

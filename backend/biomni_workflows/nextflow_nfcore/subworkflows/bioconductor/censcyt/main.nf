@@ -60,9 +60,9 @@ process BIOC_CENSCYT_CENSORED_DA_STEP_BY_STEP {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages({      library(SummarizedExperiment)
-
+    suppressPackageStartupMessages({
       library(censcyt)
+      library(SummarizedExperiment)
       library(BiocParallel)
     })
     

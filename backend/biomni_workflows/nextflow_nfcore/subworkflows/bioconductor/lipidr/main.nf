@@ -54,9 +54,9 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
       }
     }
     
-    # Load required librar    library(SummarizedExperiment)
-ies
+    # Load required libraries
     library(lipidr)
+    library(SummarizedExperiment)
     library(ggplot2)
     
     # Verify input files exist in the working directory

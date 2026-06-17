@@ -64,9 +64,9 @@ process BIOC_SC3_STEP_BY_STEP_SC3_PIPELINE {
           }
         }
         
-        # Load required librari        library(SummarizedExperiment)
-es
+        # Load required libraries
         library(SC3)
+        library(SummarizedExperiment)
         library(scater)
         
         # ==========================================

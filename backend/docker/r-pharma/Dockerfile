@@ -118,13 +118,18 @@ RUN Rscript -e "install.packages('knitr', dependencies = c('Depends', 'Imports',
 RUN Rscript -e "install.packages('DT', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('DT install done\n')" || true
 RUN Rscript -e "install.packages('plotly', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('plotly install done\n')" || true
 RUN Rscript -e "install.packages('tidyverse', dependencies = c('Depends', 'Imports', 'LinkingTo')); cat('tidyverse install done\n')" || true
-RUN test -d /usr/local/lib/R/site-library/tidyverse \
-    && test -d /usr/local/lib/R/site-library/data.table \
+# tidyverse meta-package omitted from the hard gate — our actual R scripts
+# (nlmixr2 + NCA + PBPK) import data.table / ggplot2 / jsonlite directly via
+# library(<pkg>), not library(tidyverse). The meta-package fails under QEMU
+# because ragg needs libwebp-dev which isn't worth adding to apt for a
+# convenience package nobody calls. Keep the install attempt above for
+# anyone who DOES want library(tidyverse), but don't fail the build on it.
+RUN test -d /usr/local/lib/R/site-library/data.table \
     && test -d /usr/local/lib/R/site-library/nlme \
     && test -d /usr/local/lib/R/site-library/rmarkdown \
     && test -d /usr/local/lib/R/site-library/jsonlite \
     && test -d /usr/local/lib/R/site-library/ggplot2 \
-    || (echo "FATAL: core tidyverse / reporting packages missing" && exit 1)
+    || (echo "FATAL: core reporting/data packages missing" && exit 1)
 
 # ── rxode2 (ODE solver — nlmixr2 dependency) ─────────────────────────────────
 # Installed separately before nlmixr2 so compilation errors surface clearly.

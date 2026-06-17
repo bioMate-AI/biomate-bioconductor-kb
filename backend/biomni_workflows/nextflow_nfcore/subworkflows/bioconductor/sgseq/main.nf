@@ -58,9 +58,9 @@ process BIOC_SGSEQ_ANNOTATION_GUIDED_SPLICE_ANALYSIS {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(SGSeq)
+    library(SummarizedExperiment)
     library(GenomeInfoDb)
     library(GenomicFeatures)
     library(Rsamtools)

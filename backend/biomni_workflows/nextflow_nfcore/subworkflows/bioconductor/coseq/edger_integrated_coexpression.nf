@@ -61,9 +61,9 @@ process BIOC_COSEQ_EDGER_INTEGRATED_COEXPRESSION {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(edgeR)
+    library(SummarizedExperiment)
     library(coseq)
     
     # Set seed for reproducibility

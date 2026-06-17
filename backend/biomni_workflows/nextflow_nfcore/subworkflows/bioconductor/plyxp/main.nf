@@ -53,9 +53,9 @@ process BIOC_PLYXP_PLYXP_TRANSCRIPTOMICS_PIPELINE {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(plyxp)
+    library(SummarizedExperiment)
     library(dplyr)
     
     # --- Read input files ---

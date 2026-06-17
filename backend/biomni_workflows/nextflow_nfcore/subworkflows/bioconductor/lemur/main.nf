@@ -61,9 +61,9 @@ process BIOC_LEMUR_LEMUR_MULTI_CONDITION_ANALYSIS {
           }
         }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(lemur)
+    library(SummarizedExperiment)
     library(tidyverse)
     library(uwot)
     

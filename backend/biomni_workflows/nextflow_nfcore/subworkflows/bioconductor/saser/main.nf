@@ -56,9 +56,9 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
       }
     }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(saseR)
+    library(SummarizedExperiment)
     suppressWarnings(library(ASpli))
     library(edgeR)
     library(DESeq2)

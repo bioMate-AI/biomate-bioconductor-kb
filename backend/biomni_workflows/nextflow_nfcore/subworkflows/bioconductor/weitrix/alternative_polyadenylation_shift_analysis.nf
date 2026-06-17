@@ -61,9 +61,9 @@ process BIOC_WEITRIX_ALTERNATIVE_POLYADENYLATION_SHIFT_ANALYSIS {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(weitrix)
+    library(SummarizedExperiment)
     library(dplyr)
     library(ggplot2)
     library(BiocParallel)

@@ -61,9 +61,9 @@ process BIOC_SCDS_DOUBLET_ANNOTATION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(scds)
+    library(SummarizedExperiment)
     
     # -----------------------------------------------------------------------------
     # Stage 0: Read User Input

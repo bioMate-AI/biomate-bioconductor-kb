@@ -53,9 +53,9 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
           }
         }
     
-    # Load required libr    library(SummarizedExperiment)
-aries
+    # Load required libraries
     library(mzID)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # ==========================================

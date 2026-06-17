@@ -1,43 +1,51 @@
-# 1. Load necessary packages
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("affycoretools", "hgu95av2.db", "limma")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
-suppressMessages(library(affycoretools))
-suppressMessages(library(hgu95av2.db))
-suppressMessages(library(limma))
+# Real user-style input for affycoretools::makeVenn / vennInLine:
+#   fit2.rds    - a limma MArrayLM fit (after contrasts.fit + eBayes) computed
+#                 from the user's own expression matrix.
+#   contrast.rds- the contrast matrix (>=2 columns, because the workflow's
+#                 collist = list(1:2) compares the first TWO contrasts in a Venn).
+#   design.rds  - the design matrix used for the fit.
+# We build a small two-group-with-two-comparisons expression experiment and run
+# the standard limma pipeline so fit2/contrast/design are genuine analysis
+# objects (not a packaged demo fit). No package demo data.
 
-# 2. Reproduce the VIGNETTE'S OWN data-preparation code
-# Load the example ExpressionSet
-data(sample.ExpressionSet)
-eset <- sample.ExpressionSet
+suppressPackageStartupMessages({
+  library(Biobase)
+  library(limma)
+})
 
-# Add annotation data to the ExpressionSet
-eset <- annotateEset(eset, hgu95av2.db)
+set.seed(123)
+n_genes <- 500
+# Three groups (Control, TreatA, TreatB), 6 samples each -> two contrasts vs Control
+groups <- factor(rep(c("Control", "TreatA", "TreatB"), each = 6),
+                 levels = c("Control", "TreatA", "TreatB"))
+n_samp <- length(groups)
 
-# Extract phenoData for model matrix creation
-pd <- pData(phenoData(eset))
+mat <- matrix(rnorm(n_genes * n_samp, mean = 7, sd = 1), nrow = n_genes)
+# TreatA up-regulates genes 1:60; TreatB up-regulates genes 40:120 (overlap -> Venn)
+mat[1:60,  groups == "TreatA"] <- mat[1:60,  groups == "TreatA"] + 2
+mat[40:120, groups == "TreatB"] <- mat[40:120, groups == "TreatB"] + 2
+rownames(mat) <- sprintf("Gene%03d", seq_len(n_genes))
+colnames(mat) <- sprintf("S%02d", seq_len(n_samp))
 
-# Create the design matrix
-design <- model.matrix(~0+type+sex, pd)
-colnames(design) <- gsub("type|sex", "", colnames(design))
+eset <- ExpressionSet(assayData = mat,
+                      phenoData = AnnotatedDataFrame(
+                          data.frame(group = groups, row.names = colnames(mat))))
 
-# Create the contrast matrix
-contrast <- matrix(c(1,-1,0))
-colnames(contrast) <- "Case vs control"
+design <- model.matrix(~ 0 + groups)
+colnames(design) <- levels(groups)
 
-# Fit linear model and contrasts using limma
-fit <- lmFit(eset, design)
+contrast <- makeContrasts(
+    AvsCtrl = TreatA - Control,
+    BvsCtrl = TreatB - Control,
+    levels = design
+)
+
+fit  <- lmFit(eset, design)
 fit2 <- contrasts.fit(fit, contrast)
-# Apply eBayes. CRITICAL: Following the vignette verbatim, eBayes is applied to 'fit',
-# not 'fit2', which then overwrites 'fit2'.
-fit2 <- eBayes(fit) 
+fit2 <- eBayes(fit2)
 
-# 3. Serialize objects to declared input files
 saveRDS(fit2, "fit2.rds")
 saveRDS(contrast, "contrast.rds")
 saveRDS(design, "design.rds")
+for (b in c("fit2", "contrast", "design"))
+    file.copy(paste0(b, ".rds"), b, overwrite = TRUE)

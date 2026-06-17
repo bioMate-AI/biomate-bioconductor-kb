@@ -62,9 +62,9 @@ process BIOC_MILOR_DA_CONTRASTS {
           }
         }
         
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(miloR)
+    library(SummarizedExperiment)
     library(scater)
     library(scran)
     library(dplyr)

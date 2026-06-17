@@ -59,8 +59,8 @@ process BIOC_RNAAGECALC_PREDICT_AGE_SUMMARIZED_EXPERIMENT {
         }
     
     # Load required libraries
-    l    library(SummarizedExperiment)
-ibrary(RNAAgeCalc)
+    library(RNAAgeCalc)
+    library(SummarizedExperiment)
     
     # --- Read the user input SummarizedExperiment object from the ---
     input_file <- "se.rds"

@@ -61,8 +61,8 @@ process BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION {
         }
     
     # Load required libraries
-    librar    library(SummarizedExperiment)
-y(MultiAssayExperiment)
+    library(MultiAssayExperiment)
+    library(SummarizedExperiment)
     library(AffiXcan)
     
     # Helper function to robustly read user input files from the working directory

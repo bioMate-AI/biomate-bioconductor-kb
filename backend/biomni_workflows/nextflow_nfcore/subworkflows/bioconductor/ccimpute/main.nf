@@ -61,9 +61,9 @@ process BIOC_CCIMPUTE_STANDARD_IMPUTATION {
           }
         }
     
-    # 1. Load required librarie    library(SummarizedExperiment)
-s
+    # 1. Load required libraries
     library(scRNAseq)
+    library(SummarizedExperiment)
     library(scater)
     library(ccImpute)
     library(stats)

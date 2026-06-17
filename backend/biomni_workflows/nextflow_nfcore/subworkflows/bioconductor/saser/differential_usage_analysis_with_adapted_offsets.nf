@@ -56,9 +56,9 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
       }
     }
     
-    # Load required libra    library(SummarizedExperiment)
-ries
+    # Load required libraries
     library(saseR)
+    library(SummarizedExperiment)
     library(edgeR)
     library(DESeq2)
     library(dplyr)

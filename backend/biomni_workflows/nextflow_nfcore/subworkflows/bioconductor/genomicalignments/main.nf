@@ -56,8 +56,8 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     }
     
     # --- Load GenomicAlignments and downstream analysis packages ---
-    lib    library(SummarizedExperiment)
-rary(GenomicAlignments)
+    library(GenomicAlignments)
+    library(SummarizedExperiment)
     library(DESeq2)
     library(edgeR)
     

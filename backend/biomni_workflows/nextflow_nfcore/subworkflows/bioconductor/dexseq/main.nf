@@ -57,8 +57,8 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
     }
     
     # Load required libraries
-    l    library(SummarizedExperiment)
-ibrary(GenomicFeatures)
+    library(GenomicFeatures)
+    library(SummarizedExperiment)
     library(txdbmaker)
     library(Rsamtools)
     library(GenomicAlignments)

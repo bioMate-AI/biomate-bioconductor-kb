@@ -62,9 +62,9 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
           }
         }
     
-    # Load required librarie    library(SummarizedExperiment)
-s
+    # Load required libraries
     library(missRows)
+    library(SummarizedExperiment)
     library(MultiAssayExperiment)
     
     # ==========================================

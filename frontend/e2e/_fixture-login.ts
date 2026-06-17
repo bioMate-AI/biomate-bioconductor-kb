@@ -1,13 +1,18 @@
 /**
- * Shared E2E fixture login per CLAUDE.md §"E2E test user".
+ * Shared E2E fixture login per CLAUDE.md §"E2E test user" and §"E2E plan
+ * discipline".
  *
  * Single canonical account: lifeifei163361@163.com. Per-worker cookie
- * cache so successive tests in the same worker reuse one login round-trip
- * (avoids registerLimiter; matches CLAUDE.md "Reuse the same account
- * across tests" guidance).
+ * cache so successive tests in the same worker reuse one login round-trip.
  *
  * Pattern: call `loginAsFixture(page)` at the start of any test that needs
  * an authenticated session. Idempotent in-worker.
+ *
+ * IMPORTANT per CLAUDE.md §"E2E plan discipline" rule 3: do NOT call
+ * `/api/auth/register` from this harness — the fixture user is already
+ * registered. Calling register costs rate-limit credit at best and 4xx
+ * at worst. Registration round-trip testing belongs in
+ * `server/auth-fixes-*.test.ts`, NOT here.
  */
 import { type Page } from "@playwright/test";
 
@@ -23,23 +28,7 @@ let cachedCookies: any[] | null = null;
 async function fetchTokenInBrowser(page: Page): Promise<string | null> {
   return await page.evaluate(
     async ({ baseUrl, email, password, token }) => {
-      // Register-or-ignore (409 if already exists) — wrapped in catch so a
-      // pre-existing fixture user doesn't fail the test
-      await fetch(`${baseUrl}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-E2E-Test-Token": token,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          name: "BioMate E2E",
-          email,
-          password,
-          terms_accepted: true,
-        }),
-      }).catch(() => null);
-
+      // Login only — fixture user is already registered (CLAUDE.md rule 3).
       const r = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: {

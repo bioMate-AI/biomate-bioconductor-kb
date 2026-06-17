@@ -53,9 +53,9 @@ process BIOC_GMRP_GMRP_MR_PATH_ANALYSIS {
           }
         }
     
-    # --- Load required librarie    library(SummarizedExperiment)
-s ---
+    # --- Load required libraries ---
     library(GMRP)
+    library(SummarizedExperiment)
     library(VariantAnnotation)
     library(GenomicRanges)
     library(S4Vectors)

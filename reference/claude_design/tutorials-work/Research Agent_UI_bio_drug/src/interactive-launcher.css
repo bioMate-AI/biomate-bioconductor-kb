@@ -1,0 +1,292 @@
+/* Interactive Launcher — modal that spawns RStudio / Jupyter / CellxGene
+   against a run's outputs. Styled on the v1 token system (surfaces, accent,
+   ok) so it reads as native BioMate chrome in both light + dark themes. */
+
+.il-modal {
+  width: 540px;
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.il-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.il-head h3 {
+  font-size: 15px;
+  margin: 0 0 3px;
+  letter-spacing: -0.01em;
+}
+.il-head .il-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.45;
+  max-width: 380px;
+}
+
+/* ── Scrollable body ────────────────────────────────────────────── */
+.il-body {
+  padding: 16px 20px 6px;
+  overflow-y: auto;
+}
+.il-section-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin: 0 0 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Environment tiles ──────────────────────────────────────────── */
+.il-tiles { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.il-tile {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 11px;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  cursor: pointer;
+  transition: border-color .12s, background .12s, box-shadow .12s;
+}
+.il-tile:hover { border-color: var(--border-strong); }
+.il-tile.sel {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.il-radio {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  margin-top: 2px;
+  display: grid; place-items: center;
+  transition: border-color .12s;
+}
+.il-tile.sel .il-radio { border-color: var(--accent); }
+.il-radio::after {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: scale(0);
+  transition: transform .12s;
+}
+.il-tile.sel .il-radio::after { transform: scale(1); }
+
+.il-tile-name {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13.5px; font-weight: 600; color: var(--text);
+}
+.il-tile-name .il-ico { color: var(--text-muted); display: inline-flex; }
+.il-tile.sel .il-tile-name .il-ico { color: var(--accent-ink); }
+.il-tile-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+.il-tile-best { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; }
+.il-tile-best b { color: var(--text-muted); font-weight: 600; }
+
+.il-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.il-chip {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.il-chip.more { background: transparent; color: var(--text-dim); }
+
+/* ── Output picker ──────────────────────────────────────────────── */
+.il-link {
+  font-size: 11.5px;
+  color: var(--accent);
+  background: none; border: none; cursor: pointer;
+  font-weight: 600;
+  text-transform: none; letter-spacing: 0;
+}
+.il-link:hover { text-decoration: underline; }
+.il-picker {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.il-file-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  transition: background .1s;
+}
+.il-file-row:first-child { border-top: none; }
+.il-file-row:hover { background: var(--surface-2); }
+.il-check {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-strong);
+  display: grid; place-items: center;
+  color: #fff;
+  flex-shrink: 0;
+  transition: background .12s, border-color .12s;
+}
+.il-file-row.on .il-check { background: var(--accent); border-color: var(--accent); }
+.il-check svg { opacity: 0; transition: opacity .1s; }
+.il-file-row.on .il-check svg { opacity: 1; }
+.il-file-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+  display: flex; align-items: center; gap: 7px;
+  min-width: 0;
+}
+.il-file-name span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.il-file-name .il-fico { color: var(--text-dim); flex-shrink: 0; flex: 0 0 auto; }
+.il-file-size {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.il-picker-foot {
+  padding: 7px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────── */
+.il-alert {
+  display: flex; gap: 10px;
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.il-alert .il-alert-ico { flex-shrink: 0; margin-top: 1px; }
+.il-alert.info {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid color-mix(in oklab, var(--accent) 24%, transparent);
+}
+.il-alert.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+  border: 1px solid color-mix(in oklab, var(--ok) 30%, transparent);
+}
+.il-alert.ok .il-alert-title { font-weight: 700; font-size: 13px; color: var(--ok); }
+.il-alert.ok .il-alert-body { color: var(--text-muted); margin-top: 2px; }
+.il-alert.ok .il-alert-state { font-family: var(--font-mono); font-size: 11px; margin-top: 3px; }
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.il-foot {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.il-foot .il-foot-spacer { flex: 1; }
+.il-launch-btn {
+  height: 36px; padding: 0 18px;
+  font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.il-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid color-mix(in oklab, currentColor 35%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: il-spin .7s linear infinite;
+}
+@keyframes il-spin { to { transform: rotate(360deg); } }
+
+/* ── Active-session view ────────────────────────────────────────── */
+.il-open-tab {
+  width: 100%;
+  height: 42px;
+  font-size: 13.5px; font-weight: 600;
+  text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  margin-bottom: 18px;
+}
+.il-code-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 7px;
+}
+.il-code-head .il-code-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim);
+}
+.il-copy-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 9px; height: 24px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background .1s, color .1s;
+}
+.il-copy-btn:hover { background: var(--surface-2); color: var(--text); }
+.il-copy-btn.done { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 40%, transparent); }
+.il-code {
+  background: oklch(0.20 0.012 260);
+  border-radius: var(--r-md);
+  padding: 13px 15px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: oklch(0.90 0.01 260);
+  white-space: pre;
+  overflow-x: auto;
+  margin-bottom: 18px;
+}
+.il-code .il-cmt { color: oklch(0.62 0.02 260); }
+.il-code .il-fn { color: oklch(0.78 0.13 200); }
+.il-code .il-str { color: oklch(0.78 0.13 130); }
+
+.il-preload-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 8px;
+}
+.il-preload { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.il-preload li {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+}
+.il-preload li .il-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.il-preload li span:last-child { white-space: nowrap; }
+
+/* ── Per-output row trigger button (in the Outputs tab) ─────────── */
+.il-open-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 11px; font-weight: 500;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+  border-radius: var(--r-sm);
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .1s, border-color .1s;
+}
+.il-open-link:hover { background: color-mix(in oklab, var(--accent) 16%, var(--accent-soft)); border-color: var(--accent); }
+.il-open-link svg { flex-shrink: 0; }

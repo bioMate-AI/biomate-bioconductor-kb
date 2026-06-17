@@ -54,9 +54,9 @@ process BIOC_SECHM_SECHM_TRANSCRIPTOMICS_HEATMAP {
         }
     
     # Load required libraries
-    suppressPackageStartupMessages      library(SummarizedExperiment)
-({
+    suppressPackageStartupMessages({
       library(sechm)
+      library(SummarizedExperiment)
       library(ComplexHeatmap)
     })
     

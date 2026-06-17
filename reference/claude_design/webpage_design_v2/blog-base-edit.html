@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>In Vivo Base Editing — How BioMate Reconstructs VERVE-102 from "Knock Out PCSK9 in the Liver" — BioMate AI Blog</title>
+  <meta name="description" content="BioMate's 5-phase base editing pipeline infers ABE8.8, a splice-donor gRNA, and hepatic LNP delivery — reconstructing the VERVE-102 program after VERVE-101's liver toxicity failure, starting from 'knock out PCSK9 in the liver'." />
+  <meta name="keywords" content="base editing, PCSK9, VERVE-102, VERVE-101, ABE8.8, splice donor, adenine base editor, LNP liver delivery, cardiovascular gene therapy, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-base-edit.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="In Vivo Base Editing — How BioMate Reconstructs VERVE-102" />
+  <meta property="og:description" content="A 5-phase pipeline infers editor class, guide RNA, delivery platform, and IND-readiness flags — reconstructing VERVE-102's ABE reformulation after the VERVE-101 liver toxicity failure." />
+  <meta property="og:url" content="https://biomate.ai/blog-base-edit.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-base-edit-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="In Vivo Base Editing for PCSK9 — BioMate AI" />
+  <meta name="twitter:description" content="How BioMate reconstructs VERVE-102's ABE8.8 + splice-donor gRNA strategy after VERVE-101's liver toxicity — from a single natural language request." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-base-edit-hero.png" />
+  <meta name="citation_title" content="In Vivo Base Editing for PCSK9 Loss-of-Function: AI-Guided Reconstruction of the VERVE-102 Program" />
+  <meta name="citation_date" content="2026-06-16" />
+  <meta name="citation_publisher" content="BioMate AI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "In Vivo Base Editing — How BioMate Reconstructs VERVE-102",
+    "description": "BioMate's 5-phase base editing pipeline infers ABE8.8, splice-donor gRNA, and hepatic LNP delivery — reconstructing VERVE-102 after VERVE-101 liver toxicity, starting only from 'knock out PCSK9 in the liver'.",
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16",
+    "url": "https://biomate.ai/blog-base-edit.html",
+    "image": "https://biomate.ai/images/blog-base-edit-hero.png",
+    "keywords": ["base editing", "PCSK9", "VERVE-102", "ABE8.8", "splice donor gRNA", "adenine base editor", "LNP", "cardiovascular", "BioMate", "gene therapy"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" },
+    "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".article-header h1", ".article-body p.lead"] },
+    "about": [
+      { "@type": "Gene", "name": "PCSK9" },
+      { "@type": "Thing", "name": "adenine base editing" },
+      { "@type": "MedicalCondition", "name": "hypercholesterolemia" }
+    ],
+    "citation": {
+      "@type": "ScholarlyArticle",
+      "name": "In vivo base editing of PCSK9 (Musunuru et al., Nature 2021)",
+      "datePublished": "2021"
+    }
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.88rem; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.85rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="VERVE-102 dosed its first patient Q4 2024 — the most-watched gene editing trial in the world. BioMate reconstructs the PCSK9 base-editing design from 'loss-of-function hypercholesterolemia' in 5 phases, including the VERVE-101 LFT reformulation flag." />
+  <link rel="canonical" href="https://biomate.ai/blog-base-edit.html" />
+  <meta property="og:title" content="In Vivo Base Editing — How BioMate Reconstructs VERVE-102 from 'Knock Out PCSK9 in the Liver'" />
+  <meta property="og:description" content="5-phase pipeline recovers VERVE-102 architecture: atlas tissue check, ABE8.8 editor (splice-donor strategy), guide RNA design, LNP delivery, and IND-readiness flag from the VERVE-101 LFT incident." />
+  <meta property="og:url" content="https://biomate.ai/blog-base-edit.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Article","headline":"In Vivo Base Editing — How BioMate Reconstructs VERVE-102 from 'Knock Out PCSK9 in the Liver'","description":"5-phase pipeline recovers VERVE-102 base-editing architecture from a plain-English loss-of-function request, including the VERVE-101 LFT reformulation CMC flag.","datePublished":"2026-06-16","publisher":{"@type":"Organization","name":"BioMate AI","url":"https://biomate.ai"},"url":"https://biomate.ai/blog-base-edit.html","articleSection":"Drug Development"}
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-base-edit-hero.png" alt="In Vivo Base Editing — VERVE-102 / PCSK9 — BioMate" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div style="width:100%;background:#f8fafc;border-bottom:1px solid #e2e8f0;overflow:hidden;">
+  <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <defs><marker id="arbe" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/></marker></defs>
+    <rect x="0" y="0" width="820" height="33" fill="#1a3a1a"/>
+    <text x="410" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">In Vivo Base Editing — PCSK9 LoF · ABE8.8 Splice-Donor Mechanism</text>
+    <!-- LEFT: Before edit -->
+    <rect x="18" y="37" width="342" height="148" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="18" y="37" width="342" height="22" rx="6" fill="#475569"/>
+    <text x="189" y="52" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">Before ABE8.8 Edit</text>
+    <text x="37" y="78" fill="#475569" font-size="8.5" font-weight="600">pre-mRNA splice junction:</text>
+    <rect x="37" y="84" width="100" height="32" rx="3" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="87" y="104" text-anchor="middle" fill="#1e40af" font-size="9" font-weight="700">EXON 1</text>
+    <rect x="144" y="80" width="38" height="40" rx="3" fill="#fde68a" stroke="#f59e0b" stroke-width="2.5"/>
+    <text x="163" y="99" text-anchor="middle" fill="#92400e" font-size="13" font-weight="700">GT</text>
+    <text x="163" y="113" text-anchor="middle" fill="#b45309" font-size="7">↑ A on antisense</text>
+    <rect x="189" y="84" width="100" height="32" rx="3" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+    <text x="239" y="104" text-anchor="middle" fill="#64748b" font-size="9">INTRON 1</text>
+    <rect x="37" y="130" width="252" height="14" rx="3" fill="#e0e7ff" stroke="#6366f1" stroke-width="1"/>
+    <text x="163" y="141" text-anchor="middle" fill="#4338ca" font-size="7.5" font-weight="700">ABE8.8 gRNA · PAM: NGG · edit window pos. 4–8</text>
+    <rect x="37" y="152" width="252" height="26" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+    <text x="163" y="163" text-anchor="middle" fill="#78350f" font-size="8.5" font-weight="700">GT splice donor ACTIVE</text>
+    <text x="163" y="175" text-anchor="middle" fill="#92400e" font-size="8">PCSK9 mRNA splices → protein expressed → LDL-C ↑</text>
+    <!-- Arrow ABE8.8 -->
+    <line x1="368" y1="111" x2="399" y2="111" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arbe)"/>
+    <text x="383" y="104" text-anchor="middle" fill="#7c3aed" font-size="8.5" font-weight="700">ABE8.8</text>
+    <text x="383" y="121" text-anchor="middle" fill="#7c3aed" font-size="8">A → G</text>
+    <!-- RIGHT: After edit -->
+    <rect x="408" y="37" width="394" height="148" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <rect x="408" y="37" width="394" height="22" rx="6" fill="#6d28d9"/>
+    <text x="605" y="52" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">After ABE8.8 · Splice Disrupted → PCSK9 Silenced</text>
+    <text x="427" y="78" fill="#4c1d95" font-size="8.5" font-weight="600">Edited splice junction:</text>
+    <rect x="427" y="84" width="100" height="32" rx="3" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="477" y="104" text-anchor="middle" fill="#1e40af" font-size="9" font-weight="700">EXON 1</text>
+    <rect x="534" y="80" width="38" height="40" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="2.5"/>
+    <text x="553" y="99" text-anchor="middle" fill="#065f46" font-size="13" font-weight="700">GC</text>
+    <text x="553" y="113" text-anchor="middle" fill="#059669" font-size="7">A→G (antisense)</text>
+    <rect x="579" y="84" width="100" height="32" rx="3" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+    <text x="629" y="104" text-anchor="middle" fill="#64748b" font-size="9">INTRON 1</text>
+    <text x="427" y="136" fill="#4c1d95" font-size="8.5">GT → GC · splice donor destroyed · aberrant splicing</text>
+    <text x="427" y="150" fill="#4c1d95" font-size="8.5">→ premature stop codon → NMD · PCSK9 protein lost</text>
+    <rect x="427" y="158" width="364" height="22" rx="5" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+    <text x="609" y="168" text-anchor="middle" fill="#047857" font-size="9" font-weight="700">LDL-C ↓60% · VERVE-102 · permanent hepatic silencing</text>
+    <text x="609" y="179" text-anchor="middle" fill="#065f46" font-size="7.5">One adenine edit → permanent hepatic PCSK9 knockdown</text>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development · Case Study</span>
+      <h1>In Vivo Base Editing — How BioMate Reconstructs VERVE-102 from "Knock Out PCSK9 in the Liver"</h1>
+      <div class="article-meta">
+        <span><strong>June 16, 2026</strong></span>
+        <span>8 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Q4 2024: Verve Therapeutics dosed the first patient with VERVE-102 — the second iteration of their in vivo PCSK9 base-editing program, after VERVE-101 hit a liver enzyme signal in 2023. VERVE-102 is the most-watched gene-editing trial in the world. Can BioMate recover the VERVE-102 architecture from "loss-of-function PCSK9 for hypercholesterolemia" — in 5 phases? Yes.</p>
+
+      <h2>Why VERVE matters for the field</h2>
+      <p>Pharma spent 30 years on PCSK9 inhibition. Repatha (Amgen, 2015) and Praluent (Sanofi/Regeneron, 2015) brought monoclonal antibodies to market — but both require biweekly injection. Inclisiran (Novartis, 2021) brought siRNA at twice-yearly dosing. Verve's pitch: one shot, for life.</p>
+      <p>The mechanism: an adenine base editor (ABE8.8) + PCSK9 guide RNA + liver-tropic LNP. The ABE makes a single A•T→G•C edit at the exon 1/intron 1 splice donor, disrupting the canonical GT dinucleotide (GT→GC). PCSK9 pre-mRNA fails to splice, the transcript is degraded by nonsense-mediated decay, and the protein is never expressed. LDL drops permanently. One infusion — done.</p>
+      <p>VERVE-101 (2022) saw two patients with elevated liver function tests in Phase 1b. Verve paused and pivoted to VERVE-102 — a reformulated LNP designed to reduce hepatotoxicity. That reformulation decision is what makes VERVE-102 interesting, and it's exactly what BioMate's CMC flag surfaces.</p>
+
+      <h2>What changed between VERVE-101 and VERVE-102</h2>
+      <table>
+        <tr><th>Program</th><th>LNP platform</th><th>Editor</th><th>Clinical update</th></tr>
+        <tr><td>VERVE-101</td><td>Acuitas ALC-0315 ionizable LNP</td><td>ABE8e (ABE8.8) — splice donor</td><td>Paused — LFT elevation Nov 2023</td></tr>
+        <tr><td>VERVE-102</td><td>Reformulated hepatotropic LNP (lower hepatotoxicity)</td><td>ABE8e (ABE8.8) — splice donor</td><td>First patient dosed Q4 2024</td></tr>
+        <tr><td>VERVE-201</td><td>ANGPTL3 target (same platform)</td><td>ABE8e</td><td>IND filed 2024</td></tr>
+      </table>
+
+      <h2>The 5-phase information flow</h2>
+
+      <div class="figure-wrap">
+        <svg viewBox="0 0 820 408" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#fff;font-family:'Open Sans',Arial,sans-serif;">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
+            <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#047857"/></marker>
+            <marker id="arrr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#dc2626"/></marker>
+          </defs>
+          <!-- Header -->
+          <rect x="0" y="0" width="820" height="36" fill="#1a3a1a"/>
+          <text x="410" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">In Vivo Base Editing — VERVE-102 Reconstruction (PCSK9 LoF)</text>
+
+          <!-- === 5 PHASE CIRCLES (horizontal, compact) === -->
+          <!-- r=24, cy=88, cx: 64, 237, 410, 583, 756 -->
+          <circle cx="64" cy="88" r="24" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+          <text x="64" y="84" text-anchor="middle" fill="#1e3a8a" font-size="13" font-weight="700">A</text>
+          <text x="64" y="97" text-anchor="middle" fill="#1e3a8a" font-size="7.5">Atlas</text>
+          <text x="64" y="122" text-anchor="middle" fill="#64748b" font-size="8">PCSK9</text>
+          <text x="64" y="133" text-anchor="middle" fill="#64748b" font-size="8">liver-restricted</text>
+          <line x1="88" y1="88" x2="213" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="237" cy="88" r="24" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+          <text x="237" y="84" text-anchor="middle" fill="#14532d" font-size="13" font-weight="700">B</text>
+          <text x="237" y="97" text-anchor="middle" fill="#14532d" font-size="7.5">ABE8.8</text>
+          <text x="237" y="122" text-anchor="middle" fill="#64748b" font-size="8">adenine</text>
+          <text x="237" y="133" text-anchor="middle" fill="#64748b" font-size="8">base editor</text>
+          <line x1="261" y1="88" x2="386" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="410" cy="88" r="24" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+          <text x="410" y="84" text-anchor="middle" fill="#78350f" font-size="13" font-weight="700">C</text>
+          <text x="410" y="97" text-anchor="middle" fill="#78350f" font-size="7.5">gRNA</text>
+          <text x="410" y="122" text-anchor="middle" fill="#64748b" font-size="8">splice donor</text>
+          <text x="410" y="133" text-anchor="middle" fill="#64748b" font-size="8">NGG PAM</text>
+          <line x1="434" y1="88" x2="559" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="583" cy="88" r="24" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+          <text x="583" y="84" text-anchor="middle" fill="#4c1d95" font-size="13" font-weight="700">D</text>
+          <text x="583" y="97" text-anchor="middle" fill="#4c1d95" font-size="7.5">LNP-IV</text>
+          <text x="583" y="122" text-anchor="middle" fill="#64748b" font-size="8">hepatotropic</text>
+          <text x="583" y="133" text-anchor="middle" fill="#64748b" font-size="8">ionizable lipid</text>
+          <line x1="607" y1="88" x2="732" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <circle cx="756" cy="88" r="24" fill="#fce7f3" stroke="#9d174d" stroke-width="2"/>
+          <text x="756" y="84" text-anchor="middle" fill="#831843" font-size="13" font-weight="700">E</text>
+          <text x="756" y="97" text-anchor="middle" fill="#831843" font-size="7.5">CMC Flag</text>
+          <text x="756" y="122" text-anchor="middle" fill="#64748b" font-size="8">LFT signal</text>
+          <text x="756" y="133" text-anchor="middle" fill="#64748b" font-size="8">VERVE-102</text>
+
+          <!-- Divider -->
+          <line x1="30" y1="148" x2="790" y2="148" stroke="#e2e8f0" stroke-width="1.5"/>
+
+          <!-- === SPLICE MECHANISM: 3-PANEL VISUALIZATION === -->
+          <text x="410" y="166" text-anchor="middle" fill="#1e293b" font-size="11.5" font-weight="700">Phase C — ABE8.8 Splice-Donor Edit (PCSK9 exon1/intron1 junction)</text>
+
+          <!-- Panel 1: Before edit (x=22-254) -->
+          <rect x="22" y="174" width="232" height="154" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <rect x="22" y="174" width="232" height="22" rx="6" fill="#475569"/>
+          <text x="138" y="189" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">Before Edit</text>
+          <!-- DNA schematic: pre-mRNA strand -->
+          <rect x="36" y="216" width="80" height="32" rx="3" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1"/>
+          <text x="76" y="236" text-anchor="middle" fill="#1e40af" font-size="9" font-weight="700">EXON 1</text>
+          <rect x="121" y="211" width="32" height="42" rx="3" fill="#fde68a" stroke="#f59e0b" stroke-width="2"/>
+          <text x="137" y="229" text-anchor="middle" fill="#92400e" font-size="12" font-weight="700">GT</text>
+          <text x="137" y="243" text-anchor="middle" fill="#b45309" font-size="7.5">↑ A on antisense</text>
+          <rect x="158" y="216" width="80" height="32" rx="3" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+          <text x="198" y="236" text-anchor="middle" fill="#64748b" font-size="9">INTRON 1</text>
+          <text x="138" y="274" text-anchor="middle" fill="#475569" font-size="8.5">Canonical splice donor active</text>
+          <text x="138" y="287" text-anchor="middle" fill="#475569" font-size="8.5">PCSK9 pre-mRNA splices</text>
+          <text x="138" y="300" text-anchor="middle" fill="#14532d" font-size="8.5" font-weight="600">PCSK9 protein expressed ↑</text>
+          <text x="138" y="316" text-anchor="middle" fill="#94a3b8" font-size="8">hypercholesterolemia</text>
+
+          <!-- Arrow panel1→panel2 -->
+          <line x1="259" y1="252" x2="291" y2="252" stroke="#7c3aed" stroke-width="2" marker-end="url(#arr)"/>
+          <text x="275" y="245" text-anchor="middle" fill="#7c3aed" font-size="8.5" font-weight="700">ABE8.8</text>
+          <text x="275" y="263" text-anchor="middle" fill="#7c3aed" font-size="7.5">A→G</text>
+
+          <!-- Panel 2: ABE8.8 edit (x=298-522) -->
+          <rect x="298" y="174" width="224" height="154" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+          <rect x="298" y="174" width="224" height="22" rx="6" fill="#6d28d9"/>
+          <text x="410" y="189" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">ABE8.8 Deamination</text>
+          <!-- ABE8.8 enzyme circle -->
+          <circle cx="410" cy="222" r="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+          <text x="410" y="218" text-anchor="middle" fill="#4c1d95" font-size="8.5" font-weight="700">ABE</text>
+          <text x="410" y="230" text-anchor="middle" fill="#4c1d95" font-size="8.5">8.8</text>
+          <!-- A→G reaction -->
+          <rect x="325" y="254" width="30" height="30" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+          <text x="340" y="274" text-anchor="middle" fill="#dc2626" font-size="16" font-weight="700">A</text>
+          <line x1="356" y1="269" x2="380" y2="269" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+          <text x="368" y="263" text-anchor="middle" fill="#64748b" font-size="8">deam.</text>
+          <rect x="381" y="254" width="30" height="30" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+          <text x="396" y="274" text-anchor="middle" fill="#047857" font-size="16" font-weight="700">G</text>
+          <text x="466" y="265" text-anchor="middle" fill="#64748b" font-size="8">inosine</text>
+          <text x="466" y="275" text-anchor="middle" fill="#64748b" font-size="8">read as G</text>
+          <text x="410" y="302" text-anchor="middle" fill="#4c1d95" font-size="8.5">Antisense strand</text>
+          <text x="410" y="314" text-anchor="middle" fill="#4c1d95" font-size="8.5">A•T → G•C (permanent)</text>
+          <text x="410" y="326" text-anchor="middle" fill="#64748b" font-size="8">20-nt protospacer · NGG PAM</text>
+
+          <!-- Arrow panel2→panel3 -->
+          <line x1="527" y1="252" x2="559" y2="252" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+
+          <!-- Panel 3: After edit (x=566-798) -->
+          <rect x="566" y="174" width="232" height="154" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <rect x="566" y="174" width="232" height="22" rx="6" fill="#475569"/>
+          <text x="682" y="189" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">After Edit</text>
+          <!-- DNA schematic -->
+          <rect x="580" y="216" width="80" height="32" rx="3" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1"/>
+          <text x="620" y="236" text-anchor="middle" fill="#1e40af" font-size="9" font-weight="700">EXON 1</text>
+          <rect x="665" y="211" width="32" height="42" rx="3" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+          <text x="681" y="229" text-anchor="middle" fill="#991b1b" font-size="12" font-weight="700">GC</text>
+          <text x="681" y="243" text-anchor="middle" fill="#dc2626" font-size="8">✗ broken</text>
+          <rect x="702" y="216" width="80" height="32" rx="3" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+          <text x="742" y="236" text-anchor="middle" fill="#64748b" font-size="9">INTRON 1</text>
+          <!-- NMD arrow down -->
+          <line x1="682" y1="258" x2="682" y2="278" stroke="#dc2626" stroke-width="2" marker-end="url(#arrr)"/>
+          <text x="682" y="274" text-anchor="middle" fill="#991b1b" font-size="8.5" font-weight="700">NMD</text>
+          <text x="682" y="289" text-anchor="middle" fill="#991b1b" font-size="8.5">mRNA degraded</text>
+          <text x="682" y="302" text-anchor="middle" fill="#047857" font-size="9" font-weight="600">PCSK9 eliminated ↓↓</text>
+          <text x="682" y="316" text-anchor="middle" fill="#14532d" font-size="8.5" font-weight="600">LDL-C ↓↓</text>
+
+          <!-- === RESULT BANNER === -->
+          <rect x="22" y="340" width="776" height="36" rx="7" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
+          <text x="410" y="356" text-anchor="middle" fill="#064e3b" font-size="11" font-weight="700">ABE8.8 + PCSK9 exon1/intron1 splice-donor gRNA + hepatotropic LNP-IV + LFT flag → VERVE-102 · matched dosed program</text>
+          <text x="410" y="370" text-anchor="middle" fill="#047857" font-size="9">Musunuru et al. Nature 2021;593:429–434 · Lee et al. Circulation 2023 · Same pipeline: CFTR → "wrong platform, need inhaled/AAV"</text>
+
+          <!-- Outputs -->
+          <text x="410" y="396" text-anchor="middle" fill="#94a3b8" font-size="8.5">Outputs: editor_selection.json · grna_design.json · off_target_screen.json · delivery_platform.json · cmc_flags.json</text>
+        </svg>
+        <div class="figure-caption">Figure 1 — In vivo base editing pipeline: 5 phases from query to IND-ready design. Phase B selects ABE8.8 (adenine base editor) for the PCSK9 splice-donor strategy — the mechanism VERVE-101/102 actually uses (Musunuru et al., <em>Nature</em> 2021; Lee et al., <em>Circulation</em> 2023). Phase E surfaces the VERVE-101 LFT signal — the CMC reformulation flag that defines VERVE-102. The same pipeline applied to CFTR flags "wrong delivery platform" because lung tissue requires inhaled or AAV delivery, not LNP-IV.</div>
+      </div>
+
+      <h2>The gap between fluent and grounded</h2>
+      <p>The Verve / Beam / Prime base-editing literature is fragmented across Liu lab Nature papers (2016–2017 original CBE/ABE chemistry), Verve corporate releases (2022, 2023 program updates), FDA briefing documents, and investor decks from Editas, Beam, Prime, and Intellia.</p>
+      <p>A reasoning LLM may correctly select ABE as the editor class and identify the splice-donor strategy — these are knowable from the published literature. What it won't do is flag the VERVE-101 LFT signal as a CMC class effect for hepatic LNP-IV, because that signal lives in a corporate press release from November 2023 and the LLM's knowledge of it is diffuse and unverified. The difference between "ABE + splice donor" and "ABE + splice donor + VERVE-101 LFT class-effect flag" is the difference between a design and an IND-ready design.</p>
+      <p>BioMate grounds Phase E against a curated knowledge base that includes corporate program updates. When the workflow runs for PCSK9 loss-of-function, the agent reads VERVE-101's 2023 pause and emits the reformulation flag as a structured CMC note. That's the gap between <em>fluent</em> and <em>grounded</em>.</p>
+
+      <blockquote>"VERVE-101's failure cost roughly $200M to learn. The next program shouldn't have to pay that tuition."</blockquote>
+
+      <h2>Why it generalizes</h2>
+      <p>The same 5-phase pipeline — different inputs, different answers:</p>
+      <ul>
+        <li><strong>ANGPTL3</strong> → VERVE-201 design (also hepatocyte-restricted, ABE8e, same LNP platform)</li>
+        <li><strong>HMGCR</strong> → competitive flag: "rosuvastatin already covers this at low cost; LDL-lowering bar for a new modality is high"</li>
+        <li><strong>CFTR</strong> → delivery rejection: "lung tissue, LNP-IV is wrong platform — inhaled or AAV required"</li>
+        <li><strong>DMD</strong> → "muscle tissue, LNP-IV has poor muscle tropism — systemic delivery unsolved"</li>
+      </ul>
+      <p>The pipeline's intelligence isn't in knowing each program. It's in applying the same logic — tissue restriction → editor class → delivery feasibility → CMC precedent — to any target.</p>
+
+      <h2>Try it yourself</h2>
+      <pre>Base editing strategy for PCSK9 loss of function in hypercholesterolemia</pre>
+      <p>→ <a href="https://biomate.ai" target="_blank" rel="noopener">biomate.ai</a> · 30 seconds · 5 phases · VERVE-102 architecture recovered.</p>
+
+      <p class="bm-external-refs">Further reading: <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4874267/" rel="noopener" target="_blank">Komor et al. 2016, CBE original chemistry — Nature (PMC)</a>; <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5726555/" rel="noopener" target="_blank">Gaudelli et al. 2017, ABE original chemistry — Nature (PMC)</a>; <a href="https://www.vervetx.com/pipeline" rel="noopener" target="_blank">Verve Therapeutics pipeline (vervetx.com)</a>; <a href="https://www.fda.gov/media/163632/download" rel="noopener" target="_blank">FDA gene therapy guideline (FDA.gov)</a>.</p>
+
+      <div class="callout">
+        <strong>What this means for gene editing programs</strong>
+        <p>A program like VERVE-101 fails at Phase 1b because of a CMC signal that was partially predictable from prior LNP hepatotoxicity literature. A grounded pipeline that surfaces that precedent at design time — before the IND is written — turns a $200M lesson into a one-line CMC flag in a JSON output. That's the purpose of grounding, and the reason general-purpose LLMs can't substitute for it.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Case Studies</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-bispecific-triage.html">Bispecific Format Triage — Ivonescimab CrossMab from Two Protein Names</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-invivo-cart.html">In Vivo CAR-T Co-Design — Three Molecules, One Workflow</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-glp1-modality.html">GLP-1 Modality Bakeoff — Indication Decides Which Receptor Pattern Wins</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-modality-triage.html">Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals</a><div class="meta">June 16, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Base Editing</span><span class="topic-chip">ABE</span><span class="topic-chip">PCSK9</span><span class="topic-chip">VERVE-102</span><span class="topic-chip">LNP</span><span class="topic-chip">Guide RNA</span><span class="topic-chip">Gene Editing</span><span class="topic-chip">CMC</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">In vivo base editing, CAR-T co-design, and modality triage are available on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New case studies and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:'Open Sans',sans-serif;" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#drug-discovery" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Drug Discovery services →</a>
+      <a href="alphafold.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Structure Prediction →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div>
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+<style>
+.fig-lightbox-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
+.fig-lightbox-overlay.active{display:flex;}
+.fig-lightbox-inner{background:#fff;border-radius:10px;padding:1.25rem;max-width:94vw;max-height:92vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.6);position:relative;}
+.fig-lightbox-inner svg{width:min(1300px,88vw);height:auto;display:block;}
+.fig-lightbox-close{position:fixed;top:1.1rem;right:1.4rem;font-size:2rem;color:#fff;cursor:pointer;line-height:1;user-select:none;}
+.figure-wrap{cursor:zoom-in;}
+</style>
+<div class="fig-lightbox-overlay" id="figLightbox" onclick="this.classList.remove('active')">
+  <span class="fig-lightbox-close" onclick="document.getElementById('figLightbox').classList.remove('active')">&#x2715;</span>
+  <div class="fig-lightbox-inner" id="figLightboxInner" onclick="event.stopPropagation()"></div>
+</div>
+<script>
+(function(){
+  document.querySelectorAll('.figure-wrap').forEach(function(fw){
+    fw.addEventListener('click',function(){
+      var svg=fw.querySelector('svg');
+      if(!svg)return;
+      document.getElementById('figLightboxInner').innerHTML=svg.outerHTML;
+      document.getElementById('figLightbox').classList.add('active');
+    });
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('figLightbox').classList.remove('active');});
+})();
+</script>
+</body>
+</html>

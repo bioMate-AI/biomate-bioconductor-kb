@@ -62,9 +62,9 @@ process BIOC_MIAVIZ_ABUNDANCE_PLOTTING {
           }
         }
     
-    # Load required lib    library(SummarizedExperiment)
-raries
+    # Load required libraries
     library(mia)
+    library(SummarizedExperiment)
     library(miaViz)
     library(patchwork)
     library(ggplot2)

@@ -1,27 +1,34 @@
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("SingleCellExperiment")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
+# Real user-style input for scry null-residuals + PCA: a SingleCellExperiment of
+# raw UMI counts with genuine cell-type structure (a user's CellRanger output).
+# Structured (not flat-Poisson) counts so binomial deviance, deviance/Pearson
+# null residuals and PCA all have real signal. No ExperimentHub / demo data.
+
 suppressPackageStartupMessages(library(SingleCellExperiment))
 
-# Construct a synthetic SingleCellExperiment object to avoid offline ExperimentHub fetch failures
 set.seed(123)
-counts_mat <- matrix(rpois(5000, lambda = 1), nrow = 500, ncol = 10)
-rownames(counts_mat) <- paste0("Gene", 1:500)
-colnames(counts_mat) <- paste0("Cell", 1:10)
+n_genes <- 500
+n_cells <- 100
+types <- c("B-cell", "T-cell", "monocyte", "NK")
+cell_type <- rep(types, length.out = n_cells)
 
-col_data <- data.frame(
-    phenoid = rep(c("B-cell", "T-cell"), each = 5),
-    row.names = colnames(counts_mat)
-)
+marker_blocks <- split(seq_len(length(types) * 35), rep(seq_len(length(types)), each = 35))
+base_rate <- rep(0.3, n_genes)
+libsize <- runif(n_cells, 0.6, 1.6)
+
+counts <- matrix(0L, nrow = n_genes, ncol = n_cells)
+for (j in seq_len(n_cells)) {
+    k <- match(cell_type[j], types)
+    rate <- base_rate
+    rate[marker_blocks[[k]]] <- 8
+    counts[, j] <- rpois(n_genes, lambda = rate * libsize[j])
+}
+rownames(counts) <- sprintf("Gene%04d", seq_len(n_genes))
+colnames(counts) <- sprintf("Cell%04d", seq_len(n_cells))
 
 sce <- SingleCellExperiment(
-    assays = list(counts = counts_mat),
-    colData = col_data
+    assays = list(counts = counts),
+    colData = DataFrame(phenoid = cell_type, row.names = colnames(counts))
 )
 
-saveRDS(sce, "sce")
+saveRDS(sce, "sce.rds")
+file.copy("sce.rds", "sce", overwrite = TRUE)

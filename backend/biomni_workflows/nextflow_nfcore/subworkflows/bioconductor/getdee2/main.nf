@@ -52,9 +52,9 @@ process BIOC_GETDEE2_DEE2_VALIDATION_PIPELINE {
           }
         }
     
-    # Load required librari    library(SummarizedExperiment)
-es
+    # Load required libraries
     library(getDEE2)
+    library(SummarizedExperiment)
     library(S4Vectors)
     
     # --- Read local input files ---

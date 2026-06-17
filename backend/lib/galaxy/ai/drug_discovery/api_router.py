@@ -1110,6 +1110,12 @@ class INDAssemblyRequest(BaseModel):
     glp_recognition: str = ""             # NMPA/CDE: GLP recognition statement
     ethnic_bridging_note: str = ""         # NMPA/PMDA: sponsor-provided ethnic bridging context
     wetlab_data: Optional[dict] = None     # measured wet-lab PK/safety data (overrides computational)
+    # B3 per-org adaptation. When set, each _llm_narrative call reaches the
+    # per-org prompt_rules YAML + few_shot_index via _build_rag_context.
+    # The Node frontend should populate this from req.user.organization
+    # (or req.user.id fallback for single-tenant users) before forwarding
+    # the request — same source the regulatory_training_routes use.
+    org_id: Optional[str] = None
 
 
 @router.post("/{campaign_id}/ind-assembly")
@@ -1179,6 +1185,7 @@ async def assemble_ind_section(
             glp_recognition=body.glp_recognition,
             ethnic_bridging_note=body.ethnic_bridging_note,
             wetlab_data=body.wetlab_data,
+            org_id=body.org_id,
         )
     except Exception as exc:
         log.exception("IND assembly failed for campaign %s", campaign_id)
@@ -1349,6 +1356,7 @@ async def supersede_ind_assembly(
             glp_recognition=body.glp_recognition,
             ethnic_bridging_note=body.ethnic_bridging_note,
             wetlab_data=body.wetlab_data,
+            org_id=body.org_id,
         )
     except Exception as exc:
         log.exception("IND supersede assembly failed for campaign %s", campaign_id)

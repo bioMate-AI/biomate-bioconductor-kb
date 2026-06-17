@@ -61,9 +61,9 @@ process BIOC_GLMGAMPOI_PSEUDOBULK_DIFFERENTIAL_EXPRESSION {
           }
         }
     
-    # Load required libraries    library(SummarizedExperiment)
-
+    # Load required libraries
     library(glmGamPoi)
+    library(SummarizedExperiment)
     library(ggplot2)
     library(dplyr)
     
