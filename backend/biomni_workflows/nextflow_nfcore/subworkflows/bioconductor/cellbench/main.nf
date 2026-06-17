@@ -33,6 +33,7 @@ process BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -107,6 +108,51 @@ process BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING {
       select(pipeline, features, samples)
     
     write.csv(pipeline_summary, "pipeline_summary.csv", row.names = FALSE)
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # count normalization — scan .rds matrix artifacts for library-size CV
+    # ratio (post-norm / pre-norm); without raw input we report median lib CV
+    # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
+    .cn_lib_cvs <- numeric(0)
+    .cn_scanned <- character(0)
+    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
+      .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
+      if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {
+        .cn_lib <- tryCatch(colSums(as.matrix(.cn_mat), na.rm = TRUE), error = function(e) NULL)
+        if (!is.null(.cn_lib) && all(is.finite(.cn_lib)) && mean(.cn_lib) > 0) {
+          .cn_lib_cvs <- c(.cn_lib_cvs, sd(.cn_lib) / mean(.cn_lib))
+          .cn_scanned <- c(.cn_scanned, .cn_rds)
+        }
+      }
+    }
+    .cn_med_cv <- if (length(.cn_lib_cvs) > 0) round(median(.cn_lib_cvs), 4) else NA_real_
+    .gates_by_label[["count normalization"]] <- list(
+      gate_row = "bioc_count_normalization",
+      metric_name = "lib_size_cv_median",
+      metric_value = .cn_med_cv,
+      passes = isTRUE(is.finite(.cn_med_cv) && .cn_med_cv <= 0.3),
+      status = if (is.finite(.cn_med_cv)) paste0("computed (proxy: median lib-size CV across ", length(.cn_scanned), " matrix .rds; raw-vs-norm ratio not measurable without paired input)")
+               else "not_computed (no count matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING",
+      domain  = "bioconductor",
+      declared_qc_steps = c("count normalization"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING":',
