@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" role="img" aria-labelledby="pd-title pd-desc">
   <title id="pd-title">BioMate AI Platform Architecture</title>
-  <desc id="pd-desc">BioMate AI connects to 25+ integrations including MCP, Slack, WeChat Work, and 10 lab instruments. The AI orchestration layer routes requests to 2,455+ validated workflows across 37 biological domains using hybrid vector search with 94.6% routing accuracy. Execution runs on AWS Batch via Nextflow and nf-core. Every output receives Gold/Silver/Bronze QC grading and includes an immutable audit trail. Outputs include structured reports, DOCX export, IND sections, CRO submission packages, and 21 CFR Part 11 e-signatures.</desc>
+  <desc id="pd-desc">BioMate AI connects to 25+ integrations including MCP, Slack, WeChat Work, and 10 lab instruments. The AI orchestration layer routes requests to 4,000+ indexed workflows across 36 biological domains using hybrid vector search with 94.6% routing accuracy. Execution runs on AWS Batch via Nextflow and nf-core. Every output receives Gold/Silver/Bronze QC grading and includes an immutable audit trail. Outputs include structured reports, DOCX export, IND sections, CRO submission packages, and 21 CFR Part 11 e-signatures.</desc>
 
   <defs>
     <!-- Background gradient -->
@@ -204,7 +204,7 @@
   ══════════════════════════════════════════ -->
   <rect x="298" y="272" width="604" height="268" rx="8" fill="url(#domain-grad)" stroke="rgba(245,205,135,0.22)" stroke-width="0.8"/>
 
-  <text x="316" y="293" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" font-weight="700" fill="#F5CD87" letter-spacing="2">37 BIOLOGICAL DOMAINS · 2,455+ WORKFLOWS</text>
+  <text x="316" y="293" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" font-weight="700" fill="#F5CD87" letter-spacing="2">36 BIOLOGICAL DOMAINS · 4,000+ WORKFLOWS</text>
 
   <!-- Domain group chips — 2 columns × 3 rows -->
 
@@ -246,11 +246,11 @@
   <!-- Group F: R / Bioconductor -->
   <rect x="600" y="456" width="290" height="40" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(245,205,135,0.30)" stroke-width="0.7"/>
   <text x="614" y="472" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#F5CD87">R / Bioconductor</text>
-  <text x="614" y="487" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">464 packages · DESeq2 · edgeR · Seurat · limma · clusterProfiler</text>
+  <text x="614" y="487" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">1,818 packages · DESeq2 · edgeR · Seurat · limma · clusterProfiler</text>
 
   <!-- Workflow count badge -->
   <rect x="308" y="504" width="580" height="24" rx="4" fill="rgba(245,205,135,0.07)" stroke="rgba(245,205,135,0.18)" stroke-width="0.6"/>
-  <text x="598" y="520" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#F5CD87" text-anchor="middle">2,455 workflows · container-pinned · version-locked · community-validated</text>
+  <text x="598" y="520" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#F5CD87" text-anchor="middle">4,000+ workflows · container-pinned · version-locked</text>
 
   <!-- ══════════════════════════════════════════
        INNER BOX 3 — EXECUTION LAYER
