@@ -5,14 +5,27 @@
 
 This doc enumerates the work needed to swap stubs for real implementations and validate end-to-end with real datasets.
 
-## Per-chain open items
+## Per-chain open items — README-verified 2026-06-17
 
-| Chain | Workflow(s) | Upstream code | Test dataset needed | Compute |
-|---|---|---|---|---|
-| **Z01** torchgwas_udip_chain | torchgwas_udip_phenotype_scan | github.com/ZhiGroup/TorchGWAS (MIT, Python+PyTorch) | UDIP-derived FA phenotype CSV (256 cols × ~40k samples) + PLINK bed/bim/fam (UKB subset) | 1× A100 (~2h) |
-| **Z02** fda_ligand_screen_chain | fda_protein_ligand_affinity | github.com/ZhiGroup/FDA (MIT) | EGFR T790M sequence (UniProt P00533 698–1022) + 1000-compound SMILES list (DrugBank approved subset) | 1× A100 (~30 min) |
-| **ZZ01** tumor_reactive_t_cell_chain | turep + scupa_polarization + immuneapp_hla_screen | github.com/bsml320/{turep, Scupa, ImmuneApp} | Public melanoma 10x PBMC h5ad (~10k cells) + HLA-A*02:01 candidate peptides | 1× A100 (~45 min, 3 sequential steps) |
-| **ZZ02** scgwas_immunology_chain | scgwas_immune_cell | github.com/bsml320/scGWAS (GPL-3.0, Java) | Crohn's disease GWAS Catalog sumstats + gut single-cell atlas (Smillie 2019 or similar) | 1× CPU node (~15 min) |
+Repo recon revealed the four tools are NOT equally ready. Updated table:
+
+| Chain | Wrap effort | README state | Test data |
+|---|---|---|---|
+| **Z01 TorchGWAS** | **EASY — 2–3 days** | Single `pip install -e .`, single CLI (`torchgwas linear`), toy dataset shipped at `examples/toy/` (genotype.npy + pheno.tsv + covar.tsv). Genuinely production-ready inference path. | Use shipped toy dataset for smoke; UKB sumstats blocked on credential. |
+| **ZZ02 scGWAS** | **EASY — 2 days** | Single `java -jar scGWAS_r0.jar configure.txt`. Repo ships 18 pre-processed scRNA panels + a runnable `example/` folder. No GPU. | Shipped example; later add Crohn's GWAS Catalog sumstats. |
+| **ZZ01 turep (Step 1 only)** | **MEDIUM — 3–5 days** | Python API only (`load_model() → predict_tr()`), no CLI. Pretrained weights auto-download on first run. No example data in main repo (separate `turep_notebooks` repo has it). | Need a public PBMC h5ad. |
+| **ZZ01 Scupa** | **BLOCKED — license** | NOASSERTION — re-license or re-implement. | — |
+| **ZZ01 ImmuneApp** | MEDIUM — 3–5 days | MIT, separate repo + paper. Examine before committing. | — |
+| **Z02 FDA** | **HARD — 2–3 weeks, currently NOT recommended** | Two conda envs (Python 3.10 + CUDA 12.3 for folding, Python 3.9 + CUDA 11.5 for docking/affinity). Entry points are TRAINING scripts (`train_GIGN_benchmark.py`), not a clean inference CLI. No example data in repo — Zenodo download required. README describes how to reproduce the paper, not how to predict for a new pair. | Need a custom inference wrapper built before wrap is viable. |
+
+**Corrected priority order** (was: Z02 → ZZ02 → Z01 → ZZ01; **now**: ZZ02 → Z01 → turep alone → Z02 deferred):
+
+1. **ZZ02 scGWAS** — single Java jar, shipped example, no GPU. **First real-data demo.** Days.
+2. **Z01 TorchGWAS** — single CLI, shipped toy dataset. Second. Days.
+3. **ZZ01 turep only** (not the full 3-step chain) — wrap the `predict_tr()` Python API as a single workflow. Stub Scupa + ImmuneApp until later. ~1 week.
+4. **Z02 FDA** — **defer until a clean inference entry point exists.** Reach out to Zhi lab asking: "do you have a `predict(target_fasta, ligand_sdf) → affinity` function we can call, or do we need to build the inference wrapper ourselves?" If yes → ~3 days; if no → ~3 weeks.
+
+**Implication for the demo recording schedule:** ZZ02 + Z01 can record real-data demos within 1–2 weeks. The Zhi-lab Z02 demo + Zhao-lab ZZ01 full-chain demo are ≥1 month out; record stub-data versions of those for pitch material in the interim.
 
 ## License blockers
 
@@ -26,12 +39,7 @@ This doc enumerates the work needed to swap stubs for real implementations and v
 
 ## Implementation order recommendation
 
-Priority by demo impact + technical ease:
-
-1. **Z02 (FDA)** — single-tool MIT-licensed, models already shipped with weights, fast (~30 min). **First real-data demo.**
-2. **ZZ02 (scGWAS)** — single-tool GPL-3.0, Java (no GPU needed), fast (~15 min). Second.
-3. **Z01 (TorchGWAS+UDIP)** — single-tool MIT but requires UKB access for the UDIP phenotypes. **Blocker:** UKB credential.
-4. **ZZ01 (3-step chain)** — most complex (license + 3 tools + chain orchestration). **Defer until Scupa license clarified.**
+Superseded by README-verified table above. The original order (Z02 first) was based on my first impression of the FDA repo; the README reveals it's not a clean inference tool. **New order: ZZ02 → Z01 → turep → Z02 (deferred).**
 
 ## Per-workflow real-implementation checklist
 
