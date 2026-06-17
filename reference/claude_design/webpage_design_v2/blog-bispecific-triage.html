@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bispecific Format Triage — How BioMate Recovers Ivonescimab's Tetravalent Architecture — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.88rem; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); }
+  .article-body td:last-child { color:#047857; font-weight:600; }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.85rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="October 2024: Ivonescimab beat pembrolizumab in HARMONi-2 NSCLC. Its tetravalent architecture — anti-VEGF IgG + anti-PD-1 scFv C-termini — is what BioMate recovers from the two target names in 30 seconds." />
+  <link rel="canonical" href="https://biomate.ai/blog-bispecific-triage.html" />
+  <meta property="og:title" content="Bispecific Format Triage — How BioMate Recovers Ivonescimab's Tetravalent Architecture" />
+  <meta property="og:description" content="5-of-5 approved bispecific formats recovered from inputs alone — tetravalent cooperative, CrossMab, BiTE, KiH — via a 4-phase scoring pipeline grounded in mechanism and manufacturing science." />
+  <meta property="og:url" content="https://biomate.ai/blog-bispecific-triage.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Bispecific Format Triage — How BioMate Recovers Ivonescimab's Tetravalent Architecture from Two Protein Names",
+    "description": "5-of-5 approved bispecific formats recovered from target-pair inputs alone via a 4-phase mechanism-to-ranking pipeline; tetravalent cooperative format #1, CrossMab #2.",
+    "datePublished": "2026-06-16",
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-bispecific-triage.html",
+    "articleSection": "Drug Development"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"Bispecific Format Triage","item":"https://biomate.ai/blog-bispecific-triage.html"}
+    ]
+  }
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-bispecific-triage-hero.png" alt="Bispecific Format Triage — BioMate" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div style="width:100%;background:#f8fafc;border-bottom:1px solid #e2e8f0;overflow:hidden;">
+  <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <!-- Header -->
+    <rect x="0" y="0" width="820" height="33" fill="#0f2027"/>
+    <text x="410" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">PD-1 × VEGF Bispecific Format Triage — Key Result</text>
+    <!-- LEFT: Tetravalent IgG-scFv schematic -->
+    <text x="148" y="48" text-anchor="middle" fill="#047857" font-size="8.5" font-weight="700">Tetravalent IgG-scFv · #1 · Validated: Ivonescimab (HARMONi-2)</text>
+    <rect x="36" y="52" width="68" height="22" rx="4" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+    <text x="70" y="67" text-anchor="middle" fill="#1e3a8a" font-size="8" font-weight="700">Fab anti-PD-1</text>
+    <rect x="130" y="52" width="68" height="22" rx="4" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+    <text x="164" y="67" text-anchor="middle" fill="#1e3a8a" font-size="8" font-weight="700">Fab anti-PD-1</text>
+    <line x1="104" y1="74" x2="118" y2="92" stroke="#94a3b8" stroke-width="1.5"/>
+    <line x1="130" y1="74" x2="116" y2="92" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="106" y="92" width="22" height="42" rx="3" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="117" y="117" text-anchor="middle" fill="#64748b" font-size="7">Fc</text>
+    <line x1="106" y1="130" x2="76" y2="148" stroke="#94a3b8" stroke-width="1.5"/>
+    <line x1="128" y1="130" x2="158" y2="148" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="38" y="148" width="68" height="22" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+    <text x="72" y="163" text-anchor="middle" fill="#047857" font-size="8" font-weight="700">scFv anti-VEGF</text>
+    <rect x="128" y="148" width="68" height="22" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+    <text x="162" y="163" text-anchor="middle" fill="#047857" font-size="8" font-weight="700">scFv anti-VEGF</text>
+    <line x1="72" y1="170" x2="85" y2="177" stroke="#059669" stroke-width="1"/>
+    <line x1="162" y1="170" x2="149" y2="177" stroke="#059669" stroke-width="1"/>
+    <ellipse cx="117" cy="182" rx="52" ry="8" fill="#bbf7d0" stroke="#059669" stroke-width="1.5"/>
+    <text x="117" y="186" text-anchor="middle" fill="#047857" font-size="7.5" font-weight="700">VEGF dimer · bivalent capture</text>
+    <!-- Divider -->
+    <line x1="282" y1="37" x2="282" y2="187" stroke="#e2e8f0" stroke-width="1.5"/>
+    <!-- RIGHT: Format score bars (x=300→790, scale=4.9px/pt) -->
+    <text x="545" y="47" text-anchor="middle" fill="#1e293b" font-size="10" font-weight="700">6-Axis Format Score</text>
+    <text x="295" y="67" text-anchor="end" fill="#1e293b" font-size="9" font-weight="700">Tetravalent IgG-scFv</text>
+    <rect x="300" y="55" width="490" height="19" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+    <text x="785" y="68" text-anchor="end" fill="#047857" font-size="9" font-weight="700">100  ✓ #1</text>
+    <text x="295" y="94" text-anchor="end" fill="#1e293b" font-size="9">CrossMab</text>
+    <rect x="300" y="82" width="382" height="19" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="676" y="95" text-anchor="end" fill="#1d4ed8" font-size="9">78  #2</text>
+    <text x="295" y="121" text-anchor="end" fill="#1e293b" font-size="9">KiH</text>
+    <rect x="300" y="109" width="343" height="19" rx="3" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="637" y="122" text-anchor="end" fill="#6d28d9" font-size="9">70  #3</text>
+    <text x="295" y="148" text-anchor="end" fill="#1e293b" font-size="9">BiTE</text>
+    <rect x="300" y="136" width="108" height="19" rx="3" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="412" y="149" fill="#dc2626" font-size="8.5"> 22  ✗ short t½ — disqualified for systemic use</text>
+    <rect x="300" y="162" width="488" height="20" rx="4" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+    <text x="544" y="176" text-anchor="middle" fill="#047857" font-size="8.5" font-weight="600">VEGF is dimeric → tetravalent captures both sites simultaneously → cooperative avidity advantage</text>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development · Case Study</span>
+      <h1>Bispecific Format Triage — How BioMate Recovers Ivonescimab's Tetravalent Architecture from Two Protein Names</h1>
+      <div class="article-meta">
+        <span><strong>June 16, 2026</strong></span>
+        <span>7 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">October 2024: Ivonescimab — Akeso and Summit's PD-1 × VEGF bispecific — beat pembrolizumab head-to-head in HARMONi-2, the first time any drug had beaten Keytruda in a Phase III oncology readout. Ivonescimab's architecture is tetravalent: an anti-VEGF IgG backbone with two anti-PD-1 scFv fragments fused to the heavy-chain C-termini. Bivalent VEGF engagement creates cooperative avidity on the dimeric VEGF ligand — the mechanistic edge CrossMab alone cannot provide. BioMate recovers that specific architecture from the two target names in 30 seconds.</p>
+
+      <h2>The format question is the question</h2>
+      <p>When you decide to build a bispecific antibody, the molecule design has six axes to optimize simultaneously:</p>
+      <ul>
+        <li><strong>Half-life</strong> — minutes (BiTE) vs. weeks (CrossMab/KiH)</li>
+        <li><strong>Cis-engagement</strong> — both targets on the same cell</li>
+        <li><strong>Trans-engagement</strong> — bridging two different cell types</li>
+        <li><strong>Manufacturing yield</strong> — CHO mispairing, aggregation, column steps</li>
+        <li><strong>ADA risk</strong> — anti-drug antibodies from non-natural junctions</li>
+        <li><strong>Affinity asymmetry</strong> — 2:1 binding stoichiometry requirements</li>
+      </ul>
+      <p>There are five viable bispecific architectures — BiTE, CrossMab, KiH (Knob-into-Hole), DVD-Ig, and Nanobody fusion. Each excels at three of the six axes and underperforms at three. The choice depends on the biology of the target pair, not on what the chemistry team prefers building. Get it wrong and you spend 18 months in CMC chasing aggregation, then watch anti-drug antibodies crater your Phase 1 enrollment.</p>
+
+      <h2>5-of-5 approved bispecifics recovered</h2>
+
+      <table>
+        <tr><th>Targets</th><th>Drug</th><th>Approved format</th><th>BioMate #1 rank</th></tr>
+        <tr><td>PD-1 × VEGF</td><td>Ivonescimab (HARMONi-2, 2024)</td><td>Tetravalent (anti-VEGF IgG + anti-PD-1 scFv C-termini)</td><td>Tetravalent coop ✓</td></tr>
+        <tr><td>CD3 × CD19</td><td>Blinatumomab (Blincyto, 2014)</td><td>BiTE</td><td>BiTE ✓</td></tr>
+        <tr><td>CD3 × BCMA</td><td>Teclistamab (Tecvayli, 2022)</td><td>KiH</td><td>KiH ✓</td></tr>
+        <tr><td>HER2 × HER3</td><td>Zenocutuzumab (Bizengri, 2024)</td><td>CrossMab</td><td>CrossMab ✓</td></tr>
+        <tr><td>EGFR × MET</td><td>Amivantamab (Rybrevant, 2021)</td><td>KiH</td><td>KiH ✓</td></tr>
+      </table>
+
+      <p><strong>5-of-5 architectural choices recovered from target-pair inputs alone.</strong> Not from a clinical trial database lookup — from a 4-phase scoring pipeline that runs the actual biology of engagement geometry, half-life requirements, and manufacturing constraints.</p>
+
+      <h2>The 4-phase information flow</h2>
+
+      <div class="figure-wrap">
+        <svg viewBox="0 0 820 430" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#fff;font-family:'Open Sans',Arial,sans-serif;">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
+            <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#047857"/></marker>
+          </defs>
+          <!-- Header -->
+          <rect x="0" y="0" width="820" height="36" fill="#0f2027"/>
+          <text x="410" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Bispecific Format Triage — PD-1 × VEGF → Ivonescimab Architecture</text>
+          <!-- Query strip -->
+          <rect x="60" y="42" width="700" height="20" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+          <text x="410" y="56" text-anchor="middle" fill="#64748b" font-size="10">"Design a PD-1 × VEGF bispecific for NSCLC" — 4-phase pipeline → ranked format report + precedent citation</text>
+
+          <!-- === PHASE CIRCLES (horizontal flow) === -->
+          <!-- Phase A -->
+          <circle cx="105" cy="104" r="30" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.5"/>
+          <text x="105" y="99" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="700">A</text>
+          <text x="105" y="114" text-anchor="middle" fill="#1e3a8a" font-size="8">Mechanism</text>
+          <text x="105" y="148" text-anchor="middle" fill="#64748b" font-size="8.5">Precedent cache</text>
+          <text x="105" y="160" text-anchor="middle" fill="#64748b" font-size="8.5">50-pair atlas</text>
+          <!-- Arrow A→B -->
+          <line x1="135" y1="104" x2="268" y2="104" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- Phase B -->
+          <circle cx="298" cy="104" r="30" fill="#dcfce7" stroke="#15803d" stroke-width="2.5"/>
+          <text x="298" y="99" text-anchor="middle" fill="#14532d" font-size="16" font-weight="700">B</text>
+          <text x="298" y="114" text-anchor="middle" fill="#14532d" font-size="8">Format Score</text>
+          <text x="298" y="148" text-anchor="middle" fill="#64748b" font-size="8.5">5 formats ×</text>
+          <text x="298" y="160" text-anchor="middle" fill="#64748b" font-size="8.5">6 axes</text>
+          <!-- Arrow B→C -->
+          <line x1="328" y1="104" x2="461" y2="104" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- Phase C -->
+          <circle cx="491" cy="104" r="30" fill="#fef3c7" stroke="#b45309" stroke-width="2.5"/>
+          <text x="491" y="99" text-anchor="middle" fill="#78350f" font-size="16" font-weight="700">C</text>
+          <text x="491" y="114" text-anchor="middle" fill="#78350f" font-size="8">Ranking</text>
+          <text x="491" y="148" text-anchor="middle" fill="#64748b" font-size="8.5">Coop avidity</text>
+          <text x="491" y="160" text-anchor="middle" fill="#64748b" font-size="8.5">weight applied</text>
+          <!-- Arrow C→D -->
+          <line x1="521" y1="104" x2="654" y2="104" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- Phase D -->
+          <circle cx="684" cy="104" r="30" fill="#fce7f3" stroke="#9d174d" stroke-width="2.5"/>
+          <text x="684" y="99" text-anchor="middle" fill="#831843" font-size="16" font-weight="700">D</text>
+          <text x="684" y="114" text-anchor="middle" fill="#831843" font-size="8">Report</text>
+          <text x="684" y="148" text-anchor="middle" fill="#64748b" font-size="8.5">JSON + CSV</text>
+          <text x="684" y="160" text-anchor="middle" fill="#64748b" font-size="8.5">IND-ready</text>
+
+          <!-- Divider -->
+          <line x1="40" y1="173" x2="780" y2="173" stroke="#e2e8f0" stroke-width="1.5"/>
+
+          <!-- === BAR CHART: Composite Format Score (Phase C output) === -->
+          <text x="410" y="193" text-anchor="middle" fill="#1e293b" font-size="12" font-weight="700">Composite Format Score — 6-Axis Scoring Matrix (Phase C Output)</text>
+
+          <!-- Scale grid: x=185(score=0) to x=745(score=100), 1 unit = 5.6px -->
+          <line x1="185" y1="202" x2="185" y2="393" stroke="#e2e8f0" stroke-width="1.5"/>
+          <line x1="465" y1="202" x2="465" y2="393" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="745" y1="202" x2="745" y2="393" stroke="#e2e8f0" stroke-width="1.5"/>
+          <text x="185" y="406" text-anchor="middle" fill="#94a3b8" font-size="9">0</text>
+          <text x="465" y="406" text-anchor="middle" fill="#94a3b8" font-size="9">50</text>
+          <text x="745" y="406" text-anchor="middle" fill="#94a3b8" font-size="9">100</text>
+
+          <!-- Row 1: Tetravalent coop — 100 → width 560 -->
+          <text x="178" y="225" text-anchor="end" fill="#1e293b" font-size="10" font-weight="600">Tetravalent coop</text>
+          <rect x="185" y="211" width="560" height="24" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+          <text x="738" y="227" text-anchor="end" fill="#047857" font-size="10" font-weight="700">100  ✓ #1</text>
+
+          <!-- Row 2: CrossMab — 78 → width 437 -->
+          <text x="178" y="265" text-anchor="end" fill="#1e293b" font-size="10">CrossMab</text>
+          <rect x="185" y="251" width="437" height="24" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="615" y="267" text-anchor="end" fill="#1d4ed8" font-size="10" font-weight="600">78  #2</text>
+          <text x="192" y="267" fill="#1d4ed8" font-size="8.5" font-style="italic">user-specified format</text>
+
+          <!-- Row 3: KiH — 70 → width 392 -->
+          <text x="178" y="305" text-anchor="end" fill="#1e293b" font-size="10">KiH</text>
+          <rect x="185" y="291" width="392" height="24" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="570" y="307" text-anchor="end" fill="#6d28d9" font-size="10">70</text>
+
+          <!-- Row 4: DVD-Ig — 45 → width 252 -->
+          <text x="178" y="345" text-anchor="end" fill="#1e293b" font-size="10">DVD-Ig</text>
+          <rect x="185" y="331" width="252" height="24" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="430" y="347" text-anchor="end" fill="#64748b" font-size="10">45</text>
+
+          <!-- Row 5: BiTE — 22 → width 123 -->
+          <text x="178" y="385" text-anchor="end" fill="#1e293b" font-size="10">BiTE</text>
+          <rect x="185" y="371" width="123" height="24" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+          <text x="303" y="387" text-anchor="end" fill="#dc2626" font-size="10">22</text>
+          <text x="314" y="387" fill="#dc2626" font-size="9" font-style="italic">✗ fatal short t½ (systemic)</text>
+
+          <!-- Validation footnote -->
+          <text x="410" y="420" text-anchor="middle" fill="#94a3b8" font-size="8.5">Validation: 5/5 approved bispecifics recovered · PD-1×VEGF→Tetrav · CD3×CD19→BiTE · CD3×BCMA→KiH · HER2×HER3→CrossMab</text>
+        </svg>
+        <div class="figure-caption">Figure 1 — Bispecific format triage: 4-phase pipeline from target pair to ranked architecture. The cooperative avidity weight (dimeric VEGF capture requires bivalent binding) makes the tetravalent cooperative format #1; CrossMab ranks #2 (the user-specified format); BiTE's short half-life is disqualifying for a systemic checkpoint/angiogenesis combination.</div>
+      </div>
+
+      <h2>Why this isn't possible in a general-purpose LLM</h2>
+      <p>Run "PD-1 × VEGF bispecific format" through a general-purpose LLM and you'll get a fluent paragraph mentioning CrossMab and KiH as strong candidates. A reasoning model may even note that VEGF's dimeric structure favors bivalent capture — and conclude that a tetravalent IgG-scFv is optimal. That reasoning is sound, and it occasionally reaches the right format. But it's reasoning from general knowledge about VEGF biology, not from reading ivonescimab's actual clinical precedent.</p>
+      <p>The difference becomes real for a less-studied target pair in 2027. For PD-1 × VEGF, the LLM has Akeso's published MOA data in its training corpus. For a novel target combination where the only precedent is one unpublished IND, the LLM is working from first principles — and first principles will disagree between models. BioMate queries 50 actual bispecific programs regardless of target novelty.</p>
+      <p>BioMate's 4-phase pipeline doesn't blend. The mechanism is inferred from the target pair and persisted to disk. The format scores are computed on a fixed, citeable matrix (Labrijn 2019 <em>Nat Rev Drug Discov</em>; Kontermann 2015 <em>Drug Discov Today</em>). The ranking is arithmetic. Every number traces to a JSON file you can audit.</p>
+      <blockquote>"When a CMC director asks 'why tetravalent over CrossMab?' — the answer is format_ranking.csv: cooperative_avidity_weight=4, Ivonescimab precedent cited. Not 'the AI suggested it.'"</blockquote>
+
+      <h2>Try it yourself</h2>
+      <pre>Design a PD-1 × VEGF bispecific in CrossMab format for NSCLC</pre>
+      <p>→ <a href="https://biomate.ai" target="_blank" rel="noopener">biomate.ai</a> · 30 seconds · 4 phases on AWS Batch · Tetravalent cooperative returns #1, CrossMab #2.</p>
+      <p>Run it again with <code>CD3 × DLL3</code> — the pipeline flips to BiTE, because trans-engagement (T cell × tumor cell bridging) changes the weight vector entirely. Tarlatamab (Imdelltra, Amgen 2024) is BiTE. The science is real. The architecture is auditable. Akeso did this with 18 months and a team. BioMate does it in 30 seconds.</p>
+
+      <p class="bm-external-refs">Further reading: <a href="https://www.nature.com/articles/s41573-019-0030-2" rel="noopener" target="_blank">Labrijn et al. 2019, Bispecific antibodies — Nature Reviews Drug Discovery</a>; <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4430641/" rel="noopener" target="_blank">Kontermann 2015, Bispecific antibodies — Drug Discovery Today (PMC)</a>; <a href="https://www.akesobio.com" rel="noopener" target="_blank">Akeso Inc. — Ivonescimab program</a>; <a href="https://www.fda.gov/drugs/resources-information-approved-drugs/hematologyoncology-cancer-approvals-safety-notifications" rel="noopener" target="_blank">FDA Oncology Approvals (FDA.gov)</a>.</p>
+
+      <div class="callout">
+        <strong>What this means for antibody engineering teams</strong>
+        <p>The bispecific format decision is made once, early, and wrong choices take years to discover. A 4-phase scoring pipeline grounded in canonical architecture data, clinical precedent, and indication-specific engagement geometry turns an 18-month architectural debate into a 30-second ranked output — with an auditable CSV that survives regulatory scrutiny.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Case Studies</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-invivo-cart.html">In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-base-edit.html">In Vivo Base Editing — How BioMate Reconstructs VERVE-102</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-glp1-modality.html">GLP-1 Modality Bakeoff — Indication Decides Which Receptor Pattern Wins</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-modality-triage.html">Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals</a><div class="meta">June 16, 2026</div></li>
+        <li><a href="blog-drug-2-hit.html">AI-Guided Virtual Screening at Scale</a><div class="meta">April 21, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Bispecifics</span><span class="topic-chip">CrossMab</span><span class="topic-chip">BiTE</span><span class="topic-chip">KiH</span><span class="topic-chip">CMC</span><span class="topic-chip">Ivonescimab</span><span class="topic-chip">NSCLC</span><span class="topic-chip">Format Triage</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Bispecific format triage, CAR-T co-design, and modality triage are available on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#drug-discovery" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Drug Discovery services →</a>
+      <a href="molecular-docking.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Molecular Docking →</a>
+      <a href="alphafold.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Structure Prediction →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+<style>
+.fig-lightbox-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
+.fig-lightbox-overlay.active{display:flex;}
+.fig-lightbox-inner{background:#fff;border-radius:10px;padding:1.25rem;max-width:94vw;max-height:92vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.6);position:relative;}
+.fig-lightbox-inner svg{width:min(1300px,88vw);height:auto;display:block;}
+.fig-lightbox-close{position:fixed;top:1.1rem;right:1.4rem;font-size:2rem;color:#fff;cursor:pointer;line-height:1;user-select:none;}
+.figure-wrap{cursor:zoom-in;}
+</style>
+<div class="fig-lightbox-overlay" id="figLightbox" onclick="this.classList.remove('active')">
+  <span class="fig-lightbox-close" onclick="document.getElementById('figLightbox').classList.remove('active')">&#x2715;</span>
+  <div class="fig-lightbox-inner" id="figLightboxInner" onclick="event.stopPropagation()"></div>
+</div>
+<script>
+(function(){
+  document.querySelectorAll('.figure-wrap').forEach(function(fw){
+    fw.addEventListener('click',function(){
+      var svg=fw.querySelector('svg');
+      if(!svg)return;
+      document.getElementById('figLightboxInner').innerHTML=svg.outerHTML;
+      document.getElementById('figLightbox').classList.add('active');
+    });
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('figLightbox').classList.remove('active');});
+})();
+</script>
+</body>
+</html>

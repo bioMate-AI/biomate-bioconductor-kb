@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LLM Comparison — Supplementary Case Analysis (T01–T05) — BioMate AI</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+    --gpt:#10a37f; --gemini:#7c3aed; --claude:#d97706; --biomate:#1d4ed8;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; padding:6px 12px; border-radius:6px; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .article-hero { width:100%; background:linear-gradient(135deg,#0a0a1a 0%,#1a1040 50%,#0f3460 100%); padding:3rem 2rem; display:flex; align-items:center; justify-content:center; }
+  .article-hero-inner { text-align:center; max-width:780px; }
+  .article-hero-inner h2 { font-family:'Crimson Text',serif; font-size:clamp(1.4rem,3vw,2rem); color:#fff; font-weight:700; line-height:1.2; margin-bottom:.5rem; }
+  .article-hero-inner p { color:rgba(255,255,255,.72); font-size:.9rem; }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:960px; margin:0 auto; padding:2rem clamp(1rem,4vw,2rem) 4rem; }
+  .article-header { margin-bottom:2rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.5rem,3vw,2rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.5rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body h2 { font-family:var(--font-head); font-size:1.4rem; color:var(--text); margin:2rem 0 .75rem; padding-top:1rem; border-top:1px solid var(--border); }
+  .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.5rem 0; }
+  .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .callout p { margin:0 0 .4rem; font-size:.88rem; color:var(--text-muted); }
+  /* Comparison blocks */
+  .uc-block { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .uc-header { background:var(--text); color:#fff; padding:.9rem 1.5rem; }
+  .uc-header .uc-id { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.6; margin-bottom:.2rem; }
+  .uc-header h3 { font-family:'Crimson Text',serif; font-size:1.15rem; margin:0; font-weight:700; }
+  .uc-query { background:var(--bg-card2); border-bottom:1px solid var(--border); padding:.65rem 1.5rem; font-size:.82rem; color:var(--text-muted); }
+  .uc-query strong { color:var(--text); }
+  .uc-cols { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; }
+  @media(max-width:900px){ .uc-cols { grid-template-columns:1fr 1fr; } }
+  @media(max-width:560px){ .uc-cols { grid-template-columns:1fr; } }
+  .uc-col { padding:1rem 1.1rem; border-right:1px solid var(--border); }
+  .uc-col:last-child { border-right:none; }
+  .uc-col-head { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.65rem; padding:.25rem .5rem; border-radius:4px; display:inline-block; }
+  .col-gpt .uc-col-head { background:#d1fae5; color:#065f46; }
+  .col-gemini .uc-col-head { background:#ede9fe; color:#4c1d95; }
+  .col-claude .uc-col-head { background:#fef3c7; color:#78350f; }
+  .col-biomate .uc-col-head { background:#dbeafe; color:#1e3a8a; }
+  .uc-col p, .uc-col li { font-size:.82rem; color:var(--text-muted); line-height:1.6; margin-bottom:.4rem; }
+  .uc-col ul { margin:0 0 .5rem 1rem; }
+  .uc-col .answer-box { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:.65rem .9rem; margin:.6rem 0; font-size:.79rem; color:var(--text); line-height:1.5; font-style:italic; }
+  .uc-col .verdict { margin-top:.6rem; padding:.4rem .65rem; border-radius:5px; font-size:.77rem; font-weight:700; }
+  .verdict-pass { background:#d1fae5; color:#065f46; }
+  .verdict-partial { background:#fef3c7; color:#78350f; }
+  .verdict-fail { background:#fee2e2; color:#991b1b; }
+  .uc-gap { background:#fef2f2; border-top:1px solid #fecaca; padding:.9rem 1.5rem; }
+  .uc-gap strong { color:#991b1b; font-size:.77rem; text-transform:uppercase; letter-spacing:.08em; display:block; margin-bottom:.3rem; }
+  .uc-gap p { font-size:.82rem; color:#7f1d1d; margin:0; }
+  .badge-match { color:#15803d; font-weight:700; font-size:.75rem; }
+  .badge-diff { color:#dc2626; font-weight:700; font-size:.75rem; }
+  /* Thinking mode tier */
+  .thinking-row { background:#eff6ff; border-top:2px solid #3b82f6; padding:.75rem 1.5rem; }
+  .thinking-row-head { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#1d4ed8; margin-bottom:.65rem; }
+  .thinking-cols2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:600px){ .thinking-cols2 { grid-template-columns:1fr; } }
+  .thinking-col { }
+  .thinking-col-head { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.4rem; padding:.2rem .45rem; border-radius:3px; display:inline-block; }
+  .th-gemini .thinking-col-head { background:#ede9fe; color:#4c1d95; }
+  .th-claude .thinking-col-head { background:#fef3c7; color:#78350f; }
+  .thinking-col p { font-size:.79rem; color:var(--text-muted); margin-bottom:.3rem; line-height:1.55; }
+  .verdict-th-pass { margin-top:.4rem; padding:.3rem .55rem; border-radius:4px; font-size:.74rem; font-weight:700; background:#d1fae5; color:#065f46; display:inline-block; }
+  .verdict-th-same { margin-top:.4rem; padding:.3rem .55rem; border-radius:4px; font-size:.74rem; font-weight:700; background:#f1f5f9; color:#475569; display:inline-block; }
+  </style>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <div class="article-hero-inner">
+    <h2>LLM Comparison — Supplementary Case Analysis</h2>
+    <p>Full per-query response excerpts and verdict breakdowns for T01–T05.<br>
+    Preserved for manuscript preparation. Parent article: <a href="blog-llm-comparison.html" style="color:#93c5fd;">blog-llm-comparison.html</a></p>
+  </div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span><a href="blog-llm-comparison.html">LLM Comparison</a><span>›</span>Supplementary Case Analysis
+</div>
+
+<div class="article-outer">
+  <div class="article-header">
+    <span class="article-cat">Supplementary Material · Drug Development · Benchmark</span>
+    <h1>Per-Query Response Excerpts — GPT-5.5 · Gemini 3.1 Pro · Claude · BioMate</h1>
+    <div class="article-meta">
+      <span><strong>June 16, 2026</strong></span>
+      <span>Companion to: BioMate vs GPT-5.5 vs Gemini 3.1 Pro vs Claude — Five Drug Design Queries</span>
+    </div>
+  </div>
+  <div class="article-body">
+
+    <div class="callout">
+      <strong>Note on thinking modes</strong>
+      <p>GPT-5.5: extended reasoning enabled (<code>reasoning_effort: high</code>); token counts shown per query.</p>
+      <p>Gemini 3.1 Pro: standard mode — <code>thinking_budget</code> not set.</p>
+      <p>Claude Sonnet 4.6: standard API — extended thinking parameter not set.</p>
+      <p>BioMate: multi-phase AI coordination on dev infrastructure with AWS Batch.</p>
+    </div>
+
+    <!-- T01 -->
+    <h2>T01 — Bispecific Format Triage</h2>
+    <div class="uc-block">
+      <div class="uc-header">
+        <div class="uc-id">T01 — Bispecific Format</div>
+        <h3>PD-1 × VEGF bispecific antibody for NSCLC — which format?</h3>
+      </div>
+      <div class="uc-query"><strong>Query:</strong> "Design a PD-1 × VEGF bispecific antibody for NSCLC. Score the main formats — CrossMab, IgG-scFv, BiTE, DART, KiH — across CMC, immunogenicity, half-life, tumor penetration, ADCC, manufacturability. Give a ranked recommendation."</div>
+      <div class="uc-cols">
+        <div class="uc-col col-gpt">
+          <div class="uc-col-head">GPT-5.5 · Extended reasoning ON · 129 s · 3,908 tokens</div>
+          <div class="answer-box">"Lead concept: an IgG-like bispecific with two anti-PD-1 Fab arms and two anti-VEGF-A scFv domains fused to the Fc/HC C-termini, with an effector-silenced Fc... Recommended lead: tetravalent Fc-silent IgG-scFv. KiH as developability backup. CrossMab as alternative."</div>
+          <p><strong>#1: IgG-scFv (tetravalent)</strong> — CrossMab listed as #3 backup. Rationale: bivalent VEGF capture favors tetravalent format. Closest to ivonescimab's actual architecture, reached via VEGF biology rather than program precedent.</p>
+          <div class="verdict verdict-pass">Closest to correct — tetravalent format ≈ ivonescimab's actual architecture</div>
+        </div>
+        <div class="uc-col col-gemini">
+          <div class="uc-col-head">Gemini 3.1 Pro · Thinking: OFF (standard)</div>
+          <div class="answer-box">"CrossMab (22/30) and KiH (22/30) both score identically on the matrix. CrossMab is the preferred recommendation due to established CMC track record (Roche platform)... IgG-scFv scores 21/30 — slightly penalized for CMC complexity of the scFv fusion."</div>
+          <p><strong>#1: CrossMab</strong> (tied KiH at 22/30). Scoring matrix is explicit. CrossMab ranks #1 for CMC/half-life reasons, not cooperative avidity.</p>
+          <div class="verdict verdict-partial">Partial — CrossMab #2 in corrected gold standard (tetravalent #1)</div>
+        </div>
+        <div class="uc-col col-claude">
+          <div class="uc-col-head">Claude Sonnet 4.6 · Thinking: OFF (standard)</div>
+          <div class="answer-box">"CrossMab solves the CMC bottleneck — the forced symmetry approach eliminates chain-mispairing, which is the primary manufacturability problem for IgG-based bispecifics. For a dual checkpoint/anti-angiogenic mechanism, CrossMab's IgG-like half-life and established CMC track record make it the strongest lead..."</div>
+          <p><strong>#1: CrossMab</strong> — same CMC-precedent reasoning as Gemini. CrossMab is #2 in the corrected ranking.</p>
+          <div class="verdict verdict-partial">Partial — CrossMab #2 in corrected gold standard (tetravalent #1)</div>
+        </div>
+        <div class="uc-col col-biomate">
+          <div class="uc-col-head">BioMate · 4-phase pipeline</div>
+          <p><strong>Phase A:</strong> 50 PD-1/VEGF bispecific precedents queried — Ivonescimab tetravalent architecture (anti-VEGF IgG + anti-PD-1 scFv C-termini) found.</p>
+          <p><strong>Phase B:</strong> 6 formats × 6 axes + cooperative_avidity weight. Tetravalent 100/100, CrossMab 78, KiH 70, BiTE 25.</p>
+          <p><strong>Phase C:</strong> Tetravalent #1. CrossMab #2 (user-specified format retained). AK112 cited.</p>
+          <p><strong>Phase D:</strong> Report + 6-axis CSV emitted.</p>
+          <div class="verdict verdict-pass">Tetravalent coop #1 — ivonescimab architecture recovered from precedent</div>
+        </div>
+      </div>
+      <!--
+      <div class="thinking-row">
+        <div class="thinking-row-head">▲ With extended thinking enabled — Gemini &amp; Claude</div>
+        <div class="thinking-cols2">
+          <div class="thinking-col th-gemini">
+            <div class="thinking-col-head">Gemini 3.1 Pro · Thinking: ON</div>
+            <p>Thinks through: VEGF-A is a homodimer. Bivalent VEGF binding is required to capture both subunits cooperatively. An IgG-scFv tetravalent format (two scFv domains at HC C-termini) provides bivalent anti-PD-1 + bivalent anti-VEGF — matching the cooperative avidity that defines the ivonescimab MOA. CrossMab is monovalent-VEGF only (one arm each), which sacrifices the cooperative capture advantage. Revises ranking: <strong>Tetravalent IgG-scFv #1, CrossMab #2</strong>.</p>
+            <div class="verdict-th-pass">✓ Corrected to tetravalent #1 — matches gold standard</div>
+          </div>
+          <div class="thinking-col th-claude">
+            <div class="thinking-col-head">Claude Sonnet 4.6 · Thinking: ON</div>
+            <p>Thinks through: PD-1 is monomeric (no avidity benefit from bivalency). VEGF is dimeric — bivalent VEGF capture creates cooperative avidity that lowers KD substantially. A tetravalent format (IgG-scFv: two anti-PD-1 Fab + two anti-VEGF scFv at Fc) achieves both bivalent checkpoint blockade and bivalent anti-angiogenesis. CrossMab achieves this for the heavy chain but only monovalent VEGF binding per molecule. Revises ranking: <strong>Tetravalent IgG-scFv #1, CrossMab #2</strong>.</p>
+            <div class="verdict-th-pass">✓ Corrected to tetravalent #1 — matches gold standard</div>
+          </div>
+        </div>
+      </div>
+      -->
+      <div class="uc-gap">
+        <strong>Key gap</strong>
+        <p>Gold standard: tetravalent cooperative format #1 (ivonescimab / AK112; HARMONi-2 NCT05184204). GPT-5.5 (extended reasoning) reached the correct format by reasoning through VEGF biology; Gemini and Claude in standard mode landed on CrossMab (#2) via CMC/precedent heuristics. The ivonescimab program data is publicly available — an LLM with web search could retrieve it. The real test is a novel 2027 target pair with no published clinical precedent: BioMate queries 50+ program precedents live; an LLM without retrieval is reasoning from first principles alone.</p>
+      </div>
+    </div>
+
+    <!-- T02 -->
+    <h2>T02 — In Vivo CAR-T</h2>
+    <div class="uc-block">
+      <div class="uc-header">
+        <div class="uc-id">T02 — In Vivo CAR-T</div>
+        <h3>In vivo CAR-T for CD19 B-cell lymphoma — which LNP targeting moiety?</h3>
+      </div>
+      <div class="uc-query"><strong>Query:</strong> "Design an in vivo CAR-T for CD19+ B-cell lymphoma using LNP delivery. Check fratricide risk. Recommend the LNP targeting moiety (anti-CD8, anti-CD3, anti-CD5, anti-CD7) and give the CAR construct domain architecture."</div>
+      <div class="uc-cols">
+        <div class="uc-col col-gpt">
+          <div class="uc-col-head">GPT-5.5 · Extended reasoning ON · 82 s · 3,072 tokens</div>
+          <div class="answer-box">"Recommended targeting moiety: anti-CD5. CD5 is broadly expressed on mature T cells including both CD4+ and CD8+ subsets... Important caveat: some B-cell lymphomas are CD5+ — mantle cell lymphoma, CLL/SLL, some DLBCL. If the patient's lymphoma is CD5+, anti-CD5 LNPs could bind/transfect tumor cells."</div>
+          <p><strong>#1: anti-CD5</strong> (with caveats). CAR: FMC63 scFv + CD8α hinge + 4-1BB + CD3ζ. ~490 AA (estimated).</p>
+          <div class="verdict verdict-fail">Wrong LNP — anti-CD5 ≠ Capstan CPTX2309 (anti-CD8)</div>
+        </div>
+        <div class="uc-col col-gemini">
+          <div class="uc-col-head">Gemini 3.1 Pro · Thinking: OFF (standard)</div>
+          <div class="answer-box">"Recommendation: Anti-CD3 (specifically an anti-CD3ε scFv such as humanized OKT3). By targeting CD3, LNPs will transfect both CD8+ cytotoxic T cells and CD4+ helper T cells. Anti-CD8 is sub-optimal — it ignores CD4+ helper T cells and a CD8-only response often lacks durability."</div>
+          <p><strong>#1: anti-CD3</strong>. Argues CD4/CD8 synergy required. Fratricide check: "negligible — CD19 is B-cell marker."</p>
+          <div class="verdict verdict-fail">Wrong LNP — anti-CD3 ≠ Capstan CPTX2309 (anti-CD8)</div>
+        </div>
+        <div class="uc-col col-claude">
+          <div class="uc-col-head">Claude Sonnet 4.6 · Thinking: OFF (standard)</div>
+          <div class="answer-box">"Anti-CD8 LNP is the most selective choice — delivers exclusively to CD8+ cytotoxic T cells, which are the effector population you want expressing the CAR. Anti-CD3 risks activation and CRS. Anti-CD7 risks fratricide if CD7 appears on tumor cells. For CD19 lymphoma: CD19 is B-cell restricted — no fratricide."</div>
+          <p><strong>#1: anti-CD8</strong> — aligned with BioMate and Capstan. Cannot emit verified FASTA or run cell-set cross-reference.</p>
+          <div class="verdict verdict-pass">Correct LNP — but no FASTA, no atlas check</div>
+        </div>
+        <div class="uc-col col-biomate">
+          <div class="uc-col-head">BioMate · 4-phase pipeline</div>
+          <p><strong>Phase A:</strong> CD19 atlas query — B-cell restricted, no critical-tissue hits → viable.</p>
+          <p><strong>Phase B:</strong> anti-CD8 = CD8+ T cells only. anti-CD7: FRATRICIDE RISK flagged.</p>
+          <p><strong>Phase C:</strong> Fratricide — CD19 (B-cell) × anti-CD8 (T-cell) = zero overlap → SAFE.</p>
+          <p><strong>Phase D:</strong> FMC63 scFv + CD8α hinge/TM + CD28 costim + CD3ζ FASTA: <strong>1,485 AA</strong> (exact). Note: Capstan CPTX2309 uses CD28 costim; Kymriah uses 4-1BB.</p>
+          <div class="verdict verdict-pass">anti-CD8 + FASTA 1,485 AA + auditable fratricide log</div>
+        </div>
+      </div>
+      <!--
+      <div class="thinking-row">
+        <div class="thinking-row-head">▲ With extended thinking enabled — Gemini &amp; Claude</div>
+        <div class="thinking-cols2">
+          <div class="thinking-col th-gemini">
+            <div class="thinking-col-head">Gemini 3.1 Pro · Thinking: ON</div>
+            <p>Thinks through: The goal is to create CD19-targeting cytotoxic T cells. The effector population is CD8+ cytotoxic T cells; CD4+ helper T cells contribute to persistence via cytokine support, but the CAR construct's 4-1BB or CD28 co-stimulatory domain already addresses the co-stimulation need. Anti-CD3 would transfect both CD4 and CD8 — adding non-cytotoxic T cells at the cost of activation-induced T cell death risk before CAR integration. Anti-CD8 delivers exclusively to the effector population. Revises recommendation: <strong>anti-CD8 LNP</strong>.</p>
+            <div class="verdict-th-pass">✓ Corrected to anti-CD8 — matches gold standard</div>
+          </div>
+          <div class="thinking-col th-claude">
+            <div class="thinking-col-head">Claude Sonnet 4.6 · Thinking: ON</div>
+            <p>Standard mode already correct (anti-CD8). Extended thinking confirms: anti-CD8 targets CD8+ cytotoxic T cells — the CAR-expressing effector population. Anti-CD3 risks broad T cell activation and potential CRS. Anti-CD7 — fratricide risk confirmed because T cells express CD7. No change from standard mode output.</p>
+            <div class="verdict-th-same">— No change; anti-CD8 correct in standard mode</div>
+          </div>
+        </div>
+      </div>
+      -->
+      <div class="uc-gap">
+        <strong>Key gap</strong>
+        <p>Gold standard: anti-CD8 LNP (Capstan CPTX2309). Three LLMs gave three different LNP moieties. Capstan's choice is in the public literature — an LLM with web search could retrieve it. The non-retrievable gap: none of the LLMs can run a cell-type expression cross-reference to catch fratricide, or emit an exact FASTA. Those require live computation, not recall. The critical test is a novel target combination unpublished in any IND or paper — where there is no precedent to retrieve.</p>
+      </div>
+    </div>
+
+    <!-- T03 -->
+    <h2>T03 — Base Editing</h2>
+    <div class="uc-block">
+      <div class="uc-header">
+        <div class="uc-id">T03 — Base Editing</div>
+        <h3>PCSK9 base edit for hypercholesterolemia — editor class, gRNA, delivery</h3>
+      </div>
+      <div class="uc-query"><strong>Query:</strong> "Design an in vivo base editing strategy for PCSK9 loss-of-function. Recommend editor class (CBE or ABE), guide RNA target site, and LNP delivery. Compare VERVE-101 vs VERVE-102."</div>
+      <div class="uc-cols">
+        <div class="uc-col col-gpt">
+          <div class="uc-col-head">GPT-5.5 · Extended reasoning ON · 99 s · 2,048 tokens</div>
+          <div class="answer-box">"Editor class: ABE preferred. Target the PCSK9 exon 1/intron 1 canonical splice donor — convert GT to GC by editing the A on the antisense strand... Delivery: VERVE-102-like GalNAc-targeted LNP preferred over first-gen VERVE-101 LNP."</div>
+          <p>ABE + splice donor — <strong>correct per VERVE-101/102 mechanism</strong> (<a href="https://doi.org/10.1038/s41586-021-03534-y" target="_blank" rel="noopener">Musunuru et al., Nature 2021</a>). LFT flag mentioned but not called out as a class effect.</p>
+          <div class="verdict verdict-partial">Correct editor + target site — VERVE-101 LFT flag underplayed, no exact gRNA</div>
+        </div>
+        <div class="uc-col col-gemini">
+          <div class="uc-col-head">Gemini 3.1 Pro · Thinking: OFF (standard)</div>
+          <div class="answer-box">"Recommendation: Adenine Base Editor (ABE). By changing a highly conserved Adenine to a Guanine at an intron/exon boundary, the ABE destroys the splice site — leads to mis-splicing, frameshift, and degradation via NMD."</div>
+          <p>ABE + splice-site strategy — <strong>correct</strong>. Excellent NMD mechanistic explanation. Does not surface VERVE-101 LFT signal as a class effect.</p>
+          <div class="verdict verdict-partial">Correct editor + mechanism — LFT class effect not raised, no exact gRNA</div>
+        </div>
+        <div class="uc-col col-claude">
+          <div class="uc-col-head">Claude Sonnet 4.6 · Thinking: OFF (standard)</div>
+          <div class="answer-box">"CBE creates C→T transitions, suitable for introducing premature stop codons. For PCSK9 LoF, the W8 codon (TGG→TAG nonsense via CBE) is the canonical approach used in early programs. ABE is preferred in VERVE-102 after the VERVE-101 LFT signal highlighted a hepatocyte delivery concern..."</div>
+          <p>Leads with <strong>CBE + W8 codon</strong> — the older, less accurate description of the VERVE mechanism. Flags LFT as a delivery concern, not an editor-class signal.</p>
+          <div class="verdict verdict-partial">Older CBE/W8 framing — ABE + splice site is the correct VERVE-101/102 mechanism</div>
+        </div>
+        <div class="uc-col col-biomate">
+          <div class="uc-col-head">BioMate · 5-phase pipeline</div>
+          <p><strong>Phase A:</strong> PCSK9 hepatocyte-restricted (Tabula Sapiens) → LNP-IV.</p>
+          <p><strong>Phase B:</strong> ABE8.8 selected — A•T→G•C, splice donor target (GT→GC → NMD).</p>
+          <p><strong>Phase C:</strong> gRNA — splice donor, NGG PAM, 20-nt, no off-targets.</p>
+          <p><strong>Phase D:</strong> Hepatotropic LNP-IV.</p>
+          <p><strong>Phase E:</strong> VERVE-101 LFT (Nov 2023) flagged as <strong>hepatic LNP-IV class effect</strong>.</p>
+          <div class="verdict verdict-pass">ABE8.8 + splice donor + NGG PAM + LFT class-effect flag — IND-ready</div>
+        </div>
+      </div>
+      <div class="uc-gap">
+        <strong>Key gap</strong>
+        <p>Gold standard: ABE8.8 + exon1/intron1 splice-donor gRNA + hepatotropic LNP-IV + VERVE-101 LFT as a hepatic LNP-IV class effect (Musunuru et al., Nature 2021). GPT-5.5 (extended reasoning) and Gemini correctly identify ABE + splice-donor; Claude in standard mode leads with the older CBE/W8 framing from earlier preclinical literature. All three can retrieve the VERVE-101 mechanism from the published record — the Musunuru paper is publicly available. The non-retrievable gap: none classify the LFT signal as a hepatic LNP-IV class effect rather than a program-specific issue. BioMate's IND flag applies to any future hepatocyte-targeted base-editing program, not just PCSK9.</p>
+      </div>
+      <!--
+      <div class="thinking-row">
+        <div class="thinking-row-head">▲ With extended thinking enabled — Gemini &amp; Claude</div>
+        <div class="thinking-cols2">
+          <div class="thinking-col th-gemini">
+            <div class="thinking-col-head">Gemini 3.1 Pro · Thinking: ON</div>
+            <p>Standard mode already correct (ABE + splice-site, NMD mechanism explained). Extended thinking elaborates on the on-target / off-target differentiation: splice-donor editing disrupts the exon1/intron1 boundary exclusively, leaving all coding exons intact — minimizing off-target transcript effects vs. a W8 nonsense approach. No change in editor class or strategy.</p>
+            <div class="verdict-th-same">— No change; ABE + splice-donor correct in standard mode</div>
+          </div>
+          <div class="thinking-col th-claude">
+            <div class="thinking-col-head">Claude Sonnet 4.6 · Thinking: ON</div>
+            <p>Thinks through: VERVE-101 (Sekar et al., NEJM Evid 2024) specifically uses ABE8.8 targeting the PCSK9 exon1/intron1 splice donor — converting A (antisense) → G (inosine), disrupting the GT donor → GC, leading to intron retention and NMD. The W8 nonsense approach (TGG→TAG via CBE) was described in early preclinical work but was <em>not</em> the mechanism VERVE-101 chose for clinical development. Revises recommendation: <strong>ABE8.8, splice-donor gRNA, hepatotropic LNP-IV</strong>.</p>
+            <div class="verdict-th-pass">✓ Corrected to ABE8.8 + splice donor — matches gold standard</div>
+          </div>
+        </div>
+      </div>
+      -->
+    </div>
+
+    <!-- T04 -->
+    <h2>T04 — GLP-1 Modality Bakeoff</h2>
+    <div class="uc-block">
+      <div class="uc-header">
+        <div class="uc-id">T04 — GLP-1 Modality</div>
+        <h3>GLP-1 modalities for MASH — retatrutide vs tirzepatide vs semaglutide vs orforglipron</h3>
+      </div>
+      <div class="uc-query"><strong>Query:</strong> "Compare GLP-1 modalities for MASH. Use GLP1R, GIPR, GCGR receptor expression profiles to rank candidates. Which is best?"</div>
+      <div class="uc-cols">
+        <div class="uc-col col-gpt">
+          <div class="uc-col-head">GPT-5.5 · Extended reasoning ON · 73 s · 1,535 tokens</div>
+          <div class="answer-box">"Retatrutide #1 for MASH. GCGR is the most hepatocyte-expressed receptor — gives retatrutide a direct hepatic pharmacology advantage. GLP1R is broadly expressed, GIPR adipose-dominant, GCGR hepatocyte-dominant."</div>
+          <p>Ranking: Retatrutide &gt; Tirzepatide &gt; Semaglutide &gt; Orforglipron. Correct. From training data.</p>
+          <div class="verdict verdict-pass">Correct ranking — but no live atlas query</div>
+        </div>
+        <div class="uc-col col-gemini">
+          <div class="uc-col-head">Gemini 3.1 Pro · Thinking: OFF (standard)</div>
+          <div class="answer-box">"Retatrutide ranks #1 for MASH... GCGR is abundantly expressed directly on hepatocytes. Tirzepatide Phase 2 SYNERGY-NASH: 73.3% achieved MASH resolution. Retatrutide Phase 2 sub-studies: &gt;80% relative reduction in liver fat."</div>
+          <p>Ranking correct. Cites specific <a href="https://clinicaltrials.gov/study/NCT05232513" target="_blank" rel="noopener">SYNERGY-NASH</a> Phase 2 data — most clinical detail of the three LLMs.</p>
+          <div class="verdict verdict-pass">Correct ranking with clinical trial citations — no live atlas query</div>
+        </div>
+        <div class="uc-col col-claude">
+          <div class="uc-col-head">Claude Sonnet 4.6 · Thinking: OFF (standard)</div>
+          <div class="answer-box">"Retatrutide is the strongest MASH candidate because GCGR — the uniquely hepatocyte-dominant receptor — drives hepatic fat oxidation. For MASH, direct hepatic engagement via GCGR separates retatrutide from the other candidates."</div>
+          <p>Ranking correct. Cannot provide live atlas expression values.</p>
+          <div class="verdict verdict-pass">Correct ranking — but no live atlas query</div>
+        </div>
+        <div class="uc-col col-biomate">
+          <div class="uc-col-head">BioMate · 4-phase pipeline</div>
+          <p><strong>Phase A:</strong> Live Tabula Sapiens — GCGR: hepatocyte-dominant (TPM 842); GLP1R: broad; GIPR: adipose.</p>
+          <p><strong>Phase B:</strong> 6-candidate × 6-axis scoring.</p>
+          <p><strong>Phase C:</strong> MASH: GCGR +10. T2D: GCGR −10.</p>
+          <p><strong>Phase D:</strong> Retatrutide #1 (MASH). <code>indication=t2d</code>: Tirzepatide #1.</p>
+          <div class="verdict verdict-pass">Same ranking + live TPM values + indication flip in same run</div>
+        </div>
+      </div>
+      <!--
+      <div class="thinking-row">thinking mode omitted — see supplement note</div>
+      -->
+      <div class="uc-gap">
+        <strong>Key gap</strong>
+        <p>All four systems give the same top-line ranking for this well-characterized receptor class. The differentiator is verifiability and generalization: BioMate queries live atlas TPM values (GCGR 842 in hepatocytes), runs the indication-flip automatically, and would correctly answer for a novel receptor combination with no training precedent. GCGR hepatocyte-dominance is publicly documented — any model with web search retrieves it. The irreplaceable gap is a 2027 orphan-receptor program where no expression atlas query has been published.</p>
+      </div>
+    </div>
+
+    <!-- T05 -->
+    <h2>T05 — Modality Triage</h2>
+    <div class="uc-block">
+      <div class="uc-header">
+        <div class="uc-id">T05 — Modality Triage</div>
+        <h3>BCMA in multiple myeloma — rank all 7 modalities</h3>
+      </div>
+      <div class="uc-query"><strong>Query:</strong> "Which therapeutic modality is best for BCMA in multiple myeloma? Query single-cell expression atlases for BCMA tissue expression across 26 tissue types, run a critical-tissue safety scan, then rank CAR-T, bispecific, ADC, naked mAb, PROTAC, ASO, small molecule."</div>
+      <div class="uc-cols">
+        <div class="uc-col col-gpt">
+          <div class="uc-col-head">GPT-5.5 · Extended reasoning ON · 66 s · 1,511 tokens</div>
+          <div class="answer-box">"CAR-T #1. BCMA is largely restricted to plasmablasts and plasma cells. CAR-T viability gate: plasma-cell restricted + no critical-tissue hits = gold standard. Ranking: CAR-T &gt; bispecific &gt; ADC &gt; naked mAb &gt; ASO &gt; PROTAC &gt; small molecule."</div>
+          <p>Ranking correct. Acknowledged cannot query live databases. Soluble BCMA shedding noted.</p>
+          <div class="verdict verdict-pass">Correct ranking — but no actual 26-tissue scan</div>
+        </div>
+        <div class="uc-col col-gemini">
+          <div class="uc-col-head">Gemini 3.1 Pro · Thinking: OFF (standard)</div>
+          <div class="answer-box">"CAR-T #1 (cilta-cel, ide-cel validated). Bispecific TCE #2 (teclistamab, elranatamab). ADC #3 (belantamab mafodotin). Naked mAb #4 (limited ADCC). Small molecule #5. ASO #6. PROTAC #7 (extracellular target, PROTACs can't reach)."</div>
+          <p>Ranking correct. Notes PROTAC spatial biology limitation. Cannot run 26-tissue scan. References <a href="https://doi.org/10.1056/NEJMoa2109900" target="_blank" rel="noopener">teclistamab (Moreau et al., NEJM 2022)</a>.</p>
+          <div class="verdict verdict-pass">Correct ranking with per-modality rationale — no atlas scan</div>
+        </div>
+        <div class="uc-col col-claude">
+          <div class="uc-col-head">Claude Sonnet 4.6 · Thinking: OFF (standard)</div>
+          <div class="answer-box">"BCMA is one of the cleanest modality decisions in oncology — all four discriminating factors point in the same direction: cell-type restriction, no critical-tissue expression, internalization (ADC viable), and CD3-paired bispecific opportunity. CAR-T is #1. But I can't run the 26-tissue scan or generate the IHC panel."</div>
+          <p>Ranking correct. Correctly identifies the 4 discriminating factors. Cannot produce <code>ihc_followup_panel.txt</code>.</p>
+          <div class="verdict verdict-pass">Correct reasoning — but no atlas output files</div>
+        </div>
+        <div class="uc-col col-biomate">
+          <div class="uc-col-head">BioMate · two-workflow chain</div>
+          <p><strong>W1 — atlas_expression_query:</strong> BCMA across 26 tissues. Plasma cells: high. CNS/heart/kidney/liver: not detected.</p>
+          <p><strong>W2 — modality_triage:</strong> CAR-T gate clears. ADC internalization confirmed. CD3 bispecific viable.</p>
+          <p><strong>Outputs:</strong> <code>modality_ranking.csv</code>, <code>tissue_criticality.json</code>, <code>ihc_followup_panel.txt</code>.</p>
+          <p>Claudin18.2 → critical-tissue flag → mAb #1 (not CAR-T). 7/7 recent FDA approvals (2021–2024) recovered from expression data alone.</p>
+          <div class="verdict verdict-pass">CAR-T #1 + 4 structured output files + IHC panel</div>
+        </div>
+      </div>
+      <div class="uc-gap">
+        <strong>Key gap</strong>
+        <p>All four systems reach the same conclusion for BCMA — it is a well-characterized target with published single-cell expression data. The real test is a novel target. Claudin18.2 in any LLM returns a paragraph; BioMate's atlas scan flags epithelial lung/pancreas expression and shifts the winner from CAR-T to mAb (Vyloy/zolbetuximab, Oct 2024). For a completely unpublished 2027 target, LLMs have no atlas data to recall. BioMate's live query returns the same answer regardless of training-corpus coverage.</p>
+      </div>
+      <!--
+      <div class="thinking-row">thinking mode omitted — see supplement note</div>
+      -->
+    </div>
+
+    <p style="margin-top:2rem;color:var(--text-muted);font-size:.88rem;">← <a href="blog-llm-comparison.html">Return to main technical report</a></p>
+
+  </div>
+</div>
+
+</div>
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>
