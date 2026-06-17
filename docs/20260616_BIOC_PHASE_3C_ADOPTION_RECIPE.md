@@ -1,7 +1,7 @@
 # Phase 3c Adoption Recipe — adding BIOC_QC_HARNESS gates to a Bioc workflow
 
 **Worktree:** `/home/yzhang/biomate` · **Branch:** `qc/coverage-and-rebuilds`
-**Status as of 2026-06-17:** **290 of 396** Bioc workflows adopted (73%); 106 candidates remaining. Use `python3 backend/scripts/bioc_qc_harness_rollout.py` for the priority-ordered queue.
+**Status as of 2026-06-17 (final):** **396 of 396** Bioc workflows adopted (**100%**); 0 candidates remaining. Full writeup: `docs/20260617_BIOC_QC_HARNESS_FULL_COVERAGE.md`.
 
 Adoption history:
 | Date | Commit | Adopted | Coverage | Method |
