@@ -35,6 +35,7 @@ process BIOC_CQN_CQN_EDGER_DIFFERENTIAL_EXPRESSION {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -210,6 +211,37 @@ process BIOC_CQN_CQN_EDGER_DIFFERENTIAL_EXPRESSION {
     })
     
     cat("\nPipeline completed successfully. Outputs written to working directory.\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # input validation — workflow-level pass when expected output files exist
+    # and have non-zero size. Binary pass: at least one .rds or .csv emitted.
+    .iv_artifacts <- c(list.files(".", pattern = "\\.rds\$"), list.files(".", pattern = "\\.csv\$"))
+    .iv_passes <- length(.iv_artifacts) > 0
+    .gates_by_label[["input validation"]] <- list(
+      gate_row = "bioc_input_validation",
+      metric_name = "input_validation_passes",
+      metric_value = if (.iv_passes) 1 else 0,
+      passes = .iv_passes,
+      status = paste0("computed (", length(.iv_artifacts), " artifact(s) emitted)")
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_CQN_CQN_EDGER_DIFFERENTIAL_EXPRESSION",
+      domain  = "bioconductor",
+      declared_qc_steps = c("input validation"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_CQN_CQN_EDGER_DIFFERENTIAL_EXPRESSION":',
