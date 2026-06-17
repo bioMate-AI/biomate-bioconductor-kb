@@ -67,6 +67,10 @@ interface DemoSpec {
   valueChecks: { key: string; regex: RegExp }[];
   /** Expected phase-card count (Bug 3). T05 chains atlas+triage = 7. */
   expectedPhaseCount: number;
+  /** Chain name in workflow_chains (added 2026-06-16 — citations/rationale backing). */
+  chainName: string;
+  /** rationale_id of the chain's first phase — verifies (why?) anchor backing. */
+  firstRationaleId: string;
 }
 
 const DEMOS: DemoSpec[] = [
@@ -82,6 +86,8 @@ const DEMOS: DemoSpec[] = [
       { key: "indication", regex: /NSCLC|lung/i },
     ],
     expectedPhaseCount: 4,
+    chainName: "bispecific_format_triage_chain",
+    firstRationaleId: "bispecific_format_triage_chain:A",
   },
   {
     id: "T02",
@@ -94,6 +100,8 @@ const DEMOS: DemoSpec[] = [
       { key: "lnp_targeting", regex: /anti[_-]?CD8|CD8/i },
     ],
     expectedPhaseCount: 4,
+    chainName: "in_vivo_cart_codesign_chain",
+    firstRationaleId: "in_vivo_cart_codesign_chain:A",
   },
   {
     id: "T03",
@@ -106,6 +114,8 @@ const DEMOS: DemoSpec[] = [
       { key: "indication", regex: /hypercholesterolemia/i },
     ],
     expectedPhaseCount: 4,
+    chainName: "in_vivo_base_edit_design_chain",
+    firstRationaleId: "in_vivo_base_edit_design_chain:A",
   },
   {
     id: "T04",
@@ -116,6 +126,8 @@ const DEMOS: DemoSpec[] = [
       { key: "disease", regex: /MASH/i },
     ],
     expectedPhaseCount: 4,
+    chainName: "glp1_modality_bakeoff_chain",
+    firstRationaleId: "glp1_modality_bakeoff_chain:A",
   },
   {
     id: "T05",
@@ -127,6 +139,9 @@ const DEMOS: DemoSpec[] = [
     ],
     // T05 chains atlas (3) + triage (4) = 7 phases
     expectedPhaseCount: 7,
+    chainName: "modality_triage_oncology_chain",
+    // T05 chain phases are encoded <step>.<letter>; first is atlas:A.
+    firstRationaleId: "modality_triage_oncology_chain:1.A",
   },
 ];
 
@@ -682,7 +697,64 @@ async function auditDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
         record(a, "download-methods-report-btn-renders",
           await dlReportBtn.isVisible({ timeout: 8000 }).catch(() => false));
         a.screenshots.push(await shot(page, spec.id, "05_post_complete"));
-      } else {
+      }
+
+      // ── #10 citations endpoint backs the After-run Citations tab ────────
+      // Added 2026-06-16: tier-0 demos had empty Citations until
+      // qc_evidence.yaml domain blocks were added.
+      const citeResp = await page.request.get(
+        `${BASE_URL}/api/workflows/${spec.workflow}/citations`,
+        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
+      ).catch(() => null);
+      const citeStatus = citeResp?.status() ?? -1;
+      record(a, "citations-endpoint-returns-200",
+        citeStatus === 200, `HTTP ${citeStatus}`);
+      if (citeStatus === 200) {
+        const body: any = await citeResp!.json().catch(() => ({}));
+        const n = Array.isArray(body?.citations) ? body.citations.length : 0;
+        record(a, "citations-has-at-least-one-row",
+          n >= 1, `count=${n}, domain=${body?.domain ?? "-"}`);
+      }
+
+      // ── #11 rationale endpoint backs the (why?) anchor ──────────────────
+      // Added 2026-06-16: tier-0 chains had no rationale_registry rows.
+      const ratResp = await page.request.get(
+        `${BASE_URL}/api/rationale/${encodeURIComponent(spec.firstRationaleId)}`,
+        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
+      ).catch(() => null);
+      const ratStatus = ratResp?.status() ?? -1;
+      record(a, "rationale-endpoint-returns-200",
+        ratStatus === 200, `HTTP ${ratStatus}`);
+      if (ratStatus === 200) {
+        const body: any = await ratResp!.json().catch(() => ({}));
+        const hasText = typeof body?.rationale_text === "string"
+          && body.rationale_text.length > 10;
+        record(a, "rationale-has-curated-text",
+          hasText,
+          hasText ? `gate=${body?.qc_gate_name}` : `keys=[${Object.keys(body).join(",")}]`);
+      }
+      // ── #12 workflow_chains row exists (chain-router can route here) ────
+      // Added 2026-06-16: the tier-0 workflows were not wrapped as chains.
+      // We probe via /api/workflow_chains (if present) and fall back to
+      // /api/ai_assistant/search_ranked which returns chain candidates.
+      const chainResp = await page.request.get(
+        `${BASE_URL}/api/workflow_chains?name=${encodeURIComponent(spec.chainName)}`,
+        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
+      ).catch(() => null);
+      const chainStatus = chainResp?.status() ?? -1;
+      let chainFound = false;
+      if (chainStatus === 200) {
+        const body: any = await chainResp!.json().catch(() => null);
+        const arr = Array.isArray(body) ? body
+          : Array.isArray(body?.chains) ? body.chains
+          : Array.isArray(body?.items) ? body.items
+          : [];
+        chainFound = arr.some((c: any) => c?.name === spec.chainName);
+      }
+      record(a, "workflow-chains-row-exists",
+        chainFound, `chain=${spec.chainName} status=${chainStatus}`);
+
+      if (!runId) {
         // Skipped assertions for run-dependent steps (keep audit count stable)
         for (const n of [
           "first-phase-transitions-running",
