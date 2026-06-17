@@ -41,6 +41,24 @@ def main(argv: list[str]) -> int:
             max_jobs = int(argv[2]) if len(argv) > 2 else 1
             done = tick(max_jobs=max_jobs)
             print(json.dumps([j.to_dict() for j in done]))
+        elif verb == "record_pair":
+            # record_pair <user_id> <org_id> <stdin-json-body>
+            # Body shape: {chosen, rejected, section_type?, task?, prompt?, meta?}
+            if len(argv) < 4:
+                return _err("usage: record_pair <user_id> <org_id> <stdin-json>")
+            from galaxy.ai.drug_discovery.regulatory_pair_recorder import record_pair
+            body = json.loads(sys.stdin.read() or "{}")
+            row = record_pair(
+                user_id=argv[2],
+                org_id=argv[3],
+                chosen=str(body.get("chosen") or ""),
+                rejected=str(body.get("rejected") or ""),
+                section_type=str(body.get("section_type") or ""),
+                task=str(body.get("task") or ""),
+                prompt=str(body.get("prompt") or ""),
+                meta_extra=body.get("meta") if isinstance(body.get("meta"), dict) else None,
+            )
+            print(json.dumps(row))
         else:
             return _err(f"unknown verb: {verb}")
         return 0
