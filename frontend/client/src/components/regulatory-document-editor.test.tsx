@@ -78,6 +78,21 @@ describe("RegulatoryDocumentEditor — DPO pair recording", () => {
     expect(recordPairFn).not.toHaveBeenCalled();
   });
 
+  it("maps §2.6.X tab-id → assembler section_type vocabulary", async () => {
+    // Audit H1: without the mapping the recorder emitted "2.6.4" but the
+    // assembler queries _build_rag_context with "pbpk"; section-filtered
+    // few-shot retrieval would miss. The mapping must cover all six tabs.
+    const { SECTION_TYPE_BY_TAB } = await import(
+      "./regulatory-document-editor"
+    );
+    expect(SECTION_TYPE_BY_TAB["2.6.1"]).toBe("nonclinical_overview");
+    expect(SECTION_TYPE_BY_TAB["2.6.2"]).toBe("pk_overview");
+    expect(SECTION_TYPE_BY_TAB["2.6.3"]).toBe("pk_overview");
+    expect(SECTION_TYPE_BY_TAB["2.6.4"]).toBe("pbpk");
+    expect(SECTION_TYPE_BY_TAB["2.6.5"]).toBe("pbpk");
+    expect(SECTION_TYPE_BY_TAB["2.6.6"]).toBe("tox_genotox");
+  });
+
   it("does NOT emit pairs when isLocked={true}", async () => {
     const recordPairFn = vi.fn(async () => {});
     render(
