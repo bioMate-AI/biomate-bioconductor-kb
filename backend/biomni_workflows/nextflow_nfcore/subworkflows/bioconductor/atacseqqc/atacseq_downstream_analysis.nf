@@ -93,11 +93,15 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     message("All input files found. Starting downstream analysis...")
     
     # Set up genome, transcripts, and chromosome of interest
-    seqlev <- "chr1"
     genome <- Hsapiens
+    seqinformation <- seqinfo(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    # Derive the chromosome of interest from the BAM (the contig that carries reads),
+    # intersected with the annotation's seqlevels — instead of hardcoding "chr1".
+    .bamchr <- names(Rsamtools::scanBamHeader(shiftedBamfile)[[1]]\$targets)
+    seqlev <- intersect(.bamchr, seqlevels(seqinformation))
+    seqlev <- if (length(seqlev)) seqlev[1] else .bamchr[1]
     txs <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
     txs <- txs[seqnames(txs) %in% seqlev]
-    seqinformation <- seqinfo(TxDb.Hsapiens.UCSC.hg19.knownGene)
     which_gr <- as(seqinformation[seqlev], "GRanges")
     
     # Read BAM files into a named list of GAlignments (objs) for enrichedFragments
