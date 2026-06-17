@@ -145,9 +145,28 @@ def _nf_path(wf: str) -> str:
 
 
 def _steps_for(wf: str) -> list:
-    """Each tier-0 workflow is a single 4-phase nf-core sub-workflow.
-    We wrap as a 1-step chain whose internal phases A/B/C/D are picked
-    up at runtime via _short_phase_name on the trace."""
+    """Each tier-0 workflow is a 4-phase nf-core sub-workflow wrapped as
+    a 1-step chain (internal A/B/C/D phases via _short_phase_name).
+    Exception: modality_triage chains atlas_expression_query first to
+    match tier0-audit.e2e.ts expectedPhaseCount=7 (atlas A/B/C + triage
+    A/B/C/D)."""
+    if wf == "modality_triage":
+        return [
+            {
+                "order": 1,
+                "workflow_name": "atlas_expression_query",
+                "role": "atlas_profile",
+                "params_template": {},
+                "nextflow_path": _nf_path("atlas_expression_query"),
+            },
+            {
+                "order": 2,
+                "workflow_name": "modality_triage",
+                "role": "tier0_drug_design_pipeline",
+                "params_template": {},
+                "nextflow_path": _nf_path("modality_triage"),
+            },
+        ]
     return [{
         "order": 1,
         "workflow_name": wf,
