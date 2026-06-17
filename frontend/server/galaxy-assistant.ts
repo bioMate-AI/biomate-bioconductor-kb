@@ -1161,6 +1161,17 @@ export interface GalaxyAssistantResponse {
     | { kind: 'enum_violation'; paramName: string; userValue: string; allowed: string[] }
   >;
 
+  // Intent ambiguity clarification — rendered as IntentClarificationCard.
+  // Surfaces when the intent decomposer's classification looks like it might
+  // be wrong for the query (design verbs + therapeutic modality but routed
+  // as tool_search, etc.). Re-added 2026-06-17 after a merge dropped it.
+  intentClarification?: {
+    originalIntent: string;
+    candidates: Array<{ type: string; label: string; primary?: boolean }>;
+    reason: string;
+    originalMessage: string;
+  };
+
   // Extracted typed facts from user message (for ConversationState)
   extractedFacts?: ExtractedFact[];
 
