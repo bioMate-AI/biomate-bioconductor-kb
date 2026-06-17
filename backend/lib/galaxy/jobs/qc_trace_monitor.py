@@ -1633,6 +1633,13 @@ class NextflowQCGateHandler:
         "DOCKING_AUTODOCK_VINA":     ("*", "qc_metrics.json"),  # best_score ≤ -7 + n_poses ≥ 3 (BRONZE, Trott & Olson 2010)
         "OPENFE_ANALYSIS":           ("*", "qc_metrics.json"),  # openfe_rbfe cycle_closure ≤ 1 kcal/mol (GOLD, Mey 2020)
         "BIOC_QC_HARNESS":           ("*", "qc_metrics.json"),  # Bioconductor QC harness (Phase 3b MVP, 2026-06-16) — emits gates_by_label keyed by 25-label qc_steps taxonomy
+        # Phase 3c (2026-06-17): every Bioconductor subworkflow patched via
+        # bioc_qc_harness_inject_multi.py uses a process name that starts
+        # `BIOC_<package>_<task>` (e.g. BIOC_A4_MICROARRAY_DE, BIOC_BIOBROOM_...).
+        # The single `BIOC_` substring covers all 396 adopted workflows.
+        # False-positive risk audited 2026-06-17: zero process names with
+        # `BIOC_` prefix exist outside subworkflows/bioconductor/.
+        "BIOC_":                     ("*", "qc_metrics.json"),
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
