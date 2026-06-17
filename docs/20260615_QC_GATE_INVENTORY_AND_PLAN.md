@@ -55,11 +55,11 @@ YAML row exists with citation + rule; either the workflow doesn't emit
 the matching `qc_metrics.json` shape, OR the workflow isn't registered
 in `_S3_REPORT_PATHS`.
 
-**Pharmacology (1):** all gates wired by 2026-06-16 except `ivive_well_stirred_consistency`
+**Pharmacology (0):** all pharmacology gates wired by 2026-06-16
 - pbpk: ✓ `pbpk_cl_min`, `pbpk_mass_balance`, `pbpk_auc_fold_error` wired in Track 2 batch 1 (`f5f8b28b25`); PBPK verified live `b65d5b14` 2026-06-15 22:58
 - nca: ✓ `nca_terminal_slope_coverage` wired in `f5f8b28b25`
 - docking: ✓ `docking_binding_score` + `docking_valid_poses` wired in Track 2 batch 7 (2026-06-16) — qc_metrics emit with status='not_computed' when no receptor_pdb_file supplied; full live verification deferred until receptor fixture
-- ivive: `ivive_well_stirred_consistency` — needs scaling-model consistency check additions to the ivive workflow; not in this session's scope
+- ivive: ✓ `ivive_well_stirred_consistency` wired in Track 2 batch 8 (2026-06-16, `dff1dd88a`) — IVIVE workflow now runs all 3 liver models (well_stirred/parallel_tube/dispersion) on the same inputs, emits clh_by_model + clh_spread_fraction + ivive_well_stirred_consistency_passes (false when extraction_class == 'high' per Pang & Rowland 1977)
 - openfe: ✓ `openfe_cycle_closure` wired in Track 2 batch 7 (2026-06-16) — qc_metrics emit with status='not_computed' for single-edge runs; computes max |ΔG_sum| when network.closed_cycles + parsed fe_results both present. Process renamed `ANALYSIS` → `OPENFE_ANALYSIS` to avoid generic process-keyword collisions in `_S3_REPORT_PATHS`.
 - nlmixr2: ✓ `nlmixr2_condition_number` + `nlmixr2_ofv_stability` wired in Track 2 batch 6 (`70b4551329`); nlmixr2 verified live `34ce4a2a` 2026-06-15 22:55 with cond_number_passes=true (6.9 < 100), ofv_stability_status="not_computed (single-fit workflow)"
 - admet: ✓ `admet_dili_probability` wired in `70b4551329`; ADMET verified live `7c9b5f1e` 2026-06-15 22:56 with admet_dili_probability_passes=false (terfenadine high-risk DILI, correct positive control)
