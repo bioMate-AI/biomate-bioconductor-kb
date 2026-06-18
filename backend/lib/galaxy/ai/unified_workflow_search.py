@@ -2158,8 +2158,53 @@ class UnifiedWorkflowSearch:
                 log.info("[ChainIndex] LLM: no chain matches")
                 return []
 
-            log.warning("[ChainIndex] LLM response unrecognized: %r", raw)
-            return None  # fall back to embedding ranking
+            # Unrecognized response — retry ONCE with a stricter prompt before
+            # falling back. The fall-back used to silently return the embedding's
+            # top hit, which shipped the wrong chain on BC-10 when Gemini
+            # returned literally '*' (2026-06-18). Now: garbage → retry → if
+            # still garbage, treat as "no match" (return []) rather than
+            # "LLM unavailable" (return None).
+            log.warning("[ChainIndex] LLM response unrecognized: %r — retrying with strict prompt", raw)
+            strict_prompt = (
+                prompt
+                + "\n\nIMPORTANT: Your previous response was not in the expected format."
+                + "\nReturn EXACTLY one of these literal strings, with no other characters:"
+                + "\n  chain:<name>"
+                + "\n  clarify:<name>|<question>"
+                + "\n  none"
+                + "\nPick `none` if you are unsure. Do not return symbols, punctuation, or prose."
+            )
+            try:
+                raw2 = (self._llm_client.generate(strict_prompt, max_tokens=60, temperature=0.0) or "").strip()
+                log.info("[ChainIndex] LLM retry response: %r", raw2)
+                if raw2.lower().startswith("chain:"):
+                    name = raw2[6:].strip()
+                    for c in candidates:
+                        if c.name == name or c.name in name:
+                            return [c]
+                if raw2.lower().startswith("clarify:"):
+                    body = raw2[8:].strip()
+                    parts = body.split("|", 1)
+                    chain_name = parts[0].strip()
+                    question = parts[1].strip() if len(parts) > 1 else (
+                        f"Could you confirm the full scope? This pipeline covers: "
+                        f"{candidates[0].description[:120]}"
+                    )
+                    for c in candidates:
+                        if c.name == chain_name or c.name in chain_name:
+                            import copy
+                            c_copy = copy.copy(c)
+                            c_copy.clarification_needed = True
+                            c_copy.clarification_question = question
+                            return [c_copy]
+                if "none" in raw2.lower():
+                    log.info("[ChainIndex] LLM retry: no chain matches")
+                    return []
+            except Exception as exc:
+                log.warning("[ChainIndex] LLM retry failed: %s — treating as no match", exc)
+            # Retry also failed/garbage → explicit no-match (safer than embedding fallback)
+            log.warning("[ChainIndex] LLM retry also unrecognized — returning [] (no chain) to avoid wrong-chain regression")
+            return []
         except Exception as exc:
             log.warning("[ChainIndex] LLM chain selection failed: %s", exc)
             return None
