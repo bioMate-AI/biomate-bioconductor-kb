@@ -27,7 +27,7 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -49,10 +49,10 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     .bm_deps <- c("ATACseqQC", "BSgenome.Hsapiens.UCSC.hg19", "ChIPpeakAnno", "GenomicAlignments", "MotifDb", "TxDb.Hsapiens.UCSC.hg19.knownGene")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      .rv <- getRversion()
-      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
-      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
-      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))  # CRAN binaries (Posit PPM)
+      .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
@@ -82,6 +82,8 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     
     # Verify input files exist
     all_files <- c(shiftedBamfile, bamfiles)
+    # Ensure each BAM is indexed — ranged reads (ScanBamParam which=) require a .bai.
+    for (.b in all_files) if (file.exists(.b) && !file.exists(paste0(.b, ".bai"))) Rsamtools::indexBam(.b)
     missing_files <- all_files[!file.exists(all_files)]
     if (length(missing_files) > 0) {
       stop(paste("Missing required input files in the working directory:", 
@@ -91,11 +93,15 @@ process BIOC_ATACSEQQC_ATACSEQ_DOWNSTREAM_ANALYSIS {
     message("All input files found. Starting downstream analysis...")
     
     # Set up genome, transcripts, and chromosome of interest
-    seqlev <- "chr1"
     genome <- Hsapiens
+    seqinformation <- seqinfo(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    # Derive the chromosome of interest from the BAM (the contig that carries reads),
+    # intersected with the annotation's seqlevels — instead of hardcoding "chr1".
+    .bamchr <- names(Rsamtools::scanBamHeader(shiftedBamfile)[[1]]\$targets)
+    seqlev <- intersect(.bamchr, seqlevels(seqinformation))
+    seqlev <- if (length(seqlev)) seqlev[1] else .bamchr[1]
     txs <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
     txs <- txs[seqnames(txs) %in% seqlev]
-    seqinformation <- seqinfo(TxDb.Hsapiens.UCSC.hg19.knownGene)
     which_gr <- as(seqinformation[seqlev], "GRanges")
     
     # Read BAM files into a named list of GAlignments (objs) for enrichedFragments

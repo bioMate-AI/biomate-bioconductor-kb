@@ -2,7 +2,7 @@
 // ============================================================
 // Bioconductor workflow: raer — bulk_differential_editing
 // Quantify editing sites in bulk RNA-seq and identify condition-specific differential editing events.
-// Input: bam_files.bam, fafn.fasta, chr_18_editing_sites.gr
+// Input: Control_1.bam, Control_2.bam, Treatment_1.bam, Treatment_2.bam, fafn.fasta, chr_18_editing_sites.gr
 // Container: quay.io/biocontainers/bioconductor-raer:1.8.0--r45h01b2380_2
 // R packages: ComplexHeatmap, GenomicRanges, SummarizedExperiment, raer, rtracklayer
 // Bioconductor: 3.20 | R: 4.4
@@ -26,7 +26,7 @@ process BIOC_RAER_BULK_DIFFERENTIAL_EDITING {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -49,10 +49,10 @@ process BIOC_RAER_BULK_DIFFERENTIAL_EDITING {
     .bm_deps <- c("ComplexHeatmap", "GenomicRanges", "SummarizedExperiment", "raer", "rtracklayer")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      .rv <- getRversion()
-      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
-      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
-      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))  # CRAN binaries (Posit PPM, jammy)
+      .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
@@ -73,6 +73,10 @@ process BIOC_RAER_BULK_DIFFERENTIAL_EDITING {
             # Read all BAM files in the current directory to represent actual biological replicates
             bam_files <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
             names(bam_files) <- tools::file_path_sans_ext(basename(bam_files))
+
+            # Ensure each BAM is coordinate-indexed (raer::pileup_sites requires a .bai
+            # next to each BAM; inputs may arrive without one).
+            for (.b in bam_files) if (!file.exists(paste0(.b, ".bai"))) Rsamtools::indexBam(.b)
             
             fafn <- "fafn.fasta"
             sites_file <- "chr_18_editing_sites.gr"
@@ -95,7 +99,7 @@ process BIOC_RAER_BULK_DIFFERENTIAL_EDITING {
             rse <- pileup_sites(bam_files,
                 fasta = fafn,
                 sites = chr_18_editing_sites,
-                chroms = "chr18",
+                chroms = as.character(unique(seqnames(chr_18_editing_sites))),
                 param = fp
             )
             
