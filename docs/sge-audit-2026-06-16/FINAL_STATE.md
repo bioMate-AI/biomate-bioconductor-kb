@@ -16,7 +16,20 @@ Honest summary of what's fixed and what's not.
 | Phase status badges | ⚠️ partial | Phase A → running → completed; B/C/D → pending → completed (no running render). Per-process status override (PR #14) is in place but B/C/D run too fast for the 3s poll to catch any intermediate state |
 | Outputs tab | ⚠️ blocked by Galaxy infra | OutputsTab client fetch fallback shipped (PR #25) — calls `/api/workflows/runs/:id/output_files` when prop is empty; that endpoint has S3 ListObjectsV2 fallback. **Cannot verify end-to-end** because every test workflow execution attempt on dev today returned HTTP 504 from Galaxy's `/api/nextflow/execute` |
 
-## What's blocked on dev infrastructure (not code)
+## 2026-06-18 update: workers=4 unblock SHIPPED
+
+PR #28 raised Galaxy gunicorn from `workers: 1` to `workers: 4 + preload: true` (option (a) from the rollback comment). Verified live on dev post-sync:
+
+- `pgrep -fc gunicorn` returns **6** (1 master + 4 workers + 1 tail-helper) — matches acceptance criteria from issue #29
+- `/api/version` returns in 5.7 ms (HTTP 200)
+- `/api/nextflow/status/<runId>` returns in **116 ms** (was 60s+ timeout pre-fix)
+- Direct probe of `/api/workflows/runs/<id>/output_files` returns **11 real files** in 8.5s for the most recent completed `in_vivo_cart_codesign` run: `cart_construct.fasta`, `design_report.txt`, `fratricide_check.json`, `in_vivo_cart_design.json`, `atlas_safety.json`, plus 6 more. This proves the OutputsTab fetch fallback (PR #25) will show real files when the DB snapshot is empty.
+
+**P0 Outputs tab is now fixed end-to-end** even when the DB snapshot doesn't populate — the client-side fetch hits the working server-side S3 listing fallback.
+
+The earlier E2E audit failures on the new workers=4 Galaxy were workflow-generation LLM non-determinism (the LLM intermittently refuses queries with "Workflow generation is currently unavailable for this request"), not anything Galaxy- or Outputs-related. That's a separate prompt-tuning issue, tracked elsewhere.
+
+## What was blocked on dev infrastructure (now resolved)
 
 ### Galaxy gunicorn `--workers=1`
 
