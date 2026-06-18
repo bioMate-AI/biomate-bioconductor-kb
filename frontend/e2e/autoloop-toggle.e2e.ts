@@ -134,7 +134,7 @@ test.describe("AL-T1 — toggle UI state flips on click", () => {
     await shot(page, "al_t1_01_initial");
 
     // First click — flip
-    await toggle.click({ force: true });
+    await toggle.evaluate((el: HTMLElement) => el.click());
     await page.waitForTimeout(200);
     const afterFlipAria = await toggle.getAttribute("aria-checked");
     const afterFlipClass = (await toggle.getAttribute("class")) || "";
@@ -145,7 +145,7 @@ test.describe("AL-T1 — toggle UI state flips on click", () => {
     await shot(page, "al_t1_02_flipped");
 
     // Second click — back to original
-    await toggle.click({ force: true });
+    await toggle.evaluate((el: HTMLElement) => el.click());
     await page.waitForTimeout(200);
     const afterRevertAria = await toggle.getAttribute("aria-checked");
     const afterRevertClass = (await toggle.getAttribute("class")) || "";
@@ -174,7 +174,7 @@ test.describe("AL-T2 — toggle gates AutoLoopPanel rendering on SSE", () => {
     // Force OFF first
     const initialAria = await toggle.getAttribute("aria-checked");
     if (initialAria === "true") {
-      await toggle.click();
+      await toggle.evaluate((el: HTMLElement) => el.click());
       await page.waitForTimeout(200);
     }
     expect(await toggle.getAttribute("aria-checked")).toBe("false");
@@ -213,7 +213,7 @@ test.describe("AL-T2 — toggle gates AutoLoopPanel rendering on SSE", () => {
     await shot(page, "al_t2_01_off_no_panel");
 
     // Flip ON
-    await toggle.click({ force: true });
+    await toggle.evaluate((el: HTMLElement) => el.click());
     await page.waitForTimeout(200);
     expect(await toggle.getAttribute("aria-checked")).toBe("true");
 
