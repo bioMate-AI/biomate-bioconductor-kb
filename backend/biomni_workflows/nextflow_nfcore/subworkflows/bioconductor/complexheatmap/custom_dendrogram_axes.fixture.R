@@ -13,4 +13,6 @@ m = matrix(rnorm(1000*10), nr = 1000)
 rownames(m) = paste0("row", 1:1000)
 colnames(m) = paste0("col", 1:10)
 
-saveRDS(m, "matrix")
+# Workflow reads this with read.table(header=TRUE, row.names=1); write a tab table
+# with a leading empty header cell (col.names=NA) so the row-name column aligns.
+write.table(as.data.frame(m), "matrix", sep="\t", quote=FALSE, col.names=NA)
