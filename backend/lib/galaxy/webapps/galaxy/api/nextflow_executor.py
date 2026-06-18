@@ -1111,6 +1111,44 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         shutil.copy(str(Path(src).expanduser()), str(dest))
 
 
+_PRINTABLE_BYTES = set(range(32, 127)) | {9, 10, 13}  # printable ASCII + tab/LF/CR
+
+
+def _looks_like_rds(head: bytes) -> bool:
+    """True if `head` (first bytes) is plausibly a serialized R object (saveRDS/save):
+    gzip/bzip2/xz-compressed or an uncompressed RDS/RData serialization header."""
+    return (
+        head[:2] == b"\x1f\x8b"                              # gzip (saveRDS default)
+        or head[:3] == b"BZh"                                # bzip2
+        or head[:6] == b"\xfd7zXZ\x00"                       # xz
+        or head[:5] in (b"RDX2\n", b"RDX3\n", b"RDX1\n")     # uncompressed RDS header
+        or head[:2] in (b"X\n", b"A\n", b"B\n")              # XDR/ASCII/binary serialization
+    )
+
+
+def _assert_staged_input_format(dest: Path, base: str) -> None:
+    """Pre-flight guard: fail loudly BEFORE an expensive run when the supplied file's
+    content clearly contradicts the format the workflow reads it as. Only the
+    high-confidence, costly case is enforced — a workflow that readRDS()es a `.rds` but
+    was handed a plain-text table (the exact mismatch that otherwise burns a full Batch
+    run and dies inside R). Ambiguous cases pass."""
+    try:
+        with open(dest, "rb") as fh:
+            head = fh.read(512)
+    except Exception:
+        return
+    if not head:
+        return
+    if dest.suffix.lower() in (".rds", ".rdata"):
+        is_textlike = all(b in _PRINTABLE_BYTES for b in head)
+        if is_textlike and not _looks_like_rds(head):
+            raise HTTPException(
+                status_code=422,
+                detail=(f"Input '{base}' is loaded as an R object (readRDS), but the supplied "
+                        f"file is plain text, not a serialized .rds. Save it with saveRDS() in R "
+                        f"(or select the correct file) before running."))
+
+
 def _resolve_read_filename(nf_text: str, base: str) -> str:
     """Return the literal filename the workflow body reads for declared input `base`.
 
@@ -1219,6 +1257,9 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 log.warning("[Nextflow run %s] bioc input staging failed for %r: %s",
                             run_id, name, exc)
                 return None
+            # Format guard runs OUTSIDE the try so its 422 surfaces to the user instead
+            # of being swallowed into a silent fallback run.
+            _assert_staged_input_format(dest, name)
             staged.append(dest.resolve())
         for name in names:                   # consumed as staged files, not --flags
             params.pop(name, None)
@@ -1254,14 +1295,77 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     else:
         slot = ", ".join(files_lit)
     chan = "[ [id:'sample'], " + slot + " ]"
+
+    # RDS sidecar: if the workflow emits `objects` (its *.rds), chain a best-effort
+    # introspection process that writes <name>.rds.json (class/dims/assays/reductions/
+    # colData) so the after-run UI can preview the R object inline instead of an opaque
+    # blob. SAFE: a plain process never touches publishDir/CRT (only the head JVM's
+    # publishDir does) — the sidecars reach S3 via the Batch task's own work-dir copy,
+    # the same path versions.yml and every declared output already ride. The R block is a
+    # Groovy '''…''' literal (no $-interpolation, so R's list `$` access is preserved) and
+    # never throws (tryCatch around every object), so it cannot fail the run.
+    container_m = re.search(r'container\s+"([^"]+)"', text)
+    bm = re.search(r'\.bm_deps\s*<-\s*c\(([^)]*)\)', text)
+    deps_r = bm.group(1).strip() if bm else ""
+    introspect_proc = ""
+    workflow_body = f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
+    if container_m and re.search(r'emit:\s*objects', text):
+        img = container_m.group(1)
+        introspect_proc = (
+            "\nprocess BIOMATE_RDS_INTROSPECT {\n"
+            f"    container '{img}'\n"
+            "    input:\n"
+            "      path rds_file\n"
+            "    output:\n"
+            "      path '*.rds.json', optional: true\n"
+            "    script:\n"
+            "    '''\n"
+            "    #!/usr/bin/env Rscript\n"
+            "    suppressWarnings(suppressMessages({\n"
+            "      if (!requireNamespace(\"jsonlite\", quietly=TRUE)) try(install.packages(\"jsonlite\", repos=\"https://packagemanager.posit.co/cran/__linux__/jammy/latest\"), silent=TRUE)\n"
+            # Load the workflow's own deps so S4 classes defined by lazy-loaded packages
+            # (DESeqDataSet, aldex.clr, …) can be reconstructed by readRDS in this task.
+            f"      .deps <- c({deps_r})\n"
+            "      .miss <- .deps[!vapply(.deps, function(p) requireNamespace(p, quietly=TRUE), logical(1))]\n"
+            "      if (length(.miss)) { options(repos=c(CRAN=\"https://packagemanager.posit.co/cran/__linux__/jammy/latest\")); .bin <- tryCatch(sprintf(\"https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker\", BiocManager::version()), error=function(e) NULL); try(BiocManager::install(.miss, update=FALSE, ask=FALSE, site_repository=.bin), silent=TRUE) }\n"
+            "      for (.p in .deps) try(requireNamespace(.p, quietly=TRUE), silent=TRUE)\n"
+            "      for (.f in Sys.glob(\"*.rds\")) {\n"
+            "        .info <- tryCatch({\n"
+            "          .obj <- readRDS(.f); .i <- list(class=class(.obj))\n"
+            "          .d <- tryCatch(dim(.obj), error=function(e) NULL)\n"
+            "          if (!is.null(.d)) .i$dim <- as.integer(.d) else .i$length <- length(.obj)\n"
+            "          if (requireNamespace(\"SummarizedExperiment\", quietly=TRUE) && methods::is(.obj,\"SummarizedExperiment\")) {\n"
+            "            .i$assays <- tryCatch(SummarizedExperiment::assayNames(.obj), error=function(e) NULL)\n"
+            "            .i$colData <- tryCatch(colnames(SummarizedExperiment::colData(.obj)), error=function(e) NULL)\n"
+            "            .i$rowData <- tryCatch(colnames(SummarizedExperiment::rowData(.obj)), error=function(e) NULL)\n"
+            "          }\n"
+            "          if (requireNamespace(\"SingleCellExperiment\", quietly=TRUE) && methods::is(.obj,\"SingleCellExperiment\")) .i$reducedDims <- tryCatch(SingleCellExperiment::reducedDimNames(.obj), error=function(e) NULL)\n"
+            "          if (is.list(.obj) && !is.null(names(.obj))) .i$names <- names(.obj)\n"
+            "          .i$summary <- paste0(class(.obj)[1], if (!is.null(.d)) sprintf(\": %s rows x %s cols\", .d[1], .d[2]) else \"\"); .i\n"
+            "        }, error=function(e) list(class=\"(unreadable)\", summary=conditionMessage(e)))\n"
+            "        tryCatch(writeLines(jsonlite::toJSON(.info, auto_unbox=TRUE, null=\"null\"), paste0(.f, \".json\")), error=function(e) NULL)\n"
+            "      }\n"
+            "    }))\n"
+            "    '''\n"
+            "}\n"
+        )
+        workflow_body = (
+            "workflow {\n"
+            f"    {proc}( Channel.of({chan}) )\n"
+            f"    BIOMATE_RDS_INTROSPECT( {proc}.out.objects.map {{ it[1] }}.flatten() )\n"
+            "}\n"
+        )
+
     wrapper = run_dir / "biomate_entry.nf"
     wrapper.write_text(
         "nextflow.enable.dsl = 2\n"
         f"include {{ {proc} }} from '{nf_path.resolve().as_posix()}'\n"
-        f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
+        + introspect_proc
+        + workflow_body
     )
-    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s style=%s inputs=%s n_path=%d staged=%d",
-             run_id, proc, ("A" if names else "B"), names or "(none)", n_path, len(staged))
+    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s style=%s inputs=%s n_path=%d staged=%d rds_sidecar=%s",
+             run_id, proc, ("A" if names else "B"), names or "(none)", n_path, len(staged),
+             bool(introspect_proc))
     return wrapper
 
 
@@ -2757,12 +2861,28 @@ def _start_qc_monitor(
     )
 
 
+# TTL cache for S3 ListObjectsV2. Status polling hits the same prefix every
+# ~3s per active run; with workers=4 each call still blocks one worker on the
+# round-trip. A 10s TTL collapses ~3 redundant lists per cache window down to
+# 1 actual S3 call. Outputs only grow during a run, so 10s of staleness is
+# invisible to the UI (next poll lands fresh).
+_S3_LIST_CACHE: Dict[str, Tuple[float, list]] = {}
+_S3_LIST_TTL_SEC = 10.0
+_S3_LIST_CACHE_LOCK = threading.Lock()
+
+
 def _list_s3_output_files(s3_uri: str) -> list:
     """
     List output files in an S3 prefix after a workflow completes.
     Returns list of dicts: {key, name, size, extension}.
     Skips Nextflow internal files (work/, .nextflow/, trace).
+    Results cached for _S3_LIST_TTL_SEC to keep status polling cheap.
     """
+    now = time.time()
+    with _S3_LIST_CACHE_LOCK:
+        cached = _S3_LIST_CACHE.get(s3_uri)
+        if cached and (now - cached[0]) < _S3_LIST_TTL_SEC:
+            return cached[1]
     try:
         import boto3
     except ImportError:
@@ -2792,6 +2912,13 @@ def _list_s3_output_files(s3_uri: str) -> list:
                     "extension": ext,
                 })
         log.info(f"[Nextflow] Listed {len(results)} S3 output files from {s3_uri}")
+        with _S3_LIST_CACHE_LOCK:
+            _S3_LIST_CACHE[s3_uri] = (now, results)
+            # Bound cache size — drop oldest entries past 256
+            if len(_S3_LIST_CACHE) > 256:
+                oldest = sorted(_S3_LIST_CACHE.items(), key=lambda kv: kv[1][0])[:32]
+                for k, _ in oldest:
+                    _S3_LIST_CACHE.pop(k, None)
         return results
     except Exception as exc:
         log.warning(f"[Nextflow] S3 output listing failed for {s3_uri}: {exc}")
@@ -7873,11 +8000,18 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
         if not metric:
             continue
         num = _parse_number(kr.get("value"))
-        items.append({"metric": metric, "value_num": num, "value_raw": kr.get("value")})
+        items.append({"metric": metric, "value_num": num, "value_raw": kr.get("value"),
+                      "source_file": kr.get("source_file")})
 
     numeric = [it for it in items if it["value_num"] is not None]
     if not numeric:
         return []
+
+    def _shared_source(members: List[Dict[str, Any]]):
+        """The one output file all contributing metrics were read from, or None
+        when they disagree / are unset — so a figure only cites grounded provenance."""
+        srcs = {m.get("source_file") for m in members if m.get("source_file")}
+        return next(iter(srcs)) if len(srcs) == 1 else None
 
     figures: List[Dict[str, Any]] = []
 
@@ -7901,6 +8035,7 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
                 "title": f"{kept_item['metric']} / {total_item['metric']}",
                 "kept": int(kept_n) if kept_n.is_integer() else kept_n,
                 "total": int(total_n) if total_n.is_integer() else total_n,
+                "source_file": _shared_source([kept_item, total_item]),
             })
 
     # ── Composition kind ──
@@ -7936,6 +8071,7 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
             "title": " vs ".join(m["metric"] for m in comp_group[:3]) if len(comp_group) <= 3
                      else f"{comp_group[0]['metric']} breakdown",
             "data": [[m["metric"], m["value_num"]] for m in comp_group],
+            "source_file": _shared_source(comp_group),
         })
         used_ids |= {id(m) for m in comp_group}
 
@@ -7950,6 +8086,7 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
             "kind": "bars",
             "title": "Key metrics",
             "data": [[it["metric"], it["value_num"]] for it in remaining],
+            "source_file": _shared_source(remaining),
         })
 
     return figures

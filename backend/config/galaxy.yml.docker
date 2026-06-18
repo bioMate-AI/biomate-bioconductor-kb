@@ -18,18 +18,29 @@ gravity:
     bind: 0.0.0.0:8080
     max_requests: 1000
     max_requests_jitter: 50
-    preload: false
+    # workers=4 + preload=true (option (a) from the 2026-06-09 rollback
+    # writeup). With preload the master process loads ~600 tools + the
+    # SQLite DB once at boot; workers fork via copy-on-write so they
+    # don't race on integrated_tool_panel.xml or initialize the DB
+    # in parallel.
+    #
+    # Why this change now: 2026-06-17 after-run audit confirmed
+    # single-worker is the root cause of multiple residual UX blockers
+    # (Outputs tab empty, Phase B/C/D no running-state, Methods 502,
+    # /api/nextflow/execute → 504). See docs/sge-audit-2026-06-16/
+    # FINAL_STATE.md. The audit also showed backend/config/galaxy.yml
+    # (the non-docker variant) already documents `workers: 4` as
+    # correct for any host with ≥8GB RAM — dev's t3-class instance
+    # qualifies.
+    #
+    # If workers fail to bind port 8080 after a sync (the original
+    # symptom that motivated rollback), revert to workers=1 and pursue
+    # option (b) SQLite → Postgres or option (c) move
+    # /api/nextflow/execute to Celery.
+    preload: true
     timeout: 300
     worker_class: sync
-    # Stays at 1 for now. With workers > 1 and `preload: false`, every worker
-    # independently loads ~600 tools, writes integrated_tool_panel.xml, and
-    # initializes the SQLite DB — they race on shared init and never bind
-    # port 8080. To raise concurrency safely we need either:
-    #   (a) preload: true (master loads everything, workers fork with CoW)
-    #   (b) move SQLite → Postgres so multi-worker DB init doesn't deadlock
-    #   (c) refactor /api/nextflow/execute to Celery so 1 worker is enough
-    # See docs/20260609_GUNICORN_WORKERS_ROLLBACK.md.
-    workers: 1
+    workers: 4
   process_manager: supervisor
   # The new image installs deps directly to system Python (/usr/local/lib/...)
   # so we point Gravity's virtualenv at /usr/local. This makes Gravity exec
