@@ -12,5 +12,7 @@ data(selex)
 selex.sub <- selex[1200:1600,]
 conds <- c(rep("NS", 7), rep("S", 7))
 
-saveRDS(selex.sub, "selex.sub")
-saveRDS(conds, "conds")
+# Write the exact text formats the workflow reads: read.csv(row.names=1) for the
+# count table, scan(what=character()) for the condition vector.
+write.csv(selex.sub, "selex.sub")
+writeLines(as.character(conds), "conds")

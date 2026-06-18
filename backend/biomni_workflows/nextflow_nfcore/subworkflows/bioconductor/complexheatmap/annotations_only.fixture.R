@@ -12,5 +12,6 @@ library(ComplexHeatmap)
 set.seed(123)
 m <- matrix(rnorm(1000 * 10), nr = 1000)
 
-# Serialize the matrix object to the expected input file
-saveRDS(m, "matrix")
+# Workflow reads this with read.table(header=FALSE); write a headerless, no-rowname
+# whitespace table (a saveRDS blob is not parseable by read.table).
+write.table(m, "matrix", row.names=FALSE, col.names=FALSE, quote=FALSE)
