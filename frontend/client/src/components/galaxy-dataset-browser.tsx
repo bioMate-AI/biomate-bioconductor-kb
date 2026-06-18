@@ -15,6 +15,7 @@ interface SessionDataset {
   galaxyDatasetId?: string;
   galaxy_dataset_id?: string;
   path?: string;
+  s3_uri?: string;
 }
 
 interface GalaxyHistory {
@@ -97,10 +98,12 @@ function SessionTab({
         fileType: file.name.split('.').pop() || '',
         galaxyDatasetId: data.dataset_id,
         path: data.file_path,
+        s3_uri: data.s3_uri,
       };
       onUploaded?.(newDs);
-      // Auto-select the just-uploaded file
-      const value = newDs.galaxyDatasetId || newDs.path || newDs.id;
+      // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only
+      // reference that survives a server restart and is directly usable by AWS Batch.
+      const value = newDs.s3_uri || newDs.galaxyDatasetId || newDs.path || newDs.id;
       onSelect(value, file.name);
     } catch (err: any) {
       setUploadError(err.message || 'Upload failed');
@@ -151,7 +154,9 @@ function SessionTab({
 
       {filtered.map(ds => {
         const name = ds.name || ds.label || ds.id;
-        const value = ds.galaxyDatasetId || ds.galaxy_dataset_id || ds.path || ds.id;
+        // Prefer the durable S3 URI (survives restart, usable by AWS Batch) over the
+        // host-local file_path / id.
+        const value = ds.s3_uri || ds.galaxyDatasetId || ds.galaxy_dataset_id || ds.path || ds.id;
         return (
           <div
             key={ds.id}

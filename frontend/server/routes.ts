@@ -3108,6 +3108,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           file_type: file.mimetype,
           file_size: file.size,
           file_path: file.path,
+          // Persist the durable S3 reference in the Redis-backed session too. Without it
+          // the in-memory uploadedFileRegistry is the ONLY holder of s3_uri, so a server
+          // restart between upload and run leaves a re-selected upload with only a local
+          // file_path — unreachable from AWS Batch. With it, the "this session" list stays
+          // runnable across restarts.
+          s3_uri: s3Uri,
         });
         req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
       }
@@ -3366,6 +3372,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       file_size: d.file_size,
       // file_path: local absolute path usable by Nextflow executor on the same host
       file_path: d.file_path || null,
+      // s3_uri: durable cross-host reference — preferred for AWS Batch runs and the only
+      // upload reference that survives a server restart (file_path is host-local).
+      s3_uri: d.s3_uri || null,
       // source_url: for URL imports — Nextflow can fetch http/https/s3 directly
       source_url: d.source_url || null,
     }));
