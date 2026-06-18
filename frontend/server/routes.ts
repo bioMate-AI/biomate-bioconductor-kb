@@ -11202,13 +11202,14 @@ Rules:
 STRICT GROUNDING RULES — violations will be rejected:
 1. Every numeric value in key_results MUST appear verbatim in the provided output files.
 2. Do NOT invent, estimate, or round values not present in the files.
-3. Do NOT include citations — omit the citations field entirely.
+3. Do NOT invent literature citations or PMIDs — omit the citations field entirely.
 4. If a metric cannot be read from the files, omit it from key_results.
+5. Each key_result MUST include "source_file" naming the EXACT file (copy the name from a "### File:" header above) the value was read from. This is grounded provenance, not a literature citation.
 
 Respond ONLY with valid JSON (no markdown wrapper):
 {
   "summary": "<2-3 sentence executive summary citing only observed results>",
-  "key_results": [{"metric": "<name>", "value": "<exact value from file>", "interpretation": "<meaning>"}],
+  "key_results": [{"metric": "<name>", "value": "<exact value from file>", "interpretation": "<meaning>", "source_file": "<exact filename from a File: header>"}],
   "next_steps": ["<action 1>", "<action 2>"],
   "caveats": ["<caveat 1>"]
 }`;
@@ -11272,7 +11273,20 @@ Respond ONLY with valid JSON (no markdown wrapper):
                 return numbersInValue.some(n => outputNumbers.has(n));
               });
             }
-            // Remove fabricated citations if the model included them despite instruction
+            // Provenance guardrail: source_file must name a file we actually sampled.
+            // Keep grounded provenance, drop any hallucinated filename (so a finding is
+            // either traceable to a real output or carries no false attribution).
+            if (Array.isArray(parsed.key_results)) {
+              const sampledNames = new Set(outputSamples.map((s: { name: string }) => s.name));
+              for (const kr of parsed.key_results as Array<{ source_file?: string }>) {
+                if (kr.source_file && !sampledNames.has(kr.source_file)) {
+                  delete kr.source_file;
+                }
+              }
+            }
+            // Remove fabricated literature citations if the model included them despite
+            // instruction (PMIDs the model invents are worse than none). Grounded
+            // provenance lives in each key_result.source_file, validated above.
             delete parsed.citations;
 
             // ── Proactive follow-up suggestions ────────────────────────────────
