@@ -10,5 +10,6 @@ if (length(.fx_miss)) {
 library("maskBAD")
 data("AffyBatch")
 .obj <- get("AffyBatch")
-.df <- tryCatch(as.data.frame(.obj), error=function(e) as.data.frame(as.matrix(.obj)))
-write.csv(.df, "raw_array_data.affybatch", row.names=TRUE)
+# Workflow loads this input with readRDS(); serialize the real object
+# (a write.csv data-frame dump is not an RDS and fails readRDS at load).
+saveRDS(.obj, "raw_array_data.affybatch")

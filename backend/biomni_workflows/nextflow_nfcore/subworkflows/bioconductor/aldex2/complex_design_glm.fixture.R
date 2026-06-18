@@ -19,7 +19,8 @@ covariates <- data.frame(
     row.names = colnames(selex.sub)
 )
 
-# Serialize the objects to the declared input files
-# Using tab-separated values as no specific read excerpt was provided
-write.table(selex.sub, file = "selex.sub", sep = "\t", quote = FALSE, col.names = NA)
-write.table(covariates, file = "covariates", sep = "\t", quote = FALSE, col.names = NA)
+# Write CSV to match the workflow's FIRST reader, read.csv(row.names=1). A TSV here
+# is silently mis-parsed by read.csv into a 1-column frame (the fallback read.table
+# only fires if read.csv THROWS, which it does not), breaking model.matrix(~ .).
+write.csv(selex.sub, file = "selex.sub")
+write.csv(covariates, file = "covariates")
