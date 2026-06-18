@@ -69,6 +69,28 @@ def _read_returncode_from_disk(run_record: Dict[str, Any]) -> Tuple[int, bool]:
     return -1, True
 
 
+def _post_frontend_status(invocation_id: str, status: str, returncode: int,
+                          completed_at: float, finalized_by: str) -> None:
+    """POST to the frontend's /internal/runs/by-invocation/<inv>/status so the
+    execution_runs Postgres row goes from "running" to terminal. Mirrors the
+    _post_sse pattern used by the narrator.
+    """
+    import os, json as _json, urllib.request as _urllib
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5000")
+    url = f"{frontend_url}/internal/runs/by-invocation/{invocation_id}/status"
+    body = _json.dumps({
+        "status": status,
+        "returncode": returncode,
+        "completed_at": completed_at,
+        "finalized_by": finalized_by,
+    }).encode("utf-8")
+    req = _urllib.Request(url, data=body, headers={"Content-Type": "application/json"})
+    with _urllib.urlopen(req, timeout=5) as r:
+        if r.status >= 400:
+            log.warning("[orphan_finalizer] frontend status push: %s -> HTTP %s",
+                        url, r.status)
+
+
 def _emit_narrator(invocation_id: str, kind: str, technical: Dict[str, Any]) -> None:
     """Lazy import of nextflow_executor's narrator. Stays a no-op if the
     import fails (e.g. unit-test contexts that don't have the full
@@ -150,6 +172,35 @@ def finalize_orphaned_run(
         else:
             _emit_narrator(invocation_id, "workflow.failed",
                            {"run_id": run_id, "reason": "workflow was interrupted"})
+
+    # Step 3b — push terminal status to the frontend's Postgres execution_runs
+    # row so the UI stops showing "running". Without this the L3 poller marks
+    # Redis terminal but the frontend page sticks on "running" forever.
+    if invocation_id:
+        try:
+            _post_frontend_status(invocation_id, final_status, returncode,
+                                  completed_at, "orphan_poller")
+        except Exception as _fe_exc:
+            log.debug("[orphan_finalizer] frontend status push failed for inv=%s: %s",
+                      invocation_id, _fe_exc)
+
+    # Step 3c — write the durable per-run study log (matches the normal-completion
+    # path at nextflow_executor.py:3322). Audit logs were silently missing for
+    # every L3-finalized run before this.
+    try:
+        run_meta = dict(run_record)
+        run_meta.update({
+            "run_id": run_id,
+            "status": final_status,
+            "returncode": returncode,
+            "completed_at": completed_at,
+            "finalized_by": "orphan_poller",
+        })
+        from galaxy.ai.study_run_logger import StudyRunLogger
+        StudyRunLogger.record(run_meta)
+    except Exception as _log_err:
+        log.debug("[orphan_finalizer] StudyRunLogger write failed for %s: %s",
+                  run_id, _log_err)
 
     # Step 4–5 — S3 QC + autoloop SSE.
     if final_status == "succeeded":

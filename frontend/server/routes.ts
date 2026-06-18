@@ -4110,6 +4110,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   });
 
+  // Internal — Galaxy's orphan_finalizer (L3 poller post-completion) pushes
+  // terminal status into the frontend execution_runs Postgres row. Without
+  // this the frontend stays "running" forever even though Redis + Galaxy
+  // logs show the workflow finalized. See
+  // backend/lib/galaxy/ai/runs/orphan_finalizer.py.
+  app.post("/internal/runs/by-invocation/:invId/status", async (req: any, res: any) => {
+    const { invId } = req.params;
+    const { status, returncode, completed_at, finalized_by } = req.body || {};
+    if (!status) {
+      return res.status(400).json({ error: 'Missing status' });
+    }
+    try {
+      const run = await storage.getExecutionRunByGalaxyId(String(invId));
+      if (!run) {
+        return res.status(404).json({ error: 'execution_run not found for invocation', invId });
+      }
+      const completedAtIso = (typeof completed_at === 'number' && completed_at > 0)
+        ? new Date(completed_at * 1000).toISOString()
+        : new Date().toISOString();
+      await storage.updateExecutionRun(run.id, {
+        execution: {
+          ...(run as any).execution,
+          status: String(status),
+          completedAt: completedAtIso,
+          returncode: typeof returncode === 'number' ? returncode : undefined,
+          finalizedBy: finalized_by ? String(finalized_by) : 'orphan_poller',
+        },
+      } as any);
+      return res.json({ ok: true, runId: run.id, status });
+    } catch (e: any) {
+      return res.status(500).json({ error: 'update failed', message: e?.message ?? String(e) });
+    }
+  });
+
   // Proxy for CryoSPARC status endpoint — frontend can poll run status directly
   app.get("/api/cryosparc/gpu_metrics", async (_req: any, res: any) => {
     try {
