@@ -480,7 +480,19 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
         throw new Error('Could not parse JSON from LLM response');
       }
 
-      const analysis = JSON.parse(jsonMatch[0]) as LLMAnalysis;
+      const parsed = JSON.parse(jsonMatch[0]) as Partial<LLMAnalysis>;
+      // Normalize: LLM occasionally omits one of these arrays, which later
+      // crashes `.map()` calls in generateConversationalMessage (observed
+      // 2026-06-18 as "Cannot read properties of undefined (reading 'map')"
+      // surfacing in chat as "Connection error / Reason: network error").
+      const analysis: LLMAnalysis = {
+        inputMappings: parsed.inputMappings ?? [],
+        missingInputs: parsed.missingInputs ?? [],
+        missingParameters: parsed.missingParameters ?? [],
+        suggestions: parsed.suggestions ?? [],
+        notes: parsed.notes ?? [],
+        confidence: parsed.confidence ?? 0,
+      };
       return analysis;
     } catch (e: any) {
       if (e.name === 'AbortError' || e.message?.includes('aborted')) {
