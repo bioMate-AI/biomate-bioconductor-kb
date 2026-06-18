@@ -7854,11 +7854,18 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
         if not metric:
             continue
         num = _parse_number(kr.get("value"))
-        items.append({"metric": metric, "value_num": num, "value_raw": kr.get("value")})
+        items.append({"metric": metric, "value_num": num, "value_raw": kr.get("value"),
+                      "source_file": kr.get("source_file")})
 
     numeric = [it for it in items if it["value_num"] is not None]
     if not numeric:
         return []
+
+    def _shared_source(members: List[Dict[str, Any]]):
+        """The one output file all contributing metrics were read from, or None
+        when they disagree / are unset — so a figure only cites grounded provenance."""
+        srcs = {m.get("source_file") for m in members if m.get("source_file")}
+        return next(iter(srcs)) if len(srcs) == 1 else None
 
     figures: List[Dict[str, Any]] = []
 
@@ -7882,6 +7889,7 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
                 "title": f"{kept_item['metric']} / {total_item['metric']}",
                 "kept": int(kept_n) if kept_n.is_integer() else kept_n,
                 "total": int(total_n) if total_n.is_integer() else total_n,
+                "source_file": _shared_source([kept_item, total_item]),
             })
 
     # ── Composition kind ──
@@ -7917,6 +7925,7 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
             "title": " vs ".join(m["metric"] for m in comp_group[:3]) if len(comp_group) <= 3
                      else f"{comp_group[0]['metric']} breakdown",
             "data": [[m["metric"], m["value_num"]] for m in comp_group],
+            "source_file": _shared_source(comp_group),
         })
         used_ids |= {id(m) for m in comp_group}
 
@@ -7931,6 +7940,7 @@ def _build_figures_from_key_results(key_results: Any) -> List[Dict[str, Any]]:
             "kind": "bars",
             "title": "Key metrics",
             "data": [[it["metric"], it["value_num"]] for it in remaining],
+            "source_file": _shared_source(remaining),
         })
 
     return figures
