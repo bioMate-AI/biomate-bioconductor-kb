@@ -12,6 +12,9 @@ declare module 'express-session' {
       file_size: number;
       /** Absolute local path for uploaded files — Nextflow executor reads this directly */
       file_path?: string;
+      /** Durable S3 URI mirror — the only upload reference that survives a server restart
+       *  and is directly usable by AWS Batch (file_path is host-local). */
+      s3_uri?: string;
       /** Original URL for URL-imported datasets — Nextflow can fetch http/https/s3 directly */
       source_url?: string;
     }>;
