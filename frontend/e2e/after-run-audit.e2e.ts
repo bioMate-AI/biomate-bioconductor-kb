@@ -199,7 +199,14 @@ async function auditAfterRunTabs(
     const visible = (await tabBtn.count()) > 0 && (await tabBtn.first().isVisible());
     if (visible) {
       await tabBtn.first().click();
-      await page.waitForTimeout(1_500);
+      // Outputs + findings tabs do an async fetch on mount that can take
+      // several seconds (S3 listing + presign generation; or LLM-driven
+      // findings analysis). Wait long enough for those to settle before
+      // sampling the rendered text — otherwise the test captures the
+      // initial placeholder ("No output files registered yet" /
+      // "Analyzing outputs…") instead of the final populated content.
+      const waitMs = tabId === "outputs" || tabId === "findings" ? 15_000 : 2_000;
+      await page.waitForTimeout(waitMs);
     }
     const screenshotPath = path.join(outDir, `tab-${tabId}.png`);
     await page.screenshot({ path: screenshotPath, fullPage: true });
