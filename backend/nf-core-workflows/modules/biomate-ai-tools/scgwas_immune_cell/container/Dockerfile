@@ -12,7 +12,8 @@
 #
 # Image size estimate: ~250 MB (openjdk-slim ~200, jar 2.4 MB, ref data 88 MB).
 
-FROM openjdk:17-slim
+# Eclipse Temurin replaces docker.io/library/openjdk, which was deprecated 2024.
+FROM eclipse-temurin:17-jre-jammy
 
 # Install: curl (for downloads), python3 (for QC summary emitter), R + a couple
 # Bioconductor pkgs for the Phase-C significance-calling step (analysis/3.define_sig.R).
