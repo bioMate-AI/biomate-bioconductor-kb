@@ -9,5 +9,6 @@ colnames(featureInfo) <- paste('cell', 1:40, sep = '')
 groupInfo <- data.frame(grouping = matrix(sample(0:1, 40, replace = TRUE), ncol = 1))
 rownames(groupInfo) <- colnames(featureInfo)
 
-saveRDS(featureInfo, "featureInfo")
-saveRDS(groupInfo, "groupInfo")
+# Workflow reads both with read.csv(row.names=1); write CSV (saveRDS blobs fail read.csv).
+write.csv(featureInfo, "featureInfo")
+write.csv(groupInfo, "groupInfo")

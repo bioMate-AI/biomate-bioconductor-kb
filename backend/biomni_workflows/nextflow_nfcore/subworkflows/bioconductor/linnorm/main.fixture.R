@@ -10,4 +10,6 @@ if (length(.fx_miss)) {
 library(Linnorm)
 data("Islam2011")
 .obj <- get("Islam2011")
-saveRDS(.obj, "Islam2011")
+# Workflow reads this with read.table(sep="\t", header=TRUE, row.names=1); write the
+# matching tab-delimited table (a saveRDS blob is not parseable by read.table).
+write.table(as.data.frame(as.matrix(.obj)), "Islam2011", sep="\t", quote=FALSE, col.names=NA)

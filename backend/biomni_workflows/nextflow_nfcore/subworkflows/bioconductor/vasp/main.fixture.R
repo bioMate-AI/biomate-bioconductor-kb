@@ -10,5 +10,6 @@ if (length(.fx_miss)) {
 library(VaSP)
 data("rice.bg")
 .obj <- get("rice.bg")
-.df <- tryCatch(as.data.frame(.obj), error=function(e) as.data.frame(as.matrix(.obj)))
-write.csv(.df, "rice.bg", row.names=TRUE)
+# Workflow loads this input with readRDS(); serialize the real object
+# (a write.csv data-frame dump is not an RDS and fails readRDS at load).
+saveRDS(.obj, "rice.bg")
