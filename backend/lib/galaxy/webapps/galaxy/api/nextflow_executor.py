@@ -2751,12 +2751,28 @@ def _start_qc_monitor(
     )
 
 
+# TTL cache for S3 ListObjectsV2. Status polling hits the same prefix every
+# ~3s per active run; with workers=4 each call still blocks one worker on the
+# round-trip. A 10s TTL collapses ~3 redundant lists per cache window down to
+# 1 actual S3 call. Outputs only grow during a run, so 10s of staleness is
+# invisible to the UI (next poll lands fresh).
+_S3_LIST_CACHE: Dict[str, Tuple[float, list]] = {}
+_S3_LIST_TTL_SEC = 10.0
+_S3_LIST_CACHE_LOCK = threading.Lock()
+
+
 def _list_s3_output_files(s3_uri: str) -> list:
     """
     List output files in an S3 prefix after a workflow completes.
     Returns list of dicts: {key, name, size, extension}.
     Skips Nextflow internal files (work/, .nextflow/, trace).
+    Results cached for _S3_LIST_TTL_SEC to keep status polling cheap.
     """
+    now = time.time()
+    with _S3_LIST_CACHE_LOCK:
+        cached = _S3_LIST_CACHE.get(s3_uri)
+        if cached and (now - cached[0]) < _S3_LIST_TTL_SEC:
+            return cached[1]
     try:
         import boto3
     except ImportError:
@@ -2786,6 +2802,13 @@ def _list_s3_output_files(s3_uri: str) -> list:
                     "extension": ext,
                 })
         log.info(f"[Nextflow] Listed {len(results)} S3 output files from {s3_uri}")
+        with _S3_LIST_CACHE_LOCK:
+            _S3_LIST_CACHE[s3_uri] = (now, results)
+            # Bound cache size — drop oldest entries past 256
+            if len(_S3_LIST_CACHE) > 256:
+                oldest = sorted(_S3_LIST_CACHE.items(), key=lambda kv: kv[1][0])[:32]
+                for k, _ in oldest:
+                    _S3_LIST_CACHE.pop(k, None)
         return results
     except Exception as exc:
         log.warning(f"[Nextflow] S3 output listing failed for {s3_uri}: {exc}")
