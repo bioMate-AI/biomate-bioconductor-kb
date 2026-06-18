@@ -901,6 +901,7 @@ class NextflowQCGateHandler:
         qc_overrides: Optional[Dict[str, Any]] = None,
         qc_profile: Optional[str] = None,
         s3_outdir: Optional[str] = None,
+        s3_work_dir: Optional[str] = None,
     ):
         """
         Initialize QC gate handler.
@@ -931,6 +932,13 @@ class NextflowQCGateHandler:
         # S3 published output directory — set for Batch runs so _calculate_qc_metrics
         # can read published report JSON files instead of non-existent local task dirs.
         self.s3_outdir: Optional[str] = s3_outdir.rstrip("/") if s3_outdir else None
+        # S3 work directory — set for Batch runs so we can fetch qc_metrics.json
+        # directly from the per-task work dir when publishDir is disabled
+        # (BioMate workflows: publishDir=null is force-injected by the executor
+        # to avoid AWS CRT JVM SIGSEGV — see nextflow_executor.py:1893-1936).
+        # qc_metrics.json then lives at s3_work_dir/<hash[:2]>/<rest>/qc_metrics.json
+        # and never at s3_outdir/<process>/qc_metrics.json.
+        self.s3_work_dir: Optional[str] = s3_work_dir.rstrip("/") if s3_work_dir else None
 
         # Merge profile overrides (lower precedence) with explicit overrides (higher precedence).
         # Merge order: profile → explicit overrides (right-hand-side wins on key collision)
@@ -1404,6 +1412,15 @@ class NextflowQCGateHandler:
             if s3_metrics is not None:
                 return s3_metrics
 
+        # Work-dir fallback: when publishDir is disabled (BioMate workflows;
+        # see nextflow_executor.py:1893-1936) qc_metrics.json never makes it
+        # to outdir. Fetch it from the per-task work dir on S3 instead.
+        # Hash format from Nextflow trace: "ab/cdef0123..." → key segments.
+        if self.s3_work_dir and process_hash and "/" in process_hash:
+            s3_metrics = self._read_s3_workdir_report(process_upper, process_hash)
+            if s3_metrics is not None:
+                return s3_metrics
+
         # --- Cryo-EM ---
         if "MOTION_CORRECTION" in process_upper:
             return self._parse_motion_correction_metrics(task_work_dir)
@@ -1713,6 +1730,87 @@ class NextflowQCGateHandler:
 
         except Exception as _e:
             log.warning("[QC-S3] Error reading S3 report for %s: %s", process_upper, _e)
+            return None
+
+    def _read_s3_workdir_report(
+        self, process_upper: str, process_hash: str
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch qc_metrics.json from the Nextflow per-task S3 work dir.
+
+        Used when publishDir is disabled (BioMate workflows; the executor
+        force-injects ``process { publishDir = null }`` to avoid AWS CRT
+        JVM SIGSEGV — see nextflow_executor.py:1893-1936). In that case
+        qc_metrics.json never lands at ``s3_outdir/<process>/`` so the
+        outdir scan in ``_read_s3_report_metrics`` returns None. The file
+        still exists at ``s3_work_dir/<hash[:2]>/<rest>/qc_metrics.json``
+        because the Batch task writes it there during execution.
+
+        Path construction: Nextflow trace gives a process_hash like
+        "ab/cdef0123abc..." where "ab" is the first two chars of the
+        full hash and "cdef..." is an abbreviated prefix of the rest.
+        Real work-dir keys use the full hash, so we list under
+        ``s3_work_dir/ab/`` and pick the first match starting with the
+        abbreviated prefix.
+        """
+        if not self.s3_work_dir or not self.s3_work_dir.startswith("s3://"):
+            return None
+        if "/" not in process_hash:
+            return None
+        try:
+            import boto3 as _boto3
+            import json as _json
+
+            prefix, rest = process_hash.split("/", 1)
+            parts = self.s3_work_dir[5:].split("/", 1)
+            bucket = parts[0]
+            prefix_base = parts[1].rstrip("/") if len(parts) > 1 else ""
+            list_prefix = (
+                f"{prefix_base}/{prefix}/" if prefix_base else f"{prefix}/"
+            )
+
+            s3 = _boto3.client(
+                "s3",
+                region_name=__import__("os").environ.get(
+                    "AWS_DEFAULT_REGION", "us-west-2"
+                ),
+            )
+            paginator = s3.get_paginator("list_objects_v2")
+            target_key: Optional[str] = None
+            for page in paginator.paginate(Bucket=bucket, Prefix=list_prefix):
+                for obj in page.get("Contents", []) or []:
+                    key = obj["Key"]
+                    # Match qc_metrics.json under any task dir whose name
+                    # starts with the abbreviated rest of the hash.
+                    rel = key[len(list_prefix):]
+                    if not rel.startswith(rest):
+                        continue
+                    if rel.endswith("/qc_metrics.json"):
+                        target_key = key
+                        break
+                if target_key:
+                    break
+
+            if not target_key:
+                log.info(
+                    "[QC-S3] No work-dir qc_metrics.json for %s at "
+                    "s3://%s/%s (hash=%s)",
+                    process_upper, bucket, list_prefix, process_hash,
+                )
+                return None
+
+            log.info(
+                "[QC-S3] Reading work-dir qc_metrics.json for %s from s3://%s/%s",
+                process_upper, bucket, target_key,
+            )
+            obj = s3.get_object(Bucket=bucket, Key=target_key)
+            data = _json.loads(obj["Body"].read().decode("utf-8"))
+            return self._report_json_to_metrics(process_upper, data)
+
+        except Exception as _e:
+            log.warning(
+                "[QC-S3] Error reading work-dir report for %s: %s",
+                process_upper, _e,
+            )
             return None
 
     def _report_json_to_metrics(self, process_upper: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
