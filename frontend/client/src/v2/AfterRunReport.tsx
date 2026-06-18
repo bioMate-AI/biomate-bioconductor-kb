@@ -454,9 +454,9 @@ interface FindingsKeyResult {
  */
 export type FindingsFigure =
   | { kind: "bars"; title: string; unit?: string; highlight?: string;
-      data: Array<[string, number]> }
-  | { kind: "composition"; title: string; data: Array<[string, number]> }
-  | { kind: "qc"; title: string; unit?: string; kept: number; total: number };
+      data: Array<[string, number]>; source_file?: string }
+  | { kind: "composition"; title: string; data: Array<[string, number]>; source_file?: string }
+  | { kind: "qc"; title: string; unit?: string; kept: number; total: number; source_file?: string };
 
 interface FindingsData {
   status: string;
@@ -1169,10 +1169,22 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
         Headline figures
       </div>
       {figures.map((fig, i) => {
-        if (fig.kind === "bars") return <FigBars key={i} fig={fig} />;
-        if (fig.kind === "composition") return <FigComposition key={i} fig={fig} />;
-        if (fig.kind === "qc") return <FigQc key={i} fig={fig} />;
-        return null;
+        let body: JSX.Element | null = null;
+        if (fig.kind === "bars") body = <FigBars fig={fig} />;
+        else if (fig.kind === "composition") body = <FigComposition fig={fig} />;
+        else if (fig.kind === "qc") body = <FigQc fig={fig} />;
+        if (!body) return null;
+        return (
+          <div key={i}>
+            {body}
+            {fig.source_file && (
+              <div style={{ fontSize: 10, fontFamily: "var(--font-mono)",
+                color: "oklch(0.55 0.012 260)", marginTop: -4, marginBottom: 6 }}>
+                from {fig.source_file}
+              </div>
+            )}
+          </div>
+        );
       })}
       {/* Contract note moved to the Findings-tab body in AfterRunReport so it
           renders whether figures are present or not (audit A1, 2026-06-11). */}
