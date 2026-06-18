@@ -4126,14 +4126,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!run) {
         return res.status(404).json({ error: 'execution_run not found for invocation', invId });
       }
-      const completedAtIso = (typeof completed_at === 'number' && completed_at > 0)
-        ? new Date(completed_at * 1000).toISOString()
-        : new Date().toISOString();
+      const completedAtDate = (typeof completed_at === 'number' && completed_at > 0)
+        ? new Date(completed_at * 1000)
+        : new Date();
       await storage.updateExecutionRun(run.id, {
         execution: {
           ...(run as any).execution,
           status: String(status),
-          completedAt: completedAtIso,
+          completedAt: completedAtDate,
           returncode: typeof returncode === 'number' ? returncode : undefined,
           finalizedBy: finalized_by ? String(finalized_by) : 'orphan_poller',
         },
