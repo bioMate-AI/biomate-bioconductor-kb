@@ -1107,6 +1107,44 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         shutil.copy(str(Path(src).expanduser()), str(dest))
 
 
+_PRINTABLE_BYTES = set(range(32, 127)) | {9, 10, 13}  # printable ASCII + tab/LF/CR
+
+
+def _looks_like_rds(head: bytes) -> bool:
+    """True if `head` (first bytes) is plausibly a serialized R object (saveRDS/save):
+    gzip/bzip2/xz-compressed or an uncompressed RDS/RData serialization header."""
+    return (
+        head[:2] == b"\x1f\x8b"                              # gzip (saveRDS default)
+        or head[:3] == b"BZh"                                # bzip2
+        or head[:6] == b"\xfd7zXZ\x00"                       # xz
+        or head[:5] in (b"RDX2\n", b"RDX3\n", b"RDX1\n")     # uncompressed RDS header
+        or head[:2] in (b"X\n", b"A\n", b"B\n")              # XDR/ASCII/binary serialization
+    )
+
+
+def _assert_staged_input_format(dest: Path, base: str) -> None:
+    """Pre-flight guard: fail loudly BEFORE an expensive run when the supplied file's
+    content clearly contradicts the format the workflow reads it as. Only the
+    high-confidence, costly case is enforced — a workflow that readRDS()es a `.rds` but
+    was handed a plain-text table (the exact mismatch that otherwise burns a full Batch
+    run and dies inside R). Ambiguous cases pass."""
+    try:
+        with open(dest, "rb") as fh:
+            head = fh.read(512)
+    except Exception:
+        return
+    if not head:
+        return
+    if dest.suffix.lower() in (".rds", ".rdata"):
+        is_textlike = all(b in _PRINTABLE_BYTES for b in head)
+        if is_textlike and not _looks_like_rds(head):
+            raise HTTPException(
+                status_code=422,
+                detail=(f"Input '{base}' is loaded as an R object (readRDS), but the supplied "
+                        f"file is plain text, not a serialized .rds. Save it with saveRDS() in R "
+                        f"(or select the correct file) before running."))
+
+
 def _resolve_read_filename(nf_text: str, base: str) -> str:
     """Return the literal filename the workflow body reads for declared input `base`.
 
@@ -1215,6 +1253,9 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 log.warning("[Nextflow run %s] bioc input staging failed for %r: %s",
                             run_id, name, exc)
                 return None
+            # Format guard runs OUTSIDE the try so its 422 surfaces to the user instead
+            # of being swallowed into a silent fallback run.
+            _assert_staged_input_format(dest, name)
             staged.append(dest.resolve())
         for name in names:                   # consumed as staged files, not --flags
             params.pop(name, None)
