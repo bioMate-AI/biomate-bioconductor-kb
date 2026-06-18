@@ -1291,14 +1291,77 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     else:
         slot = ", ".join(files_lit)
     chan = "[ [id:'sample'], " + slot + " ]"
+
+    # RDS sidecar: if the workflow emits `objects` (its *.rds), chain a best-effort
+    # introspection process that writes <name>.rds.json (class/dims/assays/reductions/
+    # colData) so the after-run UI can preview the R object inline instead of an opaque
+    # blob. SAFE: a plain process never touches publishDir/CRT (only the head JVM's
+    # publishDir does) — the sidecars reach S3 via the Batch task's own work-dir copy,
+    # the same path versions.yml and every declared output already ride. The R block is a
+    # Groovy '''…''' literal (no $-interpolation, so R's list `$` access is preserved) and
+    # never throws (tryCatch around every object), so it cannot fail the run.
+    container_m = re.search(r'container\s+"([^"]+)"', text)
+    bm = re.search(r'\.bm_deps\s*<-\s*c\(([^)]*)\)', text)
+    deps_r = bm.group(1).strip() if bm else ""
+    introspect_proc = ""
+    workflow_body = f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
+    if container_m and re.search(r'emit:\s*objects', text):
+        img = container_m.group(1)
+        introspect_proc = (
+            "\nprocess BIOMATE_RDS_INTROSPECT {\n"
+            f"    container '{img}'\n"
+            "    input:\n"
+            "      path rds_file\n"
+            "    output:\n"
+            "      path '*.rds.json', optional: true\n"
+            "    script:\n"
+            "    '''\n"
+            "    #!/usr/bin/env Rscript\n"
+            "    suppressWarnings(suppressMessages({\n"
+            "      if (!requireNamespace(\"jsonlite\", quietly=TRUE)) try(install.packages(\"jsonlite\", repos=\"https://packagemanager.posit.co/cran/__linux__/jammy/latest\"), silent=TRUE)\n"
+            # Load the workflow's own deps so S4 classes defined by lazy-loaded packages
+            # (DESeqDataSet, aldex.clr, …) can be reconstructed by readRDS in this task.
+            f"      .deps <- c({deps_r})\n"
+            "      .miss <- .deps[!vapply(.deps, function(p) requireNamespace(p, quietly=TRUE), logical(1))]\n"
+            "      if (length(.miss)) { options(repos=c(CRAN=\"https://packagemanager.posit.co/cran/__linux__/jammy/latest\")); .bin <- tryCatch(sprintf(\"https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker\", BiocManager::version()), error=function(e) NULL); try(BiocManager::install(.miss, update=FALSE, ask=FALSE, site_repository=.bin), silent=TRUE) }\n"
+            "      for (.p in .deps) try(requireNamespace(.p, quietly=TRUE), silent=TRUE)\n"
+            "      for (.f in Sys.glob(\"*.rds\")) {\n"
+            "        .info <- tryCatch({\n"
+            "          .obj <- readRDS(.f); .i <- list(class=class(.obj))\n"
+            "          .d <- tryCatch(dim(.obj), error=function(e) NULL)\n"
+            "          if (!is.null(.d)) .i$dim <- as.integer(.d) else .i$length <- length(.obj)\n"
+            "          if (requireNamespace(\"SummarizedExperiment\", quietly=TRUE) && methods::is(.obj,\"SummarizedExperiment\")) {\n"
+            "            .i$assays <- tryCatch(SummarizedExperiment::assayNames(.obj), error=function(e) NULL)\n"
+            "            .i$colData <- tryCatch(colnames(SummarizedExperiment::colData(.obj)), error=function(e) NULL)\n"
+            "            .i$rowData <- tryCatch(colnames(SummarizedExperiment::rowData(.obj)), error=function(e) NULL)\n"
+            "          }\n"
+            "          if (requireNamespace(\"SingleCellExperiment\", quietly=TRUE) && methods::is(.obj,\"SingleCellExperiment\")) .i$reducedDims <- tryCatch(SingleCellExperiment::reducedDimNames(.obj), error=function(e) NULL)\n"
+            "          if (is.list(.obj) && !is.null(names(.obj))) .i$names <- names(.obj)\n"
+            "          .i$summary <- paste0(class(.obj)[1], if (!is.null(.d)) sprintf(\": %s rows x %s cols\", .d[1], .d[2]) else \"\"); .i\n"
+            "        }, error=function(e) list(class=\"(unreadable)\", summary=conditionMessage(e)))\n"
+            "        tryCatch(writeLines(jsonlite::toJSON(.info, auto_unbox=TRUE, null=\"null\"), paste0(.f, \".json\")), error=function(e) NULL)\n"
+            "      }\n"
+            "    }))\n"
+            "    '''\n"
+            "}\n"
+        )
+        workflow_body = (
+            "workflow {\n"
+            f"    {proc}( Channel.of({chan}) )\n"
+            f"    BIOMATE_RDS_INTROSPECT( {proc}.out.objects.map {{ it[1] }}.flatten() )\n"
+            "}\n"
+        )
+
     wrapper = run_dir / "biomate_entry.nf"
     wrapper.write_text(
         "nextflow.enable.dsl = 2\n"
         f"include {{ {proc} }} from '{nf_path.resolve().as_posix()}'\n"
-        f"workflow {{ {proc}( Channel.of({chan}) ) }}\n"
+        + introspect_proc
+        + workflow_body
     )
-    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s style=%s inputs=%s n_path=%d staged=%d",
-             run_id, proc, ("A" if names else "B"), names or "(none)", n_path, len(staged))
+    log.info("[Nextflow run %s] bioc entry wrapper: proc=%s style=%s inputs=%s n_path=%d staged=%d rds_sidecar=%s",
+             run_id, proc, ("A" if names else "B"), names or "(none)", n_path, len(staged),
+             bool(introspect_proc))
     return wrapper
 
 
