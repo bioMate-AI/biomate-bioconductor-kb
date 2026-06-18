@@ -376,10 +376,52 @@ function DensityPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   );
 }
 
-/** R object viewer — RDS/RData files are binary; offer RStudio launch instead of inline preview. */
-function RObjectPreview({ file, onClose }: StepOutputPreviewProps) {
+/** Summary emitted by the run-time RDS introspector (scripts/rds_introspect.R), if present. */
+interface RdsSummary {
+  class?: string | string[];
+  dim?: number[];
+  summary?: string;
+  assays?: string[];
+  reducedDims?: string[];
+  colData?: string[];
+  rowData?: string[];
+  names?: string[];
+  length?: number;
+}
+
+/** R object viewer — RDS/RData are binary. If the run produced a `<name>.rds.json`
+ * sidecar (object class, dims, assays, reductions, colData), render it inline; otherwise
+ * fall back to the RStudio launcher. */
+function RObjectPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [summary, setSummary] = useState<RdsSummary | null>(null);
+  const [sidecarTried, setSidecarTried] = useState(false);
   const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+
+  // Try to fetch the sidecar produced alongside the .rds (best-effort, graceful).
+  useEffect(() => {
+    const sidecarPath = `${file.path}.json`;
+    const url = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(sidecarPath)}&name=${encodeURIComponent(file.name + '.json')}`;
+    let alive = true;
+    fetch(url)
+      .then(r => (r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`)))
+      .then(j => { if (alive && j && typeof j === 'object') setSummary(j as RdsSummary); })
+      .catch(() => {})
+      .finally(() => { if (alive) setSidecarTried(true); });
+    return () => { alive = false; };
+  }, [runId, file.path, file.name]);
+
+  const cls = Array.isArray(summary?.class) ? summary?.class?.[0] : summary?.class;
+  const chipRow = (label: string, items?: string[]) =>
+    items && items.length > 0 ? (
+      <div className="flex flex-wrap items-baseline gap-1.5 mb-1">
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+        {items.slice(0, 12).map((it, i) => (
+          <span key={i} className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted/60">{it}</span>
+        ))}
+        {items.length > 12 && <span className="text-[10px] text-muted-foreground">+{items.length - 12}</span>}
+      </div>
+    ) : null;
 
   return (
     <div className="mt-2 border rounded-md bg-background p-3">
@@ -392,9 +434,34 @@ function RObjectPreview({ file, onClose }: StepOutputPreviewProps) {
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        R serialised object ({file.extension.toUpperCase()}) — open in RStudio to load and explore.
-      </p>
+
+      {summary ? (
+        <div className="mb-3">
+          <div className="flex items-baseline gap-2 mb-2">
+            {cls && <span className="text-xs font-semibold">{cls}</span>}
+            {summary.dim && summary.dim.length >= 2 && (
+              <span className="text-xs text-muted-foreground font-mono">
+                {summary.dim[0].toLocaleString()} × {summary.dim[1].toLocaleString()}
+              </span>
+            )}
+            {typeof summary.length === 'number' && !summary.dim && (
+              <span className="text-xs text-muted-foreground font-mono">length {summary.length.toLocaleString()}</span>
+            )}
+          </div>
+          {summary.summary && <p className="text-xs text-muted-foreground mb-2">{summary.summary}</p>}
+          {chipRow('assays', summary.assays)}
+          {chipRow('reductions', summary.reducedDims)}
+          {chipRow('colData', summary.colData)}
+          {chipRow('rowData', summary.rowData)}
+          {chipRow('elements', summary.names)}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground mb-3">
+          R serialised object ({file.extension.toUpperCase()})
+          {sidecarTried ? ' — open in RStudio to load and explore.' : '…'}
+        </p>
+      )}
+
       <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => setLauncherOpen(true)}>
         <Laptop className="h-3.5 w-3.5" />
         Open in RStudio
