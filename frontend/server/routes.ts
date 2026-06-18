@@ -26,6 +26,7 @@ import { workflowRepository } from "./workflow-repository";
 import { memoryService } from "./memory-repository";
 import { createMemoryIntegration, getMemoryIntegration, type MemoryEnhancedContext } from "./memory-integration";
 import { callGeminiFlash } from "./gemini-flash";
+import { buildFiguresFromKeyResults } from "./findings-figures";
 import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
@@ -11363,6 +11364,14 @@ Respond ONLY with valid JSON (no markdown wrapper):
               parsed.next_steps = [...proactiveSuggestions, ...existingSteps];
             }
             // ── End proactive follow-up suggestions ─────────────────────────────
+
+            // Illustration figures: project the grounded key_results into qc/composition/
+            // bars charts so this (Gemini) path matches the Python analyzer path. Only
+            // real numbers are charted; figures inherit each metric's source_file.
+            if (!Array.isArray(parsed.figures) || parsed.figures.length === 0) {
+              const figs = buildFiguresFromKeyResults(parsed.key_results);
+              if (figs.length > 0) parsed.figures = figs;
+            }
 
             _findingsCache.set(runId, parsed);
           } catch (parseErr: any) {
