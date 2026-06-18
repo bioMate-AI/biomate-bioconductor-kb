@@ -2151,6 +2151,20 @@ export class GalaxyAssistant {
     );
   }
 
+  /**
+   * Bioconductor enrichment workflows — clusterProfiler family (enrichGO,
+   * enrichKEGG, GSEA). Explicit mention of `clusterprofiler` (or its
+   * dispatch names) should always land a workflow card, not a run_code R
+   * script (BC-04 regression, 2026-06-18). Workflows ids 11122, 12955, 12956.
+   */
+  private _isClusterProfilerQuery(message: string): boolean {
+    if (!/\bclusterprofiler\b/i.test(message)) return false;
+    // Common dispatch verbs accompanying the package name
+    return /\b(enrich[a-z]*|gsea|gseGO|gseKEGG|gse[a-z]*|dotplot|cnetplot|emapplot)\b/i.test(message)
+        || /\bgene\s+set\s+enrichment\b/i.test(message)
+        || /\b(GO|KEGG|Reactome|MSigDB)\b/.test(message);
+  }
+
   /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
   private _applyNamedWorkflowOverridesToDecomposition(
     decomposition: IntentDecomposition,
@@ -2160,6 +2174,7 @@ export class GalaxyAssistant {
       this._isPlanBCodonQuery(message) ||
       this._isPlanAEpitopeQuery(message) ||
       this._isPocketDetectionQuery(message) ||
+      this._isClusterProfilerQuery(message) ||
       /\b(autodock\s*vina|docking_autodock_vina|registry\s+id\s+12824)\b/i.test(message);
     if (!forceWf) return;
 
