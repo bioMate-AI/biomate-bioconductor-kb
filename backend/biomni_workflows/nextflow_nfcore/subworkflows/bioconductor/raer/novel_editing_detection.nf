@@ -2,7 +2,7 @@
 // ============================================================
 // Bioconductor workflow: raer — novel_editing_detection
 // Identify novel RNA editing sites using matched RNA-seq and DNA-seq (WGS) data.
-// Input: bams.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr
+// Input: rna.bam, dna.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr
 // Container: quay.io/biocontainers/bioconductor-raer:1.8.0--r45h01b2380_2
 // R packages: GenomicFeatures, GenomicRanges, SummarizedExperiment, raer
 // Bioconductor: 3.20 | R: 4.4
@@ -27,7 +27,7 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -49,10 +49,10 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
     .bm_deps <- c("GenomicFeatures", "GenomicRanges", "SummarizedExperiment", "raer")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      .rv <- getRversion()
-      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
-      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
-      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))  # CRAN binaries (Posit PPM, jammy)
+      .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
@@ -74,7 +74,11 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
     # ==========================================
     
     # BAM files: matched RNA-seq and DNA-seq alignments
-    bams <- c(rna = "bams.bam", dna = "bams.bam")
+    bams <- c(rna = "rna.bam", dna = "dna.bam")
+
+    # Ensure each BAM is coordinate-indexed (raer::pileup_sites requires a .bai next to
+    # each BAM; the index is not always staged alongside the alignment).
+    for (.b in unique(bams)) if (!file.exists(paste0(.b, ".bai"))) Rsamtools::indexBam(.b)
     
     # Reference genome FASTA
     fasta_file <- "fasta.fasta"
@@ -209,7 +213,7 @@ process BIOC_RAER_NOVEL_EDITING_DETECTION {
 
 workflow BIOC_RAER_NOVEL_EDITING_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), [ bams.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr ] ]
+    ch_input  // channel: [ val(meta), [ rna.bam, dna.bam, fasta.fasta, txdb.sqlite, chr4snps.gr, rmsk_hg38.gr ] ]
 
     main:
     BIOC_RAER_NOVEL_EDITING_DETECTION(ch_input)

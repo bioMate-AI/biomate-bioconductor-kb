@@ -23,7 +23,7 @@ process BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -45,10 +45,10 @@ process BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT {
     .bm_deps <- c("GenomicFeatures", "knitr", "refmanager", "rmarkdown", "sessioninfo", "txcutr")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      .rv <- getRversion()
-      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
-      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
-      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))  # CRAN binaries (Posit PPM)
+      .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_d in list.files(".", full.names = TRUE)) {
@@ -92,8 +92,8 @@ process BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT {
     
     sacCer3 <- readRDS(sacCer3_path)
     
-    ## constrain to "chrI"
-    seqlevels(txdb) <- "chrI"
+    ## constrain to the first chromosome (was hardcoded "chrI"/sacCer3) so any genome works
+    seqlevels(txdb) <- seqlevels(txdb)[1]
     
     ## view the lengths of first ten transcripts
     print("Transcript lengths before truncation:")
