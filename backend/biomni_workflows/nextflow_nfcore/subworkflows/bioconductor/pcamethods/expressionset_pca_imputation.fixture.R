@@ -11,5 +11,6 @@ library(pcaMethods)
 library(Biobase)
 data("sample.ExpressionSet")
 .obj <- get("sample.ExpressionSet")
-.df <- tryCatch(as.data.frame(.obj), error=function(e) as.data.frame(as.matrix(.obj)))
-write.csv(.df, "sample.ExpressionSet", row.names=TRUE)
+# The workflow loads this input with readRDS(), so serialize the ExpressionSet object
+# itself (a write.csv data-frame dump is not an RDS and fails readRDS at load).
+saveRDS(.obj, "sample.ExpressionSet")

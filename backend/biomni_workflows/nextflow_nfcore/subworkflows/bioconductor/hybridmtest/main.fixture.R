@@ -10,5 +10,6 @@ if (length(.fx_miss)) {
 library(HybridMTest)
 data("correlation.data")
 .obj <- get("correlation.data")
-.df <- tryCatch(as.data.frame(.obj), error=function(e) as.data.frame(as.matrix(.obj)))
-write.csv(.df, "correlation.data", row.names=TRUE)
+# Workflow loads this input with readRDS(); serialize the real object
+# (a write.csv data-frame dump is not an RDS and fails readRDS at load).
+saveRDS(.obj, "correlation.data")

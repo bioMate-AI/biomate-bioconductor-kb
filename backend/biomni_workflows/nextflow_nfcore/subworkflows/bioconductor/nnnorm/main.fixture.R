@@ -11,5 +11,6 @@ library(marray)
 library(nnNorm)
 data("swirl")
 .obj <- get("swirl")
-.df <- tryCatch(as.data.frame(.obj), error=function(e) as.data.frame(as.matrix(.obj)))
-write.csv(.df, "microarray_data.marrayRaw", row.names=TRUE)
+# Workflow loads this input with readRDS(); serialize the real object
+# (a write.csv data-frame dump is not an RDS and fails readRDS at load).
+saveRDS(.obj, "microarray_data.marrayRaw")

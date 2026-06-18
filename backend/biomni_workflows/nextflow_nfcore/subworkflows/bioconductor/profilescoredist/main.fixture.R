@@ -10,4 +10,6 @@ if (length(.fx_miss)) {
 library(profileScoreDist)
 data("INR")
 .obj <- get("INR")
-saveRDS(.obj, "INR")
+# Workflow reads this with read.table(header=TRUE, row.names=1); write the matching
+# tab table with a leading empty header cell (a saveRDS blob fails read.table).
+write.table(as.data.frame(as.matrix(.obj)), "INR", sep="\t", quote=FALSE, col.names=NA)
