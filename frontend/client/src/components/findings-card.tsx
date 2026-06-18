@@ -14,6 +14,7 @@ interface KeyResult {
   metric: string
   value: string
   interpretation: string
+  source_file?: string
 }
 
 interface FindingsData {
@@ -164,7 +165,8 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
                     <tr className="border-b border-border/60">
                       <th className="text-left py-1 pr-3 font-medium">Metric</th>
                       <th className="text-left py-1 pr-3 font-medium">Value</th>
-                      <th className="text-left py-1 font-medium">Interpretation</th>
+                      <th className="text-left py-1 pr-3 font-medium">Interpretation</th>
+                      <th className="text-left py-1 font-medium">Source</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -172,7 +174,12 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
                       <tr key={i} className="border-b border-border/30">
                         <td className="py-1 pr-3 font-medium">{r.metric}</td>
                         <td className="py-1 pr-3 font-mono">{r.value}</td>
-                        <td className="py-1 text-muted-foreground">{r.interpretation}</td>
+                        <td className="py-1 pr-3 text-muted-foreground">{r.interpretation}</td>
+                        <td className="py-1 text-muted-foreground font-mono">
+                          {r.source_file
+                            ? <span title={`Read from ${r.source_file}`}>{r.source_file}</span>
+                            : <span className="opacity-40">—</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -99,11 +99,26 @@ describe("StepOutputPreview — viewer routing by extension", () => {
     });
   });
 
-  it("routes .rds to RObjectPreview with 'Open in RStudio' CTA (no fetch fired)", () => {
+  it("routes .rds to RObjectPreview: tries the sidecar, falls back to 'Open in RStudio' when absent", async () => {
+    // Sidecar absent → fetch 404s → RStudio launcher remains the CTA.
+    mockFetch("not found", "text/plain", false, 404);
     const fetchSpy = vi.spyOn(global, "fetch");
     render(<StepOutputPreview runId={runId} file={{ name: "dds.rds", path: "/p", extension: "rds" }} onClose={onClose} />);
     expect(screen.getByRole("button", { name: /Open in RStudio/i })).toBeInTheDocument();
-    expect(fetchSpy).not.toHaveBeenCalled();
+    // It probes for the <name>.rds.json sidecar (graceful enhancement).
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining("dds.rds.json"),
+      );
+    });
+  });
+
+  it("routes .rds to RObjectPreview: renders the object summary inline when the sidecar exists", async () => {
+    mockFetch(JSON.stringify({ class: "DESeqDataSet", dim: [20000, 12], assays: ["counts"] }), "application/json");
+    render(<StepOutputPreview runId={runId} file={{ name: "dds.rds", path: "/p", extension: "rds" }} onClose={onClose} />);
+    await waitFor(() => {
+      expect(screen.getByText("DESeqDataSet")).toBeInTheDocument();
+    });
   });
 
   it("routes .mrc to density viewer (no inline fetch, viewer handles it)", () => {
