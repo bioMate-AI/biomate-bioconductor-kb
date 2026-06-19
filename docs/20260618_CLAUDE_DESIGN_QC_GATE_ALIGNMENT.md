@@ -164,7 +164,31 @@ These are all in class **A** (tool-emitted, runtime-measurable). The .nf wrap co
 
 ---
 
-## Summary of design changes requested
+## Part 4 — Liu-lab demo (L01)
+
+### L01 — Rare Disease Multi-Modal Workup (chain id 1)
+
+**Pipeline:** sarek → vcf_annotate_ensemblvep → rnaseq → drop (OUTRIDER+FRASER) → case_report_aggregation. Already exists in BioMate today.
+
+**Catalog `qc_steps` state:** 1 of 5 phases populated (OUTRIDER has 1 tag); rest are empty.
+
+**Gates that the underlying tools naturally emit:**
+
+| Phase | Tool | Tool-emitted gates (all class A) | Effort to surface |
+|---|---|---|---|
+| A | sarek | ts/tv ratio, depth-of-coverage, het/hom ratio, dbSNP overlap %, callable-region pct | Backfill qc_steps (~30 min) |
+| B | VEP | pct-annotated (class A); novel-vs-known split (class B → Findings) | ~15 min |
+| C | nf-core/rnaseq | alignment rate, rRNA %, mt %, exonic-rate, gene-detection count, duplication rate, junction-rate, FastQC pass | Backfill (~30 min) |
+| D | nf-core/drop (OUTRIDER+FRASER) | OUTRIDER dispersion convergence, aberrant_gene_count; FRASER psi-coverage pass, theta-fitting convergence, aberrant_event_count | A: convergence + coverage gates; B: aberrant counts → Findings (~30 min) |
+| E | case_report_aggregation | evidence-stream completeness, missing-data flag, sample-count match | All class A (~15 min) |
+
+**Net for L01 design:** 8–10 class-A gates available across 5 phases. Recommended `qcBody` text drafted in `reference/claude_design/design_handoff_liu_lab/Liu-Lab Demo Requirement.md` §"QC gates — what each phase actually emits". No invented thresholds; all from MultiQC + sarek/RSeQC/STAR/OUTRIDER/FRASER native outputs.
+
+**Engineering open item:** extend the `qc_steps` backfill script (the one that ran for 34 RNA-seq DE workflows in commit `4e47c14f8`) to cover sarek + VEP + rnaseq + drop + fraser + case_report_aggregation. ~1–2 hours.
+
+---
+
+## Summary of design changes requested (final)
 
 | Demo | Change | Why |
 |---|---|---|
@@ -175,6 +199,7 @@ These are all in class **A** (tool-emitted, runtime-measurable). The .nf wrap co
 | Z01 TorchGWAS | Add empty-state line **+** consider extending demo to 9 phases representing Zhi's real paper pipeline (MAGMA, METAL, FUMA, LDSC, PRS-CS) | Current demo shows 1/2 of the published Methods section |
 | ZZ01 turep+Scupa+ImmuneApp | Add empty-state line (calibration ≠ QC) | No threshold-gated QC; only model calibration metrics |
 | ZZ02 scGWAS | Add 3 tool-emitted gates (gwas_genes_loaded, cell_types_identified, shared_genes) | Smoke test verified jar emits these to stdout |
+| **L01 Liu RareCollab** | **Adopt the 8–10 class-A gates spec'd in the Liu-Lab Demo Requirement doc** | All from sarek/VEP/rnaseq/drop native MultiQC output; cleanest QC-tab story of any demo because tools are mature + already used in his published Methods |
 
 ## Out of scope
 
