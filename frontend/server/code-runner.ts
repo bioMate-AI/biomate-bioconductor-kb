@@ -204,6 +204,12 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     const sidecarUrl = process.env.RUN_CODE_BACKEND_URL;
     const uid = (process.getuid?.() ?? 1000);
     const gid = (process.getgid?.() ?? 1000);
+    // Canonical sandbox image. Override with RUN_CODE_IMAGE for custom builds.
+    // The image is published to ECR (399683337364.dkr.ecr.us-west-2.amazonaws.com/
+    // biomate/biotools:1) — `docker pull` it on a fresh machine after running
+    // `aws ecr get-login-password ... | docker login ...`. The bare
+    // `biomate-biotools:1` tag works once the image is pulled and re-tagged,
+    // or built locally from frontend/Dockerfile.biotools (slower path).
     const sandboxImage = process.env.RUN_CODE_IMAGE || 'biomate-biotools:1';
 
     const runViaDocker = () => new Promise<{ stdout: string; stderr: string; exitCode: number }>(
