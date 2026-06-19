@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useLocation } from "wouter"
+import { useLocation, useSearch } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -27,6 +27,13 @@ const inputStyle: React.CSSProperties = {
 
 export default function LoginPage() {
   const [, setLocation] = useLocation()
+  const search = useSearch()
+  // Same-origin redirect target (e.g. a /workflow/:id deep link bounced here
+  // when the session was missing). Restricted to in-app paths.
+  const nextParam = (() => {
+    const raw = new URLSearchParams(search).get('next')
+    return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
+  })()
   const { login, loginWithGoogle, loginWithGithub } = useAuth()
   const { toast } = useToast()
   const [email, setEmail] = useState("")
@@ -41,7 +48,9 @@ export default function LoginPage() {
     setIsLoading(true); setError(null)
     try {
       await login(email, password, rememberMe)
-      // auth-context.login() already calls setLocation('/') on success
+      // auth-context.login() already calls setLocation('/') on success; if the
+      // user arrived from a deep link, override that with the requested path.
+      if (nextParam) setLocation(nextParam)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.")
     } finally {

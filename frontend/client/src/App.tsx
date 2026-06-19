@@ -48,6 +48,7 @@ import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
 import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
+import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -433,6 +434,10 @@ function Router({
           <CapabilitiesPage />
         </PublicPageLayout>
       </Route>
+
+{/* Deep link from chat connectors — loads a generated workflow by id and
+          opens the workflow panel focused on it. See pages/WorkflowDeepLink.tsx. */}
+      <Route path="/workflow/:id" component={WorkflowDeepLink} />
 
 {/* Root: platform for authenticated users, redirect to /login for guests */}
       <Route path="/">
