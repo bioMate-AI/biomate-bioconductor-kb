@@ -1098,12 +1098,25 @@ _BIOC_INPUT_DECL_RE = re.compile(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$')
 
 def _stage_declared_input(src: str, dest: Path) -> None:
     """Stage a user-supplied input file to `dest` (named as the workflow's declared base name).
-    Handles s3:// (aws s3 cp), http(s):// (download) and local paths (copy)."""
+    Handles s3:// (boto3 download), http(s):// (download) and local paths (copy)."""
     src = str(src).strip()
     dest.parent.mkdir(parents=True, exist_ok=True)
     if src.startswith("s3://"):
-        subprocess.run(["aws", "s3", "cp", src, str(dest), "--no-progress"],
-                       check=True, capture_output=True, text=True, timeout=600)
+        # Use boto3, NOT the `aws` CLI — the Galaxy container does not ship the aws CLI on
+        # PATH, so `aws s3 cp` raised FileNotFoundError('aws') and silently failed every bioc
+        # workflow that declares an s3:// input (the wrapper then fell back to a -entry run that
+        # can't bind the take: channel). Resolve the bucket's real region so a cross-region
+        # bucket (e.g. us-east-1 work bucket vs us-west-2 default) doesn't hit
+        # "must be addressed using the specified endpoint".
+        import boto3
+        _bucket, _key = src[len("s3://"):].split("/", 1)
+        _s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = _s3.get_bucket_location(Bucket=_bucket).get("LocationConstraint") or "us-east-1"
+            _s3 = boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        _s3.download_file(_bucket, _key, str(dest))
     elif src.startswith(("http://", "https://")):
         import urllib.request
         urllib.request.urlretrieve(src, str(dest))
