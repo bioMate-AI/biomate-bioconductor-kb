@@ -50,13 +50,20 @@ SKIP_NO_DEFENSIVE_PATTERN = {
 
 
 def extract_block(nf_src: str) -> str | None:
+    # The inject block runs from `.qc_metrics_path <- ...` to the final
+    # `cat(jsonlite::toJSON(.qc_payload, ..., file = .qc_metrics_path)`.
+    # Anything AFTER that (`}, error = function(e) {...})` for workflows like
+    # monocle/voyager that wrap their R body in a tryCatch, then writeLines)
+    # belongs to the surrounding workflow scaffolding — including those lines
+    # in the standalone-Rscript verification fails because the matching
+    # opener lives upstream in the same .nf, not in our extracted block.
     m = re.search(
-        r'(\.qc_metrics_path\s*<-\s*"qc_metrics\.json".*?)writeLines\(c\(',
+        r'(\.qc_metrics_path\s*<-\s*"qc_metrics\.json".*?'
+        r'cat\(jsonlite::toJSON\(\.qc_payload[^)]*\)[^)]*\))',
         nf_src, re.DOTALL,
     )
     if not m:
         return None
-    # Un-escape Nextflow's `\$` → R's `$`
     return m.group(1).replace(r"\$", "$")
 
 

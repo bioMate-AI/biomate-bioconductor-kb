@@ -26,8 +26,13 @@ from galaxy.ai.retrievers.qc_gate_reader import read_bioc_harness_gates  # noqa:
 
 def _run_block(nf_rel: str, fixture_r: str) -> dict:
     src = (ROOT / "backend/biomni_workflows" / nf_rel).read_text()
+    # Stop at the final cat() — extracting through writeLines pulls in
+    # workflow scaffolding like the tryCatch error-handler close (monocle/
+    # voyager) whose matching opener lives upstream in the .nf, breaking
+    # standalone Rscript execution.
     m = re.search(
-        r'(\.qc_metrics_path\s*<-\s*"qc_metrics\.json".*?)writeLines\(c\(',
+        r'(\.qc_metrics_path\s*<-\s*"qc_metrics\.json".*?'
+        r'cat\(jsonlite::toJSON\(\.qc_payload[^)]*\)[^)]*\))',
         src, re.DOTALL,
     )
     assert m, f"inject block not found in {nf_rel}"

@@ -23,7 +23,7 @@ verify() {
     python3 - <<EOF
 import re
 src = open("$ROOT/backend/biomni_workflows/$nf").read()
-m = re.search(r'(\.qc_metrics_path\s*<-\s*"qc_metrics\.json".*?)writeLines\(c\(', src, re.DOTALL)
+m = re.search(r'(\.qc_metrics_path\s*<-\s*"qc_metrics\.json".*?cat\(jsonlite::toJSON\(\.qc_payload[^)]*\)[^)]*\))', src, re.DOTALL)
 block = m.group(1).replace("\\\$", "\$")  # un-escape Nextflow's \$ → R's $
 open("block.R","w").write(block)
 EOF
