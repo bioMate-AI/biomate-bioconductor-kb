@@ -2069,6 +2069,179 @@ class UnifiedWorkflowSearch:
             log.warning("[ChainIndex] Cosine search failed: %s", exc)
             return []
 
+    def _llm_judge_pair(
+        self,
+        query: str,
+        chain_a: "WorkflowChain",
+        chain_b: "WorkflowChain",
+    ) -> str:
+        """Robin-style pairwise comparison. Returns 'A' / 'B' / 'tie'.
+
+        Used by _pairwise_tournament. Single LLM call per invocation — caller
+        runs 3 times for majority voting (see Robin paper, Nature 2026:
+        early versions of Robin tried LLM-as-judge absolute scoring; rejected
+        for calibration failure + position bias; pairwise + 3-run voting
+        chosen instead).
+        """
+        if self._llm_client is None:
+            return "tie"
+
+        def _format(c: "WorkflowChain") -> str:
+            steps = ", ".join(
+                s.get("workflow_name", "") or s.get("name", "")
+                for s in (c.steps or [])[:5]
+            )
+            return (
+                f"  Name: {c.name}\n"
+                f"  Display: {c.display_name}\n"
+                f"  Domain: {getattr(c, 'domain', '?')}\n"
+                f"  Scope: {(c.description or '')[:200]}\n"
+                f"  Steps: {steps}"
+            )
+
+        prompt = (
+            f"You are a bioinformatics workflow router comparing two candidate chains.\n\n"
+            f"User request: \"{query}\"\n\n"
+            f"Chain A:\n{_format(chain_a)}\n\n"
+            f"Chain B:\n{_format(chain_b)}\n\n"
+            f"RULES:\n"
+            f"1. Pick the chain whose FULL scope (domain + steps + data types) best matches the user's request.\n"
+            f"2. A subset match (chain covers ONE component the user asked for, but not the rest) loses to a closer-domain match.\n"
+            f"3. Cross-domain matches (e.g. variant-calling chain for a single-cell query) lose to in-domain matches even if one keyword overlaps.\n"
+            f"4. Return EXACTLY one of these literal strings, with no other characters:\n"
+            f"   A     (Chain A is the better match)\n"
+            f"   B     (Chain B is the better match)\n"
+            f"   tie   (neither is clearly better)\n"
+            f"No prose. No punctuation. Just the letter or 'tie'."
+        )
+        try:
+            raw = (self._llm_client.generate(prompt, max_tokens=8, temperature=0.0) or "").strip().upper()
+            # Tolerate trailing punctuation / quotes
+            raw = raw.rstrip(".,;:!?\"'`")
+            if raw == "A":
+                return "A"
+            if raw == "B":
+                return "B"
+            if raw.startswith("TIE") or raw == "T":
+                return "tie"
+            log.warning(f"[ChainIndex] pairwise judge returned unrecognized: {raw!r}; treating as tie")
+            return "tie"
+        except Exception as exc:
+            log.warning(f"[ChainIndex] pairwise judge LLM call failed: {exc}; treating as tie")
+            return "tie"
+
+    def _pairwise_tournament(
+        self,
+        query: str,
+        candidates: List["WorkflowChain"],
+        runs_per_pair: int = 3,
+    ) -> Optional["WorkflowChain"]:
+        """Round-robin pairwise tournament with majority voting per pair.
+
+        Per Robin (Nature 2026): each pair is judged `runs_per_pair` times
+        and the majority winner is recorded. Final winner is the candidate
+        with the most pair wins; ties are broken by the candidates' original
+        embedding rank (input order).
+
+        For N candidates: N*(N-1)/2 pairs * runs_per_pair LLM calls.
+        With the current limit=3 candidates and 3 runs/pair: 9 calls.
+        """
+        n = len(candidates)
+        if n == 0:
+            return None
+        if n == 1:
+            return candidates[0]
+
+        wins: Dict[str, int] = {c.name: 0 for c in candidates}
+        for i in range(n):
+            for j in range(i + 1, n):
+                a, b = candidates[i], candidates[j]
+                # 3-run majority voting per pair (Robin's recipe)
+                votes = {"A": 0, "B": 0, "tie": 0}
+                for _ in range(runs_per_pair):
+                    votes[self._llm_judge_pair(query, a, b)] += 1
+                if votes["A"] > votes["B"] and votes["A"] >= votes["tie"]:
+                    wins[a.name] += 1
+                    log.info(f"[ChainIndex] tournament: {a.name} beats {b.name} ({votes})")
+                elif votes["B"] > votes["A"] and votes["B"] >= votes["tie"]:
+                    wins[b.name] += 1
+                    log.info(f"[ChainIndex] tournament: {b.name} beats {a.name} ({votes})")
+                else:
+                    log.info(f"[ChainIndex] tournament: {a.name} vs {b.name} tied ({votes})")
+
+        # Winner = most wins; ties broken by original embedding order (earlier wins)
+        max_wins = max(wins.values())
+        if max_wins == 0:
+            # Total stalemate — fall back to embedding's top-1
+            log.info("[ChainIndex] tournament: total stalemate; using embedding top-1")
+            return candidates[0]
+        for c in candidates:  # iterate in original order to break ties
+            if wins[c.name] == max_wins:
+                log.info(f"[ChainIndex] tournament winner: {c.name} ({max_wins} wins)")
+                return c
+        return candidates[0]  # unreachable
+
+    def _llm_confirm_chain(
+        self,
+        query: str,
+        chain: "WorkflowChain",
+    ) -> str:
+        """After tournament picks a winner, validate it's actually a match
+        (not just "least bad"). Returns 'confirm' / 'clarify:<question>' /
+        'none'.
+
+        This is the same scope-check as the old single-shot _llm_select_chain
+        but applied to ONE candidate (the tournament winner) instead of
+        being asked to choose AND validate in one call. Cleaner separation
+        of concerns; better calibrated.
+        """
+        if self._llm_client is None:
+            return "none"
+
+        def _format_inputs(c: "WorkflowChain") -> str:
+            if not c.required_inputs:
+                return "unspecified"
+            return ", ".join(
+                f"{inp.get('name','')} ({inp.get('type','')})"
+                for inp in c.required_inputs[:3]
+            )
+
+        prompt = (
+            f"You are a bioinformatics workflow router validating a chain match.\n\n"
+            f"User request: \"{query}\"\n\n"
+            f"Candidate chain: {chain.name}\n"
+            f"  Display: {chain.display_name}\n"
+            f"  Domain: {getattr(chain, 'domain', '?')}\n"
+            f"  Scope: {(chain.description or '')[:200]}\n"
+            f"  Required inputs: {_format_inputs(chain)}\n"
+            f"  Steps: {', '.join(s.get('workflow_name', '') or s.get('name', '') for s in chain.steps[:5])}\n\n"
+            f"RULES:\n"
+            f"1. Confirm ONLY if the user's request clearly covers this chain's FULL scope (domain + all major steps).\n"
+            f"2. If the chain is a subset match (user asked for one component of a larger chain), return 'none'.\n"
+            f"3. If a key context is missing (e.g. sample type, disease, data modality), ask ONE short clarifying question.\n"
+            f"4. Return EXACTLY one of these literal strings, with no other characters:\n"
+            f"   confirm                    (full-scope match)\n"
+            f"   clarify:<question>         (probable match, need one detail)\n"
+            f"   none                       (no match or too narrow)\n"
+            f"No prose."
+        )
+        try:
+            raw = (self._llm_client.generate(prompt, max_tokens=60, temperature=0.0) or "").strip()
+            log.info(f"[ChainIndex] confirm response for {chain.name}: {raw!r}")
+            low = raw.lower()
+            if low.startswith("confirm"):
+                return "confirm"
+            if low.startswith("clarify:"):
+                return raw  # caller parses
+            if low.startswith("none"):
+                return "none"
+            # Garbage → treat as no-match (safer than wrong-chain)
+            log.warning(f"[ChainIndex] confirm unrecognized: {raw!r}; treating as none")
+            return "none"
+        except Exception as exc:
+            log.warning(f"[ChainIndex] confirm LLM call failed: {exc}; treating as none")
+            return "none"
+
     def _llm_select_chain(
         self,
         query: str,
@@ -2096,118 +2269,52 @@ class UnifiedWorkflowSearch:
         if self._llm_client is None or not candidates:
             return None
 
-        def _format_inputs(c: "WorkflowChain") -> str:
-            if not c.required_inputs:
-                return "unspecified"
-            return ", ".join(
-                f"{inp.get('name','')} ({inp.get('type','')})"
-                for inp in c.required_inputs[:3]
-            )
-
-        options = "\n".join(
-            f"- {c.name}: {c.display_name}\n"
-            f"  Scope: {(c.description or '')[:200]}\n"
-            f"  Required inputs: {_format_inputs(c)}\n"
-            f"  Steps: {', '.join(s.get('workflow_name', '') or s.get('name', '') for s in c.steps[:5])}"
-            for c in candidates
-        )
-        prompt = (
-            f"You are a bioinformatics workflow router.\n"
-            f"User request: \"{query}\"\n\n"
-            f"Candidate multi-step chains (all passed input-type compatibility check):\n{options}\n\n"
-            f"RULES:\n"
-            f"1. A chain matches ONLY if the user's request clearly covers the chain's FULL scope (all major steps).\n"
-            f"2. If a chain is a subset match (user asked for one component of a larger chain), do NOT select it — return 'none'.\n"
-            f"3. If a chain likely matches but the query lacks key context (e.g. sample type, disease, data modality), "
-            f"ask ONE short clarifying question.\n"
-            f"4. Return EXACTLY one of:\n"
-            f"   chain:<name>          (confident full-scope match)\n"
-            f"   clarify:<name>|<question>   (probable match, need one detail)\n"
-            f"   none                  (no chain fits or query is too narrow)\n"
-            f"No other text."
-        )
+        # Phase 2 — Robin's pairwise tournament with 3-run majority voting,
+        # then absolute confirm on the winner. See
+        # docs/20260618_BC10_CHAIN_RANKING_REQUIREMENT.md option C.
+        # Replaces the prior single-shot absolute judgment (which calibration-
+        # failed on BC-10 when Gemini returned '*' and the parser fell through
+        # to the embedding's wrong-domain top hit).
+        #
+        # Call budget for N candidates:
+        #   tournament: N*(N-1)/2 pairs × 3 votes per pair
+        #   confirm: 1 call on the winner
+        #   total: 1 + 3*N*(N-1)/2
+        # N=1: 1 call (trivial confirm path)
+        # N=2: 4 calls
+        # N=3 (current limit from _cosine_search_chains): 10 calls
         try:
-            raw = (self._llm_client.generate(prompt, max_tokens=60, temperature=0.0) or "").strip()
-            log.info("[ChainIndex] LLM raw response: %r", raw)
-
-            if raw.lower().startswith("chain:"):
-                name = raw[6:].strip()
-                for c in candidates:
-                    if c.name == name or c.name in name:
-                        log.info("[ChainIndex] LLM confident match: %s", c.name)
-                        return [c]
-
-            if raw.lower().startswith("clarify:"):
-                body = raw[8:].strip()
-                parts = body.split("|", 1)
-                chain_name = parts[0].strip()
-                question = parts[1].strip() if len(parts) > 1 else (
-                    f"Could you confirm the full scope? This pipeline covers: "
-                    f"{candidates[0].description[:120]}"
-                )
-                for c in candidates:
-                    if c.name == chain_name or c.name in chain_name:
-                        import copy
-                        c_copy = copy.copy(c)
-                        c_copy.clarification_needed = True
-                        c_copy.clarification_question = question
-                        log.info("[ChainIndex] LLM wants clarification for %s: %s", c.name, question)
-                        return [c_copy]
-
-            if "none" in raw.lower():
-                log.info("[ChainIndex] LLM: no chain matches")
+            winner = self._pairwise_tournament(query, candidates, runs_per_pair=3)
+            if winner is None:
                 return []
 
-            # Unrecognized response — retry ONCE with a stricter prompt before
-            # falling back. The fall-back used to silently return the embedding's
-            # top hit, which shipped the wrong chain on BC-10 when Gemini
-            # returned literally '*' (2026-06-18). Now: garbage → retry → if
-            # still garbage, treat as "no match" (return []) rather than
-            # "LLM unavailable" (return None).
-            log.warning("[ChainIndex] LLM response unrecognized: %r — retrying with strict prompt", raw)
-            strict_prompt = (
-                prompt
-                + "\n\nIMPORTANT: Your previous response was not in the expected format."
-                + "\nReturn EXACTLY one of these literal strings, with no other characters:"
-                + "\n  chain:<name>"
-                + "\n  clarify:<name>|<question>"
-                + "\n  none"
-                + "\nPick `none` if you are unsure. Do not return symbols, punctuation, or prose."
-            )
-            try:
-                raw2 = (self._llm_client.generate(strict_prompt, max_tokens=60, temperature=0.0) or "").strip()
-                log.info("[ChainIndex] LLM retry response: %r", raw2)
-                if raw2.lower().startswith("chain:"):
-                    name = raw2[6:].strip()
-                    for c in candidates:
-                        if c.name == name or c.name in name:
-                            return [c]
-                if raw2.lower().startswith("clarify:"):
-                    body = raw2[8:].strip()
-                    parts = body.split("|", 1)
-                    chain_name = parts[0].strip()
-                    question = parts[1].strip() if len(parts) > 1 else (
-                        f"Could you confirm the full scope? This pipeline covers: "
-                        f"{candidates[0].description[:120]}"
-                    )
-                    for c in candidates:
-                        if c.name == chain_name or c.name in chain_name:
-                            import copy
-                            c_copy = copy.copy(c)
-                            c_copy.clarification_needed = True
-                            c_copy.clarification_question = question
-                            return [c_copy]
-                if "none" in raw2.lower():
-                    log.info("[ChainIndex] LLM retry: no chain matches")
-                    return []
-            except Exception as exc:
-                log.warning("[ChainIndex] LLM retry failed: %s — treating as no match", exc)
-            # Retry also failed/garbage → explicit no-match (safer than embedding fallback)
-            log.warning("[ChainIndex] LLM retry also unrecognized — returning [] (no chain) to avoid wrong-chain regression")
+            # Absolute confirm on the tournament winner — distinguishes
+            # "this is the best of N, AND it's a good match" from
+            # "this is the least-bad of N, but none is actually correct."
+            confirm = self._llm_confirm_chain(query, winner)
+            if confirm == "confirm":
+                log.info(f"[ChainIndex] tournament+confirm: {winner.name}")
+                return [winner]
+            if confirm.lower().startswith("clarify:"):
+                question = confirm[8:].strip() or (
+                    f"Could you confirm the full scope? This pipeline covers: "
+                    f"{(winner.description or '')[:120]}"
+                )
+                import copy
+                c_copy = copy.copy(winner)
+                c_copy.clarification_needed = True
+                c_copy.clarification_question = question
+                log.info(f"[ChainIndex] tournament winner needs clarification: {winner.name}: {question}")
+                return [c_copy]
+            # confirm == 'none' (or unrecognized → treated as none upstream)
+            log.info(f"[ChainIndex] tournament winner {winner.name} failed absolute confirm — returning []")
             return []
         except Exception as exc:
-            log.warning("[ChainIndex] LLM chain selection failed: %s", exc)
-            return None
+            log.warning(f"[ChainIndex] tournament path raised: {exc}; falling back to embedding top-1")
+            # Distinct from "LLM unavailable" — this is a code path bug. Still
+            # safest to return [] (no match) over the embedding's possibly-
+            # wrong top-1, matching the post-Phase-1 invariant.
+            return []
 
     # ------------------------------------------------------------------
     # ── Data-type helpers — code-based input/output compatibility ──────────
