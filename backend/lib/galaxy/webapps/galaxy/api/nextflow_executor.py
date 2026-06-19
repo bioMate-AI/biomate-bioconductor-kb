@@ -905,10 +905,58 @@ class NextflowExecuteRequest(BaseModel):
     # chain_meta.json so _resolve_rationale_id can light up the (why?) anchor
     # on each phase. Shape: {"chain_name": str, "phases": [{...}, ...]}.
     chain_meta: Optional[Dict[str, Any]] = None
+    # Phase C — user-assigned output location. Shape:
+    #   {"type": "default" | "project" | "user_s3",
+    #    "userS3Uri": "s3://my-bucket/prefix"  (when type=user_s3),
+    #    "projectId": "<uuid>"                  (when type=project)}
+    # When None or type=default, falls through to current behavior:
+    # s3://biomate-nextflow-work/nextflow/outputs/<user_id>/<run_id>/
+    # See docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.2).
+    output_location: Optional[Dict[str, Any]] = None
 
 
 class NextflowStatusRequest(BaseModel):
     run_id: str
+
+
+def _resolve_outdir(
+    output_location: Optional[Dict[str, Any]],
+    default_bucket: str,
+    user_id: str,
+    run_id: str,
+) -> str:
+    """Phase C — compute the S3 outdir from user-supplied output_location, or
+    fall back to the default BioMate-managed path.
+
+    Default: s3://<default_bucket>/nextflow/outputs/<user_id>/<run_id>
+    Project: s3://<default_bucket>/projects/<project_id>/runs/<run_id>/output
+             (reuses default_bucket per user direction Q2 — no new bucket)
+    User-S3: <userS3Uri>/<run_id>/output
+             (advanced — user must grant biomate-nextflow-batch-role write
+              to their bucket via their own bucket policy)
+    """
+    # Default fallback
+    fallback = f"s3://{default_bucket}/nextflow/outputs/{user_id}/{run_id}"
+    if not output_location or not isinstance(output_location, dict):
+        return fallback
+    loc_type = output_location.get("type")
+    if loc_type in (None, "", "default"):
+        return fallback
+    if loc_type == "project":
+        project_id = output_location.get("projectId")
+        if not project_id:
+            log.warning("[outdir] project location chosen but no projectId — falling back")
+            return fallback
+        # Reuse existing bucket with projects/ prefix (per user direction Q2)
+        return f"s3://{default_bucket}/projects/{project_id}/runs/{run_id}/output"
+    if loc_type == "user_s3":
+        user_uri = (output_location.get("userS3Uri") or "").rstrip("/")
+        if not user_uri.startswith("s3://"):
+            log.warning("[outdir] user_s3 location missing valid s3:// uri — falling back")
+            return fallback
+        return f"{user_uri}/{run_id}/output"
+    log.warning(f"[outdir] unknown output_location.type={loc_type!r} — falling back")
+    return fallback
 
 
 # ---------------------------------------------------------------------------
@@ -1992,7 +2040,7 @@ def _generate_executor_config(
             # Reproduced 2026-06-07 on nfcore/abotyper, nfcore/createtaxdb.
             "params {",
             *( [f"    container = '{container}'"] if "/nf-core-workflows/" not in nf_path else [] ),
-            f"    outdir = 's3://{s3_bucket}/nextflow/outputs/{user_id}/{run_id}'",
+            f"    outdir = '{_resolve_outdir(request.output_location, s3_bucket, user_id, run_id)}'",
             "}",
             # DISABLE publishDir entirely on the head JVM. publishDir is what
             # spawns S3 TransferManager which constructs S3CrtAsyncClient
