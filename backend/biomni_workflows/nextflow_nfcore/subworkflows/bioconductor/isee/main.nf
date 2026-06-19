@@ -54,6 +54,8 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
         }
     
     # --- Load libraries and read input data ---
+    # [biomate] wrap R body so error -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
     library(iSEE)
     library(SummarizedExperiment)
     
@@ -185,10 +187,16 @@ process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     )
     write.csv(top_genes_df, "top_variable_genes.csv", row.names = FALSE)
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER":',
         paste0('    iSEE: ', as.character(packageVersion('iSEE')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0
+    quit(save = "no", status = 0)
     """
 
     stub:

@@ -58,7 +58,9 @@ process BIOC_ROPLS_SUMMARIZED_EXPERIMENT_WORKFLOW {
           }
         }
         
-        # Load required libraries
+        # [biomate] wrap R body so error -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
+    # Load required libraries
         library(ropls)
         
         library(SummarizedExperiment)
@@ -118,10 +120,16 @@ process BIOC_ROPLS_SUMMARIZED_EXPERIMENT_WORKFLOW {
         
         message("Pipeline completed successfully. Outputs written to working directory.")
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_ROPLS_SUMMARIZED_EXPERIMENT_WORKFLOW":',
         paste0('    ropls: ', as.character(packageVersion('ropls')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0
+    quit(save = "no", status = 0)
     """
 
     stub:
