@@ -382,10 +382,22 @@ class BixBenchAdapter(BenchmarkAdapter):
         if not data_dir or not data_dir.exists():
             return uploads
 
-        files = sorted(f for f in data_dir.iterdir() if f.is_file())
-        for f in files[:10]:  # cap at 10 files per capsule
-            if f.stat().st_size > 200 * 1024 * 1024:  # skip >200 MB
-                continue
+        # Recursive walk — many capsules put answer-critical files in
+        # subdirectories (e.g. bix-11's Animals_*.busco_extracted/*.treefile).
+        # The previous `iterdir()` + `is_file()` filter silently dropped
+        # ALL subdirectory content, which meant questions about per-species
+        # phylogeny outputs got only the top-level alignment-log shards.
+        all_files = [
+            f for f in data_dir.rglob("*")
+            if f.is_file() and f.stat().st_size <= 200 * 1024 * 1024
+        ]
+        # Selection budget: cap at 30 files (3x previous 10) with a smart
+        # rank — smaller files first so we don't burn the budget on one
+        # bloated CSV before reaching the .treefile / .json answer files.
+        # Then alpha within size bucket for reproducibility.
+        all_files.sort(key=lambda f: (f.stat().st_size, str(f.relative_to(data_dir))))
+        files = all_files[:30]
+        for f in files:
             cache_key = str(f)
             if cache_key in self._upload_cache:
                 uploads.append(self._upload_cache[cache_key])
