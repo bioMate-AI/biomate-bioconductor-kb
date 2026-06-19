@@ -29,8 +29,13 @@ RUN curl -sSL "https://github.com/ZhiGroup/TorchGWAS/archive/${TORCHGWAS_SHA}.ta
     && tar -xzf /tmp/torchgwas.tgz --strip-components=1 -C /opt/torchgwas \
     && rm /tmp/torchgwas.tgz
 
-# Install with editable so the `torchgwas` CLI lands in PATH
+# Install with editable so the `torchgwas` CLI lands in PATH.
+# Upstream pyproject.toml omits pandas-plink and bgen-reader (used in io.py
+# for PLINK and BGEN genotype sources). Install them explicitly; without
+# pandas-plink the CLI fails on import. Filed mental note to upstream
+# the dependency declaration in a follow-up.
 RUN pip install --no-cache-dir -e /opt/torchgwas \
+    && pip install --no-cache-dir 'pandas-plink>=2.2' 'bgen-reader>=4.0' \
     && torchgwas --help | head -5
 
 # Toy dataset already at /opt/torchgwas/examples/toy/ (64 samples × 12 variants
