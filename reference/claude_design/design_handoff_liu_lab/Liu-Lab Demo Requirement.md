@@ -89,6 +89,37 @@ const r = await page.request.get('/api/workflows/rare_disease_multimodal_workup/
 // Expect ≥1 citation (currently empty — needs qc_evidence.yaml backfill before recording; see Open Items)
 ```
 
+### QC gates — what each phase actually emits
+
+Per the **3-class taxonomy** in `docs/20260618_CLAUDE_DESIGN_QC_GATE_ALIGNMENT.md` (A=tool-emitted runtime gate; B=result metric belongs in Findings; C=routing/method decision belongs in AGENT). Today's catalog (`workflows.qc_steps`) for L01's 5 tools shows only one populated row — the rest are empty. The design's QC audit tab needs explicit choices per phase:
+
+| Phase | Tool | Catalog qc_steps today | What the tool naturally emits | Class | Design action |
+|---|---|---|---|---|---|
+| A | `nf-core/sarek` | **empty** | ts/tv ratio, depth-of-coverage per sample, het/hom ratio, dbSNP overlap %, callable-region pct, mendelian-consistency (trios) | **A** | Backfill qc_steps with these 4–6 gates from sarek's MultiQC output; cite van der Auwera & O'Connor GATK4 Best Practices (2020) |
+| B | `nf-core/vcf_annotate_ensemblvep` | **empty** | pct variants annotated, transcripts-per-variant median, novel-vs-known split | **A** + **B** mixed — pct-annotated is a true gate; novel-vs-known is a finding | A: keep pct-annotated as gate; B: move novel-vs-known to Findings |
+| C | `nf-core/rnaseq` | **empty** | alignment rate, rRNA %, mt %, exonic-rate, gene-detection count, duplication rate, junction-rate, FastQC pass count | **A** | All 8 are tool-emitted by STAR + Picard + RSeQC. Backfill qc_steps; cite Conesa et al. Genome Biol 2016 + nf-core/rnaseq paper |
+| D | `nf-core/drop` (OUTRIDER + FRASER) | only `outrider`=["dispersion/size-factor estimation"]; `fraser` + `drop` empty | OUTRIDER: dispersion convergence (fit_loss diagnostic), aberrant_gene_count per sample. FRASER: psi-coverage filter pass count, theta-fitting convergence, aberrant_event_count per sample | A for convergence + coverage filters; **B** for the *counts* of aberrant events | A: backfill convergence + coverage gates (cite Yepez 2021 Nat Protoc + Mertes 2021 Nat Commun + Brechtmann 2018 AJHG); B: aberrant_gene_count + aberrant_event_count are findings, surface in Findings tab |
+| E | `case_report_aggregation` | **empty** | evidence-stream completeness (variants+expression+splicing all present), missing-data flag, sample-count match | **A** (completeness checks are true gates) + **C** (the *decision* to advance to AI-MARRVEL is routing) | A: completeness gates; C: AI-MARRVEL handoff decision goes in AGENT block at end of chain |
+
+**Net for the design's QC audit tab on L01:** roughly **8–10 class-A gates** distributed across phases A/C/D/E, plus 2–3 class-B findings moved to the Findings tab, plus 1 class-C routing decision shown in the AGENT/(why?) block at chain completion. All grounded in tool-emitted numbers from MultiQC + sarek/RSeQC/STAR/OUTRIDER/FRASER native output — no invented thresholds.
+
+**Concrete design copy (suggested `qcBody` text):**
+> "Every QC gate that fired — variant-call ts/tv ratio + depth-of-coverage (sarek); annotation completeness (VEP); RNA alignment rate + rRNA/mt fraction + junction-rate + gene-detection count (rnaseq); OUTRIDER dispersion convergence + FRASER psi-coverage pass rate (drop); evidence-stream completeness (case-report). Threshold, observed value, result and action — 21 CFR Part 11 friendly, with chain-of-custody. *Counts of aberrant events go in the Findings tab; the AI-MARRVEL handoff decision is surfaced in the AGENT block.*"
+
+### Engineering open item — backfill qc_steps for the 4 empty entries
+
+Currently:
+| Workflow | qc_steps populated? |
+|---|---|
+| outrider | ✅ (1 tag) |
+| nf-core/sarek | ❌ |
+| nf-core/vcf_annotate_ensemblvep | ❌ |
+| nf-core/rnaseq | ❌ |
+| nf-core/drop | ❌ |
+| fraser | ❌ |
+
+Suggested follow-up commit: extend `backend/scripts/bioc_qc_steps_backfill.py` (or equivalent — the pattern that backfilled 34 RNA-seq DE workflows in commit `4e47c14f8`) to cover these 5 non-bioc workflows. Each gets a JSON-array of class-A gate tags. ~1–2 hours including citation lookup.
+
 ### Outcome card spec
 
 Same methodology-blue (#2563eb) band as Zhi/Zhao demos (signals "method-integration partner"). Lists:
