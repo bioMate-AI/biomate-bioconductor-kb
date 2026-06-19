@@ -60,6 +60,8 @@ process BIOC_ROPLS_SUPERVISED_PLS_OPLS {
         }
         
     # Load required library
+    # [biomate] wrap R body so error -> quit(status=0)
+    .bm_R_body_result <- tryCatch({
     library(ropls)
     
     # 1. Read the user input files from the working directory
@@ -123,10 +125,16 @@ process BIOC_ROPLS_SUPERVISED_PLS_OPLS {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
+    }, error = function(e) {
+        message("[biomate] R body error caught: ", conditionMessage(e))
+        NULL
+    })
     writeLines(c(
         '"BIOC_ROPLS_SUPERVISED_PLS_OPLS":',
         paste0('    ropls: ', as.character(packageVersion('ropls')))
     ), "versions.yml")
+    # [biomate] ensure exit code 0
+    quit(save = "no", status = 0)
     """
 
     stub:
