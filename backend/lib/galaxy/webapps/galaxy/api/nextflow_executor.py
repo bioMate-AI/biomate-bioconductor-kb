@@ -1314,6 +1314,10 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
         introspect_proc = (
             "\nprocess BIOMATE_RDS_INTROSPECT {\n"
             f"    container '{img}'\n"
+            # Best-effort sidecar: never let an unforeseen failure (hard R crash, dep-install
+            # error) of this auxiliary process fail the user's actual workflow. The per-object
+            # tryCatch already guards the common cases; errorStrategy 'ignore' is the backstop.
+            "    errorStrategy 'ignore'\n"
             "    input:\n"
             "      path rds_file\n"
             "    output:\n"
