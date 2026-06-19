@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biostrings, MSA2dist, ape, dplyr, ggplot2, tidyr
-// Visualizations: plot (ggplot/base)
+// Visualizations: phylogenetic tree
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

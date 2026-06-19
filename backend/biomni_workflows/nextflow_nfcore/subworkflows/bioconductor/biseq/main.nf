@@ -7,7 +7,7 @@
 // R packages: GenomicRanges, BiSeq
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiSeq, GenomicRanges
-// Visualizations: box plot
+// Visualizations: box plot, coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

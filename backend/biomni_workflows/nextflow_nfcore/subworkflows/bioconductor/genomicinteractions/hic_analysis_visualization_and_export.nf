@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: gene count plot, genomic tracks (Gviz), density plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {

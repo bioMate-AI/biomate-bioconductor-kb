@@ -7,6 +7,7 @@
 // R packages: ExiMiR, affy, limma
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ExiMiR, affy, limma
+// QC: between-array normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -30,6 +31,7 @@ process BIOC_EXIMIR_SUMMARIZE_LIMMA_NORMALIZED_DATA {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -97,6 +99,37 @@ process BIOC_EXIMIR_SUMMARIZE_LIMMA_NORMALIZED_DATA {
     write.csv(expression_matrix, file = "normalized_summarized_expression.csv", row.names = TRUE)
     
     cat("Pipeline completed successfully. Outputs saved to 'oset_rrma.rds' and 'normalized_summarized_expression.csv'.\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # between-array norm — file-exists check for post-norm QC PDFs.
+    .ban_pdfs <- list.files(".", pattern = "(?i)(boxplot|density|qnorm|norm.*array).*\\.pdf\$")
+    .ban_passes <- length(.ban_pdfs) > 0
+    .gates_by_label[["between-array normalization"]] <- list(
+      gate_row = "bioc_count_normalization",
+      metric_name = "between_array_norm_plot_exists",
+      metric_value = if (.ban_passes) 1 else 0,
+      passes = .ban_passes,
+      status = if (.ban_passes) paste0("computed (", length(.ban_pdfs), " PDF(s) emitted)")
+               else "not_computed (no between-array QC PDF present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_EXIMIR_SUMMARIZE_LIMMA_NORMALIZED_DATA",
+      domain  = "bioconductor",
+      declared_qc_steps = c("between-array normalization"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_EXIMIR_SUMMARIZE_LIMMA_NORMALIZED_DATA":',

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: volcano plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {

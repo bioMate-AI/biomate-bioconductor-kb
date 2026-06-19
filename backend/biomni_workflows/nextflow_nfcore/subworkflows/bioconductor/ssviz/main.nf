@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: genomic region plot, density plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {

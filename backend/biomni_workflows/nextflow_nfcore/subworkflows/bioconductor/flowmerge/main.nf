@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Rgraphviz, flowCore, flowMerge
-// Visualizations: cluster plot
+// Visualizations: cluster plot, phylogenetic tree
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

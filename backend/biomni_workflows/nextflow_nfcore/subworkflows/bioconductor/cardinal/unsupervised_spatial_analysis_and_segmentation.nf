@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: image plot, PCA plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {

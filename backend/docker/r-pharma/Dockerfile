@@ -45,7 +45,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libhdf5-dev \
     libgfortran-11-dev \
     gfortran \
+    libmpfr-dev \
+    libgmp-dev \
+    libwebp-dev \
     && rm -rf /var/lib/apt/lists/*
+# libmpfr-dev + libgmp-dev: symengine (nlmixr2 → nlmixr2est dep) CMake config.
+# libwebp-dev: ragg (tidyverse → ggplot2 raster device dep) configure.
 
 # ── AWS CLI v2 ────────────────────────────────────────────────────────────────
 # Required by Nextflow's nxf_s3_upload / nxf_s3_download shell helpers when

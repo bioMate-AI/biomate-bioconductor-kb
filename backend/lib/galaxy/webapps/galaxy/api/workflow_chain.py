@@ -309,6 +309,66 @@ def _resolve_outputs_for_run(run_id: str, next_workflow_input_types: Optional[Di
 # Chain executor (background thread)
 # ---------------------------------------------------------------------------
 
+def _compute_chain_meta(
+    chain_name: Optional[str],
+    step_index: int,
+    nextflow_path: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    """Parse a Nextflow main.nf for `// [Phase X]` markers and emit the
+    chain_meta.json shape `_resolve_rationale_id` expects.
+
+    For multi-step chains, the rationale_id encodes step+letter as
+    `<step+1>.<letter>` (matching the T05 atlas+triage convention).
+    For single-step chains, just `<letter>`.
+
+    Safe-fail: returns None if the file is unreadable or has no markers.
+    """
+    if not chain_name or not nextflow_path:
+        return None
+    try:
+        from pathlib import Path
+        # nextflow_path is typically relative to the workflows root; the
+        # nextflow_executor resolver handles both. For the meta sidecar we
+        # only need the source text, so search common roots.
+        candidates = [
+            Path(nextflow_path),
+            Path("backend") / nextflow_path,
+            Path("backend") / "nf-core-workflows" / Path(nextflow_path).relative_to(
+                "nf-core-workflows"
+            ) if str(nextflow_path).startswith("nf-core-workflows/") else Path(nextflow_path),
+        ]
+        src = None
+        for c in candidates:
+            if c.exists():
+                src = c.read_text(errors="ignore")
+                break
+        if src is None:
+            return None
+        import re
+        # Match: // [Phase A] ... \n[whitespace]process PROCESS_NAME
+        phases = []
+        for m in re.finditer(
+            r"//\s*\[Phase\s+([A-Z])\][^\n]*\n[^\n]*?process\s+([A-Z0-9_]+)",
+            src,
+        ):
+            letter, proc = m.group(1), m.group(2)
+            # For multi-step chains, prefix with step index (1-based).
+            phase_id = f"{step_index + 1}.{letter}" if step_index > 0 else letter
+            # If we're step 0 of a multi-step chain (T05-style), keep 1.X form
+            # too. We don't know the total step count here; the resolver tries
+            # both `<letter>` and `<step+1>.<letter>` callers, so either is safe.
+            phases.append({
+                "process_name_pattern": f"^{re.escape(proc)}$",
+                "phase_letter": phase_id,
+            })
+        if not phases:
+            return None
+        return {"chain_name": chain_name, "phases": phases}
+    except Exception as exc:
+        log.debug("[chain_meta] compute failed for %s: %s", nextflow_path, exc)
+        return None
+
+
 def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
     """Execute chain steps sequentially in a background thread."""
     state = _get_chain(chain_run_id)
@@ -412,9 +472,18 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
                 NextflowExecuteRequest,
                 execute_nextflow,
             )
+            # Build chain_meta sidecar so the (why?) anchor can resolve
+            # rationale_id on each phase. Derived from the .nf header's
+            # `// [Phase X]` markers + the following `process <NAME>` line.
+            _chain_meta = _compute_chain_meta(
+                current.get("chain_name"),
+                step_index=idx,
+                nextflow_path=nextflow_path,
+            )
             req = NextflowExecuteRequest(
                 nextflow_path=nextflow_path,
                 parameters=params,
+                chain_meta=_chain_meta,
             )
             result = execute_nextflow(req)
             run_id = result.get("run_id")

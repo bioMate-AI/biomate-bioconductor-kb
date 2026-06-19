@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dendrogram
+
 nextflow.enable.dsl = 2
 
 process BIOC_FMCSR_BATCH_SEARCH_AND_CLUSTERING {

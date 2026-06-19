@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BiocGenerics, DuplexDiscovereR, GenomicRanges, Gviz, IRanges, InteractionSet, S4Vectors
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic tracks (Gviz)
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

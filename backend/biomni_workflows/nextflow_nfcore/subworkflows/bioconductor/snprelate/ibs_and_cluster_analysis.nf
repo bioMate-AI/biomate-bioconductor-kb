@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: image plot, heatmap, MDS plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_SNPRELATE_IBS_AND_CLUSTER_ANALYSIS {

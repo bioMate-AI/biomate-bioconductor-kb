@@ -39,7 +39,7 @@ import math
 from pathlib import Path
 from typing import Any, Optional
 
-from galaxy.ai.retrievers.qc_evidence import get_evidence_for_gate
+from galaxy.ai.retrievers.qc_evidence import get_evidence_for_gate, resolve_thresholds
 
 log = logging.getLogger(__name__)
 
@@ -89,17 +89,25 @@ def _gate_ich_s5_safety_margin(m: dict) -> Optional[tuple]:
     return ("ich_s5_safety_margin", v, threshold, passed, level, msg)
 
 
-def _gate_ich_s7b_herg_margin(m: dict) -> Optional[tuple]:
-    """hERG safety margin ≥10× (ICH S7B)."""
+def _gate_ich_s7b_herg_margin(m: dict, context: Optional[dict] = None) -> Optional[tuple]:
+    """hERG safety margin ≥10× (ICH S7B).
+
+    Optional context for indication-class modifier (added 2026-06-15 Track 1).
+    Example: context={"indication_class": "chronic_cns"} → 50/30 cutoffs.
+    Falls back to the historical 30/10 defaults when context is absent.
+    """
     v = m.get("herg_safety_margin_x")
     if v is None:
         return None
     v = float(v)
-    threshold = 10.0
-    passed = v >= threshold
-    level = "GOLD" if v >= 30 else ("SILVER" if v >= 10 else "FAIL")
-    msg = f"hERG margin={v:.1f}×" + ("" if passed else f" < {threshold}× (ICH S7B)")
-    return ("ich_s7b_herg_margin", v, threshold, passed, level, msg)
+    advisory_min, fail_min = resolve_thresholds(
+        "ich_s7", "ich_s7b_herg_margin", context,
+        default_advisory=30.0, default_fail=10.0,
+    )
+    passed = v >= fail_min
+    level = "GOLD" if v >= advisory_min else ("SILVER" if v >= fail_min else "FAIL")
+    msg = f"hERG margin={v:.1f}×" + ("" if passed else f" < {fail_min}× (ICH S7B)")
+    return ("ich_s7b_herg_margin", v, fail_min, passed, level, msg)
 
 
 def _gate_boin_dlt_boundary(m: dict) -> Optional[tuple]:
@@ -697,3 +705,69 @@ _GATE_REGISTRY.update({
     "polymorph_stability": [_gate_assay_degradation_accelerated, _gate_polymorph_form_conversion, _gate_shelf_life_projection],
     "biomarker_enrichment": [_gate_biomarker_positive_hazard_ratio, _gate_predictive_prevalence, _gate_phase3_enrichment_factor],
 })
+
+
+# ── Bioconductor harness gate reader (Track 3 Phase 3b, 2026-06-16) ───────────
+# Read BIOC_QC_HARNESS qc_metrics.json (emit shape from
+# backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/_qc_harness/main.nf):
+#
+#   gates_by_label = {
+#     "count normalization": {
+#       "gate_row": "bioc_count_normalization",
+#       "metric_name": "lib_size_cv_ratio",
+#       "metric_value": 0.62,
+#       "passes": true,
+#       "status": "computed" | "not_computed (..)"
+#     }, ...
+#   }
+#
+# This reader converts that into the standard tuple shape used elsewhere
+# in this module, one tuple per declared label. Thresholds come from
+# qc_evidence.yaml.bioconductor_qc.<row> via Track 1's resolve_thresholds.
+# In the MVP (Phase 3b), most labels carry status='not_computed' and the
+# reader skips them. Phase 3c will land real values per label, at which
+# point the same reader picks them up automatically.
+
+def _gate_bioc_label(label: str, gate_info: dict, context: Optional[dict] = None) -> Optional[tuple]:
+    """Convert one BIOC_QC_HARNESS gates_by_label entry into a tuple.
+
+    Returns None when the label is unknown, the metric is None, or the
+    workflow declared a not_computed status (so the gate row stays in
+    the audit ledger via the harness JSON but doesn't fire a tuple).
+    """
+    if not isinstance(gate_info, dict):
+        return None
+    status = gate_info.get("status") or ""
+    if status.startswith("not_computed") or status.startswith("unknown_label"):
+        return None
+    v = gate_info.get("metric_value")
+    if v is None:
+        return None
+    passes = gate_info.get("passes")
+    if passes is None:
+        # honor the harness verdict; treat absence as advisory
+        passes = bool(v is not None)
+    gate_row = gate_info.get("gate_row") or f"bioc_{label.replace(' ', '_').replace('/', '_')}"
+    metric_name = gate_info.get("metric_name") or "value"
+    level = "GOLD" if passes else "FAIL"
+    return (gate_row, float(v), 0.0, bool(passes), level, f"{label}: {metric_name}={v}")
+
+
+def read_bioc_harness_gates(m: dict, context: Optional[dict] = None) -> list[tuple]:
+    """Top-level adapter: take a BIOC_QC_HARNESS qc_metrics.json payload,
+    return a list of gate tuples (one per declared label that landed a
+    computed value). Caller wires these into build_gate_event the same
+    way the per-domain registry does for pharma gates.
+    """
+    out: list[tuple] = []
+    by_label = m.get("gates_by_label")
+    if not isinstance(by_label, dict):
+        return out
+    for label, info in by_label.items():
+        t = _gate_bioc_label(label, info, context)
+        if t is not None:
+            out.append(t)
+    return out
+
+
+_GATE_REGISTRY["bioconductor_qc"] = [read_bioc_harness_gates]

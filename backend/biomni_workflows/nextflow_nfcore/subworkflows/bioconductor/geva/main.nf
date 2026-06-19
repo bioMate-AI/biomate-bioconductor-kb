@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: cluster plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_GEVA_DETAILED_GEVA_PIPELINE {

@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, Gviz
-// Visualizations: box plot, heatmap
+// Visualizations: genomic tracks (Gviz), box plot, heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

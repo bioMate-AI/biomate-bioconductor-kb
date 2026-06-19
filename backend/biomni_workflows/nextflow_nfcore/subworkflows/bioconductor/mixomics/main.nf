@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: mixOmics
-// Visualizations: box plot, PCA plot
+// Visualizations: box plot, biplot, PCA plot, scree plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

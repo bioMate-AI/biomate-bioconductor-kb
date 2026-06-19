@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: violin plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS {

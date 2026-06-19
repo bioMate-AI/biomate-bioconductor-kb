@@ -4206,7 +4206,7 @@ def populate_additional_tool_mappings(db: BenchmarkKnowledgeDB):
         ("TxGNN", "retrieve_topk_repurposing_drugs_from_disease_txgnn", 1.0, "biomni_exact"),
         ("DiffDock", "run_diffdock_with_smiles", 1.0, "biomni_exact"),
         ("DrugBAN", "biomni_drugban", 0.9, "biomni"),
-        ("ADMET-AI", "ADMET_pred", 1.0, "biomni_exact"),
+        ("ADMET-AI", "predict_admet_properties", 1.0, "biomni_exact"),
         ("AutoDock Vina", "docking_autodock_vina", 1.0, "biomni_exact"),
 
         # Cell segmentation tools

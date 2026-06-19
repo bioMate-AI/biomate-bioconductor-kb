@@ -295,8 +295,11 @@ summary_list <- list(
 
 write_json(summary_list, "nca_summary.json", auto_unbox = TRUE, pretty = TRUE)
 
-# ── QC gate: AUC extrapolation pct (FDA 2003 BA/BE, GOLD) ─────────────────────
-# auc_extrap_pct = (AUCinf - AUClast) / AUCinf * 100, per-subject then max.
+# ── QC gates: nca_auc_extrap + nca_terminal_slope_coverage ────────────────────
+# Track 2 batch 1 (2026-06-15): wire the terminal-slope coverage gate alongside
+# the existing AUC extrapolation gate. Both are in qc_evidence.yaml under nca_pk.
+
+# AUC extrap: (AUCinf - AUClast) / AUCinf * 100, per-subject then max (FDA 2003).
 auc_inf  <- as.numeric(params_wide\$AUCinf)
 auc_last <- as.numeric(params_wide\$AUClast)
 extrap_pct <- ifelse(auc_inf > 0, (auc_inf - auc_last) / auc_inf * 100, NA_real_)
@@ -304,16 +307,32 @@ extrap_pct <- extrap_pct[is.finite(extrap_pct)]
 auc_extrap_max  <- if (length(extrap_pct) > 0) max(extrap_pct) else NA_real_
 auc_extrap_mean <- if (length(extrap_pct) > 0) mean(extrap_pct) else NA_real_
 
+# Terminal-slope coverage: subjects whose t_half computed (lambda_z fit succeeded)
+# vs subjects with no terminal-slope fit. PKNCA returns NA for half_life when
+# fewer than 3 terminal-phase points are available (Gabrielsson & Weiner 5th ed).
+thalf_vals    <- suppressWarnings(as.numeric(params_wide\$t_half))
+n_total       <- length(thalf_vals)
+n_no_term     <- sum(!is.finite(thalf_vals))
+n_with_term   <- n_total - n_no_term
+term_cov_pct  <- if (n_total > 0) (n_with_term / n_total) * 100 else 0
+term_cov_passes <- (n_no_term <= 2)   # rule_text from qc_evidence.yaml
+
 qc_metrics <- list(
-    success                  = TRUE,
-    process                  = "NCA_PKNCA_ANALYSIS",
-    domain                   = "drug_discovery",
-    n_subjects               = length(unique(df\$subject_id)),
-    auc_extrap_pct_max       = auc_extrap_max,
-    auc_extrap_pct_mean      = auc_extrap_mean,
-    auc_extrap_within_20pct  = isTRUE(auc_extrap_max <= 20),
-    evidence_tier            = "GOLD",
-    citation                 = "FDA 2003 BA/BE Studies for Orally Administered Drug Products"
+    success                       = TRUE,
+    process                       = "NCA_PKNCA_ANALYSIS",
+    domain                        = "drug_discovery",
+    n_subjects                    = length(unique(df\$subject_id)),
+    # nca_auc_extrap gate
+    auc_extrap_pct_max            = auc_extrap_max,
+    auc_extrap_pct_mean           = auc_extrap_mean,
+    auc_extrap_within_20pct       = isTRUE(auc_extrap_max <= 20),
+    # nca_terminal_slope_coverage gate
+    subjects_with_no_terminal_slope = n_no_term,
+    terminal_slope_coverage_pct   = round(term_cov_pct, 1),
+    terminal_slope_coverage_passes = term_cov_passes,
+    # provenance
+    evidence_tier                 = "GOLD-auc_extrap / SILVER-terminal_slope",
+    citation                      = "FDA 2003 BA/BE + Gabrielsson & Weiner PK/PD 5th ed."
 )
 write_json(qc_metrics, "qc_metrics.json", auto_unbox = TRUE, pretty = TRUE)
 

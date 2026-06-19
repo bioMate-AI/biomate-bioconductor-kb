@@ -7,7 +7,7 @@
 // R packages: breastcancerupp, doParallel, hgu133a.db, safe
 // Bioconductor: 3.20 | R: 4.4
 // Requires: hgu133a.db, safe
-// Visualizations: plot (ggplot/base)
+// Visualizations: pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ggplot2, rexposome
-// Visualizations: PCA plot
+// Visualizations: PCA plot, correlation plot, circos plot
 // QC: diagnostic MA/PCA QC, missing-value handling
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
@@ -35,6 +35,7 @@ process BIOC_REXPOSOME_STANDARD_EXPOSOME_ANALYSIS {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -220,6 +221,76 @@ process BIOC_REXPOSOME_STANDARD_EXPOSOME_ANALYSIS {
     p_mexwas <- plotExwas(bl_mew, we_mew) + ylab("") + ggtitle("Exposome Association Study - Multivariate Approach")
     print(p_mexwas)
     dev.off()
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
+    # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
+    .pca_pc1 <- NA_real_; .pca_files <- character(0)
+    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
+      .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
+      if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
+        .pca_m <- suppressWarnings(as.matrix(.pca_mat))
+        .pca_kept <- apply(.pca_m, 1, function(r) all(is.finite(r)) && var(r) > 0)
+        if (sum(.pca_kept) >= 50) {
+          .pca_fit <- tryCatch(prcomp(t(.pca_m[.pca_kept, , drop = FALSE])), error = function(e) NULL)
+          if (!is.null(.pca_fit)) {
+            .pca_vars <- (.pca_fit\$sdev^2) / sum(.pca_fit\$sdev^2)
+            .pca_pc1 <- round(.pca_vars[1] * 100, 2); .pca_files <- c(.pca_files, .pca_rds); break
+          }
+        }
+      }
+    }
+    .gates_by_label[["diagnostic MA/PCA QC"]] <- list(
+      gate_row = "bioc_diagnostic_ma_pca_qc",
+      metric_name = "pc1_var_explained",
+      metric_value = .pca_pc1,
+      passes = isTRUE(is.finite(.pca_pc1) && .pca_pc1 > 10),
+      status = if (is.finite(.pca_pc1)) paste0("computed (PC1=", .pca_pc1, "%)")
+               else "not_computed (no large numeric matrix .rds artifact present)"
+    )
+
+    # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
+    .mv_na_fracs <- numeric(0)
+    .mv_scanned <- character(0)
+    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
+      .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
+      if (!is.null(.mv_mat)) {
+        .mv_vals <- suppressWarnings(as.numeric(as.matrix(.mv_mat)))
+        if (length(.mv_vals) > 0) {
+          .mv_na_fracs <- c(.mv_na_fracs, mean(is.na(.mv_vals)))
+          .mv_scanned <- c(.mv_scanned, .mv_rds)
+        }
+      }
+    }
+    .mv_max <- if (length(.mv_na_fracs) > 0) round(max(.mv_na_fracs), 4) else NA_real_
+    .gates_by_label[["missing-value handling"]] <- list(
+      gate_row = "bioc_missing_value_handling",
+      metric_name = "na_fraction_remaining",
+      metric_value = .mv_max,
+      passes = isTRUE(is.finite(.mv_max) && .mv_max < 0.05),
+      status = if (is.finite(.mv_max)) paste0("computed (scanned ", length(.mv_scanned), " rds files)")
+               else "not_computed (no matrix/data.frame .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_REXPOSOME_STANDARD_EXPOSOME_ANALYSIS",
+      domain  = "bioconductor",
+      declared_qc_steps = c("diagnostic MA/PCA QC", "missing-value handling"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_REXPOSOME_STANDARD_EXPOSOME_ANALYSIS":',

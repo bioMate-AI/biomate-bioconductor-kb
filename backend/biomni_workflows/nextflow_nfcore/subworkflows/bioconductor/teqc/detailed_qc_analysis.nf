@@ -7,7 +7,7 @@
 // R packages: TEQC
 // Bioconductor: 3.20 | R: 4.4
 // Requires: TEQC
-// Visualizations: bar plot, density plot
+// Visualizations: bar plot, coverage plot, density plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

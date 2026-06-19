@@ -347,6 +347,14 @@ qc_metrics = {
     'deamidation_liabilities_high': n_high_deamid,
     'oxidation_liabilities_high':   n_high_oxid,
     'overall_developability_risk':  overall_risk,
+    # Track 2 batch 6 (2026-06-15): document the two YAML gate rows that
+    # this workflow can't fire on without a scale reconciliation. Keeps
+    # the gates in the audit ledger as 'not_used' with a structured
+    # reason instead of letting them silently never fire.
+    'ab_tap_surface_hydrophobicity_passes': None,
+    'ab_tap_surface_hydrophobicity_status': 'not_used (workflow agg_score has inverted semantics vs Raybould 2019 TAP PSH; needs upstream TAP-PSH integration)',
+    'ab_camsol_intrinsic_solubility_passes': None,
+    'ab_camsol_intrinsic_solubility_status': 'not_used (CamSol-proxy patch score on a different numeric scale; needs real CamSol implementation)',
 }
 with open('qc_metrics.json', 'w') as f:
     json.dump(qc_metrics, f, indent=2)

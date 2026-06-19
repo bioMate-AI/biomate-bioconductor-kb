@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: PCA plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_SEQSQC_STEP_BY_STEP_QC {

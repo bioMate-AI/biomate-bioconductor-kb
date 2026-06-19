@@ -7,6 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: InteractionSet, TxDb.Hsapiens.UCSC.hg19.knownGene, geomeTriD, htmlwidgets, org.Hs.eg.db, trackViewer
+// Visualizations: MDS plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

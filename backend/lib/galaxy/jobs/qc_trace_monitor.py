@@ -901,6 +901,7 @@ class NextflowQCGateHandler:
         qc_overrides: Optional[Dict[str, Any]] = None,
         qc_profile: Optional[str] = None,
         s3_outdir: Optional[str] = None,
+        s3_work_dir: Optional[str] = None,
     ):
         """
         Initialize QC gate handler.
@@ -931,6 +932,13 @@ class NextflowQCGateHandler:
         # S3 published output directory — set for Batch runs so _calculate_qc_metrics
         # can read published report JSON files instead of non-existent local task dirs.
         self.s3_outdir: Optional[str] = s3_outdir.rstrip("/") if s3_outdir else None
+        # S3 work directory — set for Batch runs so we can fetch qc_metrics.json
+        # directly from the per-task work dir when publishDir is disabled
+        # (BioMate workflows: publishDir=null is force-injected by the executor
+        # to avoid AWS CRT JVM SIGSEGV — see nextflow_executor.py:1893-1936).
+        # qc_metrics.json then lives at s3_work_dir/<hash[:2]>/<rest>/qc_metrics.json
+        # and never at s3_outdir/<process>/qc_metrics.json.
+        self.s3_work_dir: Optional[str] = s3_work_dir.rstrip("/") if s3_work_dir else None
 
         # Merge profile overrides (lower precedence) with explicit overrides (higher precedence).
         # Merge order: profile → explicit overrides (right-hand-side wins on key collision)
@@ -1165,6 +1173,85 @@ class NextflowQCGateHandler:
 
         return override_val
 
+    # Mapping: metric name → (yaml_domain, yaml_gate_name, advisory_or_fail).
+    # Limited to the 4 modifier-aware gates added in Track 1 step 1
+    # (docs/20260615_QC_GATE_INVENTORY_AND_PLAN.md). When a metric appears
+    # here AND no explicit user override exists, the threshold is resolved
+    # from qc_evidence.yaml modifiers using the active context. Other metrics
+    # continue through the legacy default path.
+    _MODIFIER_AWARE_METRICS: Dict[str, tuple] = {
+        # (yaml_domain, yaml_gate_name, "advisory_min" or "fail_min")
+        "herg_safety_margin_x":     ("ich_s7",         "ich_s7b_herg_margin",       "fail_min"),
+        "eta_shrinkage_pct_max":    ("nlmixr2_poppk",  "nlmixr2_eta_shrinkage",     "fail_min"),
+        "ofv_delta_max":            ("nlmixr2_poppk",  "nlmixr2_ofv_stability",     "fail_min"),
+        "auc_extrap_pct_max":       ("nca_pk",         "nca_auc_extrap",            "fail_min"),
+    }
+
+    def _get_threshold_with_context(
+        self,
+        metric: str,
+        default: float,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> float:
+        """
+        Variant of _get_threshold that consults qc_evidence.yaml's modifiers
+        block when no explicit user override exists. Falls through to the
+        legacy _get_threshold flow when:
+          - metric is not in _MODIFIER_AWARE_METRICS, OR
+          - context is None / no axes match, OR
+          - explicit user override already wins (handled by _get_threshold).
+
+        `context` is a dict like {"indication_class": "chronic_cns"} or
+        {"sampling_density": "sparse", "downstream_use": "vpc_only"}. Built
+        from invocation metadata + the active QC profile; see
+        _build_modifier_context() for the canonical translation.
+        """
+        # Explicit override + GOLD-metric protection short-circuit first —
+        # users opt in to those paths explicitly.
+        if self.qc_overrides and metric in self.qc_overrides:
+            return self._get_threshold(metric, default)
+
+        mapping = self._MODIFIER_AWARE_METRICS.get(metric)
+        if mapping is None or not context:
+            return default
+
+        domain, gate_name, tier_key = mapping
+        try:
+            from galaxy.ai.retrievers.qc_evidence import resolve_thresholds
+        except Exception:
+            return default
+        adv, fai = resolve_thresholds(
+            domain, gate_name, context,
+            default_advisory=default if tier_key == "advisory_min" else None,
+            default_fail=default if tier_key == "fail_min" else None,
+        )
+        resolved = adv if tier_key == "advisory_min" else fai
+        return float(resolved) if resolved is not None else default
+
+    def _build_modifier_context(self) -> Dict[str, Any]:
+        """
+        Build the context dict for resolve_thresholds() from the invocation's
+        currently-known metadata. Right now sources the active QC profile
+        only; future plumbing (invocation submission API → trace monitor
+        constructor) can attach indication / phase / sampling density etc.
+        """
+        ctx: Dict[str, Any] = {}
+        # Profile → indication-class mapping (matches the YAML axis names).
+        # compound_druglike is BioMate's general drug-discovery profile.
+        profile_to_indication = {
+            "compound_druglike":     "general",
+            "antibiotic_screen":     "antibiotic_short_course",
+            "oncology_screen":       "oncology_lifesaving",
+            "cns_chronic":           "chronic_cns",
+            "cardiac_chronic":       "chronic_cardiac",
+        }
+        if self.active_profile in profile_to_indication:
+            ctx["indication_class"] = profile_to_indication[self.active_profile]
+        # Phase modifier: profile names ending in '_regulatory' bump to that tier.
+        if self.active_profile and self.active_profile.endswith("_regulatory"):
+            ctx["phase"] = "regulatory"
+        return ctx
+
     def _write_audit_log_entry(self, event_type: str, applied_overrides: Dict[str, Any]) -> None:
         """
         Append one JSONL record to work_dir/qc_overrides_audit.jsonl.
@@ -1322,6 +1409,15 @@ class NextflowQCGateHandler:
         # parsers only if S3 returned nothing.
         if self.s3_outdir:
             s3_metrics = self._read_s3_report_metrics(process_upper)
+            if s3_metrics is not None:
+                return s3_metrics
+
+        # Work-dir fallback: when publishDir is disabled (BioMate workflows;
+        # see nextflow_executor.py:1893-1936) qc_metrics.json never makes it
+        # to outdir. Fetch it from the per-task work dir on S3 instead.
+        # Hash format from Nextflow trace: "ab/cdef0123..." → key segments.
+        if self.s3_work_dir and process_hash and "/" in process_hash:
+            s3_metrics = self._read_s3_workdir_report(process_upper, process_hash)
             if s3_metrics is not None:
                 return s3_metrics
 
@@ -1550,6 +1646,17 @@ class NextflowQCGateHandler:
         "NCA_PKNCA_ANALYSIS":        ("*", "qc_metrics.json"),  # auc_extrap_pct_max ≤ 20% (GOLD, FDA 2003 BA/BE)
         "PBPK_SIMULATION":           ("*", "qc_metrics.json"),  # tmax_fraction ≤ 0.8 (SILVER, FDA 2018 PBPK)
         "GENOTOXICITY_AMES_PREDICTION": ("*", "qc_metrics.json"),  # Ames clean = 0 POSITIVE / 0 SUSPECT (SILVER, Kazius 2005 / ICH S2R1)
+        "DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS": ("*", "qc_metrics.json"),  # VAF≥0.05 + depth≥30x + MAPQ≥20 (GOLD GATK + Kim 2018 + Li 2009)
+        "DOCKING_AUTODOCK_VINA":     ("*", "qc_metrics.json"),  # best_score ≤ -7 + n_poses ≥ 3 (BRONZE, Trott & Olson 2010)
+        "OPENFE_ANALYSIS":           ("*", "qc_metrics.json"),  # openfe_rbfe cycle_closure ≤ 1 kcal/mol (GOLD, Mey 2020)
+        "BIOC_QC_HARNESS":           ("*", "qc_metrics.json"),  # Bioconductor QC harness (Phase 3b MVP, 2026-06-16) — emits gates_by_label keyed by 25-label qc_steps taxonomy
+        # Phase 3c (2026-06-17): every Bioconductor subworkflow patched via
+        # bioc_qc_harness_inject_multi.py uses a process name that starts
+        # `BIOC_<package>_<task>` (e.g. BIOC_A4_MICROARRAY_DE, BIOC_BIOBROOM_...).
+        # The single `BIOC_` substring covers all 396 adopted workflows.
+        # False-positive risk audited 2026-06-17: zero process names with
+        # `BIOC_` prefix exist outside subworkflows/bioconductor/.
+        "BIOC_":                     ("*", "qc_metrics.json"),
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
@@ -1590,14 +1697,23 @@ class NextflowQCGateHandler:
                 search_prefix = f"{prefix_base}/" if prefix_base else ""
             else:
                 search_prefix = f"{prefix_base}/{step_prefix}/" if prefix_base else f"{step_prefix}/"
-            resp = s3.list_objects_v2(Bucket=bucket, Prefix=search_prefix)
-            report_objects = [
-                obj["Key"] for obj in resp.get("Contents", [])
-                if _fnmatch.fnmatch(obj["Key"].split("/")[-1], report_pattern)
-            ]
+
+            # Paginate list_objects_v2 — a single page is capped at 1000 keys.
+            # HTS / large fan-out workflows (run 193c34ca, 2026-06-15) publish
+            # qc_metrics.json under a step subdir (hts_run/qc_metrics.json) that
+            # alphabetically sorts after thousands of per-plate outputs, so it
+            # is invisible to a single-page listing. LNP worked because its
+            # output set fits in one page. Bug class: path-resolution / listing.
+            report_objects: list = []
+            paginator = s3.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=bucket, Prefix=search_prefix):
+                for obj in page.get("Contents", []) or []:
+                    key = obj["Key"]
+                    if _fnmatch.fnmatch(key.split("/")[-1], report_pattern):
+                        report_objects.append(key)
 
             if not report_objects:
-                log.info("[QC-S3] No report found for %s at s3://%s/%s%s",
+                log.info("[QC-S3] No report found for %s at s3://%s/%s (pattern=%s, paginated)",
                          process_upper, bucket, search_prefix, report_pattern)
                 return None
             log.info("[QC-S3] Reading report for %s from s3://%s/%s",
@@ -1614,6 +1730,87 @@ class NextflowQCGateHandler:
 
         except Exception as _e:
             log.warning("[QC-S3] Error reading S3 report for %s: %s", process_upper, _e)
+            return None
+
+    def _read_s3_workdir_report(
+        self, process_upper: str, process_hash: str
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch qc_metrics.json from the Nextflow per-task S3 work dir.
+
+        Used when publishDir is disabled (BioMate workflows; the executor
+        force-injects ``process { publishDir = null }`` to avoid AWS CRT
+        JVM SIGSEGV — see nextflow_executor.py:1893-1936). In that case
+        qc_metrics.json never lands at ``s3_outdir/<process>/`` so the
+        outdir scan in ``_read_s3_report_metrics`` returns None. The file
+        still exists at ``s3_work_dir/<hash[:2]>/<rest>/qc_metrics.json``
+        because the Batch task writes it there during execution.
+
+        Path construction: Nextflow trace gives a process_hash like
+        "ab/cdef0123abc..." where "ab" is the first two chars of the
+        full hash and "cdef..." is an abbreviated prefix of the rest.
+        Real work-dir keys use the full hash, so we list under
+        ``s3_work_dir/ab/`` and pick the first match starting with the
+        abbreviated prefix.
+        """
+        if not self.s3_work_dir or not self.s3_work_dir.startswith("s3://"):
+            return None
+        if "/" not in process_hash:
+            return None
+        try:
+            import boto3 as _boto3
+            import json as _json
+
+            prefix, rest = process_hash.split("/", 1)
+            parts = self.s3_work_dir[5:].split("/", 1)
+            bucket = parts[0]
+            prefix_base = parts[1].rstrip("/") if len(parts) > 1 else ""
+            list_prefix = (
+                f"{prefix_base}/{prefix}/" if prefix_base else f"{prefix}/"
+            )
+
+            s3 = _boto3.client(
+                "s3",
+                region_name=__import__("os").environ.get(
+                    "AWS_DEFAULT_REGION", "us-west-2"
+                ),
+            )
+            paginator = s3.get_paginator("list_objects_v2")
+            target_key: Optional[str] = None
+            for page in paginator.paginate(Bucket=bucket, Prefix=list_prefix):
+                for obj in page.get("Contents", []) or []:
+                    key = obj["Key"]
+                    # Match qc_metrics.json under any task dir whose name
+                    # starts with the abbreviated rest of the hash.
+                    rel = key[len(list_prefix):]
+                    if not rel.startswith(rest):
+                        continue
+                    if rel.endswith("/qc_metrics.json"):
+                        target_key = key
+                        break
+                if target_key:
+                    break
+
+            if not target_key:
+                log.info(
+                    "[QC-S3] No work-dir qc_metrics.json for %s at "
+                    "s3://%s/%s (hash=%s)",
+                    process_upper, bucket, list_prefix, process_hash,
+                )
+                return None
+
+            log.info(
+                "[QC-S3] Reading work-dir qc_metrics.json for %s from s3://%s/%s",
+                process_upper, bucket, target_key,
+            )
+            obj = s3.get_object(Bucket=bucket, Key=target_key)
+            data = _json.loads(obj["Body"].read().decode("utf-8"))
+            return self._report_json_to_metrics(process_upper, data)
+
+        except Exception as _e:
+            log.warning(
+                "[QC-S3] Error reading work-dir report for %s: %s",
+                process_upper, _e,
+            )
             return None
 
     def _report_json_to_metrics(self, process_upper: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -5204,7 +5401,15 @@ class NextflowQCGateHandler:
             # FDA Guidance on PK studies 2018: "extrapolated AUC should be < 20%
             # of AUCinf to consider the profile adequately characterised"
             auc_extrap = qc_metrics.get("auc_extrap_pct_max")
-            _extrap_t = self._get_threshold("auc_extrap_pct_max", 20.0)
+            # Modifier-aware: profile / phase / population can tighten or relax
+            # the 20% FDA-default. See _MODIFIER_AWARE_METRICS + the YAML
+            # `modifiers` block for nca_auc_extrap. Defaults to 20.0 when no
+            # context applies (legacy behavior preserved).
+            _extrap_t = self._get_threshold_with_context(
+                "auc_extrap_pct_max",
+                self._get_threshold("auc_extrap_pct_max", 20.0),
+                context=self._build_modifier_context(),
+            )
             if auc_extrap is not None and auc_extrap > _extrap_t:
                 failures.append({
                     "metric": "auc_extrap_pct_max",

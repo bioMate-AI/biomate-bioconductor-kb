@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: cluster plot
+// QC: low-count filtering
+
 nextflow.enable.dsl = 2
 
 process BIOC_PHOSR_TIME_COURSE_CLUSTERING {

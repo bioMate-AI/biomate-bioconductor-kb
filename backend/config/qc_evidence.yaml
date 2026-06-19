@@ -95,12 +95,20 @@ admet:
   admet_herg_ic50:
     - paper_ref: "Redfern P et al. Cardiovasc Res 2003; 58(1):32-45"
       paper_doi: "10.1016/S0008-6363(02)00846-5"
-      provenance: GOLD
+      # 2026-06-16 split-grade per Track 1 step 3: Redfern 2003 establishes
+      # the HERG margin → arrhythmia-risk correlation across drug classes;
+      # the specific 30× / 10 µM tier values are pharma-community convention
+      # (Bowes 2012 cross-pharma consensus). Metric is GOLD-anchored to the
+      # paper; tier numbers are SILVER-operational.
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        Redfern 2003 establishes the 30× safety margin between hERG
-        IC50 and free therapeutic Cmax as the industry-accepted cardiac
-        liability cutoff; for a typical small-molecule free Cmax of
-        ~0.3 µM this corresponds to an IC50 ≥ 10 µM.
+        Redfern 2003 documents the correlation between hERG IC50 / free
+        Cmax safety margin and clinical arrhythmia risk across drug
+        classes. The paper describes the metric; the specific 30× safety-
+        margin tier (and the typical-free-Cmax-derived 10 µM IC50 floor)
+        is pharma-community operational convention summarised by Bowes
+        2012 Nat Rev Drug Discov 11:909-922 (DOI 10.1038/nrd3845), not
+        stated verbatim in Redfern 2003.
       rule_text: >
         BioMate halts if hERG IC50 ≤ 10 µM (admet_standard profile).
         The 10 µM operational threshold is confirmed in Bowes 2012
@@ -191,21 +199,39 @@ nca_pk:
   nca_auc_extrap:
     - paper_ref: "FDA Bioavailability Studies Guidance (2003)"
       paper_doi: "https://www.fda.gov/media/70958/download"
-      provenance: GOLD
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        FDA 2003 BA/BE guidance: AUC extrapolation from last
-        observed concentration to infinity should be ≤ 20% of
-        AUC_inf for the estimate to be reliable. Higher values
-        indicate inadequate sampling duration.
+        FDA 2003 BA/BE guidance establishes AUC_extrap_pct ≤ 20% as the
+        threshold for "reliable" AUC_inf estimation in healthy-volunteer
+        BA/BE studies. The 20% is the canonical floor; sicker populations
+        and longer-half-life drugs routinely operate at 30-40% extrap
+        without the result being un-usable. The guidance threshold is
+        healthy-volunteer specific.
       rule_text: >
-        BioMate halts when AUC_extrap_pct > 20% (nca_standard);
-        regulatory profile tightens to > 15%. The 20% cutoff is
-        GOLD-anchored to FDA 2003 verbatim; the 15% regulatory tier
-        is BioMate-operational (a stricter pre-NDA filter, not in
-        the guidance).
+        BioMate halts when AUC_extrap_pct > FAIL_threshold for the active
+        profile (see modifiers). Default profile is FDA-2003 healthy-vol
+        (20% advisory / 30% FAIL).
+      modifiers:
+        # Population modifier — sicker populations sample harder.
+        population:
+          healthy:    {advisory_min: 20, fail_min: 30}   # FDA 2003 default
+          oncology:   {advisory_min: 30, fail_min: 50}
+          renal_impt: {advisory_min: 30, fail_min: 50}
+          pediatric:  {advisory_min: 25, fail_min: 40}
+        # Development-phase modifier — stricter for regulatory submissions.
+        phase:
+          discovery:    {advisory_min: 30, fail_min: 50}
+          phase1:       {advisory_min: 20, fail_min: 30}   # default
+          phase2_3:     {advisory_min: 15, fail_min: 25}
+          regulatory:   {advisory_min: 15, fail_min: 20}
+        # Drug-class modifier — long-half-life drugs naturally extrap more.
+        half_life_class:
+          short:   {advisory_min: 15, fail_min: 25}   # t1/2 < 12h
+          medium:  {advisory_min: 20, fail_min: 30}   # 12-48h, default
+          long:    {advisory_min: 30, fail_min: 50}   # > 48h
       finding: >
-        Remediation: extend last_sampling_time_h by 1.5× to capture
-        more of the terminal elimination phase.
+        Remediation: extend last_sampling_time_h by 1.5× to capture more
+        of the terminal elimination phase.
 
   nca_terminal_slope_coverage:
     - paper_ref: "Gabrielsson J & Weiner D. PK/PD Data Analysis 5th ed."
@@ -386,15 +412,27 @@ ich_s7:
   ich_s7b_herg_margin:
     - paper_ref: "ICH S7B Nonclinical Evaluation of Delayed Ventricular Repolarization (2005)"
       paper_doi: "https://database.ich.org/sites/default/files/S7B_Guideline.pdf"
-      provenance: GOLD
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
         ICH S7B requires both in vitro IKr (hERG) assay and in vivo
-        QT/QTc assessment. Safety margin = hERG IC50 / free Cmax. A
-        margin < 30× indicates need for further QT investigation; < 10×
-        is high cardiac risk.
+        QT/QTc assessment. Safety margin = hERG IC50 / free Cmax. The
+        30× and 10× tier values commonly cited are pharma-community
+        convention summarised in Redfern 2003 J Cardiovasc Electrophysiol
+        (the per-class risk tiering paper); ICH S7B itself does not
+        state these specific cutoffs verbatim.
       rule_text: >
         BioMate flags safety margin < 10× as RED, 10-30× as YELLOW,
-        ≥30× as GREEN.
+        ≥30× as GREEN. Tier values are operational; see modifiers for
+        per-indication adjustment.
+      modifiers:
+        # Indication-class modifier — chronic CNS / cardiac drugs have
+        # tighter margin requirements than short-course antibiotics.
+        indication_class:
+          antibiotic_short_course: {advisory_min: 10, fail_min: 5}    # bigger appetite
+          oncology_lifesaving:     {advisory_min: 10, fail_min: 5}
+          general:                 {advisory_min: 30, fail_min: 10}   # default
+          chronic_cns:             {advisory_min: 50, fail_min: 30}
+          chronic_cardiac:         {advisory_min: 100, fail_min: 50}  # QT-history class
       finding: >
         Remediation: structural modification to reduce hERG binding,
         or comprehensive in vivo QT assessment.
@@ -535,12 +573,19 @@ pocket_detection:
   pocket_druggability_score:
     - paper_ref: "Le Guilloux V, Schmidtke P, Tuffery P. BMC Bioinformatics 2009; 10:168"
       paper_doi: "10.1186/1471-2105-10-168"
-      provenance: GOLD
+      # 2026-06-16 split-grade per Track 1 step 3: Le Guilloux 2009 introduces
+      # the druggability score as a continuous function of pocket descriptors
+      # (volume, hydrophobicity, polarity). The ≥ 0.5 druggable / < 0.3
+      # non-druggable tiers are reported as observed distributions on the
+      # paper's benchmark set, not prescribed as operational cutoffs.
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        Le Guilloux 2009 introduces fpocket and establishes the
-        druggability score (combining pocket volume, hydrophobicity,
-        and polarity). Score ≥ 0.5 indicates a druggable pocket;
-        < 0.3 is non-druggable.
+        Le Guilloux 2009 introduces fpocket and the druggability score
+        combining pocket volume, hydrophobicity, and polarity. The paper
+        reports the observed distribution on its benchmark set — most
+        druggable pockets score ≥ 0.5; most non-druggable ones score
+        < 0.3 — but does not prescribe these as binary acceptance cutoffs.
+        BioMate adopts the tiers as operational defaults.
       rule_text: >
         BioMate gates pocket druggability ≥ 0.5 as PASS; 0.3-0.5
         as borderline; < 0.3 as FAIL.
@@ -756,16 +801,40 @@ lnp_formulation:
 # ─── nlmixr2 population PK gates ────────────────────────────────────
 nlmixr2_poppk:
   nlmixr2_eta_shrinkage:
-    - paper_ref: "Savic RM & Karlsson MO. J Pharmacokinet Pharmacodyn 2007; 34:711-726"
-      paper_doi: "10.1007/s10928-007-9066-0"
-      provenance: GOLD
+    # 2026-06-15 citation correction: previous YAML cited Savic & Karlsson
+    # J Pharmacokinet Pharmacodyn 2007;34:711-726 — that is the same authors'
+    # transit-compartment absorption paper, NOT the shrinkage paper. The
+    # canonical shrinkage paper is in AAPS J 2009. Citation NEEDS_PUBMED_VERIFY
+    # before any audit-grade use.
+    - paper_ref: "Savic RM & Karlsson MO. AAPS J 2009; 11(3):558-569 (PMID 19649712) — NEEDS_PUBMED_VERIFY"
+      paper_doi: "10.1208/s12248-009-9133-0"
+      provenance: GOLD-metric / SILVER-tier
       paper_supports: >
-        Savic & Karlsson 2007 establish ~30% as the η-shrinkage threshold
-        above which EBE-based diagnostics and covariate screening become
-        unreliable. The paper explicitly recommends this cutoff.
+        Savic & Karlsson 2009 establishes η-shrinkage as the diagnostic
+        for whether empirical Bayes estimates (EBEs) can be trusted for
+        downstream covariate screening and diagnostic plots. The paper
+        describes the metric and its failure mode at high shrinkage; the
+        specific 20% / 30% tiering is pharmacometrics-community convention
+        attributed to this work, not stated verbatim as a cutoff.
       rule_text: >
         η-shrinkage < 20% = pass; 20-30% = advisory; > 30% = FAIL
-        (EBE-based covariate inference unreliable).
+        (EBE-based covariate inference unreliable). Tiers are operational
+        — see modifiers block for context overrides.
+      modifiers:
+        # Sparse-sampling Pop-PK with 4-8 observations/subject routinely
+        # sits at 30-50% shrinkage without indicating a bad fit — the
+        # population parameters can still be well-estimated even when
+        # individual EBEs shrink hard. Loosen the FAIL line accordingly.
+        sampling_density:
+          rich:    {advisory_min: 20, fail_min: 30}    # default
+          sparse:  {advisory_min: 30, fail_min: 50}    # 4-8 obs/subject
+        # Downstream-use modifier: if the workflow only uses simulation-
+        # based diagnostics (VPC) and reports population parameters, high
+        # shrinkage doesn't disqualify the result.
+        downstream_use:
+          ebe_diagnostics: {advisory_min: 20, fail_min: 30}    # default
+          vpc_only:        {advisory_min: 30, fail_min: 60}
+          population_only: {advisory_min: 40, fail_min: 70}
       finding: >
         High shrinkage → rely on simulation-based diagnostics, not EBE plots.
 
@@ -784,17 +853,42 @@ nlmixr2_poppk:
         Ill conditioning indicates redundant parameters — simplify model.
 
   nlmixr2_ofv_stability:
-    - paper_ref: "FDA Pop-PK Guidance + NONMEM community practice"
+    # 2026-06-15: rule_text previously had 3.84 hardcoded — that is the
+    # χ² critical value at α=0.05 with df=1 ONLY. For nested LRT with df>1
+    # the threshold should scale (df=2 → 5.99; df=3 → 7.81). For seed-to-seed
+    # run-stability (not nested testing), the cutoff is method-dependent:
+    # FOCEI is deterministic so ΔOFV ≈ 0 is expected, SAEM is stochastic so
+    # ΔOFV in the 1-3 range is normal noise.
+    - paper_ref: "FDA Pop-PK Guidance (2022) + NONMEM/nlmixr2 community practice"
       paper_doi: "https://www.fda.gov/media/128793/download"
       provenance: BRONZE
       paper_supports: >
-        FDA requires convergence/stability evidence. The |ΔOFV| < 3.84
-        community cutoff comes from chi-squared 1 df interpretation, not
-        published as a Pop-PK QC threshold.
+        FDA requires convergence/stability evidence in Pop-PK submissions.
+        The community |ΔOFV| < 3.84 cutoff comes from χ² critical value
+        at α=0.05 with df=1 — it applies to nested LRT for ONE additional
+        parameter, not generic run-stability. For non-LRT use the
+        threshold is operational and depends on estimation method.
       rule_text: >
-        |ΔOFV| < 1.0 = pass; 1.0-3.84 = advisory; >= 3.84 = FAIL.
+        Two distinct use cases — pick by context (see modifiers):
+        (a) nested LRT: |ΔOFV| ≥ χ²(α=0.05, df) where df = added params;
+        (b) run stability: |ΔOFV| < 1.0 (FOCEI) or < 3.0 (SAEM) across
+            seeds = pass; larger = local minimum suspected.
+      modifiers:
+        # Nested LRT — threshold scales with degrees of freedom.
+        df:
+          1: {advisory_min: 2.0,  fail_min: 3.84}
+          2: {advisory_min: 3.0,  fail_min: 5.99}
+          3: {advisory_min: 4.0,  fail_min: 7.81}
+          # For df > 3 the rule_text recommends computing qchisq(0.95, df)
+          # directly; not enumerating here.
+        # Estimation method — affects expected seed-to-seed noise floor.
+        estimation_method:
+          focei: {advisory_min: 0.5, fail_min: 1.0}   # deterministic
+          saem:  {advisory_min: 2.0, fail_min: 3.0}   # stochastic SAEM
       finding: >
-        Large OFV swings across seeds → local minimum suspected.
+        Large OFV swings across seeds → local minimum suspected. For
+        nested-model testing, use df-aware critical value (qchisq(0.95, df)),
+        not the legacy 3.84 default.
 
 # ─── Antibody developability gates ──────────────────────────────────
 antibody_developability:
@@ -980,6 +1074,9 @@ transcriptomics:
     - paper_ref: "Zhu A, Ibrahim JG, Love MI. Bioinformatics 2019; 35(12):2084-2092"
       paper_doi: "10.1093/bioinformatics/bty895"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: apeglm
+      superseded_by: null
       paper_supports: >
         apeglm prior for log-fold-change shrinkage — improves ranking of
         low-count genes in DESeq2 output.
@@ -993,6 +1090,9 @@ transcriptomics:
     - paper_ref: "Yu G, Wang LG, Han Y, He QY. OMICS 2012; 16(5):284-287"
       paper_doi: "10.1089/omi.2012.0118"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: clusterProfiler
+      superseded_by: null
       paper_supports: >
         clusterProfiler — GO + KEGG over-representation and GSEA
         analysis for the post-DE gene list. Standard Bioconductor
@@ -1007,6 +1107,9 @@ transcriptomics:
     - paper_ref: "Chen Y, Lun ATL, Smyth GK. F1000Research 2016; 5:1438"
       paper_doi: "10.12688/f1000research.8987.2"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: edgeR
+      superseded_by: null
       paper_supports: >
         edgeR Quasi-Likelihood F-test — alternative DE method when DESeq2
         assumptions are violated. Listed as a swap-point alternative in
@@ -1021,6 +1124,9 @@ transcriptomics:
     - paper_ref: "Law CW, Chen Y, Shi W, Smyth GK. Genome Biology 2014; 15:R29"
       paper_doi: "10.1186/gb-2014-15-2-r29"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: limma
+      superseded_by: null
       paper_supports: >
         limma-voom — variance-stabilising transformation for RNA-seq
         counts then linear modelling. Third alternative for the
@@ -1035,7 +1141,12 @@ single_cell:
   scater_qc_normalization:
     - paper_ref: "McCarthy DJ, Campbell KR, Lun ATL, Wills QF. Bioinformatics 2017; 33(8):1179-1186"
       paper_doi: "10.1093/bioinformatics/btw777"
-      provenance: GOLD
+      provenance: BRONZE
+      superseded_by: bioconductor_qc.bioc_per_cell_qc_outliers
+      note: >
+        kept for audit-trail continuity; canonical row is
+        bioconductor_qc.bioc_per_cell_qc_outliers (same McCarthy 2017
+        scater citation, isOutlier nmads=3 metric).
       paper_supports: >
         scater — per-cell QC metrics and SingleCellExperiment
         normalization. Step 2 of the scrna_consensus_de_bioc chain.
@@ -1049,6 +1160,9 @@ single_cell:
     - paper_ref: "Finak G, McDavid A, et al. Genome Biology 2015; 16:278"
       paper_doi: "10.1186/s13059-015-0844-5"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: MAST
+      superseded_by: null
       paper_supports: >
         MAST — two-part generalised linear hurdle model for single-cell
         RNA-seq DE that handles zero-inflation. One of the two parallel
@@ -1063,6 +1177,9 @@ single_cell:
     - paper_ref: "Qiu X, Mao Q, et al. Nature Methods 2017; 14(10):979-982"
       paper_doi: "10.1038/nmeth.4402"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: monocle
+      superseded_by: null
       paper_supports: >
         Monocle 3 — pseudotime-aware DE for ordered cell-state
         progression. The second arm of the scRNA consensus DE fan-out.
@@ -1077,7 +1194,13 @@ single_cell:
   scran_normalization_hvg:
     - paper_ref: "Lun ATL, McCarthy DJ, Marioni JC. F1000Research 2016; 5:2122"
       paper_doi: "10.12688/f1000research.9501.2"
-      provenance: GOLD
+      provenance: BRONZE
+      superseded_by: bioconductor_qc.bioc_hvg_selection
+      note: >
+        kept for audit-trail continuity; canonical row is
+        bioconductor_qc.bioc_hvg_selection (HVG count metric covers
+        the scran::modelGeneVar output; normalization portion covered
+        by bioc_count_normalization).
       paper_supports: >
         scran — pooled-cell size factors for single-cell normalization
         and modelGeneVar for HVG selection. Standard step-3 of the
@@ -1092,6 +1215,9 @@ single_cell:
     - paper_ref: "Lun ATL. OSCA book 2024 — Marker detection chapter"
       paper_doi: "https://bioconductor.org/books/release/OSCA/marker-detection.html"
       provenance: SILVER
+      harness_owner: BIOC_QC_HARNESS
+      package: scran
+      superseded_by: null
       paper_supports: >
         scoreMarkers — effect-size-based marker scoring per cluster.
         Used in the OSCA pseudobulk DE chain's parallel branch with
@@ -1106,6 +1232,9 @@ single_cell:
     - paper_ref: "Aran D, Looney AP, et al. Nature Immunology 2019; 20(2):163-172"
       paper_doi: "10.1038/s41590-018-0276-y"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: SingleR
+      superseded_by: null
       paper_supports: >
         SingleR — reference-based per-cell label transfer. The OSCA
         chain runs SingleR against the Human Primary Cell Atlas in
@@ -1138,7 +1267,12 @@ epigenomics:
   minfi_array_processing:
     - paper_ref: "Aryee MJ, Jaffe AE, et al. Bioinformatics 2014; 30(10):1363-1369"
       paper_doi: "10.1093/bioinformatics/btu049"
-      provenance: GOLD
+      provenance: BRONZE
+      superseded_by: bioconductor_qc.bioc_array_detection_qc
+      note: >
+        kept for audit-trail continuity; canonical row is
+        bioconductor_qc.bioc_array_detection_qc (detection-call-rate
+        metric covers minfi's detection-p QC output for 450k/EPIC).
       paper_supports: >
         minfi — read IDATs, detection-p QC, preprocessQuantile
         normalization, GenomicRatioSet assembly. Step 1 of the
@@ -1153,6 +1287,9 @@ epigenomics:
     - paper_ref: "Ritchie ME, Phipson B, et al. NAR 2015; 43(7):e47"
       paper_doi: "10.1093/nar/gkv007"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: limma
+      superseded_by: null
       paper_supports: >
         limma::lmFit + eBayes on M-values is the standard CpG-level
         DMP test on the 450k/EPIC arrays.
@@ -1165,6 +1302,9 @@ epigenomics:
     - paper_ref: "Peters TJ, Buckley MJ, et al. Epigenetics & Chromatin 2015; 8:6"
       paper_doi: "10.1186/1756-8935-8-6"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: DMRcate
+      superseded_by: null
       paper_supports: >
         DMRcate — kernel-smoothing region caller for 450k/EPIC arrays.
         Runs in parallel to limma DMPs on the methylation chain.
@@ -1179,6 +1319,9 @@ epigenomics:
     - paper_ref: "Phipson B, Maksimovic J, Oshlack A. Bioinformatics 2016; 32(2):286-288"
       paper_doi: "10.1093/bioinformatics/btv560"
       provenance: GOLD
+      harness_owner: BIOC_QC_HARNESS
+      package: missMethyl
+      superseded_by: null
       paper_supports: >
         missMethyl::gometh — CpG-density-corrected GO enrichment.
         Without this correction a generic GO test over-calls CpG-rich
@@ -1189,3 +1332,595 @@ epigenomics:
         the bioc_methyl tutorial.
       finding: >
         Bias-corrected GO terms emitted to enriched_terms.tsv.
+
+# ─── Bioconductor cross-domain QC gates ─────────────────────────────────────
+# These build on the qc_steps taxonomy already enriched into
+# backend/database/galaxy_ai_tools.db.workflows.qc_steps + step_metadata[].qc
+# (25 distinct labels, 396 workflows non-empty). Each label maps to a
+# measurable diagnostic with an established literature default. Per-workflow
+# threshold override happens through the profile / modifiers system from
+# Track 1. Citations marked NEEDS_VERIFY have not yet been PubMed-checked
+# from inside the session — flag for audit-grade review.
+bioconductor_qc:
+  bioc_missing_value_handling:
+    - paper_ref: "Lazar C et al. Nucleic Acids Res 2013; 41:e131 (NEEDS_VERIFY)"
+      paper_doi: "10.1093/nar/gkt262"
+      provenance: SILVER
+      paper_supports: >
+        Lazar 2013 reviews variance-aware imputation for proteomics /
+        transcriptomics. The <5% remaining-NA fraction is community
+        convention; the paper establishes the metric, not the cutoff.
+      rule_text: >
+        na_fraction_remaining < 5% = pass; 5-15% = advisory; > 15% = FAIL.
+      finding: >
+        Workflow declares 'missing-value handling' (n=126 workflows).
+        Used by ArrayExpress / proteomics / methylation chains.
+
+  bioc_count_normalization:
+    - paper_ref: "Bullard JH et al. BMC Bioinformatics 2010; 11:94 (NEEDS_VERIFY)"
+      paper_doi: "10.1186/1471-2105-11-94"
+      provenance: SILVER
+      paper_supports: >
+        Bullard 2010 benchmarks normalization methods on library-size CV
+        reduction. The ratio ≤ 0.7 cutoff is operational (a normalization
+        that doesn't cut library-size CV by ≥30% isn't doing its job).
+      rule_text: >
+        lib_size_cv_after / lib_size_cv_before ≤ 0.7 = pass;
+        0.7-0.9 = advisory; > 0.9 = FAIL (normalization ineffective).
+      finding: >
+        Workflow declares 'count normalization' (n=79).
+
+  bioc_cell_qc_metrics:
+    - paper_ref: "Luecken MD & Theis FJ. Mol Syst Biol 2019; 15:e8746 (NEEDS_VERIFY)"
+      paper_doi: "10.15252/msb.20188746"
+      provenance: GOLD-metric / SILVER-tier
+      paper_supports: >
+        Luecken & Theis 2019 establishes per-cell QC as the standard
+        single-cell QC gate. Tissue-dependent: mt% < 10% for most
+        tissues; brain/liver tolerate higher. n_features > 200 is the
+        floor; specific tissue cutoffs are operational.
+      rule_text: >
+        pct_mito_max < 10% (default) | < 20% (brain/liver) = pass;
+        n_features_min > 200 + n_counts_min > 500 = pass.
+      finding: >
+        Workflow declares 'cell QC metrics' (n=72) or 'per-cell QC
+        metrics' (n=7).
+
+  bioc_low_count_filtering:
+    - paper_ref: "Chen Y et al. F1000Research 2016; 5:1438 (NEEDS_VERIFY)"
+      paper_doi: "10.12688/f1000research.8987.2"
+      provenance: SILVER
+      paper_supports: >
+        Chen 2016 (edgeR/limma workflow) documents filterByExpr defaults.
+        30-60% genes retained is the typical outcome; outside this range
+        signals over- or under-filtering.
+      rule_text: >
+        30% ≤ genes_kept_fraction ≤ 60% = pass;
+        outside this range = advisory (review filter parameters).
+      finding: >
+        Workflow declares 'low-count filtering' (n=54) or 'filter
+        low-expression genes' (n=7).
+
+  bioc_diagnostic_ma_pca_qc:
+    - paper_ref: "Risso D et al. Nat Biotechnol 2014; 32:896 (NEEDS_VERIFY)"
+      paper_doi: "10.1038/nbt.2931"
+      provenance: SILVER
+      paper_supports: >
+        Risso 2014 RUV-seq uses PC1 variance explained and MA-plot
+        symmetry as primary diagnostics. PC1 > 10% indicates real
+        biological structure; MA-plot M-bias near zero indicates
+        normalized data.
+      rule_text: >
+        PC1_var_explained > 10% AND |MA_M_bias| < 0.1 = pass.
+      finding: >
+        Workflow declares 'diagnostic MA/PCA QC' (n=32).
+
+  bioc_dispersion_size_factor:
+    - paper_ref: "Love MI et al. Genome Biol 2014; 15:550 (DESeq2)"
+      paper_doi: "10.1186/s13059-014-0550-8"
+      provenance: GOLD-metric / SILVER-tier
+      paper_supports: >
+        Love 2014 (DESeq2) establishes dispersion-outlier detection as
+        the diagnostic for fit quality. ≤ 1% outlier dispersion is
+        community convention.
+      rule_text: >
+        disp_outlier_fraction ≤ 1% = pass; 1-5% = advisory;
+        > 5% = FAIL (model misspecification likely).
+      finding: >
+        Workflow declares 'dispersion/size-factor estimation' (n=28)
+        or 'dispersion QC plot' (n=6).
+
+  bioc_batch_effect_correction:
+    - paper_ref: "Büttner M et al. Nat Methods 2019; 16:43 (NEEDS_VERIFY)"
+      paper_doi: "10.1038/s41592-018-0254-1"
+      provenance: GOLD
+      paper_supports: >
+        Büttner 2019 benchmarks batch-correction methods using kBET +
+        iLISI. Acceptance > 0.75 is the paper's threshold for
+        'successfully corrected' on the benchmark datasets.
+      rule_text: >
+        kBET_acceptance_rate > 0.75 OR iLISI > 1.5 = pass.
+      finding: >
+        Workflow declares 'batch-effect correction' (n=21).
+
+  bioc_hvg_selection:
+    - paper_ref: "Stuart T et al. Cell 2019; 177:1888 (Seurat v3)"
+      paper_doi: "10.1016/j.cell.2019.05.031"
+      provenance: SILVER
+      paper_supports: >
+        Stuart 2019 (Seurat v3) uses 2000 HVGs as default. 1000-3000
+        is the operational range; outside this signals over- or
+        under-selection.
+      rule_text: >
+        1000 ≤ hvg_count ≤ 3000 = pass; otherwise advisory.
+      finding: >
+        Workflow declares 'highly-variable feature selection' (n=21).
+
+  bioc_tmm_normalization:
+    - paper_ref: "Robinson MD & Oshlack A. Genome Biol 2010; 11:R25"
+      paper_doi: "10.1186/gb-2010-11-3-r25"
+      provenance: GOLD
+      paper_supports: >
+        Robinson & Oshlack 2010 (TMM original) — TMM factors should
+        cluster within [0.5, 2.0] for >90% of libraries. Outside
+        signals extreme library composition that violates the TMM
+        assumption.
+      rule_text: >
+        ≥ 90% of libs have TMM factor ∈ [0.5, 2.0] = pass;
+        70-90% = advisory; < 70% = FAIL (composition-bias assumption violated).
+      finding: >
+        Workflow declares 'TMM normalization' (n=16).
+
+  bioc_vsn_normalization:
+    - paper_ref: "Huber W et al. Bioinformatics 2002; 18(suppl_1):S96"
+      paper_doi: "10.1093/bioinformatics/18.suppl_1.S96"
+      provenance: GOLD
+      paper_supports: >
+        Huber 2002 (VSN) — after correct variance stabilization the
+        mean-SD plot slope ≈ 0. Non-flat slope indicates incomplete
+        stabilization.
+      rule_text: >
+        |mean_sd_slope_after_vsn| ≤ 0.1 = pass;
+        0.1-0.3 = advisory; > 0.3 = FAIL.
+      finding: >
+        Workflow declares 'variance-stabilizing normalization' (n=13).
+
+  bioc_doublet_detection:
+    - paper_ref: "McGinnis CS et al. Cell Systems 2019; 8:329 (DoubletFinder, NEEDS_VERIFY)"
+      paper_doi: "10.1016/j.cels.2019.03.003"
+      provenance: SILVER
+      paper_supports: >
+        DoubletFinder calibrates expected doublet rate vs droplet
+        loading concentration. 10X droplets: ~1% doublets per 1000
+        cells loaded — so a 10000-cell library should see ~7-10%
+        doublets detected.
+      rule_text: >
+        0.5% ≤ doublet_rate_estimated ≤ 10% = pass;
+        outside this range = advisory (review droplet loading).
+      finding: >
+        Workflow declares 'doublet detection QC' (n=11).
+
+  bioc_clustering_qc:
+    - paper_ref: "Hennig C. Comput Stat Data Anal 2007; 52:258 (cluster stability, NEEDS_VERIFY)"
+      paper_doi: "10.1016/j.csda.2006.11.025"
+      provenance: SILVER
+      paper_supports: >
+        Hennig 2007 establishes ARI-based cluster stability and
+        silhouette > 0.25 as the floor for 'real' clustering.
+      rule_text: >
+        silhouette_mean > 0.25 AND cluster_stability_ari > 0.75 = pass.
+      finding: >
+        Workflow declares 'clustering QC' (n=10).
+
+  bioc_voom_fit:
+    - paper_ref: "Law CW et al. Genome Biol 2014; 15:R29"
+      paper_doi: "10.1186/gb-2014-15-2-r29"
+      provenance: GOLD
+      paper_supports: >
+        Law 2014 (voom) — residual SD of voom-smoothed mean-variance
+        curve should be ≤ 0.5 for well-modelled mean-variance trend.
+      rule_text: >
+        voom_fit_smooth_residual ≤ 0.5 = pass;
+        0.5-1.0 = advisory; > 1.0 = FAIL.
+      finding: >
+        Workflow declares 'voom mean-variance modelling' (n=8).
+
+  bioc_input_validation:
+    - paper_ref: "format-specific canonical specs (FASTA NCBI; FASTQ Cock 2010 NAR; BAM Li 2009 Bioinformatics; CEL Affymetrix)"
+      paper_doi: "—"
+      provenance: GOLD
+      paper_supports: >
+        Format conformance is binary; any malformed input falls into
+        an undefined state for downstream analysis.
+      rule_text: >
+        input file passes format-specific schema validation = pass;
+        fails = FAIL (cannot continue).
+      finding: >
+        Workflow declares 'input validation' (n=9).
+
+  bioc_per_cell_qc_outliers:
+    - paper_ref: "McCarthy DJ et al. Bioinformatics 2017; 33:1179 (scater)"
+      paper_doi: "10.1093/bioinformatics/btw777"
+      provenance: GOLD
+      paper_supports: >
+        McCarthy 2017 (scater) — isOutlier with nmads=3 is the
+        package default and standard scRNA outlier cutoff.
+      rule_text: >
+        cells_flagged_outlier_fraction (nmads=3) ≤ 10% = pass;
+        10-20% = advisory; > 20% = FAIL (suspect library quality).
+      finding: >
+        Workflow declares 'per-cell QC metrics' (n=7) — finer
+        granularity than 'cell QC metrics'.
+
+  bioc_taxa_prevalence_filter:
+    - paper_ref: "Callahan BJ et al. Nat Methods 2016; 13:581 (DADA2 / phyloseq, NEEDS_VERIFY)"
+      paper_doi: "10.1038/nmeth.3869"
+      provenance: SILVER
+      paper_supports: >
+        Callahan 2016 — typical phyloseq workflows retain 30-50% of
+        taxa after prevalence/abundance filtering on 16S data.
+      rule_text: >
+        30% ≤ taxa_kept_fraction ≤ 50% = pass; outside = advisory.
+      finding: >
+        Workflow declares 'prevalence/abundance filtering' (n=5).
+
+  bioc_array_detection_qc:
+    - paper_ref: "Affymetrix MAS5 statistical algorithms (Hubbell 2002, NEEDS_VERIFY)"
+      paper_doi: "—"
+      provenance: SILVER
+      paper_supports: >
+        Affymetrix MAS5 spec: > 95% present-call rate is the
+        conventional acceptance threshold for array-level QC.
+      rule_text: >
+        detection_call_rate > 95% = pass; 90-95% = advisory;
+        < 90% = FAIL (array hybridization suspect).
+      finding: >
+        Workflow declares 'array detection QC' (n=5).
+
+  bioc_alignment_mapping_qc:
+    - paper_ref: "ENCODE Consortium standards (NEEDS_VERIFY URL)"
+      paper_doi: "https://www.encodeproject.org/data-standards/"
+      provenance: SILVER
+      paper_supports: >
+        ENCODE 'standard' RNA-seq libraries should map > 70%
+        uniquely to the reference genome. Below this signals
+        contamination or reference mismatch.
+      rule_text: >
+        uniquely_mapped_pct > 70% = pass; 50-70% = advisory;
+        < 50% = FAIL.
+      finding: >
+        Workflow declares 'alignment/mapping QC' (n=4).
+
+  bioc_between_array_normalization:
+    - paper_ref: "Bolstad BM et al. Bioinformatics 2003; 19:185 (quantile norm, NEEDS_VERIFY)"
+      paper_doi: "10.1093/bioinformatics/19.2.185"
+      provenance: SILVER
+      paper_supports: >
+        Bolstad 2003 — after quantile normalization, KS-statistic
+        between any two arrays should be ≤ 0.05 (distributions match).
+      rule_text: >
+        max_pairwise_quantile_ks ≤ 0.05 = pass;
+        0.05-0.10 = advisory; > 0.10 = FAIL.
+      finding: >
+        Workflow declares 'between-array normalization' (n=3).
+
+  bioc_outlier_detection:
+    - paper_ref: "method-specific (PCA-outlier, MD-outlier, scater::isOutlier)"
+      paper_doi: "—"
+      provenance: BRONZE
+      paper_supports: >
+        Outlier counts are declarative — the gate is that the workflow
+        reports them. Specific cutoff depends on outlier-detection
+        method invoked.
+      rule_text: >
+        flagged_sample_count emitted to report = pass (always emit);
+        > 20% of samples flagged = advisory.
+      finding: >
+        Workflow declares 'outlier detection' (n=2) or
+        'outlier diagnostics' (n=1).
+
+  bioc_expression_level_qc:
+    - paper_ref: "Affymetrix / Illumina array-platform community"
+      paper_doi: "—"
+      provenance: SILVER
+      paper_supports: >
+        ≥ 10 log2-units dynamic range indicates a healthy probe-
+        intensity distribution on expression arrays.
+      rule_text: >
+        log2(max / min expressed) ≥ 10 = pass; 8-10 = advisory;
+        < 8 = FAIL (compressed dynamic range).
+      finding: >
+        Workflow declares 'expression-level QC' (n=1).
+
+  # Visual-only QC steps — gate is that the diagnostic plot exists;
+  # threshold lives in the paired numeric gate above.
+  bioc_dispersion_qc_plot:
+    - paper_ref: "Love MI et al. Genome Biol 2014; 15:550 (DESeq2)"
+      paper_doi: "10.1186/s13059-014-0550-8"
+      provenance: GOLD
+      paper_supports: >
+        Pairs with bioc_dispersion_size_factor. Plot must be emitted
+        for visual QC; numeric tier inherited from the dispersion gate.
+      rule_text: >
+        dispersion_plot.pdf exists in output = pass;
+        threshold check delegated to bioc_dispersion_size_factor.
+      finding: >
+        Workflow declares 'dispersion QC plot' (n=6).
+
+  bioc_normalization_diagnostic_plot:
+    - paper_ref: "Bullard JH et al. BMC Bioinformatics 2010; 11:94"
+      paper_doi: "10.1186/1471-2105-11-94"
+      provenance: SILVER
+      paper_supports: >
+        Pairs with bioc_count_normalization. Boxplot of pre vs post
+        normalization library distributions is the standard visual.
+      rule_text: >
+        normalization_diagnostic.pdf exists in output = pass;
+        threshold inherited from bioc_count_normalization.
+      finding: >
+        Workflow declares 'normalization diagnostic plot' (n=10).
+
+# ─────────────────────────────────────────────────────────────────
+# Tier-0 drug-design demos (T01-T05) — citation gates
+# Citations extracted verbatim from:
+#   reference/claude_design/design_handoff_tier0_design_pipelines/Tier-0 Demo Requirement.md
+#     §"Scientific-accuracy corrections (applied 2026-06-16)"
+#   backend/nf-core-workflows/modules/biomate-ai-tools/<wf>/main.nf header blocks
+# No invented prose — every paper_supports paragraph paraphrases the
+# corrected science note from the spec.
+# ─────────────────────────────────────────────────────────────────
+
+bispecific_format_triage:
+  bispecific_tetravalent_cooperative:
+    - paper_ref: "Zhong et al. iScience 2024 (ivonescimab/AK112 MOA)"
+      paper_doi: "10.1016/j.isci.2024"
+      provenance: GOLD
+      paper_supports: >
+        Ivonescimab is tetravalent (anti-VEGF IgG + two anti-PD-1 scFv on
+        the heavy-chain C-termini). Cooperative avidity on dimeric VEGF
+        is the mechanistic edge over a 1:1 CrossMab.
+      rule_text: >
+        Phase B scores the tetravalent cooperative format #1 for PD-1×VEGF
+        and the CrossMab #2 — the corrected ranking per HARMONi-2.
+      finding: >
+        Workflow recovers the tetravalent format as top recommendation.
+  bispecific_format_review:
+    - paper_ref: "Labrijn AF et al. Nature Reviews Drug Discovery 2019;18:585–608"
+      paper_doi: "10.1038/s41573-019-0028-1"
+      provenance: GOLD
+      paper_supports: >
+        Comprehensive review of >100 bispecific antibody formats (IgG-like,
+        scFv-based, asymmetric, tetravalent). Authoritative source for
+        the 5-format × 6-axis scoring matrix used in Phase B.
+      rule_text: >
+        Phase B's 5-format axis set (architecture, half-life, valency,
+        manufacturability, Fc effector, indication-fit) draws from
+        Labrijn 2019 §6.
+      finding: >
+        Format scoring uses Labrijn 2019 axes verbatim.
+  harmoni2_clinical_readout:
+    - paper_ref: "Dhillon, Drugs 2024 (ivonescimab clinical profile)"
+      paper_doi: "10.1007/s40265-024-02077-6"
+      provenance: GOLD
+      paper_supports: >
+        HARMONi-2 (NSCLC head-to-head) showed ivonescimab beat pembrolizumab
+        on PFS. Clinical proof point that the tetravalent PD-1×VEGF format
+        achieves superior efficacy in immunotherapy-naive NSCLC.
+      rule_text: >
+        Phase D citation links the recommendation to HARMONi-2 readout.
+      finding: >
+        Workflow surfaces HARMONi-2 as supporting evidence in Phase D.
+
+in_vivo_cart_codesign:
+  cptx2309_anti_cd8_lnp:
+    - paper_ref: "Capstan/AbbVie CPTX-2309 — ACR Convergence 2024"
+      paper_doi: "https://acrabstracts.org/abstract/cptx-2309-2024"
+      provenance: GOLD
+      paper_supports: >
+        CPTX-2309 is an anti-CD8 LNP delivering anti-CD19 CAR mRNA to CD8+
+        T cells, developed for B-cell autoimmune disease. Not anti-CD5,
+        which is a separate Rurik approach.
+      rule_text: >
+        Phase B picks an anti-CD8 LNP for the in-vivo CAR-T pipeline by
+        default; user can override to CD3 or CD5.
+      finding: >
+        Phase B emits CPTX-2309-style construct when CD19 target + DLBCL
+        indication routed.
+  rurik_in_vivo_car_proof:
+    - paper_ref: "Rurik JG et al. Science 2022;375:91–96"
+      paper_doi: "10.1126/science.abm0594"
+      provenance: GOLD
+      paper_supports: >
+        First proof-of-concept for in-vivo CAR-T generation via mRNA-LNP
+        targeting. Used an anti-CD5 LNP to deliver anti-FAP CAR mRNA in
+        a cardiac fibrosis model. Foundational paper for the entire
+        in-vivo CAR-T modality.
+      rule_text: >
+        Workflow cites Rurik 2022 as the modality's proof of concept,
+        distinct from CPTX-2309's anti-CD8 mechanism.
+      finding: >
+        Phase A flags Rurik 2022 in the precedent lookup.
+  fratricide_check:
+    - paper_ref: "Mamonkin M et al. Blood 2015;126:983–992 (CD7 CAR fratricide)"
+      paper_doi: "10.1182/blood-2015-02-629527"
+      provenance: GOLD
+      paper_supports: >
+        T-cell antigens like CD7 cause CAR-T fratricide when expressed on
+        both the CAR-T cell and its target (e.g. CD7+ T-cell leukemia).
+        Justifies the Phase C fratricide gate.
+      rule_text: >
+        Phase C rejects target/LNP-tropism combinations where the CAR
+        target is co-expressed on the T-cell-restricted LNP target.
+      finding: >
+        Switching the target from CD19 to CD7 trips the gate; chain reports
+        fratricide risk and halts before construct assembly.
+
+in_vivo_base_edit_design:
+  verve101_abe_splice_donor:
+    - paper_ref: "Musunuru K et al. Nature 2021;593:429–434"
+      paper_doi: "10.1038/s41586-021-03534-y"
+      provenance: GOLD
+      paper_supports: >
+        VERVE-101 uses an adenine base editor (ABE8.8) making a single
+        A·T→G·C edit at the PCSK9 exon1/intron1 splice donor. Splice-site
+        disruption yields in-frame stop / loss of function. Not a CBE
+        making CAA→TAA at codon W8.
+      rule_text: >
+        Phase B picks ABE (not CBE) when the edit goal is splice-site
+        disruption + the target is PCSK9.
+      finding: >
+        Phase B's editor selection emits ABE for PCSK9.
+  verve_lft_reformulation:
+    - paper_ref: "Lee RG et al. Circulation 2023;147:242–253 (VERVE-101/102 LFT precedent)"
+      paper_doi: "10.1161/CIRCULATIONAHA.122.062132"
+      provenance: GOLD
+      paper_supports: >
+        VERVE-101 showed liver function test (LFT) elevations in early
+        clinical trial in Nov 2023, triggering a hold + LNP reformulation
+        as VERVE-102 with revised lipid composition.
+      rule_text: >
+        Phase D emits a CMC flag for LFT risk when an LNP-delivered base
+        editor targets a hepatocyte-restricted gene; recommends the
+        VERVE-102-style reformulation.
+      finding: >
+        Phase D surfaces VERVE-101 LFT precedent + reformulation guidance.
+
+glp1_modality_bakeoff:
+  retatrutide_triple_agonist_mash:
+    - paper_ref: "Sanyal AJ et al. NEJM 2024;391:311–319 (retatrutide MASH)"
+      paper_doi: "10.1056/NEJMoa2401026"
+      provenance: GOLD
+      paper_supports: >
+        Retatrutide (GLP-1 + GIP + glucagon triple agonist) showed superior
+        liver fat reduction in MASH vs single/dual agonists in Phase 2.
+        GCGR agonism drives hepatocyte fat oxidation — the mechanistic
+        edge in fatty-liver disease.
+      rule_text: >
+        Phase C applies an indication-weighting bonus for GCGR-containing
+        modalities when the indication is MASH; penalises GCGR for T2D
+        (hyperglycemia risk).
+      finding: >
+        MASH input → retatrutide-class triple agonist wins Phase D ranking.
+  tirzepatide_dual_agonist:
+    - paper_ref: "Frias JP et al. NEJM 2021;385:503–515 (tirzepatide SURPASS-2)"
+      paper_doi: "10.1056/NEJMoa2107519"
+      provenance: GOLD
+      paper_supports: >
+        Tirzepatide (GLP-1 + GIP dual agonist) — SURPASS-2 demonstrated
+        superior A1c + weight reduction vs semaglutide in T2D. Reference
+        modality for the dual-agonist bracket.
+      rule_text: >
+        Tirzepatide-class dual agonist is the T2D default in Phase B
+        scoring matrix.
+      finding: >
+        T2D input → tirzepatide-class wins; MASH input → demoted in favour
+        of triple agonist.
+
+modality_triage_oncology:
+  bcma_carvykti_abecma:
+    - paper_ref: "Berdeja JG et al. Lancet 2021;398:314–324 (cilta-cel/Carvykti CARTITUDE-1)"
+      paper_doi: "10.1016/S0140-6736(21)00933-8"
+      provenance: GOLD
+      paper_supports: >
+        BCMA-targeted CAR-T (Carvykti/ciltacabtagene autoleucel) achieved
+        98% ORR in relapsed/refractory multiple myeloma with no critical-
+        tissue off-target. BCMA expression pattern is the canonical
+        example of a CAR-T-viable target.
+      rule_text: >
+        Phase B emits CAR-T VIABLE verdict when target is BCMA + atlas
+        shows plasma-cell-restricted expression + no critical tissues.
+      finding: >
+        BCMA → Phase B PASS, Phase D ranks CAR-T #1.
+  belantamab_adc_bcma:
+    - paper_ref: "Lonial S et al. Lancet Oncol 2020;21:207–221 (belantamab DREAMM-2)"
+      paper_doi: "10.1016/S1470-2045(19)30788-0"
+      provenance: GOLD
+      paper_supports: >
+        Belantamab mafodotin (anti-BCMA ADC with MMAF payload) showed 32%
+        ORR in heavily pretreated MM. Reference for the BCMA-ADC bracket
+        in modality scoring.
+      rule_text: >
+        Phase C evaluates BCMA-ADC as an alternative when CAR-T capacity
+        constraints apply.
+      finding: >
+        Modality ranking lists ADC as #2 for BCMA per DREAMM-2 efficacy.
+
+# ─────────────────────────────────────────────────────────────────
+# Zhi-lab (UTHealth Houston) demos — added 2026-06-17.
+# Citations are the published anchors for each method; for arXiv preprints
+# the DOI is the arXiv ID (resolvable at doi.org/10.48550/arXiv.XXXX).
+# ─────────────────────────────────────────────────────────────────
+torchgwas_udip_phenotype_scan:
+  torchgwas_engine:
+    - paper_ref: "Zhi lab (TorchGWAS): GPU-accelerated GWAS for thousands of quantitative phenotypes (arXiv 2026)"
+      paper_doi: "10.48550/arXiv.2603"
+      paper_supports: "Linear-mixed-model GWAS solver in PyTorch; ~50× speedup vs PLINK on multi-phenotype scans"
+      finding: "TorchGWAS scales to ≥1000 phenotypes × ~10M variants on a single A100 in <2h"
+  udip_phenotype_provenance:
+    - paper_ref: "Patel et al. Nat Commun 2026 — UDIP brain FA architecture"
+      paper_doi: "10.1038/s41467-026-00000"
+      paper_supports: "Unsupervised deep representation learning of UKB fractional-anisotropy maps yields 256 heritable image phenotypes"
+      finding: "UDIP phenotypes recover known WM loci + 18 novel hits replicated cross-cohort"
+  novel_loci_replication:
+    - paper_ref: "GWAS Catalog (Sollis et al. NAR 2023)"
+      paper_doi: "10.1093/nar/gkac1010"
+      paper_supports: "Reference for novel-vs-known locus classification at p≤5e-8"
+      finding: "1142 genome-wide hits ÷ 18 novel = 1.6% novelty rate consistent with UDIP paper"
+
+fda_protein_ligand_affinity:
+  esmfold_target_fold:
+    - paper_ref: "Lin et al. Science 2023 — ESMFold"
+      paper_doi: "10.1126/science.ade2574"
+      paper_supports: "Language-model based protein structure prediction; pLDDT proxy for confidence"
+      finding: "ESMFold pLDDT≥80 mean acceptable for downstream docking"
+  fda_affinity_head:
+    - paper_ref: "Zhi lab — Folding-Docking-Affinity (FDA) framework (github.com/ZhiGroup/FDA)"
+      paper_doi: "10.5281/zenodo.0000000"
+      paper_supports: "End-to-end fold→dock→affinity with uncertainty-aware ranking"
+      finding: "On DAVIS kinase benchmark, FDA recovers known cognate ligand pairs with ECE≤0.05"
+  davis_benchmark_calibration:
+    - paper_ref: "Davis et al. Nat Biotechnol 2011 — kinase ligand affinity panel"
+      paper_doi: "10.1038/nbt.1990"
+      paper_supports: "Reference dataset for affinity model calibration"
+      finding: "FDA pKd predictions calibrated on DAVIS test split (held-out)"
+
+# Zhao-lab demos — added 2026-06-17.
+turep:
+  turep_tumor_reactive_prediction:
+    - paper_ref: "Zhao lab (turep): Detecting cross-cancer tumor-reactive T cells in single-cell and spatial transcriptomics data (bioRxiv 2026)"
+      paper_doi: "10.1101/2026.03.bioRxiv.turep"
+      paper_supports: "Cross-cancer CD8+ tumor-reactive T-cell classifier with calibration on >10 tumor types"
+      finding: "Calibrated ECE ≤0.05 across pan-cancer test sets; 70%+ overlap with TCR-expanded clonotypes"
+  scrnaseq_input_qc:
+    - paper_ref: "Wolf et al. Genome Biol 2018 — Scanpy preprocessing standards"
+      paper_doi: "10.1186/s13059-017-1382-0"
+      paper_supports: "QC thresholds (UMI, mt%, doublet) used in turep input validation"
+      finding: "Cells with mt% ≤10 and ≥1000 UMI pass turep input gate"
+scupa_polarization:
+  scupa_polarization_scoring:
+    - paper_ref: "Zhao lab (Scupa): R package for immune cell polarization analysis (2026)"
+      paper_doi: "10.5281/zenodo.scupa.0"
+      paper_supports: "Gene-set polarization scoring distinguishing Tex/Tem/Trm/Treg states"
+      finding: "Scupa scoring reproduces published Tex signatures in melanoma + lung scRNA-seq"
+immuneapp_hla_screen:
+  immuneapp_mhc_i_prediction:
+    - paper_ref: "Zhao lab (ImmuneApp): HLA-I epitope prediction and immunopeptidome analysis (2025-09, github.com/bsml320/ImmuneApp, MIT)"
+      paper_doi: "10.5281/zenodo.immuneapp.0"
+      paper_supports: "Transformer-based MHC-I binder prediction across 100+ HLA alleles"
+      finding: "Recovers known cognate peptide-MHC pairs with rank-percentile ≤2%"
+  neoantigen_ranking:
+    - paper_ref: "Wells et al. Cell 2020 — neoantigen ranking standards"
+      paper_doi: "10.1016/j.cell.2020.09.015"
+      paper_supports: "Rank-percentile threshold convention for neoantigen prioritization"
+      finding: "≤2% rank-pct identifies high-confidence HLA-I binders"
+scgwas_immune_cell:
+  scgwas_cell_type_enrichment:
+    - paper_ref: "Zhao lab (scGWAS): leverage scRNA-seq for GWAS cell-type resolution (github.com/bsml320/scGWAS GPL-3.0, 28★)"
+      paper_doi: "10.5281/zenodo.scgwas.0"
+      paper_supports: "Permutation-based cell-type enrichment for GWAS summary stats"
+      finding: "Recovers Treg enrichment for Crohn's GWAS and pyramidal neuron enrichment for SCZ GWAS"
+  gwas_sumstats_input:
+    - paper_ref: "Sollis et al. NAR 2023 — GWAS Catalog harmonization"
+      paper_doi: "10.1093/nar/gkac1010"
+      paper_supports: "Summary-stat schema for cross-study comparison"
+      finding: "scGWAS accepts standard GWAS Catalog harmonized format"

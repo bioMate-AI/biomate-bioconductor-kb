@@ -7,7 +7,7 @@
 // R packages: DT, cowplot, ggplot2, htmltools, magrittr, org.Hs.eg.db, patchwork, sSNAPPY, tidyverse
 // Bioconductor: 3.20 | R: 4.4
 // Requires: colorspace, cowplot, dplyr, ggplot2, htmltools, magrittr, org.Hs.eg.db, patchwork, sSNAPPY, tidyverse
-// Visualizations: heatmap, network plot
+// Visualizations: heatmap, network plot, pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

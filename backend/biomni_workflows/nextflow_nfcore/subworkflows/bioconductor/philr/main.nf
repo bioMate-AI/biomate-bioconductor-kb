@@ -7,7 +7,7 @@
 // R packages: TreeSummarizedExperiment, ape, dplyr, ggplot2, ggtree, glmnet, mia, philr, tidyr
 // Bioconductor: 3.20 | R: 4.4
 // Requires: TreeSummarizedExperiment, ape, dplyr, ggplot2, ggtree, glmnet, mia, philr, tidyr
-// Visualizations: ordination plot, box plot, scatter plot
+// Visualizations: phylogenetic tree, ordination plot, box plot, scatter plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: autoplot
+
 nextflow.enable.dsl = 2
 
 process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {

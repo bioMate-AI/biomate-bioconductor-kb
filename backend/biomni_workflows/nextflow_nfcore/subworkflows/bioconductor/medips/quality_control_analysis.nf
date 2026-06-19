@@ -7,7 +7,7 @@
 // R packages: BSgenome.Hsapiens.UCSC.hg19, MEDIPS
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Hsapiens.UCSC.hg19, MEDIPS
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

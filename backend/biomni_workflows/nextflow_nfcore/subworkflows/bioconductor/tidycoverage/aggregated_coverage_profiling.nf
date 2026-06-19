@@ -7,7 +7,7 @@
 // R packages: ggplot2, plyranges, purrr, rtracklayer, tidyCoverage
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ggplot2, plyranges, purrr, rtracklayer, tidyCoverage
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

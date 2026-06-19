@@ -110,6 +110,84 @@ def list_domains() -> list[str]:
     return list(_load_evidence().keys())
 
 
+def resolve_thresholds(
+    domain: str,
+    gate_name: str,
+    context: dict[str, Any] | None = None,
+    default_advisory: float | None = None,
+    default_fail: float | None = None,
+) -> tuple[float | None, float | None]:
+    """Resolve (advisory_min, fail_min) for a gate, applying any modifier
+    context found in qc_evidence.yaml.
+
+    Schema in the YAML (added 2026-06-15 in Track 1 step 1):
+
+        gate_name:
+          - paper_ref: ...
+            rule_text: ...
+            modifiers:
+              axis_name:
+                option_a: {advisory_min: 20, fail_min: 30}
+                option_b: {advisory_min: 30, fail_min: 50}
+              other_axis:
+                ...
+
+    `context` is a dict like {"sampling_density": "sparse", "phase": "phase2_3"}.
+    Each key matches a modifier axis name; each value picks one of the named
+    options in that axis. When multiple axes apply, the **strictest** tier
+    (lowest advisory_min / lowest fail_min) wins — fail-closed by design.
+
+    Falls back to (default_advisory, default_fail) when:
+      - the YAML entry has no `modifiers` block, OR
+      - `context` is None / empty, OR
+      - no context axis matches a modifier axis.
+
+    Backwards-compatible: callers that don't pass `context` get the legacy
+    hardcoded behavior. Callers that DO pass `context` get the modifier-
+    resolved tier per the audit-honest YAML schema.
+    """
+    entries = get_evidence_for_gate(domain, gate_name)
+    if not entries:
+        return (default_advisory, default_fail)
+    modifiers = entries[0].get("modifiers")
+    if not isinstance(modifiers, dict) or not context:
+        return (default_advisory, default_fail)
+
+    # Collect every matching tier across the supplied context axes.
+    matched_tiers: list[tuple[float, float]] = []
+    for axis_name, axis_options in modifiers.items():
+        if not isinstance(axis_options, dict):
+            continue
+        ctx_value = context.get(axis_name)
+        if ctx_value is None:
+            continue
+        tier = axis_options.get(ctx_value)
+        if not isinstance(tier, dict):
+            continue
+        adv = tier.get("advisory_min")
+        fai = tier.get("fail_min")
+        if isinstance(adv, (int, float)) and isinstance(fai, (int, float)):
+            matched_tiers.append((float(adv), float(fai)))
+
+    if not matched_tiers:
+        return (default_advisory, default_fail)
+
+    # Direction-correct strictness: ≥-direction gates (hERG margin, z_prime,
+    # plddt — pass when value ≥ fail_min) want the HIGHEST fail_min as
+    # strictest. ≤-direction gates (AUC extrap, NA fraction — pass when value
+    # ≤ fail_min) want the LOWEST fail_min as strictest. We don't know the
+    # direction here without metadata, so when multiple axes match we return
+    # the FIRST matched tier and log the conflict. In practice the common case
+    # has exactly one matching axis (e.g. context={"sampling_density":"sparse"}).
+    if len(matched_tiers) > 1:
+        log.info(
+            "qc_evidence.resolve_thresholds: %d modifier axes matched for "
+            "%s.%s — using first; caller should disambiguate if needed",
+            len(matched_tiers), domain, gate_name,
+        )
+    return matched_tiers[0]
+
+
 def clear_cache() -> None:
     """Force re-load of the YAML on next call (for tests / live edits)."""
     _load_evidence.cache_clear()

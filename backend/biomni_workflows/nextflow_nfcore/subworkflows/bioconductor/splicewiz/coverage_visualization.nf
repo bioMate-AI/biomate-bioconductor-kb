@@ -7,7 +7,7 @@
 // R packages: SpliceWiz
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SpliceWiz
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

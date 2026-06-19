@@ -7,8 +7,8 @@
 // R packages: DESeq2, RColorBrewer, pheatmap, vsn
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DESeq2, RColorBrewer, pheatmap, vsn
-// Visualizations: PCA plot, heatmap
-// QC: dispersion/size-factor estimation, diagnostic MA/PCA QC, count normalization
+// Visualizations: PCA plot, heatmap, mean-SD plot
+// QC: dispersion/size-factor estimation, diagnostic MA/PCA QC, count normalization, variance-stabilizing normalization, normalization diagnostic plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -33,6 +33,7 @@ process BIOC_DESEQ2_TRANSFORMATION_AND_QC {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -160,6 +161,108 @@ process BIOC_DESEQ2_TRANSFORMATION_AND_QC {
           print(plotPCA(vsd, intgroup="dummy"))
         }
         dev.off()
+
+    # ── BIOC_QC_HARNESS — Track 3 Phase 3c canonical adoption (2026-06-16) ───
+    # This workflow declares 5 qc_steps labels in workflows.qc_steps:
+    #   dispersion/size-factor estimation, diagnostic MA/PCA QC,
+    #   count normalization, variance-stabilizing normalization,
+    #   normalization diagnostic plot
+    # Compute each metric inline from the analytic objects already in this
+    # R session (dds, vsd, ntd) and emit gates_by_label keyed exactly the
+    # way the harness skeleton (commit 6433a0f64) defined.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # dispersion/size-factor estimation → disp_outlier_fraction
+    # DESeq2's dispersionOutliers flags genes whose per-gene dispersion is
+    # > 2 standard deviations above the fitted curve.
+    .disp_outlier_pct <- tryCatch({
+      .dds_disp <- tryCatch(estimateDispersions(dds), error = function(e) dds)
+      .outliers <- mcols(.dds_disp)\$dispOutlier
+      if (!is.null(.outliers)) round(mean(.outliers, na.rm = TRUE), 4) else NA_real_
+    }, error = function(e) NA_real_)
+    .gates_by_label[["dispersion/size-factor estimation"]] <- list(
+      gate_row = "bioc_dispersion_size_factor",
+      metric_name = "disp_outlier_fraction",
+      metric_value = .disp_outlier_pct,
+      passes = isTRUE(is.finite(.disp_outlier_pct) && .disp_outlier_pct <= 0.01),
+      status = if (is.finite(.disp_outlier_pct)) "computed" else "not_computed (dispersion not estimable)"
+    )
+
+    # diagnostic MA/PCA QC → pc1_var_explained
+    .pc1_var <- tryCatch({
+      .pca <- prcomp(t(assay(vsd)))
+      .vars <- (.pca\$sdev^2) / sum(.pca\$sdev^2)
+      round(.vars[1] * 100, 2)
+    }, error = function(e) NA_real_)
+    .gates_by_label[["diagnostic MA/PCA QC"]] <- list(
+      gate_row = "bioc_diagnostic_ma_pca_qc",
+      metric_name = "pc1_var_explained",
+      metric_value = .pc1_var,
+      passes = isTRUE(is.finite(.pc1_var) && .pc1_var > 10),
+      status = if (is.finite(.pc1_var)) "computed" else "not_computed (PCA failed)"
+    )
+
+    # count normalization → lib_size_cv_ratio (after / before)
+    .raw_libsize <- colSums(counts(dds))
+    .norm_libsize <- colSums(counts(dds, normalized = TRUE))
+    .lib_cv_ratio <- tryCatch({
+      .cv_before <- sd(.raw_libsize) / mean(.raw_libsize)
+      .cv_after  <- sd(.norm_libsize) / mean(.norm_libsize)
+      if (.cv_before > 0) round(.cv_after / .cv_before, 4) else NA_real_
+    }, error = function(e) NA_real_)
+    .gates_by_label[["count normalization"]] <- list(
+      gate_row = "bioc_count_normalization",
+      metric_name = "lib_size_cv_ratio",
+      metric_value = .lib_cv_ratio,
+      passes = isTRUE(is.finite(.lib_cv_ratio) && .lib_cv_ratio <= 0.7),
+      status = if (is.finite(.lib_cv_ratio)) "computed" else "not_computed (library sizes unavailable)"
+    )
+
+    # variance-stabilizing normalization → mean_sd_slope_after_vsn
+    .vsn_slope <- tryCatch({
+      .means <- rowMeans(assay(vsd))
+      .sds   <- apply(assay(vsd), 1, sd)
+      .keep  <- is.finite(.means) & is.finite(.sds) & .means > 0
+      if (sum(.keep) > 50) {
+        round(coef(lm(.sds[.keep] ~ .means[.keep]))[2], 4)
+      } else NA_real_
+    }, error = function(e) NA_real_)
+    .gates_by_label[["variance-stabilizing normalization"]] <- list(
+      gate_row = "bioc_vsn_normalization",
+      metric_name = "mean_sd_slope_after_vsn",
+      metric_value = .vsn_slope,
+      passes = isTRUE(is.finite(.vsn_slope) && abs(.vsn_slope) <= 0.1),
+      status = if (is.finite(.vsn_slope)) "computed" else "not_computed (vsd matrix too small)"
+    )
+
+    # normalization diagnostic plot → file existence check
+    .plot_exists <- file.exists("mean_sd_plots.pdf")
+    .gates_by_label[["normalization diagnostic plot"]] <- list(
+      gate_row = "bioc_normalization_diagnostic_plot",
+      metric_name = "normalization_plot_exists",
+      metric_value = if (.plot_exists) 1 else 0,
+      passes = .plot_exists,
+      status = "computed"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_DESEQ2_TRANSFORMATION_AND_QC",
+      domain  = "bioconductor",
+      declared_qc_steps = c(
+        "dispersion/size-factor estimation",
+        "diagnostic MA/PCA QC",
+        "count normalization",
+        "variance-stabilizing normalization",
+        "normalization diagnostic plot"
+      ),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.1.0-canonical"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
 
     writeLines(c(
         '"BIOC_DESEQ2_TRANSFORMATION_AND_QC":',

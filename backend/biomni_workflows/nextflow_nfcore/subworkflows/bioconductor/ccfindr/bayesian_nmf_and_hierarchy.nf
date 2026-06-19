@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: cluster plot, phylogenetic tree
+
 nextflow.enable.dsl = 2
 
 process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {

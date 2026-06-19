@@ -7,7 +7,7 @@
 // R packages: airpart, SingleCellExperiment
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, airpart
-// Visualizations: heatmap, dispersion plot, violin plot
+// Visualizations: heatmap, dispersion plot, forest plot, violin plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

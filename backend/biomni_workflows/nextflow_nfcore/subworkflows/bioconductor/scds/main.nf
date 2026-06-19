@@ -8,7 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, scds
 // Visualizations: box plot
-// QC: doublet detection QC
+// QC: doublet detection QC, cell QC metrics
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -33,6 +33,7 @@ process BIOC_SCDS_DOUBLET_ANNOTATION {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -132,6 +133,79 @@ process BIOC_SCDS_DOUBLET_ANNOTATION {
       hist(sce\$hybrid_score, main = "hybrid_score", xlab = "Score", col = "lightgreen")
     }
     dev.off()
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # doublet detection — SCE/Seurat with doublet column; pass: rate ≤ 10%.
+    .dbl_rate <- NA_real_
+    for (.dbl_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dbl_obj <- tryCatch(readRDS(.dbl_rds), error = function(e) NULL)
+      .dbl_calls <- NULL
+      if (!is.null(.dbl_obj)) {
+        if (inherits(.dbl_obj, "SingleCellExperiment")) {
+          .dbl_cd <- tryCatch(colData(.dbl_obj), error = function(e) NULL)
+          if (!is.null(.dbl_cd)) {
+            .dbl_col <- intersect(c("doublet_class","scDblFinder.class","DoubletFinder","is_doublet"), colnames(.dbl_cd))
+            if (length(.dbl_col) > 0) .dbl_calls <- as.character(.dbl_cd[[.dbl_col[1]]])
+          }
+        } else if (inherits(.dbl_obj, "Seurat")) {
+          .dbl_md <- tryCatch(.dbl_obj@meta.data, error = function(e) NULL)
+          if (!is.null(.dbl_md)) {
+            .dbl_col <- intersect(c("DoubletFinder","scDblFinder.class","doublet_class","is_doublet"), colnames(.dbl_md))
+            if (length(.dbl_col) > 0) .dbl_calls <- as.character(.dbl_md[[.dbl_col[1]]])
+          }
+        }
+      }
+      if (!is.null(.dbl_calls) && length(.dbl_calls) > 0) {
+        .dbl_rate <- round(mean(grepl("doublet|TRUE|1", .dbl_calls, ignore.case = TRUE), na.rm = TRUE), 4); break
+      }
+    }
+    .gates_by_label[["doublet detection QC"]] <- list(
+      gate_row = "bioc_doublet_detection_qc",
+      metric_name = "doublet_rate",
+      metric_value = .dbl_rate,
+      passes = isTRUE(is.finite(.dbl_rate) && .dbl_rate <= 0.10),
+      status = if (is.finite(.dbl_rate)) "computed (SCE colData / Seurat meta.data doublet col)"
+               else "not_computed (no SCE/Seurat with doublet column present)"
+    )
+
+    # cell QC metrics — defensive cell-count + per-cell summary from any
+    # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
+    # (Luecken & Theis 2019 single-cell QC floor).
+    .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
+    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
+      .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
+      if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
+        .cqc_ncells <- ncol(.cqc_mat); .cqc_nfeats <- nrow(.cqc_mat)
+        .cqc_files <- c(.cqc_files, .cqc_rds); break
+      }
+    }
+    .gates_by_label[["cell QC metrics"]] <- list(
+      gate_row = "bioc_cell_qc_metrics",
+      metric_name = "n_cells",
+      metric_value = .cqc_ncells,
+      passes = isTRUE(is.finite(.cqc_ncells) && .cqc_ncells >= 50 && .cqc_nfeats >= 200),
+      status = if (is.finite(.cqc_ncells)) paste0("computed (cells=", .cqc_ncells, ", features=", .cqc_nfeats, "; proxy gate)")
+               else "not_computed (no scRNA matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_SCDS_DOUBLET_ANNOTATION",
+      domain  = "bioconductor",
+      declared_qc_steps = c("doublet detection QC", "cell QC metrics"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_SCDS_DOUBLET_ANNOTATION":',

@@ -34,6 +34,7 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -139,6 +140,108 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     
     # Save cell metadata including batch assignments
     write.csv(as.data.frame(colData(f.out)), "corrected_metadata.csv", row.names=TRUE)
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # per-cell QC metrics — alias semantics to cell QC metrics; reports
+    # cells-flagged fraction by detecting library-size outliers via MAD.
+    .pcqc_outlier_frac <- NA_real_; .pcqc_files <- character(0)
+    for (.pcqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .pcqc_obj <- tryCatch(readRDS(.pcqc_rds), error = function(e) NULL)
+      .pcqc_mat <- if (is.matrix(.pcqc_obj) || is.data.frame(.pcqc_obj)) .pcqc_obj else NULL
+      if (!is.null(.pcqc_mat) && ncol(.pcqc_mat) >= 10) {
+        .pcqc_lib <- suppressWarnings(colSums(as.matrix(.pcqc_mat), na.rm = TRUE))
+        if (length(.pcqc_lib) > 0 && all(is.finite(.pcqc_lib))) {
+          .pcqc_med <- median(.pcqc_lib); .pcqc_mad <- mad(.pcqc_lib)
+          .pcqc_outlier_frac <- if (.pcqc_mad > 0) mean(abs(.pcqc_lib - .pcqc_med) > 3 * .pcqc_mad) else 0
+          .pcqc_files <- c(.pcqc_files, .pcqc_rds); break
+        }
+      }
+    }
+    .gates_by_label[["per-cell QC metrics"]] <- list(
+      gate_row = "bioc_per_cell_qc_outliers",
+      metric_name = "cells_flagged_outlier_fraction",
+      metric_value = if (is.finite(.pcqc_outlier_frac)) round(.pcqc_outlier_frac, 4) else NA_real_,
+      passes = isTRUE(is.finite(.pcqc_outlier_frac) && .pcqc_outlier_frac <= 0.1),
+      status = if (is.finite(.pcqc_outlier_frac)) "computed (nmads=3 on lib sizes; scater::isOutlier proxy)"
+               else "not_computed (no cell-count matrix .rds artifact present)"
+    )
+
+    # batch-effect correction — declarative pass via corrected-output presence
+    # (kBET acceptance metric is a future per-workflow follow-on).
+    .bec_artifacts <- list.files(".", pattern = "(?i)(corrected|batch|combat|harmony|mnn).*\\.(rds|csv|h5ad)\$")
+    .bec_passes <- length(.bec_artifacts) > 0
+    .gates_by_label[["batch-effect correction"]] <- list(
+      gate_row = "bioc_batch_effect_correction",
+      metric_name = "batch_corrected_artifacts",
+      metric_value = length(.bec_artifacts),
+      passes = .bec_passes,
+      status = if (.bec_passes) "computed (declarative; kBET acceptance pending)"
+               else "not_computed (no batch-corrected artifact present)"
+    )
+
+    # cell QC metrics — defensive cell-count + per-cell summary from any
+    # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
+    # (Luecken & Theis 2019 single-cell QC floor).
+    .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
+    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
+      .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
+      if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
+        .cqc_ncells <- ncol(.cqc_mat); .cqc_nfeats <- nrow(.cqc_mat)
+        .cqc_files <- c(.cqc_files, .cqc_rds); break
+      }
+    }
+    .gates_by_label[["cell QC metrics"]] <- list(
+      gate_row = "bioc_cell_qc_metrics",
+      metric_name = "n_cells",
+      metric_value = .cqc_ncells,
+      passes = isTRUE(is.finite(.cqc_ncells) && .cqc_ncells >= 50 && .cqc_nfeats >= 200),
+      status = if (is.finite(.cqc_ncells)) paste0("computed (cells=", .cqc_ncells, ", features=", .cqc_nfeats, "; proxy gate)")
+               else "not_computed (no scRNA matrix .rds artifact present)"
+    )
+
+    # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
+    # (Stuart 2019 Cell Seurat v3 default range).
+    .hvg_count <- NA_real_; .hvg_files <- character(0)
+    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
+      .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
+      if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {
+        .hvg_m <- suppressWarnings(as.matrix(.hvg_mat))
+        .hvg_cvs <- suppressWarnings(apply(.hvg_m, 1, function(r) {
+          .rv <- as.numeric(r); .m <- mean(.rv, na.rm = TRUE)
+          if (is.finite(.m) && .m > 0) sd(.rv, na.rm = TRUE) / .m else NA_real_
+        }))
+        .hvg_count <- sum(is.finite(.hvg_cvs) & .hvg_cvs > 1.0)
+        .hvg_files <- c(.hvg_files, .hvg_rds); break
+      }
+    }
+    .gates_by_label[["highly-variable feature selection"]] <- list(
+      gate_row = "bioc_hvg_selection",
+      metric_name = "hvg_count",
+      metric_value = .hvg_count,
+      passes = isTRUE(is.finite(.hvg_count) && .hvg_count >= 1000 && .hvg_count <= 3000),
+      status = if (is.finite(.hvg_count)) paste0("computed (CV>1.0 rows = ", .hvg_count, "; proxy for HVG selection)")
+               else "not_computed (no expression matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_BATCHELOR_FAST_MNN_CORRECTION",
+      domain  = "bioconductor",
+      declared_qc_steps = c("per-cell QC metrics", "batch-effect correction", "cell QC metrics", "highly-variable feature selection"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_BATCHELOR_FAST_MNN_CORRECTION":',

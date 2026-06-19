@@ -7,7 +7,7 @@
 // R packages: BSgenome.Hsapiens.UCSC.hg19, GenVisR, GenomicRanges, TxDb.Hsapiens.UCSC.hg19.knownGene
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Hsapiens.UCSC.hg19, GenVisR, GenomicRanges, TxDb.Hsapiens.UCSC.hg19.knownGene
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

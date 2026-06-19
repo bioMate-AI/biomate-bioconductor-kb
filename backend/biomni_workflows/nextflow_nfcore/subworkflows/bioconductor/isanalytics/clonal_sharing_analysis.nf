@@ -7,7 +7,7 @@
 // R packages: ISAnalytics, dplyr, ggplot2
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ISAnalytics, dplyr, ggplot2
-// Visualizations: heatmap
+// Visualizations: heatmap, Venn diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

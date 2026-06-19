@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Rnorvegicus.UCSC.rn6, GenomicRanges, SummarizedExperiment, msgbsR
-// Visualizations: gene count plot
+// Visualizations: gene count plot, circos plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

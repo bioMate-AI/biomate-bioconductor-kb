@@ -7,6 +7,7 @@
 // R packages: BiocStyle, dplyr, ggplot2, HPAanalyze, tibble
 // Bioconductor: 3.20 | R: 4.4
 // Requires: HPAanalyze
+// Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

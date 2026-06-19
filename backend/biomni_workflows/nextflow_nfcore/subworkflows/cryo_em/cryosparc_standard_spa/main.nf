@@ -814,6 +814,22 @@ process PATCH_MOTION_CORRECTION_BATCH {
                     "timestamp": datetime.now().isoformat(),
                     "num_micrographs": num_mics, "mock_mode": True}
 
+    # ── QC gate: cryo_em_motion_drift (cryoSPARC operational, SILVER) ─────────
+    # Track 2 batch 2 (2026-06-15): wire the motion-drift gate. Threshold from
+    # qc_evidence.yaml cryo_em.cryo_em_motion_drift: ≤ 50 Å advisory, ≤ 100 Å
+    # bronze, > 100 Å FAIL. Emits BOTH `total_drift_angstrom` (legacy singular,
+    # already consumed by qc_trace_monitor) AND `total_drift_angstroms` (plural,
+    # consumed by qc_gate_reader.cryo_em_motion_drift) so neither path breaks.
+    _drift = report.get("avg_total_motion_A")
+    if _drift is not None:
+        try:
+            _drift_f = float(_drift)
+            report["total_drift_angstroms"] = round(_drift_f, 2)
+            report["total_drift_angstrom"]  = round(_drift_f, 2)
+            report["cryo_em_motion_drift_passes"] = bool(_drift_f <= 50.0)
+        except (TypeError, ValueError):
+            pass
+
     with open(f"micrographs_${batch_id}.cs", "w") as f:
         json.dump(cs_data, f, indent=2)
     with open(f"motion_report_${batch_id}.json", "w") as f:
@@ -2589,7 +2605,8 @@ process VALIDATION_FSC {
         except Exception as _fsc_err:
             print(f"[FSC] extraction error: {_fsc_err}", flush=True)
         report = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
-                  "cs_job_uid": job.uid, "real_mode": True}
+                  "cs_job_uid": job.uid, "real_mode": True,
+                  "fsc_0143_resolution": fsc_data.get("fsc_0143_resolution")}
     else:
         volume     = processed_data.get('volume', {})
         resolution = volume.get('resolution_angstroms', 5.0)
@@ -2609,6 +2626,21 @@ process VALIDATION_FSC {
         report   = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
                     "fsc_0143_resolution": resolution,
                     "fsc_05_resolution": round(resolution * 1.2, 2)}
+
+    # ── QC gate: cryo_em_fsc_resolution (Rosenthal & Henderson 2003, GOLD criterion) ──
+    # Track 2 batch 2 (2026-06-15): wire the FSC=0.143 resolution gate. Threshold from
+    # qc_evidence.yaml cryo_em.cryo_em_fsc_resolution: ≤4 Å pass-band, 4-8 Å advisory,
+    # > 8 Å FAIL. Emit BOTH `fsc_resolution_angstroms` (plural, qc_gate_reader) AND
+    # `fsc_resolution_angstrom` (singular, legacy qc_trace_monitor consumer).
+    _fsc_res = report.get("fsc_0143_resolution") or fsc_data.get("fsc_0143_resolution")
+    if _fsc_res is not None:
+        try:
+            _fsc_res_f = float(_fsc_res)
+            report["fsc_resolution_angstroms"] = round(_fsc_res_f, 2)
+            report["fsc_resolution_angstrom"]  = round(_fsc_res_f, 2)
+            report["cryo_em_fsc_resolution_passes"] = bool(_fsc_res_f <= 4.0)
+        except (TypeError, ValueError):
+            pass
 
     with open('fsc_validation.json', 'w') as f:
         json.dump(fsc_data, f, indent=2)
@@ -2785,6 +2817,20 @@ process NON_UNIFORM_REFINEMENT {
                   "num_particles": num_particles, "initial_resolution_angstroms": current_res,
                   "final_resolution_angstroms": final_res,
                   "resolution_improvement": round((current_res - final_res) / current_res * 100, 1)}
+
+    # ── QC gate: cryo_em_particle_count (Henderson 1995 information-limit theory) ──
+    # Track 2 batch 2 (2026-06-15): wire the particle-count gate. Threshold from
+    # qc_evidence.yaml cryo_em.cryo_em_particle_count: ≥ 50,000 particles for
+    # sub-3 Å reconstruction. Emit `n_particles` (qc_gate_reader canonical key)
+    # alongside the existing `num_particles` (qc_trace_monitor legacy key).
+    _np = report.get("num_particles")
+    if _np is not None:
+        try:
+            _np_i = int(_np)
+            report["n_particles"] = _np_i
+            report["cryo_em_particle_count_passes"] = bool(_np_i >= 50000)
+        except (TypeError, ValueError):
+            pass
 
     with open('volume_nu_refined_meta.json', 'w') as f:
         json.dump(meta, f, indent=2)

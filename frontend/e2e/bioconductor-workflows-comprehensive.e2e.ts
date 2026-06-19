@@ -147,70 +147,61 @@ function assert(rec: SuiteRecord, name: string, condition: boolean, note?: strin
   if (!condition) console.warn(`[ASSERT FAIL] ${name}${note ? `: ${note}` : ""}`);
 }
 
-async function registerUser(page: Page, label: string): Promise<void> {
-  const email = `e2e_bc_${label}_${Date.now()}@biomate.test`;
+// Shared fixture account — see feedback_unified_e2e_fixture_user memory and
+// frontend/e2e/allometric-qc-coverage.e2e.ts for the canonical pattern.
+// Per-test users tripped the registration rate-limiter and accumulated
+// Galaxy-provisioning fallout that made BC-* tests silently 401 (see
+// docs/20260617_RESEARCHER_OUTREACH_SESSION.md). Migrated 2026-06-17.
+const FIXTURE_EMAIL = "lifeifei163361@163.com";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 
-  // Navigate to BASE_URL first so the browser context is on the right origin.
-  // This is required before page.evaluate can make same-origin fetch calls AND
-  // for extraHTTPHeaders (including the rate-limit bypass token) to be active.
+async function registerUser(page: Page, label: string): Promise<void> {
+  // Function name kept for caller compatibility; behaviour is now
+  // "register-or-login as the shared fixture" — no per-test users.
   await page.context().clearCookies();
   await page.goto(BASE_URL);
   await page.waitForLoadState("domcontentloaded");
 
-  // Use page.evaluate (browser fetch) — identical to helpers.ts setupTestUser pattern.
-  // This is the ONLY pattern that bypasses the registration rate limiter because:
-  //   1. The fetch runs inside the browser context with credentials: "include"
-  //      so Set-Cookie response headers are stored in the browser's own cookie jar
-  //   2. extraHTTPHeaders (X-E2E-Test-Token) injected by Playwright into all
-  //      browser-initiated requests satisfy rate-limit.ts isE2ERequest() check
-  // DO NOT use page.request.post() — it uses a separate cookie jar that doesn't
-  // propagate to page navigations, and its headers don't satisfy the rate-limit bypass.
-  const result = await page.evaluate(
+  // Same browser-context fetch pattern as before — required so Set-Cookie
+  // lands in the browser jar and propagates to subsequent page navigations.
+  // Register is idempotent: if the fixture already exists, the call returns
+  // 409/400 and we fall through to login (login always works on dev).
+  await page.evaluate(
     async ({ baseUrl, email, password, name, token }: {
       baseUrl: string; email: string; password: string; name: string; token: string;
     }) => {
       try {
-        const r = await fetch(`${baseUrl}/api/auth/register`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-E2E-Test-Token": token,
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name,
-            email,
-            password,
-            terms_accepted: true,
-          }),
-        });
-        const body = await r.json().catch(() => ({}));
-        return { ok: r.ok, status: r.status, body };
-      } catch (e: any) {
-        return { ok: false, status: 0, body: {}, error: String(e) };
-      }
-    },
-    { baseUrl: BASE_URL, email, password: "TestPass123!", name: `BC E2E ${label}`, token: E2E_TOKEN }
-  );
-
-  if (!result.ok) {
-    console.warn(`[registerUser:${label}] registration failed (${result.status}) — body: ${JSON.stringify(result.body)}`);
-    // Fallback: user may have been created in a prior partial run — try logging in
-    await page.evaluate(
-      async ({ baseUrl, email, password, token }: {
-        baseUrl: string; email: string; password: string; token: string;
-      }) => {
-        await fetch(`${baseUrl}/api/auth/login`, {
+        await fetch(`${baseUrl}/api/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-E2E-Test-Token": token },
           credentials: "include",
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ name, email, password, terms_accepted: true }),
         });
-      },
-      { baseUrl: BASE_URL, email, password: "TestPass123!", token: E2E_TOKEN }
-    );
+      } catch {/* fixture may already exist; ignore */}
+    },
+    { baseUrl: BASE_URL, email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD,
+      name: "BC E2E Fixture", token: E2E_TOKEN }
+  );
+
+  // Always login — guarantees a valid cookie regardless of register outcome.
+  const loginResult = await page.evaluate(
+    async ({ baseUrl, email, password, token }: {
+      baseUrl: string; email: string; password: string; token: string;
+    }) => {
+      const r = await fetch(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-E2E-Test-Token": token },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+      return { ok: r.ok, status: r.status };
+    },
+    { baseUrl: BASE_URL, email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD, token: E2E_TOKEN }
+  );
+  if (!loginResult.ok) {
+    console.warn(`[fixtureLogin:${label}] login failed (${loginResult.status}) — fixture password may be wrong`);
   } else {
-    console.log(`[registerUser:${label}] registered ok (${result.status})`);
+    console.log(`[fixtureLogin:${label}] logged in as ${FIXTURE_EMAIL}`);
   }
 
   // Navigate to app root so auth-context.tsx reads /api/auth/me with the new cookie

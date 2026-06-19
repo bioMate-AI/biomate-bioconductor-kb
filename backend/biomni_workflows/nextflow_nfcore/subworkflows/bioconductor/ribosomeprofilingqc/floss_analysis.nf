@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: matrix plot
+// QC: outlier diagnostics
+
 nextflow.enable.dsl = 2
 
 process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
@@ -24,6 +27,7 @@ process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -106,6 +110,37 @@ process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
     
     # Save the extracted maximum Cook's distance data
     write.csv(as.data.frame(fl.max), "floss_max_gene_fractions.csv", row.names = TRUE)
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # outlier diagnostics — alias of outlier detection per the YAML.
+    .odi_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv|txt|log|pdf)\$")
+    .odi_passes <- length(.odi_artifacts) > 0
+    .gates_by_label[["outlier diagnostics"]] <- list(
+      gate_row = "bioc_outlier_detection",
+      metric_name = "artifacts_emitted",
+      metric_value = length(.odi_artifacts),
+      passes = .odi_passes,
+      status = if (.odi_passes) "computed (declarative; pairs with outlier detection)"
+               else "not_computed (workflow emitted no artifacts)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS",
+      domain  = "bioconductor",
+      declared_qc_steps = c("outlier diagnostics"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS":',

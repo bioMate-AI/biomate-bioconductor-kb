@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: PolySTest, SummarizedExperiment, htmlwidgets, matrixStats
-// Visualizations: expression plot, volcano plot
+// Visualizations: expression plot, volcano plot, UpSet plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: LymphoSeq, RColorBrewer, ggplot2, pheatmap, reshape, wordcloud
-// Visualizations: heatmap, bar plot
+// Visualizations: heatmap, phylogenetic tree, Venn diagram, circos plot, bar plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

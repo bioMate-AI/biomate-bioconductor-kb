@@ -31,6 +31,7 @@ process DOCKING_AUTODOCK_VINA {
     output:
     path("docking_autodock_vina_results.json"), emit: results
     path("docking_autodock_vina_output.txt"),   emit: output
+    path("qc_metrics.json"),                     emit: qc_metrics
     path "docking_poses/*.pdbqt",                emit: poses, optional: true
     path "versions.yml",                         emit: versions
 
@@ -398,6 +399,57 @@ if not success:
 
 with open('docking_autodock_vina_results.json', 'w') as f:
     json.dump(output_data, f, indent=2, default=str)
+
+# ── QC gates: docking_binding_score + docking_valid_poses ─────────────────────
+# Track 2 batch 7 (2026-06-16): wire the 2 documented-but-unwired docking
+# gates from qc_evidence.yaml.docking.*. Both are BRONZE (community
+# heuristics; no peer-reviewed cutoffs) so the thresholds are honest
+# operational conventions documented in the rule_text:
+#   docking_binding_score:  best_score ≤ -7 kcal/mol = pass (hit_finding profile)
+#   docking_valid_poses:    n_poses_generated >= 3   = pass
+#
+# When no receptor is supplied (params.receptor_pdb_file empty) the
+# workflow produces no scores; the emit records status='not_computed'
+# so the gate row stays in the audit ledger without fabricating a verdict.
+BINDING_SCORE_HIT_THRESHOLD = -7.0  # kcal/mol; more negative is better
+VALID_POSES_MIN_COUNT       = 3
+
+best_score = output_data.get('best_score_kcal_mol')
+# n_poses generated across all docked ligands — sum of per-ligand pose counts.
+total_poses_generated = sum(
+    int(r.get('n_poses') or 0) for r in (results_list or [])
+)
+
+binding_score_passes = bool(
+    best_score is not None and best_score <= BINDING_SCORE_HIT_THRESHOLD
+) if best_score is not None else None
+valid_poses_passes = bool(
+    total_poses_generated >= VALID_POSES_MIN_COUNT
+) if total_poses_generated > 0 or success else None
+
+qc_metrics = {
+    'success': output_data['success'],
+    'process': 'DOCKING_AUTODOCK_VINA',
+    'domain': 'pharmacology',
+    # docking_binding_score (BRONZE, Trott & Olson 2010)
+    'best_score_kcal_mol': best_score,
+    'binding_score_hit_threshold_kcal_mol': BINDING_SCORE_HIT_THRESHOLD,
+    'docking_binding_score_passes': binding_score_passes,
+    # docking_valid_poses (BRONZE, AutoDock/Glide community)
+    'total_poses_generated': total_poses_generated,
+    'valid_poses_min_threshold': VALID_POSES_MIN_COUNT,
+    'docking_valid_poses_passes': valid_poses_passes,
+    # context
+    'n_ligands_docked': output_data.get('n_ligands_docked', 0),
+    'evidence_tier': 'BRONZE-binding_score / BRONZE-valid_poses',
+    'citation': 'Trott & Olson 2010 J Comput Chem 31:455; AutoDock community practice',
+    'status': (
+        'computed' if best_score is not None
+        else 'not_computed (no receptor supplied; gate awaits receptor_pdb_file fixture)'
+    ),
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2, default=str)
 
 with open('docking_autodock_vina_output.txt', 'w') as f:
     f.write('BioMate: AutoDock Vina Molecular Docking' + NL)

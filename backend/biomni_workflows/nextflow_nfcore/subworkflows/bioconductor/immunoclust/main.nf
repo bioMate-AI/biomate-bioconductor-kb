@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: flowCore, immunoClust
-// Visualizations: plot (ggplot/base)
+// Visualizations: scatter matrix
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

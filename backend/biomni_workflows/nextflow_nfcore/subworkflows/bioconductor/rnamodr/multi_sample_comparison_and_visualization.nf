@@ -7,7 +7,7 @@
 // R packages: GenomicFeatures, RNAmodR, rtracklayer, txdbmaker
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicFeatures, RNAmodR, rtracklayer, txdbmaker
-// Visualizations: plot (ggplot/base)
+// Visualizations: ROC curve
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

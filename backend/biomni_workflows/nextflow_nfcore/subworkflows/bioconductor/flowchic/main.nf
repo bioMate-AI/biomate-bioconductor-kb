@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: flowCHIC, flowCore
-// Visualizations: ordination plot
+// Visualizations: ordination plot, MDS plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

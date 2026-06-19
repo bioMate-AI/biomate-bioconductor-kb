@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: heatmap, Venn diagram
+
 nextflow.enable.dsl = 2
 
 process BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS {

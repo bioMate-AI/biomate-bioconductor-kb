@@ -7,7 +7,7 @@
 // R packages: DOSE
 // Bioconductor: 3.20 | R: 4.4
 // Requires: DOSE
-// Visualizations: plot (ggplot/base)
+// Visualizations: heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

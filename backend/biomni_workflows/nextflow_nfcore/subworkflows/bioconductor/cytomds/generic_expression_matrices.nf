@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: CytoMDS, ggplot2
-// Visualizations: plot (ggplot/base)
+// Visualizations: MDS plot, biplot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

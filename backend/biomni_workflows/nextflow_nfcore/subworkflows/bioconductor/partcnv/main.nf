@@ -32,6 +32,7 @@ process BIOC_PARTCNV_PART_CNV_STANDARD {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -188,6 +189,76 @@ process BIOC_PARTCNV_PART_CNV_STANDARD {
     }
     
     cat("Pipeline completed successfully. Outputs saved to working directory.\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # count normalization — scan .rds matrix artifacts for library-size CV
+    # ratio (post-norm / pre-norm); without raw input we report median lib CV
+    # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
+    .cn_lib_cvs <- numeric(0)
+    .cn_scanned <- character(0)
+    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
+      .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
+      if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {
+        .cn_lib <- tryCatch(colSums(as.matrix(.cn_mat), na.rm = TRUE), error = function(e) NULL)
+        if (!is.null(.cn_lib) && all(is.finite(.cn_lib)) && mean(.cn_lib) > 0) {
+          .cn_lib_cvs <- c(.cn_lib_cvs, sd(.cn_lib) / mean(.cn_lib))
+          .cn_scanned <- c(.cn_scanned, .cn_rds)
+        }
+      }
+    }
+    .cn_med_cv <- if (length(.cn_lib_cvs) > 0) round(median(.cn_lib_cvs), 4) else NA_real_
+    .gates_by_label[["count normalization"]] <- list(
+      gate_row = "bioc_count_normalization",
+      metric_name = "lib_size_cv_median",
+      metric_value = .cn_med_cv,
+      passes = isTRUE(is.finite(.cn_med_cv) && .cn_med_cv <= 0.3),
+      status = if (is.finite(.cn_med_cv)) paste0("computed (proxy: median lib-size CV across ", length(.cn_scanned), " matrix .rds; raw-vs-norm ratio not measurable without paired input)")
+               else "not_computed (no count matrix .rds artifact present)"
+    )
+
+    # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
+    # (Stuart 2019 Cell Seurat v3 default range).
+    .hvg_count <- NA_real_; .hvg_files <- character(0)
+    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
+      .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
+      if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {
+        .hvg_m <- suppressWarnings(as.matrix(.hvg_mat))
+        .hvg_cvs <- suppressWarnings(apply(.hvg_m, 1, function(r) {
+          .rv <- as.numeric(r); .m <- mean(.rv, na.rm = TRUE)
+          if (is.finite(.m) && .m > 0) sd(.rv, na.rm = TRUE) / .m else NA_real_
+        }))
+        .hvg_count <- sum(is.finite(.hvg_cvs) & .hvg_cvs > 1.0)
+        .hvg_files <- c(.hvg_files, .hvg_rds); break
+      }
+    }
+    .gates_by_label[["highly-variable feature selection"]] <- list(
+      gate_row = "bioc_hvg_selection",
+      metric_name = "hvg_count",
+      metric_value = .hvg_count,
+      passes = isTRUE(is.finite(.hvg_count) && .hvg_count >= 1000 && .hvg_count <= 3000),
+      status = if (is.finite(.hvg_count)) paste0("computed (CV>1.0 rows = ", .hvg_count, "; proxy for HVG selection)")
+               else "not_computed (no expression matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_PARTCNV_PART_CNV_STANDARD",
+      domain  = "bioconductor",
+      declared_qc_steps = c("count normalization", "highly-variable feature selection"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_PARTCNV_PART_CNV_STANDARD":',

@@ -7,7 +7,7 @@
 // R packages: Biostrings, rtracklayer, triplex
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Biostrings, rtracklayer, triplex
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
