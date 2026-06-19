@@ -8829,6 +8829,14 @@ ${paramLines || '(none recorded)'}`;
             req.user ? String(req.user.id) : 'anonymous'
           );
 
+          // Phase C — extract __outputLocation from params (set by viewer's
+          // handleExecute when user picks non-default option) and pass as a
+          // top-level field that NextflowExecuteRequest.output_location reads.
+          // See backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py._resolve_outdir
+          const __outputLocation = (stagedParams as any).__outputLocation;
+          const stagedParamsClean = { ...stagedParams };
+          delete (stagedParamsClean as any).__outputLocation;
+
           const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
             method: 'POST',
             headers: {
@@ -8838,7 +8846,8 @@ ${paramLines || '(none recorded)'}`;
             body: JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
-              parameters: stagedParams,
+              parameters: stagedParamsClean,
+              ...(__outputLocation ? { output_location: __outputLocation } : {}),
               // ⚠️ DO NOT REVERT to `docker`. Third re-application of 2885eb960 / 140502f23.
               // biomate-ai-tools workflows define an `aws` profile, NOT `docker`. nf-core
               // on Batch accepts `aws` too since both delegate to the awsbatch executor.
