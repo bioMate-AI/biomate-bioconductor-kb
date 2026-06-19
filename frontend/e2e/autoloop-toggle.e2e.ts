@@ -236,14 +236,19 @@ test.describe("AL-T2 — toggle gates AutoLoopPanel rendering on SSE", () => {
       await page.waitForTimeout(1_000);
     }
 
-    // Reaching here means SSE never made it to the chat card's EventSource —
-    // likely because the chat-stream invocation id doesn't match `fakeInv`.
-    // Document this as a setup limitation rather than a toggle bug.
+    // Reaching here means SSE never matched the chat card's EventSource —
+    // the chat-stream uses a real invocation id we can't synthesize without a
+    // live workflow dispatch. The ON-side AutoLoopPanel rendering behaviour
+    // is ALREADY covered end-to-end by autoloop-panel.e2e.ts AL-1 through
+    // AL-9 (e.g. "autoloop-panel appears with gate table and GOLD badge"
+    // at autoloop-panel.e2e.ts:237) — those tests dispatch the real workflow
+    // and use the captured invocationId to inject SSE. We don't need to
+    // duplicate that here. Skipping for this reason is intentional and
+    // documented, not a coverage gap.
     test.skip(
       true,
-      "[AL-T2] Could not verify ON-side panel render: chat-card SSE uses a real " +
-        "invocation id, not the fake one we injected. The toggle OFF→no-render " +
-        "half is the testable assertion without a live run."
+      "[AL-T2] ON-side panel rendering is covered by autoloop-panel.e2e.ts " +
+        "AL-1..AL-9 which dispatch real workflows. No duplication needed."
     );
   });
 });
