@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: phylogenetic tree
+
 nextflow.enable.dsl = 2
 
 process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {

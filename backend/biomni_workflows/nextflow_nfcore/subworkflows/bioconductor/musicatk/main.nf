@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: UMAP plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY {

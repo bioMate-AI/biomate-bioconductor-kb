@@ -7,7 +7,7 @@
 // R packages: RColorBrewer, ade4, motifStack
 // Bioconductor: 3.20 | R: 4.4
 // Requires: RColorBrewer, ade4, motifStack
-// Visualizations: plot (ggplot/base)
+// Visualizations: circos plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

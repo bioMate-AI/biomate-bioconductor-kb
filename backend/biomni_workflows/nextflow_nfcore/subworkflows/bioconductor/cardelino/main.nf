@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: cardelino, ggplot2, pheatmap
-// Visualizations: heatmap
+// Visualizations: heatmap, phylogenetic tree
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: heatmap, network plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_SPATIALHEATMAP_COEXPRESSION_CLUSTERING_NETWORK {

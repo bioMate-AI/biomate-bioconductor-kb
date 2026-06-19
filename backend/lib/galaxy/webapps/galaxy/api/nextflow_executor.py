@@ -901,6 +901,10 @@ class NextflowExecuteRequest(BaseModel):
     is_pilot: Optional[bool] = None  # pilot study: bypass billing; tag in KPI logs
     resume_from_run_id: Optional[str] = None  # if set, passes -resume -w <prev_work_dir>
     credentials: Optional[Dict[str, Any]] = None  # {tool_id: {username, token} | {license_key}}
+    # Chain-composer sidecar — when supplied, dropped into work_dir as
+    # chain_meta.json so _resolve_rationale_id can light up the (why?) anchor
+    # on each phase. Shape: {"chain_name": str, "phases": [{...}, ...]}.
+    chain_meta: Optional[Dict[str, Any]] = None
 
 
 class NextflowStatusRequest(BaseModel):
@@ -2583,6 +2587,7 @@ def _start_qc_monitor(
     trace_path: Optional[Path] = None,
     is_batch: bool = False,
     s3_outdir: Optional[str] = None,
+    s3_work_dir: Optional[str] = None,
 ) -> None:
     """
     Spawn a background thread that polls the Nextflow trace file and fires
@@ -2666,6 +2671,7 @@ def _start_qc_monitor(
         qc_overrides=qc_overrides,
         qc_profile=qc_profile,
         s3_outdir=s3_outdir,
+        s3_work_dir=s3_work_dir,
     )
 
     # Register handler so export endpoint can access live QC state.
@@ -4130,6 +4136,17 @@ def execute_nextflow(
         work_dir.mkdir(parents=True, exist_ok=True)
         outdir = str(outdir_path)
 
+    # Chain-composer sidecar — write chain_meta.json so the (why?) anchor
+    # (resolved via _resolve_rationale_id) can find the chain/phase mapping
+    # at SSE-event time. Local mode only; S3 mode would need s3 cp.
+    if request.chain_meta and not is_s3:
+        try:
+            import json as _json
+            with open(work_dir / "chain_meta.json", "w") as _fh:
+                _json.dump(request.chain_meta, _fh)
+        except Exception as _exc:
+            log.debug("[chain_meta] write failed for run %s: %s", run_id, _exc)
+
     # Detect whether any param contains multi-line content (inline CSV/SMILES/FASTA).
     # If so, write ALL params to a JSON file and use --params-file instead of individual
     # --key value flags. This avoids shell/Nextflow arg-parsing issues with newlines
@@ -4569,6 +4586,7 @@ def execute_nextflow(
             trace_path=trace_path,
             is_batch=_is_batch,
             s3_outdir=str(outdir) if _is_batch and str(outdir).startswith("s3://") else None,
+            s3_work_dir=_s3_work_dir if _is_batch and _s3_work_dir else None,
         )
         return {
             "success": True,
@@ -4690,6 +4708,7 @@ def execute_nextflow(
         trace_path=trace_path,
         is_batch=_is_batch,
         s3_outdir=str(outdir) if _is_batch and str(outdir).startswith("s3://") else None,
+        s3_work_dir=_s3_work_dir if _is_batch and _s3_work_dir else None,
     )
 
     return {

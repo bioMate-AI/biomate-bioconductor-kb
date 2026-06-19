@@ -31,6 +31,7 @@ process BIOC_SVA_COMBAT_KNOWN_BATCHES {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -110,6 +111,38 @@ process BIOC_SVA_COMBAT_KNOWN_BATCHES {
         )
         write.csv(results_df, "differential_expression_results.csv", row.names = FALSE)
         saveRDS(combat_edata, "combat_adjusted_expression.rds")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # batch-effect correction — declarative pass via corrected-output presence
+    # (kBET acceptance metric is a future per-workflow follow-on).
+    .bec_artifacts <- list.files(".", pattern = "(?i)(corrected|batch|combat|harmony|mnn).*\\.(rds|csv|h5ad)\$")
+    .bec_passes <- length(.bec_artifacts) > 0
+    .gates_by_label[["batch-effect correction"]] <- list(
+      gate_row = "bioc_batch_effect_correction",
+      metric_name = "batch_corrected_artifacts",
+      metric_value = length(.bec_artifacts),
+      passes = .bec_passes,
+      status = if (.bec_passes) "computed (declarative; kBET acceptance pending)"
+               else "not_computed (no batch-corrected artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_SVA_COMBAT_KNOWN_BATCHES",
+      domain  = "bioconductor",
+      declared_qc_steps = c("batch-effect correction"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_SVA_COMBAT_KNOWN_BATCHES":',

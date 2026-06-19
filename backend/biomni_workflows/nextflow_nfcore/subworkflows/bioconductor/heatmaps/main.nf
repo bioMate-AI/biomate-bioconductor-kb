@@ -7,7 +7,7 @@
 // R packages: GenomicRanges, heatmaps, rtracklayer
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, heatmaps, rtracklayer
-// Visualizations: heatmap (ComplexHeatmap), image plot, heatmap, cluster plot
+// Visualizations: heatmap (ComplexHeatmap), image plot, heatmap, coverage plot, cluster plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

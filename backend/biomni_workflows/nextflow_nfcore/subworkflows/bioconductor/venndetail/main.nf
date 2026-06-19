@@ -7,7 +7,7 @@
 // R packages: VennDetail
 // Bioconductor: 3.20 | R: 4.4
 // Requires: VennDetail
-// Visualizations: plot (ggplot/base)
+// Visualizations: Venn diagram, UpSet plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

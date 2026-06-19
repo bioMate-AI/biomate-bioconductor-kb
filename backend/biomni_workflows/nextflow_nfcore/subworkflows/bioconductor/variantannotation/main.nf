@@ -7,6 +7,7 @@
 // R packages: BSgenome.Hsapiens.UCSC.hg19, PolyPhen.Hsapiens.dbSNP131, TxDb.Hsapiens.UCSC.hg19.knownGene, AnnotationHub, GenomicRanges, ggplot2, microbenchmark, rjsoncons, VariantAnnotation
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Hsapiens.UCSC.hg19, PolyPhen.Hsapiens.dbSNP131, TxDb.Hsapiens.UCSC.hg19.knownGene, VariantAnnotation
+// Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

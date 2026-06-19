@@ -7,7 +7,7 @@
 // R packages: parody
 // Bioconductor: 3.20 | R: 4.4
 // Requires: parody
-// Visualizations: plot (ggplot/base)
+// Visualizations: biplot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

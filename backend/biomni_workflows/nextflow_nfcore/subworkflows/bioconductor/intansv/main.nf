@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: intansv, plyr
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic region plot, chromosome plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -33,6 +33,7 @@ process BIOC_CELLID_FUNCTIONAL_ANNOTATION {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -103,6 +104,50 @@ process BIOC_CELLID_FUNCTIONAL_ANNOTATION {
     pdf("g2m_checkpoint_enrichment_plot.pdf", width = 6, height = 6)
     print(ggG2Mcell)
     dev.off()
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
+    # (Stuart 2019 Cell Seurat v3 default range).
+    .hvg_count <- NA_real_; .hvg_files <- character(0)
+    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
+      .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
+      if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {
+        .hvg_m <- suppressWarnings(as.matrix(.hvg_mat))
+        .hvg_cvs <- suppressWarnings(apply(.hvg_m, 1, function(r) {
+          .rv <- as.numeric(r); .m <- mean(.rv, na.rm = TRUE)
+          if (is.finite(.m) && .m > 0) sd(.rv, na.rm = TRUE) / .m else NA_real_
+        }))
+        .hvg_count <- sum(is.finite(.hvg_cvs) & .hvg_cvs > 1.0)
+        .hvg_files <- c(.hvg_files, .hvg_rds); break
+      }
+    }
+    .gates_by_label[["highly-variable feature selection"]] <- list(
+      gate_row = "bioc_hvg_selection",
+      metric_name = "hvg_count",
+      metric_value = .hvg_count,
+      passes = isTRUE(is.finite(.hvg_count) && .hvg_count >= 1000 && .hvg_count <= 3000),
+      status = if (is.finite(.hvg_count)) paste0("computed (CV>1.0 rows = ", .hvg_count, "; proxy for HVG selection)")
+               else "not_computed (no expression matrix .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_CELLID_FUNCTIONAL_ANNOTATION",
+      domain  = "bioconductor",
+      declared_qc_steps = c("highly-variable feature selection"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_CELLID_FUNCTIONAL_ANNOTATION":',

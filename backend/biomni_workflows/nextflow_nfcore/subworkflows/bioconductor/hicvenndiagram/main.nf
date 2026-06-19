@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ggplot2, hicVennDiagram
-// Visualizations: plot (ggplot/base)
+// Visualizations: Venn diagram, UpSet plot
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

@@ -15,7 +15,7 @@
  *                         atom-mapping via Lomap2 MCS; define alchemical windows
  * 4. PRODUCTION_RBFE   -- OpenFE SepTop / RBFE protocol: parallel replica exchange
  *                         across lambda windows (GPU-accelerated via OpenMM 8)
- * 5. ANALYSIS          -- Cinnabar / OpenFE estimators: MBAR free energy estimates;
+ * 5. OPENFE_ANALYSIS   -- Cinnabar / OpenFE estimators: MBAR free energy estimates;
  *                         DDG + uncertainty (SEM); overlap matrix check; convergence plot
  *
  * Outputs:
@@ -424,7 +424,7 @@ PYEOF
 }
 
 // [Phase D] DDG Analysis & Report
-process ANALYSIS {
+process OPENFE_ANALYSIS {
     /*
      * Estimate DDG using MBAR via Cinnabar.
      * Outputs DDG + SEM (kcal/mol), overlap matrix, convergence plot,
@@ -440,6 +440,7 @@ process ANALYSIS {
 
     output:
     path "ddg_summary.json",       emit: summary
+    path "qc_metrics.json",        emit: qc_metrics
     path "overlap_matrix.png",     emit: overlap_img
     path "ddg_convergence.png",    emit: convergence_img
     path "rbfe_analysis_report.html", emit: html_report
@@ -567,6 +568,71 @@ summary = {
 with open('ddg_summary.json', 'w') as f:
     json.dump(summary, f, indent=2)
 
+# ── QC gate: openfe_cycle_closure (Mey 2020, GOLD) ───────────────────────────
+# Track 2 batch 7 (2026-06-16): wire the openfe_cycle_closure gate.
+# Mey 2020 (Living J Comput Mol Sci 2:18378) recommends |ΔG_sum| < 1 kcal/mol
+# around any closed thermodynamic cycle for a converged calculation.
+#
+# Cycle closure requires a network with at least 3 edges forming a closed
+# loop (e.g. A→B, B→C, C→A). A single-edge run can't compute it; in that
+# case we emit None + status='not_computed' so the gate row stays in the
+# audit ledger without fabricating a verdict — matches the pattern used
+# for pbpk_auc_fold_error (only fires when an observed reference is
+# supplied) and the cancer-biology gates.
+CYCLE_CLOSURE_FAIL_THRESHOLD = 1.0   # kcal/mol; Mey 2020 GOLD
+
+# Detect closed cycles from the parsed result files. fe_results carries
+# per-edge DeltaF values when OpenFE results were parseable; the input
+# network JSON may declare the edge topology.
+cycle_closure_kcal_per_mol = None
+cycle_closure_status = "not_computed (single-edge run; cycle closure needs ≥3-edge closed loop)"
+try:
+    cycles = network.get('closed_cycles') if isinstance(network, dict) else None
+    if cycles and fe_results:
+        # Build a {edge_key: DeltaF} lookup from the parsed results.
+        edge_ddg = {}
+        for r in fe_results:
+            key = r.get('edge') or r.get('transformation') or r.get('name')
+            if key and 'DeltaF' in r:
+                edge_ddg[key] = float(r['DeltaF'])
+        # For each declared closed cycle, sum DeltaF around its edges.
+        cycle_sums = []
+        for cyc in cycles:
+            if isinstance(cyc, list) and all(e in edge_ddg for e in cyc):
+                cycle_sums.append(sum(edge_ddg[e] for e in cyc))
+        if cycle_sums:
+            cycle_closure_kcal_per_mol = max(abs(s) for s in cycle_sums)
+            cycle_closure_status = "computed"
+except Exception as _cycle_err:
+    cycle_closure_status = f"not_computed ({_cycle_err})"
+
+cycle_closure_passes = bool(
+    cycle_closure_kcal_per_mol is not None
+    and cycle_closure_kcal_per_mol <= CYCLE_CLOSURE_FAIL_THRESHOLD
+) if cycle_closure_kcal_per_mol is not None else None
+
+qc_metrics = {
+    'success': bool(converged),
+    'process': 'OPENFE_ANALYSIS',
+    'domain': 'drug_discovery',
+    # openfe_cycle_closure (GOLD, Mey 2020)
+    'cycle_closure_kcal_per_mol': cycle_closure_kcal_per_mol,
+    'cycle_closure_fail_threshold_kcal_per_mol': CYCLE_CLOSURE_FAIL_THRESHOLD,
+    'openfe_cycle_closure_passes': cycle_closure_passes,
+    'openfe_cycle_closure_status': cycle_closure_status,
+    # context — per-edge DDG result used for the audit trail
+    'ddg_kcal_per_mol': round(ddg_kcal, 3),
+    'ddg_sem_kcal_per_mol': round(ddg_sem, 3),
+    'mbar_overlap_quality': quality,
+    'mbar_overlap_min_off_diag': round(float(min_off_diag), 4),
+    'n_lambda_windows': n_lambda,
+    'simulation_time_ns_per_window': sim_ns,
+    'evidence_tier': 'GOLD-cycle_closure',
+    'citation': 'Mey ASJS et al. Living J Comput Mol Sci 2020; 2(1):18378',
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
+
 # -- HTML report --
 html_sign = '+' if ddg_kcal > 0 else ''
 html_color = '#c0392b' if ddg_kcal > 0 else '#27ae60'
@@ -643,7 +709,7 @@ workflow {
     )
 
     // Step 5: Analysis
-    ANALYSIS(
+    OPENFE_ANALYSIS(
         PRODUCTION_RBFE.out.results_dir,
         RBFE_SETUP.out.network
     )

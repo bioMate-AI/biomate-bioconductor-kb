@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: box plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING {

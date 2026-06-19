@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: factoextra plot, elbow plot, density plot, cluster plot, box plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {

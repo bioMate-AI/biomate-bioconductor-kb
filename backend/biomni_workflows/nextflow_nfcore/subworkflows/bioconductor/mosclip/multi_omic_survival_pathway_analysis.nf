@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MOSClip, MultiAssayExperiment, survival
-// Visualizations: heatmap
+// Visualizations: pathway diagram, heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

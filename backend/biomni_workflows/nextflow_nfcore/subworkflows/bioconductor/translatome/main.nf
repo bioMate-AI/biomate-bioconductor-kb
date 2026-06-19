@@ -7,7 +7,7 @@
 // R packages: tRanslatome
 // Bioconductor: 3.20 | R: 4.4
 // Requires: tRanslatome
-// Visualizations: heatmap (ComplexHeatmap), scatter plot, MA plot, heatmap
+// Visualizations: heatmap (ComplexHeatmap), MA plot, scatter plot, heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: bar plot, coverage plot, density plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_TEQC_CUSTOM_QC_ANALYSIS {

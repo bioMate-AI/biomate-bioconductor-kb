@@ -241,19 +241,60 @@ process NLMIXR2_POPULATION_PK {
     params_df <- as.data.frame(fit\$parFixed)
     etas       <- fit\$eta
 
-    # ETA shrinkage (per random effect)
+    # Helper: coerce nlmixr2 accessor return values (which can be data.frames,
+    # named lists, numeric vectors, NULL, or NA) into a single finite scalar
+    # or NA. Without this the auto_unbox=TRUE writer emits '{}' for non-scalar
+    # accessors instead of a number — surfaced 2026-06-14 in run 5b366088.
+    as_scalar <- function(x) {
+        if (is.null(x)) return(NA_real_)
+        x <- suppressWarnings(as.numeric(x))
+        x <- x[is.finite(x)]
+        if (length(x) == 0) return(NA_real_)
+        x[1]
+    }
+
+    # ETA shrinkage (per random effect). nlmixr2 fit\$shrink can be a list or
+    # a data.frame; take the max finite value.
     shrinkage_vals <- tryCatch(fit\$shrink, error = function(e) NULL)
-    max_shrinkage  <- if (!is.null(shrinkage_vals)) max(shrinkage_vals, na.rm = TRUE) else NA
+    raw_shrink_max <- if (!is.null(shrinkage_vals)) {
+        v <- suppressWarnings(as.numeric(unlist(shrinkage_vals)))
+        v <- v[is.finite(v)]
+        if (length(v) > 0) max(v) else NA_real_
+    } else NA_real_
+    # nlmixr2 returns shrinkage already as PERCENT (0-100 scale), not fraction.
+    # Earlier code multiplied by 100 producing impossible values like 8719%.
+    # Detect scale defensively: if the max looks like a fraction (<=1.0)
+    # multiply by 100; otherwise treat as already-percent.
+    max_shrinkage_pct <- if (is.na(raw_shrink_max)) NA_real_ else
+        if (raw_shrink_max <= 1.0) raw_shrink_max * 100 else raw_shrink_max
 
-    # Condition number from covariance matrix
-    cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
-    cond_number <- if (!is.null(cov_mat) && nrow(cov_mat) > 0) {
-        eig <- eigen(cov_mat, only.values = TRUE)\$values
-        max(abs(eig)) / min(abs(eig[abs(eig) > 1e-10]))
-    } else NA
+    # Condition number from covariance matrix. nlmixr2's standard accessor is
+    # fit\$cov; older code looked at fit\$covMatrix which doesn't exist in 4.x
+    # (yielded a list that jsonlite then serialized as '{}'). Try fit\$cov →
+    # fit\$cov\$cov → fit\$covMatrix in order; coerce to a numeric matrix
+    # before eigen().
+    cov_mat <- tryCatch(fit\$cov, error = function(e) NULL)
+    if (!is.matrix(cov_mat)) {
+        cov_mat <- tryCatch(fit\$cov\$cov, error = function(e) NULL)
+    }
+    if (!is.matrix(cov_mat)) {
+        cov_mat <- tryCatch(fit\$covMatrix, error = function(e) NULL)
+    }
+    cond_number <- if (is.matrix(cov_mat) && nrow(cov_mat) > 0) {
+        eig <- suppressWarnings(eigen(cov_mat, only.values = TRUE)\$values)
+        eig <- as.numeric(eig)
+        eig <- eig[is.finite(eig) & abs(eig) > 1e-10]
+        if (length(eig) > 0) max(abs(eig)) / min(abs(eig)) else NA_real_
+    } else NA_real_
 
-    # OFV (objective function value)
-    ofv <- tryCatch(fit\$ofv, error = function(e) NA)
+    # OFV — nlmixr2 returns it via different accessors across versions
+    # (fit\$ofv, fit\$objDf\$OBJF, fit\$obf). Try each + coerce to scalar.
+    ofv_raw <- tryCatch(fit\$ofv, error = function(e) NULL)
+    if (is.null(ofv_raw) || length(suppressWarnings(as.numeric(ofv_raw))) == 0)
+        ofv_raw <- tryCatch(fit\$obf, error = function(e) NULL)
+    if (is.null(ofv_raw) || length(suppressWarnings(as.numeric(ofv_raw))) == 0)
+        ofv_raw <- tryCatch(fit\$objDf\$OBJF, error = function(e) NULL)
+    ofv <- as_scalar(ofv_raw)
 
     # Convergence: nlmixr2 sets fit\$message; SAEM converged if no warning keyword
     converged <- tryCatch({
@@ -261,10 +302,10 @@ process NLMIXR2_POPULATION_PK {
         !grepl("not converge|failed|warning", msg, ignore.case = TRUE)
     }, error = function(e) TRUE)  # assume converged if message not accessible
 
-    cat(sprintf("OFV        : %.2f\\n", ofv))
+    cat(sprintf("OFV        : %s\\n", ifelse(is.na(ofv), "NA", sprintf("%.2f", ofv))))
     cat(sprintf("Converged  : %s\\n", converged))
-    cat(sprintf("Max eta shrinkage: %.1f%%\\n", max_shrinkage * 100))
-    cat(sprintf("Condition number : %.1f\\n", cond_number))
+    cat(sprintf("Max eta shrinkage: %s%%\\n", ifelse(is.na(max_shrinkage_pct), "NA", sprintf("%.1f", max_shrinkage_pct))))
+    cat(sprintf("Condition number : %s\\n", ifelse(is.na(cond_number), "NA", sprintf("%.1f", cond_number))))
 
     # ── Write outputs ────────────────────────────────────────────────────────
     fwrite(params_df, "parameter_estimates.csv", row.names = TRUE)
@@ -297,8 +338,8 @@ process NLMIXR2_POPULATION_PK {
         algorithm             = "${params.algorithm}",
         n_subjects            = n_subjects,
         n_observations        = n_obs,
-        max_eta_shrinkage_pct = if (!is.na(max_shrinkage)) round(max_shrinkage * 100, 1) else NULL,
-        condition_number      = if (!is.na(cond_number))   round(cond_number, 1)          else NULL,
+        max_eta_shrinkage_pct = if (!is.na(max_shrinkage_pct)) round(max_shrinkage_pct, 1) else NULL,
+        condition_number      = if (!is.na(cond_number))       round(cond_number, 1)       else NULL,
         aic                   = tryCatch(AIC(fit), error = function(e) NULL),
         bic                   = tryCatch(BIC(fit), error = function(e) NULL)
     )
@@ -312,15 +353,48 @@ process NLMIXR2_POPULATION_PK {
     # ofv_delta_max NOT emitted because the workflow runs a single fit;
     # OFV-stability gate needs successive-iteration ΔOFV which would
     # require a refit pipeline. Gate skips with None — by design.
+    # Threshold + pass-band fields per qc_evidence.yaml.nlmixr2_poppk.*
+    # (added 2026-06-15 Track 2 batch 1+ for the 6 trailing gaps):
+    #   eta_shrinkage:    pass < 20%, advisory 20-30%, fail > 30%  (GOLD-anchored)
+    #   condition_number: pass < 100, advisory 100-1000, fail > 1000 (SILVER convention)
+    #   ofv_stability:    single-fit workflow can't compute ΔOFV — emit None +
+    #                     status to keep the gate row in audit ledger without
+    #                     fabricating a verdict.
+    ETA_SHRINKAGE_PASS_PCT      <- 20
+    ETA_SHRINKAGE_FAIL_PCT      <- 30
+    CONDITION_NUMBER_PASS_LIMIT <- 100
+    CONDITION_NUMBER_FAIL_LIMIT <- 1000
+
+    eta_v <- results_json\$max_eta_shrinkage_pct
+    cn_v  <- results_json\$condition_number
+
+    eta_passes <- if (!is.null(eta_v)) (eta_v < ETA_SHRINKAGE_PASS_PCT) else NULL
+    cn_passes  <- if (!is.null(cn_v))  (cn_v  < CONDITION_NUMBER_PASS_LIMIT) else NULL
+
     qc_metrics <- list(
-        eta_shrinkage_pct_max = results_json\$max_eta_shrinkage_pct,
-        condition_number      = results_json\$condition_number,
-        ofv                   = results_json\$ofv,
-        convergence_status    = results_json\$convergence_status,
-        n_subjects            = results_json\$n_subjects,
-        n_observations        = results_json\$n_observations,
-        model_type            = results_json\$model_type,
-        algorithm             = results_json\$algorithm
+        # nlmixr2_eta_shrinkage (GOLD-anchored Savic & Karlsson)
+        eta_shrinkage_pct_max                  = eta_v,
+        eta_shrinkage_pct_pass_threshold       = ETA_SHRINKAGE_PASS_PCT,
+        eta_shrinkage_pct_fail_threshold       = ETA_SHRINKAGE_FAIL_PCT,
+        nlmixr2_eta_shrinkage_passes           = eta_passes,
+        # nlmixr2_condition_number (SILVER, community convention)
+        condition_number                       = cn_v,
+        condition_number_pass_threshold        = CONDITION_NUMBER_PASS_LIMIT,
+        condition_number_fail_threshold        = CONDITION_NUMBER_FAIL_LIMIT,
+        nlmixr2_condition_number_passes        = cn_passes,
+        # nlmixr2_ofv_stability (BRONZE; needs multi-fit refit pipeline)
+        # R NULL → jsonlite emits {} under auto_unbox=TRUE; emit NA_real_
+        # instead so the output is a clean null in JSON.
+        ofv                                    = results_json\$ofv,
+        ofv_delta_max                          = NA_real_,
+        nlmixr2_ofv_stability_passes           = NA,
+        nlmixr2_ofv_stability_status           = "not_computed (single-fit workflow; ΔOFV gate needs refit pipeline)",
+        # context
+        convergence_status                     = results_json\$convergence_status,
+        n_subjects                             = results_json\$n_subjects,
+        n_observations                         = results_json\$n_observations,
+        model_type                             = results_json\$model_type,
+        algorithm                              = results_json\$algorithm
     )
     write_json(qc_metrics, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
     REOF

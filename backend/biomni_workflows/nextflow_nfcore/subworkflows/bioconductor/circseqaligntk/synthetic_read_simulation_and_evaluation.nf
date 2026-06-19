@@ -7,7 +7,7 @@
 // R packages: CircSeqAlignTk
 // Bioconductor: 3.20 | R: 4.4
 // Requires: CircSeqAlignTk
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

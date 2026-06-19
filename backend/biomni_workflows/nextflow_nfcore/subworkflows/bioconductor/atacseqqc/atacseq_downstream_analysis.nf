@@ -7,7 +7,7 @@
 // R packages: ATACseqQC, BSgenome.Hsapiens.UCSC.hg19, ChIPpeakAnno, GenomicAlignments, MotifDb, TxDb.Hsapiens.UCSC.hg19.knownGene
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ATACseqQC, BSgenome.Hsapiens.UCSC.hg19, ChIPpeakAnno, GenomicAlignments, MotifDb, TxDb.Hsapiens.UCSC.hg19.knownGene
-// Visualizations: heatmap
+// Visualizations: correlation plot, matrix plot, heatmap, coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

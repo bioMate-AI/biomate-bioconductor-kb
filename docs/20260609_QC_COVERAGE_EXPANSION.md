@@ -4,13 +4,8 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 19 of 20 candidate workflows verified end-to-end. 1 remains
-code-ready and blocked by an issue independent of the QC code path
-(nlmixr2 — missing `biomate/r-pharma:x86` ECR image; r-pharma rebuild
-blocked under QEMU x86-on-ARM at R `install.packages`, needs the same
-two-tier Dockerfile pattern as aizynth — see
-`docs/20260613_QC_COVERAGE_BLOCKER_FIXES.md`). Two earlier-blocked
-workflows have been unblocked:
+**Result:** 20 of 20 candidate workflows verified end-to-end. All previously
+blocked workflows have been unblocked:
 
 - `aizynthfinder_retrosynthesis` — container rebuilt with USPTO model
   baked in from Zenodo (`https://zenodo.org/record/7797465`). Run
@@ -24,6 +19,17 @@ workflows have been unblocked:
   from the `publishDir = null` injection block + boltz CLI flag
   fixes (`--output_format` etc.) + NO_FILE placeholder channel
   removal.
+- `nlmixr2_population_pk` — `biomate/r-pharma:x86` rebuilt from scratch
+  (see `docs/20260614_BIOC_VIZ_FIX_AND_RPHARMA_BUILD.md` for the
+  7-iteration journey through QEMU emulation + missing system libs).
+  Verified end-to-end on the 12-subject Theophylline-style fixture via
+  run `5b366088` 2026-06-14 22:01:29 UTC: FOCEI fit converged,
+  qc_metrics.json published, QC Gate PASSED. **Workflow accuracy bug
+  separately observed:** `eta_shrinkage_pct_max: 8719.1` (impossible
+  >100%) and `condition_number: {}` / `ofv: {}` (should be numbers) —
+  follow-up commit needed to fix the metric calculation. The coverage
+  cycle ([QC-S3] read → [QC Gate] PASSED) is proven independently of
+  the metric semantics.
 
 ## Verified workflows
 
@@ -49,7 +55,7 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 14 | cyp_ddi_panel | DDI_RISK_ASSESSMENT | `overall_recommendation` | NOT_EXPECTED / INVESTIGATE / CLINICAL_STUDY_RECOMMENDED | GOLD FDA 2020 In Vitro DDI Guidance (R1 ≥ 1.02 INVESTIGATE; R1 ≥ 1.1 CLINICAL); requires `null`→`None` Groovy interpolation fix (`420639060`) | aae555da 06-11 19:32:10 |
 | 15 | nca_pknca | NCA_PKNCA_ANALYSIS | `auc_extrap_pct_max` | ≤ 20% | GOLD FDA 2003 BA/BE Guidance; required `route` synonym canonicalization fix (`873bf21f2`) — PKNCA only accepts `extravascular`/`intravascular`. Advisory warning on `t_half_h` null fine — that is a downstream attribute, not the gate metric. Fixture: `s3://biomate-nextflow-work/fixtures/nca/synthetic_pk_theo_nca.csv` (12 subjects × 10 timepoints, derived from popPK Theophylline-style data) | 61562ea6 06-11 21:54:57 |
 | 16 | pbpk_simulation | PBPK_SIMULATION | `pbpk_tmax_fraction` | ≤ 0.8 | SILVER FDA 2018 PBPK Format and Content Guidance; flag if Tmax > 80% of simulation_duration_h. Aspirin / 500 mg PO / 96 h within window → PASSED. Advisory warning on t_half_h null fine — downstream attribute, not gate metric | e9cb87a4 06-12 18:54:47 |
-| 17 | genotoxicity_ames_prediction | GENOTOXICITY_AMES_PREDICTION | `ames_positive_count` + `worst_prediction` | 0 POSITIVE + 0 SUSPECT | SILVER Kazius 2005 alert SET / ICH S2(R1). Coverage cycle proven (QC-S3 read → Gate evaluated PASSED on 4-nitroaniline run). **Side observation:** workflow's SMARTS classifier labelled 4-nitroaniline NEGATIVE — that compound is a canonical Ames+ positive control (aromatic_nitro + primary_aromatic_amine alerts both apply). Workflow accuracy bug, separate from QC-gate coverage | 3be48cf6 06-12 19:17:19 |
+| 17 | genotoxicity_ames_prediction | GENOTOXICITY_AMES_PREDICTION | `ames_positive_count` + `worst_prediction` | 0 POSITIVE + 0 SUSPECT | SILVER Kazius 2005 alert SET / ICH S2(R1). QC-S3 cycle proven on 3be48cf6 06-12 19:17:19. Initially misclassified 4-nitroaniline as NEGATIVE due to ames_verdict() reading `a[3]` (description string) instead of `a[2]` (severity) — tuple-index bug fixed in c3e390576 06-14 01:14:37. SMARTS patterns nitro_aromatic + primary_aromatic_amine confirmed matching on the canonical Ames+ positive control via manual RDKit check before the fix landed | 3be48cf6 06-12 19:17:19 |
 
 ## Code-ready but blocked
 

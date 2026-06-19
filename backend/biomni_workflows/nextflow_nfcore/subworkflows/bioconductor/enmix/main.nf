@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// QC: missing-value handling
+
 nextflow.enable.dsl = 2
 
 process BIOC_ENMIX_PIPELINE_PREPROCESSING {
@@ -24,6 +26,7 @@ process BIOC_ENMIX_PIPELINE_PREPROCESSING {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -83,6 +86,48 @@ process BIOC_ENMIX_PIPELINE_PREPROCESSING {
     write.csv(head(beta, 1000), file = "beta_preprocessed_subset.csv", row.names = TRUE)
     
     message("Pipeline completed successfully. Outputs saved to 'beta_preprocessed.rds' and 'beta_preprocessed_subset.csv'.")
+    # ── BIOC_QC_HARNESS — Phase 3c bulk adoption (missing-value handling) ───
+    # Defensive scan: list every *.rds the workflow produced, load each one,
+    # compute NA fraction across numeric cells where the artifact is a
+    # matrix or data.frame. Report max NA fraction across artifacts.
+    # Threshold from bioc_missing_value_handling: < 5% pass.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+    .na_fracs <- numeric(0)
+    .scanned_files <- character(0)
+    for (.rds_file in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .obj <- tryCatch(readRDS(.rds_file), error = function(e) NULL)
+      .mat <- if (is.matrix(.obj) || is.data.frame(.obj)) .obj else NULL
+      if (!is.null(.mat)) {
+        .vals <- suppressWarnings(as.numeric(as.matrix(.mat)))
+        if (length(.vals) > 0) {
+          .na_fracs <- c(.na_fracs, mean(is.na(.vals)))
+          .scanned_files <- c(.scanned_files, .rds_file)
+        }
+      }
+    }
+    .na_max <- if (length(.na_fracs) > 0) round(max(.na_fracs), 4) else NA_real_
+    .gates_by_label[["missing-value handling"]] <- list(
+      gate_row = "bioc_missing_value_handling",
+      metric_name = "na_fraction_remaining",
+      metric_value = .na_max,
+      passes = isTRUE(is.finite(.na_max) && .na_max < 0.05),
+      status = if (is.finite(.na_max)) paste0("computed (scanned ", length(.scanned_files), " rds files)")
+               else "not_computed (no matrix/data.frame .rds artifact present)"
+    )
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_ENMIX_PIPELINE_PREPROCESSING",
+      domain  = "bioconductor",
+      declared_qc_steps = c("missing-value handling"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "SILVER (Lazar 2013 NAR; <5% community convention)",
+      harness_version = "0.1.0-bulk-mv"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_ENMIX_PIPELINE_PREPROCESSING":',

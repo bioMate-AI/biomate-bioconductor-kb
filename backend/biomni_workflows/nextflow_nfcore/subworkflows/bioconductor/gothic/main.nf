@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: density plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE {

@@ -7,7 +7,7 @@
 // R packages: limma, missMethyl
 // Bioconductor: 3.20 | R: 4.4
 // Requires: limma, missMethyl
-// Visualizations: plot (ggplot/base)
+// Visualizations: strip chart
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

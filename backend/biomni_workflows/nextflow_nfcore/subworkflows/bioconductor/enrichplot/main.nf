@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: S4Vectors, clusterProfiler, enrichplot, ggplot2
-// Visualizations: dot plot, gene-concept network, enrichment map, ridge plot, UpSet plot, heat plot, GSEA plot, tree plot, bar plot, network plot, enrichment plot
+// Visualizations: dot plot, gene-concept network, enrichment map, ridge plot, UpSet plot, heat plot, GSEA plot, tree plot, bar plot, network plot, enrichment plot, phylogenetic tree
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

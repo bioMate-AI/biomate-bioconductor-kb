@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: UpSet plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_MAGAR_COMPARE_METH_QTL_RESULTS {

@@ -111,12 +111,31 @@ The tier-0 design spec (`design_handoff_tier0_design_pipelines/Tier-0 Demo Requi
 | T04 — GLP-1 modality bake-off (MASH) | `biomate-ai-tools/glp1_modality_bakeoff/` | ✅ workflow exists |
 | T05 — Modality triage (BCMA) | `biomate-ai-tools/modality_triage/` | ✅ workflow exists |
 
+<<<<<<< HEAD
+All 5 execute end-to-end today via `tier0-audit.e2e.ts` +
+`tier0-full-e2e.e2e.ts` (9 assertions per demo: chat-stream event, form
+prefill, phase cards, SSE transitions, output chips, findings,
+methods-report, action buttons). The After-run report tabs that
+specifically depend on curated metadata were missing — patched
+2026-06-16, see `docs/20260616_TIER0_DRUG_DESIGN_CITATIONS_FIX.md`:
+
+| Surface | Before 2026-06-16 | After 2026-06-16 (verified live) |
+|---|---|---|
+| Workflow execution + 7-tab report skeleton | ✅ works (tier0-audit 9/9) | unchanged |
+| `workflow_chains` rows for NL routing | ❌ none — chain router can't reach | ✅ ids 61–65 (T05 is 2-step atlas→triage to match `expectedPhaseCount=7`) |
+| `qc_evidence.yaml` Citations tab | ❌ empty for all 5 | ✅ 3/3/2/2/3 DOI citations from spec |
+| `rationale_registry` (why?) anchor | ❌ no rows | ✅ 23 rows (T01–T04 = 4 each, T05 = 7) |
+| Node proxy `/api/rationale/*` | ❌ 401 (no proxy) | ✅ added `routes.ts:4426` |
+
+tier0-audit.e2e.ts now records assertions #10/#11/#12 covering these.
+=======
 **However**: none of these are in `workflow_chains` — they're top-level
 nf-core sub-workflows. The router will hit them directly (single
 workflow_type='nextflow'), not via a curated multi-step chain.
 **Citations**: none of the 5 tier-0 workflow domains
 (`bispecific_format_triage` etc.) have entries in `qc_evidence.yaml`,
 so the Citations tab is **empty** for tier-0 runs.
+>>>>>>> origin/integration/next-phase
 
 ---
 
@@ -143,7 +162,11 @@ so the Citations tab is **empty** for tier-0 runs.
 |---|---|---|---|
 | 1 | **Chain narrator emit `rationale_id`** so (why?) anchor lights up on real runs | High — L feature is invisible until this lands | 1 BE-day (handoff doc shipped) |
 | 2 | **Param origin tags producer** — backend writes `tag: default/edited/user/autoloop` per param | Medium — CSS exists, frontend will render once data flows | 2 BE-days |
+<<<<<<< HEAD
+| 3 | ~~**Citations for 5 tier-0 workflow domains**~~ + 13 true-gap chain domains | Medium — Citations tab empty for ~37 chains | tier-0 done 2026-06-16; remaining: per-domain scientific-lead curation; `RATIONALE_GAP_TRACKER.md` ready |
+=======
 | 3 | **Citations for 5 tier-0 workflow domains** + 13 true-gap chain domains | Medium — Citations tab empty for ~37 chains | per-domain scientific-lead curation; `RATIONALE_GAP_TRACKER.md` ready |
+>>>>>>> origin/integration/next-phase
 | 4 | **Pilot-then-full UX** with promotion card + countdown | Medium — design's key cost-saving pattern, absent in dev | ~3 FE-days |
 | 5 | **Comparison run mode** (A vs B with Δ column) | Medium — competitive differentiator | ~5 FE-days |
 | 6 | **(why?) popover blocks 2/3/4** — events + params + cost | Medium — current popover is 1/4 of the design | ~3 BE-days + 2 FE-days |
@@ -164,8 +187,17 @@ hard gate + viz dispatch), §5 (7-tab report skeleton + 4 cited domains).
 in-product tour, all-4-block (why?) popover, param origin tags wired
 end-to-end, full Citations coverage on non-bioc chains.
 
+<<<<<<< HEAD
+**The 5 tier-0 drug-design demos** execute end-to-end (tier0-audit 9/9
+per demo). As of 2026-06-16 they are also wrapped as chains (ids 61–65,
+T05 = 2-step atlas→triage), have 12 qc_evidence gates with DOI
+citations from the spec, and 23 rationale_registry rows backing the
+(why?) anchor. The remaining tutorial-grade gap is the chain narrator
+emitting `rationale_id` events on real runs (handoff doc shipped).
+=======
 **The 5 tier-0 drug-design demos** have executable nf-core workflows
 in dev, but they are top-level workflows (not chains) with no
 qc_evidence citations and no curated rationale_registry rows — so the
 tutorial-grade demo experience (chain → 7-tab report with citations +
 (why?) anchors) is bioc-only today.
+>>>>>>> origin/integration/next-phase

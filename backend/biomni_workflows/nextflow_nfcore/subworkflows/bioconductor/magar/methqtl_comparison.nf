@@ -7,7 +7,7 @@
 // R packages: MAGAR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MAGAR
-// Visualizations: plot (ggplot/base)
+// Visualizations: UpSet plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: bar plot, heatmap
+
 nextflow.enable.dsl = 2
 
 process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {

@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: AnnotationDbi, GenomeInfoDb, S4Vectors, StructuralVariantAnnotation, TxDb.Hsapiens.UCSC.hg19.knownGene, VariantAnnotation, circlize, dplyr, svaRetro
-// Visualizations: plot (ggplot/base)
+// Visualizations: circos plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

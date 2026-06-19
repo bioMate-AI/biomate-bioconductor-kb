@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BioCor, org.Hs.eg.db
-// Visualizations: cluster plot
+// Visualizations: cluster plot, pathway diagram
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

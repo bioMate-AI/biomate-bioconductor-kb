@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dot plot, enrichment plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {

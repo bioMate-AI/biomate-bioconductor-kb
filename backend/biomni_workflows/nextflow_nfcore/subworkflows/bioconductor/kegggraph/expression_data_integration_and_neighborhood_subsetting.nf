@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+
 nextflow.enable.dsl = 2
 
 process BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING {

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+
 nextflow.enable.dsl = 2
 
 process BIOC_MAGAR_METH_QTL_FROM_PLINK {

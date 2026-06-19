@@ -7,7 +7,7 @@
 // R packages: ggpubr, MIRit
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MIRit, ggpubr
-// Visualizations: volcano plot, bar plot, dot plot, enrichment plot
+// Visualizations: volcano plot, correlation plot, MDS plot, bar plot, dot plot, enrichment plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

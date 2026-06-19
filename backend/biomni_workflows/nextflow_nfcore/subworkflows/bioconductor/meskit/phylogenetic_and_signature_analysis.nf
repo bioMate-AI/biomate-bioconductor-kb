@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: BSgenome.Hsapiens.UCSC.hg19, ComplexHeatmap, MesKit, clusterProfiler, cowplot, ggplot2, org.Hs.eg.db
-// Visualizations: dot plot, heatmap (ComplexHeatmap), enrichment plot, heatmap
+// Visualizations: dot plot, heatmap (ComplexHeatmap), phylogenetic tree, enrichment plot, heatmap
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

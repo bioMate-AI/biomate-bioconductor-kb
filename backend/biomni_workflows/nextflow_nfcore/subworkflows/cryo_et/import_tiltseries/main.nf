@@ -38,8 +38,9 @@ process IMPORT_TILTSERIES {
     path tiltseries_dir
 
     output:
-    path "tiltseries_manifest.json", emit: manifest
+    path "tiltseries_manifest.json",      emit: manifest
     path "tiltseries_import_report.json", emit: report
+    path "qc_metrics.json",               emit: qc_metrics
 
     script:
     """
@@ -172,6 +173,36 @@ process IMPORT_TILTSERIES {
 
     with open('tiltseries_import_report.json', 'w') as f:
         json.dump(report, f, indent=2)
+
+    # ── QC gate: cryo_et_defocus_range (Hagen 2017, SILVER) ────────────────────
+    # Track 2 batch 2 (2026-06-15): wire the mean-defocus range gate. Threshold
+    # from qc_evidence.yaml cryo_et.cryo_et_defocus_range: mean defocus must lie
+    # in [-8.0, -0.5] µm; outside is typically a SerialEM/Tomo5 collection error.
+    # Aggregates per-tilt defocus_um from all tilt entries (MDOC-derived).
+    _defocus_vals = []
+    for ts in tiltseries:
+        for te in ts.get('tilt_entries', []):
+            d = te.get('defocus_um')
+            if d is not None:
+                try:
+                    _defocus_vals.append(float(d))
+                except (TypeError, ValueError):
+                    pass
+    _mean_defocus = (sum(_defocus_vals) / len(_defocus_vals)) if _defocus_vals else None
+    qc_metrics = {
+        "success":                       True,
+        "process":                       "IMPORT_TILTSERIES",
+        "domain":                        "cryo_et",
+        "defocus_um":                    round(_mean_defocus, 3) if _mean_defocus is not None else None,
+        "mean_defocus_um":               round(_mean_defocus, 3) if _mean_defocus is not None else None,
+        "num_defocus_observations":      len(_defocus_vals),
+        "num_tiltseries":                num_tiltseries,
+        "cryo_et_defocus_range_passes":  bool(_mean_defocus is not None and -8.0 <= _mean_defocus <= -0.5),
+        "evidence_tier":                 "SILVER",
+        "citation":                      "Hagen, Wan & Briggs 2017 (dose-symmetric tilt schemes)"
+    }
+    with open('qc_metrics.json', 'w') as f:
+        json.dump(qc_metrics, f, indent=2)
 
     print(f"Imported {num_tiltseries} tilt series")
     print(f"  Tilts per series: {num_tilts} ({tilt_min} to {tilt_max} deg, step {tilt_inc} deg)")

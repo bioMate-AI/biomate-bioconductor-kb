@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicRanges, InTAD
-// Visualizations: plot (ggplot/base)
+// Visualizations: correlation plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

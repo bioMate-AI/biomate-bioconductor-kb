@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: CAGEfightR, GenomicFeatures, Gviz, InteractionSet, SummarizedExperiment, TxDb.Mmusculus.UCSC.mm9.knownGene, org.Hs.eg.db, org.Mm.eg.db, rtracklayer
-// Visualizations: plot (ggplot/base)
+// Visualizations: genomic tracks (Gviz)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

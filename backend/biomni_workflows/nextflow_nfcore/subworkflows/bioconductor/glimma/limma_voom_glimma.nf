@@ -8,7 +8,7 @@
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Glimma, edgeR, htmlwidgets, limma
 // Visualizations: interactive MDS
-// QC: filter low-expression genes, TMM normalization
+// QC: filter low-expression genes, TMM normalization, voom mean-variance modelling
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

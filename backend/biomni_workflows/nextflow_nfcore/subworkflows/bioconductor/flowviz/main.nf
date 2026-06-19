@@ -7,7 +7,7 @@
 // R packages: flowCore, flowStats, flowViz
 // Bioconductor: 3.20 | R: 4.4
 // Requires: flowCore, flowStats, flowViz
-// Visualizations: plot (ggplot/base)
+// Visualizations: scatter plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

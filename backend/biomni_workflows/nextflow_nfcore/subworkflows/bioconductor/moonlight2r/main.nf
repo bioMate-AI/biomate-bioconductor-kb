@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: Moonlight2R, dplyr, limma, magrittr
-// Visualizations: bar plot
+// Visualizations: bar plot, heatmap
 // Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 

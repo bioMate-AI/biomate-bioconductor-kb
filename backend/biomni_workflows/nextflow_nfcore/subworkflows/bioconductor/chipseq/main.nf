@@ -7,7 +7,7 @@
 // R packages: GenomicAlignments, GenomicFeatures, Rsamtools, ShortRead, TxDb.Mmusculus.UCSC.mm9.knownGene, chipseq, lattice, rtracklayer
 // Bioconductor: 3.20 | R: 4.4
 // Requires: GenomicAlignments, GenomicFeatures, Rsamtools, ShortRead, TxDb.Mmusculus.UCSC.mm9.knownGene, chipseq, lattice
-// Visualizations: plot (ggplot/base)
+// Visualizations: coverage plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

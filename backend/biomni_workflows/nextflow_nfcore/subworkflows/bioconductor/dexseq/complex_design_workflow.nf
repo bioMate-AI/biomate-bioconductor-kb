@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: dispersion plot
+// QC: dispersion/size-factor estimation, dispersion QC plot
+
 nextflow.enable.dsl = 2
 
 process BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW {
@@ -24,6 +27,7 @@ process BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -118,6 +122,65 @@ process BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW {
     }
     
     message("Workflow completed successfully. Outputs written to 'dexseq_results_complex.rds', 'dexseq_results_complex.csv', and PDF plots.")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # dispersion/size-factor estimation — object-type-aware. Try DESeq2
+    # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
+    .dsf_value <- NA_real_; .dsf_kind <- "none"
+    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
+      if (!is.null(.dsf_obj)) {
+        if (inherits(.dsf_obj, "DESeqDataSet")) {
+          .dsf_o <- tryCatch(mcols(.dsf_obj)\$dispOutlier, error = function(e) NULL)
+          if (!is.null(.dsf_o)) { .dsf_value <- round(mean(.dsf_o, na.rm = TRUE), 4); .dsf_kind <- "deseq2"; break }
+        } else if (inherits(.dsf_obj, "DGEList")) {
+          .dsf_v <- tryCatch(.dsf_obj\$common.dispersion, error = function(e) NULL)
+          if (!is.null(.dsf_v) && is.finite(.dsf_v)) { .dsf_value <- round(sqrt(.dsf_v), 4); .dsf_kind <- "edger_bcv"; break }
+        }
+      }
+    }
+    .gates_by_label[["dispersion/size-factor estimation"]] <- list(
+      gate_row = "bioc_dispersion_size_factor",
+      metric_name = if (.dsf_kind == "edger_bcv") "common_bcv" else "disp_outlier_fraction",
+      metric_value = .dsf_value,
+      passes = isTRUE(
+        (.dsf_kind == "deseq2" && is.finite(.dsf_value) && .dsf_value <= 0.01) ||
+        (.dsf_kind == "edger_bcv" && is.finite(.dsf_value) && .dsf_value > 0 && .dsf_value < 1.0)
+      ),
+      status = if (is.finite(.dsf_value)) paste0("computed (", .dsf_kind, ")")
+               else "not_computed (no DESeqDataSet/DGEList .rds artifact present)"
+    )
+
+    # dispersion QC plot — file-exists check for any PDF with "disp" or "bcv"
+    # in the filename. Pairs with bioc_dispersion_size_factor.
+    .dqp_pdfs <- list.files(".", pattern = "(?i)(disp|bcv).*\\.pdf\$")
+    .dqp_passes <- length(.dqp_pdfs) > 0
+    .gates_by_label[["dispersion QC plot"]] <- list(
+      gate_row = "bioc_dispersion_qc_plot",
+      metric_name = "dispersion_plot_exists",
+      metric_value = if (.dqp_passes) 1 else 0,
+      passes = .dqp_passes,
+      status = if (.dqp_passes) paste0("computed (", length(.dqp_pdfs), " dispersion PDF(s) emitted)")
+               else "not_computed (no dispersion PDF found)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW",
+      domain  = "bioconductor",
+      declared_qc_steps = c("dispersion/size-factor estimation", "dispersion QC plot"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW":',

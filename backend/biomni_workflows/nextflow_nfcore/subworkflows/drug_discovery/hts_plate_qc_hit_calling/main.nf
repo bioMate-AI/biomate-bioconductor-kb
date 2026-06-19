@@ -187,12 +187,35 @@ signal_win  = compute_signal_window(pos_signals, neg_signals)
 cv_pos      = round(100 * np.std(pos_signals) / mu_pos, 2) if mu_pos > 0 else None
 cv_neg      = round(100 * np.std(neg_signals) / mu_neg, 2) if mu_neg > 0 else None
 
-qc_pass = z_prime is not None and z_prime >= min_z_prime
-qc_status = 'PASS' if qc_pass else f"FAIL (Z' = {z_prime:.3f} < {min_z_prime})"
+# ── Two-gate QC: z_prime (GOLD, Zhang 1999) + signal_window (SILVER, Iversen 2006)
+# Track 2 batch 4 (2026-06-15): wire the signal_window gate alongside z_prime.
+# Both metrics were already computed; previously only z_prime had a pass/fail
+# field. Iversen 2006 sets signal_window ≥ 2 as the adequate-dynamic-range
+# threshold; the YAML rule_text in qc_evidence.yaml.hts.hts_signal_window
+# captures that as the operational cutoff.
+SIGNAL_WINDOW_THRESHOLD = 2.0
+
+z_prime_pass     = bool(z_prime is not None and z_prime >= min_z_prime)
+signal_win_pass  = bool(signal_win is not None and signal_win >= SIGNAL_WINDOW_THRESHOLD)
+qc_pass          = z_prime_pass and signal_win_pass
+
+failures = []
+if not z_prime_pass:
+    failures.append(f"Z' = {z_prime if z_prime is not None else 'NA'} < {min_z_prime}")
+if not signal_win_pass:
+    failures.append(f"signal_window = {signal_win if signal_win is not None else 'NA'} < {SIGNAL_WINDOW_THRESHOLD}")
+qc_status = 'PASS' if qc_pass else ('FAIL: ' + '; '.join(failures))
 
 qc_metrics = {
+    # z_prime gate (Zhang 1999, GOLD)
     'z_prime': z_prime,
+    'z_prime_threshold': min_z_prime,
+    'z_prime_passes': z_prime_pass,
+    # signal_window gate (Iversen 2006, SILVER)
     'signal_window': signal_win,
+    'signal_window_threshold': SIGNAL_WINDOW_THRESHOLD,
+    'signal_window_passes': signal_win_pass,
+    # context
     'mu_pos_ctrl': round(float(mu_pos), 2),
     'mu_neg_ctrl': round(float(mu_neg), 2),
     'cv_pos_ctrl_pct': cv_pos,

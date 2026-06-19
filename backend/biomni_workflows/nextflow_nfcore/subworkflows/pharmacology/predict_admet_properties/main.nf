@@ -658,9 +658,21 @@ try:
         if "dili_risk" in tox:
             qc_metrics["dili_risk"]         = tox["dili_risk"]
             qc_metrics["dili_probability"]  = tox.get("dili_probability")
+            # Track 2 batch 6 (2026-06-15): wire the admet_dili_probability gate
+            # row separately from the combined ADMET shape. qc_evidence.yaml.admet
+            # has its own admet_dili_probability entry: probability < 0.5 = pass;
+            # risk classification != "high" required.
+            DILI_PROB_THRESHOLD = 0.5
+            qc_metrics["dili_probability_threshold"] = DILI_PROB_THRESHOLD
+            _dili_prob = tox.get("dili_probability")
+            qc_metrics["admet_dili_probability_passes"] = bool(
+                tox["dili_risk"] != "high"
+                and _dili_prob is not None
+                and float(_dili_prob) < DILI_PROB_THRESHOLD
+            )
         qc_metrics["compounds_assessed"] = _tr.get("compounds_assessed", 0)
-        qc_metrics["evidence_tier"] = "GOLD-Redfern2003 / SILVER-Kazius2005"
-        qc_metrics["citation"]      = "Redfern 2003 Cardiovasc Res 58:32; Kazius 2005 J Med Chem 48:312"
+        qc_metrics["evidence_tier"] = "GOLD-Redfern2003 / SILVER-Kazius2005 / SILVER-Mulliner2016"
+        qc_metrics["citation"]      = "Redfern 2003 Cardiovasc Res 58:32; Kazius 2005 J Med Chem 48:312; Mulliner 2016 Chem Res Toxicol 29:757"
 except Exception as _qc_err:
     qc_metrics["qc_emit_error"] = str(_qc_err)
 

@@ -9,6 +9,8 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// QC: alignment/mapping QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
@@ -24,6 +26,7 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -89,6 +92,39 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     saveRDS(edger, file = "edger_dgelist.rds")
     
     cat("Pipeline completed successfully. Outputs saved: read_counts.csv, summarized_overlaps.rds, deseq_dataset.rds, edger_dgelist.rds\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # alignment/mapping QC — workflow-emitted artifact check for common log
+    # files (.log, .summary, alignment metrics tables). Binary pass.
+    .amqc_logs <- c(list.files(".", pattern = "(?i)(align|map|samtools|flagstat).*\\.(log|txt|summary)\$"),
+                    list.files(".", pattern = "(?i)flagstat\\."))
+    .amqc_passes <- length(.amqc_logs) > 0
+    .gates_by_label[["alignment/mapping QC"]] <- list(
+      gate_row = "bioc_alignment_mapping_qc",
+      metric_name = "alignment_qc_artifacts",
+      metric_value = length(.amqc_logs),
+      passes = .amqc_passes,
+      status = if (.amqc_passes) paste0("computed (", length(.amqc_logs), " alignment log(s) emitted)")
+               else "not_computed (no alignment log/summary artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION",
+      domain  = "bioconductor",
+      declared_qc_steps = c("alignment/mapping QC"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION":',

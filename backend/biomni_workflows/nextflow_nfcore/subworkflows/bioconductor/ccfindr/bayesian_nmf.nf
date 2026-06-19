@@ -7,7 +7,7 @@
 // R packages: ccfindR
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ccfindR
-// Visualizations: cluster plot
+// Visualizations: cluster plot, phylogenetic tree
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

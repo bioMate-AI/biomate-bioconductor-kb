@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: plot (ggplot/base)
+// QC: TMM normalization, dispersion/size-factor estimation
+
 nextflow.enable.dsl = 2
 
 process BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY {
@@ -24,6 +27,7 @@ process BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -158,6 +162,72 @@ process BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY {
     # Clean up temporary copied BAM files and indices
     file.remove(expected_names)
     file.remove(paste0(expected_names, ".bai"))
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
+    .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
+    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
+      if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
+        .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)
+        if (!is.null(.tmm_f) && length(.tmm_f) > 0) {
+          .tmm_factors <- .tmm_f; .tmm_n_nontrivial <- sum(abs(.tmm_f - 1.0) > 1e-6); break
+        }
+      }
+    }
+    .gates_by_label[["TMM normalization"]] <- list(
+      gate_row = "bioc_tmm_normalization",
+      metric_name = "n_nontrivial_norm_factors",
+      metric_value = .tmm_n_nontrivial,
+      passes = isTRUE(is.finite(.tmm_n_nontrivial) && .tmm_n_nontrivial > 0),
+      status = if (is.finite(.tmm_n_nontrivial)) paste0("computed (n=", length(.tmm_factors), ", nontrivial=", .tmm_n_nontrivial, ")")
+               else "not_computed (no DGEList .rds artifact present)"
+    )
+
+    # dispersion/size-factor estimation — object-type-aware. Try DESeq2
+    # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
+    .dsf_value <- NA_real_; .dsf_kind <- "none"
+    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
+      if (!is.null(.dsf_obj)) {
+        if (inherits(.dsf_obj, "DESeqDataSet")) {
+          .dsf_o <- tryCatch(mcols(.dsf_obj)\$dispOutlier, error = function(e) NULL)
+          if (!is.null(.dsf_o)) { .dsf_value <- round(mean(.dsf_o, na.rm = TRUE), 4); .dsf_kind <- "deseq2"; break }
+        } else if (inherits(.dsf_obj, "DGEList")) {
+          .dsf_v <- tryCatch(.dsf_obj\$common.dispersion, error = function(e) NULL)
+          if (!is.null(.dsf_v) && is.finite(.dsf_v)) { .dsf_value <- round(sqrt(.dsf_v), 4); .dsf_kind <- "edger_bcv"; break }
+        }
+      }
+    }
+    .gates_by_label[["dispersion/size-factor estimation"]] <- list(
+      gate_row = "bioc_dispersion_size_factor",
+      metric_name = if (.dsf_kind == "edger_bcv") "common_bcv" else "disp_outlier_fraction",
+      metric_value = .dsf_value,
+      passes = isTRUE(
+        (.dsf_kind == "deseq2" && is.finite(.dsf_value) && .dsf_value <= 0.01) ||
+        (.dsf_kind == "edger_bcv" && is.finite(.dsf_value) && .dsf_value > 0 && .dsf_value < 1.0)
+      ),
+      status = if (is.finite(.dsf_value)) paste0("computed (", .dsf_kind, ")")
+               else "not_computed (no DESeqDataSet/DGEList .rds artifact present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY",
+      domain  = "bioconductor",
+      declared_qc_steps = c("TMM normalization", "dispersion/size-factor estimation"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY":',

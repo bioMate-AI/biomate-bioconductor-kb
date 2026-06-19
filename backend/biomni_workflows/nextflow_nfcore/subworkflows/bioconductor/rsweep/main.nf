@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: ape, rSWeeP
-// Visualizations: PCA plot
+// Visualizations: phylogenetic tree, PCA plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

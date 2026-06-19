@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: MPAC, SummarizedExperiment, data.table
-// Visualizations: heatmap, survival plot
+// Visualizations: heatmap, pathway diagram, survival plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

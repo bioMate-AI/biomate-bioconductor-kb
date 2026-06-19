@@ -9,6 +9,9 @@
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
+// Visualizations: density plot
+// QC: doublet detection QC
+
 nextflow.enable.dsl = 2
 
 process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
@@ -24,6 +27,7 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -127,6 +131,58 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
     dev.off()
     
     print("Pipeline completed successfully. Outputs saved: 'cytof_qc_results.csv', 'cytof_qc_sce.rds', 'cytof_qc_histograms.pdf', 'cytof_qc_density_histograms.pdf'.")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # doublet detection — SCE/Seurat with doublet column; pass: rate ≤ 10%.
+    .dbl_rate <- NA_real_
+    for (.dbl_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .dbl_obj <- tryCatch(readRDS(.dbl_rds), error = function(e) NULL)
+      .dbl_calls <- NULL
+      if (!is.null(.dbl_obj)) {
+        if (inherits(.dbl_obj, "SingleCellExperiment")) {
+          .dbl_cd <- tryCatch(colData(.dbl_obj), error = function(e) NULL)
+          if (!is.null(.dbl_cd)) {
+            .dbl_col <- intersect(c("doublet_class","scDblFinder.class","DoubletFinder","is_doublet"), colnames(.dbl_cd))
+            if (length(.dbl_col) > 0) .dbl_calls <- as.character(.dbl_cd[[.dbl_col[1]]])
+          }
+        } else if (inherits(.dbl_obj, "Seurat")) {
+          .dbl_md <- tryCatch(.dbl_obj@meta.data, error = function(e) NULL)
+          if (!is.null(.dbl_md)) {
+            .dbl_col <- intersect(c("DoubletFinder","scDblFinder.class","doublet_class","is_doublet"), colnames(.dbl_md))
+            if (length(.dbl_col) > 0) .dbl_calls <- as.character(.dbl_md[[.dbl_col[1]]])
+          }
+        }
+      }
+      if (!is.null(.dbl_calls) && length(.dbl_calls) > 0) {
+        .dbl_rate <- round(mean(grepl("doublet|TRUE|1", .dbl_calls, ignore.case = TRUE), na.rm = TRUE), 4); break
+      }
+    }
+    .gates_by_label[["doublet detection QC"]] <- list(
+      gate_row = "bioc_doublet_detection_qc",
+      metric_name = "doublet_rate",
+      metric_value = .dbl_rate,
+      passes = isTRUE(is.finite(.dbl_rate) && .dbl_rate <= 0.10),
+      status = if (is.finite(.dbl_rate)) "computed (SCE colData / Seurat meta.data doublet col)"
+               else "not_computed (no SCE/Seurat with doublet column present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING",
+      domain  = "bioconductor",
+      declared_qc_steps = c("doublet detection QC"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING":',

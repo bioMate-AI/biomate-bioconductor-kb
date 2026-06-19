@@ -7,7 +7,7 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: APL, SingleCellExperiment, ggplot2
-// Visualizations: enrichment plot
+// Visualizations: biplot, enrichment plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 

@@ -264,6 +264,25 @@ def run_ivive(clint_in_vitro, assay_type, fu_plasma, fu_inc, species, scaling_mo
     else:
         extraction_class = "unknown"
 
+    # ── Multi-model comparison (ivive_well_stirred_consistency gate) ─────────
+    # Run all three liver models on the same inputs so the consistency gate
+    # (Pang & Rowland 1977) can fire. The default scaling_model still drives
+    # clh_predicted_ml_min_kg above; this adds clh_by_model + spread for the
+    # qc_metrics consistency check.
+    clh_ws = well_stirred_model(clint_scaled, Q_liver, fu_plasma)
+    clh_pt = parallel_tube_model(clint_scaled, Q_liver, fu_plasma)
+    clh_di = dispersion_model(clint_scaled, Q_liver, fu_plasma)
+    clh_by_model = {
+        "well_stirred":   round(clh_ws, 3),
+        "parallel_tube":  round(clh_pt, 3),
+        "dispersion":     round(clh_di, 3),
+    }
+    clh_values_for_spread = [v for v in (clh_ws, clh_pt, clh_di) if v > 0]
+    if clh_values_for_spread:
+        clh_spread_fraction = (max(clh_values_for_spread) - min(clh_values_for_spread)) / max(clh_values_for_spread)
+    else:
+        clh_spread_fraction = None
+
     return {
         "clint_in_vitro": clint_in_vitro,
         "assay_type": assay_type,
@@ -273,6 +292,9 @@ def run_ivive(clint_in_vitro, assay_type, fu_plasma, fu_inc, species, scaling_mo
         "clh_lower_ci": clh_lower,
         "clh_upper_ci": clh_upper,
         "extraction_class": extraction_class,
+        # Multi-model comparison for ivive_well_stirred_consistency gate
+        "clh_by_model_ml_min_kg": clh_by_model,
+        "clh_spread_fraction": round(clh_spread_fraction, 4) if clh_spread_fraction is not None else None,
         "Q_liver_ml_min_kg": Q_liver,
         "fu_plasma": fu_plasma,
         "fu_inc": fu_inc,
@@ -283,6 +305,7 @@ def run_ivive(clint_in_vitro, assay_type, fu_plasma, fu_inc, species, scaling_mo
         "liver_weight_g_per_kg": sp["liver_weight_g_per_kg"],
         "reference": (
             "Well-stirred model: Wilkinson & Shand 1975 Clin Pharmacol Ther 18:377. "
+            "Parallel-tube + well-stirred derivation: Pang & Rowland 1977 J Pharmacokinet Biopharm 5:625. "
             "Scaling factors: Davies & Morris 1993 Pharm Res 10:1093; "
             "Barter et al. 2007 Drug Metab Dispos 35:1514. "
             "Uncertainty: Obach 1999 Drug Metab Dispos 27:1350."
@@ -344,6 +367,17 @@ if success and result:
     qc_metrics["extraction_class"]        = result["extraction_class"]
     qc_metrics["scaling_model"]           = result["scaling_model"]
     qc_metrics["species"]                 = result["species"]
+    # ── ivive_well_stirred_consistency (SILVER, Pang & Rowland 1977) ─────────
+    # Track 2 batch 8 (2026-06-16): wire the last documented-but-unwired gate.
+    # The YAML rule_text flags when extraction_class == 'high' (E > 0.7), where
+    # well-stirred vs parallel-tube vs dispersion predictions diverge enough
+    # that model choice materially changes CLh. We also surface the actual
+    # spread across the 3 models so the audit trail records the disagreement.
+    qc_metrics["clh_by_model_ml_min_kg"] = result.get("clh_by_model_ml_min_kg")
+    qc_metrics["clh_spread_fraction"]    = result.get("clh_spread_fraction")
+    qc_metrics["ivive_well_stirred_consistency_passes"] = bool(
+        result["extraction_class"] in ("low", "intermediate")
+    )
     clh_obs_raw = os.environ.get("PARAM_CLH_OBSERVED", "")
     if clh_obs_raw and clh_obs_raw not in ("", "null", "None"):
         try:

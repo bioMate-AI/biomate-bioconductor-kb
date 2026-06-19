@@ -7,8 +7,8 @@
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
 // Requires: SummarizedExperiment, ggplot2, patchwork, pls, qmtools, vsn
-// Visualizations: PCA plot
-// QC: missing-value handling
+// Visualizations: dendrogram, PCA plot
+// QC: missing-value handling, variance-stabilizing normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -35,6 +35,7 @@ process BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS {
     tuple val(meta), path("*.csv"), emit: tables, optional: true
     tuple val(meta), path("*.pdf"), emit: plots,  optional: true
     tuple val(meta), path("*.rds"), emit: objects, optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml",            emit: versions
 
     when:
@@ -246,6 +247,78 @@ process BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS {
             saveRDS(se, "processed_se.rds")
             
             cat("Pipeline completed successfully. Outputs saved to working directory.\n")
+    # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
+    # Per-label metric computation. Each block is defensive (tryCatch +
+    # isTRUE patterns) so a failed metric never breaks the whole emit.
+    .qc_metrics_path <- "qc_metrics.json"
+    .gates_by_label <- list()
+
+    # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
+    .mv_na_fracs <- numeric(0)
+    .mv_scanned <- character(0)
+    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
+      .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
+      if (!is.null(.mv_mat)) {
+        .mv_vals <- suppressWarnings(as.numeric(as.matrix(.mv_mat)))
+        if (length(.mv_vals) > 0) {
+          .mv_na_fracs <- c(.mv_na_fracs, mean(is.na(.mv_vals)))
+          .mv_scanned <- c(.mv_scanned, .mv_rds)
+        }
+      }
+    }
+    .mv_max <- if (length(.mv_na_fracs) > 0) round(max(.mv_na_fracs), 4) else NA_real_
+    .gates_by_label[["missing-value handling"]] <- list(
+      gate_row = "bioc_missing_value_handling",
+      metric_name = "na_fraction_remaining",
+      metric_value = .mv_max,
+      passes = isTRUE(is.finite(.mv_max) && .mv_max < 0.05),
+      status = if (is.finite(.mv_max)) paste0("computed (scanned ", length(.mv_scanned), " rds files)")
+               else "not_computed (no matrix/data.frame .rds artifact present)"
+    )
+
+    # VSN — DESeqTransform / vsd matrix; mean-SD slope ≤ 0.5 (vsn::meanSdPlot).
+    .vsn_slope <- NA_real_
+    for (.vsn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+      .vsn_obj <- tryCatch(readRDS(.vsn_rds), error = function(e) NULL)
+      .vsn_mat <- NULL
+      if (!is.null(.vsn_obj)) {
+        if (inherits(.vsn_obj, "DESeqTransform") || inherits(.vsn_obj, "SummarizedExperiment")) {
+          .vsn_mat <- tryCatch(assay(.vsn_obj), error = function(e) NULL)
+        } else if (is.matrix(.vsn_obj)) { .vsn_mat <- .vsn_obj }
+      }
+      if (!is.null(.vsn_mat) && nrow(.vsn_mat) > 100) {
+        .vsn_rmean <- suppressWarnings(rowMeans(.vsn_mat, na.rm = TRUE))
+        .vsn_rsd <- suppressWarnings(apply(.vsn_mat, 1, sd, na.rm = TRUE))
+        .vsn_ok <- is.finite(.vsn_rmean) & is.finite(.vsn_rsd)
+        if (sum(.vsn_ok) > 50) {
+          .vsn_fit <- tryCatch(lm(.vsn_rsd[.vsn_ok] ~ .vsn_rmean[.vsn_ok]), error = function(e) NULL)
+          if (!is.null(.vsn_fit)) { .vsn_slope <- round(abs(coef(.vsn_fit)[2]), 4); break }
+        }
+      }
+    }
+    .gates_by_label[["variance-stabilizing normalization"]] <- list(
+      gate_row = "bioc_vsn_normalization",
+      metric_name = "mean_sd_slope_after_vsn",
+      metric_value = .vsn_slope,
+      passes = isTRUE(is.finite(.vsn_slope) && .vsn_slope <= 0.5),
+      status = if (is.finite(.vsn_slope)) "computed (lm slope row-SD ~ row-mean)"
+               else "not_computed (no DESeqTransform/vsd .rds present)"
+    )
+
+    .qc_payload <- list(
+      success = TRUE,
+      process = "BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS",
+      domain  = "bioconductor",
+      declared_qc_steps = c("missing-value handling", "variance-stabilizing normalization"),
+      gates_by_label = .gates_by_label,
+      evidence_tier = "mixed (per bioconductor_qc.* rows in qc_evidence.yaml)",
+      harness_version = "0.2.0-multi"
+    )
+    cat(jsonlite::toJSON(.qc_payload, auto_unbox = TRUE, pretty = TRUE, null = "null"),
+        file = .qc_metrics_path)
+
+
 
     writeLines(c(
         '"BIOC_QMTOOLS_METABOLOMICS_PREPROCESSING_AND_ANALYSIS":',
