@@ -54,6 +54,12 @@ interface OutputFile {
   name: string;
   path: string;
   ext: string;
+  /** Optional richer fields surfaced by /api/workflows/runs/:id/output_files —
+   *  populated when the backend includes them; the report falls back gracefully
+   *  when absent. */
+  size?: number;        // bytes
+  s3_uri?: string;      // backend-internal pointer; NOT shown to user (concern A)
+  description?: string; // optional human-written or LLM-generated per-file caption
 }
 
 export function AfterRunReport({
@@ -1253,15 +1259,54 @@ function buildFullReportMarkdown(args: {
 }): string {
   const { runId, workflowName, parameters, outputs, methods, qcEvents, findings, software, citations } = args;
   const lines: string[] = [];
+
+  // ── Header ────────────────────────────────────────────────────────────────
   lines.push(`# BioMate Run Report`);
   lines.push("");
   lines.push(`- **Run ID**: \`${runId}\``);
   if (workflowName) lines.push(`- **Workflow**: ${workflowName}`);
   lines.push(`- **Generated**: ${new Date().toISOString()}`);
   lines.push("");
+  lines.push(`_This report is a research summary. Input and output file bytes_`);
+  lines.push(`_live in your BioMate workspace and are reachable via the per-file_`);
+  lines.push(`_download endpoints linked below. Bytes are intentionally not_`);
+  lines.push(`_inlined to keep the report portable and reviewable._`);
+  lines.push("");
 
-  // Findings — inlined from useFetchFindings (PM must-fix #2). Falls back to a
-  // pending notice if the AI analysis hasn't completed yet at click time.
+  // ── Dataset description (NEW — research-doc style) ───────────────────────
+  // Pulled from parameters: anything looking like a path or sample identifier
+  // is summarised as "input dataset" rather than inlined.
+  lines.push(`## Dataset`);
+  lines.push("");
+  const datasetFields = parameters
+    ? Object.entries(parameters).filter(([k, v]) =>
+        /(path|file|sample|input|sumstats|matrix|bam|fastq|vcf|h5ad|sample_sheet|samplesheet)/i.test(k) &&
+        typeof v === "string" && v.length > 0
+      )
+    : [];
+  if (datasetFields.length === 0) {
+    lines.push(`_No inline dataset descriptors detected in run parameters._`);
+    lines.push(`_If inputs were supplied separately, see the BioMate workspace_`);
+    lines.push(`_inputs/ folder for this run._`);
+  } else {
+    lines.push(`| Field | Reference |`);
+    lines.push(`|-------|-----------|`);
+    for (const [k, v] of datasetFields) {
+      // Show as reference (basename + length) rather than dumping the value
+      const refStr = String(v);
+      const basename = refStr.split(/[/\\]/).pop() || refStr;
+      const note = refStr.startsWith("s3://") ? "S3 reference"
+                 : refStr.startsWith("http") ? "URL reference"
+                 : refStr.match(/\.(fastq|fq|bam|vcf|h5ad|rds|tsv|csv|json)(\.gz)?$/i) ? `${(refStr.match(/\.([^./]+)(\.gz)?$/i)?.[1] || "").toUpperCase()} file`
+                 : "value";
+      lines.push(`| \`${k}\` | ${basename} _(${note})_ |`);
+    }
+  }
+  lines.push("");
+
+  // ── Findings ─────────────────────────────────────────────────────────────
+  // Inlined from useFetchFindings (PM must-fix #2). Falls back to a pending
+  // notice if the AI analysis hasn't completed yet at click time.
   lines.push(`## Findings`);
   lines.push("");
   if (!findings || findings.status === "pending" || !findings.summary) {
@@ -1305,20 +1350,41 @@ function buildFullReportMarkdown(args: {
     }
   }
 
-  // Outputs
+  // ── Outputs ──────────────────────────────────────────────────────────────
+  // Research-doc style: per-step subsection with file metadata (name, type,
+  // size) and a BioMate-endpoint download link. NO S3 URIs leaked. NO bytes
+  // inlined. The report is a navigable summary; bytes live in the workspace.
   lines.push(`## Outputs`);
   lines.push("");
   if (outputs.length === 0) {
     lines.push(`_No output files registered for this run._`);
   } else {
+    lines.push(`Outputs below are linked via BioMate's per-file download endpoint`);
+    lines.push(`(\`/api/runs/${runId}/output/...\`). Bytes stay in your project's`);
+    lines.push(`output location; the report is portable.`);
+    lines.push("");
     const byStep: Record<string, OutputFile[]> = {};
     for (const o of outputs) (byStep[o.step] = byStep[o.step] || []).push(o);
     for (const [step, files] of Object.entries(byStep)) {
       lines.push(`### ${step || "(unspecified step)"}`);
       lines.push("");
-      lines.push(`| File | Type |`);
-      lines.push(`|------|------|`);
-      for (const f of files) lines.push(`| ${f.name} | ${f.ext || "—"} |`);
+      // Show sizes if present; otherwise hide the column to avoid empty cells
+      const hasSize = files.some(f => typeof f.size === "number" && f.size > 0);
+      const hasDesc = files.some(f => f.description && f.description.length > 0);
+      const header = hasSize
+        ? (hasDesc ? `| File | Type | Size | Description |\n|------|------|-----:|-------------|`
+                   : `| File | Type | Size |\n|------|------|-----:|`)
+        : (hasDesc ? `| File | Type | Description |\n|------|------|-------------|`
+                   : `| File | Type |\n|------|------|`);
+      lines.push(header);
+      for (const f of files) {
+        const dl = `[${f.name}](/api/runs/${runId}/output/${encodeURIComponent(f.name)})`;
+        const type = f.ext || "—";
+        const size = hasSize ? formatBytes(f.size) : null;
+        const desc = hasDesc ? (f.description || "") : null;
+        const row = [dl, type, size, desc].filter(c => c !== null).join(" | ");
+        lines.push(`| ${row} |`);
+      }
       lines.push("");
     }
   }
@@ -1388,12 +1454,29 @@ function buildFullReportMarkdown(args: {
     lines.push("");
   }
 
+  // ── Reproducibility footer (NEW — replaces "v2 preview" framing) ────────
   lines.push(`---`);
-  lines.push(`_Generated by BioMate AfterRunReport (v2 preview). Software`);
-  lines.push(`versions and citation tabs will appear once their backend routes`);
-  lines.push(`ship — see docs/20260528_AFTERRUN_FINDINGS.md._`);
+  lines.push(`## Reproducibility`);
+  lines.push("");
+  lines.push(`This run is reproducible by re-dispatching the same workflow with`);
+  lines.push(`the parameters listed above against the same software versions`);
+  lines.push(`(see *Software* section). Outputs are addressable in your BioMate`);
+  lines.push(`workspace under \`runs/${runId}/\`; download each file via the`);
+  lines.push(`endpoint links in the *Outputs* section.`);
+  lines.push("");
+  lines.push(`Generated by BioMate · ${new Date().toISOString()}`);
 
   return lines.join("\n");
+}
+
+/** Format a byte count as a human-readable string (1024-base). */
+function formatBytes(n: number | undefined): string {
+  if (typeof n !== "number" || !isFinite(n) || n < 0) return "—";
+  if (n < 1024) return `${n} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = n / 1024, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
 }
 
 function qcStatusColor(status: string | undefined): string {
