@@ -270,31 +270,74 @@
     <div class="bm-section-inner">
       <div class="bm-section-head">
         <span class="bm-eyebrow">Scientific coverage</span>
-        <h2 class="bm-h2">The tools your scientists trust, unified in one platform.</h2>
-        <p class="bm-lead">BioMate integrates the gold‑standard methods your teams already rely on &mdash; not alternatives or approximations. Same tools. New coordination layer.</p>
+        <h2 class="bm-h2">36 domains. 4,000+ workflows. One interface.</h2>
+        <p class="bm-lead">BioMate spans the full breadth of modern life science research — from raw sequencing data to IND-ready documents. Each domain draws on the community's gold-standard open-source tools, accessible through a plain-English request.</p>
       </div>
-      <div class="bm-tech-grid" id="bm-tech-grid"><noscript>
-        <div><strong>AlphaFold 2 / 3</strong> — Structure prediction</div>
-        <div><strong>ESMFold</strong> — Structure prediction</div>
-        <div><strong>RoseTTAFold</strong> — Multimer prediction</div>
-        <div><strong>CryoSPARC</strong> — Cryo-EM processing</div>
-        <div><strong>RELION</strong> — Cryo-EM processing</div>
-        <div><strong>GATK</strong> — Variant calling</div>
-        <div><strong>DeepVariant</strong> — Variant calling</div>
-        <div><strong>STAR / salmon</strong> — RNA-seq quantification</div>
-        <div><strong>Seurat</strong> — Single-cell</div>
-        <div><strong>Scanpy</strong> — Single-cell</div>
-        <div><strong>AutoDock Vina</strong> — Docking</div>
-        <div><strong>GLIDE</strong> — Docking</div>
-        <div><strong>GROMACS</strong> — Molecular dynamics</div>
-        <div><strong>OpenMM</strong> — Molecular dynamics</div>
-        <div><strong>ChEMBL</strong> — Bioactivity</div>
-        <div><strong>Open Targets</strong> — Target evidence</div>
-        <div><strong>Reactome</strong> — Pathways</div>
-        <div><strong>STRING</strong> — Interaction networks</div>
-        <div><strong>MaxQuant</strong> — Proteomics</div>
-        <div><strong>QIIME 2</strong> — Microbiome</div>
-      </noscript></div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:2rem;">
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Genomics &amp; Variant Calling</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">GATK HaplotypeCaller, DeepVariant, nf-core/sarek — germline and somatic variant calling, CNV, SV detection.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Transcriptomics</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">STAR, Salmon, DESeq2, edgeR, clusterProfiler — bulk RNA-seq from raw reads to differential expression and pathway enrichment.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Single-Cell Analysis</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">Seurat, Scanpy, SingleR, Cell Ranger — clustering, cell-type annotation, trajectory inference, and condition-level comparisons.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Structural Biology</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">AlphaFold 2 &amp; 3, ESMFold, RoseTTAFold, AutoDock Vina, GROMACS — structure prediction, docking, and molecular dynamics.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Cryo-EM</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">CryoSPARC, RELION — GPU-accelerated single-particle analysis, 2D classification, 3D refinement, and resolution estimation.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Drug Discovery &amp; ADMET</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">Virtual screening, ADMET profiling, PBPK simulation, hERG liability, IND document assembly — full preclinical pipeline.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Epigenomics</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">minfi, DMRcate, bismark — bisulfite sequencing, differentially methylated region calling, and chromatin accessibility analysis.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Proteomics &amp; Metabolomics</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">MaxQuant, MSstats, XCMS — label-free quantification, PTM analysis, and metabolic network modeling.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Metagenomics &amp; Microbiome</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">QIIME 2, Kraken2, MetaPhlAn — amplicon and shotgun metagenomics, taxonomy profiling, and diversity analysis.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Bioconductor &amp; R Methods</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">1,818 Bioconductor packages available through plain-English requests — the full peer-reviewed R ecosystem, no coding required.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:.35rem;">Community Databases</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">gnomAD, ClinVar, GTEx, Reactome, KEGG, STRING, OpenTargets, UniProt, PubMed — queryable directly within workflows.</div>
+        </div>
+
+        <div style="padding:1.25rem 1.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;">
+          <div style="font-weight:700;margin-bottom:.35rem;">And 25 more domains&hellip;</div>
+          <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.85rem;">Immunology, synthetic biology, imaging, pharmacology, rare disease, cancer biology, and more.</div>
+          <a href="features.html" style="font-size:.85rem;font-weight:600;color:var(--accent);text-decoration:none;">See full coverage &rarr;</a>
+        </div>
+
+      </div>
     </div>
   </section>
 
@@ -344,34 +387,6 @@
       </article>
     `).join('');
 
-    const TECH = [
-      ['AlphaFold 2 / 3', 'Structure prediction'],
-      ['ESMFold',         'Structure prediction'],
-      ['RoseTTAFold',     'Multimer prediction'],
-      ['CryoSPARC',       'Cryo‑EM processing'],
-      ['RELION',          'Cryo‑EM processing'],
-      ['GATK',            'Variant calling'],
-      ['DeepVariant',     'Variant calling'],
-      ['STAR · salmon',   'RNA‑seq quantification'],
-      ['Seurat',          'Single‑cell'],
-      ['Scanpy',          'Single‑cell'],
-      ['AutoDock Vina',   'Docking'],
-      ['GLIDE',           'Docking'],
-      ['GROMACS',         'Molecular dynamics'],
-      ['OpenMM',          'Molecular dynamics'],
-      ['ChEMBL',          'Bioactivity'],
-      ['Open Targets',    'Target evidence'],
-      ['Reactome',        'Pathways'],
-      ['STRING',          'Interaction networks'],
-      ['MaxQuant',        'Proteomics'],
-      ['QIIME 2',         'Microbiome']
-    ];
-    document.getElementById('bm-tech-grid').innerHTML = TECH.map(([n, r]) => `
-      <div class="bm-tech-chip">
-        <div class="bm-tech-chip-name">${n}</div>
-        <div class="bm-tech-chip-role">${r}</div>
-      </div>
-    `).join('');
   </script>
   <script type="text/babel" src="tweaks-panel.jsx"></script>
   <script type="text/babel" src="tweaks-app.jsx"></script>
