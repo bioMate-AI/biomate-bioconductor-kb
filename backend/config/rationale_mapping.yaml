@@ -692,43 +692,50 @@ chains:
   rare_disease_multimodal_workup:
     chain_id: 1
     domain: rare_disease
-    category: gap
+    category: mapping
     phases:
     - phase_id: A
       step_role: germline_variant_calling
       step_workflow_name: nf-core/sarek
       rationale_id: rare_disease_multimodal_workup:A
-      qc_gate_name: null
-      confirmed: false
-      needs_doi_collection: true
+      qc_gate_name: rare_disease_sarek_germline_quality
+      confirmed: true
+      suggested_qc_domain: rare_disease
+      curated_by: faculty-liu-chain1-backfill
     - phase_id: B
       step_role: variant_annotation
       step_workflow_name: nf-core/vcf_annotate_ensemblvep
       rationale_id: rare_disease_multimodal_workup:B
-      qc_gate_name: null
-      confirmed: false
-      needs_doi_collection: true
+      qc_gate_name: rare_disease_vep_annotation_completeness
+      confirmed: true
+      suggested_qc_domain: rare_disease
+      curated_by: faculty-liu-chain1-backfill
     - phase_id: C
       step_role: rna_alignment_quantification
       step_workflow_name: nf-core/rnaseq
       rationale_id: rare_disease_multimodal_workup:C
-      qc_gate_name: null
-      confirmed: false
-      needs_doi_collection: true
+      qc_gate_name: rare_disease_rnaseq_alignment_quality
+      confirmed: true
+      suggested_qc_domain: rare_disease
+      curated_by: faculty-liu-chain1-backfill
     - phase_id: D
       step_role: aberrant_expression_splicing
       step_workflow_name: nf-core/drop
       rationale_id: rare_disease_multimodal_workup:D
-      qc_gate_name: null
-      confirmed: false
-      needs_doi_collection: true
+      qc_gate_name: rare_disease_drop_aberrant_calls
+      confirmed: true
+      suggested_qc_domain: rare_disease
+      curated_by: faculty-liu-chain1-backfill
+      alternative_qc_gates:
+      - bioc_dispersion_size_factor
     - phase_id: E
       step_role: result_aggregation
       step_workflow_name: case_report_aggregation
       rationale_id: rare_disease_multimodal_workup:E
-      qc_gate_name: null
-      confirmed: false
-      needs_doi_collection: true
+      qc_gate_name: rare_disease_case_report_aggregation
+      confirmed: true
+      suggested_qc_domain: rare_disease
+      curated_by: faculty-liu-chain1-backfill
   bioc_variant_annotation_workflow:
     chain_id: 28
     domain: variant_calling
