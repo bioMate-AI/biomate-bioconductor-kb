@@ -2049,10 +2049,17 @@ def _generate_executor_config(
             #     "Could not find method publishDir() to invoke" (boltz v3-v5,
             #     2026-06-12). nf-amazon@3.3.0 pin above already prevents the
             #     CRT crash this null was guarding against.
+            #   - subworkflows/bioconductor/ — the generated biomate_entry.nf wrapper
+            #     hits the SAME "Could not find method publishDir() to invoke" on dev's
+            #     Nextflow 25.10.5 (confirmed on deseq2, 2026-06-20; passed on a spot only
+            #     because it ran 26.04.4). The bioc .nf carry NO publishDir directives and
+            #     collect outputs from the Batch task work dir, so the null is pointless
+            #     here too; the nf-amazon@3.3.0 pin already covers CRT.
             *(
                 ["process {", "    publishDir = null", "}"]
                 if "/nf-core-workflows/" not in nf_path
                    and "structural_biology/" not in nf_path
+                   and "/bioconductor/" not in nf_path
                 else []
             ),
             "process {",
