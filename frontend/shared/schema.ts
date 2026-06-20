@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, numeric, jsonb, bigint, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, numeric, jsonb, bigint, bigserial, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -316,7 +316,7 @@ export type UserSettings = z.infer<typeof userSettingsSchema>;
 export const projectDocumentSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(["file", "text", "url"]),
+  type: z.enum(["file", "text", "url", "notes_synthesis"]),
   content: z.string().optional(), // For text documents or file paths
   url: z.string().url().optional(), // For URL references
   size: z.number().optional(), // File size in bytes
@@ -671,6 +671,30 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).pick({
 
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+// ============================================================================
+// Output Access Log — per-file download audit trail
+// Mirrors migration 0017_output_access_log.sql. Required by the counted
+// /api/runs/:id/output/:filename endpoint; replaces direct user S3 access.
+// See docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (B.2).
+// ============================================================================
+
+export const outputAccessLog = pgTable("output_access_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  runId: text("run_id").notNull(),
+  filename: text("filename").notNull(),
+  userId: text("user_id").notNull(),
+  userEmail: text("user_email"),
+  projectId: text("project_id"),                     // nullable for runs not in a project
+  ipAddress: text("ip_address"),                     // PG INET cast handled at insert
+  userAgent: text("user_agent"),
+  httpStatus: integer("http_status"),                // 200 / 302 / 403 / 404
+  fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
+  accessedAt: timestamp("accessed_at").defaultNow().notNull(),
+});
+
+export type OutputAccessLog = typeof outputAccessLog.$inferSelect;
+export type InsertOutputAccessLog = typeof outputAccessLog.$inferInsert;
 
 // Zod schema for audit log validation
 export const auditLogSchema = z.object({

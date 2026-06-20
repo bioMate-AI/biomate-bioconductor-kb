@@ -965,6 +965,13 @@ export function NextflowWorkflowViewer({
   const [qcSettingsOpen, setQcSettingsOpen] = useState(false);
   const [pauseAtQcFailures, setPauseAtQcFailures] = useState(true);
   const [qcProfile, setQcProfile] = useState('');
+  // Phase C — output location picker state. Defaults to BioMate-managed.
+  // user_s3 is "Advanced" — see tooltip in the picker UI for setup docs.
+  const [outputLocationType, setOutputLocationType] = useState<'default' | 'project' | 'user_s3'>('default');
+  const [userS3Uri, setUserS3Uri] = useState<string>('');
+  // projectId for "My project folder" — sourced from the active chat session's
+  // project_id. Falls back to undefined → option is hidden when no project.
+  const projectId = (workflowDefinition as any)?.projectId ?? null;
   const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number> }>>([]);
   const [qcDefaults, setQcDefaults] = useState<Record<string, { bound: number; direction: string; rationale?: string }>>({});
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
@@ -1434,6 +1441,17 @@ export function NextflowWorkflowViewer({
           ...(qcProfile && { qcProfile }),
           ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),
         },
+        // Phase C — output location, optional. See
+        // docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1+C.2).
+        // Omitted when user selects "default" — backend falls back to
+        // s3://biomate-nextflow-work/nextflow/outputs/<user>/<run>/.
+        ...(outputLocationType !== 'default' && {
+          __outputLocation: {
+            type: outputLocationType,
+            ...(outputLocationType === 'project' && projectId ? { projectId } : {}),
+            ...(outputLocationType === 'user_s3' && userS3Uri ? { userS3Uri } : {}),
+          },
+        }),
       });
     }
   };
@@ -2641,6 +2659,64 @@ export function NextflowWorkflowViewer({
                         onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
                         defaultOpen={requiredUnfilled.length > 0 || globalParams.some(p => (p as any).autoFilled)}
                       />
+
+                      {/* Phase C — Output location picker. Per
+                       *  docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1).
+                       *  Default: BioMate-managed (current behavior).
+                       *  Project: only shown when chat is in a project.
+                       *  My S3 bucket: advanced — user pastes s3:// uri. */}
+                      <div data-testid="output-location-section"
+                           style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
+                          Output location
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            <input type="radio"
+                                   name="output-location"
+                                   value="default"
+                                   checked={outputLocationType === 'default'}
+                                   onChange={() => setOutputLocationType('default')}
+                                   data-testid="output-location-default" />
+                            <span>Default (BioMate-managed, kept 90 days)</span>
+                          </label>
+                          {projectId && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                              <input type="radio"
+                                     name="output-location"
+                                     value="project"
+                                     checked={outputLocationType === 'project'}
+                                     onChange={() => setOutputLocationType('project')}
+                                     data-testid="output-location-project" />
+                              <span>My project folder</span>
+                            </label>
+                          )}
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            <input type="radio"
+                                   name="output-location"
+                                   value="user_s3"
+                                   checked={outputLocationType === 'user_s3'}
+                                   onChange={() => setOutputLocationType('user_s3')}
+                                   data-testid="output-location-user-s3" />
+                            <span title="Advanced — your bucket must grant BioMate's service role write access. See docs/output-location-user-s3-setup.md">
+                              My S3 bucket <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>(Advanced)</span>
+                            </span>
+                          </label>
+                          {outputLocationType === 'user_s3' && (
+                            <input
+                              type="text"
+                              placeholder="s3://my-bucket/my-prefix"
+                              value={userS3Uri}
+                              onChange={(e) => setUserS3Uri(e.target.value)}
+                              data-testid="output-location-user-s3-uri"
+                              style={{ marginLeft: 22, fontSize: 12, padding: '3px 6px',
+                                       border: '1px solid var(--border)', borderRadius: 3,
+                                       background: 'var(--surface)', color: 'var(--text)',
+                                       fontFamily: 'var(--font-mono)', width: 320 }}
+                            />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

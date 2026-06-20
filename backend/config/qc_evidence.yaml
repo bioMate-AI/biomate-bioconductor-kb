@@ -1924,3 +1924,146 @@ scgwas_immune_cell:
       paper_doi: "10.1093/nar/gkac1010"
       paper_supports: "Summary-stat schema for cross-study comparison"
       finding: "scGWAS accepts standard GWAS Catalog harmonized format"
+
+# ─── Rare-disease multimodal workup (chain id 1, Dr. Zhandong Liu) ──────────
+# Five-phase chain matching the RareCollab pipeline verbatim
+# (arXiv 2602.04058): sarek → VEP → rnaseq → DROP → case-report aggregation.
+# Each gate name aligns to the corresponding phase in
+# rationale_mapping.yaml::rare_disease_multimodal_workup.
+rare_disease:
+  rare_disease_sarek_germline_quality:
+    - paper_ref: "Garcia M et al. F1000Research 2020;9:63 (nf-core/sarek)"
+      paper_doi: "10.12688/f1000research.16665.2"
+      provenance: GOLD
+      paper_supports: >
+        Sarek is the nf-core germline + somatic variant-calling pipeline
+        wrapping BWA, GATK4 HaplotypeCaller / Strelka2, and the GATK
+        best-practices joint-genotyping flow. Establishes the per-sample
+        depth, mapping-quality, and joint-genotype VQSR/CNN filtering
+        defaults used downstream.
+      rule_text: >
+        BioMate flags Phase A as advisory when (a) median target depth
+        < 20× for germline WES, < 30× for WGS, or (b) FILTER!=PASS
+        fraction > 10% of called sites after VQSR / CNN tranching.
+        Depth floors are GATK best-practice; the PASS-fraction tier is
+        BioMate operational.
+      finding: >
+        Remediation: re-run with a stricter BQSR / VQSR sensitivity
+        tranche or top-up sequencing where coverage is shallow.
+
+  rare_disease_vep_annotation_completeness:
+    - paper_ref: "McLaren W et al. Genome Biology 2016;17:122 (Ensembl VEP)"
+      paper_doi: "10.1186/s13059-016-0974-4"
+      provenance: GOLD
+      paper_supports: >
+        VEP annotates variants against Ensembl/GENCODE transcripts and
+        reports consequence terms, allele frequencies (gnomAD), and
+        pathogenicity predictions (SIFT/PolyPhen, CADD). Establishes the
+        per-variant annotation completeness contract used by downstream
+        AI-MARRVEL prioritization.
+      rule_text: >
+        BioMate flags Phase B if (a) annotated_variant_fraction < 99%
+        of input VCF records, or (b) > 0.5% of records lack a
+        gnomAD allele frequency on the chosen assembly. Completeness
+        floor is operational; the annotation contract is GOLD.
+      finding: >
+        Remediation: re-run with the matching VEP cache version for the
+        VCF's reference assembly; verify --everything flag and gnomAD
+        custom-annotation plugin are enabled.
+    - paper_ref: "Mao D et al. NEJM AI 2024;1:AIoa2300009 (AI-MARRVEL)"
+      paper_doi: "10.1056/AIoa2300009"
+      provenance: SILVER
+      paper_supports: >
+        AI-MARRVEL ranks VEP-annotated variants against HPO terms +
+        phenotype databases for Mendelian-disease diagnosis. Downstream
+        prioritization depends on the VEP annotation completeness gate
+        above.
+      finding: >
+        Phase B handoff to AI-MARRVEL requires the full VEP consequence
+        + frequency + in-silico-score columns produced by Phase B.
+
+  rare_disease_rnaseq_alignment_quality:
+    - paper_ref: "Ewels PA et al. Nat Biotechnol 2020;38:276–278 (nf-core/rnaseq)"
+      paper_doi: "10.1038/s41587-020-0439-x"
+      provenance: GOLD
+      paper_supports: >
+        nf-core/rnaseq (STAR + Salmon path) emits per-sample alignment
+        and quantification QC via MultiQC: STAR uniquely-mapped rate,
+        rRNA contamination, exonic fraction, and Salmon library-type
+        consistency.
+      rule_text: >
+        BioMate flags Phase C as advisory when uniquely-mapped rate
+        < 70% or rRNA fraction > 15%; fails when uniquely-mapped < 50%.
+        Standard nf-core/rnaseq community floors.
+      finding: >
+        Remediation: re-check rRNA depletion / poly-A selection on the
+        library prep; rerun with a matching GENCODE annotation version
+        if a transcript-mapping mismatch is suspected.
+
+  rare_disease_drop_aberrant_calls:
+    - paper_ref: "Yepez VA et al. Nat Protoc 2021;16:1276–1296 (DROP)"
+      paper_doi: "10.1038/s41596-020-00462-5"
+      provenance: GOLD
+      paper_supports: >
+        DROP (Detection of RNA Outlier Pipeline) wraps OUTRIDER (aberrant
+        expression) and FRASER (aberrant splicing) for rare-disease
+        diagnosis. Reports per-sample, per-gene outlier counts at the
+        Benjamini–Hochberg FDR thresholds prescribed by each tool.
+      rule_text: >
+        BioMate flags Phase D as advisory when aberrant calls per sample
+        exceed the DROP-published expected ranges (≈ 5–50 OUTRIDER hits
+        and ≈ 5–100 FRASER hits per sample at FDR ≤ 0.05). Outside this
+        window indicates a likely batch / library-quality artefact, not
+        a per-patient biological signal.
+      finding: >
+        Remediation: review the OUTRIDER size-factor + dispersion fit
+        (see bioconductor_qc::bioc_dispersion_size_factor) and the
+        FRASER PSI/PSI5/PSI3 dispersion plots before per-patient sign-off.
+    - paper_ref: "Brechtmann F et al. AJHG 2018;103:907–917 (OUTRIDER)"
+      paper_doi: "10.1016/j.ajhg.2018.10.025"
+      provenance: GOLD
+      paper_supports: >
+        OUTRIDER fits a denoising autoencoder + negative-binomial model
+        to detect per-sample expression outliers at gene level. FDR ≤
+        0.05 (Benjamini–Hochberg) is the published default.
+      finding: >
+        Per-sample OUTRIDER hits feeding the Phase D advisory range above.
+    - paper_ref: "Mertes C et al. Nat Commun 2021;12:529 (FRASER)"
+      paper_doi: "10.1038/s41467-020-20573-7"
+      provenance: GOLD
+      paper_supports: >
+        FRASER detects aberrant splicing events from RNA-seq via the
+        PSI / PSI5 / PSI3 statistics with a beta-binomial denoising
+        autoencoder. FDR ≤ 0.05 default per gene-sample.
+      finding: >
+        Per-sample FRASER hits feeding the Phase D advisory range above.
+
+  rare_disease_case_report_aggregation:
+    - paper_ref: "RareCollab — Liu lab rare-disease multimodal workup (arXiv 2602.04058)"
+      paper_doi: "https://arxiv.org/abs/2602.04058"
+      provenance: GOLD
+      paper_supports: >
+        RareCollab specifies the five-step chain (sarek → VEP →
+        nf-core/rnaseq → DROP → case-report aggregation) and the
+        case-report contract: each candidate variant carries the
+        VEP consequence + gnomAD AF + OUTRIDER/FRASER concordance
+        evidence + HPO-driven AI-MARRVEL rank.
+      rule_text: >
+        BioMate flags Phase E as advisory when fewer than 3 candidate
+        variants per proband carry all four evidence dimensions; the
+        threshold is operational and reflects the RareCollab default
+        clinician-review minimum.
+      finding: >
+        Remediation: re-run Phase B with looser gnomAD AF cutoff or
+        Phase D at FDR 0.10 to recover marginal candidates for
+        clinical-geneticist review.
+    - paper_ref: "Mao D et al. NEJM AI 2024;1:AIoa2300009 (AI-MARRVEL)"
+      paper_doi: "10.1056/AIoa2300009"
+      provenance: GOLD
+      paper_supports: >
+        AI-MARRVEL is the HPO-aware variant prioritizer that consumes
+        the merged Phase B + Phase D output to produce the ranked
+        diagnostic-candidate list surfaced in the case report.
+      finding: >
+        Phase E surfaces AI-MARRVEL rank, OUTRIDER/FRASER concordance,
+        and VEP consequence in a single clinician-review table.
