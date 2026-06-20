@@ -952,17 +952,33 @@ export function getUploadedFile(datasetId: string): { name: string; filePath: st
  * Upload a local file to S3 for Nextflow workflow access.
  * Fire-and-forget: errors are logged but do not block the response.
  */
+/**
+ * Build an S3Client pinned to the BUCKET's real region. The nextflow work bucket lives
+ * in us-east-1 while the app default region is us-west-2 — a client created with the
+ * default region rejects cross-region writes with "must be addressed using the specified
+ * endpoint". Resolve the bucket's region (GetBucketLocation: empty => us-east-1) first.
+ * Also avoids the aws CLI, which is not installed in the frontend/galaxy containers.
+ */
+async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
+  const { S3Client, GetBucketLocationCommand } = await import('@aws-sdk/client-s3');
+  const base = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
+  let region = base;
+  try {
+    const loc: any = await new S3Client({ region: base }).send(new GetBucketLocationCommand({ Bucket: s3Bucket }));
+    region = (loc?.LocationConstraint as string) || 'us-east-1';
+  } catch { /* fall back to base region */ }
+  return new S3Client({ region });
+}
+
 async function _uploadFileToS3(localPath: string, datasetId: string, fileName: string): Promise<string | undefined> {
-  const s3Bucket = process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
+  const s3Bucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
   const s3Key = `uploads/${datasetId}/${fileName}`;
   const s3Uri = `s3://${s3Bucket}/${s3Key}`;
   try {
-    const { execFile } = await import('node:child_process');
-    await new Promise<void>((resolve, reject) => {
-      execFile('aws', ['s3', 'cp', localPath, s3Uri, '--quiet'], { timeout: 120_000 }, (err) => {
-        if (err) reject(err); else resolve();
-      });
-    });
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const fs = await import('node:fs');
+    const s3 = await _s3ClientForBucket(s3Bucket);
+    await s3.send(new PutObjectCommand({ Bucket: s3Bucket, Key: s3Key, Body: fs.createReadStream(localPath) }));
     console.log(`[FileUpload] Mirrored to S3: ${s3Uri}`);
     return s3Uri;
   } catch (err: any) {
@@ -1062,10 +1078,12 @@ async function stageLocalFilesForBatch(
   const useAws = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 };
   if (!useAws) return params;
 
-  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-  const region   = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-west-2';
-  const s3 = new S3Client({ region });
+  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
+  // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
+  // a region-mismatched client rejects the PutObject with "must be addressed using the
+  // specified endpoint", which silently failed input staging for every file-param run.
+  const s3 = await _s3ClientForBucket(s3Bucket);
 
   const staged = { ...params };
   for (const [key, val] of Object.entries(params)) {
