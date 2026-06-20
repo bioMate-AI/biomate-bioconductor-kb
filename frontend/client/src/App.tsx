@@ -37,6 +37,7 @@ import CheckoutPage from "@/pages/checkout";
 import BlogPage from "@/pages/blog";
 import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
+import TutorialsPage from "@/pages/tutorials";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import DashboardPage from "@/pages/dashboard";
