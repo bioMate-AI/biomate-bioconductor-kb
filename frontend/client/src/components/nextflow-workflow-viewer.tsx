@@ -6,6 +6,7 @@ import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
+import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
@@ -877,6 +878,7 @@ export function NextflowWorkflowViewer({
   onResize,
 }: NextflowWorkflowViewerProps) {
   const { toast } = useToast();
+  const activeProjectId = useActiveProjectIdSafe();
   const [params, setParams] = useState<Record<string, any>>(
     initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
   );
@@ -2975,6 +2977,7 @@ export function NextflowWorkflowViewer({
                   runId={activeRunId}
                   file={previewFile}
                   onClose={() => setPreviewFile(null)}
+                  projectId={activeProjectId}
                 />
               )}
               {adjustStep && activeRunId && (

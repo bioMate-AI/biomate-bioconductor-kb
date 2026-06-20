@@ -12,6 +12,7 @@ import ProjectsPage from "@/pages/projects";
 import WorkspacesPage from "@/pages/workspaces";
 import ProjectDetailPage from "@/pages/project-detail";
 import ProjectNotesPage from "@/pages/project-notes";
+import ProjectWorkbenchPage from "@/pages/project-workbench";
 import NotFound from "@/pages/not-found";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -462,6 +463,14 @@ function Router({
       <Route path="/projects/:projectId/notes">
         <AuthenticatedPageLayout>
           <ProjectNotesPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
+      {/* /projects/:projectId/workbench — Stream-A pinboard surface.
+          Backend: frontend/server/workbench-routes.ts (commit 0ba50ee96). */}
+      <Route path="/projects/:projectId/workbench">
+        <AuthenticatedPageLayout>
+          <ProjectWorkbenchPage />
         </AuthenticatedPageLayout>
       </Route>
 

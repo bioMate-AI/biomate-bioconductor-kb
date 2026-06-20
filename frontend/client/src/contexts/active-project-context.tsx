@@ -150,3 +150,14 @@ export function useActiveProject() {
   }
   return ctx
 }
+
+/**
+ * Safe variant: returns the active project ID, or null if no provider is
+ * mounted (e.g. unit-test fixtures that render leaf components without
+ * the full app shell). Use this in deep components that are rendered both
+ * inside the app (provider present) and in component tests.
+ */
+export function useActiveProjectIdSafe(): string | null {
+  const ctx = useContext(ActiveProjectContext)
+  return ctx?.activeProjectId ?? null
+}
