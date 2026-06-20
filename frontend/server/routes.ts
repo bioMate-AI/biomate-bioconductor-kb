@@ -1267,6 +1267,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerNotesRoutes } = await import("./notes-routes");
   registerNotesRoutes(app);
 
+  // Project Workbench (pinboard) — Stream-A platform. Lets a user pin
+  // output files from any run in a project and render them side-by-side
+  // via the existing step-output-preview renderers. Reuses
+  // project_knowledge with knowledgeType='workbench_pin'.
+  const { registerWorkbenchRoutes } = await import("./workbench-routes");
+  registerWorkbenchRoutes(app);
+
   // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
   // a missing module doesn't crash the rest of the app at boot. The route
   // file ships from a parallel work stream alongside this registration.
