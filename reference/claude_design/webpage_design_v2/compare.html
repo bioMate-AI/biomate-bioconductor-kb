@@ -360,22 +360,7 @@
         <strong>The key difference:</strong> Galaxy is a tool assembly platform — users select and chain individual tools (FastQC → Trimmomatic → STAR → featureCounts → DESeq2) through a graphical interface, understanding what each tool does and how its outputs connect to the next. BioMate is an intent-driven platform — researchers describe what they want to learn ("differential expression between treated and control"), and BioMate selects, chains, configures, runs, and interprets the tools automatically. Galaxy teaches bioinformatics; BioMate operationalizes it.
       </div>
 
-      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose Galaxy when:</h3>
-      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
-        <li>You are learning bioinformatics and want to understand each tool step</li>
-        <li>Your institution runs a local Galaxy instance with specific tools pre-installed</li>
-        <li>Your analysis requires community-contributed tools in the Galaxy Tool Shed not indexed by BioMate</li>
-        <li>Budget is zero and compute requirements are modest</li>
-      </ul>
-
-      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose BioMate AI when:</h3>
-      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
-        <li>Wet-lab scientists need results without bioinformatics expertise</li>
-        <li>Outputs require audit trails, parameter logs, or structured methods reports</li>
-        <li>Your work spans drug discovery, structural biology, or cryo-EM — outside Galaxy's core strengths</li>
-        <li>You need GPU compute (AlphaFold, CryoSPARC) without managing HPC</li>
-        <li>Speed matters — BioMate's AI routing eliminates the manual assembly step</li>
-      </ul>
+      <p style="color:var(--text-muted);line-height:1.8;font-size:.95rem;">BioMate can accommodate existing Galaxy workflows, and the two are fully complementary. Researchers who have built Galaxy pipelines can bring them into BioMate's environment and run them alongside BioMate's broader workflow catalog. Galaxy's community tool ecosystem — the Tool Shed and community-contributed wrappers — represents a wealth of validated methods that BioMate treats as a resource, not a rival.</p>
 
       <!-- ── BioMate vs Nextflow ── -->
       <div class="cmp-section-head" id="nextflow" style="margin-top:4rem;">
@@ -387,30 +372,16 @@
         <strong>The key difference:</strong> BioMate runs the same nf-core pipelines under the hood — GATK, nf-core/rnaseq, nf-core/sarek — but removes the need to write pipeline code, configure compute environments, parse raw output, and interpret QC metrics manually. A bioinformatics engineer might take two days to set up a Nextflow environment and write a sarek pipeline config; a researcher on BioMate runs the same analysis in ten minutes by describing their samples. Nextflow is the right tool for novel pipeline development; BioMate is the right tool for standard analysis at scale.
       </div>
 
-      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose Nextflow/nf-core when:</h3>
-      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
-        <li>You are developing a novel pipeline not covered by existing workflows</li>
-        <li>Your team has bioinformatics engineers who maintain pipeline infrastructure</li>
-        <li>You require fine-grained control over every process and HPC scheduler integration</li>
-        <li>Your institution mandates open-source, self-hosted infrastructure</li>
-      </ul>
+      <p style="color:var(--text-muted);line-height:1.8;font-size:.95rem;">BioMate can accommodate existing Nextflow scripts directly — if your team has already written a Nextflow pipeline or uses nf-core workflows, BioMate can run them as part of its broader orchestration. The nf-core community's curated pipelines (rnaseq, sarek, methylseq, and others) are first-class resources within BioMate's catalog. Teams that write custom Nextflow pipelines and teams that use BioMate work well together: novel pipeline development remains the domain of bioinformatics engineers, while BioMate makes those and community pipelines accessible to the rest of the organization.</p>
 
-      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose BioMate AI when:</h3>
-      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
-        <li>You need the nf-core gold standard without the setup and maintenance overhead</li>
-        <li>Your team runs standard analyses repeatedly (RNA-seq, WGS, ADMET) and needs to scale without growing the bioinformatics team</li>
-        <li>Outputs need to be immediately structured and interpretable for downstream decisions</li>
-        <li>You need QC interpretation and auto-remediation, not just raw pipeline output</li>
-      </ul>
-
-      <!-- ── BioMate vs in-house team ── -->
+      <!-- ── BioMate + in-house team ── -->
       <div class="cmp-section-head" id="inhouse" style="margin-top:4rem;">
-        <h2>BioMate AI vs an in-house bioinformatics team</h2>
-        <p>Many pharma, biotech, and CRO organizations maintain dedicated bioinformatics teams or contract with bioinformatics cores. BioMate is designed to complement these teams — not replace them.</p>
+        <h2>BioMate AI and an in-house bioinformatics team</h2>
+        <p>Many pharma, biotech, and CRO organizations maintain dedicated bioinformatics teams or contract with bioinformatics cores. BioMate is built to work alongside these teams as a collaborative assistant — extending their reach rather than changing what they do.</p>
       </div>
 
       <div class="cmp-verdict">
-        <strong>The right framing:</strong> BioMate handles the high-volume, repeatable standard analyses (RNA-seq, ADMET, variant calling, docking) that consume most of a bioinformatics team's calendar. This frees the team to focus on novel method development, statistical consulting, and the 20% of projects that genuinely require custom solutions. Organizations using BioMate report faster turnaround on standard analyses and fewer bottlenecks for wet-lab teams waiting on computational results.
+        <strong>Better together:</strong> In-house bioinformaticians bring domain expertise, institutional knowledge, and the ability to develop novel methods for unique research challenges. BioMate contributes an always-available execution layer that handles high-volume standard analyses — RNA-seq, ADMET, variant calling, docking — so that routine requests from wet-lab teams are answered immediately rather than waiting in a queue. The two work in parallel: the bioinformatics team focuses on the problems that genuinely require their expertise, while BioMate handles the rest and surfaces results that the team can review, extend, or hand off directly.
       </div>
 
       <table class="cmp-table" style="margin-top:1.5rem;">
@@ -424,33 +395,33 @@
         <tbody>
           <tr>
             <td>Standard RNA-seq differential expression</td>
-            <td class="bm-col">Minutes to hours, self-service</td>
-            <td>Days to weeks depending on queue</td>
+            <td class="bm-col">Self-service, results in minutes to hours</td>
+            <td>Review, extend, or incorporate into custom analyses</td>
           </tr>
           <tr>
             <td>ADMET profiling of 50 compounds</td>
-            <td class="bm-col">Automated, &lt;30 min</td>
-            <td>May not be in core skill set</td>
+            <td class="bm-col">Automated, &lt;30 min, structured output</td>
+            <td>Interpret results, flag edge cases, advise on follow-up</td>
           </tr>
           <tr>
-            <td>Novel variant calling pipeline for rare disease</td>
-            <td class="bm-col">Standard GATK/DeepVariant covered</td>
-            <td>Custom development needed — team advantage</td>
+            <td>Novel pipeline for a unique research question</td>
+            <td class="bm-col">Runs existing community workflows (GATK, DeepVariant, nf-core)</td>
+            <td>Custom development — team's core strength</td>
           </tr>
           <tr>
             <td>IND §2.6 document assembly</td>
             <td class="bm-col">Automated narrative + audit trail</td>
-            <td>Manual — significant effort</td>
+            <td>Review, validate, and sign off</td>
           </tr>
           <tr>
             <td>Statistical consulting for study design</td>
-            <td class="bm-col">Not in scope</td>
-            <td>Team advantage</td>
+            <td class="bm-col">Assists with standard power calculations and QC</td>
+            <td>Deep consulting — team's expertise</td>
           </tr>
           <tr>
-            <td>Overnight cost for 100 WGS samples</td>
-            <td class="bm-col">Included in plan compute budget</td>
-            <td>HPC allocation or cloud cost + staff time</td>
+            <td>Scaling to 100 WGS samples overnight</td>
+            <td class="bm-col">Elastic cloud compute, no queue</td>
+            <td>Focus on analysis strategy, not infrastructure</td>
           </tr>
         </tbody>
       </table>

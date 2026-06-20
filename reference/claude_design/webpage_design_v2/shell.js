@@ -51,8 +51,8 @@
             ${link('pricing', 'Pricing', 'pricing.html')}
             ${dropdown('about', 'About', 'about.html', [
               { label: 'About BioMate',      href: 'about.html' },
-              { label: 'How It Works',       href: 'index.html#how-it-works' },
-              { label: 'Platform Features',  href: 'features.html' }
+              { label: 'Platform Features',  href: 'features.html' },
+              { label: 'Compare',            href: 'compare.html' }
               /* Team — commented out until team page is ready
               ,{ label: 'Team',              href: 'team.html' }
               */
