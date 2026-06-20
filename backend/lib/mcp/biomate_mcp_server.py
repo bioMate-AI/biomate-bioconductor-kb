@@ -515,10 +515,18 @@ def handle_request(client: BioMateClient, msg: Dict[str, Any]) -> Optional[Dict[
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
     if method == "initialize":
+        # Capture client capabilities so we know if the host supports sampling.
+        client_caps = params.get("capabilities", {}) or {}
+        _client_supports_sampling = bool(client_caps.get("sampling"))
         return make_response(req_id, {
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {
                 "tools": {"listChanged": False},
+                # Declare sampling support so hosts that support it can send
+                # sampling/createMessage requests back for disambiguation.
+                # Actual use: search_workflow asks the host LLM to choose
+                # between ambiguous workflow matches when 2+ results are close.
+                "sampling": {},
             },
             "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
         })

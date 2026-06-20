@@ -32,6 +32,10 @@ galaxy:
   # See job_conf.yml for details on biomate/biotools:arm64 container
   job_config_file: config/job_conf.yml
 
+  # Data source plugins for /api/data/browse and the browse_data MCP tool.
+  # Lists public biological databases (EBI FTP, NCBI FTP, Ensembl FTP, HTTP).
+  file_sources_config_file: config/file_sources_conf.yml
+
 gravity:
   gunicorn:
     # Bind to 8080 inside the container; Docker port-maps host:8081 → container:8080.

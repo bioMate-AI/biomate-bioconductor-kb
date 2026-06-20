@@ -796,6 +796,46 @@ const OPEN_CLAW_TOOLS = [
       required: ["database", "query"],
     },
   },
+  // ── Public Data Sources ───────────────────────────────────────────────────
+  {
+    name: "browse_data",
+    description:
+      "Browse a public biological data repository (EBI, NCBI, Ensembl, UCSC) by listing " +
+      "files and directories at a given path. Use before fetch_public_data to navigate to " +
+      "the exact file you need (reference genomes, annotation GTFs, VCF datasets, etc.).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        source_id: {
+          type: "string",
+          enum: ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public"],
+          description: "Data source to browse",
+        },
+        path: { type: "string", description: "Directory path to list (e.g. '/pub/databases/uniprot/current_release/knowledgebase/complete/')" },
+      },
+      required: ["source_id", "path"],
+    },
+  },
+  {
+    name: "fetch_public_data",
+    description:
+      "Download a file from a public biological repository (EBI, NCBI, Ensembl, UCSC) " +
+      "into BioMate's S3 workspace and return a presigned URL and S3 URI. " +
+      "Use the S3 URI as a workflow input parameter. Call browse_data first to find the exact path.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        source_id: {
+          type: "string",
+          enum: ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public"],
+          description: "Data source the file comes from",
+        },
+        remote_path: { type: "string", description: "Path on the FTP server (e.g. '/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz')" },
+        url: { type: "string", description: "For http_public source: full HTTPS URL of the file to download" },
+      },
+      required: ["source_id"],
+    },
+  },
 ];
 
 /**
@@ -873,6 +913,17 @@ async function executeOpenClaudeTool(
       // ── Databases ────────────────────────────────────────────────────────
       case "query_database":
         return await post("/api/databases/query", { database: input.database, query: input.query });
+
+      // ── Public Data Sources ───────────────────────────────────────────────
+      case "browse_data":
+        return await get(`/api/data/browse?source=${encodeURIComponent(input.source_id)}&path=${encodeURIComponent(input.path ?? "/")}`);
+
+      case "fetch_public_data":
+        return await post("/api/data/fetch", {
+          source_id: input.source_id,
+          remote_path: input.remote_path,
+          url: input.url,
+        });
 
       default:
         return { error: `Unknown tool: ${toolName}` };
@@ -7132,6 +7183,208 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // GET /api/workflows/spec — full spec for a workflow by ID/path (used by MCP get_workflow_spec)
+  // workflow_id is the nextflow path, e.g. "pharmacology/herg_cardiac_safety_qsar/main.nf"
+  app.get("/api/workflows/spec", optionalAuth, async (req, res) => {
+    try {
+      const workflowId = String(req.query.workflow_id || '');
+      if (!workflowId) return res.status(400).json({ error: "workflow_id is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      // Extract bare name from path: "pharmacology/herg_cardiac_safety_qsar/main.nf" → "herg_cardiac_safety_qsar"
+      const namePart = workflowId.replace(/\/main\.nf$/, '').split('/').pop() || workflowId;
+      const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_nextflow_workflow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_intent: namePart, force_workflow_name: namePart, limit: 1 }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/files/preview — render a preview of an S3 file (used by MCP preview_file)
+  // Returns { content_type, preview_text?, download_url?, rows?, truncated }
+  app.post("/api/files/preview", optionalAuth, async (req, res) => {
+    try {
+      const { s3_key, max_rows = 100 } = req.body || {};
+      if (!s3_key) return res.status(400).json({ error: "s3_key is required" });
+
+      const s3Match = (s3_key as string).match(/^s3:\/\/([^/]+)\/(.+)$/);
+      if (!s3Match) return res.status(400).json({ error: "s3_key must be s3://bucket/key format" });
+      const [, bucket, key] = s3Match;
+
+      const ALLOWED_BUCKETS = new Set([
+        process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+        'biomate-nextflow-work',
+        'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS.has(bucket)) {
+        return res.status(403).json({ error: "S3 bucket not allowed" });
+      }
+
+      const ext = key.split('.').pop()?.toLowerCase() ?? '';
+      const TEXT_EXTS = new Set(['csv','tsv','txt','log','fasta','fa','fastq','vcf','bed','gff','gtf','json','html','htm','tabular']);
+      const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','svg']);
+
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+      const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+
+      if (IMAGE_EXTS.has(ext)) {
+        const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+        return res.json({ content_type: 'image', download_url: url });
+      }
+
+      if (TEXT_EXTS.has(ext)) {
+        const response = await s3.send(cmd);
+        const chunks: Buffer[] = [];
+        for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+          chunks.push(Buffer.from(chunk));
+          if (Buffer.concat(chunks).length > 512 * 1024) break; // 512 KB cap
+        }
+        const text = Buffer.concat(chunks).toString('utf-8');
+        const lines = text.split('\n');
+        const truncated = lines.length > (max_rows as number);
+        const preview = lines.slice(0, max_rows as number).join('\n');
+        const isTable = ext === 'csv' || ext === 'tsv' || ext === 'tabular';
+        return res.json({ content_type: isTable ? 'table' : 'text', preview_text: preview, rows: lines.length, truncated });
+      }
+
+      // Binary / unknown: return a presigned download URL
+      const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+      return res.json({ content_type: 'binary', download_url: url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/databases/query — query biological databases (used by MCP query_database)
+  // Proxies to Galaxy /api/databases/query which routes to UniProt, PDB, NCBI, etc.
+  app.post("/api/databases/query", optionalAuth, async (req, res) => {
+    try {
+      const { database, query } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ database: database || "auto", query }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ── Data source browsing (browse_data MCP tool) ──────────────────────────
+  // GET /api/data/sources  — list configured data sources
+  // GET /api/data/browse   — list contents of a path within a source
+  // POST /api/data/fetch   — download/stage a public file into BioMate S3
+  //
+  // Authentication: accepts both JWT (authenticateToken) and static API key
+  // (authenticateStaticApiKey) so headless MCP clients can use these endpoints.
+
+  app.get("/api/data/sources", optionalAuth, async (req, res) => {
+    // Galaxy exposes configured file source plugins at /api/remote_files/plugins.
+    // We proxy and reshape the response to a stable BioMate-facing schema.
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/remote_files/plugins`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!upstream.ok) {
+        // Galaxy not configured or file_sources_conf.yml missing — return
+        // the static list parsed from the known config to avoid a 500.
+        return res.json({
+          sources: [
+            { id: "ebi_ftp",        label: "EBI — European Bioinformatics Institute", type: "ftp",  writable: false },
+            { id: "ncbi_ftp",       label: "NCBI — National Center for Biotechnology Information", type: "ftp", writable: false },
+            { id: "ensembl_ftp",    label: "Ensembl — Genome Browser", type: "ftp", writable: false },
+            { id: "ucsc_downloads", label: "UCSC Genome Downloads", type: "ftp", writable: false },
+            { id: "http_public",    label: "HTTP/HTTPS — Public URLs", type: "http", writable: false },
+          ],
+        });
+      }
+      const plugins: any[] = await upstream.json();
+      res.json({ sources: plugins.map((p: any) => ({ id: p.id, label: p.label ?? p.id, type: p.type, writable: p.writable ?? false })) });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/data/browse", optionalAuth, async (req, res) => {
+    // Proxies to Galaxy's /api/remote_files which lists contents of a file source path.
+    try {
+      const { source, path: browsePath } = req.query as { source?: string; path?: string };
+      if (!source) return res.status(400).json({ error: "source is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      // Galaxy uses `target` for the source id and `format=uri` for the listing.
+      const qs = new URLSearchParams({ target: source, format: "uri", browsable: "true" });
+      if (browsePath) qs.set("path", browsePath);
+      const upstream = await fetch(`${galaxyUrl}/api/remote_files?${qs}`, {
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!upstream.ok) {
+        const body = await upstream.text();
+        return res.status(upstream.status).json({ error: body });
+      }
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/data/fetch", optionalAuth, express.json(), async (req, res) => {
+    // Stages a remote file into BioMate S3 so a workflow can consume it.
+    // The Galaxy backend handles the actual download + S3 upload.
+    try {
+      const { source, path: remotePath, url } = req.body || {};
+      if (!remotePath && !url) {
+        return res.status(400).json({ error: "path or url is required" });
+      }
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/fetch_public_data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source_id: source, remote_path: remotePath, url }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/uploads/signed_url — get S3 presigned URL for direct file upload (used by MCP upload_file)
+  app.post("/api/uploads/signed_url", optionalAuth, async (req, res) => {
+    try {
+      const { filename, size_bytes, content_type } = req.body || {};
+      if (!filename) return res.status(400).json({ error: "filename is required" });
+      if (!s3Service.getBucketName()) {
+        return res.status(503).json({ error: "S3 not configured — file uploads unavailable in this environment" });
+      }
+      const userId = req.user?.id ?? 'anonymous';
+      const uploadData = await s3Service.generatePresignedUploadUrl(
+        userId,
+        filename,
+        content_type || 'application/octet-stream',
+      );
+      res.json({
+        upload_url: uploadData.uploadUrl,
+        s3_key: uploadData.key,
+        expires_in: uploadData.expires_in,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // IR evaluation: ranked workflow list for MRR/P@K/NDCG computation
   // Proxies to Python backend /api/ai_assistant/search_ranked
   app.post("/api/ai_assistant/search_ranked", optionalAuth, async (req, res) => {
@@ -9226,7 +9479,19 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      res.json(run);
+      // ── Inline convenience fields for MCP / headless consumers ────────────
+      // MCP tools/get_run clients should not need a second round-trip to
+      // /output_files or /status to get findings and files. Surface them here.
+      const ns = (run.execution?.nextflowStatus as any) || {};
+      const response: any = {
+        ...run,
+        // Canonical file list: prefer S3-backed files, fall back to local.
+        output_files: ns.s3_output_files || ns.output_files || [],
+        // AI findings / key results synthesized by the findings-analysis job.
+        inline_findings: ns.findings || ns.ai_findings || ns.key_results || [],
+      };
+
+      res.json(response);
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run:", error);
       res.status(500).json({ error: error.message });
