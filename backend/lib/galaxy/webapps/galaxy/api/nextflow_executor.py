@@ -1993,6 +1993,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
 def _generate_executor_config(
     compute: dict, config_dir: Path, *, user_id: str = "unknown", run_id: str = "unknown",
     credentials: Optional[Dict[str, Any]] = None, nf_path: str = "",
+    output_location: Optional[Dict[str, Any]] = None,
 ) -> Optional[Path]:
     """
     Generate a temporary nextflow.config for non-local executors.
@@ -2057,7 +2058,7 @@ def _generate_executor_config(
             # Reproduced 2026-06-07 on nfcore/abotyper, nfcore/createtaxdb.
             "params {",
             *( [f"    container = '{container}'"] if "/nf-core-workflows/" not in nf_path else [] ),
-            f"    outdir = '{_resolve_outdir(request.output_location, s3_bucket, user_id, run_id)}'",
+            f"    outdir = '{_resolve_outdir(output_location, s3_bucket, user_id, run_id)}'",
             "}",
             # DISABLE publishDir entirely on the head JVM. publishDir is what
             # spawns S3 TransferManager which constructs S3CrtAsyncClient
@@ -4503,6 +4504,12 @@ def execute_nextflow(
         compute, log_dir, user_id=billing_user_id, run_id=run_id,
         credentials=dict(request.credentials or {}),
         nf_path=str(nf_path),
+        # Thread the user-supplied output_location through so _resolve_outdir
+        # can compute the correct S3 outdir per the Phase C picker. Regression
+        # fix 2026-06-20 — commit 930aab12c referenced request.output_location
+        # inside _generate_executor_config which has no `request` parameter,
+        # causing NameError on every dispatch. Pass via kwarg instead.
+        output_location=request.output_location,
     )
     if executor_config_path:
         cmd += ["-c", str(executor_config_path)]
