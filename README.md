@@ -84,6 +84,23 @@ volume**.
    [BioMate Cloud](https://www.biomate.ai) for **1,818** packages.
 
 
+## Tutorial: Bulk RNA-seq → DESeq2 → STRINGdb Gene Interaction Network
+
+This walkthrough shows how BioMate routes a plain-English bulk RNA-seq request through DESeq2, GO enrichment, and an **interactive STRINGdb protein-protein interaction panel** — without writing R code.
+
+**What the demo covers:**
+- Natural-language workflow routing to DESeq2 + clusterProfiler
+- Differential expression on 120 samples (human GRCh38, control vs treated)
+- GO enrichment (enrichGO) identifying apoptotic regulation as the top pathway
+- **Interactive gene interaction panel** — STRINGdb network visualization of the top 2,841 DEGs, with nodes coloured by log₂FC and edges weighted by STRING confidence score
+- AI findings summary + citable methods section + citation export
+
+▶ **Watch on YouTube:** [BioMate AI | Bulk RNA-seq: DESeq2 + GO enrichment, no R code needed](https://youtu.be/WL8Jk7M8n1g)
+
+For all tutorials (single-cell Seurat, DNA methylation, bispecific antibody design, CAR-T, base editing, GLP-1 modality selection, BCMA myeloma triage) see the **[BioMate Tutorial Page →](https://biomate.ai/tutorials.html)**
+
+---
+
 ## Want the full collection?
 
 This bundle covers 200 Bioconductor packages (top 100 by downloads + 100 rising stars). **[BioMate AI](https://www.biomate.ai)** gives you:
@@ -93,8 +110,8 @@ This bundle covers 200 Bioconductor packages (top 100 by downloads + 100 rising 
 - **Interactive visualization & analysis** — inspect, filter, and re-run results through linked charts and per-step QC dashboards, with AI-assisted interpretation that links every claim back to the underlying data
 - **Reproducible reporting** — methods and results documents generated with complete parameter and software-version provenance, formatted for publication and audit
 
-**Start using BioMate AI for free at [www.biomate.ai](https://www.biomate.ai)**
-Questions or collaboration inquiries: [contact@biomate.ai](mailto:contact@biomate.ai)
+**Free for academic and non-profit researchers** — [register at www.biomate.ai](https://www.biomate.ai) (no credit card required).
+Commercial plans available. Questions or collaboration inquiries: [contact@biomate.ai](mailto:contact@biomate.ai)
 
 ## How to use
 
