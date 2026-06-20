@@ -95,7 +95,7 @@ This walkthrough shows how BioMate routes a plain-English bulk RNA-seq request t
 - **Interactive gene interaction panel** — STRINGdb network visualization of the top 2,841 DEGs, with nodes coloured by log₂FC and edges weighted by STRING confidence score
 - AI findings summary + citable methods section + citation export
 
-▶ **Watch on YouTube:** [BioMate AI | Bulk RNA-seq: DESeq2 + GO enrichment, no R code needed](https://youtu.be/WL8Jk7M8n1g)
+[![BioMate AI | Bulk RNA-seq: DESeq2 + GO enrichment, no R code needed](https://img.youtube.com/vi/WL8Jk7M8n1g/maxresdefault.jpg)](https://youtu.be/WL8Jk7M8n1g)
 
 For all tutorials (single-cell Seurat, DNA methylation, bispecific antibody design, CAR-T, base editing, GLP-1 modality selection, BCMA myeloma triage) see the **[BioMate Tutorial Page →](https://biomate.ai/tutorials.html)**
 
