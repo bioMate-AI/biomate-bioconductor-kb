@@ -796,6 +796,25 @@ const OPEN_CLAW_TOOLS = [
       required: ["database", "query"],
     },
   },
+  // ── Accession Resolution ─────────────────────────────────────────────────
+  {
+    name: "resolve_accession",
+    description:
+      "Identify a public archive accession (GEO, SRA, ENA, DDBJ) and return the " +
+      "best BioMate workflow to fetch it plus pre-filled params ready for run_workflow. " +
+      "Examples: GSE183947 → Geo Data Connector; SRR12345 → nf-core/fetchngs. " +
+      "Call this before run_workflow whenever the user provides an accession instead of a file.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        accession: {
+          type: "string",
+          description: "Public archive accession: GSE*, GSM*, GDS*, SRR*, SRX*, SRP*, ERR*, ERX*, ERP*, DRR*, PRJNA*, PRJEB*, E-MTAB-*, E-GEOD-*",
+        },
+      },
+      required: ["accession"],
+    },
+  },
   // ── Public Data Sources ───────────────────────────────────────────────────
   {
     name: "browse_data",
@@ -913,6 +932,10 @@ async function executeOpenClaudeTool(
       // ── Databases ────────────────────────────────────────────────────────
       case "query_database":
         return await post("/api/databases/query", { database: input.database, query: input.query });
+
+      // ── Accession Resolution ─────────────────────────────────────────────
+      case "resolve_accession":
+        return await post("/api/accession/resolve", { accession: input.accession });
 
       // ── Public Data Sources ───────────────────────────────────────────────
       case "browse_data":
@@ -7278,6 +7301,102 @@ ${paramLines || '(none recorded)'}`;
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // ── Accession resolver (resolve_accession MCP tool) ─────────────────────
+  // POST /api/accession/resolve
+  // Given a public archive accession (GEO GSE*, SRA SRR*, ENA ERR*, etc.) returns
+  // the best BioMate workflow to fetch it plus pre-filled params ready for run_workflow.
+  app.post("/api/accession/resolve", authenticateStaticApiKey, authenticateToken, express.json(), async (req, res) => {
+    const { accession } = req.body || {};
+    if (!accession || typeof accession !== "string") {
+      return res.status(400).json({ error: "accession is required" });
+    }
+    const acc = accession.trim().toUpperCase();
+
+    // Classify accession type and select the best fetcher workflow.
+    type AccessionClass = {
+      type: string;
+      archive: string;
+      workflow_id: number;
+      workflow_name: string;
+      nextflow_path: string;
+      param_key: string;   // which workflow input param the accession goes into
+      description: string;
+    };
+
+    const ACCESSION_MAP: Array<{ pattern: RegExp; cls: AccessionClass }> = [
+      // GEO series / sample → Geo Data Connector (R-based; returns count matrix + metadata)
+      {
+        pattern: /^(GSE|GDS)\d+$/,
+        cls: {
+          type: "GEO_series", archive: "GEO",
+          workflow_id: 10672, workflow_name: "Geo Data Connector",
+          nextflow_path: "nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf",
+          param_key: "accession",
+          description: "Downloads GEO series matrix + clinical metadata via GEOquery; emits channels ready for DESeq2/edgeR.",
+        },
+      },
+      {
+        pattern: /^GSM\d+$/,
+        cls: {
+          type: "GEO_sample", archive: "GEO",
+          workflow_id: 10672, workflow_name: "Geo Data Connector",
+          nextflow_path: "nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf",
+          param_key: "accession",
+          description: "Downloads individual GEO sample via GEOquery.",
+        },
+      },
+      // SRA/ENA/DDBJ runs/experiments/projects → nf-core/fetchngs
+      {
+        pattern: /^(SRR|SRX|SRS|SRP|ERP|ERR|ERX|DRR|DRP|PRJNA|PRJEB|PRJDB|E-[A-Z]+-\d+)\S*/,
+        cls: {
+          type: "SRA_ENA_DDBJ", archive: "SRA/ENA/DDBJ",
+          workflow_id: 12704, workflow_name: "nf-core/fetchngs",
+          nextflow_path: "nfcore/fetchngs/main.nf",
+          param_key: "input",
+          description: "Downloads raw FASTQ files and metadata from SRA, ENA, DDBJ, or GEO using nf-core/fetchngs. Output FASTQs can feed directly into nf-core/rnaseq, sarek, etc.",
+        },
+      },
+    ];
+
+    let matched: AccessionClass | null = null;
+    for (const { pattern, cls } of ACCESSION_MAP) {
+      if (pattern.test(acc)) { matched = cls; break; }
+    }
+
+    if (!matched) {
+      return res.status(422).json({
+        error: "Unrecognised accession format",
+        hint: "Supported prefixes: GSE, GSM, GDS, SRR, SRX, SRS, SRP, ERR, ERX, ERP, DRR, DRP, PRJNA, PRJEB, E-MTAB-*, E-GEOD-*",
+        accession: acc,
+      });
+    }
+
+    // Verify the workflow still exists in the DB.
+    let db_name: string | null = null;
+    try {
+      const dbPath = process.env.GALAXY_AI_TOOLS_DB || path.join(process.cwd(), "../backend/database/galaxy_ai_tools.db");
+      if (existsSync(dbPath)) {
+        const db = new BetterSqlite3(dbPath, { readonly: true });
+        const row = db.prepare("SELECT name FROM workflows WHERE id = ?").get(matched.workflow_id) as { name: string } | undefined;
+        db.close();
+        db_name = row?.name ?? null;
+      }
+    } catch { /* non-fatal — return resolved info regardless */ }
+
+    res.json({
+      accession: acc,
+      accession_type: matched.type,
+      archive: matched.archive,
+      workflow_id: matched.workflow_id,
+      workflow_name: db_name ?? matched.workflow_name,
+      nextflow_path: matched.nextflow_path,
+      prefilled_params: { [matched.param_key]: acc },
+      description: matched.description,
+      ready_to_run: true,
+      next_step: `Call run_workflow with workflow_id=${matched.workflow_id} and params=${JSON.stringify({ [matched.param_key]: acc })}`,
+    });
   });
 
   // ── Data source browsing (browse_data MCP tool) ──────────────────────────
