@@ -1146,12 +1146,25 @@ _BIOC_INPUT_DECL_RE = re.compile(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$')
 
 def _stage_declared_input(src: str, dest: Path) -> None:
     """Stage a user-supplied input file to `dest` (named as the workflow's declared base name).
-    Handles s3:// (aws s3 cp), http(s):// (download) and local paths (copy)."""
+    Handles s3:// (boto3 download), http(s):// (download) and local paths (copy)."""
     src = str(src).strip()
     dest.parent.mkdir(parents=True, exist_ok=True)
     if src.startswith("s3://"):
-        subprocess.run(["aws", "s3", "cp", src, str(dest), "--no-progress"],
-                       check=True, capture_output=True, text=True, timeout=600)
+        # Use boto3, NOT the `aws` CLI — the Galaxy container does not ship the aws CLI on
+        # PATH, so `aws s3 cp` raised FileNotFoundError('aws') and silently failed every bioc
+        # workflow that declares an s3:// input (the wrapper then fell back to a -entry run that
+        # can't bind the take: channel). Resolve the bucket's real region so a cross-region
+        # bucket (e.g. us-east-1 work bucket vs us-west-2 default) doesn't hit
+        # "must be addressed using the specified endpoint".
+        import boto3
+        _bucket, _key = src[len("s3://"):].split("/", 1)
+        _s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = _s3.get_bucket_location(Bucket=_bucket).get("LocationConstraint") or "us-east-1"
+            _s3 = boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        _s3.download_file(_bucket, _key, str(dest))
     elif src.startswith(("http://", "https://")):
         import urllib.request
         urllib.request.urlretrieve(src, str(dest))
@@ -1362,6 +1375,10 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
         introspect_proc = (
             "\nprocess BIOMATE_RDS_INTROSPECT {\n"
             f"    container '{img}'\n"
+            # Best-effort sidecar: never let an unforeseen failure (hard R crash, dep-install
+            # error) of this auxiliary process fail the user's actual workflow. The per-object
+            # tryCatch already guards the common cases; errorStrategy 'ignore' is the backstop.
+            "    errorStrategy 'ignore'\n"
             "    input:\n"
             "      path rds_file\n"
             "    output:\n"
@@ -4471,6 +4488,13 @@ def execute_nextflow(
     # the Nextflow head does, including the CRT native lib extraction.
     # Pair with the existing NXF_OPTS CRT cache + Xss2m mitigations.
     env["LD_BIND_NOW"] = "1"
+
+    # NOTE: an earlier LD_PRELOAD of libmanagement.so was REVERTED here. It was based on a
+    # misdiagnosis (there was never an hs_err — the JVM did not crash), and worse, preloading
+    # libmanagement.so into EVERY process broke `/usr/bin/env` (which launches the nextflow
+    # wrapper): libmanagement.so depends on libjvm.so, unavailable to non-JVM processes, so
+    # env aborted with "error while loading shared libraries: libjvm.so" and the head never
+    # started. The real dispatch failure was the aws-CLI input-staging bug, fixed via boto3.
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
