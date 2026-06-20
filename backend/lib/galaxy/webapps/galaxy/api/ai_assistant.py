@@ -1815,7 +1815,6 @@ Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)
 
     # Short-circuit when no Gemini key is configured — otherwise the LLM call
     # hangs the request waiting on auth and the frontend chat spinner stays up.
-    import os as _os
     if not (_os.environ.get("GOOGLE_API_KEY") or _os.environ.get("GEMINI_API_KEY")):
         return {"edits": [], "reason": "no_api_key"}
     try:
