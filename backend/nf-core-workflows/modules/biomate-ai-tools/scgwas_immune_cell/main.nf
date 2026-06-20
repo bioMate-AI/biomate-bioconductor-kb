@@ -69,11 +69,26 @@ process SCGWAS_INPUT_VALIDATE {
 
     if baked:
         sumstats = "/opt/scgwas/example/Schizophrenia_Pardinas_2018.magma_boxcox.txt"
-        # Use the shipped configure verbatim — proves the chain works.
+        # The shipped configure references `../data/DER-22.avg.boxcox.txt`
+        # but the upstream bsml320/scGWAS repo no longer ships that .boxcox
+        # variant — only `DER-22.avg.tsv` is present. Rewrite the configure
+        # to point at the existing files + use absolute /opt/scgwas/data
+        # paths so the run works regardless of cwd. Verified via local smoke
+        # 2026-06-19 — completes through quantile normalization and produces
+        # all 3 canonical scGWAS outputs.
+        os.makedirs("SCZ_DER22_output", exist_ok=True)
+        import re as _re
+        orig = open("/opt/scgwas/example/configure.Schizophrenia_Pardinas_2018.DER22.txt").read()
+        patched = orig
+        patched = _re.sub(
+            r"\\.\\./data/DER-22\\.avg\\.boxcox\\.txt",
+            "/opt/scgwas/data/DER-22.avg.tsv", patched)
+        patched = _re.sub(
+            r"\\.\\./data/([^\\s]+)",
+            r"/opt/scgwas/data/\\1", patched)
         shutil.copy(
-            "/opt/scgwas/example/configure.Schizophrenia_Pardinas_2018.DER22.txt",
-            "configure.txt",
-        )
+            "/opt/scgwas/example/Schizophrenia_Pardinas_2018.magma_boxcox.txt", ".")
+        open("configure.txt", "w").write(patched)
     else:
         sumstats = "${params.gwas_sumstats}"
         if sumstats in ("null", ""):

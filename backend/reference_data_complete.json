@@ -7897,6 +7897,378 @@
         "FT",
         "SQ"
       ]
+    },
+    "pathwaycommons_v12_all_hgnc_NCBI37": {
+      "name": "PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv",
+      "display_name": "PathwayCommons v12 - All HGNC, exPCDHA, MHC, NCBI37",
+      "access_method": "container_baked",
+      "source": "pathwaycommons.org",
+      "source_url": "https://www.pathwaycommons.org/archives/PC2/v12/",
+      "path": "/opt/scgwas/data/PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/pathwaycommons/v12/PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv",
+      "staged_s3_status": "planned",
+      "exists": true,
+      "size": "88MB",
+      "format": "sif",
+      "license": "CC-BY 4.0",
+      "version": "v12",
+      "genome_build": "NCBI37 / GRCh37",
+      "description": "PathwayCommons v12 integrated human pathway network (HGNC symbols, exPCDHA / MHC included). SIF (Simple Interaction Format) edges aggregated from Reactome, NCI-PID, PANTHER, HumanCyc, PhosphoSitePlus, BIND, IntAct, BioGRID and others. Network reference data for gene-set / pathway / network-based GWAS.",
+      "category": "pathway_network",
+      "data_type": "biological_network",
+      "use_cases": [
+        "scGWAS network reference",
+        "MAGMA gene-set tests",
+        "network-based GWAS enrichment",
+        "pathway analysis",
+        "gene-gene interaction lookup"
+      ],
+      "search_text": "PathwayCommons v12 pathway network SIF HGNC NCBI37 GRCh37 scGWAS MAGMA gene set network GWAS Reactome NCI-PID PANTHER HumanCyc BioGRID IntAct",
+      "index_columns": [
+        "source_gene",
+        "interaction_type",
+        "target_gene"
+      ],
+      "schema": {
+        "format": "sif",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": false,
+        "columns": [
+          "gene_a",
+          "interaction",
+          "gene_b"
+        ]
+      },
+      "consumed_by_workflows": [
+        "biomni_workflows/scgwas_immune_cell",
+        "magma_gene_set (when wired)"
+      ],
+      "query_examples": [
+        "grep -w TP53 PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv  # all edges touching TP53",
+        "awk '$2==\"controls-state-change-of\"' PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv"
+      ]
+    },
+    "1000_genomes_phase3_grch38": {
+      "name": "1000 Genomes Phase 3 reference panel (GRCh38)",
+      "display_name": "1000 Genomes Phase 3 (GRCh38, 30x)",
+      "access_method": "static_s3",
+      "source": "internationalgenome.org",
+      "source_url": "https://www.internationalgenome.org/data-portal/data-collection/30x-grch38",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/1000_genomes_phase3_grch38/",
+      "staged_s3_status": "planned",
+      "license": "open",
+      "genome_build": "GRCh38",
+      "description": "1000 Genomes Project Phase 3 high-coverage (30x) reference panel on GRCh38 for population allele frequencies, LD reference, and PRS scoring.",
+      "category": "population_reference",
+      "integration_mode": "static_download",
+      "refresh_cadence": "one_time",
+      "use_cases": [
+        "LD reference panel",
+        "PRS scoring",
+        "population allele frequency lookup",
+        "GWAS QC ancestry inference"
+      ],
+      "consumed_by_workflows": [
+        "LDSC",
+        "GCTA",
+        "PRS-CS"
+      ]
+    },
+    "hpo_ontology_2026": {
+      "name": "Human Phenotype Ontology + annotations",
+      "display_name": "HPO 2026 (ontology + phenotype.hpoa)",
+      "access_method": "api_and_download",
+      "source": "hpo.jax.org",
+      "source_url": "https://hpo.jax.org/api/",
+      "secondary_url": "https://hpo.jax.org/data/ontology",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/hpo_ontology_2026/",
+      "staged_s3_status": "planned",
+      "license": "CC-BY 4.0",
+      "description": "Human Phenotype Ontology, gene-phenotype and disease-phenotype annotations for rare disease phenotyping and gene prioritization.",
+      "category": "ontology",
+      "integration_mode": "api_and_download",
+      "refresh_cadence": "monthly",
+      "use_cases": [
+        "rare disease phenotype matching",
+        "gene prioritization from phenotype",
+        "HPO term lookup"
+      ],
+      "consumed_by_workflows": [
+        "Liu rare disease chain",
+        "Phen2Gene",
+        "LIRICAL"
+      ]
+    },
+    "omim_open_subset": {
+      "name": "OMIM (free download subset)",
+      "display_name": "OMIM open subset (API, free key)",
+      "access_method": "api",
+      "source": "omim.org",
+      "source_url": "https://api.omim.org/",
+      "staged_s3_status": "api_only",
+      "license": "OMIM ToS (free for academic)",
+      "description": "Online Mendelian Inheritance in Man (free academic subset) for Mendelian disease gene-phenotype lookup. Requires free API key.",
+      "category": "disease_database",
+      "integration_mode": "api",
+      "refresh_cadence": "live",
+      "requires_api_key": true,
+      "use_cases": [
+        "Mendelian disease gene lookup",
+        "phenotype-disease mapping"
+      ],
+      "consumed_by_workflows": [
+        "Liu rare disease chain"
+      ]
+    },
+    "clinvar_weekly_vcf_grch38": {
+      "name": "ClinVar weekly VCF (GRCh38)",
+      "display_name": "ClinVar weekly VCF (GRCh38)",
+      "access_method": "static_download",
+      "source": "ncbi.nlm.nih.gov",
+      "source_url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/clinvar_weekly_vcf_grch38/",
+      "staged_s3_status": "planned",
+      "license": "public domain",
+      "genome_build": "GRCh38",
+      "format": "vcf",
+      "description": "NCBI ClinVar weekly VCF on GRCh38 for clinical variant interpretation and pathogenicity annotation.",
+      "category": "variant_annotation",
+      "integration_mode": "static_download",
+      "refresh_cadence": "weekly",
+      "use_cases": [
+        "clinical variant annotation",
+        "pathogenicity lookup",
+        "rare disease variant filtering"
+      ],
+      "consumed_by_workflows": [
+        "Liu",
+        "Zhao"
+      ]
+    },
+    "gtex_v8_eqtls": {
+      "name": "GTEx v8 cis-eQTLs (all tissues)",
+      "display_name": "GTEx v8 cis-eQTLs (49 tissues)",
+      "access_method": "static_download",
+      "source": "gtexportal.org",
+      "source_url": "https://gtexportal.org/home/datasets",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/gtex_v8_eqtls/",
+      "staged_s3_status": "planned",
+      "license": "open",
+      "version": "v8",
+      "genome_build": "GRCh38",
+      "description": "GTEx v8 cis-eQTL summary statistics across 49 tissues for functional variant annotation and TWAS reference.",
+      "category": "functional_genomics",
+      "integration_mode": "static_download",
+      "refresh_cadence": "one_time",
+      "use_cases": [
+        "eQTL colocalization",
+        "TWAS reference",
+        "functional variant annotation"
+      ],
+      "consumed_by_workflows": [
+        "Zhi",
+        "Zhao"
+      ]
+    },
+    "gnomad_v4_sites_vcf": {
+      "name": "gnomAD v4 sites VCF (GRCh38)",
+      "display_name": "gnomAD v4 sites VCF (GRCh38)",
+      "access_method": "static_download",
+      "source": "gnomad.broadinstitute.org",
+      "source_url": "https://gnomad.broadinstitute.org/downloads",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/gnomad_v4_sites_vcf/",
+      "staged_s3_status": "planned",
+      "license": "ODbL",
+      "version": "v4",
+      "genome_build": "GRCh38",
+      "format": "vcf",
+      "description": "gnomAD v4 sites VCF for population allele frequency-based variant filtering and rare variant identification.",
+      "category": "population_reference",
+      "integration_mode": "static_download",
+      "refresh_cadence": "yearly",
+      "use_cases": [
+        "rare variant filtering",
+        "population AF lookup",
+        "variant QC"
+      ],
+      "consumed_by_workflows": [
+        "Liu"
+      ]
+    },
+    "reactome_pathways_2026": {
+      "name": "Reactome pathway database",
+      "display_name": "Reactome 2026 (pathways + ContentService API)",
+      "access_method": "api_and_download",
+      "source": "reactome.org",
+      "source_url": "https://reactome.org/ContentService",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/reactome_pathways_2026/",
+      "staged_s3_status": "planned",
+      "license": "CC0",
+      "description": "Reactome curated human pathway database with REST ContentService API and bulk pathway-gene downloads for enrichment analysis.",
+      "category": "pathway",
+      "integration_mode": "api_and_download",
+      "refresh_cadence": "quarterly",
+      "use_cases": [
+        "pathway enrichment",
+        "gene-set analysis",
+        "pathway visualization"
+      ],
+      "consumed_by_workflows": [
+        "Zhao"
+      ]
+    },
+    "kegg_pathways": {
+      "name": "KEGG pathways (free tier API)",
+      "display_name": "KEGG pathways (REST API, academic-free)",
+      "access_method": "api",
+      "source": "kegg.jp",
+      "source_url": "https://rest.kegg.jp/",
+      "staged_s3_status": "api_only",
+      "license": "KEGG academic-free",
+      "description": "KEGG pathway database via free REST API for pathway-gene mappings and enrichment.",
+      "category": "pathway",
+      "integration_mode": "api",
+      "refresh_cadence": "live",
+      "use_cases": [
+        "pathway enrichment",
+        "KEGG orthology lookup",
+        "metabolic pathway mapping"
+      ],
+      "consumed_by_workflows": [
+        "Zhao"
+      ]
+    },
+    "msigdb_hallmark_c2": {
+      "name": "MSigDB Hallmark + C2 curated gene sets",
+      "display_name": "MSigDB v2026 Hallmark + C2",
+      "access_method": "static_download",
+      "source": "gsea-msigdb.org",
+      "source_url": "https://www.gsea-msigdb.org/gsea/msigdb",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/msigdb_hallmark_c2/",
+      "staged_s3_status": "planned",
+      "license": "CC-BY 4.0 (free academic)",
+      "description": "MSigDB Hallmark (H) + Curated (C2) gene sets for GSEA and over-representation analysis.",
+      "category": "gene_sets",
+      "integration_mode": "static_download",
+      "refresh_cadence": "yearly",
+      "use_cases": [
+        "GSEA",
+        "over-representation analysis",
+        "gene-set enrichment"
+      ],
+      "consumed_by_workflows": [
+        "Zhao"
+      ]
+    },
+    "vep_cache_grch38_111": {
+      "name": "Ensembl VEP cache GRCh38 (release 111)",
+      "display_name": "Ensembl VEP cache GRCh38 r111",
+      "access_method": "static_download",
+      "source": "ensembl.org",
+      "source_url": "https://ftp.ensembl.org/pub/release-111/variation/indexed_vep_cache/",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/vep_cache_grch38_111/",
+      "staged_s3_status": "planned",
+      "license": "Apache 2.0",
+      "version": "release-111",
+      "genome_build": "GRCh38",
+      "description": "Ensembl VEP indexed cache for GRCh38 release 111 enabling offline variant effect prediction.",
+      "category": "variant_annotation",
+      "integration_mode": "static_download",
+      "refresh_cadence": "yearly",
+      "use_cases": [
+        "offline VEP variant annotation",
+        "consequence prediction"
+      ],
+      "consumed_by_workflows": [
+        "Liu (chain id 1 step 2)"
+      ]
+    },
+    "ucsc_hg38_reference": {
+      "name": "UCSC HG38 reference + indices",
+      "display_name": "UCSC hg38 (FASTA + indices)",
+      "access_method": "static_s3",
+      "source": "hgdownload.soe.ucsc.edu",
+      "source_url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/ucsc_hg38_reference/",
+      "staged_s3_status": "planned",
+      "license": "public",
+      "genome_build": "hg38 / GRCh38",
+      "description": "UCSC hg38 reference genome FASTA, bwa/samtools indices, chromInfo, and supporting tracks.",
+      "category": "reference_genome",
+      "integration_mode": "static_download",
+      "refresh_cadence": "one_time",
+      "use_cases": [
+        "alignment reference",
+        "coordinate conversion",
+        "genome browser tracks"
+      ],
+      "consumed_by_workflows": [
+        "All chains"
+      ]
+    },
+    "pubmed_eutils": {
+      "name": "PubMed via E-utilities",
+      "display_name": "PubMed (NCBI E-utilities API)",
+      "access_method": "api",
+      "source": "ncbi.nlm.nih.gov",
+      "source_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/",
+      "staged_s3_status": "api_only",
+      "license": "NCBI ToS (free)",
+      "description": "PubMed literature search and retrieval via NCBI E-utilities API for evidence-search and citation lookup.",
+      "category": "literature",
+      "integration_mode": "api",
+      "refresh_cadence": "live",
+      "use_cases": [
+        "evidence search",
+        "citation retrieval",
+        "literature mining"
+      ],
+      "consumed_by_workflows": []
+    },
+    "opentargets_platform_v24": {
+      "name": "OpenTargets Platform v24 (target-disease)",
+      "display_name": "OpenTargets Platform v24 (GraphQL)",
+      "access_method": "api",
+      "source": "platform.opentargets.org",
+      "source_url": "https://api.platform.opentargets.org/api/v4/graphql",
+      "staged_s3_status": "api_only",
+      "license": "CC0",
+      "version": "v24",
+      "description": "OpenTargets Platform v24 GraphQL API for target-disease associations, evidence scores, and tractability.",
+      "category": "target_disease",
+      "integration_mode": "api",
+      "refresh_cadence": "live",
+      "use_cases": [
+        "target-disease association lookup",
+        "evidence search",
+        "target prioritization"
+      ],
+      "consumed_by_workflows": [
+        "Zhi target prioritization"
+      ]
+    },
+    "string_db_v12": {
+      "name": "STRING v12 protein-protein interaction",
+      "display_name": "STRING v12 PPI (REST API)",
+      "access_method": "api",
+      "source": "string-db.org",
+      "source_url": "https://string-db.org/api/",
+      "staged_s3_status": "api_only",
+      "license": "CC-BY 4.0",
+      "version": "v12",
+      "description": "STRING v12 protein-protein interaction network via REST API for network expansion and PPI enrichment.",
+      "category": "ppi_network",
+      "integration_mode": "api",
+      "refresh_cadence": "live",
+      "use_cases": [
+        "PPI network expansion",
+        "evidence search",
+        "protein interaction lookup"
+      ],
+      "consumed_by_workflows": [
+        "Zhao network expansion"
+      ]
     }
   },
   "metaboanalyst_databases": {

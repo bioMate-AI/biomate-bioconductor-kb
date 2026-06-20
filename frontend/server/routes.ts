@@ -1261,6 +1261,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerProjectRoutes } = await import("./project-routes");
   registerProjectRoutes(app);
 
+  // Project Notes (synthesis) — Stream-A platform. On-demand LLM
+  // synthesis of completed runs + recent chat into a markdown brief.
+  // See docs/20260619_AI_GLASSES_AND_AUDIO_BIOMATE_PROTOTYPES.md.
+  const { registerNotesRoutes } = await import("./notes-routes");
+  registerNotesRoutes(app);
+
   // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
   // a missing module doesn't crash the rest of the app at boot. The route
   // file ships from a parallel work stream alongside this registration.
@@ -8848,6 +8854,14 @@ ${paramLines || '(none recorded)'}`;
             req.user ? String(req.user.id) : 'anonymous'
           );
 
+          // Phase C — extract __outputLocation from params (set by viewer's
+          // handleExecute when user picks non-default option) and pass as a
+          // top-level field that NextflowExecuteRequest.output_location reads.
+          // See backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py._resolve_outdir
+          const __outputLocation = (stagedParams as any).__outputLocation;
+          const stagedParamsClean = { ...stagedParams };
+          delete (stagedParamsClean as any).__outputLocation;
+
           const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
             method: 'POST',
             headers: {
@@ -8857,7 +8871,8 @@ ${paramLines || '(none recorded)'}`;
             body: JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
-              parameters: stagedParams,
+              parameters: stagedParamsClean,
+              ...(__outputLocation ? { output_location: __outputLocation } : {}),
               // ⚠️ DO NOT REVERT to `docker`. Third re-application of 2885eb960 / 140502f23.
               // biomate-ai-tools workflows define an `aws` profile, NOT `docker`. nf-core
               // on Batch accepts `aws` too since both delegate to the awsbatch executor.
@@ -10269,9 +10284,12 @@ Rules:
                 listed.push({
                   name, filename: name, extension: ext,
                   size: obj.Size || 0,
-                  s3_uri: `s3://${bucket}/${obj.Key}`,
+                  s3_uri: `s3://${bucket}/${obj.Key}`,  // DEPRECATED for client use — see download_endpoint below
                   s3_bucket: bucket,
                   s3_key: obj.Key,
+                  // B.3 (Phase B output-lockdown) — canonical client-facing
+                  // download path. Replaces s3_uri/downloadUrl for new code.
+                  download_endpoint: `/api/runs/${req.params.id}/output/${encodeURIComponent(name)}`,
                 });
               }
               continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
@@ -10330,6 +10348,134 @@ Rules:
       res.status(r.status).json(data.output_files || []);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── B.1 — Counted output download endpoint (Phase B output-lockdown) ──
+  // Replaces direct user S3 access. Resolves run + file → generates a
+  // 60-second presigned S3 URL → writes audit-log row → 302 redirects.
+  // Per docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (B.1).
+  app.get("/api/runs/:runId/output/:filename", authenticateToken, async (req: any, res) => {
+    const startedAt = Date.now();
+    const { runId, filename: rawFilename } = req.params;
+    const filename = decodeURIComponent(rawFilename);
+    const userId: string | undefined = req.user?.id;
+    const userEmail: string | undefined = req.user?.email;
+    const ipAddress = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim()
+                    || req.socket?.remoteAddress || null;
+    const userAgent = req.headers['user-agent'] as string | undefined;
+
+    // Defensive: defer audit-log writer import so a missing schema doesn't 500 the endpoint
+    const writeAuditRow = async (httpStatus: number, fileSize: number | null, projectId: string | null) => {
+      try {
+        const { outputAccessLog } = await import("@shared/schema");
+        await db.insert(outputAccessLog).values({
+          runId,
+          filename,
+          userId: userId ?? "anonymous",
+          userEmail: userEmail ?? null,
+          projectId,
+          ipAddress: ipAddress as any,
+          userAgent: userAgent ?? null,
+          httpStatus,
+          fileSizeBytes: fileSize ?? null,
+        });
+      } catch (err: any) {
+        console.warn(`[output_access_log] insert failed for ${runId}/${filename}: ${err?.message}`);
+      }
+    };
+
+    try {
+      // 1. Resolve run via storage (matches /output_files pattern at line 10099)
+      let run = await storage.getExecutionRun(runId);
+      if (!run) run = await storage.getExecutionRunByGalaxyId(runId);
+      if (!run) {
+        await writeAuditRow(404, null, null);
+        return res.status(404).json({ error: 'Run not found' });
+      }
+
+      // 2. Authorize — owner-only by default; project members allowed when run is in a project
+      const runOwnerId = (run as any).userId;
+      const runProjectId = (run as any).projectId ?? null;
+      const isOwner = userId && runOwnerId && userId === runOwnerId;
+      let isProjectMember = false;
+      if (!isOwner && runProjectId && userId) {
+        try {
+          // Project membership: defer to storage helper. If absent, treat as owner-only.
+          const memberOf = await (storage as any).getUserProjects?.(userId);
+          isProjectMember = Array.isArray(memberOf) && memberOf.some((p: any) => p?.id === runProjectId);
+        } catch { /* treat as not-a-member on lookup failure */ }
+      }
+      if (!isOwner && !isProjectMember) {
+        await writeAuditRow(403, null, runProjectId);
+        return res.status(403).json({ error: 'Forbidden — run is not owned by current user and you are not a member of its project' });
+      }
+
+      // 3. Look up file in the run's output_files registry. The shape comes
+      //    from the existing /output_files endpoint; nextflowStatus carries
+      //    s3_output_files with s3_uri + filename + size.
+      const nfStatus = (run as any).execution?.nextflowStatus as any;
+      const s3Files: any[] = Array.isArray(nfStatus?.s3_output_files) ? nfStatus.s3_output_files : [];
+      const localFiles: any[] = Array.isArray(nfStatus?.output_files) ? nfStatus.output_files : [];
+      const allFiles = [...s3Files, ...localFiles];
+      const match = allFiles.find((f: any) =>
+        (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path)
+      );
+      if (!match) {
+        await writeAuditRow(404, null, runProjectId);
+        return res.status(404).json({ error: `File ${filename} not found in run ${runId}` });
+      }
+
+      const fileSize = typeof match.size === 'number' ? match.size : null;
+
+      // 4. If it's an S3 file, generate 60-second presigned URL and 302 redirect.
+      //    If it's a local path, stream it (small files only — large ones live in S3).
+      const s3Uri: string | undefined = match.s3_uri || match.uri;
+      if (s3Uri && s3Uri.startsWith('s3://')) {
+        const m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+        if (!m) {
+          await writeAuditRow(500, fileSize, runProjectId);
+          return res.status(500).json({ error: 'Malformed s3 uri' });
+        }
+        const [, bucket, key] = m;
+        const AWS = await import('@aws-sdk/client-s3');
+        const presigner = await import('@aws-sdk/s3-request-presigner');
+        const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+        const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+        const s3 = new AWS.S3Client({
+          region: 'us-east-1',
+          followRegionRedirects: true,
+          ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+        });
+        // 60-second TTL is intentional — short enough that a leaked URL is
+        // not useful; long enough for the browser to follow the redirect.
+        const PRESIGN_TTL = 60;
+        const url = await presigner.getSignedUrl(
+          s3,
+          new AWS.GetObjectCommand({ Bucket: bucket, Key: key }),
+          { expiresIn: PRESIGN_TTL }
+        );
+        await writeAuditRow(302, fileSize, runProjectId);
+        const elapsed = Date.now() - startedAt;
+        console.log(`[output_download] runId=${runId} file=${filename} user=${userId} → 302 (${elapsed}ms)`);
+        return res.redirect(302, url);
+      }
+
+      // Local file path fallback — small files only; stream-through
+      const fsLocal = await import('node:fs');
+      const path = await import('node:path');
+      const localPath: string = match.path || match.filepath;
+      if (!localPath || !fsLocal.existsSync(localPath)) {
+        await writeAuditRow(404, fileSize, runProjectId);
+        return res.status(404).json({ error: 'File path unavailable' });
+      }
+      await writeAuditRow(200, fileSize, runProjectId);
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(localPath)}"`);
+      return res.sendFile(path.resolve(localPath));
+    } catch (err: any) {
+      console.error(`[output_download] runId=${runId} file=${filename} 500: ${err?.message}`);
+      await writeAuditRow(500, null, null);
+      return res.status(500).json({ error: err?.message ?? 'Internal error' });
     }
   });
 
