@@ -230,11 +230,16 @@ def test_overall_level_fail_when_any_fails():
 # ─── Coverage ────────────────────────────────────────────────────────
 
 def test_supported_domains_count():
-    """Reader covers all 11 QC-but-no-autoloop domains (10 gate-only + structure_prediction)."""
+    """Reader covers all 11 QC-but-no-autoloop domains (10 gate-only + structure_prediction).
+
+    Note: `rare_disease` (chain id 1, Liu) has yaml citations + rationale
+    wired as of 2026-06-19 (commit efbeb5785) but no `_GATE_REGISTRY`
+    entry — gate evaluation is a separate follow-up. Don't include it here.
+    """
     domains = set(list_supported_domains())
     expected = {"hts", "ich_s5", "ich_s7", "clinical_trial", "allometric",
                 "ivive", "openfe", "p0_pkpd", "pocket_detection", "aizynthfinder",
-                "structure_prediction", "cancer_biology", "cryo_em", "cryo_et", "lnp_formulation", "nlmixr2_poppk", "antibody_developability", "sirna_offtarget", "polymorph_stability", "biomarker_enrichment"}
+                "structure_prediction", "cancer_biology", "cryo_em", "cryo_et", "lnp_formulation", "nlmixr2_poppk", "antibody_developability", "sirna_offtarget", "polymorph_stability", "biomarker_enrichment", "bioconductor_qc"}
     assert domains == expected, f"missing: {expected - domains}, extra: {domains - expected}"
 
 
