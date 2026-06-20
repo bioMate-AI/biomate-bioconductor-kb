@@ -4441,25 +4441,12 @@ def execute_nextflow(
     # Pair with the existing NXF_OPTS CRT cache + Xss2m mitigations.
     env["LD_BIND_NOW"] = "1"
 
-    # libmanagement.so SIGSEGV mitigation (distinct from the CRT crash above).
-    # The dev head JVM intermittently dies at ~24s in `System.loadLibrary("management")`
-    # (java.lang.management, pulled in when Nextflow logs system/runtime info during run
-    # init) — a crash in ld-linux's lazy resolution at the LATE dlopen of libmanagement.so.
-    # LD_BIND_NOW does not cover it: the lib is not mapped until that dlopen, so there is
-    # nothing to eager-bind at startup. Forcing libmanagement.so into the image up front
-    # via LD_PRELOAD maps it before the JVM reaches the crashing state. Belt: -XX:-UsePerfData
-    # also drops the hsperfdata init path that shares the same management instrumentation.
-    import glob as _glob
-    _java_home = env.get("JAVA_HOME") or os.environ.get("JAVA_HOME") or ""
-    _libmgmt = next(iter(
-        (_glob.glob(f"{_java_home}/lib/libmanagement.so") if _java_home else []) +
-        _glob.glob("/usr/lib/jvm/*/lib/libmanagement.so") +
-        _glob.glob("/opt/java/*/lib/libmanagement.so")), None)
-    if _libmgmt:
-        _existing_preload = env.get("LD_PRELOAD", "") or os.environ.get("LD_PRELOAD", "")
-        env["LD_PRELOAD"] = (f"{_libmgmt}:{_existing_preload}".strip(":")) if _existing_preload else _libmgmt
-        log.info("[Nextflow run %s] LD_PRELOAD libmanagement.so mitigation: %s", run_id, _libmgmt)
-    env["NXF_OPTS"] = f'{env["NXF_OPTS"]} -XX:-UsePerfData'.strip()
+    # NOTE: an earlier LD_PRELOAD of libmanagement.so was REVERTED here. It was based on a
+    # misdiagnosis (there was never an hs_err — the JVM did not crash), and worse, preloading
+    # libmanagement.so into EVERY process broke `/usr/bin/env` (which launches the nextflow
+    # wrapper): libmanagement.so depends on libjvm.so, unavailable to non-JVM processes, so
+    # env aborted with "error while loading shared libraries: libjvm.so" and the head never
+    # started. The real dispatch failure was the aws-CLI input-staging bug, fixed via boto3.
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
