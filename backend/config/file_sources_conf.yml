@@ -1,0 +1,60 @@
+# BioMate data source plugins
+# Enables public scientific databases for the browse_data MCP tool and the
+# /api/data/sources + /api/data/browse endpoints.
+#
+# Format: Galaxy file sources plugin config (galaxy/files/sources/).
+# Each entry corresponds to a backend plugin; `type` must match a plugin class.
+# Wire this into galaxy.yml by setting:
+#   file_sources_config_file: config/file_sources_conf.yml
+
+- type: ftp
+  id: ebi_ftp
+  label: "EBI — European Bioinformatics Institute"
+  doc: >
+    European Nucleotide Archive (ENA), UniProt sequences, PDB structures,
+    ChEMBL compounds, GWAS Catalog, EVA variant archive, PRIDE proteomics.
+  host: ftp.ebi.ac.uk
+  user: anonymous
+  passwd: ""
+  writable: false
+
+- type: ftp
+  id: ncbi_ftp
+  label: "NCBI — National Center for Biotechnology Information"
+  doc: >
+    GenBank sequences, RefSeq reference genomes, dbSNP variants, ClinVar
+    clinical variants, GEO gene expression datasets, SRA metadata.
+  host: ftp.ncbi.nlm.nih.gov
+  user: anonymous
+  passwd: ""
+  writable: false
+
+- type: ftp
+  id: ensembl_ftp
+  label: "Ensembl — Genome Browser"
+  doc: >
+    Reference genome sequences (GRCh38, GRCm39, etc.), gene annotation GTFs,
+    variation VCFs, regulatory features, comparative genomics alignments.
+  host: ftp.ensembl.org
+  user: anonymous
+  passwd: ""
+  writable: false
+
+- type: ftp
+  id: ucsc_downloads
+  label: "UCSC Genome Downloads"
+  doc: >
+    UCSC genome browser reference sequences, annotation tables, liftOver
+    chain files, phastCons/phyloP conservation tracks.
+  host: hgdownload.soe.ucsc.edu
+  user: anonymous
+  passwd: ""
+  writable: false
+
+- type: http
+  id: http_public
+  label: "HTTP/HTTPS — Public URLs"
+  doc: >
+    Fetch any public file by URL. Covers Zenodo DOIs, Figshare datasets,
+    GitHub release assets, direct download links from any public server.
+  writable: false

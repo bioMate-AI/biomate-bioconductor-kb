@@ -8550,3 +8550,101 @@ def _scrape_batch_job_ids(run_id: str) -> None:
                     )
     except Exception as _e:
         log.debug("[Nextflow run %s] Could not scrape Batch job IDs: %s", run_id, _e)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Data connector: fetch_public_data
+# ──────────────────────────────────────────────────────────────────────────────
+
+class FetchPublicDataRequest(BaseModel):
+    """Stage a publicly accessible file into BioMate S3 for workflow consumption."""
+    source_id: Optional[str] = None     # file source id from file_sources_conf.yml, e.g. "ebi_ftp"
+    remote_path: Optional[str] = None   # path within the source, e.g. "/pub/databases/uniprot/..."
+    url: Optional[str] = None           # direct HTTP/HTTPS/FTP URL (alternative to source_id+remote_path)
+    destination_key: Optional[str] = None  # S3 key prefix; defaults to "public-data/<filename>"
+
+
+@router.post("/api/nextflow/fetch_public_data", summary="Stage a public file into BioMate S3")
+async def fetch_public_data(body: FetchPublicDataRequest):
+    """
+    Download a file from a public biological data source and stage it into
+    BioMate's S3 bucket so downstream workflows can reference it via s3://.
+
+    Accepts either:
+    - `source_id` + `remote_path` (file source plugin + relative path)
+    - `url` (any HTTP/HTTPS/FTP URL)
+
+    Returns the S3 URI and presigned download URL of the staged file.
+    """
+    import urllib.request
+    import urllib.parse
+    import tempfile
+
+    if not body.url and not (body.source_id and body.remote_path):
+        raise HTTPException(status_code=400, detail="Provide 'url' or both 'source_id' and 'remote_path'")
+
+    # Resolve URL from source_id + remote_path if needed
+    download_url = body.url
+    if not download_url and body.source_id and body.remote_path:
+        SOURCE_HOSTS = {
+            "ebi_ftp":        "ftp://ftp.ebi.ac.uk",
+            "ncbi_ftp":       "ftp://ftp.ncbi.nlm.nih.gov",
+            "ensembl_ftp":    "ftp://ftp.ensembl.org",
+            "ucsc_downloads": "ftp://hgdownload.soe.ucsc.edu",
+            "http_public":    None,  # remote_path must be a full URL for http source
+        }
+        host = SOURCE_HOSTS.get(body.source_id)
+        if host is None:
+            if body.remote_path.startswith(("http://", "https://", "ftp://")):
+                download_url = body.remote_path
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown source_id '{body.source_id}'")
+        else:
+            path = body.remote_path.lstrip("/")
+            download_url = f"{host}/{path}"
+
+    # Derive destination S3 key
+    parsed = urllib.parse.urlparse(download_url)
+    filename = Path(parsed.path).name or "data.bin"
+    dest_key = body.destination_key or f"public-data/{filename}"
+
+    s3_bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+    if not s3_bucket:
+        raise HTTPException(status_code=503, detail="S3 not configured (NEXTFLOW_S3_BUCKET not set)")
+
+    log.info("[fetch_public_data] Downloading %s → s3://%s/%s", download_url, s3_bucket, dest_key)
+
+    try:
+        import boto3
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # Download to temp file then upload to S3 to avoid memory pressure
+            urllib.request.urlretrieve(download_url, tmp_path)  # noqa: S310  (internal validated URLs)
+            file_size = Path(tmp_path).stat().st_size
+            s3.upload_file(tmp_path, s3_bucket, dest_key)
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+        # Generate presigned URL (valid 24h)
+        presigned = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": s3_bucket, "Key": dest_key},
+            ExpiresIn=86400,
+        )
+
+        return {
+            "s3_uri": f"s3://{s3_bucket}/{dest_key}",
+            "s3_key": dest_key,
+            "presigned_url": presigned,
+            "filename": filename,
+            "size_bytes": file_size,
+            "source_url": download_url,
+        }
+
+    except Exception as exc:
+        log.exception("[fetch_public_data] Failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
