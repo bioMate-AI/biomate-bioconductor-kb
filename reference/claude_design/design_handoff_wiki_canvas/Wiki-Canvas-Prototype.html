@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate — Notes (Wiki) + Workbench (Canvas) prototypes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    /* Palette anchored to biomate-logo.png */
+    --bg: #f5efe2;            /* cream — logo background */
+    --surface: #fffdf7;
+    --surface-2: #efe7d3;
+    --ink: #1e3a5f;            /* navy — "BioMate" wordmark */
+    --ink-soft: #4a5e7a;
+    --ink-mute: #8a93a1;
+    --rule: #d5cdb8;
+    --rule-soft: #e5dec8;
+    --green: #7fb24a;           /* leaf */
+    --green-soft: #e3efd2;
+    --gold: #e8b842;            /* DNA helix */
+    --gold-soft: #f7ecc8;
+    --danger: #b85a4a;
+    --shadow: 0 1px 2px rgba(30,58,95,.04), 0 4px 16px rgba(30,58,95,.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1200px; margin: 0 auto; padding: 40px 28px 80px; }
+  header.hero { margin-bottom: 36px; padding-bottom: 24px; border-bottom: 1px solid var(--rule); }
+  header.hero .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-mute); margin-bottom: 10px; }
+  header.hero h1 { font-size: 26px; line-height: 1.2; margin: 0 0 10px; font-weight: 600; color: var(--ink); }
+  header.hero p { color: var(--ink-soft); margin: 0; max-width: 720px; }
+  nav.anchors { display: flex; gap: 8px; margin-top: 18px; }
+  nav.anchors a { text-decoration: none; color: var(--ink-soft); font-size: 13px; border: 1px solid var(--rule); padding: 6px 12px; border-radius: 999px; background: var(--surface); }
+  nav.anchors a:hover { border-color: var(--green); color: var(--green); }
+
+  section.screen { margin-bottom: 64px; scroll-margin-top: 20px; }
+  section.screen > .label { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  section.screen > .label .num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute); }
+  section.screen > .label h2 { font-size: 20px; font-weight: 600; margin: 0; color: var(--ink); }
+  section.screen > .label .why { color: var(--ink-mute); font-size: 13px; }
+  .frame { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 24px; box-shadow: var(--shadow); margin-top: 14px; }
+  .frame .frame-cap { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+
+  /* ===== Wiki ===== */
+  .wiki-head { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 14px; border-bottom: 1px solid var(--rule-soft); margin-bottom: 18px; }
+  .wiki-head .title { font-size: 20px; font-weight: 600; color: var(--ink); }
+  .wiki-head .sub { color: var(--ink-mute); font-size: 13px; margin-top: 4px; }
+  .wiki-head .actions { display: flex; gap: 8px; }
+  button.primary { background: var(--green); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  button.primary:hover { filter: brightness(0.95); }
+  button.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--rule); padding: 8px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; font-family: inherit; }
+  button.ghost:hover { border-color: var(--ink-soft); color: var(--ink); }
+  .meta-strip { display: flex; gap: 18px; font-size: 12px; color: var(--ink-mute); margin-bottom: 22px; padding: 10px 14px; background: var(--surface-2); border-radius: 6px; }
+  .meta-strip .meta-item .lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .meta-strip .meta-item .val { color: var(--ink); font-weight: 500; font-size: 13px; margin-top: 2px; }
+  .wiki-section { margin-bottom: 28px; }
+  .wiki-section h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 0 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--green); display: inline-block; padding-right: 24px; }
+  .wiki-section p, .wiki-section ul { color: var(--ink-soft); margin: 0 0 10px; font-size: 14px; line-height: 1.65; }
+  .wiki-section ul { padding-left: 22px; }
+  .wiki-section li { margin-bottom: 4px; }
+  .ref { background: var(--gold-soft); padding: 1px 6px; border-radius: 3px; font-size: 12px; color: var(--ink); border-bottom: 1px dotted var(--gold); cursor: pointer; font-family: 'JetBrains Mono', monospace; }
+  .ref:hover { background: var(--gold); }
+  .xref { color: var(--green); border-bottom: 1px dotted var(--green); cursor: pointer; }
+  .xref:hover { background: var(--green-soft); }
+  .open-q { background: var(--surface-2); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 4px; font-size: 13px; color: var(--ink-soft); margin-bottom: 6px; }
+  .open-q .lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 8px; font-weight: 600; }
+  .footer-note { font-size: 12px; color: var(--ink-mute); margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--rule-soft); }
+
+  /* ===== Canvas / Workbench ===== */
+  .canvas-mock { display: grid; grid-template-columns: 200px 1fr; gap: 0; min-height: 540px; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+  .canvas-sb { background: var(--surface-2); border-right: 1px solid var(--rule); padding: 14px 10px; }
+  .canvas-sb .sb-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); padding: 4px 8px; margin-bottom: 4px; }
+  .pin-item { padding: 7px 8px; border-radius: 5px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 1px; }
+  .pin-item:hover { background: var(--surface); }
+  .pin-item.active { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .pin-item .ext { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 1px 4px; background: var(--green-soft); color: var(--green); border-radius: 3px; flex-shrink: 0; }
+  .pin-item .ext.csv { background: var(--gold-soft); color: #a47a1a; }
+  .pin-item .ext.pdb { background: #e7e1f7; color: #6b4ba8; }
+  .pin-item .ext.png { background: #fce4dc; color: #a85a44; }
+  .pin-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pin-item .unpin { opacity: 0; font-size: 11px; color: var(--ink-mute); padding: 0 2px; }
+  .pin-item:hover .unpin { opacity: 0.7; }
+
+  .canvas-main { background: var(--surface); display: flex; flex-direction: column; }
+  .canvas-tabs { display: flex; border-bottom: 1px solid var(--rule); padding: 0 4px; background: var(--surface-2); flex-shrink: 0; }
+  .ctab { padding: 8px 14px; font-size: 12.5px; color: var(--ink-mute); cursor: pointer; border-bottom: 2px solid transparent; display: inline-flex; align-items: center; gap: 6px; }
+  .ctab:hover { color: var(--ink-soft); }
+  .ctab.active { color: var(--ink); border-bottom-color: var(--green); font-weight: 500; background: var(--surface); }
+  .ctab .x { font-size: 13px; color: var(--ink-mute); padding: 0 2px; }
+  .ctab .x:hover { color: var(--danger); }
+
+  .canvas-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: 0; }
+  .canvas-pane { padding: 16px; border-right: 1px solid var(--rule-soft); overflow: auto; min-height: 0; }
+  .canvas-pane:last-child { border-right: none; }
+  .pane-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--rule-soft); margin-bottom: 12px; }
+  .pane-head .fname { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); font-weight: 500; }
+  .pane-head .fmeta { font-size: 11px; color: var(--ink-mute); }
+  .pane-head .iconbtn { background: transparent; border: 1px solid var(--rule); border-radius: 4px; padding: 3px 7px; font-size: 11px; cursor: pointer; color: var(--ink-soft); }
+
+  /* mock CSV table */
+  .mock-csv { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .mock-csv th, .mock-csv td { padding: 5px 8px; border-bottom: 1px solid var(--rule-soft); text-align: left; }
+  .mock-csv th { background: var(--surface-2); color: var(--ink-soft); font-weight: 500; }
+  .mock-csv td.num { text-align: right; color: var(--ink); }
+  .mock-csv tr.fail td { background: #fce4dc60; }
+
+  /* mock plot */
+  .mock-plot { width: 100%; height: 240px; }
+
+  .pane-pin-action { margin-top: 16px; padding: 10px; background: var(--green-soft); border-radius: 5px; font-size: 12px; color: var(--ink-soft); }
+  .pane-pin-action .lbl { font-weight: 500; color: var(--ink); }
+
+  /* designer notes */
+  footer.notes { margin-top: 60px; padding-top: 26px; border-top: 1px solid var(--rule); color: var(--ink-soft); font-size: 13px; }
+  footer.notes h3 { font-size: 16px; font-weight: 600; margin: 0 0 10px; color: var(--ink); }
+  footer.notes ul { margin: 0; padding-left: 20px; }
+  footer.notes li { margin-bottom: 5px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">BioMate · Design Exploration · 2026-06-19</div>
+    <h1>Notes + Workbench — light prototypes</h1>
+    <p>Two new project surfaces, built to reuse what we already have. <strong>Notes</strong> synthesises across all runs in a project (one LLM call, on-demand, one click to refresh). <strong>Workbench</strong> lets the user open multiple output files side-by-side as tabs with optional split-view. No new infrastructure, no new viewers — both rely on existing components. Real BioMate palette (cream / navy / leaf / gold). Build sequence: both in parallel.</p>
+    <nav class="anchors">
+      <a href="#wiki">Notes</a>
+      <a href="#canvas">Workbench</a>
+      <a href="#notes">Designer notes</a>
+    </nav>
+  </header>
+
+  <!-- ============== WIKI / Notes ============== -->
+  <section class="screen" id="wiki">
+    <div class="label">
+      <span class="num">01</span>
+      <h2>Notes</h2>
+      <span class="why">— on-demand synthesis across all runs and chats in this project</span>
+    </div>
+    <div class="frame">
+      <div class="frame-cap">Route: /projects/:id/notebook · Trigger: "Refresh synthesis" button · Backend: 1 LLM call over project's after-run reports + chat history</div>
+
+      <div class="wiki-head">
+        <div>
+          <div class="title">ADMET Screening — Notebook</div>
+          <div class="sub">Synthesis last refreshed 4 hours ago · 12 runs · 3 datasets · 47 chat exchanges</div>
+        </div>
+        <div class="actions">
+          <button class="ghost">Download as Markdown</button>
+          <button class="primary">↻ Refresh synthesis</button>
+        </div>
+      </div>
+
+      <div class="meta-strip">
+        <div class="meta-item"><div class="lbl">Project started</div><div class="val">2026-05-04</div></div>
+        <div class="meta-item"><div class="lbl">Total runs</div><div class="val">12</div></div>
+        <div class="meta-item"><div class="lbl">Compounds screened</div><div class="val">340</div></div>
+        <div class="meta-item"><div class="lbl">Workflows used</div><div class="val">ADMET, PBPK, CYP-DDI</div></div>
+        <div class="meta-item"><div class="lbl">QC pass rate</div><div class="val" style="color: var(--green)">81%</div></div>
+      </div>
+
+      <div class="wiki-section">
+        <h3>What this project has learned</h3>
+        <p>Across <span class="ref">12 runs</span>, the project screened 340 compounds against ADMET endpoints with the hERG cardiac-safety gate set at IC<sub>50</sub> ≥ 10 µM (<span class="ref">Aronov 2008</span>). The pass rate stabilised at <strong>81%</strong> after the parameter adjustment in <span class="ref">run #1284</span> tightened the logP filter to ≤ 5.</p>
+        <p>Two structural classes drove most of the cardiac-risk flags: Class B sulfonamides (12/40 failures) and a small subgroup of Class C with extended aryl tails. The compounds <span class="xref">BMT-44</span> and <span class="xref">BMT-71</span> have appeared in three separate runs as outliers and are now pinned to the project for ongoing review.</p>
+      </div>
+
+      <div class="wiki-section">
+        <h3>Recurring concepts</h3>
+        <ul>
+          <li><strong>logP threshold:</strong> the project's empirical sweet spot is 3.5–5.0. Below 3.5 the compounds underperform on absorption; above 5.0 the cardiac-risk rate climbs sharply (see <span class="ref">runs #1241, #1284, #1297</span>).</li>
+          <li><strong>Aronov hERG line (10 µM):</strong> referenced as the gate threshold in every run and discussed in chat 8 times.</li>
+          <li><strong>Class B sulfonamides:</strong> repeat offenders for cardiac flags; worth investigating structural alerts before next round.</li>
+        </ul>
+      </div>
+
+      <div class="wiki-section">
+        <h3>Open questions</h3>
+        <div class="open-q"><span class="lbl">Open</span>Are the Class B sulfonamide failures driven by the sulfonamide group itself or a co-occurring substructure? Raised in chat on 2026-06-12, not yet resolved.</div>
+        <div class="open-q"><span class="lbl">Open</span>Should the project re-run the early batches (<span class="ref">runs #1241, #1245</span>) under the tightened logP filter for consistency? Discussed but deferred.</div>
+        <div class="open-q"><span class="lbl">Open</span>Whether to extend the screen to PBPK qualification for the top 12 passing compounds. <span class="xref">BMT-44</span> already failed PBPK in <span class="ref">run #1290</span>.</div>
+      </div>
+
+      <div class="wiki-section">
+        <h3>Methods consolidation</h3>
+        <p>The project standardised on the ADMET screening protocol from <span class="ref">run #1284</span> onwards (logP ≤ 5, hERG IC<sub>50</sub> ≥ 10 µM, Lipinski filter on). Earlier runs (<span class="ref">#1241–#1280</span>) used an unconstrained logP and are not directly comparable. Compound provenance traces to the Tuesday-batch dataset and its two follow-up extensions.</p>
+      </div>
+
+      <div class="footer-note">
+        Synthesis grounded in this project's after-run reports and chat exchanges. Refresh to incorporate runs since 14:32 today. Click any <span class="ref">[ref]</span> to open the source. Compound and project cross-references in <span class="xref">green</span>.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== CANVAS / Workbench ============== -->
+  <section class="screen" id="canvas">
+    <div class="label">
+      <span class="num">02</span>
+      <h2>Workbench</h2>
+      <span class="why">— multi-file side-by-side analysis via tabs + 2-pane split. Reuses step-output-preview's existing renderers.</span>
+    </div>
+    <div class="frame">
+      <div class="frame-cap">Surface: right-panel mode · Trigger: "Open pinboard" button in project sidebar · Pin button on existing file previews</div>
+
+      <div class="canvas-mock">
+
+        <aside class="canvas-sb">
+          <div class="sb-label">Pinned in this project</div>
+          <div class="pin-item active"><span class="ext csv">csv</span><span class="name">failed_compounds.csv</span><span class="unpin">×</span></div>
+          <div class="pin-item active"><span class="ext png">png</span><span class="name">herg_distribution.png</span><span class="unpin">×</span></div>
+          <div class="pin-item"><span class="ext csv">csv</span><span class="name">pass_compounds.csv</span><span class="unpin">×</span></div>
+          <div class="pin-item"><span class="ext pdb">pdb</span><span class="name">BMT-44_pose.pdb</span><span class="unpin">×</span></div>
+          <div class="pin-item"><span class="ext">md</span><span class="name">run_methods_1284.md</span><span class="unpin">×</span></div>
+          <div class="pin-item"><span class="ext">md</span><span class="name">aronov_2008_notes.md</span><span class="unpin">×</span></div>
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--rule-soft); font-size: 11px; color: var(--ink-mute); padding-left: 8px;">
+            Add to pinboard via the <strong>Pin</strong> button on any output file preview.
+          </div>
+        </aside>
+
+        <div class="canvas-main">
+
+          <div class="canvas-tabs">
+            <div class="ctab active">failed_compounds.csv <span class="x">×</span></div>
+            <div class="ctab active">herg_distribution.png <span class="x">×</span></div>
+            <div style="flex: 1;"></div>
+            <div style="padding: 8px 12px; font-size: 11px; color: var(--ink-mute);">Double-click a pinned file to split right →</div>
+          </div>
+
+          <div class="canvas-body">
+
+            <!-- left pane: CSV -->
+            <div class="canvas-pane">
+              <div class="pane-head">
+                <div>
+                  <div class="fname">failed_compounds.csv</div>
+                  <div class="fmeta">2 KB · 20 rows · from run #1284</div>
+                </div>
+                <button class="iconbtn" title="Open the source run">↗ run</button>
+              </div>
+              <table class="mock-csv">
+                <thead><tr><th>id</th><th>SMILES</th><th>logP</th><th>hERG IC₅₀</th><th>class</th></tr></thead>
+                <tbody>
+                  <tr class="fail"><td>BMT-44</td><td>Cc1ccc(S(=O)…</td><td class="num">5.8</td><td class="num">3.2</td><td>B</td></tr>
+                  <tr class="fail"><td>BMT-71</td><td>O=C(Nc1ccc…</td><td class="num">6.1</td><td class="num">2.8</td><td>B</td></tr>
+                  <tr class="fail"><td>BMT-83</td><td>Clc1ccc(C(=…</td><td class="num">5.3</td><td class="num">4.1</td><td>C</td></tr>
+                  <tr class="fail"><td>BMT-90</td><td>NC(=O)c1ccc…</td><td class="num">5.9</td><td class="num">5.5</td><td>B</td></tr>
+                  <tr class="fail"><td>BMT-101</td><td>CCOC(=O)c1c…</td><td class="num">6.4</td><td class="num">1.9</td><td>B</td></tr>
+                  <tr class="fail"><td>BMT-117</td><td>NS(=O)(=O)c…</td><td class="num">5.7</td><td class="num">7.2</td><td>B</td></tr>
+                  <tr><td colspan="5" style="text-align:center; color: var(--ink-mute); padding: 8px;">+ 14 more rows</td></tr>
+                </tbody>
+              </table>
+              <div class="pane-pin-action">
+                <span class="lbl">Tip:</span> drag a tab here or double-click a pinned file to swap this pane.
+              </div>
+            </div>
+
+            <!-- right pane: plot -->
+            <div class="canvas-pane">
+              <div class="pane-head">
+                <div>
+                  <div class="fname">herg_distribution.png</div>
+                  <div class="fmeta">84 KB · scatter · from run #1284</div>
+                </div>
+                <button class="iconbtn" title="Open the source run">↗ run</button>
+              </div>
+              <svg class="mock-plot" viewBox="0 0 320 240">
+                <text x="160" y="14" font-size="11" fill="#1e3a5f" text-anchor="middle" font-weight="600">hERG IC₅₀ vs logP (120 compounds)</text>
+                <line x1="40" y1="200" x2="300" y2="200" stroke="#d5cdb8" stroke-width="1"/>
+                <line x1="40" y1="30" x2="40" y2="200" stroke="#d5cdb8" stroke-width="1"/>
+                <text x="170" y="222" font-size="10" fill="#8a93a1" text-anchor="middle" font-family="JetBrains Mono">logP</text>
+                <text x="20" y="115" font-size="10" fill="#8a93a1" text-anchor="middle" font-family="JetBrains Mono" transform="rotate(-90, 20, 115)">hERG IC₅₀ (µM)</text>
+                <line x1="40" y1="120" x2="300" y2="120" stroke="#b85a4a" stroke-width="0.8" stroke-dasharray="3,2"/>
+                <text x="306" y="118" font-size="9" fill="#b85a4a" font-family="JetBrains Mono">10 µM gate</text>
+                <line x1="200" y1="30" x2="200" y2="200" stroke="#e8b842" stroke-width="0.8" stroke-dasharray="3,2"/>
+                <text x="200" y="40" font-size="9" fill="#a47a1a" font-family="JetBrains Mono" text-anchor="middle">logP 5</text>
+                <!-- pass (green) -->
+                <g fill="#7fb24a" opacity="0.75">
+                  <circle cx="65" cy="160" r="3"/><circle cx="80" cy="155" r="3"/><circle cx="72" cy="175" r="3"/>
+                  <circle cx="95" cy="162" r="3"/><circle cx="105" cy="158" r="3"/><circle cx="115" cy="168" r="3"/>
+                  <circle cx="125" cy="148" r="3"/><circle cx="138" cy="160" r="3"/><circle cx="150" cy="165" r="3"/>
+                  <circle cx="160" cy="155" r="3"/><circle cx="170" cy="160" r="3"/><circle cx="180" cy="148" r="3"/>
+                  <circle cx="190" cy="162" r="3"/>
+                </g>
+                <!-- fail (red) -->
+                <g fill="#b85a4a" opacity="0.85">
+                  <circle cx="220" cy="80" r="3.5"/><circle cx="235" cy="65" r="3.5"/><circle cx="248" cy="90" r="3.5"/>
+                  <circle cx="260" cy="75" r="3.5"/><circle cx="272" cy="95" r="3.5"/><circle cx="285" cy="70" r="3.5"/>
+                </g>
+              </svg>
+              <div class="pane-pin-action">
+                <span class="lbl">Comparison:</span> failures cluster above logP 5 AND above the 10 µM gate. Confirms the rule learned in run #1284.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 12px; color: var(--ink-mute);">
+        <strong>What's reused:</strong> the existing <code>step-output-preview.tsx</code> renderers (CSV table, image, PDB structure, markdown, FASTA, VCF) become the tile content; we add only a tab-bar wrapper and the pin/unpin button. No drag-drop physics, no infinite canvas, no Y.js — just tabs + an optional 2-pane split when the user double-clicks a tab.
+      </div>
+    </div>
+  </section>
+
+  <footer class="notes" id="notes">
+    <h3>Designer notes — why both versions are this light</h3>
+    <ul>
+      <li><strong>Wiki is on-demand, not nightly.</strong> One LLM synthesis call when the user clicks "Refresh synthesis." No cron, no scheduler, no new tables — just <code>project_documents</code>. ~2-3 days build. Upgrade path: add a nightly trigger later if validation says it's worth it.</li>
+      <li><strong>Wiki grounds every claim.</strong> Numbered refs (<span class="ref">run #1284</span>) and cross-refs (<span class="xref">BMT-44</span>) are clickable into the source. Same hallucination-contract logic we discussed for the audio prototype: nothing is asserted that isn't backed by a real record.</li>
+      <li><strong>Workbench is tabs + split, not canvas.</strong> Tabs catch ~80% of the "side-by-side" need (compare CSV to plot, structure to paper) at maybe 10% of the effort of a free-layout canvas. Pin button is a single state change on the existing previewer; no new viewers needed.</li>
+      <li><strong>Palette is the actual BioMate logo</strong> — cream surface, navy text, leaf-green for primary actions / positive QC, gold for highlights and refs. No invented brown, no metaphor renames. Real product terminology throughout (Notebook / Workbench / pin / refresh).</li>
+      <li><strong>Both prototypes degrade gracefully.</strong> Empty project = Wiki shows "Run something first to build your project's notebook." Empty pinboard = "Pin a file from any run's outputs to start." No "coming soon" stubs.</li>
+    </ul>
+
+    <h3 style="margin-top: 24px;">Decisions locked (2026-06-19)</h3>
+    <ul>
+      <li><strong>Names:</strong> "Notes" and "Workbench" — short, plain, no jargon.</li>
+      <li><strong>Refresh:</strong> one click, no confirmation dialog. (~$0.05 per refresh — acceptable.)</li>
+      <li><strong>Build order:</strong> Notes and Workbench in parallel.</li>
+      <li><strong>Deferred:</strong> max pinned files per project + max simultaneously-open Workbench tabs. Working assumption: no hard cap on pins, soft cap of 4 open tabs. Revisit after real usage.</li>
+    </ul>
+  </footer>
+
+</div>
+</body>
+</html>
