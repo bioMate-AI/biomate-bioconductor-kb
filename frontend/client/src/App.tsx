@@ -46,7 +46,6 @@ import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
-import TutorialsPage from "@/pages/tutorials";
 import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
 import CapabilitiesPage from "@/pages/capabilities";

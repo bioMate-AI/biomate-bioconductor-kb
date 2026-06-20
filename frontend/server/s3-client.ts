@@ -30,7 +30,7 @@ interface MultipartUploadData {
 }
 
 export class S3Service {
-  private s3Client: S3Client;
+  private s3Client!: S3Client;
   private bucket: string;
 
   constructor(config?: S3Config) {
