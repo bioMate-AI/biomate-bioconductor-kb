@@ -7897,6 +7897,57 @@
         "FT",
         "SQ"
       ]
+    },
+    "pathwaycommons_v12_all_hgnc_NCBI37": {
+      "name": "PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv",
+      "display_name": "PathwayCommons v12 - All HGNC, exPCDHA, MHC, NCBI37",
+      "access_method": "container_baked",
+      "source": "pathwaycommons.org",
+      "source_url": "https://www.pathwaycommons.org/archives/PC2/v12/",
+      "path": "/opt/scgwas/data/PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv",
+      "staged_s3_path": "s3://biomate-public-datasets/reference/pathwaycommons/v12/PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv",
+      "staged_s3_status": "planned",
+      "exists": true,
+      "size": "88MB",
+      "format": "sif",
+      "license": "CC-BY 4.0",
+      "version": "v12",
+      "genome_build": "NCBI37 / GRCh37",
+      "description": "PathwayCommons v12 integrated human pathway network (HGNC symbols, exPCDHA / MHC included). SIF (Simple Interaction Format) edges aggregated from Reactome, NCI-PID, PANTHER, HumanCyc, PhosphoSitePlus, BIND, IntAct, BioGRID and others. Network reference data for gene-set / pathway / network-based GWAS.",
+      "category": "pathway_network",
+      "data_type": "biological_network",
+      "use_cases": [
+        "scGWAS network reference",
+        "MAGMA gene-set tests",
+        "network-based GWAS enrichment",
+        "pathway analysis",
+        "gene-gene interaction lookup"
+      ],
+      "search_text": "PathwayCommons v12 pathway network SIF HGNC NCBI37 GRCh37 scGWAS MAGMA gene set network GWAS Reactome NCI-PID PANTHER HumanCyc BioGRID IntAct",
+      "index_columns": [
+        "source_gene",
+        "interaction_type",
+        "target_gene"
+      ],
+      "schema": {
+        "format": "sif",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": false,
+        "columns": [
+          "gene_a",
+          "interaction",
+          "gene_b"
+        ]
+      },
+      "consumed_by_workflows": [
+        "biomni_workflows/scgwas_immune_cell",
+        "magma_gene_set (when wired)"
+      ],
+      "query_examples": [
+        "grep -w TP53 PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv  # all edges touching TP53",
+        "awk '$2==\"controls-state-change-of\"' PathwayCommons12.All.hgnc.exPCDHA.MHC.NCBI37.tsv"
+      ]
     }
   },
   "metaboanalyst_databases": {
