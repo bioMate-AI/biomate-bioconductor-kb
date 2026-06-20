@@ -402,26 +402,43 @@ export function ChatMessage({
 
           {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel */}
           {isWorkflowMessage && isInPanel && message.metadata?.workflow && (
-            <div className="wf-chip" data-tour="chat-handoff">
-              <div className="wf-chip-ic">
-                <FlaskConical size={16} />
-              </div>
-              <div className="wf-chip-body">
-                <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
-                <div className="wf-chip-sub">
-                  {[
-                    message.metadata.workflow.domain,
-                    message.metadata.workflow.subtitle ||
-                      (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps)
-                        ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
-                  ].filter(Boolean).join(' · ')}
+            <>
+              <div className="wf-chip" data-tour="chat-handoff">
+                <div className="wf-chip-ic">
+                  <FlaskConical size={16} />
                 </div>
+                <div className="wf-chip-body">
+                  <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
+                  <div className="wf-chip-sub">
+                    {[
+                      message.metadata.workflow.domain,
+                      message.metadata.workflow.subtitle ||
+                        (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps)
+                          ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
+                    ].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                <span className="chip-ok">
+                  <span className="dot" />
+                  In panel
+                </span>
               </div>
-              <span className="chip-ok">
-                <span className="dot" />
-                In panel
-              </span>
-            </div>
+              {/* Background-work hint — tells the user they don't have to wait for
+                  the workflow to finish. Stays in chat regardless of run state. */}
+              <div
+                className="wf-chip-hint"
+                data-testid="wf-chip-background-hint"
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text-muted)',
+                  marginTop: 6,
+                  lineHeight: 1.45,
+                }}
+              >
+                You can keep chatting and start more work — this run continues in the background.
+                All active and past runs are visible in the <strong>Run Manager</strong> at the top of the chat.
+              </div>
+            </>
           )}
 
           {/* IntentClarificationCard — surfaces cross-intent ambiguity
@@ -753,7 +770,10 @@ export function ChatMessage({
             <WorkflowRationale rationale={message.metadata.rationale} />
           )}
 
-          {/* Output Attachments - Show when workflow execution completes */}
+          {/* Output Attachments in chat — commented out per UX review 2026-06-19.
+              Output files already surface in the workflow panel; rendering them
+              again in the chat message was duplicative. Users open the panel to
+              see/download outputs.
           {!isUser && effectiveInvocationId && (isWorkflowMessage || isRunAnchorFocused) && (
             <ChatOutputAttachments
               invocationId={effectiveInvocationId}
@@ -763,6 +783,7 @@ export function ChatMessage({
               errorMessage={currentExecutionRun?.execution?.errorMessage}
             />
           )}
+          */}
 
           {/* IND Report handoff chip — shown after ADMET or PBPK workflows complete */}
           {!isUser && (() => {

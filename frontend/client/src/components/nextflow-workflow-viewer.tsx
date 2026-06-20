@@ -786,8 +786,8 @@ function PhaseGroupSection({
                   data-testid={`autoloop-toggle-${group.key}`}
                 />
                 <span
-                  title="When ON: if a QC gate fails, BioMate automatically adjusts parameters and resumes the pipeline (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
-                >Auto-loop this phase on fail <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
+                  title="When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
+                >Self-correct on QC failure <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
               </div>
             </div>
           )}
@@ -826,6 +826,9 @@ function PhaseGroupSection({
               </button>
             )} */}
             <span style={{flex:1}}/>
+            {/* "View phase outputs" link — commented out per UX review 2026-06-19.
+                Outputs already render inline under each step row when the phase is open,
+                so this scroll-to-outputs link was redundant.
             {allDone && (
               <button
                 className="linkish"
@@ -839,6 +842,7 @@ function PhaseGroupSection({
                 }}
               >View phase outputs</button>
             )}
+            */}
           </div>
         </div>
       )}
@@ -2311,6 +2315,10 @@ export function NextflowWorkflowViewer({
                 )}
               </div>
             </div>
+            {/* Progress bar — commented out per UX review 2026-06-19.
+                Status is already conveyed by the header badge + per-phase chip;
+                a separate bar duplicated the signal. Re-enable if a user-test
+                shows the absence is missed.
             {(status === 'running' || status === 'completed') && effectiveProgress > 0 && (
               <div className="run-bar">
                 <div className="progress">
@@ -2322,6 +2330,7 @@ export function NextflowWorkflowViewer({
                 )}
               </div>
             )}
+            */}
           </div>
         );
       })()}
@@ -2332,6 +2341,16 @@ export function NextflowWorkflowViewer({
         const phaseCount = hasRealPhases ? groupedPhases.length : updatedPhases.length;
         const paramCount = renderedParameters.length;
         const showAfterRunDot = status === 'completed' || status === 'failed';
+        // Per-tab hover tips so the user can see what each tab contains
+        // without clicking. Native `title` keeps this dependency-free.
+        const tabTips: Record<'settings' | 'phases' | 'after-run', string> = {
+          settings:
+            'Workflow-wide datasets and configuration that apply to every phase. Required ones must be set before you run.',
+          phases:
+            'Phases and steps of the workflow — live progress while running, per-step parameters that only affect a single step, QC thresholds with self-correct toggle, and the output files each step produces.',
+          'after-run':
+            'Available after the run completes — outputs, findings, QC report, methods write-up, and citations.',
+        };
         const tabBtn = (key: 'settings' | 'phases' | 'after-run', label: string, badge?: React.ReactNode): React.ReactElement => (
           <button
             key={key}
@@ -2339,6 +2358,7 @@ export function NextflowWorkflowViewer({
             onClick={() => { setActiveTab(key); setTabAutoDefault(false); }}
             data-testid={`panel-tab-${key}`}
             aria-selected={activeTab === key}
+            title={tabTips[key]}
             style={{
               background: 'transparent',
               border: 'none',
@@ -2852,6 +2872,9 @@ export function NextflowWorkflowViewer({
                       <div className="val">{new Date(nextflowStatus.completed_at * 1000).toLocaleTimeString()}</div>
                     </div>
                   )}
+                  {/* LLM cost cell — commented out per UX review 2026-06-19.
+                      Per-run cost is not surfaced in the panel; billing lives on
+                      the per-user billing page.
                   {executionMetrics?.perStepLlmCost != null && (
                     <div className="cell" data-testid="run-metric-per-step-costs">
                       <div className="lbl">LLM cost</div>
@@ -2865,6 +2888,7 @@ export function NextflowWorkflowViewer({
                       </div>
                     </div>
                   )}
+                  */}
                 </div>
               )}
 

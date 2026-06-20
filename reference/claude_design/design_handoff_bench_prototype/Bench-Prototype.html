@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate — Bench Prototype (metaphor exploration)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f5f2ec;            /* warm paper */
+    --bg-card: #fffdf8;
+    --bg-deep: #ebe5d8;
+    --ink: #1f1d1a;
+    --ink-soft: #5a544a;
+    --ink-mute: #8a8278;
+    --rule: #d8d1c1;
+    --rule-soft: #ebe5d8;
+    --accent: #6d4a2b;        /* bench wood */
+    --accent-soft: #c89868;
+    --green: #5a7a3e;         /* bench-check ok */
+    --amber: #b88a1e;         /* bench-check flag */
+    --red: #a04434;           /* bench-check stop */
+    --reg-bg: #1e2126;        /* regulatory voice = inverted, formal */
+    --reg-ink: #e8e6e0;
+    --reg-mute: #9a958a;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 1px 2px rgba(31,29,26,.04), 0 8px 24px rgba(31,29,26,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 56px 32px 96px; }
+  header.hero { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--rule); }
+  header.hero .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-mute); margin-bottom: 12px; }
+  header.hero h1 { font-family: 'Fraunces', Georgia, serif; font-size: 38px; line-height: 1.15; margin: 0 0 14px; font-weight: 600; }
+  header.hero p { color: var(--ink-soft); margin: 0; max-width: 720px; }
+  nav.anchors { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+  nav.anchors a { text-decoration: none; color: var(--ink-soft); font-size: 13px; border: 1px solid var(--rule); padding: 6px 12px; border-radius: 999px; background: var(--bg-card); }
+  nav.anchors a:hover { border-color: var(--accent); color: var(--accent); }
+
+  section.screen { margin-bottom: 80px; scroll-margin-top: 24px; }
+  section.screen > .label { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  section.screen > .label .num { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-mute); }
+  section.screen > .label h2 { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600; margin: 0; }
+  section.screen > .label .why { color: var(--ink-mute); font-size: 13px; }
+  section.screen > .frame {
+    background: var(--bg-card); border: 1px solid var(--rule); border-radius: var(--radius-lg);
+    padding: 32px; box-shadow: var(--shadow); margin-top: 20px;
+  }
+  .frame .frame-cap { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 18px; }
+
+  /* === Screen 1 — Empty Bench === */
+  .bench-scene {
+    position: relative; min-height: 480px; background: linear-gradient(180deg, #f7f1e4 0%, #ebe1c8 100%);
+    border-radius: var(--radius); padding: 48px; overflow: hidden;
+  }
+  .bench-scene::before {
+    /* Hand-drawn bench surface — pure CSS placeholder, real illustration would replace this */
+    content: ""; position: absolute; inset: auto 0 0 0; height: 35%;
+    background: linear-gradient(180deg, #c89868 0%, #a47546 100%);
+    box-shadow: inset 0 6px 0 rgba(0,0,0,.06);
+  }
+  .bench-scene .scene-objs {
+    position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; align-items: end; min-height: 360px;
+  }
+  .scene-obj { background: var(--bg-card); border: 1.5px solid var(--ink); border-radius: 8px; padding: 18px; position: relative; box-shadow: 0 4px 0 rgba(0,0,0,.12); }
+  .scene-obj .obj-icon { font-family: 'Fraunces', serif; font-size: 32px; color: var(--accent); display: block; margin-bottom: 8px; line-height: 1; }
+  .scene-obj h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  .scene-obj p { margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .scene-obj.notebook { transform: rotate(-2deg); }
+  .scene-obj.drawer { transform: rotate(1deg); }
+  .scene-obj.crew { transform: rotate(-1deg); background: var(--bg-deep); border-color: var(--accent); }
+  .scene-obj.crew .crew-row { display: flex; gap: -4px; margin-top: 8px; }
+  .scene-obj.crew .avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg-card); background: var(--accent-soft); margin-left: -8px; display: grid; place-items: center; font-size: 12px; color: var(--bg-card); font-weight: 600; }
+  .scene-obj.crew .avatar:first-child { margin-left: 0; }
+  .bench-headline { position: relative; z-index: 2; max-width: 620px; margin-bottom: 32px; }
+  .bench-headline h1 { font-family: 'Fraunces', serif; font-size: 30px; margin: 0 0 8px; font-weight: 500; }
+  .bench-headline p { color: var(--ink-soft); margin: 0; font-size: 15px; }
+  .placeholder-note { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-mute); margin-top: 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* === Screen 2 — Bench mid-run === */
+  .runcard { display: grid; grid-template-columns: 1fr 280px; gap: 32px; }
+  .runcard h3.protocol { font-family: 'Fraunces', serif; font-weight: 500; font-size: 22px; margin: 0 0 6px; }
+  .runcard .protocol-sub { color: var(--ink-soft); font-size: 14px; margin-bottom: 24px; }
+  .phase-strip { display: flex; gap: 4px; margin: 16px 0 24px; }
+  .phase-pill { flex: 1; padding: 10px 12px; border-radius: 999px; background: var(--bg-deep); font-size: 12px; text-align: center; color: var(--ink-mute); }
+  .phase-pill.done { background: #d6e2c9; color: var(--green); }
+  .phase-pill.active { background: var(--accent); color: white; font-weight: 600; box-shadow: 0 0 0 4px rgba(109,74,43,.12); }
+  .phase-pill.pending { color: var(--ink-mute); }
+  .crew-working { padding: 16px; background: var(--bg-deep); border-radius: var(--radius); }
+  .crew-working .label-row { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 12px; letter-spacing: 0.06em; }
+  .crew-working .member { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .crew-working .member .av { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: white; font-size: 11px; display: grid; place-items: center; font-weight: 600; }
+  .crew-working .member .role { font-size: 13px; flex: 1; }
+  .crew-working .member .status { font-size: 11px; color: var(--ink-mute); font-family: 'JetBrains Mono', monospace; }
+  .crew-working .member.active .role { font-weight: 600; }
+  .crew-working .member.active .av { background: var(--accent); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(109,74,43,.4); } 50% { box-shadow: 0 0 0 6px rgba(109,74,43,0); } }
+  .check-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .check-pill.ok { background: #d6e2c9; color: var(--green); }
+  .check-pill.flag { background: #f4e3bf; color: var(--amber); }
+  .footer-actions { display: flex; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--rule-soft); }
+  button.primary { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  button.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--rule); padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+  /* === Screen 3 — Notebook entry === */
+  .notebook-entry .breadcrumb { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .dual-voice { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px; }
+  .voice { padding: 24px; }
+  .voice.warm { background: var(--bg-card); }
+  .voice.reg { background: var(--reg-bg); color: var(--reg-ink); }
+  .voice .voice-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 12px; }
+  .voice.warm h1 { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; margin: 0; line-height: 1.3; }
+  .voice.reg h1 { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; margin: 0; line-height: 1.4; letter-spacing: -0.01em; color: var(--reg-ink); }
+  .voice.reg h1 .num { color: white; }
+  .dataset-card { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: var(--bg-deep); padding: 16px; border-radius: var(--radius); margin-bottom: 24px; }
+  .dataset-card .item .lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--ink-mute); letter-spacing: 0.06em; }
+  .dataset-card .item .val { font-size: 14px; font-weight: 500; margin-top: 2px; }
+  .fig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .fig { background: var(--bg-deep); border-radius: var(--radius); padding: 16px; aspect-ratio: 16/10; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute); }
+  .fig svg { width: 100%; height: 100%; }
+  .body-text { font-size: 14px; color: var(--ink-soft); line-height: 1.65; margin-bottom: 24px; }
+  .body-text p { margin: 0 0 12px; }
+  .body-text .cite { background: rgba(109,74,43,.08); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--accent); border-bottom: 1px dotted var(--accent); cursor: pointer; }
+
+  /* === Screen 4 — Sidebar === */
+  .sb-mock { display: grid; grid-template-columns: 280px 1fr; gap: 24px; min-height: 480px; }
+  .sb { background: var(--bg-deep); border-radius: var(--radius); padding: 16px 12px; display: flex; flex-direction: column; }
+  .sb-section-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--ink-mute); letter-spacing: 0.08em; padding: 8px 8px 4px; }
+  .bench-item { padding: 10px 10px; border-radius: 8px; margin-bottom: 2px; cursor: pointer; }
+  .bench-item:hover { background: rgba(255,255,255,.5); }
+  .bench-item.active { background: var(--bg-card); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .bench-item .name { font-size: 14px; font-weight: 500; }
+  .bench-item .status { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+  .bench-item .status.live { color: var(--green); }
+  .bench-item .status.flag { color: var(--amber); }
+  .bench-item .row { display: flex; align-items: center; gap: 8px; }
+  .bench-item .avs { display: flex; margin-top: 6px; }
+  .bench-item .avs .av { width: 18px; height: 18px; border-radius: 50%; background: var(--accent-soft); color: white; font-size: 9px; display: grid; place-items: center; font-weight: 600; margin-left: -4px; border: 1.5px solid var(--bg-deep); }
+  .bench-item .avs .av:first-child { margin-left: 0; }
+  .new-bench { padding: 10px; border-radius: 8px; border: 1px dashed var(--ink-mute); color: var(--ink-mute); text-align: center; font-size: 13px; margin: 8px 0 16px; cursor: pointer; }
+  .new-bench:hover { border-color: var(--accent); color: var(--accent); }
+  .sb-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--rule); display: flex; gap: 4px; flex-wrap: wrap; }
+  .sb-footer .item { font-size: 12px; color: var(--ink-mute); padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+  .sb-footer .item:hover { background: rgba(255,255,255,.5); }
+  .sb-main-stub { background: var(--bg-card); border: 1px dashed var(--rule); border-radius: var(--radius); display: grid; place-items: center; color: var(--ink-mute); font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+  /* === Rename caption block === */
+  .rename-cap { margin-top: 20px; padding: 16px; background: var(--bg-deep); border-radius: var(--radius); font-size: 13px; }
+  .rename-cap .cap-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--ink-mute); letter-spacing: 0.08em; margin-bottom: 8px; }
+  .rename-cap table { border-collapse: collapse; width: 100%; }
+  .rename-cap td { padding: 4px 8px; }
+  .rename-cap td:first-child { color: var(--ink-mute); text-decoration: line-through; width: 40%; }
+  .rename-cap td:nth-child(2) { color: var(--ink-mute); width: 5%; text-align: center; }
+  .rename-cap td:last-child { color: var(--accent); font-weight: 500; }
+
+  /* === Footer notes === */
+  footer.notes { margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--rule); color: var(--ink-soft); font-size: 14px; }
+  footer.notes h3 { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; margin: 0 0 12px; color: var(--ink); }
+  footer.notes ul { margin: 0; padding-left: 20px; }
+  footer.notes li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">BioMate · Design Exploration · 2026-06-19</div>
+    <h1>The Bench — a metaphor prototype for BioMate's UI voice</h1>
+    <p>One coherent metaphor (the lab bench) carried across four surfaces, with dual register (warm + regulatory) demonstrated on the report screen. Static mockup intended to be reacted to — not a finished design or specification. Inspired by but not copied from Deep Principle's Mira upgrade; see the discussion in <code>docs/20260619_UI_INSPIRATION_FROM_MIRA_DISCUSSION.md</code>.</p>
+    <nav class="anchors">
+      <a href="#s1">1 · Empty Bench</a>
+      <a href="#s2">2 · Bench mid-run</a>
+      <a href="#s3">3 · Notebook entry</a>
+      <a href="#s4">4 · Sidebar with Benches</a>
+      <a href="#notes">Designer notes</a>
+    </nav>
+  </header>
+
+  <!-- ============== Screen 1 ============== -->
+  <section class="screen" id="s1">
+    <div class="label">
+      <span class="num">01</span>
+      <h2>Empty Bench</h2>
+      <span class="why">— the landing / new-chat state. User understands what BioMate <em>is</em> before what it <em>does</em>.</span>
+    </div>
+    <div class="frame">
+      <div class="frame-cap">Surface: landing screen · today's equivalent: empty chat with suggestion chips</div>
+
+      <div class="bench-scene">
+        <div class="bench-headline">
+          <h1>Your bench is ready.</h1>
+          <p>Tell me what you're investigating, drop a dataset on the drawer, or pick up where the notebook left off.</p>
+        </div>
+
+        <div class="scene-objs">
+          <div class="scene-obj notebook">
+            <span class="obj-icon">✎</span>
+            <h3>Review the notebook</h3>
+            <p>Last entry: ADMET screen, yesterday 6 p.m.</p>
+          </div>
+          <div class="scene-obj drawer">
+            <span class="obj-icon">⊟</span>
+            <h3>Open the drawer</h3>
+            <p>12 datasets · 4 papers pinned</p>
+          </div>
+          <div class="scene-obj crew">
+            <span class="obj-icon">◉</span>
+            <h3>Ask the bench</h3>
+            <p>The crew is here:</p>
+            <div class="crew-row">
+              <div class="avatar">L</div>
+              <div class="avatar">S</div>
+              <div class="avatar">Q</div>
+              <div class="avatar">M</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="placeholder-note">[ Bench scene is CSS placeholder — production version replaces with a single commissioned illustration of a bench with notebook, drawer, and crew. See doc §5. ]</div>
+
+      <div class="rename-cap">
+        <div class="cap-label">Strings on this screen → terms in the codebase today</div>
+        <table>
+          <tr><td>New Chat / empty state</td><td>→</td><td>"Your bench is ready"</td></tr>
+          <tr><td>Project files / library</td><td>→</td><td>"the drawer"</td></tr>
+          <tr><td>Research agents / chains</td><td>→</td><td>"the crew" (Lit-scout, Stats-reviewer, QC-checker, Methods-writer)</td></tr>
+          <tr><td>Last after-run report</td><td>→</td><td>"the notebook"</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Screen 2 ============== -->
+  <section class="screen" id="s2">
+    <div class="label">
+      <span class="num">02</span>
+      <h2>Bench mid-run</h2>
+      <span class="why">— phases matter <em>while</em> a run is happening; this is the active state.</span>
+    </div>
+    <div class="frame">
+      <div class="frame-cap">Surface: right-panel workflow viewer · today: nextflow-workflow-viewer.tsx with Jenkins-style phase grid</div>
+
+      <div class="runcard">
+        <div>
+          <h3 class="protocol">RNA-seq protocol</h3>
+          <p class="protocol-sub">Salmon → DESeq2 → enrichment. About 45 minutes on the cluster.</p>
+
+          <div class="phase-strip">
+            <div class="phase-pill done">Trim · 3m</div>
+            <div class="phase-pill done">Align · 12m</div>
+            <div class="phase-pill active">Quantify · 8m</div>
+            <div class="phase-pill pending">DE call</div>
+            <div class="phase-pill pending">Enrichment</div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap: 12px; margin-bottom: 20px;">
+            <span class="check-pill ok">● Bench-check: passing so far</span>
+            <span style="color: var(--ink-mute); font-size: 12px;">Next check at DE call · flags p-value inflation</span>
+          </div>
+
+          <div class="footer-actions">
+            <button class="primary">Pause</button>
+            <button class="ghost">View notebook so far</button>
+            <button class="ghost">Open chat with the bench</button>
+          </div>
+        </div>
+
+        <div class="crew-working">
+          <div class="label-row">Bench crew · working now</div>
+          <div class="member active">
+            <div class="av">S</div>
+            <div class="role">Stats-reviewer</div>
+            <div class="status">quantifying</div>
+          </div>
+          <div class="member">
+            <div class="av">Q</div>
+            <div class="role">QC-checker</div>
+            <div class="status">on standby</div>
+          </div>
+          <div class="member">
+            <div class="av">M</div>
+            <div class="role">Methods-writer</div>
+            <div class="status">drafting</div>
+          </div>
+          <div class="member">
+            <div class="av">L</div>
+            <div class="role">Lit-scout</div>
+            <div class="status">idle</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rename-cap">
+        <div class="cap-label">Strings on this screen → terms in the codebase today</div>
+        <table>
+          <tr><td>nf-core/rnaseq workflow · 12 steps · ~45 min on AWS Batch</td><td>→</td><td>"RNA-seq protocol — Salmon → DESeq2 → enrichment. About 45 minutes on the cluster." (brand-leak rule applied)</td></tr>
+          <tr><td>Phase cards (Trim / Align / Quant / DE / Enrich)</td><td>→</td><td>Thin phase-pill row (visually lighter; phase data demoted)</td></tr>
+          <tr><td>QC gate passing</td><td>→</td><td>"Bench-check: passing so far"</td></tr>
+          <tr><td>Active research agents</td><td>→</td><td>"Bench crew · working now" with named roles</td></tr>
+          <tr><td>Footer: Pause / Run again / Restart</td><td>→</td><td>Single contextual primary; secondary: open notebook / chat with bench</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Screen 3 ============== -->
+  <section class="screen" id="s3">
+    <div class="label">
+      <span class="num">03</span>
+      <h2>Notebook entry — the priority screen</h2>
+      <span class="why">— shown in both voices side-by-side so the dual-register tradeoff is concrete.</span>
+    </div>
+    <div class="frame">
+      <div class="frame-cap">Surface: auto-slides into right-panel when a run completes · today: markdown blob behind a Download button</div>
+
+      <div class="notebook-entry">
+        <div class="breadcrumb">Notebook entry · 2026-06-19 14:32 · Bench: ADMET Screening · Run #1284</div>
+
+        <div class="dual-voice">
+          <div class="voice warm">
+            <div class="voice-label">Warm voice — chat, empty-states, marketing surfaces</div>
+            <h1>83% of compounds passed bench-check; 17% flagged for cardiac risk.</h1>
+          </div>
+          <div class="voice reg">
+            <div class="voice-label">Regulatory voice — IND, CRO, audit, compliance surfaces</div>
+            <h1>120 compounds screened. hERG IC<sub>50</sub> threshold (10 µM, Aronov 2008) exceeded by 20/120 (16.7%). 100/120 (83.3%) passed QC.</h1>
+          </div>
+        </div>
+
+        <div class="dataset-card">
+          <div class="item"><div class="lbl">Dataset</div><div class="val">120 compounds · SMILES + properties</div></div>
+          <div class="item"><div class="lbl">Size</div><div class="val">8 KB</div></div>
+          <div class="item"><div class="lbl">Source</div><div class="val">drawer / tuesday-batch.csv</div></div>
+        </div>
+
+        <div class="fig-row">
+          <div class="fig">
+            <svg viewBox="0 0 200 120">
+              <!-- mock volcano-ish scatter -->
+              <line x1="20" y1="100" x2="190" y2="100" stroke="#d8d1c1" stroke-width="1"/>
+              <line x1="20" y1="10" x2="20" y2="100" stroke="#d8d1c1" stroke-width="1"/>
+              <text x="105" y="116" font-size="8" fill="#8a8278" text-anchor="middle" font-family="JetBrains Mono">logP</text>
+              <text x="10" y="55" font-size="8" fill="#8a8278" text-anchor="middle" font-family="JetBrains Mono" transform="rotate(-90, 10, 55)">hERG IC₅₀</text>
+              <line x1="20" y1="60" x2="190" y2="60" stroke="#a04434" stroke-width="0.8" stroke-dasharray="3,2"/>
+              <text x="195" y="58" font-size="7" fill="#a04434" text-anchor="end" font-family="JetBrains Mono">10 µM</text>
+              <!-- pass dots -->
+              <g fill="#5a7a3e" opacity="0.7">
+                <circle cx="40" cy="80" r="2"/><circle cx="55" cy="75" r="2"/><circle cx="48" cy="90" r="2"/><circle cx="65" cy="82" r="2"/>
+                <circle cx="72" cy="78" r="2"/><circle cx="80" cy="85" r="2"/><circle cx="90" cy="72" r="2"/><circle cx="100" cy="78" r="2"/>
+                <circle cx="110" cy="83" r="2"/><circle cx="120" cy="76" r="2"/><circle cx="130" cy="80" r="2"/><circle cx="140" cy="74" r="2"/>
+                <circle cx="150" cy="82" r="2"/><circle cx="160" cy="78" r="2"/><circle cx="170" cy="73" r="2"/>
+              </g>
+              <!-- fail dots -->
+              <g fill="#a04434" opacity="0.85">
+                <circle cx="125" cy="45" r="2.5"/><circle cx="135" cy="38" r="2.5"/><circle cx="148" cy="50" r="2.5"/>
+                <circle cx="160" cy="42" r="2.5"/><circle cx="170" cy="48" r="2.5"/><circle cx="180" cy="40" r="2.5"/>
+              </g>
+            </svg>
+          </div>
+          <div class="fig">
+            <svg viewBox="0 0 200 120">
+              <text x="100" y="14" font-size="9" fill="#5a544a" text-anchor="middle" font-family="Inter" font-weight="600">Pass / fail by class</text>
+              <g transform="translate(20,30)">
+                <text x="0" y="10" font-size="8" fill="#5a544a" font-family="JetBrains Mono">Class A</text>
+                <rect x="60" y="2" width="80" height="10" fill="#5a7a3e"/>
+                <rect x="140" y="2" width="10" height="10" fill="#a04434"/>
+                <text x="155" y="10" font-size="8" fill="#8a8278" font-family="JetBrains Mono">42/3</text>
+                <text x="0" y="28" font-size="8" fill="#5a544a" font-family="JetBrains Mono">Class B</text>
+                <rect x="60" y="20" width="55" height="10" fill="#5a7a3e"/>
+                <rect x="115" y="20" width="25" height="10" fill="#a04434"/>
+                <text x="155" y="28" font-size="8" fill="#8a8278" font-family="JetBrains Mono">28/12</text>
+                <text x="0" y="46" font-size="8" fill="#5a544a" font-family="JetBrains Mono">Class C</text>
+                <rect x="60" y="38" width="70" height="10" fill="#5a7a3e"/>
+                <rect x="130" y="38" width="5" height="10" fill="#a04434"/>
+                <text x="155" y="46" font-size="8" fill="#8a8278" font-family="JetBrains Mono">30/2</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="body-text">
+          <p>This run screened 120 compounds from the <span class="cite">tuesday-batch dataset</span> for cardiac-safety risk. The bench applied the hERG IC₅₀ threshold from <span class="cite">Aronov 2008</span>; compounds above 10 µM were flagged.</p>
+          <p>The crew flagged two compounds — <span class="cite">BMT-44</span> and <span class="cite">BMT-71</span> — that fall well below threshold and have been pinned to the bench for your review. A re-run with a tighter logP filter (≤ 5) was suggested by Stats-reviewer; say "run again with adjustments" or open chat with the bench to discuss.</p>
+        </div>
+
+        <div class="footer-actions">
+          <button class="primary">Pin to bench</button>
+          <button class="ghost">Save a copy</button>
+          <button class="ghost">Run again with adjustments</button>
+          <button class="ghost" style="margin-left: auto;">Switch to regulatory voice</button>
+        </div>
+      </div>
+
+      <div class="rename-cap">
+        <div class="cap-label">Strings on this screen → terms in the codebase today</div>
+        <table>
+          <tr><td>After-run report (markdown blob)</td><td>→</td><td>"Notebook entry" — auto-opens, headline-first</td></tr>
+          <tr><td>QC gate passed / failed</td><td>→</td><td>"bench-check" (warm) / "QC gate" (regulatory)</td></tr>
+          <tr><td>Auto-loop remediation</td><td>→</td><td>"Run again with adjustments"</td></tr>
+          <tr><td>Pin file / save preview</td><td>→</td><td>"Pin to bench"</td></tr>
+          <tr><td>Download Report (.md)</td><td>→</td><td>"Save a copy" (demoted from primary)</td></tr>
+          <tr><td>(none today — voice toggle)</td><td>→</td><td>"Switch to regulatory voice" — new control</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Screen 4 ============== -->
+  <section class="screen" id="s4">
+    <div class="label">
+      <span class="num">04</span>
+      <h2>Sidebar with Benches</h2>
+      <span class="why">— sidebar becomes a map of <em>your work</em>, not a menu of <em>features</em>.</span>
+    </div>
+    <div class="frame">
+      <div class="frame-cap">Surface: app-sidebar.tsx · today: 9 equally-weighted feature items</div>
+
+      <div class="sb-mock">
+        <aside class="sb">
+          <div class="sb-section-label">Your benches</div>
+
+          <div class="bench-item active">
+            <div class="name">ADMET Screening</div>
+            <div class="status live">● 1 run in progress · bench-check pending</div>
+            <div class="avs"><div class="av">Y</div><div class="av">A</div></div>
+          </div>
+
+          <div class="bench-item">
+            <div class="name">RNA-seq · Tuesday cohort</div>
+            <div class="status">Notebook updated 2 h ago</div>
+            <div class="avs"><div class="av">Y</div></div>
+          </div>
+
+          <div class="bench-item">
+            <div class="name">CRO compliance · Q3 audit</div>
+            <div class="status flag">⚠ bench-check waiting on you</div>
+            <div class="avs"><div class="av">Y</div><div class="av">L</div><div class="av">F</div></div>
+          </div>
+
+          <div class="bench-item">
+            <div class="name">IND §2.6.1 draft</div>
+            <div class="status">Last opened 3 days ago</div>
+            <div class="avs"><div class="av">Y</div></div>
+          </div>
+
+          <div class="new-bench">+ New bench</div>
+
+          <div class="sb-footer">
+            <div class="item">Toolkit</div>
+            <div class="item">Billing</div>
+            <div class="item">Settings</div>
+          </div>
+        </aside>
+
+        <div class="sb-main-stub">
+          ( main panel — bench detail view )
+        </div>
+      </div>
+
+      <div class="rename-cap">
+        <div class="cap-label">Strings on this screen → terms in the codebase today</div>
+        <table>
+          <tr><td>"New Chat" (top-level button)</td><td>→</td><td>Removed; chats happen <em>at</em> a bench. "+ Ask" inside each bench instead.</td></tr>
+          <tr><td>"Workflows" / "Runs" / "CRO Library" / "Starred" / "Recent"</td><td>→</td><td>Collapsed into bench items' inline status — "1 run in progress", "notebook updated 2h ago", "bench-check waiting"</td></tr>
+          <tr><td>"Billing" / "Settings"</td><td>→</td><td>Demoted to small footer cluster</td></tr>
+          <tr><td>Project name + member avatars</td><td>→</td><td>"Bench" + member avatars (multi-tenant story stays visible)</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="notes" id="notes">
+    <h3>What I changed and why (designer's notes)</h3>
+    <ul>
+      <li><strong>CSS-only bench scene instead of a real illustration.</strong> The brief asked for a hand-drawn or pixel-art scene; this prototype uses geometric placeholders so the user can react to the <em>composition</em> (notebook + drawer + crew + verb-first prompts woven in) without paying for illustration before the metaphor is approved. If the metaphor is approved, commissioning a single coherent illustration is step 1 of production.</li>
+      <li><strong>Dual-voice shown only on Screen 3 (the notebook entry).</strong> Showing both voices everywhere would dilute the demo; the report surface is where the regulatory voice matters most, so that's where the comparison is sharpest. Other screens default to warm voice with a "switch to regulatory voice" affordance hinted at the bottom of Screen 3.</li>
+      <li><strong>Phase strip is muted but not removed.</strong> Operators still need to see which step is running; the change is hierarchy (thin pill row instead of full card grid) and accompanying crew-working panel that gives the phase strip social context ("Stats-reviewer is quantifying right now") instead of mechanical context.</li>
+      <li><strong>Sidebar bench items show <em>status</em>, not <em>navigation</em>.</strong> The single sentence under each bench name ("1 run in progress", "bench-check waiting on you") replaces the entire former sidebar menu — users navigate <em>to outcomes</em>, not <em>to features</em>. Risk: power users may want a feature menu; demoted footer cluster keeps it accessible without dominating.</li>
+      <li><strong>Color palette is warm-paper, not cold-tech.</strong> The bench metaphor reads wrong against a typical SaaS dark/blue UI; warm-paper communicates "workbench" and "notebook" at the surface level. Regulatory voice gets a darker, more formal block to signal "this is the audit-grade surface."</li>
+      <li><strong>"Switch to regulatory voice" is a new control.</strong> Not in the brief — added because once you see both voices side-by-side, the question "who decides which voice I see?" is obvious. Proposed default: warm voice for everything except IND/audit/compliance surfaces, with this toggle for power users.</li>
+    </ul>
+
+    <h3 style="margin-top: 32px;">Open questions for review</h3>
+    <ul>
+      <li>Does "Bench" land, or do we test Workstation / Studio / Notebook / Observatory before committing?</li>
+      <li>Is "Crew" right, or is "Collaborators" / "Team" safer for senior-PI audience?</li>
+      <li>Should the voice toggle be a user preference (saved), a per-bench setting, or always available as a UI control?</li>
+      <li>Which screen do we implement first in the real codebase? (My vote: Screen 3 — closes a known UX hole regardless of metaphor commitment.)</li>
+      <li>Worth commissioning the illustration system (~$2-5k) before or after the metaphor is approved? Doing it before is risky; doing it after delays the prototype's full impact.</li>
+    </ul>
+  </footer>
+
+</div>
+</body>
+</html>
