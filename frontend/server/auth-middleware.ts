@@ -19,6 +19,9 @@ export async function authenticateToken(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  // If a prior middleware (e.g. authenticateStaticApiKey) already set req.user, skip JWT check.
+  if (req.user) { next(); return; }
+
   try {
     // Get token from Authorization header or cookie
     let token: string | undefined;

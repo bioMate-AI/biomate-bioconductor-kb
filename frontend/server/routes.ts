@@ -38,7 +38,7 @@ import archiver from "archiver";
 import { createHash } from "crypto";
 import { authService } from "./auth-service";
 import { emailService } from "./email-service";
-import { authenticateToken, optionalAuth } from "./auth-middleware";
+import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -7285,10 +7285,11 @@ ${paramLines || '(none recorded)'}`;
   // GET /api/data/browse   — list contents of a path within a source
   // POST /api/data/fetch   — download/stage a public file into BioMate S3
   //
-  // Authentication: accepts both JWT (authenticateToken) and static API key
-  // (authenticateStaticApiKey) so headless MCP clients can use these endpoints.
-
-  app.get("/api/data/sources", optionalAuth, async (req, res) => {
+  // Authentication: chained [authenticateStaticApiKey, authenticateToken].
+  // authenticateStaticApiKey sets req.user from BIOMATE_CONNECTOR_API_KEY and
+  // calls next(); authenticateToken then skips (req.user already set).
+  // Clients that send only a JWT skip the API-key check and use JWT path normally.
+  app.get("/api/data/sources", authenticateStaticApiKey, authenticateToken, async (req, res) => {
     // Galaxy exposes configured file source plugins at /api/remote_files/plugins.
     // We proxy and reshape the response to a stable BioMate-facing schema.
     try {
@@ -7316,7 +7317,7 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
-  app.get("/api/data/browse", optionalAuth, async (req, res) => {
+  app.get("/api/data/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
     // Proxies to Galaxy's /api/remote_files which lists contents of a file source path.
     try {
       const { source, path: browsePath } = req.query as { source?: string; path?: string };
@@ -7339,7 +7340,7 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
-  app.post("/api/data/fetch", optionalAuth, express.json(), async (req, res) => {
+  app.post("/api/data/fetch", authenticateStaticApiKey, authenticateToken, express.json(), async (req, res) => {
     // Stages a remote file into BioMate S3 so a workflow can consume it.
     // The Galaxy backend handles the actual download + S3 upload.
     try {
