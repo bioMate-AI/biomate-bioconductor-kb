@@ -6342,8 +6342,39 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           (generatedWorkflow as any)?.workflow_name ||
           (generatedWorkflow as any)?.name;
         const _wfDesc = _wfGa.description?.slice(0, 120) || '';
+        // Before falling back to a generic placeholder, surface the last
+        // tool_result content. When BioMate ran `run_code` and the LLM's
+        // final turn ended without a text block (concise compute-only
+        // tasks frequently do — Claude returns stop_reason without an
+        // accompanying text block when it judges the tool output to be
+        // self-explanatory), the previous code silently swallowed that
+        // tool output and emitted "I processed your request using the
+        // available tools." This was the dominant BixBench biomate_exec
+        // failure mode in v44/v45/v46 (~25/29 = 86% of failures).
+        const lastToolResult = (() => {
+          for (let i = agentMessages.length - 1; i >= 0; i--) {
+            const m: any = agentMessages[i];
+            if (m?.role !== 'user' || !Array.isArray(m.content)) continue;
+            for (let j = m.content.length - 1; j >= 0; j--) {
+              const block = m.content[j];
+              if (block?.type === 'tool_result' && typeof block.content === 'string') {
+                try {
+                  const parsed = JSON.parse(block.content);
+                  // run_code returns { stdout, stderr, exit_code, ... }
+                  if (parsed && typeof parsed === 'object') {
+                    const out = (parsed.stdout || parsed.output || parsed.result || '').toString().trim();
+                    if (out) return out.slice(0, 2000);
+                  }
+                } catch {/* not JSON — ignore */}
+              }
+            }
+          }
+          return '';
+        })();
         if (_wfName) {
           rawResponse = `**Workflow ready** — **${_wfName}** has been set up in the panel. ${_wfDesc ? _wfDesc.split('.')[0] + '. ' : ''}Review the parameters and click **Confirm & Run** to execute.`;
+        } else if (lastToolResult) {
+          rawResponse = lastToolResult;
         } else if (this._isPlanBCodonQuery(message)) {
           rawResponse =
             '**Codon optimization** — **optimize_codons_for_heterologous_expression** (registry id 10813) is ready in the panel. Review target_sequence, host_codon_usage, and outdir, then click **Confirm & Run**.';
