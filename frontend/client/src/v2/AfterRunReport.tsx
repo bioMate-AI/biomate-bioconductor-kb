@@ -101,16 +101,19 @@ export function AfterRunReport({
 
   // Compute which optional tabs to show based on real data presence.
   // Hide-when-empty discipline: no "Coming soon" placeholders, just absence.
+  // Tab order set by UX review 2026-06-19: outputs → findings → QC report →
+  // methods → citations come first (the five sections users actually read);
+  // parameters + software trail as forensic reference.
   const visibleTabs = useMemo<Array<[TabId, string]>>(() => {
     const t: Array<[TabId, string]> = [
-      ["findings", "Findings"],
       ["outputs", "Outputs"],
+      ["findings", "Findings"],
     ];
+    if (qcEvents.length > 0) t.push(["qc", "QC report"]);
     if (methods.hasRealContent) t.push(["methods", "Methods"]);
+    if (citations.length > 0) t.push(["citations", "Citations"]);
     t.push(["params", "Parameters"]);
     if (Object.keys(software).length > 0) t.push(["software", "Software"]);
-    if (citations.length > 0) t.push(["citations", "Citations"]);
-    if (qcEvents.length > 0) t.push(["qc", "QC audit"]);
     return t;
   }, [methods.hasRealContent, software, citations.length, qcEvents.length]);
 
