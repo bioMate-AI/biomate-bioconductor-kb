@@ -316,7 +316,7 @@ export type UserSettings = z.infer<typeof userSettingsSchema>;
 export const projectDocumentSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(["file", "text", "url"]),
+  type: z.enum(["file", "text", "url", "notes_synthesis"]),
   content: z.string().optional(), // For text documents or file paths
   url: z.string().url().optional(), // For URL references
   size: z.number().optional(), // File size in bytes

@@ -1261,6 +1261,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerProjectRoutes } = await import("./project-routes");
   registerProjectRoutes(app);
 
+  // Project Notes (synthesis) — Stream-A platform. On-demand LLM
+  // synthesis of completed runs + recent chat into a markdown brief.
+  // See docs/20260619_AI_GLASSES_AND_AUDIO_BIOMATE_PROTOTYPES.md.
+  const { registerNotesRoutes } = await import("./notes-routes");
+  registerNotesRoutes(app);
+
   // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
   // a missing module doesn't crash the rest of the app at boot. The route
   // file ships from a parallel work stream alongside this registration.
