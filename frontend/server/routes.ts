@@ -1274,6 +1274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerWorkbenchRoutes } = await import("./workbench-routes");
   registerWorkbenchRoutes(app);
 
+  // Evidence Search — cross-cutting feature. Parses a claim/hypothesis,
+  // queries registered evidence datasets in parallel (PubMed,
+  // OpenTargets, STRING for v1), LLM-reranks with citations.
+  const { registerEvidenceRoutes } = await import("./evidence-routes");
+  registerEvidenceRoutes(app);
+
   // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
   // a missing module doesn't crash the rest of the app at boot. The route
   // file ships from a parallel work stream alongside this registration.
