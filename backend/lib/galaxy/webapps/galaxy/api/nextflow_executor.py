@@ -8648,3 +8648,100 @@ async def fetch_public_data(body: FetchPublicDataRequest):
     except Exception as exc:
         log.exception("[fetch_public_data] Failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# S3 workspace browser
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/api/nextflow/s3/browse", summary="List objects in a user's S3 bucket")
+async def browse_s3(
+    trans: ProvidesUserContext = DependsOnTrans,
+    prefix: str = "",
+    max_keys: int = 200,
+):
+    """
+    Return a directory-style listing of S3 objects for the authenticated user.
+
+    Credential resolution order:
+    1. User-stored S3 credential (aws_access_key_id / secret / region / s3_bucket)
+    2. BioMate's own bucket (NEXTFLOW_S3_BUCKET env var) using instance-role/env creds
+
+    Each item in the response is one of:
+    - {"type": "prefix", "key": "folder/", "name": "folder"}
+    - {"type": "object", "key": "file.txt", "name": "file.txt", "size": 123, "last_modified": "..."}
+    """
+    from galaxy.webapps.galaxy.api.credentials_api import _get_credential
+
+    # Resolve credentials + bucket
+    bucket = None
+    boto_kwargs: Dict[str, Any] = {}
+
+    user_cred = _get_credential(trans, "s3") if trans.user else None
+    if user_cred and user_cred.get("aws_access_key_id"):
+        boto_kwargs = {
+            "aws_access_key_id":     user_cred["aws_access_key_id"],
+            "aws_secret_access_key": user_cred.get("aws_secret_access_key", ""),
+            "region_name":           user_cred.get("aws_region", "us-east-1"),
+        }
+        bucket = user_cred.get("s3_bucket")
+
+    if not bucket:
+        bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+        if not boto_kwargs:
+            # Fall back to instance role / env-var creds
+            region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+            boto_kwargs = {"region_name": region}
+
+    if not bucket:
+        raise HTTPException(status_code=503, detail="No S3 bucket configured for this user")
+
+    try:
+        import boto3
+        s3 = boto3.client("s3", **boto_kwargs)
+
+        paginator = s3.get_paginator("list_objects_v2")
+        page_iter = paginator.paginate(
+            Bucket=bucket,
+            Prefix=prefix,
+            Delimiter="/",
+            PaginationConfig={"MaxItems": max_keys},
+        )
+
+        entries: List[Dict[str, Any]] = []
+        truncated = False
+
+        for page in page_iter:
+            if page.get("IsTruncated"):
+                truncated = True
+            for cp in page.get("CommonPrefixes") or []:
+                key = cp["Prefix"]
+                entries.append({
+                    "type": "prefix",
+                    "key": key,
+                    "name": key.rstrip("/").split("/")[-1] + "/",
+                })
+            for obj in page.get("Contents") or []:
+                key = obj["Key"]
+                name = key.split("/")[-1] if "/" in key else key
+                if not name:
+                    continue  # skip the prefix entry itself
+                entries.append({
+                    "type": "object",
+                    "key": key,
+                    "name": name,
+                    "size": obj.get("Size", 0),
+                    "last_modified": obj["LastModified"].isoformat() if obj.get("LastModified") else None,
+                })
+
+        return {
+            "bucket": bucket,
+            "prefix": prefix,
+            "entries": entries,
+            "truncated": truncated,
+            "credential_source": "user" if user_cred else "biomate",
+        }
+
+    except Exception as exc:
+        log.exception("[browse_s3] Failed for bucket=%s prefix=%s: %s", bucket, prefix, exc)
+        raise HTTPException(status_code=500, detail=str(exc))

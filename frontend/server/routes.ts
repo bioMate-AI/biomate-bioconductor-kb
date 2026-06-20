@@ -819,20 +819,21 @@ const OPEN_CLAW_TOOLS = [
   {
     name: "browse_data",
     description:
-      "Browse a public biological data repository (EBI, NCBI, Ensembl, UCSC) by listing " +
-      "files and directories at a given path. Use before fetch_public_data to navigate to " +
-      "the exact file you need (reference genomes, annotation GTFs, VCF datasets, etc.).",
+      "Browse a biological data repository or S3 workspace by listing files and directories " +
+      "at a given path. Public sources (EBI, NCBI, Ensembl, UCSC) require a path. " +
+      "S3 sources (biomate_workspace, user_s3) accept an optional prefix. " +
+      "Use before fetch_public_data to navigate to the exact file you need.",
     input_schema: {
       type: "object" as const,
       properties: {
         source_id: {
           type: "string",
-          enum: ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public"],
-          description: "Data source to browse",
+          enum: ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public", "biomate_workspace", "user_s3"],
+          description: "Data source to browse. biomate_workspace = BioMate's S3 work bucket; user_s3 = user's own S3 bucket (if configured)",
         },
-        path: { type: "string", description: "Directory path to list (e.g. '/pub/databases/uniprot/current_release/knowledgebase/complete/')" },
+        path: { type: "string", description: "Directory path or S3 prefix to list (e.g. '/pub/databases/uniprot/.../' or 'results/run-xyz/')" },
       },
-      required: ["source_id", "path"],
+      required: ["source_id"],
     },
   },
   {
@@ -939,6 +940,9 @@ async function executeOpenClaudeTool(
 
       // ── Public Data Sources ───────────────────────────────────────────────
       case "browse_data":
+        if (input.source_id === "biomate_workspace" || input.source_id === "user_s3") {
+          return await get(`/api/s3/browse?prefix=${encodeURIComponent(input.path ?? "")}`);
+        }
         return await get(`/api/data/browse?source=${encodeURIComponent(input.source_id)}&path=${encodeURIComponent(input.path ?? "/")}`);
 
       case "fetch_public_data":
@@ -7473,6 +7477,25 @@ ${paramLines || '(none recorded)'}`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source_id: source, remote_path: remotePath, url }),
         signal: AbortSignal.timeout(30_000),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/s3/browse — list objects in BioMate's S3 workspace (or user's configured S3 bucket).
+  // Proxies to Galaxy's /api/nextflow/s3/browse which resolves credentials server-side.
+  app.get("/api/s3/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
+    try {
+      const { prefix = "", max_keys = "200" } = req.query as { prefix?: string; max_keys?: string };
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const galaxyApiKey = process.env.GALAXY_API_KEY || "";
+      const qs = new URLSearchParams({ prefix, max_keys });
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/s3/browse?${qs}`, {
+        headers: galaxyApiKey ? { "x-api-key": galaxyApiKey } : {},
+        signal: AbortSignal.timeout(15_000),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
