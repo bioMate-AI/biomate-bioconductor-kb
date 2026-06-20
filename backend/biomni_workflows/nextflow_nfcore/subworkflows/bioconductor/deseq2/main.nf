@@ -47,7 +47,7 @@ process BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("airway", "BiocParallel", "DESeq2", "ggplot2", "IHW", "RColorBrewer")
+    .bm_deps <- c("airway", "apeglm", "BiocParallel", "DESeq2", "ggplot2", "IHW", "RColorBrewer")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
