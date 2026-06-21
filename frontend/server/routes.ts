@@ -4605,6 +4605,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy /api/regulatory/* to the Galaxy backend. These are galaxy-served routes
+  // (active_adapter, generate_smoke, generate_stream, feedback/queue) that the
+  // public frontend must expose for the IND PI suite + the ind-report UI — without
+  // this they 404 on dev/prod (caddy routes the public domain to this Node server,
+  // which had no /api/regulatory handler). Mirrors the /api/ind-report/* proxy
+  // above. Does NOT shadow the frontend's own /api/regulatory_llm/* routes — the
+  // `/api/regulatory/` prefix (trailing slash) cannot match `/api/regulatory_llm/`.
+  app.all("/api/regulatory/*", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.send(buf);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'regulatory proxy error', detail: err.message });
+    }
+  });
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
