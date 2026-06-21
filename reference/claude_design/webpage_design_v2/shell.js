@@ -61,12 +61,11 @@
               { label: 'All Posts &rarr;',    href: 'blog.html', bold: true }
             ])}
             ${dropdown('company', 'Company', 'about.html', [
-              { label: 'About BioMate',     href: 'about.html' },
-              { label: 'Platform Features', href: 'features.html' },
-              { label: 'Pricing',           href: 'pricing.html' },
-              { label: 'Compare',           href: 'compare.html' },
+              { label: 'About BioMate', href: 'about.html' },
+              { label: 'Pricing',       href: 'pricing.html' },
+              { label: 'Compare',       href: 'compare.html' },
               { divider: true },
-              { label: 'Contact',           href: 'contact.html' }
+              { label: 'Contact',       href: 'contact.html' }
             ])}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
