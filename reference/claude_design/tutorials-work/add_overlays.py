@@ -17,7 +17,9 @@ FONT_SANS = "/System/Library/Fonts/HelveticaNeue.ttc"
 W, H      = 1920, 1080
 
 TUTORIALS = ["cryosparc", "outputs_report", "drug_screen", "ind_report",
-             "bioc_kb", "bioc_sc", "bioc_methyl"]
+             "bioc_kb", "bioc_sc", "bioc_methyl",
+             "design_bispecific", "design_cart", "design_baseedit",
+             "design_glp1", "design_modtriage"]
 
 
 def draw_pill(draw, x, y, w, h, fill, radius=18):

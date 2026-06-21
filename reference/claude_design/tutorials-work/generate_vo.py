@@ -498,7 +498,7 @@ TUTORIALS = {
     ],
   },
 
-  # ── Bioconductor · DESeq2 chain (bioc-kb-routing) — 27 steps ────────────────
+  # ── Bioconductor · DESeq2 chain (bioc-kb-routing) — 30 steps ────────────────
   # Sourced from Research Agent_UI_bio_drug/narratives/Bioconductor Narratives.md
   # full-cut. Step order matches BiocTours.jsx exactly:
   #   6 opening beats + 5 controlSteps + 4 analysis beats + 11 afterRunSteps + 1 wrap-up
@@ -541,7 +541,14 @@ TUTORIALS = {
        "Parameters and outputs appear inline as each step finishes.",
        False, None),
 
-      # 7 — control: params prefilled and editable
+      # 7 — QC gate: genes retained — passed
+      ("Phase A's gate reads fourteen-thousand two-hundred and three genes retained "
+       "— seventy-seven percent of the original count, well above the ten-thousand threshold. "
+       "A green gate here means the library isn't dominated by noise. "
+       "Had it failed, auto-loop would have tightened the filter and re-run automatically.",
+       False, None),
+
+      # 8 — control: params prefilled and editable
       ("Every step opens with the workflow's defaults already filled in. "
        "Click the gear to adjust a value inline — change only what you need.",
        False, None),
@@ -579,82 +586,98 @@ TUTORIALS = {
        "producing a results table of fold-change and adjusted-p per gene.",
        False, None),
 
-      # 14 — shrink noisy fold-changes
+      # 14 — QC gate: replicate count — critical guard
+      ("Phase C checks twelve replicates per group against a minimum of two — "
+       "a critical guard. DESeq2 needs at least two replicates to estimate dispersion; "
+       "fewer means the model cannot converge. "
+       "A fail here halts the chain immediately, before any computation is wasted.",
+       False, None),
+
+      # 16 — shrink noisy fold-changes
       ("Before ranking, apeglm shrinks noisy low-count fold-changes toward zero, "
        "so enrichment isn't dominated by extremes.",
        False, None),
 
-      # 15 — Phase E running, enrichment
+      # 17 — Phase E running, enrichment
       ("clusterProfiler's gseGO runs on the ranked list — "
        "top term, regulation of apoptotic process. "
-       "Phase F renders the volcano, dot plot, and heatmap.",
+       "Next, Phase F renders the figures and queries STRING for an interaction network.",
        False, None),
 
-      # 16 — chain complete (findings-chat spotlight)
-      ("All six phases done — DESeq2, apeglm, clusterProfiler, EnhancedVolcano. "
+      # 18 — Phase F · STRINGdb gene interaction network
+      ("BioMate queries STRING version twelve for all twenty-eight hundred and forty-one DE genes. "
+       "The result is an interactive protein-protein interaction network — "
+       "nodes coloured by log-two fold-change, edges weighted by STRING confidence. "
+       "Top hub: TP53, with eighty-seven first-degree interactions.",
+       False, None),
+
+      # 19 — chain complete (findings-chat spotlight)
+      ("All six phases done — DESeq2, apeglm, clusterProfiler, EnhancedVolcano, and the STRINGdb interaction network. "
        "Chat drops a findings card; the panel flips to the After-run report.",
        False, None),
 
-      # 17 — after run, one structured report (results-links spotlight)
+      # 20 — after run, one structured report (results-links spotlight)
       ("The report has seven tabs in reading order — results first, methods and "
        "reproducibility next, audit last. The whole thing exports to one document.",
        False, None),
 
-      # 18 — Findings tab
+      # 21 — Findings tab
       ("Findings: the headline metric, a few bullets, and figures read straight "
-       "from the manifest. Nothing is invented — uncited claims are tagged "
-       "author judgment.",
+       "from the manifest — including the STRINGdb hub gene. "
+       "Nothing is invented — uncited claims are tagged author judgment.",
        False, None),
 
-      # 19 — Outputs tab
+      # 22 — Outputs tab
       ("Outputs lists every file by phase — the results object, volcano, "
-       "GO dot plot, top-fifty heatmap. View previews inline; download grabs one or all.",
+       "GO dot plot, top-fifty heatmap, and the interactive STRINGdb network. "
+       "View previews inline; download grabs one or all.",
        False, None),
 
-      # 20 — Open in RStudio (interactive-launcher spotlight)
+      # 23 — Open in RStudio (interactive-launcher spotlight)
       ("Download isn't the end. Every results object has an Open-in-RStudio button "
        "— a live R four-point-three session with DESeq2 loaded and your "
        "dataset pre-mounted.",
        False, None),
 
-      # 21 — visualised, volcano plot (preview-modal spotlight)
-      ("Clicking view on the volcano renders it inline — fold-change versus "
-       "significance, up genes red, down blue. "
-       "BioMate picks the viewer from the file type.",
+      # 24 — STRINGdb network preview (preview-modal spotlight)
+      ("Clicking view on the STRINGdb network renders it inline — "
+       "twenty-eight hundred genes as nodes, coloured by fold-change, "
+       "edges weighted by STRING confidence. "
+       "Hub genes like TP53 sit at the centre; export as SVG anytime.",
        False, None),
 
-      # 22 — Methods tab
+      # 25 — Methods tab
       ("Methods is paragraph-form prose — tools, versions, exact parameters — "
-       "written so a peer can replicate the run. "
+       "written so a peer can replicate the run, including the STRINGdb network construction. "
        "Paste it straight into a manuscript.",
        False, None),
 
-      # 23 — Parameters tab
+      # 26 — Parameters tab
       ("Parameters lists phase, step and value for everything the run touched "
        "— a ready supplementary table. "
        "Defaults, overrides and auto-loop tweaks are distinguished.",
        False, None),
 
-      # 24 — Software tab
+      # 27 — Software tab
       ("Software pins every package version — DESeq2, apeglm, edgeR, "
-       "clusterProfiler. With Parameters, it's the reproducibility baseline.",
+       "clusterProfiler, STRINGdb. With Parameters, it's the reproducibility baseline.",
        False, None),
 
-      # 25 — Citations tab
+      # 28 — Citations tab
       ("Citations auto-generates the reference list — Love twenty-fourteen, "
-       "Zhu twenty-nineteen, Wu twenty-twenty-one, and more. "
+       "Zhu twenty-nineteen, Wu twenty-twenty-one, Szklarczyk twenty-twenty-three, and more. "
        "Methods and Citations export together.",
        False, None),
 
-      # 26 — QC audit tab
+      # 29 — QC audit tab
       ("QC audit logs every gate that fired — gene retention, size-factor range, "
        "replicate count — with threshold, observed value and action. "
        "Twenty-one CFR Part Eleven friendly.",
        False, None),
 
-      # 27 — center wrap-up
+      # 30 — center wrap-up
       ("That's the full DESeq2 thread — match, route, run six phases, "
-       "a seven-tab report, all from one request. "
+       "a seven-tab report with an interactive gene network, all from one request. "
        "Download wraps it into a single document.",
        True, CLOSING_SPEED),
     ],
@@ -949,6 +972,521 @@ TUTORIALS = {
       ("That's the epigenomics thread — a GRanges backbone, DMPs, DMRs, "
        "CpG-corrected enrichment, a seven-tab report. "
        "A different object lineage, same orchestration.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── Tier-0 Therapeutic Design Tutorials ─────────────────────────────────────
+  # Source: design_handoff_tier0_design_pipelines/narratives/Drug Development Narratives.md
+  # All five tours are 19 steps each (intro + route/special + phaseARun + panelSteps(5)
+  #   + chat beat + afterRun(9) + closing).
+  # HTML: design_handoff_tier0_design_pipelines/Research Agent UI.html
+  # Tour labels registered in that folder's Tour.jsx under "Therapeutic design" group.
+
+  # ── T01 · Bispecific format triage — PD-1 × VEGF for NSCLC ────────────────
+  "design_bispecific": {
+    "label": "T01 · Bispecific format triage",
+    "steps": [
+      # 1 — center welcome
+      ("We'll design a PD-1-by-VEGF bispecific antibody for lung cancer "
+       "— end to end, from one sentence.",
+       True, CLOSING_SPEED),
+
+      # 2 — routing the intent
+      ("BioMate reads two targets, an indication, and a requested format, "
+       "and routes to the bispecific format-triage workflow.",
+       False, None),
+
+      # 3 — Phase A, mechanism
+      ("Phase A infers the mechanism: PD-1 and VEGF efficacy is driven by "
+       "cooperative avidity on dimeric VEGF.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened with its parameters already filled from your message "
+       "— change only what you need.",
+       False, None),
+
+      # 5 — provenance badges
+      ("Open Workflow settings: every value wears a badge — from your message, "
+       "normalized, or inferred. Prefill is never a black box.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase carries an editable QC gate, with an optional auto-loop "
+       "that re-runs a failed phase with adjusted parameters.",
+       False, None),
+
+      # 7 — outputs inline
+      ("As each step finishes, its files drop straight into the panel "
+       "— the scoring matrix and the ranked table appear as they're produced.",
+       False, None),
+
+      # 8 — stop and resume
+      ("Any running phase can be stopped and resumed "
+       "— finished steps and their outputs are kept.",
+       False, None),
+
+      # 9 — composite ranking
+      ("Phase C weights mechanism and format together. "
+       "The tetravalent cooperative format leads — ivonescimab's architecture "
+       "— ahead of the requested CrossMab.",
+       False, None),
+
+      # 10 — chain complete
+      ("All four phases done. "
+       "The chat drops a findings card and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("Every completed run opens a tabbed After-run report "
+       "— results first, methods next, audit last. We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings leads with the headline and figures read straight from the run manifest "
+       "— the composite scores and the axis weighting.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists every file — the format report and the ranked CSV "
+       "— grouped by phase. View inline, or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready prose — the six axes, the cooperative-avidity call, "
+       "and the composite weighting, written for a reviewer.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists every knob the run touched "
+       "— the five formats, the six axes, the weighting — supplementary-ready.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins each component and version "
+       "— the reproducibility baseline alongside Parameters.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations are pre-formatted — the ivonescimab tetravalent mechanism papers "
+       "and the HARMONi-two readout.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — every gate that fired, with threshold, observed value, and result. "
+       "An auditable trail of how the recommendation was reached.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("From one sentence: five formats scored and the tetravalent winner recovered "
+       "— the architecture the field landed on for ivonescimab.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T02 · In-vivo CAR-T co-design — CD19 + LNP for DLBCL ─────────────────
+  "design_cart": {
+    "label": "T02 · In-vivo CAR-T co-design",
+    "steps": [
+      # 1 — center welcome
+      ("We'll co-design an in-vivo CD19 CAR-T for lymphoma "
+       "— both the construct and the delivery, in one pass.",
+       True, CLOSING_SPEED),
+
+      # 2 — free text to schema enum
+      ("Here's the teaching moment: your 'T cells' became the schema value "
+       "T-underscore-cell automatically, so delivery is unambiguous before any compute.",
+       False, None),
+
+      # 3 — Phase A, atlas safety
+      ("Phase A scans CD19 across tissues "
+       "— it's B-cell-restricted, no critical-tissue hits, safe to proceed.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened with its parameters pre-filled from your message "
+       "— adjust only what you need.",
+       False, None),
+
+      # 5 — provenance badges
+      ("In Workflow settings, every value is badged "
+       "— and the delivery cell reads normalized from your 'T cells'.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase has an editable QC gate; "
+       "the atlas-safety gate is what cleared the target here.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the expression map, the LNP tropism scores, the fratricide check.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed "
+       "— finished steps and their outputs are preserved.",
+       False, None),
+
+      # 9 — the fratricide check
+      ("The phase that earns its keep: the anti-CD8 LNP hits CD8-positive T cells, "
+       "CD19 sits on B cells — no overlap, so the design is green.",
+       False, None),
+
+      # 10 — chain complete
+      ("All five phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens — results, methods, then audit. "
+       "We'll walk each tab in order.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest — LNP delivery efficiency by candidate, "
+       "the construct domains, and the atlas-safety bar.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the construct FASTA, the fratricide JSON, "
+       "the LNP recommendation, and the CMC flag. View or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the atlas call, LNP tropism, the fratricide logic, and the construct domains.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the LNP candidates, the fratricide cell-type comparison, "
+       "and the FMC63 four-one-BB construct choices.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins each component and version — the reproducibility baseline.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the CPTX twenty-three-oh-nine CD8-targeted LNP, "
+       "the anti-CD5 in-vivo-CAR proof of concept, and the Kymriah construct.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — atlas safety, delivery efficiency, and the fratricide overlap gate. "
+       "The fratricide gate is the one that protects the design.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("The anti-CD8 LNP plus CD19 CAR — Capstan's CPTX twenty-three-oh-nine. "
+       "Switch the target to CD7 and the fratricide gate trips automatically.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T03 · In-vivo base-edit knockout — PCSK9 for hypercholesterolemia ──────
+  "design_baseedit": {
+    "label": "T03 · In-vivo base-edit knockout",
+    "steps": [
+      # 1 — center welcome
+      ("We'll design an in-vivo base-edit knockout of PCSK9 to lower cholesterol "
+       "— from a single sentence.",
+       True, CLOSING_SPEED),
+
+      # 2 — tissue picks the delivery
+      ("A knockout means a base editor, not a nuclease. "
+       "PCSK9 is liver-expressed, so intravenous LNP is the natural route.",
+       False, None),
+
+      # 3 — Phase A, tissue restriction
+      ("Phase A confirms PCSK9 is hepatocyte-restricted "
+       "— an ideal target, because the liver natively absorbs LNPs.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened with parameters pre-filled from your message "
+       "— edit-goal was derived from the word 'knockout'.",
+       False, None),
+
+      # 5 — provenance badges
+      ("In Workflow settings, every value is badged "
+       "— from your message, derived, or inferred.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase has an editable QC gate; "
+       "here the tissue-restriction gate cleared the IV-LNP route.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the editor choice, the guide CSV, the CMC flag.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed, "
+       "with finished steps and outputs kept.",
+       False, None),
+
+      # 9 — editor and clinical precedent
+      ("Phase B picks an adenine base editor making an A-to-G edit at the splice donor; "
+       "the CMC flag surfaces VERVE-101's liver-enzyme signal "
+       "and the reformulation Verve used for VERVE-102.",
+       False, None),
+
+      # 10 — chain complete
+      ("All five phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens "
+       "— results first, methods next, audit last. We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest "
+       "— editor-class fit, top-guide specificity, and the off-target scan.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the editor choice, the guide RNA CSV, "
+       "the CMC flag, and the IND-readiness checklist.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the tissue rationale, the adenine-base-editor selection, "
+       "the splice-donor edit, and the CMC note.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the editor class, the splice-donor edit, "
+       "the genome used for off-target scanning, and the precedent referenced.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins each component and version — the reproducibility baseline.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the primate PCSK9 base-editing paper "
+       "and the VERVE-101 adenine-base-editor splice-donor mechanism.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — tissue restriction, splice-donor disruption, "
+       "and guide specificity above ninety-five percent, "
+       "each with threshold and result.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("An adenine base editor disrupting the PCSK9 splice donor "
+       "— VERVE-one-oh-one and one-oh-two's exact mechanism, "
+       "recovered from one sentence.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T04 · GLP-1 modality bake-off — MASH ─────────────────────────────────
+  "design_glp1": {
+    "label": "T04 · GLP-1 modality bake-off",
+    "steps": [
+      # 1 — center welcome
+      ("The next GLP-1 question for fatty-liver disease isn't dosing "
+       "— it's modality. We'll score four of them.",
+       True, CLOSING_SPEED),
+
+      # 2 — when BioMate isn't sure
+      ("'Compare' is ambiguous — run a design workflow, or just search for tools? "
+       "Rather than guess, BioMate asks. We pick 'run a design workflow'.",
+       False, None),
+
+      # 3 — routed, indication normalized
+      ("Routed to the GLP-1 modality bake-off, "
+       "with the indication lowercased to the enum value mash.",
+       False, None),
+
+      # 4 — Phase A, scoring
+      ("Phase A scores each modality across six axes "
+       "— half-life, oral bioavailability, cardiovascular outcomes, "
+       "liver evidence, manufacturing, and dosing burden.",
+       False, None),
+
+      # 5 — parameters and provenance
+      ("In Workflow settings, the modality list is badged from your message; "
+       "every value shows where it came from.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase carries an editable QC gate "
+       "— here, that all four modalities were scored.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the scoring matrix and the ranked recommendation.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed, with finished work preserved.",
+       False, None),
+
+      # 9 — ranking
+      ("Peptide injection leads on safety and cardiovascular outcomes; "
+       "messenger-RNA is still preclinical; "
+       "gene therapy is single-dose but unproven for durability.",
+       False, None),
+
+      # 10 — chain complete
+      ("All three phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens — results, methods, then audit. "
+       "We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest "
+       "— the composite modality scores and the six scoring axes.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the scoring CSV and the bake-off recommendation. "
+       "View inline or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the six axes with their named agents, and the indication-fit weighting.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the modality list, the six axes, "
+       "and the indication-fit weighting.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins the bake-off scorer and its version.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the semaglutide and survodutide MASH readouts behind the scoring.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — modalities scored and the top-modality check, "
+       "each with threshold and result.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("Peptide injection first — the same ranking the field converged on. "
+       "And the ambiguity card doubles as a 'what if BioMate isn't sure' lesson.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T05 · Oncology modality triage — BCMA ────────────────────────────────
+  "design_modtriage": {
+    "label": "T05 · Oncology modality triage",
+    "steps": [
+      # 1 — center welcome
+      ("You picked BCMA for oncology — now which modality? "
+       "We'll score CAR-T, bispecific, ADC, and messenger-RNA.",
+       True, CLOSING_SPEED),
+
+      # 2 — expression drives the ranking
+      ("BioMate profiles where BCMA is expressed first, "
+       "because that weights everything after it "
+       "— a restricted target favours cell therapies.",
+       False, None),
+
+      # 3 — Phase A, atlas profile
+      ("Phase A: BCMA is restricted to plasma cells and some mature B cells, "
+       "no critical-tissue hits — pointing at multiple myeloma.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened pre-filled from your message "
+       "— modalities set to 'all', from 'try all options'.",
+       False, None),
+
+      # 5 — provenance badges
+      ("In Workflow settings, every value is badged "
+       "— from your message, or computed in a phase.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase has an editable QC gate; "
+       "the atlas-safety gate cleared the off-tumor risk here.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the expression profile, the modality scores, the ranking.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed, "
+       "with finished steps and outputs kept.",
+       False, None),
+
+      # 9 — ADC versus bispecific
+      ("Teclistamab, a T-cell engager, is approved; "
+       "belantamab mafodotin, an ADC, was withdrawn for eye toxicity "
+       "— so bispecific scores second, ADC third with a payload caveat.",
+       False, None),
+
+      # 10 — chain complete
+      ("All four phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens — results first, methods next, audit last. "
+       "We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest "
+       "— the modality ranking, BCMA's expression composition, and the atlas-safety bar.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the modality ranking, the IHC follow-up panel, "
+       "and the composite ranking. View or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the atlas profile, the CAR-T rationale, "
+       "and the ADC-versus-engager evaluation.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the atlas source, the precedents per modality, "
+       "and the indication-fit weighting.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins the pan-modality scorer and its version.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the ide-cel and teclistamab readouts behind the ranking.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — atlas safety, off-tumor risk, and the top-modality check, "
+       "each with threshold and result.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("CAR-T first — the place ide-cel and cilta-cel landed "
+       "— and the whole BCMA landscape scored from a single sentence.",
        True, CLOSING_SPEED),
     ],
   },

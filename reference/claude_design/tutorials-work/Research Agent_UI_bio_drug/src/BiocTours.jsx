@@ -164,7 +164,7 @@
     T['bioc-kb-routing'].steps = [
       { target: null, placement: 'center', icon: '🧬',
         title: 'Bioconductor · DESeq2 chain',
-        body: (<>A differential-expression run, end to end. BioMate <b>matches</b> your request to a curated Bioconductor workflow, <b>routes</b> each step to the right package, runs the <b>six-phase chain</b>, then hands you a full report.<div className="hint">~3 min · match → route → run → report. Sit back — the tour drives every step.</div></>),
+        body: (<>A differential-expression run, end to end. BioMate <b>matches</b> your request to a curated Bioconductor workflow, <b>routes</b> each step to the right package, runs the <b>six-phase chain</b>, then hands you a full report.<div className="hint">Match → route → run → report. Sit back — the tour drives every step.</div></>),
         setup: () => { if (window.__tourReset) window.__tourReset(); return { scenario: 'bioc_kb', runState: 'idle' }; },
         },
 
@@ -253,7 +253,7 @@
 
       { target: null, placement: 'center', icon: '🌟',
         title: 'That’s the full DESeq2 thread',
-        body: (<>Match → route → run six phases → a seven-tab report, all from one request. <b>Download report</b> wraps it into a single document for Word, Notion / GitHub, or a journal template.<div className="hint">Try the scRNA-seq and methylation tutorials next — same agent, different science.</div></>),
+        body: (<>Match → route → run six phases → a seven-tab report, all from one request. <b>Download report</b> wraps it into a single document for Word, Notion / GitHub, or a journal template.</>),
         cta: 'Done' },
     ];
   }
@@ -265,7 +265,7 @@
     T['bioc-sc-routing'].steps = [
       { target: null, placement: 'center', icon: '🔬',
         title: 'Bioconductor · scRNA-seq chain',
-        body: (<>Same agent, a single-cell request. BioMate routes to the <b>OSCA</b> stack, clusters and annotates in parallel, then runs condition DE the statistically correct way — pseudobulk.<div className="hint">~3 min · route → cluster → annotate → pseudobulk DE → report.</div></>),
+        body: (<>Same agent, a single-cell request. BioMate routes to the <b>OSCA</b> stack, clusters and annotates in parallel, then runs condition DE the statistically correct way — pseudobulk.<div className="hint">Route → cluster → annotate → pseudobulk DE → report.</div></>),
         setup: () => { if (window.__tourReset) window.__tourReset(); return { scenario: 'bioc_sc', runState: 'idle' }; },
         },
 
@@ -342,7 +342,7 @@
 
       { target: null, placement: 'center', icon: '🌟',
         title: 'That’s the single-cell thread',
-        body: (<>Route to OSCA → cluster → annotate in parallel → pseudobulk DE → a seven-tab report. One object, one request, statistically honest DE.<div className="hint">Compare with the bulk DESeq2 and methylation tutorials — same agent, different data.</div></>),
+        body: (<>Route to OSCA → cluster → annotate in parallel → pseudobulk DE → a seven-tab report. One object, one request, statistically honest DE.</>),
         cta: 'Done' },
     ];
   }
@@ -354,7 +354,7 @@
     T['bioc-methyl-routing'].steps = [
       { target: null, placement: 'center', icon: '🧫',
         title: 'Bioconductor · 450k methylation chain',
-        body: (<>A methylation-array request. This chain rides a <b>genomic backbone</b> object instead of a count matrix — probe coordinates travel with the data so region-level analysis is possible.<div className="hint">~3 min · IDAT → GenomicRatioSet → DMRs → CpG-corrected GO → report.</div></>),
+        body: (<>A methylation-array request. This chain rides a <b>genomic backbone</b> object instead of a count matrix — probe coordinates travel with the data so region-level analysis is possible.<div className="hint">IDAT → GenomicRatioSet → DMRs → CpG-corrected GO → report.</div></>),
         setup: () => { if (window.__tourReset) window.__tourReset(); return { scenario: 'bioc_methyl', runState: 'idle' }; },
         },
 
@@ -431,7 +431,7 @@
 
       { target: null, placement: 'center', icon: '🌟',
         title: 'That’s the epigenomics thread',
-        body: (<>A GRanges backbone → DMPs → DMRs → CpG-corrected enrichment → a seven-tab report. A different object lineage from the other two demos, same orchestration.<div className="hint">That completes the three Bioconductor tutorials.</div></>),
+        body: (<>A GRanges backbone → DMPs → DMRs → CpG-corrected enrichment → a seven-tab report. A different object lineage from the other two demos, same orchestration.</>),
         cta: 'Done' },
     ];
   }

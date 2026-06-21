@@ -52,6 +52,7 @@
             ${dropdown('about', 'About', 'about.html', [
               { label: 'About BioMate',      href: 'about.html' },
               { label: 'Platform Features',  href: 'features.html' },
+              { label: 'Benchmarks',         href: 'benchmarks.html' },
               { label: 'Compare',            href: 'compare.html' }
               /* Team — commented out until team page is ready
               ,{ label: 'Team',              href: 'team.html' }
@@ -103,6 +104,7 @@
               <ul>
                 <li><a href="services.html">Services</a></li>
                 <li><a href="features.html">Features</a></li>
+                <li><a href="benchmarks.html">Benchmarks</a></li>
                 <li><a href="pricing.html">Pricing</a></li>
                 <li><a href="compare.html">Compare</a></li>
                 <li><a href="https://dev-public.biomate.ai/register">Start free</a></li>

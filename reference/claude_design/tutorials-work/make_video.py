@@ -31,8 +31,10 @@ NODE_TOOL  = "/tmp/biomate_video_tool"
 # The correct Cryo Tutorial Package lives in a dedicated subdirectory with updated src/
 RESEARCH_URL_PATH = "cyro_tutorial/Research Agent UI.html"
 IND_URL_PATH      = "IND Report/BioMate IND Report.html"
-# New Bioconductor UI — Research Agent_UI_bio_drug (updated components + BiocTours.jsx)
-BIOC_URL_PATH     = "Research Agent_UI_bio_drug/Research Agent UI.html"
+# Bioconductor UI — 1256-handoff (latest: InteractiveLauncher, updated AfterRunReport)
+BIOC_URL_PATH     = "1256-handoff/Research Agent UI.html"
+# Tier-0 therapeutic design demos — design_handoff_tier0_design_pipelines
+TIER0_URL_PATH    = "design_handoff_tier0_design_pipelines/Research Agent UI.html"
 
 
 # ── Local HTTP server ─────────────────────────────────────────────────────────
@@ -105,6 +107,40 @@ TUTORIALS = {
   "bioc_methyl": {
     "url_path": BIOC_URL_PATH,
     "tour_label": "BIO3 — Bioconductor · 450k methylation → DMRs",
+    "lead_in_ms": 1000,
+    "trail_ms": 2000,
+  },
+
+  # ── Tier-0 therapeutic design demos — design_handoff_tier0_design_pipelines ─
+  # Tier0Tours.jsx overrides Tour.jsx steps; 19 steps per tour.
+  # Tour labels from that HTML's Tour.jsx, prefix[:30] used for picker matching.
+  "design_bispecific": {
+    "url_path": TIER0_URL_PATH,
+    "tour_label": "T01 — Bispecific format triage (PD-1 × VEGF)",
+    "lead_in_ms": 1000,
+    "trail_ms": 2000,
+  },
+  "design_cart": {
+    "url_path": TIER0_URL_PATH,
+    "tour_label": "T02 — In-vivo CAR-T co-design (CD19 + LNP)",
+    "lead_in_ms": 1000,
+    "trail_ms": 2000,
+  },
+  "design_baseedit": {
+    "url_path": TIER0_URL_PATH,
+    "tour_label": "T03 — In-vivo base-edit knockout (PCSK9)",
+    "lead_in_ms": 1000,
+    "trail_ms": 2000,
+  },
+  "design_glp1": {
+    "url_path": TIER0_URL_PATH,
+    "tour_label": "T04 — GLP-1 modality bake-off (MASH)",
+    "lead_in_ms": 1000,
+    "trail_ms": 2000,
+  },
+  "design_modtriage": {
+    "url_path": TIER0_URL_PATH,
+    "tour_label": "T05 — Modality triage (BCMA oncology)",
     "lead_in_ms": 1000,
     "trail_ms": 2000,
   },
@@ -200,6 +236,7 @@ const TRAIL   = {trail_ms};
   const browser = await puppeteer.launch({{
     executablePath: CHROME,
     headless: 'new',
+    timeout: 90000,
     args: [
       '--no-sandbox', '--disable-setuid-sandbox',
       '--window-size=1920,1080',
@@ -208,6 +245,7 @@ const TRAIL   = {trail_ms};
       '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding',
       '--disable-backgrounding-occluded-windows',
+      '--user-data-dir=/tmp/biomate_chrome_profile_{key}',
     ],
     defaultViewport: {{ width: 1920, height: 1080 }},
   }});

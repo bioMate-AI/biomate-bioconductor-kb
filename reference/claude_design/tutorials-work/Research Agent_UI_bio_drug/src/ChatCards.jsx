@@ -390,6 +390,9 @@ function FindingsChatCard({ data }) {
           </div>
         ))}
       </div>
+      <div className="fcc-foot">
+        Outputs, methods and the full report — details can be found in the <b>After run</b> tab of the workflow panel.
+      </div>
     </div>
   );
 }

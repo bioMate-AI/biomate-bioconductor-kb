@@ -98,40 +98,10 @@ function Step({ step, onSkip, onPreview, onDownload, onAdjust, onRerun }) {
   );
 }
 
-// A single QC gate row. The threshold is editable inline — clicking "edit"
-// swaps it for an input PREFILLED with the workflow's default value, so the
-// scientist tweaks rather than retypes. "done" commits.
-function QcGateRow({ g, onEdit }) {
-  const [editing, setEditing] = useStateP(false);
-  const [val, setVal] = useStateP(g.threshold);
-  const commit = (v) => { setEditing(false); onEdit && onEdit(g, v); };
-  return (
-    <div className={'qc-gate' + (editing ? ' editing' : '')}>
-      <span className="metric">{g.metric}</span>
-      <span className="op">{g.op}</span>
-      {editing ? (
-        <input className="qc-thr-input" defaultValue={g.threshold} autoFocus
-          onChange={(e) => setVal(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') commit(e.target.value); if (e.key === 'Escape') setEditing(false); }}/>
-      ) : (
-        <span className="thr">{val}</span>
-      )}
-      <button className="linkish edit"
-        onClick={() => editing ? commit(val) : setEditing(true)}>{editing ? 'done' : 'edit'}</button>
-    </div>
-  );
-}
-
 // QC gates are HIDDEN by default — the phase body shows only a small,
 // muted "QC gate(s)" toggle. Clicking reveals the editable gate rows +
-// the auto-loop control; clicking again hides them again. Keeps phases
-// clean and scannable; QC detail is opt-in.
-//
-// The auto-loop switch is offered on EVERY phase that has a QC gate. Its
-// initial position is the workflow's suggested default (`autoloop` prop,
-// off for Bioconductor); flipping it on makes the phase self-remediate on
-// a failed gate — apply the suggested fix and re-run, auto-proceeding
-// after a 10s review window if no one steps in.
+// auto-loop control; clicking again hides them again. Keeps phases clean
+// and scannable; QC detail is opt-in.
 function QcBlock({ qc, autoloop, onEdit, onToggleLoop, hasAutoloop }) {
   const [open, setOpen] = useStateP(false);
   if (!qc || qc.length === 0) return null;
@@ -145,17 +115,21 @@ function QcBlock({ qc, autoloop, onEdit, onToggleLoop, hasAutoloop }) {
         <span className="qc-hint">{open ? 'hide' : 'show'}</span>
       </button>
       {open && (
-        <div className="qc-detail" data-tour="qc-detail">
-          <div className="qc-detail-head">Evaluated after phase · edit any threshold</div>
-          {qc.map(g => <QcGateRow key={g.metric} g={g} onEdit={onEdit}/>)}
-          <div className="qc-autoloop" data-tour="qc-autoloop">
-            <span className={'switch' + (autoloop ? ' on' : '')}
-              onClick={onToggleLoop} role="switch" aria-checked={autoloop}/>
-            <span>Auto-loop this phase on fail <span className="mono" style={{color:'var(--text-dim)'}}>(max 3×)</span></span>
-          </div>
-          {autoloop && (
-            <div className="qc-autoloop-note">
-              On a failed gate, BioMate applies the suggested fix and re-runs automatically — <b>auto-proceeding after a 10s review window</b> if you don’t step in.
+        <div className="qc-detail">
+          <div className="qc-detail-head">Evaluated after phase</div>
+          {qc.map(g => (
+            <div className="qc-gate" key={g.metric}>
+              <span className="metric">{g.metric}</span>
+              <span className="op">{g.op}</span>
+              <span className="thr">{g.threshold}</span>
+              <button className="linkish edit" onClick={() => onEdit && onEdit(g)}>edit</button>
+            </div>
+          ))}
+          {hasAutoloop && (
+            <div className="qc-autoloop">
+              <span className={'switch' + (autoloop ? ' on' : '')}
+                onClick={onToggleLoop} role="switch" aria-checked={autoloop}/>
+              <span>Auto-loop this phase on fail <span className="mono" style={{color:'var(--text-dim)'}}>(max 3×)</span></span>
             </div>
           )}
         </div>
@@ -233,6 +207,9 @@ function PhaseCard({ phase, open, onToggle, onRunPhase, onSkipPhase, onStepActio
               )}
             */}
             <span style={{flex:1}}/>
+            {status === 'completed' && (
+              <button className="linkish" style={{fontSize:12}}>View phase outputs</button>
+            )}
           </div>
         </div>
       )}
@@ -345,6 +322,9 @@ function PhaseTabsView({ phases, activeId, onSelect, onStepAction, onRunPhase, o
             </button>
           )}
           <span style={{flex:1}}/>
+          {a.status === 'completed' && (
+            <button className="linkish" style={{fontSize:12}}>View phase outputs</button>
+          )}
         </div>
       </div>
     </div>
