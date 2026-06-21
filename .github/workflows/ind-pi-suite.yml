@@ -1,7 +1,10 @@
 name: IND Production Integration Smoke (PI suite)
 
 # Runs the IND module PI-1..PI-12 suite + design audit against the live
-# dev environment after every push to integration/next-phase.
+# dev environment. MANUAL trigger only — run it AFTER a scripts/sync_to_dev.sh
+# deploy has pushed the latest code to dev. (Previously ran on push, but a push
+# does NOT deploy to dev — sync_to_dev.sh is manual — so it kept smoking an
+# un-synced dev and failing spuriously while burning Actions minutes.)
 #
 # Why post-deploy instead of pre-merge:
 #   - The PI suite needs both a real Node frontend (:5000) and a real
@@ -20,24 +23,11 @@ name: IND Production Integration Smoke (PI suite)
 #   - Audit overlay placement, data-tour cleanup, region selector
 #     gray-out, real SHA-256, version popover wiring, mobile FAB modal
 
+# MANUAL ONLY: a git push does not deploy to dev (sync_to_dev.sh is manual), so
+# auto-running this against the live dev stack on push smoked an un-synced dev
+# and failed for nothing. Run it from the Actions tab → "Run workflow" after you
+# have synced the code you want to validate to dev-public.biomate.ai.
 on:
-  push:
-    branches:
-      - integration/next-phase
-      - main
-      - master
-    paths:
-      - "backend/lib/galaxy/ai/drug_discovery/ind_actions_router.py"
-      - "backend/lib/galaxy/ai/drug_discovery/feedback_router.py"
-      - "backend/lib/galaxy/ai/drug_discovery/llm_streaming_router.py"
-      - "frontend/client/src/pages/ind-report.tsx"
-      - "frontend/client/src/components/ind-report/**"
-      - "frontend/client/src/lib/ind-report-api.ts"
-      - "frontend/server/routes.ts"
-      - "frontend/e2e/ind-report-production.e2e.ts"
-      - "frontend/e2e/ind-design-audit.e2e.ts"
-      - "frontend/e2e/regenerate-dev-smoke.e2e.ts"
-      - ".github/workflows/ind-pi-suite.yml"
   workflow_dispatch:
     inputs:
       require_auth:
