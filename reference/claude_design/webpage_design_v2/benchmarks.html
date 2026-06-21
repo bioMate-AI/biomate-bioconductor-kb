@@ -239,354 +239,67 @@
     </div>
   </section>
 
-  <!-- ════ Section 1: Routing & Reliability ════ -->
+  <!-- ════ Benchmark Deep Dives ════ -->
   <section class="bm-section bm-bg-2">
     <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Routing &amp; Reliability</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Workflow Routing &amp; Reliability</h2>
-      <p style="max-width:640px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:.5rem;">
-        Measured across all 36 biomedical domains using held-out queries not seen during system development. Each metric is tested with a minimum of 3 independent repetitions.
+      <span class="bm-eyebrow">Deep Dives</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">Benchmark results by topic</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.7;margin-bottom:1.75rem;">
+        Each page covers methodology, raw numbers, competitor comparisons, and context for interpreting what the scores mean for real research workloads.
       </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1.25rem;">
 
-      <div class="bm-metric-grid">
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">94.6%</div>
-          <div class="bm-metric-label">Workflow routing accuracy</div>
-          <div class="bm-metric-note">120 test cases across all 36 domains<br>Target &ge;80%</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">100%</div>
-          <div class="bm-metric-label">Cross-run stability</div>
-          <div class="bm-metric-note">Cohen&rsquo;s Kappa = 1.0<br>0% flip rate across 3 independent runs</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">98.2%</div>
-          <div class="bm-metric-label">License gating accuracy</div>
-          <div class="bm-metric-note">54 test cases<br>Target &ge;90% — correctly blocks unlicensed workflows</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">97.5%</div>
-          <div class="bm-metric-label">Prerequisite recovery</div>
-          <div class="bm-metric-note">40 test cases<br>Target &ge;85% — correctly recovers missing upstream steps</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-      </div>
-    </div>
-  </section>
+        <!-- Card 1: Routing & Agent Evaluation -->
+        <a href="benchmarks-routing.html" style="text-decoration:none;display:block;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:1.75rem 1.5rem;height:100%;box-sizing:border-box;transition:box-shadow .18s,border-color .18s;" onmouseover="this.style.boxShadow='var(--shadow-md)';this.style.borderColor='var(--accent-tint2)'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-2);margin-bottom:.75rem;">AI Routing &amp; Agent Evaluation</div>
+            <h3 style="font-size:1.1rem;font-weight:700;color:var(--text);margin:0 0 .75rem;line-height:1.3;">Workflow Routing, BixBench &amp; Parameter Extraction</h3>
+            <p style="font-size:.875rem;color:var(--text-muted);line-height:1.6;margin:0 0 1.25rem;">
+              How accurately does BioMate select the right pipeline from 4,000+ options across 36 biomedical domains? How does it compare to Biomni Lab on BixBench? How well does it read parameters from plain language?
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem;">
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">94.6% routing</span>
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">92.7% BixBench</span>
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">84.8% param extraction</span>
+            </div>
+            <div style="font-size:.875rem;font-weight:600;color:var(--accent-2);">View routing benchmarks &rarr;</div>
+          </div>
+        </a>
 
-  <!-- ════ Section 2: BixBench ════ -->
-  <section class="bm-section bm-bg-1">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Bioinformatics Agent Evaluation</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BixBench — BioMate AI vs. Biomni Lab and Other AI Systems</h2>
-      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.25rem;">
-        BixBench is a public bioinformatics agent benchmark covering 205 tasks across genomics, transcriptomics, proteomics, and drug discovery. It is the primary independent benchmark used to compare bioinformatics AI systems including Biomni Lab, general-purpose LLMs, and specialized agents like BioMate.
-      </p>
+        <!-- Card 2: Drug Discovery & PK -->
+        <a href="benchmarks-drug.html" style="text-decoration:none;display:block;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:1.75rem 1.5rem;height:100%;box-sizing:border-box;transition:box-shadow .18s,border-color .18s;" onmouseover="this.style.boxShadow='var(--shadow-md)';this.style.borderColor='var(--accent-tint2)'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-2);margin-bottom:.75rem;">Drug Discovery &amp; Pharmacokinetics</div>
+            <h3 style="font-size:1.1rem;font-weight:700;color:var(--text);margin:0 0 .75rem;line-height:1.3;">ADMET Accuracy, PBPK Validation &amp; E2E Drug Design</h3>
+            <p style="font-size:.875rem;color:var(--text-muted);line-height:1.6;margin:0 0 1.25rem;">
+              How accurate is BioMate&rsquo;s ADMET property prediction across Lipinski, hERG, BBB, and CYP? How does the PBPK engine validate against FDA reference compounds? What is the end-to-end completion rate on drug design workflows?
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem;">
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">96.3% ADMET</span>
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">100% PBPK (FDA 2-fold)</span>
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">24/24 workflows</span>
+            </div>
+            <div style="font-size:.875rem;font-weight:600;color:var(--accent-2);">View drug discovery benchmarks &rarr;</div>
+          </div>
+        </a>
 
-      <div class="bm-compare-strip" style="max-width:560px;">
-        <div class="bm-compare-card bm-self">
-          <div class="bm-cval" style="color:var(--accent-2);">92.7%</div>
-          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">BioMate AI</div>
-          <div class="bm-clabel">BixBench v36 &middot; n=205<br>Grounding: 15,641 validated Bioconductor steps</div>
-        </div>
-        <div class="bm-compare-card bm-other">
-          <div class="bm-cval" style="color:var(--text-muted);">88.7%</div>
-          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">Biomni Lab</div>
-          <div class="bm-clabel">Published 2026 &middot; same evaluation methodology</div>
-        </div>
-      </div>
+        <!-- Card 3: Biology & QC -->
+        <a href="benchmarks-biology.html" style="text-decoration:none;display:block;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:1.75rem 1.5rem;height:100%;box-sizing:border-box;transition:box-shadow .18s,border-color .18s;" onmouseover="this.style.boxShadow='var(--shadow-md)';this.style.borderColor='var(--accent-tint2)'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-2);margin-bottom:.75rem;">Biomedical Knowledge &amp; Quality Control</div>
+            <h3 style="font-size:1.1rem;font-weight:700;color:var(--text);margin:0 0 .75rem;line-height:1.3;">BiomniEval, QC Gates &amp; Auto-Remediation</h3>
+            <p style="font-size:.875rem;color:var(--text-muted);line-height:1.6;margin:0 0 1.25rem;">
+              How does BioMate score on BiomniEval biomedical reasoning questions versus the Biomni-R0-32B-Preview specialist model? How many quantitative QC gates does it enforce? How does auto-remediation work in practice?
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem;">
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">65.9% BiomniEval</span>
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">20 QC gates</span>
+              <span style="font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(37,99,235,.09);color:var(--accent-2);">96/96 auto-loop</span>
+            </div>
+            <div style="font-size:.875rem;font-weight:600;color:var(--accent-2);">View biology &amp; QC benchmarks &rarr;</div>
+          </div>
+        </a>
 
-      <p class="bm-footnote" style="max-width:680px;margin-top:1.5rem;">
-        BixBench score uses proprietary grounding from BioMate&rsquo;s knowledge base of 15,641 validated Bioconductor workflow steps &mdash; the same evaluation methodology used by Biomni Lab and other published BixBench competitors. General-purpose LLMs (ChatGPT, Claude, Gemini) without domain-specific bioinformatics grounding score significantly lower on BixBench due to hallucinated pipeline steps, incorrect parameter values, and inability to execute workflows end-to-end.
-      </p>
-    </div>
-  </section>
-
-  <!-- ════ Section 3: ADMET Prediction ════ -->
-  <section class="bm-section bm-bg-2">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Drug Discovery</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">ADMET Prediction</h2>
-      <p style="max-width:640px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
-        ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) prediction is a core drug discovery workflow. BioMate routes compound inputs to validated ML-backed ADMET pipelines and applies QC gating on the outputs.
-      </p>
-
-      <div class="bm-metric-grid" style="max-width:720px;">
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">96.3%</div>
-          <div class="bm-metric-label">Multi-property ADMET accuracy</div>
-          <div class="bm-metric-note">n=60 test cases &middot; v3 benchmark<br>Target &ge;85%</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-      </div>
-
-      <table class="bm-prop-table" style="max-width:700px;margin-top:1.5rem;">
-        <thead>
-          <tr>
-            <th>Property class</th>
-            <th>Coverage</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Lipinski filters (Ro5)</td><td>MW, LogP, H-bond donors/acceptors</td></tr>
-          <tr><td>hERG cardiotoxicity</td><td>QC gate with configurable threshold</td></tr>
-          <tr><td>Blood-brain barrier permeability</td><td>BBB+ / BBB&minus; classification</td></tr>
-          <tr><td>Metabolic stability</td><td>CYP2D6/3A4 inhibition flags</td></tr>
-          <tr><td>Aqueous solubility</td><td>Esol-derived logS with alert tier</td></tr>
-          <tr><td>Mutagenicity</td><td>Ames test prediction</td></tr>
-        </tbody>
-      </table>
-      <p class="bm-footnote">Benchmark v3 evaluated on 60 multi-property test cases. QC gate fires when any property exceeds configured threshold; auto-remediation loop proposes structural modifications via ADMET-guided feedback.</p>
-    </div>
-  </section>
-
-  <!-- ════ Section 4: Parameter Extraction ════ -->
-  <section class="bm-section bm-bg-1">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Workflow Intelligence</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Parameter Extraction from Natural Language</h2>
-      <p style="max-width:660px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
-        BioMate extracts workflow parameters from plain-language research descriptions — species names, sequencing modes, concentration units, genome builds, and analysis flags — without requiring the researcher to fill form fields.
-      </p>
-
-      <div class="bm-metric-grid" style="max-width:720px;">
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">84.8%</div>
-          <div class="bm-metric-label">Parameter extraction accuracy</div>
-          <div class="bm-metric-note">n=115 test cases &middot; v10 benchmark<br>From ~50% baseline (LLM-only)</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">&sim;50%</div>
-          <div class="bm-metric-label">LLM-only baseline</div>
-          <div class="bm-metric-note">Without rule-based inference<br>Prior to hybrid extraction</div>
-        </div>
-      </div>
-
-      <p style="max-width:640px;color:var(--text-muted);font-size:.9rem;line-height:1.65;margin-top:1.5rem;">
-        BioMate uses a <strong>hybrid rule + LLM</strong> architecture for parameter extraction. Rules handle deterministic mappings (unit conversions, boolean flags, canonical aliases such as &ldquo;human&rdquo; &rarr; GRCh38 or &ldquo;dUTP&rdquo; &rarr; reverse). The LLM handles free-text values (SMILES, PDB IDs, gene lists) and ambiguous enum selection. All extracted values are validated against per-workflow schema constraints before the workflow is submitted.
-      </p>
-      <p class="bm-footnote">Benchmark v10 across 115 held-out test cases. Improvement from ~50% baseline achieved via rule-based inference layer; LLM alone is unreliable for arithmetic (unit conversions, exponents) and schema-constrained enums.</p>
-    </div>
-  </section>
-
-  <!-- ════ Section 5: BiomniEval Biomedical Knowledge ════ -->
-  <section class="bm-section bm-bg-2">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Biomedical Knowledge</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BiomniEval — Biomedical Knowledge Recall</h2>
-      <p style="max-width:640px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.25rem;">
-        BiomniEval tests reasoning and recall across biomedical domains including genomics, pharmacology, clinical trial design, and structural biology.
-      </p>
-
-      <div class="bm-compare-strip" style="max-width:640px;">
-        <div class="bm-compare-card bm-self">
-          <div class="bm-cval" style="color:var(--accent-2);">65.9%</div>
-          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">BioMate AI</div>
-          <div class="bm-clabel">BiomniEval v17 &middot; n=223</div>
-        </div>
-        <div class="bm-compare-card bm-other">
-          <div class="bm-cval" style="color:var(--text-muted);">~65%</div>
-          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">Biomni-R0-32B-Preview</div>
-          <div class="bm-clabel">Published baseline &middot; 32B specialist model</div>
-        </div>
-      </div>
-
-      <p class="bm-footnote">BiomniEval v17, n=223 questions. BioMate matches the Biomni-R0-32B-Preview specialist model using a general-purpose foundation model augmented by structured biomedical knowledge retrieval.</p>
-    </div>
-  </section>
-
-  <!-- ════ Section 6: PBPK Validation ════ -->
-  <section class="bm-section bm-bg-1">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Pharmacokinetics</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">PBPK Pharmacokinetic Validation</h2>
-      <p style="max-width:660px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
-        BioMate&rsquo;s physiologically-based pharmacokinetic (PBPK) simulation pipeline is validated against FDA first-in-human reference compounds. All predictions fall within the FDA-accepted 2-fold accuracy window.
-      </p>
-
-      <div class="bm-metric-grid" style="max-width:720px;">
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">100%</div>
-          <div class="bm-metric-label">FDA 2-fold pass rate</div>
-          <div class="bm-metric-note">18 pharma-standard reference compounds<br>Validated against published clinical PK data</div>
-          <span class="bm-pass-badge">PASS</span>
-        </div>
-      </div>
-
-      <p style="max-width:640px;color:var(--text-muted);font-size:.9rem;line-height:1.65;margin-top:1.5rem;">
-        The FDA 2-fold accuracy window (errors up to 100%) is the accepted standard for PBPK first-in-human predictions. BioMate&rsquo;s PBPK pipeline, running on AWS Batch with nlmixr2/NONMEM-compatible ODE solvers, achieves 100% pass rate across 18 curated pharma compounds spanning small molecules, biologics, and renal/hepatically cleared drugs.
-      </p>
-      <p class="bm-footnote">Validated against FDA first-in-human guidance datasets (FDA FIH 2005 and supplementary compound sets). Population PK estimates use nlmixr2 with FOCEI estimation.</p>
-    </div>
-  </section>
-
-  <!-- ════ Section 7: End-to-End Execution Reliability ════ -->
-  <section class="bm-section bm-bg-2">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Production Reliability</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">End-to-End Drug Design Execution Reliability</h2>
-      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.25rem;">
-        Beyond benchmark scores, BioMate is evaluated on production stability: whether real workflows complete successfully on AWS Batch, auto-loop QC cycles fire correctly, and multi-domain research sessions run end-to-end without failure.
-      </p>
-
-      <div class="bm-metric-grid" style="max-width:860px;">
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">24/24</div>
-          <div class="bm-metric-label">Drug discovery workflows</div>
-          <div class="bm-metric-note">AWS Batch production &middot; 2026-04-18<br>Runs 12861&ndash;12884 &middot; Nextflow CE v2</div>
-          <span class="bm-pass-badge">100% PASS</span>
-        </div>
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">96/96</div>
-          <div class="bm-metric-label">Auto-loop QC cycles</div>
-          <div class="bm-metric-note">ADMET &middot; CYP-DDI &middot; Docking &middot; NCA-PK<br>Playwright E2E suite &middot; 2026-04-17</div>
-          <span class="bm-pass-badge">100% PASS</span>
-        </div>
-        <div class="bm-metric-card">
-          <div class="bm-metric-number">9/9</div>
-          <div class="bm-metric-label">Multi-domain research sessions</div>
-          <div class="bm-metric-note">ADMET screening &rarr; lead optimisation &rarr; clinical<br>Full S1 &rarr; DD-1/2/3 pipeline</div>
-          <span class="bm-pass-badge">100% PASS</span>
-        </div>
-      </div>
-
-      <table class="bm-prop-table" style="max-width:760px;margin-top:2rem;">
-        <thead>
-          <tr>
-            <th>Workflow domain</th>
-            <th>Covered in 24-run suite</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>ADMET screening (Lipinski, hERG, BBB, CYP)</td><td class="bm-pass">&#10003;</td></tr>
-          <tr><td>Molecular docking (Glide/Vina)</td><td class="bm-pass">&#10003;</td></tr>
-          <tr><td>PBPK pharmacokinetics</td><td class="bm-pass">&#10003;</td></tr>
-          <tr><td>CYP drug-drug interaction (CYP-DDI)</td><td class="bm-pass">&#10003;</td></tr>
-          <tr><td>Population PK / NCA</td><td class="bm-pass">&#10003;</td></tr>
-          <tr><td>Clinical trial dose escalation (BOIN)</td><td class="bm-pass">&#10003;</td></tr>
-          <tr><td>Lead optimisation multi-step loop</td><td class="bm-pass">&#10003;</td></tr>
-        </tbody>
-      </table>
-      <p class="bm-footnote">All 24 workflows executed on AWS Batch with real Nextflow pipelines — not simulated or mocked. Auto-loop QC cycles include QC gate evaluation, threshold comparison, remediation parameter generation, and re-run trigger.</p>
-    </div>
-  </section>
-
-  <!-- ════ Section 8: QC Gate Coverage ════ -->
-  <section class="bm-section bm-bg-2">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Quality Control</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">QC Gate Coverage &mdash; 20 Verified End-to-End Gates</h2>
-      <p style="max-width:660px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
-        Every biological domain handled by BioMate has quantitative pass/fail thresholds derived from published community standards. Gates are independently thresholded at Gold, Silver, and Bronze levels and verified end-to-end on AWS Batch in production.
-      </p>
-
-      <table class="bm-prop-table" style="max-width:760px;">
-        <thead>
-          <tr>
-            <th>Domain</th>
-            <th>Gates</th>
-            <th>Standards Referenced</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Cryo-EM</td>
-            <td>3</td>
-            <td>Rosenthal &amp; Henderson 2003</td>
-          </tr>
-          <tr>
-            <td>Cryo-ET</td>
-            <td>3</td>
-            <td>Rosenthal &amp; Henderson 2003; Hagen 2017</td>
-          </tr>
-          <tr>
-            <td>Protein structure</td>
-            <td>3</td>
-            <td>Jumper et al. 2021; Tunyasuvunakool 2021</td>
-          </tr>
-          <tr>
-            <td>Cancer / somatic variants</td>
-            <td>3</td>
-            <td>GATK/Mutect2; Strelka2</td>
-          </tr>
-          <tr>
-            <td>LNP formulation</td>
-            <td>3</td>
-            <td>USP standards</td>
-          </tr>
-          <tr>
-            <td>Population PK</td>
-            <td>2</td>
-            <td>nlmixr2/NONMEM guidelines</td>
-          </tr>
-          <tr>
-            <td>Drug discovery / ADMET</td>
-            <td>2</td>
-            <td>Lipinski 2001; ICH S7B</td>
-          </tr>
-          <tr>
-            <td>High-throughput screening</td>
-            <td>2</td>
-            <td>Zhang 1999; Iversen 2006</td>
-          </tr>
-          <tr>
-            <td>ADME / PK</td>
-            <td>2</td>
-            <td>Obach 1999; FDA FIH 2005</td>
-          </tr>
-          <tr>
-            <td>Clinical trial design (BOIN)</td>
-            <td>1</td>
-            <td>Liu &amp; Yuan 2015</td>
-          </tr>
-          <tr style="background:rgba(34,197,94,.05);font-weight:600;">
-            <td>Total — verified end-to-end</td>
-            <td class="bm-score-hi">20</td>
-            <td>ENCODE, GTEx, nf-core, FDA, ICH, and domain literature</td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="bm-footnote">Each gate independently thresholded at Gold (all metrics pass), Silver (minor flag), Bronze (below threshold &mdash; triggers auto-remediation loop). All 20 gates verified end-to-end on AWS Batch production runs with real biological outputs.</p>
-    </div>
-  </section>
-
-  <!-- ════ Section 8: Methodology ════ -->
-  <section class="bm-section bm-bg-1">
-    <div style="max-width:var(--maxw);margin:0 auto;">
-      <span class="bm-eyebrow">Methodology</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1rem;">How benchmarks are run</h2>
-      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.7;margin-bottom:1.25rem;">
-        All benchmarks use held-out test cases not seen during system development. Routing and extraction benchmarks use minimum 3 independent repetitions. BixBench scores reported with 95% confidence intervals. PBPK validated against published clinical PK data. QC gate coverage verified via end-to-end AWS Batch production runs.
-      </p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;max-width:860px;">
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Routing benchmark</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">120 held-out queries &middot; 36 biomedical domains &middot; 3 independent runs &middot; Cohen&rsquo;s Kappa reported</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">BixBench</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">205 bioinformatics tasks &middot; grounded with 15,641 Bioconductor steps &middot; same methodology as published competitors</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">ADMET benchmark</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">60 multi-property test cases &middot; v3 &middot; Lipinski, hERG, BBB, CYP, solubility, mutagenicity</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Parameter extraction</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">115 test cases &middot; v10 &middot; hybrid rule + LLM &middot; schema-validated outputs</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">PBPK validation</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">18 pharma compounds &middot; FDA 2-fold accuracy window &middot; nlmixr2 ODE solver &middot; validated vs clinical PK data</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">QC gate validation</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">20 gates &middot; end-to-end AWS Batch &middot; thresholds from peer-reviewed community standards</div>
-        </div>
       </div>
     </div>
   </section>

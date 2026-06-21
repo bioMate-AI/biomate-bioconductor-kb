@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Biomedical Knowledge &amp; Quality Control — BioMate AI Benchmarks</title>
+  <meta name="description" content="BioMate AI biomedical knowledge and QC benchmarks: 65.9% BiomniEval (matches Biomni-R0-32B-Preview specialist model), 20 QC gates verified end-to-end in production with Gold/Silver/Bronze grading across Cryo-EM, cancer variants, ADMET, BOIN, and 7 more domains." />
+  <link rel="canonical" href="https://biomate.ai/benchmarks-biology.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Biomedical Knowledge &amp; Quality Control — BioMate AI Benchmarks" />
+  <meta property="og:description" content="65.9% BiomniEval (matches 32B specialist model), 20 end-to-end verified QC gates with Gold/Silver/Bronze grading. BioMate AI biomedical knowledge and quantitative QC benchmarks." />
+  <meta property="og:url" content="https://biomate.ai/benchmarks-biology.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Biomedical Knowledge &amp; Quality Control — BioMate AI Benchmarks" />
+  <meta name="twitter:description" content="65.9% BiomniEval vs Biomni-R0-32B-Preview ~65%. 20 QC gates end-to-end verified. BioMate AI biomedical knowledge benchmarks." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Biomedical Knowledge & Quality Control — BioMate AI Benchmarks",
+    "description": "BioMate AI biomedical knowledge benchmark results: 65.9% on BiomniEval v17 (n=223), matching the Biomni-R0-32B-Preview specialist model using a general-purpose foundation model augmented by structured biomedical knowledge retrieval. Plus 20 quantitative QC gates verified end-to-end in AWS Batch production across 11 biomedical domains with Gold/Silver/Bronze grading from published community standards.",
+    "url": "https://biomate.ai/benchmarks-biology.html",
+    "isPartOf": { "@type": "WebSite", "url": "https://biomate.ai" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+        { "@type": "ListItem", "position": 2, "name": "Benchmarks", "item": "https://biomate.ai/benchmarks.html" },
+        { "@type": "ListItem", "position": 3, "name": "Biomedical Knowledge & QC", "item": "https://biomate.ai/benchmarks-biology.html" }
+      ]
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is BiomniEval and how does BioMate score on it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BiomniEval is a biomedical knowledge benchmark covering reasoning and recall across genomics, pharmacology, clinical trial design, and structural biology. BioMate scores 65.9% on BiomniEval v17 (n=223 questions), matching the Biomni-R0-32B-Preview specialist model (~65%) despite BioMate using a general-purpose foundation model augmented by structured biomedical knowledge retrieval rather than a 32B-parameter specialist model."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Gold/Silver/Bronze QC grading system in BioMate?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate's QC gates use three tiers: Gold means all metrics pass their primary thresholds (derived from top-quartile community standards); Silver means one or more metrics are below the Gold threshold but above the minimum acceptable level (a minor flag that is logged but does not block the result); Bronze means one or more metrics fall below the minimum acceptable threshold, which triggers the auto-remediation loop to propose corrective parameter changes and re-run the workflow."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do quantitative QC gates matter more than LLM judgment for scientific quality control?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "LLM-based quality assessment is inconsistent, ungraded, and non-reproducible — the same result can receive different judgments from the same LLM on different runs. Quantitative QC gates are deterministic: the same output always produces the same pass/fail decision. More importantly, the thresholds are derived from peer-reviewed community standards (ENCODE, GTEx, nf-core, FDA, ICH), making them defensible in regulatory submissions and scientific publications. A Bronze alert from BioMate's Cryo-EM gate means the FSC resolution is below the EMDB minimum acceptable threshold (4Å) — a precise, auditable statement."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How many QC gates does BioMate have and what domains do they cover?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate has 20 quantitative QC gates verified end-to-end in AWS Batch production, covering 11 biomedical domains: Cryo-EM (3 gates), Cryo-ET (3 gates), Protein structure (3 gates), Cancer/somatic variants (3 gates), LNP formulation (3 gates), Population PK (2 gates), Drug discovery/ADMET (2 gates), High-throughput screening (2 gates), ADME/PK (2 gates), Clinical trial design BOIN (1 gate), and ICH safety (1 gate)."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    .bm-topic-hero { padding: clamp(3.5rem,7vw,6rem) clamp(1rem,5vw,2.5rem) clamp(2rem,4vw,3.5rem); background: var(--bg); }
+    .bm-topic-hero-inner { max-width: var(--maxw); margin: 0 auto; }
+
+    /* Metric cards */
+    .bm-metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 1.25rem; margin-top: 2rem; }
+    .bm-metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem 1.5rem; text-align: center; transition: box-shadow .18s, border-color .18s; }
+    .bm-metric-card:hover { box-shadow: var(--shadow-md); border-color: var(--accent-tint2); }
+    .bm-metric-card .bm-metric-number { font-size: 3rem; font-weight: 700; line-height: 1; color: var(--accent-2); margin-bottom: .5rem; }
+    .bm-metric-card .bm-metric-label { font-size: .875rem; font-weight: 600; color: var(--text); margin-bottom: .35rem; }
+    .bm-metric-card .bm-metric-note { font-size: .7rem; color: var(--text-faint); font-style: italic; line-height: 1.4; }
+    .bm-metric-card .bm-pass-badge { display: inline-block; margin-top: .6rem; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
+    .bm-metric-card .bm-vs-badge { display: inline-block; margin-top: .6rem; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,.1); color: #4f46e5; border: 1px solid rgba(99,102,241,.25); }
+
+    /* Shared table */
+    .bm-prop-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 1rem; }
+    .bm-prop-table th { text-align: left; padding: .6rem 1rem; background: var(--bg-2); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+    .bm-prop-table td { padding: .65rem 1rem; border-bottom: 1px solid var(--border-soft); color: var(--text-muted); vertical-align: top; }
+    .bm-prop-table tr:last-child td { border-bottom: none; }
+    .bm-prop-table td:first-child { font-weight: 600; color: var(--text); }
+    .bm-pass { color: #16a34a; font-weight: 700; }
+    .bm-score-hi { color: var(--accent-2); font-weight: 700; }
+    .bm-score-comp { color: var(--text-faint); font-size: .85rem; }
+
+    /* Section spacing */
+    .bm-section { padding: clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem); }
+    .bm-bg-1 { background: var(--bg); }
+    .bm-bg-2 { background: var(--bg-2); }
+
+    /* Comparison callout */
+    .bm-compare-strip { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+    .bm-compare-card { flex: 1 1 200px; border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .bm-compare-card .bm-cval { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .bm-compare-card .bm-clabel { font-size: .78rem; color: var(--text-faint); margin-top: .3rem; }
+    .bm-compare-card.bm-self { background: var(--bg); border-color: var(--accent-tint2); }
+    .bm-compare-card.bm-other { background: var(--bg-2); }
+
+    /* CTA strip */
+    .bm-cta-strip { background: var(--bg-ink); padding: clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,2.5rem); text-align: center; }
+    .bm-cta-strip h2 { color: var(--on-ink); max-width: 560px; margin: 0 auto .75rem; }
+    .bm-cta-strip p { color: var(--on-ink-mute); max-width: 520px; margin: 0 auto 1.75rem; font-size: .95rem; }
+    .bm-cta-links { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+    .bm-cta-links a { color: var(--on-ink-mute); font-size: .88rem; text-decoration: none; }
+    .bm-cta-links a:hover { color: var(--on-ink); }
+
+    /* Footnote */
+    .bm-footnote { font-size: .8rem; color: var(--text-faint); margin-top: 1rem; line-height: 1.55; border-top: 1px solid var(--border-soft); padding-top: .75rem; }
+
+    /* Mode tag */
+    .bm-mode-tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: .35rem; }
+    .bm-mode-grounded { background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
+
+    /* FAQ */
+    .bm-faq { max-width: 760px; }
+    .bm-faq-item { border-bottom: 1px solid var(--border-soft); padding: 1.25rem 0; }
+    .bm-faq-item:first-child { border-top: 1px solid var(--border-soft); }
+    .bm-faq-item h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: .5rem; }
+    .bm-faq-item p { font-size: .9rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+
+    /* Explanation callout box */
+    .bm-explain-box { background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: 10px; padding: 1.25rem 1.5rem; max-width: 720px; margin-top: 1.5rem; }
+    .bm-explain-box .bm-explain-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin-bottom: .5rem; }
+    .bm-explain-box p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin: 0; }
+    .bm-explain-box p + p { margin-top: .75rem; }
+
+    /* QC tier badges */
+    .bm-tier-gold { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(234,179,8,.12); color: #a16207; border: 1px solid rgba(234,179,8,.35); }
+    .bm-tier-silver { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(148,163,184,.15); color: #475569; border: 1px solid rgba(148,163,184,.4); }
+    .bm-tier-bronze { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(180,83,9,.12); color: #b45309; border: 1px solid rgba(180,83,9,.3); }
+
+    /* QC tier explainer grid */
+    .bm-tier-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 1rem; max-width:760px; margin-top:1.5rem; }
+    .bm-tier-card { border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .bm-tier-card .bm-tier-name { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
+    .bm-tier-card p { font-size: .875rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+    .bm-tier-card.gold { border-top: 3px solid #eab308; }
+    .bm-tier-card.silver { border-top: 3px solid #94a3b8; }
+    .bm-tier-card.bronze { border-top: 3px solid #b45309; }
+  </style>
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <!-- Hero -->
+  <section class="bm-topic-hero">
+    <div class="bm-topic-hero-inner bm-anim-up">
+      <nav style="font-size:.8rem;color:var(--text-faint);margin-bottom:1.5rem;">
+        <a href="index.html" style="color:var(--text-faint);text-decoration:none;">Home</a>
+        <span style="margin:0 .4rem;">/</span>
+        <a href="benchmarks.html" style="color:var(--text-faint);text-decoration:none;">Benchmarks</a>
+        <span style="margin:0 .4rem;">/</span>
+        <span style="color:var(--text-muted);">Biomedical Knowledge &amp; Quality Control</span>
+      </nav>
+      <p style="font-size:.82rem;margin-bottom:1rem;"><a href="benchmarks.html" style="color:var(--accent-2);text-decoration:none;">&larr; All benchmarks</a></p>
+      <span class="bm-eyebrow">Biomedical Knowledge &amp; Quality Control</span>
+      <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">
+        Biomedical Knowledge &amp; QC Benchmarks
+      </h1>
+      <p class="bm-lead" style="max-width:740px;">
+        Executing a bioinformatics pipeline is only half the work &mdash; interpreting the result correctly and catching quality failures before they propagate into downstream analysis is the other half. This page reports BioMate&rsquo;s performance on biomedical knowledge reasoning (BiomniEval) and its quantitative quality control (QC) gate coverage, with full detail on the Gold/Silver/Bronze grading system and what triggers each tier.
+      </p>
+    </div>
+  </section>
+
+  <!-- Dark at-a-glance strip -->
+  <section class="bm-section" style="background:var(--bg-ink);padding-top:2.5rem;padding-bottom:2.5rem;">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--warm);margin-bottom:1rem;">Biomedical Knowledge &amp; QC — At a Glance</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">65.9%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">BiomniEval biomedical knowledge</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">BioMate AI &mdash; vs Biomni-R0-32B-Preview ~65%</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">223</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">BiomniEval questions</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">Genomics, pharmacology, clinical trial design, structural biology</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">20</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">QC gates verified end-to-end</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">AWS Batch production &middot; Gold/Silver/Bronze</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">11</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Biomedical domains with QC gates</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">Cryo-EM, cancer variants, ADMET, BOIN, and more</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">3</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">QC tiers per gate</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">Gold (all pass) / Silver (minor flag) / Bronze (auto-remediate)</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">6+</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Standard bodies referenced</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">ENCODE, GTEx, nf-core, FDA, ICH, domain literature</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 1: BiomniEval -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 1 &mdash; Public Benchmark</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BiomniEval &mdash; Biomedical Knowledge Recall &amp; Reasoning</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        BiomniEval is a comprehensive biomedical knowledge benchmark developed to test AI systems on reasoning and recall tasks spanning all major biological and clinical domains. It is designed to be harder than simple fact retrieval &mdash; many questions require multi-step reasoning, cross-domain knowledge integration, or interpretation of experimental results in context.
+      </p>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        The 223-question BiomniEval v17 set covers four primary domains: <strong>genomics</strong> (variant interpretation, GWAS methodology, sequencing platform tradeoffs), <strong>pharmacology</strong> (mechanism of action, receptor pharmacology, PK/PD principles), <strong>clinical trial design</strong> (endpoint selection, statistical power, adaptive designs, regulatory requirements), and <strong>structural biology</strong> (protein folding, cryo-EM data interpretation, AlphaFold outputs, NMR vs. X-ray crystallography tradeoffs). Questions are multiple-choice with four options; a score of 25% is random chance.
+      </p>
+
+      <div class="bm-compare-strip" style="max-width:620px;">
+        <div class="bm-compare-card bm-self">
+          <div class="bm-cval" style="color:var(--accent-2);">65.9%</div>
+          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">BioMate AI</div>
+          <div class="bm-clabel">BiomniEval v17 &middot; n=223<br>General-purpose foundation model + biomedical knowledge retrieval</div>
+        </div>
+        <div class="bm-compare-card bm-other">
+          <div class="bm-cval" style="color:var(--text-muted);">~65%</div>
+          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">Biomni-R0-32B-Preview</div>
+          <div class="bm-clabel">Published baseline &middot; 32B-parameter specialist model<br>Trained specifically on biomedical literature</div>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">Why matching a 32B specialist model matters</div>
+        <p>Biomni-R0-32B-Preview is a 32-billion-parameter model trained specifically on biomedical literature &mdash; scientific papers, clinical guidelines, pharmacological databases, and genomics reference materials. Achieving an equivalent score requires either a comparable parameter count trained on similar data, or a smaller model augmented by strong knowledge retrieval that brings relevant biomedical context into the answer generation process.</p>
+        <p>BioMate uses a general-purpose foundation model (substantially smaller than 32B) augmented by BioMate&rsquo;s structured biomedical knowledge retrieval system, which indexes peer-reviewed methodology notes, tool documentation, QC standards, and workflow-specific knowledge. The retrieval system identifies which domain a question falls in and pulls relevant structured knowledge before the model answers. This approach &mdash; retrieval-augmented generation with domain-specific indexes &mdash; closes most of the gap between a small general model and a large specialist model on this type of structured knowledge recall.</p>
+        <p>The 65.9% score (vs. ~65% for Biomni-R0-32B-Preview) demonstrates that BioMate&rsquo;s knowledge architecture is competitive with purpose-built specialist models at a fraction of the inference cost.</p>
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:600;color:var(--text);margin-top:2.5rem;margin-bottom:.75rem;">BiomniEval domain breakdown</h3>
+
+      <table class="bm-prop-table" style="max-width:720px;">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Example question types</th>
+            <th>Knowledge sources indexed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Genomics</td>
+            <td>Variant classification (ACMG criteria), GWAS p-value interpretation, sequencing error profiles, structural variant calling</td>
+            <td>ACMG guidelines, ClinVar, gnomAD documentation, GATK best practices</td>
+          </tr>
+          <tr>
+            <td>Pharmacology</td>
+            <td>Mechanism of action, receptor selectivity, off-target prediction, PK/PD modeling concepts</td>
+            <td>DrugBank, ChEMBL, FDA drug labels, pharmacology textbooks</td>
+          </tr>
+          <tr>
+            <td>Clinical trial design</td>
+            <td>Phase I/II/III endpoint selection, adaptive trial designs, futility analysis, ICH E9/E10 statistical guidance</td>
+            <td>ICH guidelines, FDA guidance documents, CONSORT reporting standards</td>
+          </tr>
+          <tr>
+            <td>Structural biology</td>
+            <td>Cryo-EM resolution assessment (FSC curve interpretation), AlphaFold pLDDT score meaning, B-factor interpretation, NMR vs. X-ray tradeoffs</td>
+            <td>EMDB standards, RCSB PDB documentation, AlphaFold documentation, wwPDB validation reports</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="bm-footnote" style="max-width:720px;">BiomniEval v17 &middot; 223 questions &middot; 4-option multiple choice &middot; 25% random baseline. BioMate score: 65.9%. Biomni-R0-32B-Preview published score: ~65%. BioMate uses general-purpose foundation model + structured biomedical knowledge retrieval; Biomni-R0-32B-Preview uses a 32B-parameter model trained specifically on biomedical literature.</p>
+    </div>
+  </section>
+
+  <!-- Section 2: QC Gates Overview -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Quality Control System</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">QC Gate Coverage &mdash; 20 End-to-End Verified Gates</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Every biological domain handled by BioMate has quantitative pass/fail thresholds derived from published community standards. When a workflow completes on AWS Batch, its output metrics are automatically evaluated against these thresholds &mdash; before results are returned to the researcher. If any metric falls below the acceptable minimum, BioMate&rsquo;s auto-remediation loop activates to propose corrective actions.
+      </p>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Quantitative QC gates matter for three reasons general LLM-based quality assessment cannot replicate. First, they are <strong>deterministic</strong>: the same output always produces the same grade, making results auditable and reproducible. Second, they are <strong>calibrated</strong>: thresholds are derived from ENCODE, GTEx, nf-core, FDA, and ICH standards, making them defensible in publications and regulatory submissions. Third, they <strong>trigger action</strong>: a Bronze alert does not just log a warning &mdash; it activates the auto-remediation loop to diagnose and correct the problem.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:860px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">20</div>
+          <div class="bm-metric-label">QC gates verified end-to-end</div>
+          <div class="bm-metric-note">AWS Batch production runs<br>All gates fire correctly on real outputs</div>
+          <span class="bm-pass-badge">PRODUCTION VERIFIED</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">11</div>
+          <div class="bm-metric-label">Biomedical domains covered</div>
+          <div class="bm-metric-note">Cryo-EM, cancer, ADMET, BOIN,<br>protein structure, HTS, and more</div>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">3</div>
+          <div class="bm-metric-label">Tiers per gate</div>
+          <div class="bm-metric-note">Gold / Silver / Bronze<br>Bronze triggers auto-remediation</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Gold/Silver/Bronze explained -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Grading System</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">The Gold / Silver / Bronze Grading System</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.5rem;">
+        Each QC gate is independently thresholded at three levels. The thresholds are not arbitrary &mdash; they are derived from the strictest tier of published community standards (Gold), the minimum widely-accepted standard (Silver), and the point below which results are considered unreliable for scientific use (Bronze/fail). This three-tier design gives researchers actionable information rather than a binary pass/fail that doesn&rsquo;t distinguish between a marginal sample and a failed experiment.
+      </p>
+
+      <div class="bm-tier-grid">
+        <div class="bm-tier-card gold">
+          <div class="bm-tier-name" style="color:#a16207;">Gold <span class="bm-tier-gold">PASS</span></div>
+          <p>All metrics exceed the primary (strictest) threshold derived from top-quartile published standards. For example, in Cryo-EM: FSC resolution better than 3.5&Aring;, map-to-model FSC &gt;0.143, EMDB validation score in top quartile. Results at this tier are publication-ready and regulatory-submittable without caveats.</p>
+        </div>
+        <div class="bm-tier-card silver">
+          <div class="bm-tier-name" style="color:#475569;">Silver <span class="bm-tier-silver">ADVISORY</span></div>
+          <p>One or more metrics fall below the Gold threshold but above the minimum acceptable standard. Silver fires an advisory flag: the result is logged, the researcher is informed which metric is marginal, and a suggested improvement action is provided. The workflow result is not blocked. Silver is appropriate for exploratory analyses and pilot data but should be noted in publications.</p>
+        </div>
+        <div class="bm-tier-card bronze">
+          <div class="bm-tier-name" style="color:#b45309;">Bronze <span class="bm-tier-bronze">AUTO-REMEDIATE</span></div>
+          <p>One or more metrics fall below the minimum acceptable threshold. Bronze triggers BioMate&rsquo;s auto-remediation loop: the system diagnoses which step caused the failure, proposes corrective parameter changes (e.g., increase sequencing depth, adjust alignment stringency, filter low-quality particles), and offers to re-run the workflow with the updated parameters. The original result is flagged as unreliable.</p>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">Why three tiers instead of binary pass/fail</div>
+        <p>A binary pass/fail system creates a cliff: a sample that is just below the threshold gets the same treatment as a completely failed experiment, even though the former may be salvageable with minor parameter adjustments while the latter requires re-doing the experiment from scratch. The three-tier system allows BioMate to give differentiated guidance: Silver says &ldquo;note this marginal metric but proceed,&rdquo; while Bronze says &ldquo;this result is not reliable &mdash; here is how to fix it.&rdquo;</p>
+        <p>For regulatory submissions, the distinction matters: a Silver Cryo-EM map can be submitted to EMDB with a note about resolution, while a Bronze map would require further data collection before deposition. BioMate surfaces this distinction automatically, so researchers know immediately which tier their result falls in and what the next step should be.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: QC Gate Table -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Gate Coverage</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">All 20 QC Gates — Domain Coverage &amp; Standards</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.25rem;">
+        Each gate below has been verified end-to-end on AWS Batch production runs with real biological outputs. &ldquo;Verified end-to-end&rdquo; means: a real workflow completed, the gate evaluated the output metrics, and the correct Gold/Silver/Bronze grade was assigned and surfaced to the researcher &mdash; including triggering the auto-remediation loop for Bronze cases.
+      </p>
+
+      <table class="bm-prop-table" style="max-width:900px;">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Gates</th>
+            <th>Key metrics evaluated</th>
+            <th>Standards referenced</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cryo-EM</td>
+            <td>3</td>
+            <td>FSC resolution (&Aring;), map-to-model FSC, EMDB validation score, particle count, angular distribution</td>
+            <td>Rosenthal &amp; Henderson 2003; EMDB deposition standards; Scheres 2012 RELION criteria</td>
+          </tr>
+          <tr>
+            <td>Cryo-ET</td>
+            <td>3</td>
+            <td>Subtomogram averaging resolution, tilt-series defocus range, CTF correction quality, gold standard FSC</td>
+            <td>Rosenthal &amp; Henderson 2003; Hagen et al. 2017 tomography quality criteria</td>
+          </tr>
+          <tr>
+            <td>Protein structure</td>
+            <td>3</td>
+            <td>AlphaFold pLDDT score (per-residue &amp; mean), PAE (predicted aligned error), Ramachandran plot statistics, B-factor distribution</td>
+            <td>Jumper et al. 2021 (AlphaFold2); Tunyasuvunakool et al. 2021 (pLDDT thresholds); wwPDB validation standards</td>
+          </tr>
+          <tr>
+            <td>Cancer / somatic variants</td>
+            <td>3</td>
+            <td>Tumor purity estimate, VAF distribution, somatic vs. germline classification confidence, mutational signature cosine similarity</td>
+            <td>GATK Mutect2 best practices; Strelka2 quality thresholds; COSMIC mutational signature standards</td>
+          </tr>
+          <tr>
+            <td>LNP formulation</td>
+            <td>3</td>
+            <td>Encapsulation efficiency (%), particle size (nm), PDI (polydispersity index), zeta potential (mV)</td>
+            <td>USP &lt;429&gt; light scattering standards; ICH Q1A stability guidance; FDA LNP guidance 2023</td>
+          </tr>
+          <tr>
+            <td>Population PK</td>
+            <td>2</td>
+            <td>OFV (objective function value) convergence, shrinkage (% &eta; and &epsilon;), bootstrap confidence interval coverage, VPC visual predictive check</td>
+            <td>nlmixr2 / NONMEM convergence guidelines; FDA population PK guidance 1999; EMA NLME guidance</td>
+          </tr>
+          <tr>
+            <td>Drug discovery / ADMET</td>
+            <td>2</td>
+            <td>hERG IC<sub>50</sub> (&mu;M), Lipinski Ro5 violations, logS (solubility), BBB penetration probability, Ames mutagenicity flag</td>
+            <td>Lipinski et al. 2001 (Ro5); ICH S7B (hERG); Brenk et al. 2008 (PAINS); FDA ADME guidance</td>
+          </tr>
+          <tr>
+            <td>High-throughput screening (HTS)</td>
+            <td>2</td>
+            <td>Z&prime;-factor (plate quality), signal-to-noise ratio, hit rate (%), false positive rate estimate, dose-response R&sup2;</td>
+            <td>Zhang et al. 1999 (Z&prime;-factor definition); Iversen et al. 2006 (HTS quality standards); NIH NCATS HTS guidelines</td>
+          </tr>
+          <tr>
+            <td>ADME / PK</td>
+            <td>2</td>
+            <td>Predicted vs. observed AUC ratio (2-fold window), C<sub>max</sub> ratio, half-life prediction accuracy, in vitro to in vivo correlation (IVIVC)</td>
+            <td>Obach 1999 (hepatic clearance IVIVC); FDA FIH 2005 (PBPK 2-fold window); EMA PBPK guidance 2019</td>
+          </tr>
+          <tr>
+            <td>Clinical trial design (BOIN)</td>
+            <td>1</td>
+            <td>MTD (maximum tolerated dose) posterior probability, dose-limiting toxicity (DLT) rate at recommended dose, BOIN dose boundary consistency</td>
+            <td>Liu &amp; Yuan 2015 (BOIN design); FDA Oncology dose escalation guidance 2023</td>
+          </tr>
+          <tr>
+            <td>ICH safety</td>
+            <td>1</td>
+            <td>ICH S7B/E14 safety flags, QTc prolongation risk classification, structural alert count (Ames, reactive metabolites)</td>
+            <td>ICH S7B (cardiovascular safety); ICH E14 (clinical QT evaluation); ICH M7 (mutagenicity assessment)</td>
+          </tr>
+          <tr style="background:rgba(34,197,94,.05);font-weight:600;">
+            <td>Total &mdash; verified end-to-end</td>
+            <td class="bm-score-hi">20</td>
+            <td style="color:var(--text);">All metrics evaluated on real AWS Batch pipeline outputs</td>
+            <td style="color:var(--text);">ENCODE, GTEx, nf-core, FDA, ICH, and domain literature</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="bm-footnote" style="max-width:900px;">Each gate independently thresholded at Gold (all metrics pass primary threshold), Silver (minor flag &mdash; advisory only), and Bronze (below minimum acceptable &mdash; triggers auto-remediation loop). All 20 gates verified end-to-end on AWS Batch production runs with real biological outputs from the relevant pipeline. Threshold values available in BioMate&rsquo;s QC documentation.</p>
+    </div>
+  </section>
+
+  <!-- Section 5: Auto-Remediation -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Auto-Remediation</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">What Happens When a Bronze Gate Fires</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        A Bronze QC alert is not the end of the analysis &mdash; it is the beginning of the remediation loop. BioMate&rsquo;s auto-remediation system activates automatically when any metric falls below its Bronze threshold, performing three steps: diagnose, propose, and re-run.
+      </p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;max-width:860px;margin-top:1.5rem;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid #b45309;border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.6rem;">Step 1 — Diagnose</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.6;">BioMate identifies which metric triggered Bronze, which pipeline step produced that metric, and what range of parameter values are associated with similar failures in the knowledge base.</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent-2);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.6rem;">Step 2 — Propose</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.6;">The auto-loop generates a remediation card showing the current (failing) parameter value, the proposed new value, the reasoning (e.g., &ldquo;Z&prime;-factor = 0.42 is below the 0.5 minimum; increase DMSO control volume to reduce signal variance&rdquo;), and an estimated outcome after remediation.</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid #16a34a;border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.6rem;">Step 3 — Re-run</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.6;">The researcher reviews the proposal and approves or modifies it. BioMate then re-submits the workflow with the updated parameters and evaluates the new output against the same QC gates. The loop continues until Gold or Silver is achieved, or until the system flags that the underlying data may be insufficient.</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:600;color:var(--text);margin-top:2.5rem;margin-bottom:.75rem;">Example remediation scenarios by domain</h3>
+
+      <table class="bm-prop-table" style="max-width:860px;">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Bronze trigger</th>
+            <th>Auto-remediation action proposed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cryo-EM</td>
+            <td>FSC resolution &gt;4&Aring; (Bronze threshold; EMDB minimum is 4&Aring;)</td>
+            <td>Increase particle count by 50% (add more micrographs), adjust CTF correction model, increase box size for particle extraction</td>
+          </tr>
+          <tr>
+            <td>ADMET</td>
+            <td>hERG IC<sub>50</sub> &lt;0.1 &mu;M (high cardiotoxicity risk)</td>
+            <td>Flag compound for structural modification; propose removing basic nitrogen at position X; suggest analogue synthesis from matched molecular pair database</td>
+          </tr>
+          <tr>
+            <td>High-throughput screening</td>
+            <td>Z&prime;-factor &lt;0.5 (below minimum plate quality standard)</td>
+            <td>Increase DMSO control replicates from 16 to 32; check for edge-effect pattern; recommend re-running plate with updated liquid handling protocol</td>
+          </tr>
+          <tr>
+            <td>Population PK</td>
+            <td>&eta;-shrinkage &gt;40% (parameter estimation unreliable)</td>
+            <td>Increase sampling frequency in next study design; simplify model to fewer compartments; propose rich PK sub-study for most influential patients</td>
+          </tr>
+          <tr>
+            <td>PBPK / ADME</td>
+            <td>Predicted AUC ratio &gt;2.0 or &lt;0.5 (outside FDA 2-fold window)</td>
+            <td>Re-calibrate fu (fraction unbound) using updated plasma protein binding measurement; adjust CLint using alternative hepatic clearance model</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="bm-footnote" style="max-width:860px;">Auto-remediation actions are generated by BioMate&rsquo;s knowledge-grounded remediation system, not by a general-purpose LLM producing free text. Each action references a specific parameter, a specific pipeline step, and a specific expected outcome &mdash; making the proposal auditable and traceable back to the QC metric that triggered it.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">FAQ</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1.5rem;">Common questions about BioMate biomedical knowledge and QC</h2>
+      <div class="bm-faq">
+        <div class="bm-faq-item">
+          <h3>Why does BioMate score only 65.9% on BiomniEval when it achieves 92.7% on BixBench?</h3>
+          <p>The two benchmarks test different capabilities. BixBench measures <em>task execution</em>: selecting the right tool, setting parameters correctly, and interpreting output &mdash; areas where BioMate&rsquo;s workflow knowledge base provides strong grounding. BiomniEval measures <em>declarative knowledge recall</em>: remembering specific facts from pharmacology, clinical trial methodology, and structural biology literature. Knowledge recall is harder to boost through workflow grounding alone &mdash; it requires either a larger model trained on biomedical text or effective retrieval from a broad literature index. BioMate&rsquo;s 65.9% on BiomniEval (matching the 32B Biomni specialist model) is strong for a general-purpose system, but the gap relative to BixBench reflects the difference between &ldquo;knowing what AlphaFold does and running it correctly&rdquo; vs. &ldquo;knowing the exact pLDDT score threshold published in Jumper et al. 2021.&rdquo;</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Are the QC gate thresholds configurable?</h3>
+          <p>Yes. Each gate has default thresholds derived from published community standards, but researchers can adjust thresholds for their specific context. For example, a pilot Cryo-EM dataset collected at a lower-end microscope may set the Bronze threshold to 6&Aring; rather than 4&Aring;, knowing that the data quality limitation is expected. Thresholds can be modified through BioMate&rsquo;s QC settings panel, and changes are recorded in the audit log so that threshold modifications are transparent in the analysis record.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>What happens if auto-remediation fails to bring a result to Silver or Gold?</h3>
+          <p>If the auto-remediation loop exhausts its proposed actions without reaching Silver, BioMate presents a terminal Bronze alert with a diagnostic summary: which metrics are still failing, what approaches were tried, and whether the failure is likely attributable to data quality (e.g., insufficient particle count) vs. parameter configuration (e.g., wrong CTF model). The researcher can then make an informed decision about whether to collect more data, change the experimental protocol, or proceed with a documented Bronze-tier result. BioMate never silently suppresses a QC failure &mdash; every Bronze alert is surfaced and logged.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Why use quantitative QC gates instead of asking the LLM to evaluate result quality?</h3>
+          <p>LLM-based quality assessment has three fundamental problems for scientific use. First, it is <em>stochastic</em>: the same output can receive different quality judgments from the same LLM on different runs. Second, it is <em>uncalibrated</em>: the LLM has no notion of &ldquo;this result falls below the EMDB minimum deposition standard&rdquo; unless it has memorized that specific standard and applies it correctly, which is not guaranteed. Third, it cannot <em>trigger deterministic actions</em>: an LLM saying &ldquo;this looks like a poor-quality Cryo-EM reconstruction&rdquo; does not automatically propose a specific parameter change and dispatch a re-run. BioMate&rsquo;s quantitative gates solve all three problems: deterministic, calibrated to published standards, and directly connected to the auto-remediation system.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>How are QC gate thresholds derived?</h3>
+          <p>Each threshold is derived from the strictest tier of peer-reviewed community standards in the relevant field. For example: Cryo-EM Gold threshold uses the EMDB &ldquo;high-quality&rdquo; resolution bracket (better than 3.5&Aring;); HTS Z&prime;-factor uses the Zhang et al. 1999 definition of &ldquo;excellent assay&rdquo; (Z&prime; &gt;0.75 for Gold); hERG cardiotoxicity uses the ICH S7B guidance threshold (IC<sub>50</sub> &gt;30&times; therapeutic plasma concentration for Gold). Where community standards define multiple tiers (as EMDB and ICH do), BioMate maps them directly to Gold/Silver/Bronze. Where a single threshold exists in the literature, BioMate&rsquo;s team defines Silver and Bronze relative to that anchor using domain-expert judgment, documented in the QC methodology notes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="bm-cta-strip">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow" style="color:var(--warm);">Get started</span>
+      <h2 style="margin-top:.75rem;">Run your analysis with quantitative QC built in</h2>
+      <p>Every BioMate workflow applies Gold/Silver/Bronze QC gating automatically. Know immediately whether your result meets publication standards &mdash; and get a remediation path if it doesn&rsquo;t.</p>
+      <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg" style="display:inline-block;margin-top:1rem;">Try free &rarr;</a>
+      <div class="bm-cta-links" style="margin-top:1.5rem;">
+        <a href="benchmarks.html">&larr; All benchmarks</a>
+        <a href="benchmarks-routing.html">Routing &amp; agent evaluation &rarr;</a>
+        <a href="benchmarks-drug.html">Drug discovery &amp; PK &rarr;</a>
+        <a href="blog-qc-grading.html">QC grading methodology &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'benchmarks', cta: false });</script>
+
+</body>
+</html>
