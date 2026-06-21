@@ -5,6 +5,9 @@
 #   3. Galaxy databases        — galaxy_ai_tools.db (workflow search), universe.sqlite
 #   4. Nextflow workflow files — .nf files in biomni_workflows/
 #
+# NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
+#       Use scripts/deploy_marketing.sh instead.
+#
 # Usage: bash scripts/sync_to_dev.sh
 #
 # As of 2026-05-15 this script is MANUAL-ONLY.
@@ -240,6 +243,14 @@ deploy_backend_python() {
 
   # Always include key files that might be missing
   echo "backend/lib/galaxy/jobs/qc_trace_monitor.py" >> "$tmp_list"
+
+  # Also sync backend/scripts/ (indexer + utilities not under lib/)
+  git diff --name-only "$(git log --before='2026-04-01' --format='%H' -- backend/scripts/ | head -1)" HEAD \
+    -- 'backend/scripts/*.py' 2>/dev/null >> "$tmp_list" || true
+  git ls-files --others --exclude-standard -- 'backend/scripts/*.py' \
+    2>/dev/null >> "$tmp_list" || true
+  # Always include the workflow indexer
+  echo "backend/scripts/index_all_workflows.py" >> "$tmp_list"
 
   local count=$(sort -u "$tmp_list" | grep -c "\.py$" || true)
   log "[backend] $count Python files to sync"
@@ -729,37 +740,6 @@ sync_logo() {
 
 # ---------------------------------------------------------------------------
 # Layer 5: Marketing website (reference/claude_design/webpage_design_v2/ → /var/www/biomate-marketing/)
-# ---------------------------------------------------------------------------
-# Source folder is reference/claude_design/webpage_design_v2/, NOT
-# webpage_design/ at the repo root. The latter is an older draft that
-# is NOT the deployed source. Confirmed 2026-05-28 by byte-comparing the
-# live biomate.ai HTML head to both folders. See
-# docs/20260527_GOOGLE_ANALYTICS_SETUP.md for the full story.
-
-deploy_marketing() {
-  log "[marketing] Syncing reference/claude_design/webpage_design_v2/ to /var/www/biomate-marketing/..."
-  local tar_file="/tmp/biomate_marketing.tar.gz"
-  # Tar with --transform so the archive is rooted at "webpage_design_v2/" (no
-  # leading reference/claude_design/) — keeps the extraction-side rsync
-  # invariant simple.
-  tar -czf "$tar_file" -C "$REPO_ROOT/reference/claude_design" webpage_design_v2/ 2>/dev/null
-  log "[marketing] Archive: $(du -sh $tar_file | cut -f1)"
-
-  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/marketing_sync.tar.gz"
-
-  ec2_ssh '
-    set -e
-    sudo mkdir -p /var/www/biomate-marketing
-    mkdir -p /tmp/marketing_extract && rm -rf /tmp/marketing_extract/* 2>/dev/null || true
-    tar -xzf /tmp/marketing_sync.tar.gz -C /tmp/marketing_extract
-    sudo rsync -a --delete /tmp/marketing_extract/webpage_design_v2/ /var/www/biomate-marketing/ 2>/dev/null || \
-      sudo cp -r /tmp/marketing_extract/webpage_design_v2/. /var/www/biomate-marketing/
-    sudo chown -R www-data:www-data /var/www/biomate-marketing/ 2>/dev/null || true
-    rm -rf /tmp/marketing_extract
-    echo "[marketing] Done — $(ls /var/www/biomate-marketing/*.html 2>/dev/null | wc -l) HTML files"
-  '
-  log "[marketing] Done"
-}
 
 do_sync() {
   local commit="$1"
@@ -767,14 +747,13 @@ do_sync() {
 
   log "=== Syncing commit ${commit:0:8} ==="
 
-  local do_frontend=false do_backend=false do_workflows=false do_db=false do_marketing=false
+  local do_frontend=false do_backend=false do_workflows=false do_db=false
 
   # Determine what changed
   echo "$changed_paths" | grep -q "^frontend/" && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
   echo "$changed_paths" | grep -q "^backend/biomni_workflows/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
-  echo "$changed_paths" | grep -qE "^(webpage_design/|reference/claude_design/webpage_design_v2/)" && do_marketing=true
 
   # Always sync logo
   sync_logo 2>/dev/null || true
@@ -784,7 +763,7 @@ do_sync() {
   [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
-  log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db marketing=$do_marketing"
+  log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
 
   # Optional (RECOMMENDED): pull runtime env from AWS Secrets Manager into the
   # EC2's /opt/biomate/.env using the instance role. Values live in Secrets
@@ -826,7 +805,6 @@ do_sync() {
   # storage layer never hits a missing column on the new schema.
   $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
-  $do_marketing && deploy_marketing
 
   log "=== Sync complete for ${commit:0:8} ==="
 }
@@ -859,7 +837,7 @@ fi
 
 # --- One-shot sync ---------------------------------------------------------
 # Sync all tracked layers in one pass and exit. No polling, no retries.
-CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/\nwebpage_design/')"
+CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/')"
 
 if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="

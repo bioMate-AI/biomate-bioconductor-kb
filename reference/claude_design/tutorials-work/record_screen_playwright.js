@@ -89,7 +89,10 @@ const DSF = 2;
   const videoDir = path.join(OUT_DIR, '_video_tmp');
   fs.mkdirSync(videoDir, { recursive: true });
 
+  // Use system Google Chrome — the downloaded chromium-headless-shell requires
+  // AVFAudio.framework which is not present on macOS 11 (Big Sur / Darwin 20.x).
   const browser = await chromium.launch({
+    channel: 'chrome',
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });

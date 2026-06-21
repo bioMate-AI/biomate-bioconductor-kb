@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/home/yzhang/biomate/frontend/playwright.demo.config.ts",
-    "rootDir": "/home/yzhang/biomate/frontend/e2e",
+    "configFile": "/Users/kky/biomate/frontend/playwright.demo.config.ts",
+    "rootDir": "/Users/kky/biomate/frontend/e2e",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -40,7 +40,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/yzhang/biomate/frontend/e2e/demo-artifacts",
+        "outputDir": "/Users/kky/biomate/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -48,7 +48,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/home/yzhang/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate/frontend/e2e",
         "testIgnore": [
           "**/demo-07-*.demo.ts"
         ],
@@ -58,7 +58,7 @@
         "timeout": 7200000
       },
       {
-        "outputDir": "/home/yzhang/biomate/frontend/e2e/demo-artifacts",
+        "outputDir": "/Users/kky/biomate/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -66,7 +66,7 @@
         },
         "id": "chromium-cro",
         "name": "chromium-cro",
-        "testDir": "/home/yzhang/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/demo-07-*.demo.ts"
@@ -84,18 +84,18 @@
   },
   "suites": [
     {
-      "title": "demo-11-ind-assembly.demo.ts",
-      "file": "demo-11-ind-assembly.demo.ts",
+      "title": "cryo-tutorial-research-ui.demo.ts",
+      "file": "cryo-tutorial-research-ui.demo.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "Demo 11 — IND §2.6.1 Assembly with AI Regulatory Prose",
-          "ok": true,
+          "title": "09d — CryoSPARC SPA · 3-minute deep dive",
+          "ok": false,
           "tags": [],
           "tests": [
             {
-              "timeout": 300000,
+              "timeout": 7200000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
@@ -104,107 +104,85 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 102613,
-                  "errors": [],
-                  "stdout": [
+                  "status": "failed",
+                  "duration": 2,
+                  "error": {
+                    "message": "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-Wn6bAS --remote-debugging-pipe --no-startup-window\n<launched> pid=89512\n[pid=89512][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\n[pid=89512][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\n[pid=89512][err]   Reason: image not found\nCall log:\n\u001b[2m  - <launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-Wn6bAS --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=89512\u001b[22m\n\u001b[2m  - [pid=89512][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\u001b[22m\n\u001b[2m  - [pid=89512][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\u001b[22m\n\u001b[2m  - [pid=89512][err]   Reason: image not found\u001b[22m\n\u001b[2m  - [pid=89512] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=89512] <kill>\u001b[22m\n\u001b[2m  - [pid=89512] <will force kill>\u001b[22m\n\u001b[2m  - [pid=89512] exception while trying to kill process: Error: kill EPERM\u001b[22m\n\u001b[2m  - [pid=89512] <process did exit: exitCode=null, signal=SIGABRT>\u001b[22m\n\u001b[2m  - [pid=89512] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89512] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89512] <gracefully close end>\u001b[22m\n",
+                    "stack": "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-Wn6bAS --remote-debugging-pipe --no-startup-window\n<launched> pid=89512\n[pid=89512][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\n[pid=89512][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\n[pid=89512][err]   Reason: image not found\nCall log:\n\u001b[2m  - <launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-Wn6bAS --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=89512\u001b[22m\n\u001b[2m  - [pid=89512][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\u001b[22m\n\u001b[2m  - [pid=89512][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\u001b[22m\n\u001b[2m  - [pid=89512][err]   Reason: image not found\u001b[22m\n\u001b[2m  - [pid=89512] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=89512] <kill>\u001b[22m\n\u001b[2m  - [pid=89512] <will force kill>\u001b[22m\n\u001b[2m  - [pid=89512] exception while trying to kill process: Error: kill EPERM\u001b[22m\n\u001b[2m  - [pid=89512] <process did exit: exitCode=null, signal=SIGABRT>\u001b[22m\n\u001b[2m  - [pid=89512] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89512] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89512] <gracefully close end>\u001b[22m\n"
+                  },
+                  "errors": [
                     {
-                      "text": "[Demo11] Step 0: Login + ensure campaign + CRO page\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/00_cro_loaded.png\n"
-                    },
-                    {
-                      "text": "[Demo11] Step 1: IND tab\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/01_ind_tab_open.png\n"
-                    },
-                    {
-                      "text": "[Demo11] Step 2: Fill form\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/02_form_filled.png\n"
-                    },
-                    {
-                      "text": "[Demo11] Step 3: Generate IND Package\n"
-                    },
-                    {
-                      "text": "[Demo11] Waiting for download button to appear…\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/03_generated.png\n"
-                    },
-                    {
-                      "text": "[Demo11] Step 4: Markdown preview\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/04_markdown_preview.png\n"
-                    },
-                    {
-                      "text": "[Demo11] Step 5: API verification\n"
-                    },
-                    {
-                      "text": "[Demo11] Assemble: 200\n"
-                    },
-                    {
-                      "text": "[Demo11] Full document: 10772 chars\n"
-                    },
-                    {
-                      "text": "[Demo11] Sections: 2.6.1.1, 2.6.1.2, 2.6.1.3, 2.6.1.4, 2.6.1.5, 2.6.1.6\n"
-                    },
-                    {
-                      "text": "[Demo11] Pandoc: true | DOCX: true\n"
-                    },
-                    {
-                      "text": "[Demo11] §2.6.1.1 narrative (first 200): ERB-001 is a small-molecule inhibitor of the EGFR T790M mutation currently under investigation for the treatment of patients with non-small cell lung cancer who have experienced treatment failure on e\n"
-                    },
-                    {
-                      "text": "[Demo11] Download: 200 | 10772 chars\n"
-                    },
-                    {
-                      "text": "[Demo11] Download preview: # CTD Section 2.6.1 — Nonclinical Overview: Pharmacology\n\n**Molecule:** ERB-001\n**Sponsor:** BioMate Technologies\n**Indi\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/05_api_verified.png\n"
-                    },
-                    {
-                      "text": "[Demo11] Step 6: Download buttons\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/06_ind_tab_final.png\n"
-                    },
-                    {
-                      "text": "[Screenshot] demo-11-ind-assembly/done.png\n"
-                    },
-                    {
-                      "text": "[Demo11] ✅ Complete\n"
+                      "message": "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-Wn6bAS --remote-debugging-pipe --no-startup-window\n<launched> pid=89512\n[pid=89512][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\n[pid=89512][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\n[pid=89512][err]   Reason: image not found\nCall log:\n\u001b[2m  - <launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-Wn6bAS --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=89512\u001b[22m\n\u001b[2m  - [pid=89512][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\u001b[22m\n\u001b[2m  - [pid=89512][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\u001b[22m\n\u001b[2m  - [pid=89512][err]   Reason: image not found\u001b[22m\n\u001b[2m  - [pid=89512] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=89512] <kill>\u001b[22m\n\u001b[2m  - [pid=89512] <will force kill>\u001b[22m\n\u001b[2m  - [pid=89512] exception while trying to kill process: Error: kill EPERM\u001b[22m\n\u001b[2m  - [pid=89512] <process did exit: exitCode=null, signal=SIGABRT>\u001b[22m\n\u001b[2m  - [pid=89512] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89512] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89512] <gracefully close end>\u001b[22m\n"
                     }
                   ],
+                  "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-04-22T23:50:10.977Z",
+                  "startTime": "2026-05-31T20:26:09.388Z",
                   "annotations": [],
                   "attachments": [
                     {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/home/yzhang/biomate/frontend/e2e/demo-artifacts/demo-11-ind-assembly.demo.-45a7c-ly-with-AI-Regulatory-Prose-chromium/test-finished-1.png"
-                    },
-                    {
-                      "name": "video",
-                      "contentType": "video/webm",
-                      "path": "/home/yzhang/biomate/frontend/e2e/demo-artifacts/demo-11-ind-assembly.demo.-45a7c-ly-with-AI-Regulatory-Prose-chromium/video.webm"
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/kky/biomate/frontend/e2e/demo-artifacts/cryo-tutorial-research-ui.-85325-RC-SPA-·-3-minute-deep-dive-chromium/trace.zip"
                     }
                   ]
                 }
               ],
-              "status": "expected"
+              "status": "unexpected"
             }
           ],
-          "id": "1dbc7c805aece70fea9a-b26a92225f2b156ffede",
-          "file": "demo-11-ind-assembly.demo.ts",
-          "line": 57,
+          "id": "9e09dfff4d17a793012b-451f1186fc290016f1ed",
+          "file": "cryo-tutorial-research-ui.demo.ts",
+          "line": 178,
+          "column": 1
+        },
+        {
+          "title": "09f — After run · all tabs",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 7200000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1,
+                  "error": {
+                    "message": "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-nUYIQ9 --remote-debugging-pipe --no-startup-window\n<launched> pid=89514\n[pid=89514][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\n[pid=89514][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\n[pid=89514][err]   Reason: image not found\nCall log:\n\u001b[2m  - <launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-nUYIQ9 --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=89514\u001b[22m\n\u001b[2m  - [pid=89514][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\u001b[22m\n\u001b[2m  - [pid=89514][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\u001b[22m\n\u001b[2m  - [pid=89514][err]   Reason: image not found\u001b[22m\n\u001b[2m  - [pid=89514] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=89514] <kill>\u001b[22m\n\u001b[2m  - [pid=89514] <will force kill>\u001b[22m\n\u001b[2m  - [pid=89514] exception while trying to kill process: Error: kill EPERM\u001b[22m\n\u001b[2m  - [pid=89514] <process did exit: exitCode=null, signal=SIGABRT>\u001b[22m\n\u001b[2m  - [pid=89514] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89514] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89514] <gracefully close end>\u001b[22m\n",
+                    "stack": "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-nUYIQ9 --remote-debugging-pipe --no-startup-window\n<launched> pid=89514\n[pid=89514][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\n[pid=89514][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\n[pid=89514][err]   Reason: image not found\nCall log:\n\u001b[2m  - <launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-nUYIQ9 --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=89514\u001b[22m\n\u001b[2m  - [pid=89514][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\u001b[22m\n\u001b[2m  - [pid=89514][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\u001b[22m\n\u001b[2m  - [pid=89514][err]   Reason: image not found\u001b[22m\n\u001b[2m  - [pid=89514] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=89514] <kill>\u001b[22m\n\u001b[2m  - [pid=89514] <will force kill>\u001b[22m\n\u001b[2m  - [pid=89514] exception while trying to kill process: Error: kill EPERM\u001b[22m\n\u001b[2m  - [pid=89514] <process did exit: exitCode=null, signal=SIGABRT>\u001b[22m\n\u001b[2m  - [pid=89514] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89514] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89514] <gracefully close end>\u001b[22m\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-nUYIQ9 --remote-debugging-pipe --no-startup-window\n<launched> pid=89514\n[pid=89514][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\n[pid=89514][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\n[pid=89514][err]   Reason: image not found\nCall log:\n\u001b[2m  - <launching> /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-nUYIQ9 --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=89514\u001b[22m\n\u001b[2m  - [pid=89514][err] dyld: Library not loaded: /System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio\u001b[22m\n\u001b[2m  - [pid=89514][err]   Referenced from: /Users/kky/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell\u001b[22m\n\u001b[2m  - [pid=89514][err]   Reason: image not found\u001b[22m\n\u001b[2m  - [pid=89514] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=89514] <kill>\u001b[22m\n\u001b[2m  - [pid=89514] <will force kill>\u001b[22m\n\u001b[2m  - [pid=89514] exception while trying to kill process: Error: kill EPERM\u001b[22m\n\u001b[2m  - [pid=89514] <process did exit: exitCode=null, signal=SIGABRT>\u001b[22m\n\u001b[2m  - [pid=89514] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89514] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=89514] <gracefully close end>\u001b[22m\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-05-31T20:26:09.897Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/kky/biomate/frontend/e2e/demo-artifacts/cryo-tutorial-research-ui.demo.ts-09f-—-After-run-·-all-tabs-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "9e09dfff4d17a793012b-31d60d171fa44805fd74",
+          "file": "cryo-tutorial-research-ui.demo.ts",
+          "line": 199,
           "column": 1
         }
       ]
@@ -212,11 +190,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-04-22T23:50:10.489Z",
-    "duration": 103230.434,
-    "expected": 1,
+    "startTime": "2026-05-31T20:26:08.796Z",
+    "duration": 1145.243,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 2,
     "flaky": 0
   }
 }

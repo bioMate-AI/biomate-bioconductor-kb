@@ -254,6 +254,36 @@ Published: 2026-03-16
 
 ~90% of drug candidates fail in clinical trials due to poor ADMET properties identified too late. Running in silico ADMET before synthesis catches failures early. BioMate's ADMET pipeline: physicochemical properties (Lipinski Ro5, QED drug-likeness score), absorption (Caco-2, PAMPA, P-gp substrate), distribution (plasma protein binding, Vd, BBB penetration), metabolism (CYP450 substrate/inhibitor prediction for CYP1A2, CYP2C9, CYP2C19, CYP2D6, CYP3A4, microsomal stability), excretion (renal clearance, efflux transporters), toxicity (hERG, AMES, hepatotoxicity, cardiotoxicity, DILI risk). All 30+ metrics are graded and co-occurring liabilities are flagged.
 
+### Bispecific Format Triage — Ivonescimab CrossMab from Two Protein Names
+URL: https://biomate.ai/blog-bispecific-triage.html
+Published: 2026-06-16
+
+A 4-phase pipeline recovers the Akeso ivonescimab (CrossMab PD-1×VEGF) architecture from the target gene names alone. Phase A: mechanism inference — query ClinicalTrials for 50 bispecific pairs involving PD-1 or VEGF, extract Fc-fusion pattern (90% use) and identify the immunological synapse + angiogenesis axis. Phase B: format scoring — 5 bispecific formats (CrossMab, IgG-scFv, BiTE, DART, KiH) scored across 6 axes (CMC complexity, immunogenicity, half-life, tumor penetration, ADCC, manufacturability). Phase C: composite ranking — CrossMab wins with 100% score (forced symmetry solves the CMC problem) vs 67% for IgG-scFv, 42% for BiTE. Phase D: report synthesis — CrossMab selected, ivonescimab cited, confidence 1.0. The pipeline also identifies the T-cell engagement + VEGF blockade synergy that makes the combination better than either moiety alone for NSCLC.
+
+### In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide
+URL: https://biomate.ai/blog-invivo-cart.html
+Published: 2026-06-16
+
+In vivo CAR-T requires co-design of three molecules simultaneously: the CAR target (which tumor antigen to eliminate), the LNP surface targeter (which T-cell marker guides LNP to T cells), and the CAR construct itself (scFv + hinge + TM + costimulatory domain + CD3ζ). The deadliest failure mode is fratricide — if the CAR target and LNP targeting moiety share a cell type, the CAR-expressing T cells kill each other. BioMate's 4-phase pipeline: Phase A atlas safety check (CD19 across 26 tissues — B-cell restricted, no critical hits), Phase B LNP tropism selection (anti-CD8 → CD8+ T cells only; anti-CD7 flagged as fratricide risk), Phase C fratricide safety check (cross-references CAR target cell type vs LNP-transfected cell set — no overlap = safe; CD7 target would fire refusal), Phase D CAR construct assembly (FMC63 scFv + CD8α hinge + CD28 + CD3ζ, 1485 AA FASTA emitted). Recovers the Capstan CPTX2309 architecture for CD19/anti-CD8 — from biology alone.
+
+### In Vivo Base Editing — How BioMate Reconstructs VERVE-102
+URL: https://biomate.ai/blog-base-edit.html
+Published: 2026-06-16
+
+Base editing corrects a single DNA base without double-strand breaks. For PCSK9 loss-of-function (hypercholesterolemia), a C-to-T edit introduces a premature stop codon — permanently silencing LDL production in hepatocytes. BioMate's 5-phase pipeline: Phase A atlas tissue restriction (PCSK9 hepatocyte-restricted, LNP-IV ideal delivery route), Phase B editor class selection (CBE wins for LoF — premature stop CAA→TAA at W8 codon, simpler than ABE for this application), Phase C guide RNA design (targets W8 codon, NGG PAM, position 4-8 edit window, SpCas9n compatible), Phase D delivery platform (hepatotropic LNP-IV, same category as VERVE-101), Phase E IND-readiness and CMC flag (VERVE-101 LFT signal November 2023 flagged as class effect for hepatic LNP-IV delivery; VERVE-102 reformulated with ABE and modified LNP to address LFT liability). The pipeline reconstructs the VERVE-102 reformulation decision — different editor class (ABE), same delivery route, same target — from the biology and the published safety signal alone.
+
+### GLP-1 Modality Bakeoff — Indication Decides Which Receptor Pattern Wins
+URL: https://biomate.ai/blog-glp1-modality.html
+Published: 2026-06-16
+
+The GLP-1 family has three receptors: GLP1R (anti-hyperglycemia, anti-appetite — broad expression), GIPR (synergizes with GLP1R on weight loss — adipose-dominant), GCGR (hepatic glucose output, lipid metabolism — hepatocyte-dominant). What changes between GLP-1 drugs is which receptors are hit. GCGR is the receptor that is therapeutic for MASH (burns hepatic fat) and a liability for T2D (raises blood glucose). BioMate's 4-phase bakeoff: Phase A receptor atlas profile (GLP1R broad, GIPR adipose-dominant, GCGR hepatocyte-dominant from Tabula Sapiens), Phase B modality scoring (6 candidates × 6 axes: receptor coverage, weight loss potency, metabolic correction, safety, delivery, IP whitespace), Phase C indication weighting (MASH: GCGR +10; T2D: GCGR −10), Phase D top recommendation with clinical comparator citations. For MASH → retatrutide-class (triple agonist, Lilly Phase III). For T2D → tirzepatide-class (GLP1R + GIPR). For cost-sensitive obesity → orforglipron (oral). Same pipeline, same data, one parameter change flips the winner.
+
+### Modality Triage from Atlas — 7-of-7 Q4 2024 FDA Approvals
+URL: https://biomate.ai/blog-modality-triage.html
+Published: 2026-06-16
+
+A two-workflow chain (atlas_expression_query → modality_triage) that recovers 7 of 7 Q4 2024 FDA oncology modality choices from target expression alone. Workflow 1 (atlas_expression_query, 3 phases): data fetch from Tabula Sapiens + CELLxGENE Census across 26 tissues, tissue tabulation, critical-tissue check (CNS/heart/kidney/liver scan). Workflow 2 (modality_triage, 4 phases, fed by Workflow 1): atlas profile consumption, CAR-T viability gate (restricted lineage + no critical hits = CAR-T gold standard), ADC + bispecific evaluation (internalization for ADC, CD3-paired for bispecific), modality ranking with IHC follow-up panel. For BCMA: plasma-cell-restricted, no critical hits → CAR-T #1 (Abecma/Carvykti), bispecific #2 (Teclistamab), ADC #3, mAb #4 (insufficient). The same chain for Claudin18.2: critical-tissue scan flags epithelial expression → CAR-T downgraded → mAb #1 (Vyloy/Astellas). 7/7 correct: BCMA→CAR-T, DLL3→Bispecific, Claudin18.2→mAb, TROP2→ADC, HER2×HER3→Bispecific, FRα→ADC, GPRC5D→Bispecific. Outputs: modality_triage_report.json, modality_ranking.csv, ihc_followup_panel.txt, tissue_criticality.json.
+
 ### Before the First Compound: Computational Target Discovery and Validation
 URL: https://biomate.ai/blog-drug-1-target.html
 Published: 2026-03-10
