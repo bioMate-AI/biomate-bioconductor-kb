@@ -9,11 +9,17 @@
   var chevron = `<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
 
   function navHTML(active) {
-    function link(slug, label, href) {
-      return `<li><a href="${href}" class="${active === slug ? 'active' : ''}">${label}</a></li>`;
-    }
+    // Normalize legacy active slugs → 4-group structure
+    var slugMap = {
+      home: '', services: 'platform', platform: 'platform',
+      newsroom: 'newsroom',
+      pricing: 'company', about: 'company', contact: 'company', company: 'company',
+      tutorials: 'research', benchmarks: 'research', research: 'research',
+    };
+    active = Object.prototype.hasOwnProperty.call(slugMap, active) ? slugMap[active] : active;
+
     function dropdown(slug, label, href, items) {
-      var isActive = active === slug || items.some(function(i){ return i.active; });
+      var isActive = active === slug;
       return `
         <li class="bm-has-dropdown">
           <a href="${href}" class="${isActive ? 'active' : ''}">${label}${chevron}</a>
@@ -33,33 +39,32 @@
             <img src="assets/logo.png" alt="BioMate AI" />
           </a>
           <ul class="bm-nav-links" id="bmNavLinks">
-            ${link('home', 'Home', 'index.html')}
-            ${dropdown('services', 'Services', 'services.html', [
-              { label: 'Drug Discovery',           href: 'services.html#drug-discovery' },
+            ${dropdown('platform', 'Platform', 'services.html', [
+              { label: 'Drug Discovery',             href: 'services.html#drug-discovery' },
               { label: 'Genomics &amp; Multi-Omics', href: 'services.html#genomics' },
-              { label: 'Structural Biology',       href: 'services.html#structural-biology' },
+              { label: 'Structural Biology',         href: 'services.html#structural-biology' },
               { divider: true },
-              { label: 'All Services &rarr;',      href: 'services.html', bold: true }
+              { label: 'All Services &rarr;',        href: 'services.html', bold: true }
+            ])}
+            ${dropdown('research', 'Research', 'benchmarks.html', [
+              { label: 'Benchmarks',   href: 'benchmarks.html' },
+              { label: 'Tutorials',    href: 'tutorials.html' },
+              { label: 'Publications', href: 'publications.html' }
             ])}
             ${dropdown('newsroom', 'Newsroom', 'blog.html', [
               { label: 'Scientific Articles', href: 'blog.html?cat=science' },
               { label: 'Company News',        href: 'blog.html?cat=news' },
-              { label: 'Publications',        href: 'publications.html' },
               { divider: true },
               { label: 'All Posts &rarr;',    href: 'blog.html', bold: true }
             ])}
-            ${link('pricing', 'Pricing', 'pricing.html')}
-            ${dropdown('about', 'About', 'about.html', [
-              { label: 'About BioMate',      href: 'about.html' },
-              { label: 'Platform Features',  href: 'features.html' },
-              { label: 'Benchmarks',         href: 'benchmarks.html' },
-              { label: 'Compare',            href: 'compare.html' }
-              /* Team — commented out until team page is ready
-              ,{ label: 'Team',              href: 'team.html' }
-              */
+            ${dropdown('company', 'Company', 'about.html', [
+              { label: 'About BioMate',     href: 'about.html' },
+              { label: 'Platform Features', href: 'features.html' },
+              { label: 'Pricing',           href: 'pricing.html' },
+              { label: 'Compare',           href: 'compare.html' },
+              { divider: true },
+              { label: 'Contact',           href: 'contact.html' }
             ])}
-            ${link('tutorials', 'Tutorials', 'tutorials.html')}
-            ${link('contact', 'Contact', 'contact.html')}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
           </ul>
