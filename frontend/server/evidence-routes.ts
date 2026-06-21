@@ -31,8 +31,11 @@ import type { Express, Request, Response } from "express";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { authenticateToken } from "./auth-middleware";
 import { callGeminiFlash } from "./gemini-flash";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ─── Constants (cost / politeness caps) ───────────────────────────────
 const LLM_MAX_TOKENS = 2048;
