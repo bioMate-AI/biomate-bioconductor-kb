@@ -101,6 +101,57 @@ for entry in "${SUITES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# MCP connector tests — run against dev after Playwright suites complete
+# Requires: BIOMATE_CONNECTOR_API_KEY env var set on dev EC2
+# Skipped gracefully when key is absent (CI will still run Playwright suites)
+# ---------------------------------------------------------------------------
+# BIOMATE_CONNECTOR_DIR — path to the biomate-connector repo on this machine.
+# Set in the deploy environment; script skips MCP tests gracefully if absent.
+_connector_dir="${BIOMATE_CONNECTOR_DIR:-}"
+# Fallback: look for sibling directory (works on dev EC2 where repos are co-located)
+if [[ -z "$_connector_dir" ]]; then
+  _candidate="$(cd "$REPO_ROOT/../biomate-connectors-v2" 2>/dev/null && pwd || true)"
+  [[ -d "$_candidate" ]] && _connector_dir="$_candidate"
+fi
+MCP_TEST_FILE="${_connector_dir:+${_connector_dir}/tests/test_mcp_e2e.py}"
+CONNECTOR_KEY="${BIOMATE_CONNECTOR_API_KEY:-}"
+
+if [[ -f "$MCP_TEST_FILE" && -n "$CONNECTOR_KEY" ]]; then
+  log "[RUN]  mcp-e2e (test_mcp_e2e.py) against ${BIOMATE_URL} ..."
+  mcp_log="$LOG_DIR/${DATE}_${COMMIT}_mcp-e2e.log"
+  BIOMATE_API_URL="$BIOMATE_URL" \
+  BIOMATE_API_KEY="$CONNECTOR_KEY" \
+    python3 -m pytest "$MCP_TEST_FILE" -v \
+      >> "$mcp_log" 2>&1
+  mcp_rc=$?
+  if [[ $mcp_rc -eq 0 ]]; then
+    passed=$(grep -oE "[0-9]+ passed" "$mcp_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || true)
+    log "[PASS] mcp-e2e — ${passed:-?} test(s) passed"
+    RESULTS+=("PASS  mcp-e2e")
+    PASS=$((PASS + 1))
+  else
+    failed=$(grep -oE "[0-9]+ failed" "$mcp_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || true)
+    skipped=$(grep -oE "[0-9]+ skipped" "$mcp_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || true)
+    log "[FAIL] mcp-e2e — ${failed:-?} failed, ${skipped:-0} skipped — see $mcp_log"
+    {
+      echo "--- tail: $mcp_log ---"
+      tail -30 "$mcp_log" 2>/dev/null || true
+      echo "--- end tail ---"
+    } >> "$LOG_FILE" 2>/dev/null || true
+    RESULTS+=("FAIL  mcp-e2e")
+    FAIL=$((FAIL + 1))
+  fi
+elif [[ ! -f "$MCP_TEST_FILE" ]]; then
+  log "[SKIP] mcp-e2e — test file not found at $MCP_TEST_FILE"
+  RESULTS+=("SKIP  mcp-e2e")
+  SKIP=$((SKIP + 1))
+else
+  log "[SKIP] mcp-e2e — BIOMATE_CONNECTOR_API_KEY not set"
+  RESULTS+=("SKIP  mcp-e2e (no key)")
+  SKIP=$((SKIP + 1))
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 log ""
