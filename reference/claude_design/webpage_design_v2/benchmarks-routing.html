@@ -130,11 +130,10 @@
     .bm-compare-card.bm-other { background: var(--bg-2); }
 
     /* FAQ */
-    .bm-faq { max-width: 760px; }
-    .bm-faq-item { border-bottom: 1px solid var(--border-soft); padding: 1.25rem 0; }
-    .bm-faq-item:first-child { border-top: 1px solid var(--border-soft); }
-    .bm-faq-item h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: .5rem; }
-    .bm-faq-item p { font-size: .9rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+    .bm-faq { max-width: 760px; display: flex; flex-direction: column; gap: .875rem; }
+    .bm-faq-item { padding: 1.5rem 1.75rem; }
+    .bm-faq-item h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 0 0 .6rem; }
+    .bm-faq-item p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin: 0; }
 
     /* CTA strip */
     .bm-cta-strip { background: var(--bg-ink); padding: clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,2.5rem); text-align: center; }
