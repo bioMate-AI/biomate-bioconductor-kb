@@ -53,7 +53,7 @@
             "item": {
               "@type": "VideoObject",
               "name": "Multi-step Workflow Automation with Quality Control for Life Science",
-              "description": "BioMate runs a CryoSPARC single-particle analysis end to end — 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, submitted to AWS Batch GPUs from a single chat message.",
+              "description": "BioMate runs a CryoSPARC single-particle analysis end to end — 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, launched from a single chat message.",
               "embedUrl": "https://www.youtube.com/embed/C4gQD-xbHnQ",
               "thumbnailUrl": "https://img.youtube.com/vi/C4gQD-xbHnQ/maxresdefault.jpg",
               "uploadDate": "2026-04-10",
@@ -232,7 +232,7 @@
             "name": "How long do BioMate AI workflows take to run?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Run times depend on workflow complexity and data size. Simple analyses (ADMET profiling, differential expression on 6-10 samples) typically complete in 5–20 minutes. Complex multi-step pipelines (WGS variant calling on 30x coverage, cryo-EM SPA on thousands of micrographs) may take 1–4 hours. All workflows run on AWS Batch with auto-scaling, so compute is not a bottleneck — only data transfer and pipeline execution time."
+              "text": "Run times depend on workflow complexity and data size. Simple analyses (ADMET profiling, differential expression on 6-10 samples) typically complete in 5–20 minutes. Complex multi-step pipelines (WGS variant calling on 30x coverage, cryo-EM SPA on thousands of micrographs) may take 1–4 hours. All workflows run on scalable cloud compute, so hardware is not a bottleneck — only data transfer and pipeline execution time."
             }
           },
           {
@@ -310,12 +310,12 @@
       "@context": "https://schema.org",
       "@type": "HowTo",
       "name": "How to run bulk RNA-seq differential expression analysis with BioMate AI",
-      "description": "Run DESeq2 differential expression and GO enrichment with clusterProfiler on AWS Batch — no R coding required.",
+      "description": "Run DESeq2 differential expression and GO enrichment with clusterProfiler — no R coding required.",
       "tool": { "@type": "HowToTool", "name": "BioMate AI", "url": "https://biomate.ai" },
       "step": [
         { "@type": "HowToStep", "position": 1, "name": "Describe your experiment", "text": "Tell BioMate your sample count, comparison (e.g., control vs treated), species (e.g., human GRCh38), and whether you want pathway enrichment." },
-        { "@type": "HowToStep", "position": 2, "name": "BioMate selects DESeq2 + clusterProfiler", "text": "BioMate routes your request to a DESeq2 differential expression workflow with enrichGO pathway enrichment via clusterProfiler on AWS Batch." },
-        { "@type": "HowToStep", "position": 3, "name": "Run on AWS Batch", "text": "Click Run. BioMate streams real-time phase updates as DESeq2 runs, QC gates are checked, and GO enrichment is computed." },
+        { "@type": "HowToStep", "position": 2, "name": "BioMate selects DESeq2 + clusterProfiler", "text": "BioMate routes your request to a DESeq2 differential expression workflow with enrichGO pathway enrichment via clusterProfiler." },
+        { "@type": "HowToStep", "position": 3, "name": "Run the analysis", "text": "Click Run. BioMate streams real-time phase updates as DESeq2 runs, QC gates are checked, and GO enrichment is computed." },
         { "@type": "HowToStep", "position": 4, "name": "Review results and export", "text": "Results include ranked DEGs, top enriched pathways, and a citable methods section. Export as DOCX or CSV." }
       ]
     },
@@ -327,7 +327,7 @@
       "tool": { "@type": "HowToTool", "name": "BioMate AI", "url": "https://biomate.ai" },
       "step": [
         { "@type": "HowToStep", "position": 1, "name": "Describe your single-cell experiment", "text": "Tell BioMate your sample type (e.g., PBMC), experimental condition, and whether you want cell type annotation." },
-        { "@type": "HowToStep", "position": 2, "name": "BioMate selects Seurat + SingleR", "text": "BioMate routes your request to a Seurat clustering workflow with SingleR cell type annotation running on AWS Batch." },
+        { "@type": "HowToStep", "position": 2, "name": "BioMate selects Seurat + SingleR", "text": "BioMate routes your request to a Seurat clustering workflow with SingleR cell type annotation running on cloud compute." },
         { "@type": "HowToStep", "position": 3, "name": "Run clustering and annotation", "text": "BioMate runs normalization, PCA, UMAP, and Seurat clustering, then annotates each cluster using SingleR reference datasets." },
         { "@type": "HowToStep", "position": 4, "name": "Review UMAP and export", "text": "Results include a UMAP, marker gene table per cell type, and condition-level differential abundance analysis — ready for manuscript submission." }
       ]
@@ -336,11 +336,11 @@
       "@context": "https://schema.org",
       "@type": "HowTo",
       "name": "How to run DNA methylation analysis with BioMate AI",
-      "description": "Identify differentially methylated regions from bisulfite sequencing using minfi + DMRcate on AWS Batch — no R required.",
+      "description": "Identify differentially methylated regions from bisulfite sequencing using minfi + DMRcate — no R required.",
       "tool": { "@type": "HowToTool", "name": "BioMate AI", "url": "https://biomate.ai" },
       "step": [
         { "@type": "HowToStep", "position": 1, "name": "Describe your methylation experiment", "text": "Tell BioMate your array platform (EPIC or 450K) or bisulfite sequencing data, sample groups, and whether you want pathway enrichment." },
-        { "@type": "HowToStep", "position": 2, "name": "BioMate selects minfi + DMRcate", "text": "BioMate routes your request to a minfi preprocessing + DMRcate DMR-calling workflow on AWS Batch." },
+        { "@type": "HowToStep", "position": 2, "name": "BioMate selects minfi + DMRcate", "text": "BioMate routes your request to a minfi preprocessing + DMRcate DMR-calling workflow." },
         { "@type": "HowToStep", "position": 3, "name": "Run QC and DMR calling", "text": "BioMate applies automated probe filtering, detection p-value QC thresholds, and calls differentially methylated regions with DMRcate." },
         { "@type": "HowToStep", "position": 4, "name": "Review DMRs and pathway enrichment", "text": "Results include ranked DMRs, pathway enrichment on DMR-associated genes, and a citable methods section with software versions." }
       ]
@@ -476,6 +476,16 @@
       margin: 0;
       line-height: 1.55;
     }
+    .tut-blog-link {
+      margin-top: .55rem;
+      font-size: .85rem;
+    }
+    .tut-blog-link a {
+      color: var(--accent-2, #2563eb);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .tut-blog-link a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -490,7 +500,7 @@
       <p class="bm-lead" style="margin-top:1rem;max-width:640px;">
         BioMate takes any research question in plain English — from RNA-seq differential
         expression to bispecific antibody format selection — routes it to the right tool,
-        runs it on AWS Batch, and returns a ranked result with a full citable methods
+        runs it on cloud compute, and returns a ranked result with a full citable methods
         section. No code, no pipeline configuration.
       </p>
       <p style="margin-top:0.85rem;max-width:640px;font-size:1rem;line-height:1.65;color:var(--bm-ink-muted,#64748b);">
@@ -519,6 +529,7 @@
           </div>
           <p class="tut-title">BioMate &mdash; The AI Lab Platform for Life Sciences</p>
           <p class="tut-desc">An overview of BioMate &mdash; the AI-native lab platform that turns complex bioinformatics pipelines into a conversation. From raw data to publication-ready outputs, without writing code.</p>
+          <p class="tut-blog-link"><a href="blog-llm-core.html">Purpose-built AI for science &rarr;</a></p>
         </div>
 
         <!-- 2 — CryoSPARC / workflow automation -->
@@ -532,7 +543,8 @@
             </iframe>
           </div>
           <p class="tut-title">Multi-step Workflow Automation with Quality Control</p>
-          <p class="tut-desc">BioMate runs a CryoSPARC single-particle analysis end to end &mdash; 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, submitted to AWS Batch GPUs from a single chat message.</p>
+          <p class="tut-desc">BioMate runs a CryoSPARC single-particle analysis end to end &mdash; 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, all launched from a single chat message.</p>
+          <p class="tut-blog-link"><a href="blog-cryosparc-spa.html">End-to-end cryo-EM processing deep-dive &rarr;</a></p>
         </div>
 
         <!-- 3 — After-run report -->
@@ -547,6 +559,7 @@
           </div>
           <p class="tut-title">After Run Report &mdash; Reproducibility in One Click</p>
           <p class="tut-desc">Every completed BioMate run generates a structured 7-tab report: Findings, Outputs, Methods, Parameters, Software, Citations, and QC Audit. Download as DOCX, Markdown, or LaTeX &mdash; manuscript-ready without copy-paste.</p>
+          <p class="tut-blog-link"><a href="blog-qc-grading.html">Scientific quality assessment framework &rarr;</a></p>
         </div>
 
         <!-- 4 — IND report -->
@@ -561,6 +574,7 @@
           </div>
           <p class="tut-title">IND Report &mdash; Automated Section 2.6 Nonclinical Dossier with 21&nbsp;CFR Part&nbsp;11 Sign-Off</p>
           <p class="tut-desc">A five-step pipeline &mdash; ADMET profiling, PBPK modeling, lead prioritization, and LLM-generated regulatory prose &mdash; builds an IND-quality section 2.6 dossier. The live document panel updates in place as each step completes, with full 21&nbsp;CFR Part&nbsp;11 sign-and-freeze.</p>
+          <p class="tut-blog-link"><a href="blog-drug-4-preclinical.html">Computational preclinical development &rarr;</a></p>
         </div>
 
       </div>
@@ -568,7 +582,7 @@
       <!-- Bioconductor Series -->
       <div class="tut-series-head">
         <h2>Bioconductor Series</h2>
-        <p>Omics pipelines — bulk RNA-seq, single-cell, and DNA methylation — routed automatically from plain English to DESeq2, Seurat, minfi, and more on AWS Batch.</p>
+        <p>Omics pipelines — bulk RNA-seq, single-cell, and DNA methylation — routed automatically from plain English to DESeq2, Seurat, minfi, and more. No R environment setup, no pipeline configuration.</p>
       </div>
       <div class="tut-grid">
 
@@ -583,7 +597,8 @@
             </iframe>
           </div>
           <p class="tut-title">Bulk RNA-seq: DESeq2 + GO Enrichment, No R Code</p>
-          <p class="tut-desc">Describe your bulk RNA-seq experiment in plain English — BioMate selects DESeq2, runs GO enrichment via clusterProfiler on AWS Batch, and returns 2,841 ranked differentially expressed genes with a citable methods section. No R environment, no pipeline configuration.</p>
+          <p class="tut-desc">Describe your bulk RNA-seq experiment in plain English — BioMate selects DESeq2, runs GO enrichment via clusterProfiler, and returns 2,841 ranked differentially expressed genes with a citable methods section. No R environment, no pipeline configuration.</p>
+          <p class="tut-blog-link"><a href="blog-bioconductor.html">Bioconductor methods in BioMate &rarr;</a> &nbsp;·&nbsp; <a href="blog-why-ai-bioconductor-doesnt-run.html">Why AI writes Bioconductor code that doesn't run &rarr;</a></p>
         </div>
 
         <!-- bioc_sc — Single-Cell RNA-seq -->
@@ -597,7 +612,8 @@
             </iframe>
           </div>
           <p class="tut-title">Single-Cell RNA-seq: 8 Cell Types Resolved, No Code</p>
-          <p class="tut-desc">Describe your single-cell experiment in plain English — BioMate routes to Seurat + SingleR, resolves 8 cell types on AWS Batch, and delivers a UMAP with condition-level abundance results ready for publication.</p>
+          <p class="tut-desc">Describe your single-cell experiment in plain English — BioMate routes to Seurat + SingleR, resolves 8 cell types, and delivers a UMAP with condition-level abundance results ready for publication.</p>
+          <p class="tut-blog-link"><a href="blog-bioconductor.html">Bioconductor methods in BioMate &rarr;</a></p>
         </div>
 
         <!-- bioc_methyl — DNA Methylation -->
@@ -611,7 +627,8 @@
             </iframe>
           </div>
           <p class="tut-title">DNA Methylation: 847 DMRs + Pathway Enrichment, No Code</p>
-          <p class="tut-desc">From bisulfite sequencing inputs to 847 differentially methylated regions with pathway enrichment — BioMate runs the full minfi + DMRcate pipeline on cloud infrastructure and returns a citable methods section. No R setup required.</p>
+          <p class="tut-desc">From bisulfite sequencing inputs to 847 differentially methylated regions with pathway enrichment — BioMate runs the full minfi + DMRcate pipeline and returns a citable methods section. No R setup required.</p>
+          <p class="tut-blog-link"><a href="blog-bioconductor.html">Bioconductor methods in BioMate &rarr;</a></p>
         </div>
 
       </div>
@@ -635,6 +652,7 @@
           </div>
           <p class="tut-title">Bispecific Antibody Design: AI Picks ivonescimab Format Over CrossMab</p>
           <p class="tut-desc">Ask for any bispecific format — BioMate scores all five common architectures across six mechanistic axes and ranks them, catching that the tetravalent cooperative format outperforms CrossMab on cooperative avidity before you run a single binding assay.</p>
+          <p class="tut-blog-link"><a href="blog-bispecific-triage.html">How BioMate recovers ivonescimab's architecture &rarr;</a></p>
         </div>
 
         <!-- design_cart -->
@@ -649,6 +667,7 @@
           </div>
           <p class="tut-title">CAR-T Design: CD19 CAR + LNP, Fratricide Check, Full Construct</p>
           <p class="tut-desc">Specify a target and delivery modality — BioMate selects the LNP vector, runs a fratricide check, and assembles a full CAR construct with clinical precedent. From one sentence to a 1,485-aa sequence.</p>
+          <p class="tut-blog-link"><a href="blog-invivo-cart.html">In vivo CAR-T co-design: three molecules, one workflow &rarr;</a></p>
         </div>
 
         <!-- design_baseedit -->
@@ -663,6 +682,7 @@
           </div>
           <p class="tut-title">Base Editing: PCSK9 Knockout Design Matches VERVE-102 in Seconds</p>
           <p class="tut-desc">One sentence about your target — BioMate identifies the optimal base-editing site, selects the right editor class, designs a guide RNA, and cross-references clinical precedent, matching VERVE-102's approach to PCSK9 from scratch.</p>
+          <p class="tut-blog-link"><a href="blog-base-edit.html">How BioMate reconstructs VERVE-102 from one sentence &rarr;</a></p>
         </div>
 
         <!-- design_glp1 -->
@@ -677,6 +697,7 @@
           </div>
           <p class="tut-title">GLP-1 for MASH: AI Picks Peptide Over 4 Modalities in Seconds</p>
           <p class="tut-desc">Name your target and indication — BioMate runs a structured bake-off across all relevant modalities, scores them on pharmacology and clinical evidence, and ranks subcutaneous peptide injection #1 for MASH. The field's decade-long conclusion, in seconds.</p>
+          <p class="tut-blog-link"><a href="blog-glp1-modality.html">GLP-1 modality bakeoff — why "the next GLP-1" is an indication question &rarr;</a></p>
         </div>
 
         <!-- design_modtriage -->
@@ -691,6 +712,7 @@
           </div>
           <p class="tut-title">BCMA Myeloma: CAR-T vs BiTE vs ADC &mdash; AI Ranks All 4 Modalities</p>
           <p class="tut-desc">Give BioMate a target and tumor type — it maps every viable modality class, scores them against clinical evidence from ide-cel, cilta-cel, and teclistamab, and returns a ranked recommendation with competitive landscape.</p>
+          <p class="tut-blog-link"><a href="blog-modality-triage.html">Recovering 7-of-7 Q4 2024 FDA approvals from first principles &rarr;</a></p>
         </div>
 
       </div>
