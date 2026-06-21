@@ -36,7 +36,7 @@
       <header class="bm-nav">
         <div class="bm-nav-inner">
           <a href="index.html" class="bm-brand" aria-label="BioMate AI">
-            <img src="assets/logo.png?v=2" alt="BioMate AI" />
+            <img src="assets/logo.png?v=3" alt="BioMate AI" />
           </a>
           <ul class="bm-nav-links" id="bmNavLinks">
             <li><a href="index.html" class="${active === '' ? 'active' : ''}">Home</a></li>
@@ -102,7 +102,7 @@
           <div class="bm-footer-grid">
             <div class="bm-footer-brand">
               <a href="index.html" class="bm-brand">
-                <img src="assets/logo.png?v=2" alt="BioMate AI" />
+                <img src="assets/logo.png?v=3" alt="BioMate AI" />
               </a>
               <p>Computational biology assistant for pharma, biotech, academic labs, and core facilities.</p>
             </div>
