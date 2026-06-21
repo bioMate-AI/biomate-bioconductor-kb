@@ -110,7 +110,7 @@ done
 _connector_dir="${BIOMATE_CONNECTOR_DIR:-}"
 # Fallback: look for sibling directory (works on dev EC2 where repos are co-located)
 if [[ -z "$_connector_dir" ]]; then
-  _candidate="$(cd "$REPO_ROOT/../biomate-connectors-v2" 2>/dev/null && pwd || true)"
+  _candidate="$(cd "$REPO_ROOT/../biomate-connector" 2>/dev/null && pwd || true)"
   [[ -d "$_candidate" ]] && _connector_dir="$_candidate"
 fi
 MCP_TEST_FILE="${_connector_dir:+${_connector_dir}/tests/test_mcp_e2e.py}"
