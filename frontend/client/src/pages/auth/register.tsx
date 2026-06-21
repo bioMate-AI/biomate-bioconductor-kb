@@ -225,7 +225,7 @@ export default function RegisterPage() {
 
   if (step === "email-sent") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#f6efde]">
         <Card className="w-full max-w-md text-center">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-3">
@@ -271,7 +271,7 @@ export default function RegisterPage() {
 
   if (step === "domain") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#f6efde]">
         <div className="w-full max-w-2xl">
           <div className="flex justify-center mb-4">
             <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
@@ -289,7 +289,7 @@ export default function RegisterPage() {
 
   if (step === "trial") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#f6efde]">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-2">
@@ -357,7 +357,7 @@ export default function RegisterPage() {
   // ── Step 1 UI ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f6efde]">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
