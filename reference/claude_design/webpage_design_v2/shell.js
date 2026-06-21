@@ -41,6 +41,8 @@
           <ul class="bm-nav-links" id="bmNavLinks">
             <li><a href="index.html" class="${active === '' ? 'active' : ''}">Home</a></li>
             ${dropdown('platform', 'Platform', 'services.html', [
+              { label: 'Platform Features',          href: 'features.html' },
+              { divider: true },
               { label: 'Drug Discovery',             href: 'services.html#drug-discovery' },
               { label: 'Genomics &amp; Multi-Omics', href: 'services.html#genomics' },
               { label: 'Structural Biology',         href: 'services.html#structural-biology' },
