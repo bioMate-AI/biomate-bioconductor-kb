@@ -649,6 +649,42 @@ load_env_from_secrets() {
   log "[load-env] Done. Apply with BIOMATE_RESYNC_GALAXY_ENV=1."
 }
 
+# Dispatch the IND PI suite (workflow_dispatch) against the freshly-synced dev.
+# A successful sync IS the dev deploy, so this is the one place that should fire
+# the suite — it is dispatch-only because a git push does NOT deploy to dev.
+# Non-fatal and skippable with BIOMATE_SKIP_PI_SUITE=1. Needs `gh` (authed) or a
+# GITHUB_TOKEN/GH_TOKEN with the actions scope; otherwise prints a manual hint.
+trigger_pi_suite() {
+  if [[ "${BIOMATE_SKIP_PI_SUITE:-}" == "1" ]]; then
+    log "[pi-suite] skipped (BIOMATE_SKIP_PI_SUITE=1)"
+    return 0
+  fi
+  local ref repo
+  ref="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo integration/next-phase)"
+  repo="bioMate-AI/biomate"
+  log "[pi-suite] dispatching ind-pi-suite.yml against dev (ref ${ref})..."
+  if command -v gh >/dev/null 2>&1; then
+    if gh workflow run ind-pi-suite.yml --ref "$ref" >/dev/null 2>&1; then
+      log "[pi-suite] dispatched via gh — watch it in the GitHub Actions tab"
+    else
+      log "[pi-suite] gh dispatch failed — run it manually (Actions → Run workflow)"
+    fi
+  elif [[ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]]; then
+    if curl -fsS -X POST \
+         -H "Authorization: Bearer ${GITHUB_TOKEN:-$GH_TOKEN}" \
+         -H "Accept: application/vnd.github+json" \
+         "https://api.github.com/repos/${repo}/actions/workflows/ind-pi-suite.yml/dispatches" \
+         -d "{\"ref\":\"${ref}\"}" >/dev/null 2>&1; then
+      log "[pi-suite] dispatched via API — watch it in the GitHub Actions tab"
+    else
+      log "[pi-suite] API dispatch failed — run it manually (Actions → Run workflow)"
+    fi
+  else
+    log "[pi-suite] no gh CLI / GITHUB_TOKEN — run ind-pi-suite manually (Actions → Run workflow)"
+  fi
+  return 0
+}
+
 restart_galaxy() {
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
@@ -851,6 +887,8 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   log "Launching post-sync E2E tests in background..."
   bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
     >> /tmp/biomate_sync.log 2>&1 &
+  # A successful sync IS the dev deploy — fire the IND PI suite against dev.
+  trigger_pi_suite
   exit 0
 else
   log "ERROR: sync failed — see output above"
