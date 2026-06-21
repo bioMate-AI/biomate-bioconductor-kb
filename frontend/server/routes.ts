@@ -35,7 +35,7 @@ import { promises as fs, createReadStream, existsSync, readdirSync } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
@@ -2140,6 +2140,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     res.clearCookie('biomate_token');
     res.json({ success: true, message: 'Logged out successfully' });
+  });
+
+  // ── Deep-linkable workflow draft ──────────────────────────────────────────
+  // Loads a workflow persisted at generation time (see /api/chat/stream). The
+  // /workflow/:id frontend route fetches this to render the workflow panel
+  // focused on a connector-shared workflow. Owner-scoped: a cross-user id
+  // returns 404 (not 403) so it can't be probed for existence — matches the
+  // project-routes ownership convention.
+  app.get("/api/workflow-draft/:id", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await pool.query(
+        `SELECT user_id, workflow_name, payload, expires_at FROM workflow_drafts WHERE id = $1`,
+        [id]
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'not_found' });
+      }
+      const row = result.rows[0];
+      if (row.expires_at && new Date(row.expires_at) < new Date()) {
+        return res.status(410).json({ error: 'expired' });
+      }
+      if (String(row.user_id) !== String(req.user!.id)) {
+        return res.status(404).json({ error: 'not_found' });
+      }
+      // payload is already a JS object (pg parses jsonb columns).
+      const payload = (row.payload && typeof row.payload === 'object') ? row.payload : {};
+      res.json({ id, workflow_name: row.workflow_name, ...payload });
+    } catch (error: any) {
+      console.error('[WorkflowDraft] fetch error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to load workflow' });
+    }
+  });
+
+  // ── Magic-link auto-login for chat connectors ─────────────────────────────
+  // Two-step, secret-never-in-URL flow:
+  //   1. POST /api/auth/login-token  (Bearer of the bound BioMate credential)
+  //      → mints a short-lived (5 min), single-use token. The IM bot calls this
+  //        with the api_key it stored via `bind`; that credential is the same
+  //        Bearer the bot already sends to /api/chat/stream, so authenticateToken
+  //        resolves it to the bound user. Only the token's SHA-256 hash is stored.
+  //   2. GET  /api/auth/magic?token=<ott>&redirect=<path>
+  //      → consumes the token, sets the biomate_token session cookie, 302s to the
+  //        (same-origin) redirect, e.g. the view_url path. The long-lived
+  //        credential never appears in any URL.
+  app.post("/api/auth/login-token", authLimiter, authenticateToken, async (req, res) => {
+    try {
+      const userId = String(req.user!.id);
+      // Optional redirect path baked into the token at mint time; query-param
+      // redirect at consume time takes precedence. Only same-origin paths allowed.
+      const rawRedirect = typeof req.body?.redirect === 'string' ? req.body.redirect : undefined;
+      const safeRedirect =
+        rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+          ? rawRedirect
+          : null;
+
+      // base64url so it's URL-safe without encoding.
+      const oneTimeToken = randomBytes(32).toString('base64url');
+      const tokenHash = createHash('sha256').update(oneTimeToken).digest('hex');
+      const ttlSeconds = 300; // 5 minutes
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+
+      await pool.query(
+        `INSERT INTO login_tokens (token_hash, user_id, redirect, expires_at)
+           VALUES ($1, $2, $3, $4)`,
+        [tokenHash, userId, safeRedirect, expiresAt]
+      );
+
+      res.json({ token: oneTimeToken, expires_in: ttlSeconds });
+    } catch (error: any) {
+      console.error('[Auth] login-token error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to mint login token' });
+    }
+  });
+
+  app.get("/api/auth/magic", async (req, res) => {
+    const sanitizePath = (p: unknown): string | null => {
+      if (typeof p !== 'string' || !p.startsWith('/') || p.startsWith('//')) return null;
+      return p;
+    };
+    try {
+      const rawToken = typeof req.query.token === 'string' ? req.query.token : '';
+      const redirectFromQuery = sanitizePath(req.query.redirect);
+      if (!rawToken) {
+        return res.redirect(302, '/login?error=missing_token');
+      }
+
+      const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+      // Atomically consume: succeeds only if the token exists, is unconsumed, and
+      // is unexpired. The single UPDATE makes the token genuinely single-use even
+      // under concurrent clicks (e.g. IM link-preview crawler + the user).
+      const consume = await pool.query(
+        `UPDATE login_tokens
+            SET consumed_at = NOW()
+          WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > NOW()
+        RETURNING user_id, redirect`,
+        [tokenHash]
+      );
+      if (consume.rowCount === 0) {
+        return res.redirect(302, '/login?error=invalid_or_expired');
+      }
+
+      const { user_id, redirect: storedRedirect } = consume.rows[0];
+      const user = await authService.getUserById(String(user_id));
+      if (!user) {
+        return res.redirect(302, '/login?error=user_not_found');
+      }
+
+      // New entry path to the SAME session — reuse the standard JWT cookie the
+      // app already authenticates with (auth-middleware reads biomate_token).
+      const sessionToken = authService.generateToken(user as any, false); // 24h
+      res.cookie('biomate_token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      const dest = redirectFromQuery || sanitizePath(storedRedirect) || '/';
+      return res.redirect(302, dest);
+    } catch (error: any) {
+      console.error('[Auth] magic login error:', error?.message || error);
+      return res.redirect(302, '/login?error=magic_failed');
+    }
   });
 
   // Get current user (non-erroring for anonymous clients)
@@ -4481,6 +4605,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy /api/regulatory/* to the Galaxy backend. These are galaxy-served routes
+  // (active_adapter, generate_smoke, generate_stream, feedback/queue) that the
+  // public frontend must expose for the IND PI suite + the ind-report UI — without
+  // this they 404 on dev/prod (caddy routes the public domain to this Node server,
+  // which had no /api/regulatory handler). Mirrors the /api/ind-report/* proxy
+  // above. Does NOT shadow the frontend's own /api/regulatory_llm/* routes — the
+  // `/api/regulatory/` prefix (trailing slash) cannot match `/api/regulatory_llm/`.
+  app.all("/api/regulatory/*", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.send(buf);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'regulatory proxy error', detail: err.message });
+    }
+  });
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
@@ -5756,6 +5924,65 @@ ${paramLines || '(none recorded)'}`;
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
       };
 
+      // ── Deep-link: persist a stable, URL-addressable draft at GENERATION time ──
+      // A generated workflow otherwise lives only in the client's in-memory chat
+      // state, so a chat connector ("Open in BioMate" button) has nothing to point
+      // at. We persist the workflow draft now (not only at execution) and hand the
+      // SSE consumers an absolute `view_url` → /workflow/<id>. Only for authenticated
+      // requests (the IM bot calls with the bound user's Bearer credential); anonymous
+      // requests get no view_url and the connector falls back to the app root.
+      let workflowViewUrl: string | undefined;
+      let workflowDraftId: string | undefined;
+      if (responseState === "workflow_ready" && workflowPayload && req.user?.id) {
+        try {
+          const ga = (workflowPayload as any).workflow_ga || {};
+          const draftWorkflowName =
+            ga.name || (workflowPayload as any).workflow_name ||
+            (workflowPayload as any).chain_display_name || "";
+          // Build the panel-shaped workflow object the same way the client does
+          // (chat-interface.tsx onSuccess): workflow_ga ?? workflow, with the
+          // LLM-extracted inline params merged into inline_parameters.
+          const inlineParams = (responsePayload.metadata as any)?.inlineParameters;
+          let panelWorkflow: any = (workflowPayload as any).workflow_ga || workflowPayload;
+          if (inlineParams && typeof inlineParams === "object" && Object.keys(inlineParams).length > 0) {
+            panelWorkflow = {
+              ...panelWorkflow,
+              inline_parameters: { ...(panelWorkflow.inline_parameters || {}), ...inlineParams },
+            };
+          }
+          const draftPayload = {
+            response: assistantMessage,
+            state: responseState,
+            workflow: panelWorkflow,
+            rawWorkflow: workflowPayload,
+            inlineParameters: inlineParams || null,
+            suggestions,
+            prerequisitesValidation,
+            workflowName: draftWorkflowName,
+          };
+          workflowDraftId = uuidv4();
+          const appUrl = process.env.APP_URL || "http://localhost:5000";
+          const draftExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+          await pool.query(
+            `INSERT INTO workflow_drafts (id, user_id, workflow_name, payload, expires_at)
+               VALUES ($1, $2, $3, $4::jsonb, $5)`,
+            [workflowDraftId, String(req.user.id), draftWorkflowName || null, JSON.stringify(draftPayload), draftExpiresAt]
+          );
+          workflowViewUrl = `${appUrl.replace(/\/+$/, "")}/workflow/${workflowDraftId}`;
+        } catch (e: any) {
+          // Non-fatal: a failed draft persist just means no deep link this turn.
+          console.warn("[ChatStream] workflow draft persist failed:", e?.message || e);
+          workflowViewUrl = undefined;
+          workflowDraftId = undefined;
+        }
+      }
+      // Surface the deep link on the canonical `final` payload too (some connector
+      // flows read `view_url` from `final` rather than `workflow_ready`).
+      if (workflowViewUrl) {
+        (responsePayload as any).view_url = workflowViewUrl;
+        (responsePayload as any).workflow_id = workflowDraftId;
+      }
+
       // Emit LLM cost to Galaxy billing backend → Lago (fire-and-forget)
       // Pilot users (PILOT_ACCOUNT_EMAILS) skip billing during the pilot window.
       if (req.user && !isPilotUser) {
@@ -5803,13 +6030,19 @@ ${paramLines || '(none recorded)'}`;
           //   3. chain_display_name — chain result
           //   4. ""               — generated/composed workflow (display name unknown at this point)
           workflow_name: ga.name || workflowPayload.workflow_name || workflowPayload.chain_display_name || "",
-          workflow_id:   ga.id || "",
+          // Prefer the stable, URL-addressable draft id over the catalog ga.id
+          // (which is often empty for generated/composed workflows). This is the
+          // id embedded in view_url and resolvable via /api/workflow-draft/:id.
+          workflow_id:   workflowDraftId || ga.id || "",
           workflow_type: workflowPayload.workflow_type || workflowPayload.execution_engine || "",
           nextflow_path: workflowPayload.nextflow_path || "",
           source:        workflowPayload.source || "",
           confidence:    workflowPayload.confidence ?? null,
           chain_name:    workflowPayload.chain_name || "",
           chain_steps:   chainStepNames,
+          // Absolute, app-origin deep link the connector puts on its
+          // "Open in BioMate" button. Empty when the draft couldn't be persisted.
+          view_url:      workflowViewUrl || "",
         });
       } else if (responseState === "needs_input") {
         // Two sub-cases both produce needs_input:
