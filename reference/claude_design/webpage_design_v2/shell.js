@@ -39,6 +39,7 @@
             <img src="assets/logo.png" alt="BioMate AI" />
           </a>
           <ul class="bm-nav-links" id="bmNavLinks">
+            <li><a href="index.html" class="${active === '' ? 'active' : ''}">Home</a></li>
             ${dropdown('platform', 'Platform', 'services.html', [
               { label: 'Drug Discovery',             href: 'services.html#drug-discovery' },
               { label: 'Genomics &amp; Multi-Omics', href: 'services.html#genomics' },
