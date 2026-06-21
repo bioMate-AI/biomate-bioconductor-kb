@@ -364,7 +364,7 @@
       <div class="bm-section-head">
         <span class="bm-eyebrow">Workflow catalog</span>
         <h2 class="bm-h2">4,000+ indexed workflows across 36 biomedical domains.</h2>
-        <p class="bm-lead">Container‑pinned and version‑locked, spanning 36 biomedical domains. Counts shown are indexed workflows. Bring your own when you need to.</p>
+        <p class="bm-lead">Container‑pinned and version‑locked, spanning 36 biomedical domains. Bring your own when you need to.</p>
       </div>
       <div id="bm-wf-grid">
         <noscript>
@@ -618,7 +618,7 @@
       { label: 'Computational &amp; Data',
         domains: [['Systems Biology',108],['General / Utility',143],['Lab Automation',8],['Database APIs',5],['Literature Mining',4]] },
     ];
-    const chip = ([name, count]) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div><div class="bm-tech-chip-count" style="font-size:.7rem;font-weight:700;color:var(--accent,#8FD6EA);margin-top:2px;">${count.toLocaleString()}</div></div>`;
+    const chip = ([name]) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div></div>`;
     const groupLabel = (text) => `<div style="grid-column:1/-1;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:1.25rem;margin-bottom:.25rem;">${text}</div>`;
     document.getElementById('bm-wf-grid').style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;';
     document.getElementById('bm-wf-grid').innerHTML = DOMAIN_GROUPS.map(
