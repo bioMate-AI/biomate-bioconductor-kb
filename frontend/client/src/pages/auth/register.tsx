@@ -312,12 +312,29 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-2">
             <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
           </div>
-          <CardTitle className="text-2xl font-bold">
-            Create an account
-          </CardTitle>
-          <CardDescription>
-            Get 14 days of Premium access with included credits
-          </CardDescription>
+          {pendingQuery ? (
+            <>
+              <CardTitle className="text-2xl font-bold">
+                Register to continue
+              </CardTitle>
+              <CardDescription>
+                Please create a free account to continue your chat with BioMate.
+              </CardDescription>
+              <div className="mt-2 rounded-lg bg-muted/50 border px-3 py-2 text-sm text-muted-foreground text-left">
+                <span className="font-medium text-foreground">Your query: </span>
+                <span className="italic">&ldquo;{pendingQuery}&rdquo;</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <CardTitle className="text-2xl font-bold">
+                Create an account
+              </CardTitle>
+              <CardDescription>
+                Get 14 days of Premium access with included credits
+              </CardDescription>
+            </>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAccountSubmit} className="space-y-4">

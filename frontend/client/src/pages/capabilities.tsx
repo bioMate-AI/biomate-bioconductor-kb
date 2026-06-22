@@ -61,7 +61,7 @@ const jobClusters = [
   {
     title: "Rare Disease Translational Analysis",
     description:
-      "Starting from whole-genome sequencing data, call variants with clinical-grade pipelines, identify candidate disease genes, query approved drugs for repurposing, and select the right AAV serotype for in vivo gene therapy delivery.",
+      "Starting from whole-genome sequencing data, call variants with validated pipelines, identify candidate disease genes, query approved drugs for repurposing, and select the right AAV serotype for in vivo gene therapy delivery.",
     workflows: ["nf-core/raredisease", "patient_gene", "TxGNN repurposing", "aav_serotype_selection"],
   },
   {
