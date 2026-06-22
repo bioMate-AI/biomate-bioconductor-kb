@@ -270,7 +270,8 @@ export function pickGeminiIntentModel(message: string): string {
 }
 
 export interface GalaxyAssistantOptions {
-  anthropicApiKey: string;
+  /** Anthropic API key — optional when GOOGLE_API_KEY / GEMINI_API_KEY is present */
+  anthropicApiKey?: string;
   galaxyAPIProxy: GalaxyAPIProxy;
   /** Model configuration - uses defaults if not provided */
   modelConfig?: Partial<ModelConfig>;
@@ -1616,8 +1617,10 @@ export class GalaxyAssistant {
   private static readonly DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(options: GalaxyAssistantOptions) {
-    this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
-    const geminiKey = process.env.GEMINI_API_KEY;
+    // Anthropic is optional — Gemini can drive the assistant alone
+    this.claude = new Anthropic({ apiKey: options.anthropicApiKey || '' });
+    // Accept either GEMINI_API_KEY or GOOGLE_API_KEY (both mean the same credential)
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (geminiKey) this.gemini = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
     this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };

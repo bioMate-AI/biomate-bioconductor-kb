@@ -628,7 +628,15 @@ if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBu
   modelConfigOverrides.thinkingBudget = parsedThinkingBudget;
 }
 
-const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
+// Start with whichever LLM key is available; Gemini (GOOGLE_API_KEY) is the
+// backbone and Anthropic is used for memory, embeddings, and fallback.
+// Neither key alone blocks startup — the assistant degrades gracefully.
+const _hasAnyLLMKey = !!(
+  process.env.ANTHROPIC_API_KEY ||
+  process.env.GOOGLE_API_KEY ||
+  process.env.GEMINI_API_KEY
+);
+const galaxyAssistant = _hasAnyLLMKey ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
   modelConfig: modelConfigOverrides,
@@ -983,7 +991,7 @@ function getPilotFeedbackDb(): InstanceType<typeof BetterSqlite3> | null {
 }
 
 // Initialize Prerequisites Validator (LLM-powered pre-execution validation)
-const prerequisitesValidator = process.env.ANTHROPIC_API_KEY ? new WorkflowPrerequisitesValidator({
+const prerequisitesValidator = _hasAnyLLMKey ? new WorkflowPrerequisitesValidator({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
 }) : null;
