@@ -3,104 +3,298 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check, SkipForward, Plus } from "lucide-react"
 
-// ── Taxonomy — mirrors backend/lib/galaxy/ai/domain_registry.py ───────────────
-// 14 canonical user-facing domains + 8 routing-only domains users commonly pick.
-// Canonical source: domain_registry.py — update there first.
+// ── Taxonomy — derived from backend/database/galaxy_ai_tools.db ───────────────
+//
+// 36 domain values in DB (2,632 workflows total). Topics reflect actual workflow
+// coverage verified against the DB on 2026-06-21.
+// Not shown in selector (routing-only): general, variant_calling, database,
+// literature — these are internal routing labels, not user research areas.
+// pharmacology (23 wf) and cryo_et (6 wf) are absorbed as topics.
+// imaging (45 wf) is merged into bioimaging.
+//
+// Canonical source: backend/lib/galaxy/ai/domain_registry.py
+// Update domain_registry.py first, then mirror here.
 
 export const DOMAIN_TAXONOMY: Record<string, string[]> = {
-  // ── Canonical (user profile) domains ──────────────────────────────────────
+  // ── Canonical (14 official user-profile domains) ──────────────────────────
+
   genomics: [
-    "variant calling", "WGS", "WES", "copy number", "structural variants",
-    "population genetics", "genome assembly", "de novo assembly",
+    "variant calling (SNP/indel, GATK4/Mutect2)",
+    "WGS / WES",
+    "genome assembly & de novo assembly",
+    "copy number variation",
+    "structural variant detection",
+    "population genetics",
+    "somatic mutation analysis",
   ],
+
   transcriptomics: [
-    "bulk RNA-seq", "spatial transcriptomics", "long-read RNA-seq",
-    "ATAC-seq", "microarray", "differential expression",
+    "bulk RNA-seq (STAR / Salmon / Kallisto)",
+    "differential expression (DESeq2 / edgeR / limma)",
+    "spatial transcriptomics",
+    "long-read RNA-seq",
+    "miRNA-seq",
+    "gene quantification & TPM/FPKM",
+    "splice variant analysis",
   ],
+
   single_cell: [
-    "scRNA-seq", "scATAC-seq", "multiome", "cell typing", "trajectory analysis",
-    "cell clustering", "Seurat", "Scanpy",
+    "scRNA-seq (10x Chromium / Smart-seq)",
+    "scATAC-seq",
+    "multiome (RNA + ATAC)",
+    "cell type annotation",
+    "trajectory & pseudotime analysis",
+    "cell clustering (Seurat / Scanpy)",
+    "RNA velocity",
   ],
+
   epigenomics: [
-    "ChIP-seq", "ATAC-seq", "bisulfite-seq", "CUT&RUN", "Hi-C",
-    "DNA methylation", "WGBS", "RRBS",
+    "ChIP-seq (histone modification / TF binding)",
+    "ATAC-seq (chromatin accessibility)",
+    "bisulfite-seq / WGBS / RRBS (DNA methylation)",
+    "CUT&RUN / CUT&TAG",
+    "Hi-C (3D genome)",
+    "peak calling (MACS2)",
   ],
+
   proteomics: [
-    "DDA", "DIA", "phosphoproteomics", "protein-protein interaction",
-    "structural proteomics", "mass spectrometry", "TMT",
+    "DDA mass spectrometry (MaxQuant / Mascot)",
+    "DIA mass spectrometry (DIA-NN / Spectronaut)",
+    "label-free quantification",
+    "TMT / SILAC quantification",
+    "phosphoproteomics / PTM analysis",
+    "protein-protein interaction",
+    "structural proteomics",
   ],
+
   metabolomics: [
-    "LC-MS", "GC-MS", "NMR", "lipidomics", "metabolic flux",
-    "untargeted metabolomics", "targeted metabolomics",
+    "untargeted LC-MS metabolomics",
+    "targeted LC-MS / GC-MS",
+    "NMR-based metabolomics",
+    "lipidomics",
+    "metabolite annotation & spectral matching",
+    "pathway enrichment (FELLA / MetaboAnalyst)",
+    "metabolic flux analysis",
   ],
+
   metagenomics: [
-    "16S amplicon", "shotgun metagenomics", "metatranscriptomics",
-    "binning/MAGs", "microbiome", "taxonomic profiling",
+    "16S rRNA amplicon (DADA2 / QIIME2)",
+    "shotgun metagenomics (Kraken2 / MetaPhlAn)",
+    "metatranscriptomics",
+    "MAG binning & assembly (CONCOCT)",
+    "taxonomic profiling",
+    "microbiome diversity analysis",
+    "functional annotation (HUMAnN)",
   ],
+
   structural_biology: [
-    "AlphaFold", "molecular docking", "MD simulation",
-    "X-ray crystallography", "protein structure prediction",
+    "protein structure prediction (AlphaFold / Boltz / Chai-1)",
+    "molecular docking (AutoDock Vina / DiffDock / Glide)",
+    "molecular dynamics (GROMACS / AMBER)",
+    "relative binding free energy (RBFE/FEP)",
+    "X-ray crystallography",
+    "protein-ligand interaction analysis",
   ],
+
   drug_discovery: [
-    "ADMET prediction", "lead optimization", "target identification",
-    "virtual screening", "docking", "QSAR", "scaffold hopping",
-    "PK/PD modeling", "IVIVE", "dose-response", "clinical pharmacology",
-    "retrosynthesis", "generative chemistry", "drug repurposing",
+    // Virtual screening & ligand design (drug_discovery DB domain)
+    "virtual screening (Glide / AutoDock / DockString)",
+    "ADMET prediction (hERG, DILI, Ames, physicochemical props)",
+    "QSAR / machine learning on molecular data",
+    "scaffold hopping & analogue design",
+    "generative lead design (REINVENT4)",
+    "retrosynthesis (AiZynthFinder)",
+    "covalent warhead design",
+    // PK / clinical (pharmacology DB domain — absorbed here)
+    "PK/PD modeling & NCA (PKNCA / nlmixr2)",
+    "PBPK simulation (Pk-Sim / Simcyp)",
+    "population pharmacokinetics (NONMEM)",
+    "allometric scaling & IVIVE",
+    "BCS / oral absorption prediction",
+    "CNS penetration prediction",
+    "PBPK in special populations (paediatric / pregnancy)",
+    // Regulatory / safety
+    "FDA safety signal analysis",
+    "pharmacogenomics (PGx / CYP2C19)",
+    "drug repurposing (TxGNN)",
+    "antibody / biologic design (ScFv, ADC, PROTAC, bispecific)",
+    "clinical trial simulation & adaptive design",
   ],
+
   cryo_em: [
-    "SPA", "cryo-ET", "subtomogram averaging", "helical reconstruction",
-    "CryoSPARC", "RELION",
+    // cryo_em DB domain (23 wf) + cryo_et DB domain (6 wf)
+    "single-particle analysis (CryoSPARC / RELION)",
+    "3D variability / conformational heterogeneity (cryoDRGN)",
+    "focused refinement & particle subtraction",
+    "helical reconstruction",
+    "cryo-ET full pipeline",
+    "subtomogram averaging",
+    "tilt-series alignment & tomogram reconstruction",
+    "global CTF refinement",
+    "filament tracing",
   ],
+
   systems_biology: [
-    "ODE modeling", "network analysis", "flux balance analysis",
-    "gene regulatory networks", "pathway modeling",
+    "ODE / kinetic modeling (SBML)",
+    "flux balance analysis (FBA / COBRA)",
+    "gene regulatory network inference",
+    "protein signaling network simulation",
+    "Ras / dimerization ODE models",
+    "renin-angiotensin system dynamics",
+    "network analysis (Cytoscape)",
   ],
+
   synthetic_biology: [
-    "genetic circuit design", "metabolic engineering", "CRISPR design",
-    "gene synthesis", "plasmid design",
+    "gene circuit design & ODE simulation",
+    "CRISPR design (sgRNA / knockout / knock-in)",
+    "metabolic engineering & codon optimisation",
+    "SBML network modelling",
+    "barcode sequencing analysis",
+    "bacterial growth rate analysis",
+    "bifurcation diagram analysis",
   ],
+
   bioimaging: [
-    "cell segmentation", "fluorescence microscopy", "spatial omics imaging",
-    "flow cytometry", "confocal", "image analysis",
+    // bioimaging (22 wf) + imaging (45 wf) merged
+    "cell & nucleus segmentation (CellPose / StarDist / nnU-Net)",
+    "fluorescence microscopy image analysis (ImageJ / Fiji)",
+    "spatial transcriptomics imaging (MERSCOPE / Vizgen)",
+    "spatial omics downstream analysis",
+    "flow cytometry / FACS analysis",
+    "confocal / live-cell image analysis",
+    "cell counting & morphometry",
   ],
+
   lab_automation: [
-    "liquid handling", "plate reader", "OT-2", "PyLabRobot", "LIMS",
-    "sample tracking", "high-throughput screening",
+    "liquid handling (Opentrons OT-2 / PyLabRobot)",
+    "high-throughput screening (HTS) plate QC & hit calling",
+    "plate reader data analysis",
+    "LIMS & sample tracking",
+    "robotic dispensing protocols",
+    "Hamilton / Tecan / ECHO integration",
   ],
-  // ── Commonly-selected routing-only domains ─────────────────────────────────
+
+  // ── Routing-only domains with significant workflow coverage ───────────────
+
   immunology: [
-    "antibody engineering", "flow cytometry / FACS", "TCR/BCR repertoire",
-    "immunophenotyping", "cytokine profiling", "HLA typing",
+    "flow cytometry / FACS immunophenotyping",
+    "cytokine production analysis (CD4 T cells)",
+    "cell proliferation (CFSE assay)",
+    "immune cell tracking & motility",
+    "ATAC-seq differential accessibility (immune cells)",
+    "EBV antibody titers",
+    "cell cycle phase duration modelling",
   ],
+
   cancer_biology: [
-    "somatic mutation", "CNV", "TCGA analysis", "tumour heterogeneity",
-    "driver gene discovery", "liquid biopsy",
+    "somatic mutation detection & annotation",
+    "copy number / purity / ploidy analysis",
+    "structural variation characterisation",
+    "DDR network analysis",
+    "cell senescence & apoptosis",
+    "NMF gene expression analysis",
+    "tumour growth inhibition (TGI / PhysiCell)",
   ],
-  multi_omics: [
-    "multi-omics integration", "data fusion", "factor analysis",
-    "cross-modal alignment", "MOFA", "WNN",
+
+  virtual_cell: [
+    // virtual_cell DB domain (12 wf) — new in selector
+    "gene perturbation prediction (GEARS, GPU)",
+    "drug combination synergy (CPA / Synergy)",
+    "transcriptomic mechanism of action (LINCS)",
+    "cardiac safety ODE (CiPA)",
+    "tumour growth ODE / PhysiCell",
+    "metabolic flux FBA",
+    "ODE signalling simulation",
+    "cell state prediction (TranscriptFormer)",
+    "virtual patient cohort",
   ],
+
   molecular_biology: [
-    "primer design", "PCR", "cloning", "guide RNA design",
-    "restriction mapping", "vector design",
+    "primer & sgRNA design",
+    "plasmid annotation & restriction site mapping",
+    "Golden Gate / Gibson assembly design",
+    "ORF finding & coding sequence extraction",
+    "sequence mutation analysis",
+    "PCR & gel electrophoresis simulation",
+    "bacterial transformation protocol",
   ],
+
   cell_biology: [
-    "cell line characterisation", "apoptosis", "cell signaling",
-    "organelle imaging", "CRISPR screen",
+    "cell cycle phase quantification (microscopy)",
+    "mitochondrial morphology & potential",
+    "cell motility & migration analysis",
+    "flow cytometry cell sorting",
+    "CRISPR screen phenotyping",
+    "apoptosis & signalling assays",
   ],
+
   genetics: [
-    "GWAS", "linkage analysis", "QTL mapping", "heritability",
-    "Mendelian disease", "polygenic risk score",
+    "GWAS & fine-mapping (BayesVI)",
+    "CRISPR genome editing outcome analysis (Cas9)",
+    "transcription factor binding site identification",
+    "genomic prediction modelling",
+    "demographic history simulation",
+    "coordinate liftover (genome build conversion)",
+    "protein phylogeny analysis",
   ],
+
   microbiology: [
-    "antimicrobial resistance", "phage biology", "biofilm",
-    "pathogen genomics", "microbiome-host interaction",
+    "bacterial genome annotation",
+    "bacterial growth dynamics (Lotka-Volterra / GLV)",
+    "antimicrobial resistance analysis",
+    "biofilm biomass quantification",
+    "colony & CFU enumeration",
+    "RNA secondary structure prediction",
+    "microbial cell segmentation (deep learning)",
+    "anaerobic digestion modelling",
   ],
+
   biochemistry: [
-    "enzyme kinetics", "binding assay", "ITC / SPR",
-    "circular dichroism", "thermodynamics",
+    "enzyme kinetics (Michaelis-Menten)",
+    "ITC binding thermodynamics",
+    "circular dichroism spectra analysis",
+    "protease kinetics",
+    "protein conservation analysis",
+    "RNA secondary structure feature analysis",
+    "dose-response curve fitting",
   ],
+
+  physiology: [
+    "ABR (auditory brainstem response) waveform analysis",
+    "haemodynamic data analysis",
+    "thyroid hormone pharmacokinetics (ODE)",
+    "cosinor analysis (circadian rhythms)",
+    "ciliary beat frequency analysis",
+    "fatty acid composition (GC)",
+    "endolysosomal calcium dynamics",
+    "brain ADC map calculation (MRI)",
+  ],
+
+  bioengineering: [
+    "calcium imaging data analysis",
+    "cell migration & motility metrics",
+    "in vitro drug release kinetics (Higuchi / Korsmeyer-Peppas)",
+    "myofiber morphology analysis",
+    "whole-cell ODE modelling",
+    "neural trajectory decoding",
+    "CRISPR-Cas9 genome editing",
+  ],
+
+  pathology: [
+    "multiplexed cell quantification & segmentation",
+    "thrombus histology analysis",
+    "bone microCT morphometry",
+    "aortic geometry & diameter analysis",
+    "amyloid-β plaque quantification (MRI)",
+    "corneal nerve fibre quantification",
+    "ATP luminescence assay",
+  ],
+
+  structural_biology_xray: [], // placeholder — rolled into structural_biology above
 }
+
+// Remove placeholder
+delete (DOMAIN_TAXONOMY as Record<string, string[]>)["structural_biology_xray"]
 
 export const DOMAIN_LABELS: Record<string, string> = {
   genomics:          "Genomics",
@@ -112,19 +306,22 @@ export const DOMAIN_LABELS: Record<string, string> = {
   metagenomics:      "Metagenomics",
   structural_biology: "Structural Biology",
   drug_discovery:    "Drug Discovery & Pharmacology",
-  cryo_em:           "Cryo-EM",
+  cryo_em:           "Cryo-EM / Cryo-ET",
   systems_biology:   "Systems Biology",
   synthetic_biology: "Synthetic Biology",
   bioimaging:        "Bioimaging",
   lab_automation:    "Lab Automation",
   immunology:        "Immunology",
   cancer_biology:    "Cancer Biology",
-  multi_omics:       "Multi-omics",
+  virtual_cell:      "Virtual Cell & Computational Biology",
   molecular_biology: "Molecular Biology",
   cell_biology:      "Cell Biology",
   genetics:          "Genetics",
   microbiology:      "Microbiology",
   biochemistry:      "Biochemistry",
+  physiology:        "Physiology",
+  bioengineering:    "Bioengineering",
+  pathology:         "Pathology",
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -159,7 +356,7 @@ export function DomainProfileSelector({
   const [otherDomainText, setOtherDomainText] = useState("")
   const otherDomainRef = useRef<HTMLInputElement>(null)
 
-  // "Other" topic free-text per domain key (including "other" itself)
+  // "Other" topic free-text per domain key
   const [otherTopicText, setOtherTopicText] = useState<Record<string, string>>({})
 
   // ── Domain toggle ──────────────────────────────────────────────────────────
@@ -169,7 +366,6 @@ export function DomainProfileSelector({
       const next = new Set(prev)
       if (next.has(key)) {
         next.delete(key)
-        // Remove topics that belong exclusively to this domain
         const topicsForRemoved = DOMAIN_TAXONOMY[key] ?? []
         const remaining = Array.from(next)
         const stillValid = new Set(remaining.flatMap(d => DOMAIN_TAXONOMY[d] ?? []))
@@ -226,7 +422,7 @@ export function DomainProfileSelector({
           Which research domains do you work in?
         </h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Select all that apply. Topics appear automatically once you pick a domain.
+          Select all that apply — topics appear automatically. BioMate covers 36 domains and 2,600+ workflows.
         </p>
       </div>
 
@@ -302,11 +498,11 @@ export function DomainProfileSelector({
         />
       )}
 
-      {/* Inline topic expansion — one block per selected domain */}
+      {/* Inline topic expansion — one section per selected domain */}
       {selectedDomainKeys.length > 0 && (
         <div className="space-y-4 border-t pt-4">
           <p className="text-sm text-muted-foreground">
-            Refine by topic <span className="text-xs">(optional)</span>
+            Refine by topic <span className="text-xs">(optional — select all that apply)</span>
           </p>
           {selectedDomainKeys.map(domainKey => {
             const topics = DOMAIN_TAXONOMY[domainKey] ?? []
