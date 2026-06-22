@@ -2073,6 +2073,16 @@ export function ChatInterface({
         padding: '10px clamp(20px, 8%, 80px) 16px',
         background: 'var(--bm-bg, hsl(var(--background)))',
       }}>
+        {displayMessages.length === 0 && (
+          <p style={{
+            fontSize: 13,
+            color: 'var(--bm-text-dim, oklch(0.60 0.008 240))',
+            marginBottom: 8,
+            textAlign: 'center',
+          }}>
+            Input your use case here
+          </p>
+        )}
         <ChatInput
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}
