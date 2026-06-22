@@ -38,13 +38,14 @@ const DOMAIN_LABELS: Record<string, string> = {
   proteomics: "Proteomics",
   metabolomics: "Metabolomics",
   metagenomics: "Metagenomics",
-  structural_biology: "Structural Biology",
-  drug_discovery: "Drug Discovery",
-  cryo_em: "Cryo-EM",
-  pharmacology: "Pharmacology",
+  structural_biology: "Structural Biology & Cryo-EM",
+  drug_discovery: "Drug Discovery & Pharmacology",
   systems_biology: "Systems Biology",
   synthetic_biology: "Synthetic Biology",
   bioimaging: "Bioimaging",
+  // Legacy keys — kept so existing saved profiles display correctly
+  cryo_em: "Cryo-EM",
+  pharmacology: "Pharmacology",
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
