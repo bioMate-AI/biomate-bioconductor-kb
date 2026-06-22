@@ -808,6 +808,40 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
 };
 
 /**
+ * For ADMET workflows, the decomposition LLM may extract SMILES strings using
+ * an arbitrary drug name as the key (e.g. {"imatinib": "Cc1ccc..."}) instead of
+ * the workflow-expected key "smiles_list". This function detects SMILES-like values
+ * and collects them into a JSON array under "smiles_list".
+ *
+ * A value is treated as SMILES when it contains characters typical of SMILES notation
+ * (=, #, [, ], /, \, @) and contains no whitespace.
+ */
+function normalizeAdmetSmiles(
+  workflowName: string | undefined | null,
+  raw: Record<string, string> | undefined | null,
+): Record<string, string> {
+  if (!raw || workflowName !== 'predict_admet_properties') return raw || {};
+  // SMILES heuristic: no whitespace + contains at least one structural SMILES character
+  const isSmilesLike = (v: string) => /^[^\s]+$/.test(v) && /[=#\[\]\/\\@]/.test(v) && v.length >= 5;
+  const smilesList: string[] = [];
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'smiles_list' || k === 'ADMET_model_type') {
+      out[k] = v;
+    } else if (isSmilesLike(v)) {
+      smilesList.push(v);
+    } else {
+      out[k] = v;
+    }
+  }
+  if (smilesList.length > 0 && !out.smiles_list) {
+    out.smiles_list = JSON.stringify(smilesList);
+    console.log('[normalizeAdmetSmiles] Remapped', smilesList.length, 'SMILES value(s) → smiles_list');
+  }
+  return out;
+}
+
+/**
  * Remap an LLM-extracted inlineParameters dict to the workflow's expected
  * required_params keys. Unknown keys pass through (forwards-compat for new
  * workflows). Keys mapped to '__drop__' are removed.
@@ -896,7 +930,8 @@ export async function groundInlineParameters(args: {
     return { params: (rawParams as any) || {}, path: 'noop' };
   }
   if (!SCHEMA_GROUNDED_FLAG()) {
-    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
+    const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
     return { params: remapped, path: 'legacy-alias' };
   }
   try {
@@ -919,7 +954,8 @@ export async function groundInlineParameters(args: {
           : typeof optionalParams,
       );
       onStatus?.('No schema metadata; using legacy parameter mapping', { stage: 'fallback' });
-      const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+      const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
+      const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
       return { params: remapped, path: 'legacy-alias' };
     }
     const llmCall = buildLlmGenerateAdapter(llmGenerate);
@@ -955,7 +991,8 @@ export async function groundInlineParameters(args: {
       `[groundInlineParameters] schema-grounded path failed for "${workflowName}" (${(e as Error).message}); falling back to legacy alias`,
     );
     onStatus?.('Parameter extraction failed; using legacy mapping', { stage: 'error', error: (e as Error).message });
-    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
+    const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
     return { params: remapped, path: 'legacy-alias' };
   }
 }
