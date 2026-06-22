@@ -808,8 +808,29 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
 };
 
 /**
- * For ADMET workflows, the decomposition LLM may extract SMILES strings using
- * an arbitrary drug name as the key (e.g. {"imatinib": "Cc1ccc..."}) instead of
+ * Workflows that accept a `smiles_list` parameter (JSON array of SMILES strings).
+ * The decomposition LLM may extract SMILES using an arbitrary drug name as the key
+ * (e.g. {"imatinib": "Cc1ccc..."}) instead of the workflow-expected key "smiles_list".
+ * This set is used by normalizeWorkflowSmiles to know when to apply remapping.
+ */
+const SMILES_LIST_WORKFLOWS = new Set([
+  'predict_admet_properties',
+  'herg_cardiac_safety_qsar',
+  'cns_penetration_prediction',
+  'dart_toxicity_prediction',
+  'genotoxicity_ames_prediction',
+  'membrane_permeability_prediction',
+  'calculate_physicochemical_properties',
+  'docking_autodock_vina',
+  'run_diffdock_with_smiles',
+  'antibody_developability',
+  'qsar_rf_model',
+  'metabolite_prediction_biotransformer',
+]);
+
+/**
+ * For workflows that use smiles_list, the decomposition LLM may extract SMILES strings
+ * using an arbitrary drug name as the key (e.g. {"imatinib": "Cc1ccc..."}) instead of
  * the workflow-expected key "smiles_list". This function detects SMILES-like values
  * and collects them into a JSON array under "smiles_list".
  *
@@ -820,7 +841,7 @@ function normalizeAdmetSmiles(
   workflowName: string | undefined | null,
   raw: Record<string, string> | undefined | null,
 ): Record<string, string> {
-  if (!raw || workflowName !== 'predict_admet_properties') return raw || {};
+  if (!raw || !workflowName || !SMILES_LIST_WORKFLOWS.has(workflowName)) return raw || {};
   // SMILES heuristic: no whitespace + contains at least one structural SMILES character
   const isSmilesLike = (v: string) => /^[^\s]+$/.test(v) && /[=#\[\]\/\\@]/.test(v) && v.length >= 5;
   const smilesList: string[] = [];
