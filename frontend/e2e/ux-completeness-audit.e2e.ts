@@ -140,11 +140,12 @@ test('Flow A — ADMET run + full panel and sidebar audit', async () => {
     console.log('[A1] ✅ AI chat message visible');
   });
 
-  // A2 — Workflow artifact anchor appears (testid is "workflow-artifact-anchor-<id>")
+  // A2 — Workflow artifact anchor in DOM (when isInPanel=true the div is an invisible anchor;
+  //       check DOM presence not visibility)
   await soft('A2 workflow card', async () => {
     const wfChip = page.locator('[data-testid^="workflow-artifact-anchor-"]').first();
-    await expect(wfChip).toBeVisible({ timeout: 10_000 });
-    console.log('[A2] ✅ workflow card visible');
+    await expect(wfChip).toBeAttached({ timeout: 10_000 });
+    console.log('[A2] ✅ workflow artifact anchor in DOM');
   });
 
   // A3 — wf-chip "In panel" badge
