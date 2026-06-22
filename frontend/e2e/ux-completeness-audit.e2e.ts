@@ -140,12 +140,23 @@ test('Flow A — ADMET run + full panel and sidebar audit', async () => {
     console.log('[A1] ✅ AI chat message visible');
   });
 
-  // A2 — Workflow artifact anchor in DOM (when isInPanel=true the div is an invisible anchor;
-  //       check DOM presence not visibility)
+  // A2 — Workflow visible in chat or right panel.
+  // When isInPanel=true, chat-message renders a .wf-chip compact card (not the anchor div —
+  // the outer {!isInPanel && ...} guard prevents the anchor from rendering).
+  // Check for the wf-chip OR the workflow panel being open.
   await soft('A2 workflow card', async () => {
-    const wfChip = page.locator('[data-testid^="workflow-artifact-anchor-"]').first();
-    await expect(wfChip).toBeAttached({ timeout: 10_000 });
-    console.log('[A2] ✅ workflow artifact anchor in DOM');
+    const wfChip = page.locator('.wf-chip, [data-testid^="workflow-artifact-anchor-"]').first();
+    const panel  = page.locator('[data-testid="workflow-artifact-panel"]').first();
+    const hasChip  = await wfChip.isVisible({ timeout: 10_000 }).catch(() => false);
+    const hasPanel = await panel.isVisible({ timeout: 5_000 }).catch(() => false);
+    if (hasChip) {
+      console.log('[A2] ✅ wf-chip visible in chat (workflow in panel)');
+    } else if (hasPanel) {
+      console.log('[A2] ✅ workflow panel open');
+    } else {
+      // Hard fail — neither the wf-chip nor the panel is present
+      await expect(wfChip).toBeVisible({ timeout: 3_000 });
+    }
   });
 
   // A3 — wf-chip "In panel" badge
