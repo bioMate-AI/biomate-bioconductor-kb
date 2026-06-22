@@ -39,9 +39,55 @@ if [[ -e "$LOCK_FILE" ]] && kill -0 "$(cat "$LOCK_FILE" 2>/dev/null)" 2>/dev/nul
   exit 1
 fi
 echo $$ > "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
+
+# --- Deploy notification (SNS) + consolidated cleanup -----------------------
+# Previously the only EXIT trap removed the lock file — and resync_galaxy_env
+# later REPLACED it with a LIVE_ENV cleanup (trap ... EXIT clobbers), silently
+# dropping lock removal. Consolidate both into one handler and add an SNS
+# notification so a failed dev sync is no longer silent.
+#
+# NOTE on rollback: this script is an in-place file sync + gunicorn HUP, not an
+# image-tag swap, so there is no "previous image" to revert to. A real rollback
+# needs a snapshot-before-sync design (see docs); we deliberately do NOT bolt on
+# a partial/fake rollback here. The notification tells you to re-sync a known-
+# good commit on failure.
+AWS_REGION="${AWS_REGION:-us-west-2}"
+SNS_TOPIC_ARN="${SNS_TOPIC_ARN:-arn:aws:sns:$AWS_REGION:399683337364:biomate-deploy-events}"
+CLEANUP_FILES=""        # space-separated temp files to rm on exit (append, don't re-trap)
+SYNC_STARTED=0          # set to 1 once we enter do_sync; gates the notification
+CURRENT_COMMIT=""       # populated at the entry point; referenced by notify_sync
+
+notify_sync() {
+  local rc="$1" state subject
+  if [[ "$rc" -eq 0 ]]; then
+    state="ok";     subject="[dev-sync ok] dev -> ${CURRENT_COMMIT:0:8}"
+  else
+    state="FAILED"; subject="[dev-sync FAILED] dev -> ${CURRENT_COMMIT:0:8}"
+  fi
+  if aws sns publish --region "$AWS_REGION" --topic-arn "$SNS_TOPIC_ARN" \
+       --subject "${subject:0:99}" \
+       --message "BioMate dev sync $state
+Target:   https://dev-public.biomate.ai
+Commit:   ${CURRENT_COMMIT:-unknown}
+Instance: $INSTANCE_ID
+Exit:     $rc
+NOTE: dev sync is in-place file sync + HUP; there is NO auto-rollback. On FAILED, inspect dev and re-sync a known-good commit." \
+       >/dev/null 2>&1; then
+    log "[notify] SNS sent ($state) -> $SNS_TOPIC_ARN"
+  else
+    log "::warning:: [notify] SNS publish failed ($state) — check sns:Publish on local creds + a confirmed topic subscription"
+  fi
+}
+
+on_exit() {
+  local rc=$?
+  rm -f "$LOCK_FILE" $CLEANUP_FILES 2>/dev/null || true
+  [[ "$SYNC_STARTED" -eq 1 ]] && notify_sync "$rc"
+  return 0
+}
+trap on_exit EXIT
 
 # ---------------------------------------------------------------------------
 # SSH helpers
@@ -513,7 +559,7 @@ resync_galaxy_env() {
     # values for the same key (last --env-file wins on docker run). Capture
     # the rest from the running container so we do not lose JWT_SECRET etc.
     LIVE_ENV=$(mktemp)
-    trap "rm -f $LIVE_ENV" EXIT
+    CLEANUP_FILES="$CLEANUP_FILES $LIVE_ENV"   # cleaned by on_exit; do NOT re-trap (would drop lock removal)
 
     # Keys present in .env — we will let the file supply them
     NEW_KEYS=$(grep -v "^#\|^$" "$ENV_FILE" | awk -F= "{print \$1}" | sort -u)
@@ -874,6 +920,11 @@ fi
 # --- One-shot sync ---------------------------------------------------------
 # Sync all tracked layers in one pass and exit. No polling, no retries.
 CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/')"
+
+# From here on the run IS a deploy attempt — arm the SNS notification so its
+# outcome (success OR failure) reaches the topic. Pre-flight refusals above
+# (dirty tree, not-a-repo, lock contention) intentionally stay silent.
+SYNC_STARTED=1
 
 if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
