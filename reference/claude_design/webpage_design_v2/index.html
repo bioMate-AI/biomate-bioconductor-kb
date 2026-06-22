@@ -119,6 +119,8 @@
       transition: border-color .15s, box-shadow .15s;
     }
     .bm-hero-query-input::placeholder { color: var(--text-muted); }
+    .bm-hero-query-input.bm-hero-query-prefilled { color: var(--text-muted); }
+    .bm-hero-query-input.bm-hero-query-prefilled:focus { color: var(--text); }
     .bm-hero-query-input:focus {
       outline: none; border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(42,85,130,.12);
@@ -244,10 +246,9 @@
         <form class="bm-hero-query-form" onsubmit="bmHeroSubmit(event)">
           <textarea
             id="bmHeroQuery"
-            class="bm-hero-query-input"
+            class="bm-hero-query-input bm-hero-query-prefilled"
             rows="3"
-            placeholder="Describe your research use case — e.g. 'Run DESeq2 on my RNA-seq data and identify differentially expressed genes between treated and control groups'"
-          ></textarea>
+          >Run DESeq2 on my RNA-seq data and identify differentially expressed genes between treated and control groups</textarea>
           <div class="bm-hero-ctas">
             <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
               Start free
@@ -257,6 +258,12 @@
           </div>
         </form>
         <script>
+          (function() {
+            var ta = document.getElementById('bmHeroQuery');
+            ta.addEventListener('input', function() {
+              ta.classList.remove('bm-hero-query-prefilled');
+            });
+          })();
           function bmHeroSubmit(e) {
             e.preventDefault();
             var q = document.getElementById('bmHeroQuery').value.trim();
