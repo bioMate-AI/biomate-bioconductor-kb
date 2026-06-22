@@ -513,11 +513,12 @@ function App() {
 
   const { user } = useAuth()
 
-  // Reload chat history whenever the authenticated user changes (scoped key updated by AppWithAuthSync)
+  // Reload sidebar session list whenever the authenticated user changes.
+  // Do NOT reset currentChatSession here — the auto-submit may have just created one.
   useEffect(() => {
+    if (user?.id) chatHistoryService.setUserId(String(user.id))
     const sessions = chatHistoryService.getAllSessions()
     setChatSessions(sessions)
-    setCurrentChatSession(null)
   }, [user?.id])
 
   const handleNewChat = () => {
