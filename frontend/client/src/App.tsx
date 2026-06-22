@@ -278,7 +278,7 @@ function PlatformLayout({
             B
           </button>
           {/* Icon buttons */}
-          <button onClick={onNewChat} className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
+          <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
             <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
           </button>
           <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows">

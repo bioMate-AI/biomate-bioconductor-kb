@@ -35,7 +35,7 @@ import {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const FIXTURE_EMAIL    = 'lifeifei163361@163.com';
-const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD ?? '';
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || 'WpmFixture!2026';
 const E2E_TOKEN        = process.env.E2E_TEST_TOKEN ?? 'biomate-e2e-bypass-token-dev-only';
 
 // Short ADMET query — fast LLM + small AWS Batch job; used for most workflow-panel tests
