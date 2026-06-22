@@ -117,10 +117,15 @@ function RootRoute({
   const uiFlavor = useUiFlavor()
   const handledSessionParam = useRef(false)
 
-  // Consume any pending query saved by the marketing hero input before redirect
+  // Consume pending use-case query passed via ?q= from the marketing hero input.
+  // Cross-domain localStorage doesn't work (biomate.ai vs dev-public.biomate.ai),
+  // so register.tsx passes the query through as a URL param → /?q=<encoded>.
   const [initialMessage] = useState<string | undefined>(() => {
-    const q = localStorage.getItem('biomate_pending_query')
-    if (q) { localStorage.removeItem('biomate_pending_query'); return q }
+    const urlQ = new URLSearchParams(window.location.search).get('q')
+    if (urlQ) {
+      window.history.replaceState(null, '', window.location.pathname)
+      return decodeURIComponent(urlQ)
+    }
     return undefined
   })
 
@@ -506,14 +511,14 @@ function App() {
     analytics.track('page_viewed', { page: location })
   }, [location])
 
-  // Load chat history list on mount, but start with a fresh empty session
-  // so users always land on a clean chat (previous sessions accessible in sidebar)
+  const { user } = useAuth()
+
+  // Reload chat history whenever the authenticated user changes (scoped key updated by AppWithAuthSync)
   useEffect(() => {
     const sessions = chatHistoryService.getAllSessions()
     setChatSessions(sessions)
-    // Do not auto-load the last session — the user sees an empty welcome state
-    // and can pick a previous conversation from the sidebar if needed
-  }, [])
+    setCurrentChatSession(null)
+  }, [user?.id])
 
   const handleNewChat = () => {
     console.log('Creating new chat session')
@@ -623,11 +628,16 @@ function App() {
 
 
 function AppWithAuthSync() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     chatHistoryService.setBackendSyncActive(isAuthenticated)
   }, [isAuthenticated])
+
+  // Scope chat history to the authenticated user so new users don't see others' chats
+  useEffect(() => {
+    if (user?.id) chatHistoryService.setUserId(String(user.id))
+  }, [user?.id])
 
   return <App />
 }
