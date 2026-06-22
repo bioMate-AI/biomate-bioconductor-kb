@@ -841,7 +841,14 @@ function normalizeAdmetSmiles(
   workflowName: string | undefined | null,
   raw: Record<string, string> | undefined | null,
 ): Record<string, string> {
-  if (!raw || !workflowName || !SMILES_LIST_WORKFLOWS.has(workflowName)) return raw || {};
+  // Match by exact name OR by canonical short name embedded in a full display name.
+  // groundInlineParameters passes workflow_ga.name ("Predict ADMET Properties (AI)"),
+  // not the canonical short name ("predict_admet_properties") — check both.
+  if (!raw || !workflowName) return raw || {};
+  const normalizedWfKey = workflowName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+$/, '');
+  const isMatch = SMILES_LIST_WORKFLOWS.has(workflowName) ||
+    Array.from(SMILES_LIST_WORKFLOWS).some(n => normalizedWfKey.includes(n));
+  if (!isMatch) return raw;
   // SMILES heuristic: extract the first whitespace-delimited token and test it.
   // The LLM sometimes appends prose after the SMILES string
   // (e.g. "Cc1ccc...n1 and predict hERG cardiac risk"), so strip trailing text.
