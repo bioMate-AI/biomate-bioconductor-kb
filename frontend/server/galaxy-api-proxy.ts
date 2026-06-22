@@ -99,7 +99,7 @@ export class GalaxyAPIProxy {
     (proxy as any).connectionError = null;
     (proxy as any).client = axios.create({
       baseURL: this.galaxyUrl,
-      timeout: 60000,
+      timeout: 300000, // 5 min — same as admin proxy; workflow gen can take >60s on cold start
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': userApiKey,
