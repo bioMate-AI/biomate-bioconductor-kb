@@ -35,6 +35,8 @@ IND_URL_PATH      = "IND Report/BioMate IND Report.html"
 BIOC_URL_PATH     = "1256-handoff/Research Agent UI.html"
 # Tier-0 therapeutic design demos — design_handoff_tier0_design_pipelines
 TIER0_URL_PATH    = "design_handoff_tier0_design_pipelines/Research Agent UI.html"
+# Seven-Domain Tutorial Package
+SEVENDOM_URL_PATH = "Seven-Domain Tutorial Package/prototype/Research Agent UI.html"
 
 
 # ── Local HTTP server ─────────────────────────────────────────────────────────
@@ -143,6 +145,85 @@ TUTORIALS = {
     "tour_label": "T05 — Modality triage (BCMA oncology)",
     "lead_in_ms": 1000,
     "trail_ms": 2000,
+  },
+
+  # ── Seven-Domain Tutorial Package — T1–T7 ────────────────────────────────────
+  # manualStream tours: 1 centered welcome step, then tape auto-plays.
+  # Playwright records 8 beats; ArrowRight presses after step 1 do nothing
+  # (no callout button), but recording continues as tape auto-plays.
+  "tut_rnaseq": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T1 — Bulk RNA-seq DE + GSEA (ERCC truth)",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "tut_scrna": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T2 — scRNA-seq PBMC → annotate (Azimuth)",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "tut_variant": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T3 — Germline variants · GIAB HG002 chr20",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "tut_chipseq": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T4 — ChIP-seq K562 H3K27ac → enrichment",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "tut_proteomics": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T5 — Proteomics LFQ · UPS1 spike-in",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "tut_metagenome": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T6 — Metagenomics → MAGs (CAMI II)",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "tut_metabolomics": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "T7 — Metabolomics consensus (MTBLS136)",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+
+  # ── Method-integration pilots — Z01, Z02, ZZ01, ZZ02, L01 ──────────────────
+  "int_torchgwas": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "Z01 — TorchGWAS · UDIP brain phenotypes",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "int_fda_screen": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "Z02 — Folding-Docking-Affinity · EGFR T790M",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "int_tumor_tcell": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "ZZ01 — Tumor-reactive T-cell chain (3 tools)",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "int_scgwas": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "ZZ02 — scGWAS · immune cell types",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
+  },
+  "int_rare_disease": {
+    "url_path": SEVENDOM_URL_PATH,
+    "tour_label": "L01 — Rare-disease multi-modal workup",
+    "lead_in_ms": 1200,
+    "trail_ms": 2500,
   },
 }
 
