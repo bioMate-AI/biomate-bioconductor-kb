@@ -133,15 +133,16 @@ test('Flow A — ADMET run + full panel and sidebar audit', async () => {
   const hasRunBtn = await sendAndWait(page, ADMET_QUERY, 90_000);
   await shot(page, 'ux-audit', 'A_after_query');
 
-  // A1 — AI message visible
+  // A1 — AI message visible (testid is "chat-message-<id>", use prefix match)
   await soft('A1 AI text message', async () => {
-    const aiMsg = page.locator('[data-testid="chat-message"]').first();
+    const aiMsg = page.locator('[data-testid^="chat-message-"]').first();
     await expect(aiMsg).toBeVisible({ timeout: 10_000 });
+    console.log('[A1] ✅ AI chat message visible');
   });
 
-  // A2 — Workflow card appears
+  // A2 — Workflow artifact anchor appears (testid is "workflow-artifact-anchor-<id>")
   await soft('A2 workflow card', async () => {
-    const wfChip = page.locator('[data-testid="wf-chip"], [data-testid="workflow-card"]').first();
+    const wfChip = page.locator('[data-testid^="workflow-artifact-anchor-"]').first();
     await expect(wfChip).toBeVisible({ timeout: 10_000 });
     console.log('[A2] ✅ workflow card visible');
   });
@@ -413,7 +414,7 @@ test('Flow A — ADMET run + full panel and sidebar audit', async () => {
 // =============================================================================
 
 test('Flow B — Upload UI and auth gate probes', async () => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
 
   const page = sharedPage;
 
@@ -500,23 +501,29 @@ test('Flow B — Upload UI and auth gate probes', async () => {
   });
 
   // ── Auth gate probes ──────────────────────────────────────────────────────────
-  // These are fast API checks — no UI needed
+  // 401 probe: use page.evaluate + fetch(credentials:'omit') so browser explicitly
+  // strips the auth cookie. This is the only way to force an unauthenticated request
+  // without creating a new context.
   await soft('Auth gate 401', async () => {
-    const res = await page.evaluate(async (url) => {
+    const status = await page.evaluate(async (url) => {
       const r = await fetch(`${url}/api/projects`, { credentials: 'omit' });
       return r.status;
     }, BASE_URL);
-    expect(res).toBe(401);
+    expect(status).toBe(401);
     console.log('[Auth] ✅ GET /api/projects without auth → 401');
   });
 
+  // 404 probe: use page.context().request (Playwright APIRequestContext) — inherits
+  // context cookies (authenticated) but does NOT depend on the page renderer being alive,
+  // avoiding the "Target page, context or browser has been closed" hang that occurs
+  // when the renderer is in a stale state after a long Flow A session.
   await soft('Auth gate 404 for fake project', async () => {
-    const res = await page.evaluate(async (url) => {
-      const r = await fetch(`${url}/api/projects/00000000-0000-0000-0000-000000000000`, { credentials: 'include' });
-      return r.status;
-    }, BASE_URL);
-    console.log(`[Auth] GET /api/projects/<fake-uuid> → ${res} (expect 404)`);
-    expect(res).toBe(404);
+    const res = await page.context().request.get(
+      `${BASE_URL}/api/projects/00000000-0000-0000-0000-000000000000`,
+      { failOnStatusCode: false }
+    );
+    console.log(`[Auth] GET /api/projects/<fake-uuid> → ${res.status()} (expect 404)`);
+    expect(res.status()).toBe(404);
     console.log('[Auth] ✅ Fake project → 404');
   });
 
