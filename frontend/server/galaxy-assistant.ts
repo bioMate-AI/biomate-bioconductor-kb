@@ -968,6 +968,26 @@ export async function groundInlineParameters(args: {
   if (!SCHEMA_GROUNDED_FLAG()) {
     const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
     const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
+    // When the backend supplied a schema (required/optional params), drop any
+    // remapped keys that are not in the schema — they are LLM hallucinations
+    // (e.g. "imatinib: <SMILES>" gets parsed as param key "imatinib" but the
+    // workflow only accepts "smiles"). This prevents unknown keys from being
+    // passed as Nextflow --flags.
+    const allKnownNames: Set<string> = new Set([
+      ...(requiredParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
+      ...(optionalParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
+    ]);
+    if (allKnownNames.size > 0) {
+      const filtered: Record<string, string> = {};
+      for (const [k, v] of Object.entries(remapped)) {
+        if (allKnownNames.has(k)) {
+          filtered[k] = v as string;
+        } else {
+          console.log(`[groundInlineParameters] dropping unknown param "${k}" (not in schema for "${workflowName}")`);
+        }
+      }
+      return { params: filtered, path: 'legacy-alias' };
+    }
     return { params: remapped, path: 'legacy-alias' };
   }
   try {
@@ -5035,28 +5055,47 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
           systemInstruction: systemPrompt,
         });
-        // Retry with exponential backoff on 429 rate limit
+        // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
         let geminiResult: any;
-        for (let attempt = 0; attempt < 5; attempt++) {
-          try {
-            geminiResult = await geminiModel.generateContent(message);
-            break;
-          } catch (err: any) {
-            const is429 = err?.message?.includes('429') || err?.status === 429;
-            if (is429 && attempt < 4) {
-              const delay = (attempt + 1) * 3000; // 3s, 6s, 9s, 12s
-              console.warn(`[GalaxyAssistant] Gemini 429 rate limit, retrying in ${delay}ms (attempt ${attempt + 1})`);
-              await new Promise(r => setTimeout(r, delay));
-            } else {
-              throw err;
-            }
+        let usedGeminiFallback = false;
+        try {
+          geminiResult = await geminiModel.generateContent(message);
+        } catch (err: any) {
+          const is429 = err?.message?.includes('429') || err?.status === 429;
+          if (is429) {
+            console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
+            usedGeminiFallback = true;
+          } else {
+            throw err;
           }
         }
-        resultText = geminiResult.response.text();
-        console.log('[GalaxyAssistant] Intent API response (Gemini):', {
-          model: effectiveIntentModel,
-          time_ms: Date.now() - intentStartTime,
-        });
+
+        if (usedGeminiFallback) {
+          // Haiku fallback: fast, cheap, not Gemini rate-limited.
+          const haiku = 'claude-haiku-4-5-20251001';
+          const fallbackCompletion = await this._withAnthropicRetry(
+            () => this.claude.messages.create({
+              model: haiku,
+              max_tokens: 4096,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: message }],
+            }),
+            'intent-classification-haiku-fallback',
+          );
+          console.log('[GalaxyAssistant] Intent Haiku fallback response:', {
+            model: haiku,
+            time_ms: Date.now() - intentStartTime,
+            usage: fallbackCompletion.usage,
+          });
+          const fc = fallbackCompletion.content[0];
+          resultText = fc.type === 'text' ? fc.text : '{}';
+        } else {
+          resultText = geminiResult.response.text();
+          console.log('[GalaxyAssistant] Intent API response (Gemini):', {
+            model: effectiveIntentModel,
+            time_ms: Date.now() - intentStartTime,
+          });
+        }
       } else {
         // Anthropic path (default)
         // Note: temperature is deprecated for Claude 4.x models
