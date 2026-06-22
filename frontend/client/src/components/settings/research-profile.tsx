@@ -31,21 +31,30 @@ async function saveDomainProfile(profile: DomainProfile): Promise<void> {
 // ── Domain label map (matches taxonomy) ──────────────────────────────────────
 
 const DOMAIN_LABELS: Record<string, string> = {
-  genomics: "Genomics",
-  transcriptomics: "Transcriptomics",
-  single_cell: "Single Cell",
-  epigenomics: "Epigenomics",
-  proteomics: "Proteomics",
-  metabolomics: "Metabolomics",
-  metagenomics: "Metagenomics",
-  structural_biology: "Structural Biology & Cryo-EM",
-  drug_discovery: "Drug Discovery & Pharmacology",
-  systems_biology: "Systems Biology",
+  genomics:          "Genomics",
+  transcriptomics:   "Transcriptomics",
+  single_cell:       "Single Cell",
+  epigenomics:       "Epigenomics",
+  proteomics:        "Proteomics",
+  metabolomics:      "Metabolomics",
+  metagenomics:      "Metagenomics",
+  structural_biology: "Structural Biology",
+  drug_discovery:    "Drug Discovery & Pharmacology",
+  cryo_em:           "Cryo-EM",
+  systems_biology:   "Systems Biology",
   synthetic_biology: "Synthetic Biology",
-  bioimaging: "Bioimaging",
-  // Legacy keys — kept so existing saved profiles display correctly
-  cryo_em: "Cryo-EM",
-  pharmacology: "Pharmacology",
+  bioimaging:        "Bioimaging",
+  lab_automation:    "Lab Automation",
+  immunology:        "Immunology",
+  cancer_biology:    "Cancer Biology",
+  multi_omics:       "Multi-omics",
+  molecular_biology: "Molecular Biology",
+  cell_biology:      "Cell Biology",
+  genetics:          "Genetics",
+  microbiology:      "Microbiology",
+  biochemistry:      "Biochemistry",
+  // Legacy key — kept so saved profiles from before the pharmacology merger display correctly
+  pharmacology:      "Pharmacology",
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
