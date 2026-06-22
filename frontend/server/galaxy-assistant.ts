@@ -834,25 +834,33 @@ const SMILES_LIST_WORKFLOWS = new Set([
  * the workflow-expected key "smiles_list". This function detects SMILES-like values
  * and collects them into a JSON array under "smiles_list".
  *
- * A value is treated as SMILES when it contains characters typical of SMILES notation
- * (=, #, [, ], /, \, @) and contains no whitespace.
+ * A value is treated as SMILES when its first whitespace-delimited token contains characters
+ * typical of SMILES notation (=, #, [, ], /, \, @).  Trailing prose is stripped.
  */
 function normalizeAdmetSmiles(
   workflowName: string | undefined | null,
   raw: Record<string, string> | undefined | null,
 ): Record<string, string> {
   if (!raw || !workflowName || !SMILES_LIST_WORKFLOWS.has(workflowName)) return raw || {};
-  // SMILES heuristic: no whitespace + contains at least one structural SMILES character
-  const isSmilesLike = (v: string) => /^[^\s]+$/.test(v) && /[=#\[\]\/\\@]/.test(v) && v.length >= 5;
+  // SMILES heuristic: extract the first whitespace-delimited token and test it.
+  // The LLM sometimes appends prose after the SMILES string
+  // (e.g. "Cc1ccc...n1 and predict hERG cardiac risk"), so strip trailing text.
+  const getSmilesToken = (v: string): string | null => {
+    const token = v.split(/\s/)[0];
+    return /[=#\[\]\/\\@]/.test(token) && token.length >= 5 ? token : null;
+  };
   const smilesList: string[] = [];
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (k === 'smiles_list' || k === 'ADMET_model_type') {
       out[k] = v;
-    } else if (isSmilesLike(v)) {
-      smilesList.push(v);
     } else {
-      out[k] = v;
+      const smilesToken = getSmilesToken(v);
+      if (smilesToken) {
+        smilesList.push(smilesToken);
+      } else {
+        out[k] = v;
+      }
     }
   }
   if (smilesList.length > 0 && !out.smiles_list) {
