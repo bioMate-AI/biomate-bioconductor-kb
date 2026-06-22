@@ -2036,9 +2036,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: result.expiresIn * 1000, // Convert to milliseconds
       });
 
+      // Only expose the raw verification token when SMTP is not configured
+      // (dev/local environments). In production the email is delivered normally
+      // and surfacing the token would show the "Dev mode" bypass box to real users.
+      const _emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
       res.status(201).json({
         success: true,
-        user: { ...result.user, verificationToken: _verificationToken },
+        user: { ...result.user, verificationToken: _emailConfigured ? null : _verificationToken },
         token: result.token,
         expiresIn: result.expiresIn,
       });
