@@ -69,6 +69,22 @@
           "**/*.demo.ts"
         ],
         "timeout": 2700000
+      },
+      {
+        "outputDir": "/Users/kky/biomate/frontend/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.ts"
+        ],
+        "timeout": 2700000
       }
     ],
     "shard": null,
@@ -81,155 +97,18 @@
   },
   "suites": [
     {
-      "title": "bioconductor-workflows-comprehensive.e2e.ts",
-      "file": "bioconductor-workflows-comprehensive.e2e.ts",
+      "title": "index-query-input.e2e.ts",
+      "file": "index-query-input.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "BC-01: DESeq2 routing — workflow card, QC section hidden, phase cards with status badges, run button",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 300000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 144663,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc01] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-01] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_02_card.png\n"
-                    },
-                    {
-                      "text": "[BC-01] Phase cards: 1\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_03_phase_cards.png\n"
-                    },
-                    {
-                      "text": "[BC-01] Card[0] id=all status=pending badge=\"0 steps\"\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_04_run_btn.png\n"
-                    },
-                    {
-                      "text": "[BC-01] Param strip visible: false\n"
-                    }
-                  ],
-                  "stderr": [
-                    {
-                      "text": "[ASSERT FAIL] param-strip-rendered\n"
-                    }
-                  ],
-                  "retry": 0,
-                  "startTime": "2026-06-02T02:33:24.202Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-1a2bb-th-status-badges-run-button-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-6ab21fb5506aa8f2e7d3",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 659,
-          "column": 1
-        },
-        {
-          "title": "BC-02: edgeR differential expression — routing, phase cards, run button",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 200679,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc02] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-02] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_02_card.png\n"
-                    },
-                    {
-                      "text": "[BC-02] keywords=true phases=1 runBtn=true\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_03_panel.png\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-02T02:35:54.443Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-0eb1d-ting-phase-cards-run-button-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-1b146a6dd2fd564beddb",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-03: limma/voom — routing, phase cards, run button",
+          "title": "QI-1: Registration — /register form → new account → chat access",
           "ok": false,
           "tags": [],
           "tests": [
             {
-              "timeout": 240000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
@@ -238,178 +117,153 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 2189483,
+                  "status": "failed",
+                  "duration": 107633,
                   "error": {
-                    "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
+                    "message": "TypeError: termsButton.isAttached is not a function",
+                    "stack": "TypeError: termsButton.isAttached is not a function\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:313:25",
+                    "location": {
+                      "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                      "column": 25,
+                      "line": 313
+                    },
+                    "snippet": "  311 |   const termsButton = page.locator('#terms');\n  312 |   const termsLabel = page.locator('label[for=\"terms\"]');\n> 313 |   if (await termsButton.isAttached({ timeout: 3_000 }).catch(() => false)) {\n      |                         ^\n  314 |     const dataState = await termsButton.getAttribute('data-state').catch(() => 'unchecked');\n  315 |     if (dataState !== 'checked') {\n  316 |       // Prefer clicking the label (triggers Radix handler via normal DOM event)"
                   },
                   "errors": [
                     {
-                      "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
-                    },
-                    {
                       "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts",
-                        "column": 16,
-                        "line": 308
+                        "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                        "column": 25,
+                        "line": 313
                       },
-                      "message": "Error: page.waitForTimeout: Target page, context or browser has been closed\n\n  306 |       }\n  307 |     }\n> 308 |     await page.waitForTimeout(1000);\n      |                ^\n  309 |   }\n  310 |   return false;\n  311 | }\n    at waitForWorkflowCard (/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:308:16)\n    at /Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:803:23"
+                      "message": "TypeError: termsButton.isAttached is not a function\n\n  311 |   const termsButton = page.locator('#terms');\n  312 |   const termsLabel = page.locator('label[for=\"terms\"]');\n> 313 |   if (await termsButton.isAttached({ timeout: 3_000 }).catch(() => false)) {\n      |                         ^\n  314 |     const dataState = await termsButton.getAttribute('data-state').catch(() => 'unchecked');\n  315 |     if (dataState !== 'checked') {\n  316 |       // Prefer clicking the label (triggers Radix handler via normal DOM event)\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:313:25"
                     }
                   ],
                   "stdout": [
                     {
-                      "text": "[registerUser:bc03] registered ok (201)\n"
+                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-reg-01-page.png\n"
                     },
                     {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc03_00_ready.png\n"
+                      "text": "[QI-1] Register form fields visible ✓\n"
                     },
                     {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc03_01_response.png\n"
+                      "text": "[QI-1] Password mismatch validation ✓\n"
                     },
                     {
-                      "text": "\n=== BIOCONDUCTOR AUDIT ===\n"
-                    },
-                    {
-                      "text": "✗ BC-01 status=n/a runId=— assertions=8 fails=1\n"
-                    },
-                    {
-                      "text": "  FAILS: param-strip-rendered\n"
-                    },
-                    {
-                      "text": "✓ BC-02 status=n/a runId=— assertions=5 fails=0\n"
-                    },
-                    {
-                      "text": "TOTAL: 1/2 suites fully passing\n"
-                    },
-                    {
-                      "text": "Full audit: /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/audit_2026-06-02T03-15-44-462Z.json\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc03_error.png\n"
+                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-reg-02-mismatch-error.png\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-06-02T02:39:15.129Z",
+                  "startTime": "2026-06-22T19:47:19.377Z",
                   "annotations": [],
                   "attachments": [
                     {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-456bd-→-new-account-→-chat-access-chromium/video.webm"
+                    },
+                    {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-fb9bd-ting-phase-cards-run-button-chromium/error-context.md"
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-456bd-→-new-account-→-chat-access-chromium/error-context.md"
                     },
                     {
                       "name": "trace",
                       "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-fb9bd-ting-phase-cards-run-button-chromium/trace.zip"
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-456bd-→-new-account-→-chat-access-chromium/trace.zip"
                     }
-                  ]
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                    "column": 25,
+                    "line": 313
+                  }
                 }
               ],
               "status": "unexpected"
             }
           ],
-          "id": "35d36709a0bfac4eb776-c30ba2dd43ac116293bb",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
+          "id": "a6af1ea51b88f8cee184-18b31efc02e84c1d2385",
+          "file": "index-query-input.e2e.ts",
+          "line": 225,
+          "column": 1
         },
         {
-          "title": "BC-04: clusterProfiler enrichGO — routing, phase cards, run button",
+          "title": "QI-2: Login — /login form → fixture account → chat access",
           "ok": false,
           "tags": [],
           "tests": [
             {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "E2E_FIXTURE_PASSWORD not set — skipping login UI test",
+                  "location": {
+                    "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                    "line": 388,
+                    "column": 10
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
               "projectId": "chromium",
               "projectName": "chromium",
               "results": [
                 {
                   "workerIndex": 1,
                   "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 296613,
+                  "status": "failed",
+                  "duration": 29704,
                   "error": {
-                    "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
+                    "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/traces/a6af1ea51b88f8cee184-ab668abecea519e22f31.trace'",
+                    "stack": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/traces/a6af1ea51b88f8cee184-ab668abecea519e22f31.trace'"
                   },
                   "errors": [
                     {
-                      "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
+                      "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/traces/a6af1ea51b88f8cee184-ab668abecea519e22f31.trace'"
                     },
                     {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts",
-                        "column": 20,
-                        "line": 232
-                      },
-                      "message": "Error: expect.toBeVisible: Target page, context or browser has been closed\n\n  230 | async function sendChat(page: Page, text: string, timeoutMs = 120_000): Promise<boolean> {\n  231 |   const ta = page.locator('[data-testid=\"chat-input\"], textarea').first();\n> 232 |   await expect(ta).toBeVisible({ timeout: 10_000 });\n      |                    ^\n  233 |   await ta.fill(text);\n  234 |   await ta.press(\"Enter\");\n  235 |   const thinking = [\n    at sendChat (/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:232:20)\n    at /Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:799:33"
+                      "message": "Error: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/8f6c8e40c6ee95b87dbac4d6e09d4f09.zip'"
+                    },
+                    {
+                      "message": "\u001b[31mTest timeout of 2700000ms exceeded.\u001b[39m"
                     }
                   ],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc04] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc04_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc04_error.png\n"
-                    },
-                    {
-                      "text": "\n=== BIOCONDUCTOR AUDIT ===\n"
-                    },
-                    {
-                      "text": "✓ BC-04 status=n/a runId=— assertions=0 fails=0\n"
-                    },
-                    {
-                      "text": "TOTAL: 1/1 suites fully passing\n"
-                    },
-                    {
-                      "text": "Full audit: /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/audit_2026-06-02T03-20-47-279Z.json\n"
-                    }
-                  ],
+                  "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-06-02T03:15:46.443Z",
-                  "annotations": [],
-                  "attachments": [
+                  "startTime": "2026-06-22T19:50:19.959Z",
+                  "annotations": [
                     {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-5eff6-ting-phase-cards-run-button-chromium/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-5eff6-ting-phase-cards-run-button-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-5eff6-ting-phase-cards-run-button-chromium/trace.zip"
+                      "type": "skip",
+                      "description": "E2E_FIXTURE_PASSWORD not set — skipping login UI test",
+                      "location": {
+                        "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                        "line": 388,
+                        "column": 10
+                      }
                     }
-                  ]
+                  ],
+                  "attachments": []
                 }
               ],
               "status": "unexpected"
             }
           ],
-          "id": "35d36709a0bfac4eb776-208346bdda141a532d38",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
+          "id": "a6af1ea51b88f8cee184-ab668abecea519e22f31",
+          "file": "index-query-input.e2e.ts",
+          "line": 385,
+          "column": 1
         },
         {
-          "title": "BC-05: Seurat scRNA-seq — routing, phase cards, run button",
+          "title": "QI-3: Chat query input — full user journey",
           "ok": false,
           "tags": [],
           "tests": [
             {
-              "timeout": 240000,
+              "timeout": 900000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
@@ -418,796 +272,120 @@
                 {
                   "workerIndex": 2,
                   "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 1332093,
+                  "status": "failed",
+                  "duration": 228209,
                   "error": {
-                    "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
+                    "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5000/?q=What%20is%20BioMate%3F\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5000/?q=What%20is%20BioMate%3F\", waiting until \"load\"\u001b[22m\n",
+                    "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5000/?q=What%20is%20BioMate%3F\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5000/?q=What%20is%20BioMate%3F\", waiting until \"load\"\u001b[22m\n\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:633:14",
+                    "location": {
+                      "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                      "column": 14,
+                      "line": 633
+                    },
+                    "snippet": "  631 |   // ── ?q= URL param auto-submits; URL cleaned ────────────────────────────────\n  632 |   const query7 = \"What is BioMate?\";\n> 633 |   await page.goto(`${BASE_URL}/?q=${encodeURIComponent(query7)}`);\n      |              ^\n  634 |   await page.waitForLoadState(\"load\");\n  635 |   console.log(\"[QI-3.7] Navigated to /?q= — waiting for auto-submit…\");\n  636 |"
                   },
                   "errors": [
                     {
-                      "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
-                    },
-                    {
                       "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts",
-                        "column": 16,
-                        "line": 308
-                      },
-                      "message": "Error: page.waitForTimeout: Target page, context or browser has been closed\n\n  306 |       }\n  307 |     }\n> 308 |     await page.waitForTimeout(1000);\n      |                ^\n  309 |   }\n  310 |   return false;\n  311 | }\n    at waitForWorkflowCard (/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:308:16)\n    at /Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:803:23"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc05] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc05_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc05_01_response.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc05_error.png\n"
-                    },
-                    {
-                      "text": "\n=== BIOCONDUCTOR AUDIT ===\n"
-                    },
-                    {
-                      "text": "✓ BC-05 status=n/a runId=— assertions=1 fails=0\n"
-                    },
-                    {
-                      "text": "TOTAL: 1/1 suites fully passing\n"
-                    },
-                    {
-                      "text": "Full audit: /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/audit_2026-06-02T03-43-05-826Z.json\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-02T03:20:48.417Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-bbb2f-ting-phase-cards-run-button-chromium/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-bbb2f-ting-phase-cards-run-button-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-bbb2f-ting-phase-cards-run-button-chromium/trace.zip"
-                    }
-                  ]
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-574724be38162d8c3117",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-06: GSEA pre-ranked — routing, phase cards, run button",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 3,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 201321,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc06] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc06_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc06_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-06] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc06_02_card.png\n"
-                    },
-                    {
-                      "text": "[BC-06] keywords=true phases=1 runBtn=true\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc06_03_panel.png\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-02T03:46:26.582Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-ffe3c-ting-phase-cards-run-button-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-c3e39918793991ecb9c2",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-07: ChIP-seq MACS2 — routing, phase cards, run button",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 3,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 201357,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc07] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc07_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc07_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-07] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc07_02_card.png\n"
-                    },
-                    {
-                      "text": "[BC-07] keywords=true phases=1 runBtn=true\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc07_03_panel.png\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-02T03:49:53.400Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-52458-ting-phase-cards-run-button-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-e63b79d165fadc2b96cb",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-08: WGS GATK4 germline — routing, phase cards, run button",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 3,
-                  "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 243544,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
-                    },
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts",
+                        "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
                         "column": 14,
-                        "line": 249
+                        "line": 633
                       },
-                      "message": "Error: page.waitForTimeout: Target page, context or browser has been closed\n\n  247 |     return t.trim().length > 30 && !t.includes(\"thinking\") && !t.includes(\"typing\") && !t.includes(\"Analyzing\");\n  248 |   }, { timeout: timeoutMs }).catch(() => {});\n> 249 |   await page.waitForTimeout(1500);\n      |              ^\n  250 |   const txt = await page.locator('[data-is-latest-assistant=\"true\"]').last().textContent({ timeout: 5000 }).catch(() => \"\");\n  251 |   return (txt?.trim().length ?? 0) > 20;\n  252 | }\n    at sendChat (/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:249:14)\n    at /Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:799:27"
+                      "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5000/?q=What%20is%20BioMate%3F\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5000/?q=What%20is%20BioMate%3F\", waiting until \"load\"\u001b[22m\n\n\n  631 |   // ── ?q= URL param auto-submits; URL cleaned ────────────────────────────────\n  632 |   const query7 = \"What is BioMate?\";\n> 633 |   await page.goto(`${BASE_URL}/?q=${encodeURIComponent(query7)}`);\n      |              ^\n  634 |   await page.waitForLoadState(\"load\");\n  635 |   console.log(\"[QI-3.7] Navigated to /?q= — waiting for auto-submit…\");\n  636 |\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:633:14"
+                    },
+                    {
+                      "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-2/traces/a6af1ea51b88f8cee184-b63845a06801d29dcd86.network'"
+                    },
+                    {
+                      "message": "Error: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-2/d599d04ca79ee7f1e3aa097e4d79f876.zip'"
+                    },
+                    {
+                      "message": "\u001b[31mTest timeout of 2700000ms exceeded.\u001b[39m"
                     }
                   ],
                   "stdout": [
                     {
-                      "text": "[registerUser:bc08] registered ok (201)\n"
+                      "text": "[loginViaApi] Logged in as throwaway: e2e_qi_chat_1782160613684@biomate.test\n"
                     },
                     {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc08_00_ready.png\n"
+                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-01-after-login.png\n"
                     },
                     {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc08_error.png\n"
+                      "text": "[QI-3.1] No onboarding overlay ✓\n"
                     },
                     {
-                      "text": "\n=== BIOCONDUCTOR AUDIT ===\n"
+                      "text": "[QI-3.1] chat-input visible and focusable ✓\n"
                     },
                     {
-                      "text": "✓ BC-06 status=n/a runId=— assertions=5 fails=0\n"
+                      "text": "[QI-3.2] Send button disabled on empty input ✓\n"
                     },
                     {
-                      "text": "✓ BC-07 status=n/a runId=— assertions=5 fails=0\n"
+                      "text": "[QI-3.3] Send button enabled after typing ✓\n"
                     },
                     {
-                      "text": "✓ BC-08 status=n/a runId=— assertions=0 fails=0\n"
+                      "text": "[QI-3.3] Send button disabled after clearing ✓\n"
                     },
                     {
-                      "text": "TOTAL: 3/3 suites fully passing\n"
+                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-03-empty-again.png\n"
                     },
                     {
-                      "text": "Full audit: /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/audit_2026-06-02T03-57-18-317Z.json\n"
+                      "text": "[QI-3.4] Enter pressed — waiting for AI response…\n"
+                    },
+                    {
+                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-04-after-enter.png\n"
+                    },
+                    {
+                      "text": "[QI-3.4] AI response after Enter ✓ (len: \u001b[33m84\u001b[39m )\n"
+                    },
+                    {
+                      "text": "[QI-3.5] Send button clicked — waiting for AI response…\n"
+                    },
+                    {
+                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-05-after-send-btn.png\n"
+                    },
+                    {
+                      "text": "[QI-3.5] AI response after send-button ✓ (len: \u001b[33m278\u001b[39m )\n"
+                    },
+                    {
+                      "text": "[QI-3.6] Empty Enter is a no-op ✓\n"
                     }
                   ],
-                  "stderr": [],
+                  "stderr": [
+                    {
+                      "text": "[loginViaApi] E2E_FIXTURE_PASSWORD not set — creating throwaway account e2e_qi_chat_1782160613684@biomate.test. Set E2E_FIXTURE_PASSWORD for the canonical fixture to avoid registration rate-limits.\n"
+                    },
+                    {
+                      "text": "[QI-3.4] Console errors: [\n  \u001b[32m'Failed to load resource: net::ERR_CONNECTION_REFUSED'\u001b[39m,\n  \u001b[32m'Failed to load resource: net::ERR_CONNECTION_REFUSED'\u001b[39m,\n  \u001b[32m'Failed to load resource: net::ERR_CONNECTION_REFUSED'\u001b[39m\n]\n"
+                    }
+                  ],
                   "retry": 0,
-                  "startTime": "2026-06-02T03:53:14.763Z",
+                  "startTime": "2026-06-22T20:36:22.439Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "screenshot",
                       "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-b73d4-ting-phase-cards-run-button-chromium/test-failed-1.png"
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-3f7a9-y-input-—-full-user-journey-chromium/test-failed-1.png"
                     },
                     {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-b73d4-ting-phase-cards-run-button-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-b73d4-ting-phase-cards-run-button-chromium/trace.zip"
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-3f7a9-y-input-—-full-user-journey-chromium/error-context.md"
                     }
-                  ]
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
+                    "column": 14,
+                    "line": 633
+                  }
                 }
               ],
               "status": "unexpected"
             }
           ],
-          "id": "35d36709a0bfac4eb776-f8feafb8b15619ea057d",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-09: Bismark WGBS methylation — routing, phase cards, run button",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 4,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 206716,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc09] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc09_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc09_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-09] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc09_02_card.png\n"
-                    },
-                    {
-                      "text": "[BC-09] keywords=true phases=1 runBtn=true\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc09_03_panel.png\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-02T03:57:20.968Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-402dd-ting-phase-cards-run-button-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-bbf6d52ee141c3d236bd",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-10: Disambiguation scRNA vs bulk — routing, phase cards, run button",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 240000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 4,
-                  "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 243305,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 240000ms exceeded.\u001b[39m"
-                    },
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts",
-                        "column": 16,
-                        "line": 308
-                      },
-                      "message": "Error: page.waitForTimeout: Target page, context or browser has been closed\n\n  306 |       }\n  307 |     }\n> 308 |     await page.waitForTimeout(1000);\n      |                ^\n  309 |   }\n  310 |   return false;\n  311 | }\n    at waitForWorkflowCard (/Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:308:16)\n    at /Users/kky/biomate/frontend/e2e/bioconductor-workflows-comprehensive.e2e.ts:803:23"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bc10] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc10_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc10_01_response.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc10_error.png\n"
-                    },
-                    {
-                      "text": "\n=== BIOCONDUCTOR AUDIT ===\n"
-                    },
-                    {
-                      "text": "✓ BC-09 status=n/a runId=— assertions=5 fails=0\n"
-                    },
-                    {
-                      "text": "✓ BC-10 status=n/a runId=— assertions=1 fails=0\n"
-                    },
-                    {
-                      "text": "TOTAL: 2/2 suites fully passing\n"
-                    },
-                    {
-                      "text": "Full audit: /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/audit_2026-06-02T04-04-56-372Z.json\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-02T04:00:53.054Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-345c8-ting-phase-cards-run-button-chromium/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-345c8-ting-phase-cards-run-button-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-345c8-ting-phase-cards-run-button-chromium/trace.zip"
-                    }
-                  ]
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-dcc9bf2fcd9f80fe440c",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 789,
-          "column": 3
-        },
-        {
-          "title": "BC-EXEC: clusterProfiler enrichGO full execution — Batch run, step outputs, file viewers, AI analysis, methods report, RStudio",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 5,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1970566,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bcexec] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-EXEC] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_02_card.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_03_phase_cards.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_04_run_clicked.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_05_running.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_000.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_024.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_048.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_072.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_096.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_120.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_144.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_168.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_192.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_216.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_240.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_264.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_288.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_312.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc-exec_live_336.png\n"
-                    },
-                    {
-                      "text": "[BC-EXEC] → timeout after 350 polls\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcexec_06_terminal.png\n"
-                    }
-                  ],
-                  "stderr": [
-                    {
-                      "text": "[ASSERT FAIL] run-id-captured: no runId\n"
-                    },
-                    {
-                      "text": "[ASSERT FAIL] footer-shows-running-state: Footer text: \"Confirm and run workflow\"\n"
-                    },
-                    {
-                      "text": "[ASSERT FAIL] run-reached-terminal: Terminal status: timeout\n"
-                    }
-                  ],
-                  "retry": 0,
-                  "startTime": "2026-06-02T04:04:59.287Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-d7bd2-ysis-methods-report-RStudio-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-fdc1d227e6202a1d131e",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 839,
-          "column": 1
-        },
-        {
-          "title": "BC-RS-1: InteractiveLauncher dialog structure — all three tools visible, RStudio pre-loadable from workflow context",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 300000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 5,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 147865,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bcrs1] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcrs1_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcrs1_01_dashboard.png\n"
-                    },
-                    {
-                      "text": "[BC-RS-1] No completed run on dashboard — routing clusterProfiler instead\n"
-                    },
-                    {
-                      "text": "[BC-RS-1] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcrs1_02_before_launch.png\n"
-                    }
-                  ],
-                  "stderr": [
-                    {
-                      "text": "[ASSERT FAIL] dashboard-completed-run-found: Fell back to routing — no completed run\n"
-                    },
-                    {
-                      "text": "[ASSERT FAIL] interactive-launch-btn-visible\n"
-                    }
-                  ],
-                  "retry": 0,
-                  "startTime": "2026-06-02T04:37:55.192Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-eb5e9-dable-from-workflow-context-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-572474522f18767f0a6e",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 1041,
-          "column": 1
-        },
-        {
-          "title": "BC-RS-4 through BC-RS-6: RStudio launch API, session state, Quick Start Code, Select All — validated via BC-EXEC run context",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 300000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 5,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 148991,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bcrs46] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[BC-RS-46] card via: [data-testid=\"button-run-workflow-panel\"]\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcrs46_00_context.png\n"
-                    },
-                    {
-                      "text": "[BC-RS-46] No launch button found — marking as soft skip\n"
-                    }
-                  ],
-                  "stderr": [
-                    {
-                      "text": "[ASSERT FAIL] launch-btn-found-for-api-test: No launch button in current context\n"
-                    }
-                  ],
-                  "retry": 0,
-                  "startTime": "2026-06-02T04:40:23.070Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-b8c75-ted-via-BC-EXEC-run-context-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-11349278612f58c1d1ed",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 1102,
-          "column": 1
-        },
-        {
-          "title": "BC-RUN: run_code DESeq2 synthetic execution — R code in response, results table, top genes reported",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 300000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 5,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 216601,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[registerUser:bcrun] registered ok (201)\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcrun_00_ready.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bcrun_01_response.png\n"
-                    },
-                    {
-                      "text": "[BC-RUN] run_code block not found but results present — biotools may have returned inline\n"
-                    },
-                    {
-                      "text": "[BC-RUN] hasRCode=true hasResults=true hasRunCodeBlock=false\n"
-                    },
-                    {
-                      "text": "\n=== BIOCONDUCTOR AUDIT ===\n"
-                    },
-                    {
-                      "text": "✗ BC-EXEC status=timeout runId=— assertions=8 fails=3\n"
-                    },
-                    {
-                      "text": "  FAILS: run-id-captured, footer-shows-running-state, run-reached-terminal\n"
-                    },
-                    {
-                      "text": "✗ BC-RS-1 status=n/a runId=— assertions=2 fails=2\n"
-                    },
-                    {
-                      "text": "  FAILS: dashboard-completed-run-found, interactive-launch-btn-visible\n"
-                    },
-                    {
-                      "text": "✗ BC-RS-46 status=n/a runId=— assertions=1 fails=1\n"
-                    },
-                    {
-                      "text": "  FAILS: launch-btn-found-for-api-test\n"
-                    },
-                    {
-                      "text": "✗ BC-RUN status=completed runId=— assertions=4 fails=1\n"
-                    },
-                    {
-                      "text": "  FAILS: run-code-tool-block-visible\n"
-                    },
-                    {
-                      "text": "TOTAL: 0/4 suites fully passing\n"
-                    },
-                    {
-                      "text": "Full audit: /Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/audit_2026-06-02T04-46-28-672Z.json\n"
-                    }
-                  ],
-                  "stderr": [
-                    {
-                      "text": "[ASSERT FAIL] run-code-tool-block-visible: WARN: biotools image may still be building\n"
-                    }
-                  ],
-                  "retry": 0,
-                  "startTime": "2026-06-02T04:42:52.067Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/bioconductor-workflows-com-e405d-ts-table-top-genes-reported-chromium/test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "35d36709a0bfac4eb776-72af63e0076addac1427",
-          "file": "bioconductor-workflows-comprehensive.e2e.ts",
-          "line": 1209,
+          "id": "a6af1ea51b88f8cee184-b63845a06801d29dcd86",
+          "file": "index-query-input.e2e.ts",
+          "line": 489,
           "column": 1
         }
       ]
@@ -1215,11 +393,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-02T02:33:23.224Z",
-    "duration": 7986514.007,
-    "expected": 9,
+    "startTime": "2026-06-22T19:47:18.344Z",
+    "duration": 5883229.621,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 5,
+    "unexpected": 3,
     "flaky": 0
   }
 }
