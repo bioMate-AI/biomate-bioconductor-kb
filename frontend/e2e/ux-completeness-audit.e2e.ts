@@ -349,8 +349,10 @@ test('Flow A — ADMET run + full panel and sidebar audit', async () => {
 
   // G2 — Workflows dialog
   await soft('G2 workflows dialog', async () => {
+    // After G1 New Chat navigates, sidebar re-renders; give it time to settle.
+    await pause(page, 1_000);
     const btn = page.locator('[data-testid="button-workflows-nav"], [data-testid="button-starred-workflows"]').first();
-    if (!await btn.isVisible({ timeout: 5_000 }).catch(() => false)) { console.log('[G2] skip — button not found'); return; }
+    if (!await btn.isVisible({ timeout: 8_000 }).catch(() => false)) { console.log('[G2] skip — button not found'); return; }
     await btn.click();
     await pause(page, 800);
     await shot(page, 'ux-audit', 'G2_workflows_dialog');
