@@ -1791,7 +1791,10 @@ class AIAssistant:
 
         We exclude nf-core subworkflows (library components) because they are not
         standalone entry workflows and fail with "No entry workflow specified".
+        Also excludes workflows with executable=0 (deprecated/disabled).
         """
+        if not getattr(match, 'executable', 1):
+            return False
         if getattr(match, 'format', '') != 'nextflow':
             return False
 
