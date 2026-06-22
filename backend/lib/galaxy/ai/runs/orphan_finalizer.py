@@ -34,7 +34,48 @@ def _read_returncode_from_disk(run_record: Dict[str, Any]) -> Tuple[int, bool]:
 
     Returns (returncode, is_inferred). When we can't tell, returns
     (-1, True) and the caller treats it as a soft-failed orphan.
+
+    Detection order (most-reliable first):
+      1. Nextflow trace file — all tasks COMPLETED with exit 0 ⟹ success.
+      2. stdout log tail — "Pipeline completed successfully" / "exit: 0".
+      3. stdout log tail — Nextflow ✔ completion line (Nextflow 25+ omits
+         "Pipeline completed successfully" on AWS Batch runs when gunicorn
+         recycles before Nextflow writes that line).
+      4. S3 outdir: if run_record has s3_output_files ≥ 1 ⟹ success.
+      5. Local outdir non-empty ⟹ success.
+      6. Fall back to (-1, True) — caller treats as interrupted orphan.
     """
+    # ── 1. Trace file ────────────────────────────────────────────────────────
+    trace_path = run_record.get("trace_path")
+    if trace_path and os.path.exists(trace_path):
+        try:
+            lines = Path(trace_path).read_text(encoding="utf-8", errors="ignore").splitlines()
+            data_lines = [l for l in lines if l.strip() and not l.startswith("task_id")]
+            if data_lines:
+                all_ok = True
+                any_failed = False
+                for dl in data_lines:
+                    cols = dl.split("\t")
+                    # Trace columns: task_id hash native_id name status exit ...
+                    status_col = cols[4].strip() if len(cols) > 4 else ""
+                    exit_col   = cols[5].strip() if len(cols) > 5 else ""
+                    if status_col.upper() in ("FAILED", "ABORTED"):
+                        any_failed = True
+                        all_ok = False
+                    elif status_col.upper() != "COMPLETED":
+                        all_ok = False  # still running or unknown
+                    elif exit_col not in ("0", ""):
+                        all_ok = False
+                if any_failed:
+                    return 1, True
+                if all_ok and data_lines:
+                    log.debug("[orphan_finalizer] trace shows all tasks COMPLETED exit 0 — success")
+                    return 0, True
+        except Exception as exc:
+            log.debug("[orphan_finalizer] trace read failed for %s: %s",
+                      run_record.get("run_id"), exc)
+
+    # ── 2 + 3. stdout log tail ────────────────────────────────────────────────
     log_path = run_record.get("log_path")
     if log_path and os.path.exists(log_path):
         try:
@@ -45,6 +86,13 @@ def _read_returncode_from_disk(run_record: Dict[str, Any]) -> Tuple[int, bool]:
                 f.seek(max(0, size - 8192))
                 tail = f.read().decode("utf-8", errors="ignore")
             if "Pipeline completed successfully" in tail or "exit: 0" in tail:
+                return 0, True
+            # Nextflow 25+ AWS Batch: ends with "N of N ✔" without the
+            # "Pipeline completed successfully" banner when the gunicorn
+            # worker recycled before Nextflow finished flushing.
+            import re as _re
+            if _re.search(r"\d+ of \d+ ✔", tail) and "Pipeline completed with errors" not in tail and "Execution aborted" not in tail:
+                log.debug("[orphan_finalizer] log tail shows ✔ completion marker — inferring success")
                 return 0, True
             for line in tail.splitlines()[::-1]:
                 if "exit: " in line:
@@ -58,7 +106,13 @@ def _read_returncode_from_disk(run_record: Dict[str, Any]) -> Tuple[int, bool]:
         except Exception as exc:
             log.debug("[orphan_finalizer] log tail read failed for %s: %s",
                       run_record.get("run_id"), exc)
-    # Last-resort heuristic: outdir exists with content => success.
+
+    # ── 4. S3 output files recorded in run record ─────────────────────────────
+    if run_record.get("s3_output_files"):
+        log.debug("[orphan_finalizer] s3_output_files present — inferring success")
+        return 0, True
+
+    # ── 5. Local outdir non-empty ─────────────────────────────────────────────
     outdir = run_record.get("outdir", "")
     if outdir and not str(outdir).startswith("s3://") and os.path.isdir(outdir):
         try:
