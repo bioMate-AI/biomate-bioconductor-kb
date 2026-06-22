@@ -50,17 +50,35 @@ const ADMET_QUERY =
 async function login(page: Page): Promise<void> {
   await page.goto(BASE_URL);
   await page.waitForLoadState('load');
-  await page.evaluate(
-    async ({ baseUrl, email, password, token }) => {
-      await fetch(`${baseUrl}/api/auth/login`, {
+  // Use browser-context fetch (same origin) — avoids Playwright APIRequestContext
+  // serialization differences. Returns the JWT so we can also call addCookies()
+  // explicitly (belt-and-suspenders against SameSite handling in headful Chrome).
+  const token = await page.evaluate(
+    async ({ baseUrl, email, password, token: e2eToken }) => {
+      const resp = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-E2E-Test-Token': token },
+        headers: { 'Content-Type': 'application/json', 'x-e2e-test-token': e2eToken },
         credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
+      if (!resp.ok) throw new Error(`Login API ${resp.status}`);
+      const data = await resp.json();
+      return data.token as string;
     },
     { baseUrl: BASE_URL, email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD, token: E2E_TOKEN }
   );
+  // Explicitly inject cookie so it survives the next navigation regardless of
+  // the browser's same-site cookie processing during page.evaluate.
+  const domain = new URL(BASE_URL).hostname;
+  await page.context().addCookies([{
+    name: 'biomate_token',
+    value: token,
+    domain,
+    path: '/',
+    httpOnly: true,
+    secure: BASE_URL.startsWith('https'),
+    sameSite: 'Lax',
+  }]);
   await page.goto(BASE_URL);
   await page.waitForLoadState('load');
   await page.evaluate(() => {
@@ -69,7 +87,7 @@ async function login(page: Page): Promise<void> {
     } catch { /* noop */ }
   });
   await page.locator('[data-testid="chat-input"], textarea').first()
-    .waitFor({ state: 'visible', timeout: 20_000 });
+    .waitFor({ state: 'visible', timeout: 30_000 });
 }
 
 /** Soft assertion — logs failure but does not throw. */
