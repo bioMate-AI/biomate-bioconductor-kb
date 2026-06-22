@@ -477,7 +477,7 @@ deploy_databases() {
   # BioMateEc2DeployProfile instance role take over) would restore the
   # S3 path, but that's a separate hardening pass.
   local local_db="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
-  local local_db_mtime=$(stat -c %Y "$local_db" 2>/dev/null || echo 0)
+  local local_db_mtime=$(stat -f %m "$local_db" 2>/dev/null || stat -c %Y "$local_db" 2>/dev/null || echo 0)
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
     log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
@@ -956,7 +956,7 @@ do_sync() {
   sync_logo 2>/dev/null || true
 
   # DB sync is also time-based (if local DB newer than last sync)
-  local local_db_mtime=$(stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
+  local local_db_mtime=$(stat -f %m "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
   [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
