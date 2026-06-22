@@ -362,7 +362,7 @@ export function AppSidebar({
                                 dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
                                 'var(--bm-border-strong, oklch(0.80 0.008 240))',
                     animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
-                  }} title={dotStatus || 'idle'} />
+                  }} title={dotStatus || 'idle'} data-testid={`history-dot-${chat.id}`} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
                 </button>
               )
