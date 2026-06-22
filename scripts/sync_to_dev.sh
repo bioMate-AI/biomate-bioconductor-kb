@@ -487,9 +487,10 @@ deploy_databases() {
       docker stop biomate-galaxy-dev 2>/dev/null || true
       docker cp /tmp/galaxy_ai_tools_sync.db \
         biomate-galaxy-dev:/app/database/galaxy_ai_tools.db
-      docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       docker start biomate-galaxy-dev
       docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+      sleep 3
+      docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       sleep 5
       echo "[db] galaxy_ai_tools.db replaced (md5: $(docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db | cut -d" " -f1))"
       rm -f /tmp/galaxy_ai_tools_sync.db
