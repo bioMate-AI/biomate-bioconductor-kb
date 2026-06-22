@@ -604,7 +604,8 @@ class ChatHistoryService {
   // ============================================================================
 
   private getDefaultSessions(): ChatSession[] {
-    // Create some realistic mock chat history
+    // Return empty — no mock sessions for real users
+    return [];
     const now = new Date();
     const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 60 * 60 * 1000);
     const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
