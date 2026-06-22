@@ -2752,6 +2752,14 @@ export function NextflowWorkflowViewer({
               );
             })()}
 
+            {/* ── Loading state when steps are being lazily fetched ────────── */}
+            {groupedPhases.length === 0 && lazySteps === null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
+                <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                Loading workflow steps…
+              </div>
+            )}
+
             {/* ── Phase cards ─────────────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (
               <div className="phase-list" data-tour="phase-list">

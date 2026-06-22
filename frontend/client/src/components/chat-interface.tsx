@@ -879,6 +879,8 @@ export function ChatInterface({
         if (!workflowInfo.toLowerCase().includes('workflow')) {
           workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
         }
+        // Append a "Generating workflow…" trailing cue so users know the panel is loading
+        workflowInfo += '\n\n*Generating workflow…*';
         if (data.workflow?.needs_user_feedback) {
           workflowInfo += `\n\n⚠️ ${data.workflow?.feedback_prompt || 'Confidence is not high enough yet. Please review and provide corrections before execution.'}`;
         }
