@@ -19,7 +19,11 @@ W, H      = 1920, 1080
 TUTORIALS = ["cryosparc", "outputs_report", "drug_screen", "ind_report",
              "bioc_kb", "bioc_sc", "bioc_methyl",
              "design_bispecific", "design_cart", "design_baseedit",
-             "design_glp1", "design_modtriage"]
+             "design_glp1", "design_modtriage",
+             "tut_rnaseq", "tut_scrna", "tut_variant", "tut_chipseq",
+             "tut_proteomics", "tut_metagenome", "tut_metabolomics",
+             "int_torchgwas", "int_fda_screen", "int_tumor_tcell",
+             "int_scgwas", "int_rare_disease"]
 
 
 def draw_pill(draw, x, y, w, h, fill, radius=18):
