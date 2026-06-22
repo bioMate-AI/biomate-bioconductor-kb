@@ -40,21 +40,26 @@ const DOMAIN_LABELS: Record<string, string> = {
   metagenomics:      "Metagenomics",
   structural_biology: "Structural Biology",
   drug_discovery:    "Drug Discovery & Pharmacology",
-  cryo_em:           "Cryo-EM",
+  cryo_em:           "Cryo-EM / Cryo-ET",
   systems_biology:   "Systems Biology",
   synthetic_biology: "Synthetic Biology",
   bioimaging:        "Bioimaging",
   lab_automation:    "Lab Automation",
   immunology:        "Immunology",
   cancer_biology:    "Cancer Biology",
-  multi_omics:       "Multi-omics",
+  virtual_cell:      "Virtual Cell & Computational Biology",
   molecular_biology: "Molecular Biology",
   cell_biology:      "Cell Biology",
   genetics:          "Genetics",
   microbiology:      "Microbiology",
   biochemistry:      "Biochemistry",
-  // Legacy key — kept so saved profiles from before the pharmacology merger display correctly
+  physiology:        "Physiology",
+  bioengineering:    "Bioengineering",
+  pathology:         "Pathology",
+  // Legacy keys — kept so saved profiles from older versions display correctly
   pharmacology:      "Pharmacology",
+  multi_omics:       "Multi-omics",
+  imaging:           "Imaging",
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
