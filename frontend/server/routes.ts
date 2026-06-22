@@ -9495,13 +9495,7 @@ ${paramLines || '(none recorded)'}`;
           const stagedParamsClean = { ...stagedParams };
           delete (stagedParamsClean as any).__outputLocation;
 
-          const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-Key': process.env.GALAXY_API_KEY || '',
-            },
-            body: JSON.stringify({
+          const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParamsClean,
@@ -9525,15 +9519,30 @@ ${paramLines || '(none recorded)'}`;
                 const _pe = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
                 return req.user ? _pe.includes(String((req.user as any).email || '').toLowerCase()) : false;
               })(),
-            })
-          });
-
-          if (!nextflowResponse.ok) {
-            const errBody = await nextflowResponse.text().catch(() => nextflowResponse.statusText);
-            throw new Error(`Nextflow execution failed (${nextflowResponse.status}): ${errBody}`);
+            });
+          // Retry up to 3 times on transient Galaxy backend errors (502/503/504 from
+          // gunicorn worker recycles). Fixed 3s delay — gunicorn recycles in <5s.
+          let nextflowResponse: Response | null = null;
+          for (let _attempt = 0; _attempt < 3; _attempt++) {
+            if (_attempt > 0) {
+              await new Promise(r => setTimeout(r, 3000));
+              console.log(`[Nextflow Direct] Retry attempt ${_attempt} after transient Galaxy error`);
+            }
+            nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
+              body: _nfBody,
+            });
+            if (nextflowResponse.ok || ![502, 503, 504].includes(nextflowResponse.status)) break;
+            console.warn(`[Nextflow Direct] Galaxy returned ${nextflowResponse.status} (attempt ${_attempt + 1}/3) — will retry`);
           }
 
-          const nextflowData = await nextflowResponse.json();
+          if (!nextflowResponse!.ok) {
+            const errBody = await nextflowResponse!.text().catch(() => nextflowResponse!.statusText);
+            throw new Error(`Nextflow execution failed (${nextflowResponse!.status}): ${errBody}`);
+          }
+
+          const nextflowData = await nextflowResponse!.json();
           console.log('[Nextflow Direct] Execution result:', nextflowData);
 
           // The backend returns invocation_id it created internally
