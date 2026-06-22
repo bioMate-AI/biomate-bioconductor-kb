@@ -422,6 +422,7 @@ function PhaseGroupSection({
   isGlobalExecutionActive,
   autoLoopPanelState,
   autoloopEnabled,
+  autoloopLocked,
   onToggleAutoloop,
   onDismissAutoloop,
   onAcceptAutoloop,
@@ -448,6 +449,7 @@ function PhaseGroupSection({
   isGlobalExecutionActive: boolean;
   autoLoopPanelState?: AutoLoopPanelState;
   autoloopEnabled: boolean;
+  autoloopLocked?: boolean;
   onToggleAutoloop: () => void;
   onDismissAutoloop: () => void;
   onAcceptAutoloop?: (paramChanges: Record<string, unknown>) => void;
@@ -777,17 +779,25 @@ function PhaseGroupSection({
                   )}
                 </div>
               ))}
-              <div className="qc-autoloop">
+              <div className="qc-autoloop" style={autoloopLocked ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}>
                 <span
                   className={`switch${autoloopEnabled ? ' on' : ''}`}
-                  onClick={onToggleAutoloop}
+                  onClick={autoloopLocked ? undefined : onToggleAutoloop}
                   role="switch"
                   aria-checked={autoloopEnabled}
+                  aria-disabled={autoloopLocked}
                   data-testid={`autoloop-toggle-${group.key}`}
+                  style={autoloopLocked ? { pointerEvents: 'none' } : undefined}
                 />
                 <span
-                  title="When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
-                >Self-correct on QC failure <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
+                  title={autoloopLocked
+                    ? "Auto-loop is currently disabled while end-to-end testing is in progress. It will be enabled once testing is complete."
+                    : "When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
+                  }
+                >
+                  Self-correct on QC failure <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span>
+                  {autoloopLocked && <span style={{marginLeft: 6, fontSize: '0.75em', color: 'var(--text-dim)', fontStyle: 'italic'}}>(coming soon)</span>}
+                </span>
               </div>
             </div>
           )}
@@ -1940,7 +1950,7 @@ export function NextflowWorkflowViewer({
         // Auto-loop ON → apply suggestions automatically using Nextflow -resume, no card shown.
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
-        const autoloopOn = autoloopMapRef.current[phaseKey] !== false;
+        const autoloopOn = autoloopMapRef.current[phaseKey] === true;
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
           // Auto-apply: update params and resume — notify user of what happened
           const phaseName = gateData.processName.includes(":")
@@ -2780,14 +2790,11 @@ export function NextflowWorkflowViewer({
                         ? autoLoopPanel
                         : undefined
                     }
-                    autoloopEnabled={autoloopMap[group.key] !== false}
-                    onToggleAutoloop={() =>
-                      setAutoloopMap(prev => {
-                        const next = { ...prev, [group.key]: prev[group.key] === false ? true : false };
-                        autoloopMapRef.current = next;
-                        return next;
-                      })
-                    }
+                    autoloopEnabled={autoloopMap[group.key] === true}
+                    autoloopLocked={true}
+                    onToggleAutoloop={() => {
+                      // Auto-loop is locked while testing is in progress — no-op
+                    }}
                     onDismissAutoloop={() =>
                       setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
                     }
