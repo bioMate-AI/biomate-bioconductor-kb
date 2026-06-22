@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Check, CreditCard, Lock, Shield, Zap, Mail, Eye, EyeOff } from "lucide-react"
+import { Loader2, Check, CreditCard, Lock, Shield, Zap, Eye, EyeOff } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
@@ -21,13 +21,13 @@ export default function RegisterPage() {
   const prefilledCode = new URLSearchParams(search).get('invite') || ''
   // ?next=URL redirects to that URL after successful registration (e.g. checkout page)
   const nextUrl = new URLSearchParams(search).get('next') || ''
+  // ?q= pending use-case query from marketing page — passed through to the platform after auth
+  const pendingQuery = new URLSearchParams(search).get('q') || ''
 
-  // Four-step: "account" → "email-sent" → "domain" → "trial"
-  const [step, setStep] = useState<"account" | "email-sent" | "domain" | "trial">("account")
+  // Three-step: "account" → "domain" → platform (trial step auto-proceeds)
+  const [step, setStep] = useState<"account" | "domain" | "trial">("account")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [registeredEmail, setRegisteredEmail] = useState<string>("")
-  const [verificationToken, setVerificationToken] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -115,12 +115,8 @@ export default function RegisterPage() {
       localStorage.setItem('auth_token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       setAuthToken(data.token)
-      setRegisteredEmail(formData.email)
-      // Keep verification token for dev bypass link (null in prod if not returned)
-      setVerificationToken(data.user?.verificationToken ?? null)
-
-      // Show email-sent confirmation before domain profile
-      setStep("email-sent")
+      // Go directly to domain profile (skip email-sent intermediate screen)
+      setStep("domain")
     } catch (error) {
       toast({
         variant: "destructive",
@@ -135,7 +131,7 @@ export default function RegisterPage() {
   // ── Step 2: domain profile ────────────────────────────────────────────────
 
   const handleSaveDomainProfile = async (profile: DomainProfile) => {
-    // Best-effort: save profile then proceed to trial regardless of outcome
+    // Best-effort: save profile then proceed regardless of outcome
     try {
       await fetch('/api/user/domain-profile', {
         method: 'POST',
@@ -150,15 +146,21 @@ export default function RegisterPage() {
       // Non-fatal — user can update profile later from settings
     }
     localStorage.setItem('biomate_onboarding_done', '1')
-    setStep("trial")
+    void handleStartTrial()
   }
 
   const handleSkipDomainProfile = () => {
     localStorage.setItem('biomate_onboarding_done', '1')
-    setStep("trial")
+    void handleStartTrial()
   }
 
   // ── Step 3: start Stripe trial ─────────────────────────────────────────────
+
+  // Build the final redirect URL, preserving pending query for auto-submit in chat
+  const finalRedirectUrl = () => {
+    const base = nextUrl || '/'
+    return pendingQuery ? `${base}${base.includes('?') ? '&' : '?'}q=${encodeURIComponent(pendingQuery)}` : base
+  }
 
   const handleStartTrial = async () => {
     setIsLoading(true)
@@ -173,30 +175,23 @@ export default function RegisterPage() {
         body: JSON.stringify({ tier: 'professional', interval: 'monthly', returnUrl: `${window.location.origin}/` }),
       })
 
-      // If endpoint doesn't exist or Stripe not configured, go straight to next page or app
-      if (!res.ok) {
-        if (nextUrl) { window.location.href = nextUrl; return; }
-        window.location.href = '/'
-        return
-      }
+      // If endpoint doesn't exist or Stripe not configured, go straight to app
+      if (!res.ok) { window.location.href = finalRedirectUrl(); return }
 
       const data = await res.json()
       if (data.devMode || !data.url) {
-        if (nextUrl) { window.location.href = nextUrl; return; }
-        window.location.href = '/'
-        return
+        window.location.href = finalRedirectUrl(); return
       }
-      // Redirect to Stripe Checkout to collect payment method
+      // Stripe configured — redirect to Checkout (query will be lost; user can re-type)
       window.location.href = data.url
     } catch {
-      // No Stripe / network error — proceed anyway
-      window.location.href = '/'
+      window.location.href = finalRedirectUrl()
     }
   }
 
   const handleSkipForNow = () => {
     localStorage.setItem('biomate_onboarding_done', '1')
-    window.location.href = '/'
+    window.location.href = finalRedirectUrl()
   }
 
   // ── OAuth helpers ──────────────────────────────────────────────────────────
@@ -219,52 +214,6 @@ export default function RegisterPage() {
       toast({ variant: "destructive", title: "Sign up failed", description: "GitHub sign up is not configured yet." })
       setIsLoading(false)
     }
-  }
-
-  // ── Step 1.5 UI: email verification sent ──────────────────────────────────
-
-  if (step === "email-sent") {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#f6efde]">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-3">
-              <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
-            </div>
-            <div className="flex justify-center mb-2">
-              <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3">
-                <Mail className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
-            <CardDescription>
-              We sent a verification link to <strong>{registeredEmail}</strong>.
-              Click the link in your email to verify your account, then come back to log in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {verificationToken && (
-              <div className="rounded-md border border-dashed p-3 text-xs text-left text-muted-foreground">
-                <p className="font-semibold mb-1 text-foreground">Dev mode — email not configured</p>
-                <p>Click this link to verify directly:</p>
-                <a
-                  href={`/verify-email?token=${verificationToken}`}
-                  className="text-blue-600 dark:text-blue-400 underline break-all"
-                >
-                  /verify-email?token={verificationToken.slice(0, 16)}…
-                </a>
-              </div>
-            )}
-            <Button className="w-full" onClick={() => setStep("domain")}>
-              Continue setup
-            </Button>
-            <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setLocation('/login')}>
-              Go to login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   // ── Step 2 UI: domain profile ─────────────────────────────────────────────

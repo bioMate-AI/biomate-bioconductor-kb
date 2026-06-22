@@ -260,8 +260,9 @@
           function bmHeroSubmit(e) {
             e.preventDefault();
             var q = document.getElementById('bmHeroQuery').value.trim();
-            if (q) localStorage.setItem('biomate_pending_query', q);
-            window.location.href = 'https://dev-public.biomate.ai/register';
+            var url = 'https://dev-public.biomate.ai/register';
+            if (q) url += '?q=' + encodeURIComponent(q);
+            window.location.href = url;
           }
         </script>
         <div class="bm-hero-meta">
