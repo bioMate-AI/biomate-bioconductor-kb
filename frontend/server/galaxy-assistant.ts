@@ -5074,24 +5074,51 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         }
 
         if (usedGeminiFallback) {
-          // Haiku fallback: fast, cheap, not Gemini rate-limited.
-          const haiku = 'claude-haiku-4-5-20251001';
-          const fallbackCompletion = await this._withAnthropicRetry(
-            () => this.claude.messages.create({
-              model: haiku,
-              max_tokens: 4096,
+          // Gemini 429 fallback: route through the YAML chain (Gemini 3.5 Flash →
+          // Claude → GPT-4o → Ollama) rather than crashing when ANTHROPIC_API_KEY
+          // is empty. Direct Haiku path preserved only as last resort if chain fails.
+          console.warn('[GalaxyAssistant] Gemini 429 → using YAML fallback chain for intent classification');
+          const { llmGenerate } = await import('./llm-client');
+          let chainResult: string | null = null;
+          try {
+            const r = await llmGenerate({
+              prompt: message,
               system: systemPrompt,
-              messages: [{ role: 'user', content: message }],
-            }),
-            'intent-classification-haiku-fallback',
-          );
-          console.log('[GalaxyAssistant] Intent Haiku fallback response:', {
-            model: haiku,
-            time_ms: Date.now() - intentStartTime,
-            usage: fallbackCompletion.usage,
-          });
-          const fc = fallbackCompletion.content[0];
-          resultText = fc.type === 'text' ? fc.text : '{}';
+              maxTokens: 4096,
+              jsonMode: false,
+            });
+            chainResult = r.text || null;
+            console.log('[GalaxyAssistant] Intent chain fallback done:', {
+              model_used: r.modelUsed, fallback_depth: r.fallbackDepth,
+              time_ms: Date.now() - intentStartTime,
+            });
+          } catch (chainErr: any) {
+            console.warn('[GalaxyAssistant] Chain fallback also failed; trying Haiku directly:', chainErr?.message);
+          }
+          if (chainResult !== null) {
+            resultText = chainResult;
+          } else if (process.env.ANTHROPIC_API_KEY) {
+            // Direct Haiku only when we have a real key
+            const haiku = 'claude-haiku-4-5-20251001';
+            const fallbackCompletion = await this._withAnthropicRetry(
+              () => this.claude.messages.create({
+                model: haiku,
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: message }],
+              }),
+              'intent-classification-haiku-fallback',
+            );
+            console.log('[GalaxyAssistant] Intent Haiku fallback response:', {
+              model: haiku,
+              time_ms: Date.now() - intentStartTime,
+              usage: fallbackCompletion.usage,
+            });
+            const fc = fallbackCompletion.content[0];
+            resultText = fc.type === 'text' ? fc.text : '{}';
+          } else {
+            throw new Error('Intent classification failed: Gemini 429, chain exhausted, no Anthropic key');
+          }
         } else {
           resultText = geminiResult.response.text();
           console.log('[GalaxyAssistant] Intent API response (Gemini):', {
