@@ -49,6 +49,8 @@ interface ChatWithArtifactsProps {
   /** Called when the workflow panel opens (true) or closes (false).
    *  Parent uses this to auto-collapse the sidebar for more screen space. */
   onWorkflowPanelOpenChange?: (open: boolean) => void
+  /** Pre-filled query from the marketing hero input — auto-submitted once the chat is ready. */
+  initialMessage?: string
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
@@ -83,7 +85,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -436,6 +438,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const sendChatMessageRef = useRef<
     ((message: string, contextOverride?: Record<string, unknown>) => void) | undefined
   >(undefined)
+  // State flag flipped when the sender is registered — triggers the effect below.
+  const [senderReady, setSenderReady] = useState(false)
+  const sentInitialRef = useRef(false)
+  // Auto-submit the pending query from the marketing page once the chat sender is ready.
+  useEffect(() => {
+    if (!initialMessage || sentInitialRef.current || !sendChatMessageRef.current) return
+    sentInitialRef.current = true
+    sendChatMessageRef.current(initialMessage)
+  }, [senderReady, initialMessage]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
@@ -1969,7 +1981,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
             onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
-            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender }}
+            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender; setSenderReady(true) }}
           />
         </div>
 

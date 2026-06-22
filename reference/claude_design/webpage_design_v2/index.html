@@ -108,6 +108,22 @@
 
   <link rel="stylesheet" href="fonts/fonts.css" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-hero-query-form { width: 100%; margin-bottom: 0; }
+    .bm-hero-query-input {
+      width: 100%; box-sizing: border-box;
+      padding: 14px 16px; font-size: 0.95rem; line-height: 1.55;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      background: rgba(255,255,255,.85); color: var(--text);
+      font-family: inherit; resize: vertical; margin-bottom: 14px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .bm-hero-query-input::placeholder { color: var(--text-muted); }
+    .bm-hero-query-input:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(42,85,130,.12);
+    }
+  </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
   <script>
@@ -225,13 +241,29 @@
         <p class="bm-lead">
           BioMate's agentic AI autonomously orchestrates multi-step biomedical workflows &mdash; processing <b>RNA&#8209;seq</b>, <b>single&#8209;cell</b>, and <b>spatial omics</b> data, calling <b>variants</b>, profiling <b>epigenomes</b>, characterising <b>microbiomes</b>, running <b>cryo&#8209;EM</b> pipelines, scoring molecules for <b>ADMET</b>, and supporting <b>precision medicine</b> and <b>clinical genomics</b>. Every result is clinical&#8209;grade QC&#8209;graded and audit&#8209;ready.
         </p>
-        <div class="bm-hero-ctas">
-          <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg">
-            Start free
-            <span class="bm-btn-arrow">&rarr;</span>
-          </a>
-          <a href="services.html" class="bm-btn bm-btn-outline bm-btn-lg">See what we do</a>
-        </div>
+        <form class="bm-hero-query-form" onsubmit="bmHeroSubmit(event)">
+          <textarea
+            id="bmHeroQuery"
+            class="bm-hero-query-input"
+            rows="3"
+            placeholder="Describe your research use case — e.g. 'Run DESeq2 on my RNA-seq data and identify differentially expressed genes between treated and control groups'"
+          ></textarea>
+          <div class="bm-hero-ctas">
+            <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
+              Start free
+              <span class="bm-btn-arrow">&rarr;</span>
+            </button>
+            <a href="services.html" class="bm-btn bm-btn-outline bm-btn-lg">See what we do</a>
+          </div>
+        </form>
+        <script>
+          function bmHeroSubmit(e) {
+            e.preventDefault();
+            var q = document.getElementById('bmHeroQuery').value.trim();
+            if (q) localStorage.setItem('biomate_pending_query', q);
+            window.location.href = 'https://dev-public.biomate.ai/register';
+          }
+        </script>
         <div class="bm-hero-meta">
           <span><span class="bm-hero-meta-dot"></span> 36 biomedical domains</span>
           <span><span class="bm-hero-meta-dot"></span> Evidence-graded QC</span>

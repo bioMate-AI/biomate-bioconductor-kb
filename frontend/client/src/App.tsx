@@ -117,6 +117,13 @@ function RootRoute({
   const uiFlavor = useUiFlavor()
   const handledSessionParam = useRef(false)
 
+  // Consume any pending query saved by the marketing hero input before redirect
+  const [initialMessage] = useState<string | undefined>(() => {
+    const q = localStorage.getItem('biomate_pending_query')
+    if (q) { localStorage.removeItem('biomate_pending_query'); return q }
+    return undefined
+  })
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) setLocation('/login')
   }, [isAuthenticated, isLoading, setLocation])
@@ -162,6 +169,7 @@ function RootRoute({
         currentChatSession={currentChatSession}
         onChatUpdated={onChatUpdated}
         onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
+        initialMessage={initialMessage}
       />
     </PlatformLayout>
   )
