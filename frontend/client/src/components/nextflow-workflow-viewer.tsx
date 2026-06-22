@@ -2630,7 +2630,9 @@ export function NextflowWorkflowViewer({
               ...(workflowDefinition?.optional_params || []),
             ];
             const mismatch = allParamDefs.find((p: any) => p?.format_mismatch_warning);
-            const requiredUnfilled = globalParams.filter(p => p.required && (!p.value || p.value === ''));
+            const requiredParams = globalParams.filter(p => p.required || (p as any).autoFilled);
+            const optionalParams = globalParams.filter(p => !p.required && !(p as any).autoFilled);
+            const requiredUnfilled = requiredParams.filter(p => p.required && (!p.value || p.value === ''));
 
             if (globalParams.length === 0 && !mismatch) return null;
             return (
@@ -2654,21 +2656,45 @@ export function NextflowWorkflowViewer({
                 </button>
                 {globalParamsOpen && (
                   <div className="strip-body">
-                    <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ maxHeight: 480, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {mismatch && (
                         <div className="alert warn" data-testid="format-mismatch-warning">
                           <span>⚠️</span><span>{mismatch.format_mismatch_warning}</span>
                         </div>
                       )}
-                      <ParameterGroup
-                        id="params-global"
-                        title="Workflow parameters"
-                        description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' required · ' : ''}${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
-                        parameters={globalParams.sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))}
-                        onChange={handleParamChange}
-                        onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
-                        defaultOpen={requiredUnfilled.length > 0 || globalParams.some(p => (p as any).autoFilled)}
-                      />
+                      {requiredParams.length > 0 && (
+                        <ParameterGroup
+                          id="params-required"
+                          title="Required parameters"
+                          description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' still needed · ' : ''}${requiredParams.length} param${requiredParams.length !== 1 ? 's' : ''}`}
+                          parameters={requiredParams}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={requiredUnfilled.length > 0 || requiredParams.some(p => (p as any).autoFilled)}
+                        />
+                      )}
+                      {optionalParams.length > 0 && (
+                        <ParameterGroup
+                          id="params-optional"
+                          title="Optional parameters"
+                          description={`${optionalParams.length} param${optionalParams.length !== 1 ? 's' : ''} — collapsed by default`}
+                          parameters={optionalParams}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={false}
+                        />
+                      )}
+                      {requiredParams.length === 0 && optionalParams.length === 0 && (
+                        <ParameterGroup
+                          id="params-global"
+                          title="Workflow parameters"
+                          description={`${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
+                          parameters={globalParams}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={true}
+                        />
+                      )}
 
                       {/* Phase C — Output location picker. Per
                        *  docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1).
