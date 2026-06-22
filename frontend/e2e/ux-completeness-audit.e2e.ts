@@ -440,9 +440,10 @@ test('Flow B — Upload UI and auth gate probes', async () => {
     await pause(page, 800);
     await shot(page, 'ux-audit', 'I1_upload_dropzone');
 
-    const dropzone = page.locator('[data-testid="upload-dropzone"], [data-testid="file-drop-zone"]').first();
-    const hasDrop = await dropzone.isVisible({ timeout: 5_000 }).catch(() => false);
-    console.log(`[I1] Drop zone: ${hasDrop}`);
+    // Dataset browser uses a button-based upload (no drag-drop zone)
+    const uploadBtn = page.locator('button:has-text("Upload file from computer"), [data-testid="file-upload-drop-zone"], [data-testid="upload-dropzone"]').first();
+    const hasDrop = await uploadBtn.isVisible({ timeout: 5_000 }).catch(() => false);
+    console.log(`[I1] Upload mechanism present: ${hasDrop}`);
 
     // Format list
     const formatText = await page.locator(':text("FASTQ"), :text("FASTA"), :text("VCF"), :text("BAM")').first()
