@@ -2285,6 +2285,22 @@ Respond with a single JSON object — no other text:
             text = nf_path.read_text(encoding="utf-8", errors="replace")
         except Exception:
             return {"required": [], "optional": []}
+        # Normalize DSL2 params { } block → flat params.xxx = value lines so the
+        # regex below can parse them. Generated workflows used to emit block syntax;
+        # flat syntax is now enforced in the LLM prompt but old cached files may still
+        # have the block form. Prepend flattened entries so seen_names deduplication
+        # keeps block-defined values when both forms appear in the same file.
+        _block_re = _re.compile(r'\bparams\s*\{([^}]*)\}', _re.DOTALL)
+        _block_entry_re = _re.compile(r'^\s*([a-zA-Z_]\w*)\s*=\s*(.+)$')
+        _flat_extra: list = []
+        for _bm in _block_re.finditer(text):
+            for _bline in _bm.group(1).splitlines():
+                _em = _block_entry_re.match(_bline)
+                if _em:
+                    _flat_extra.append(f'params.{_em.group(1)} = {_em.group(2).rstrip()}')
+        if _flat_extra:
+            text = '\n'.join(_flat_extra) + '\n' + text
+
         required, optional = [], []
         seen_names: set = set()
         section_re = _re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
