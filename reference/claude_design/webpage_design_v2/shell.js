@@ -168,19 +168,26 @@
       }
     });
 
-    // ── Dropdown: toggle on click (also works for touch) ──
+    // ── Dropdown: single unified toggle (desktop + mobile, one listener per element) ──
     document.querySelectorAll('.bm-has-dropdown > a').forEach(function(a) {
       a.addEventListener('click', function(e) {
         var li = a.closest('.bm-has-dropdown');
         var isOpen = li.classList.contains('bm-dd-open');
+        var isMobileNav = window.innerWidth <= 900;
+        // Close all other dropdowns first
         document.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
-          el.classList.remove('bm-dd-open');
+          if (el !== li) el.classList.remove('bm-dd-open');
         });
         if (!isOpen) {
           li.classList.add('bm-dd-open');
-          // Only prevent default when opening the dropdown itself (not navigating)
-          if (window.innerWidth > 900) e.preventDefault();
+          // Prevent navigation on both desktop and mobile when opening dropdown
+          e.preventDefault();
+        } else if (isMobileNav) {
+          // Mobile: close accordion, never navigate
+          li.classList.remove('bm-dd-open');
+          e.preventDefault();
         }
+        // Desktop + already open: allow navigation to the section href
       });
     });
 
@@ -192,17 +199,12 @@
         var open = tog.getAttribute('aria-expanded') === 'true';
         tog.setAttribute('aria-expanded', open ? 'false' : 'true');
         links.classList.toggle('bm-nav-open', !open);
-      });
-
-      // Mobile: expand/collapse dropdowns as accordions
-      links.querySelectorAll('.bm-has-dropdown > a').forEach(function(a) {
-        a.addEventListener('click', function(e) {
-          if (window.innerWidth <= 900) {
-            e.preventDefault();
-            var li = a.closest('.bm-has-dropdown');
-            li.classList.toggle('bm-dd-open');
-          }
-        });
+        // Close all dropdowns when closing the mobile menu
+        if (open) {
+          links.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
+            el.classList.remove('bm-dd-open');
+          });
+        }
       });
     }
   };
