@@ -59,6 +59,41 @@ aws sns subscribe --region us-west-2 \
   --protocol email --notification-endpoint <email>
 ```
 
+## Live test on `test` (i-0482a6fa98c6f301a) — 2026-06-23
+
+Ran end-to-end against the real test box. Email subscription
+(zheganjue519@gmail.com) confirmed first.
+
+- **Test 1 — happy path** (`deploy.sh test sha-71729b1e1a09`): prev captured,
+  new image healthy, `DEPLOY_RESULT=healthy`, exit 0, `SNS notified (healthy)`.
+  ✅ as predicted.
+- **Test 2 — rollback** (deployed a deliberately-broken busybox image pushed to
+  both repos at `sha-broken-test`): **first run FOUND TWO REAL BUGS in the
+  initial Step 6:**
+  1. `docker compose up -d` **hung forever** on a broken image — the compose
+     file has `frontend depends_on backend (condition: service_healthy)`, so a
+     backend whose healthcheck never goes green blocks `up` indefinitely; the
+     script never reached the rollback branch and left the box broken.
+  2. Even without the hang, `broken-health (90s) + rollback + Galaxy cold start`
+     exceeded `ssm_run`'s hard-coded 300s poll → false "failed" notification
+     while the host kept working.
+- **Fix applied** (this is what's in the committed deploy.sh):
+  - `bring_up` now uses `docker compose up -d --wait --wait-timeout <N>` (bounded
+    wait — returns non-zero instead of hanging) wrapped in `timeout` as a hard
+    kill. New image budget 180s, rollback 240s.
+  - `ssm_run` gained an optional timeout arg; Step 6 uses 600s.
+  - Host persists the terminal `DEPLOY_RESULT` to `/tmp/biomate_deploy_result`;
+    deploy.sh reads it back if the marker isn't in the stream.
+  - Exported `BACKEND_IMAGE/FRONTEND_IMAGE` before the pre-`up` `down` to avoid
+    a benign "invalid compose project" warning.
+- **Test 2 re-run — PASSED**: broken image `up --wait` returned `timeout waiting
+  for dependencies` (no hang), rollback to `sha-71729b1e1a09` went Healthy,
+  `DEPLOY_RESULT=rolled_back`, exit 2, `SNS notified (rolled_back)`. Box left
+  healthy. Broken ECR tags + host artifacts cleaned up afterward.
+
+Net: both **notification** and **auto-rollback** are now verified working on the
+real test environment.
+
 ## Verify before relying on it
 
 1. `bash -n scripts/deploy.sh` — done, passes.
