@@ -34,6 +34,8 @@ export default function LoginPage() {
     const raw = new URLSearchParams(search).get('next')
     return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
   })()
+  // Hero query forwarded through the auth flow (?q= on register or App.tsx redirect)
+  const qParam = new URLSearchParams(search).get('q')
   const { login, loginWithGoogle, loginWithGithub } = useAuth()
   const { toast } = useToast()
   const [email, setEmail] = useState("")
@@ -48,9 +50,10 @@ export default function LoginPage() {
     setIsLoading(true); setError(null)
     try {
       await login(email, password, rememberMe)
-      // auth-context.login() already calls setLocation('/') on success; if the
-      // user arrived from a deep link, override that with the requested path.
-      if (nextParam) setLocation(nextParam)
+      // auth-context.login() already calls setLocation('/') on success; override
+      // with the hero query or deep-link destination if present.
+      if (qParam) setLocation('/?q=' + encodeURIComponent(qParam))
+      else if (nextParam) setLocation(nextParam)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.")
     } finally {
