@@ -1,0 +1,83 @@
+# Tutorial demo gold-standard registry.
+# Each entry binds a BioMate chain to a peer-reviewed gold dataset + pass metric.
+# Design source: reference/claude_design/tutorials-work/Tutorial Demo Scenarios 7-domain.md
+demos:
+  transcriptomics:
+    slug: tut_rnaseq_de
+    chain: bulk_rnaseq_de_analysis
+    prompt: "Run nf-core rnaseq then differential expression and GSEA"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/transcriptomics/GSE49712/
+    gold:
+      dataset: GSE49712 (SEQC / MAQC-III)
+      anchor: "SEQC/MAQC-III Consortium, Nat Biotechnol 32:903 (2014)"
+      metric: ercc_truth_recovery
+      threshold: 0.90
+      secondary: { metric: ercc_auc_roc, threshold: 0.95 }
+
+  single_cell:
+    slug: tut_scrna_pbmc
+    chain: single_cell_multimodal_analysis
+    prompt: "Run single-cell analysis from Cell Ranger output"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/single_cell/pbmc_10k_v3/
+    gold:
+      dataset: 10x PBMC 10k v3
+      anchor: "Hao et al., Cell 184:3573 (2021)"
+      metric: azimuth_macro_f1
+      threshold: 0.85
+
+  variant_calling:
+    slug: tut_variant_giab
+    chain: bioc_variant_annotation_workflow
+    prompt: "Variant calling annotation filtering on this WGS sample"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/variant_calling/giab_hg002_chr20/
+    gold:
+      dataset: GIAB HG002 v4.2.1 (chr20)
+      anchor: "Wagner et al., Cell Genomics 2:100129 (2022); Zook et al., Sci Data 3:160025 (2016)"
+      metric: happy_snv_f1
+      threshold: 0.99
+      secondary: { metric: happy_indel_f1, threshold: 0.95 }
+
+  epigenomics:
+    slug: tut_chipseq_k562
+    chain: bioc_chipseq_annotation_v2
+    prompt: "Annotate my ChIP-seq peaks and run pathway enrichment"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/epigenomics/encode_k562_h3k27ac/
+    gold:
+      dataset: ENCODE K562 H3K27ac (ENCFF044JNJ consensus)
+      anchor: "ENCODE Consortium, Nature 583:699 (2020)"
+      metric: encode_peak_overlap
+      threshold: 0.80
+
+  proteomics:
+    slug: tut_proteomics_ups
+    chain: bioc_proteomics_de_v2
+    prompt: "Bioconductor proteomics pipeline — label-free protein DE analysis"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/proteomics/PXD002952/
+    gold:
+      dataset: ProteomeXchange PXD002952 (UPS1 spike-in)
+      anchor: "Cox et al., Mol Cell Proteomics 13:2513 (2014)"
+      metric: ups1_recall_at_fdr5
+      threshold: 0.80
+      secondary: { metric: yeast_background_fpr, threshold_max: 0.05 }
+
+  metagenomics:
+    slug: tut_metagenome_cami
+    chain: shotgun_metagenomics_to_mag
+    prompt: "MAG recovery with binning and taxonomy assignment"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/metagenomics/cami2_low_complexity/
+    gold:
+      dataset: CAMI II low-complexity gut subset
+      anchor: "Meyer et al., Nat Methods 19:429 (2022)"
+      metric: cami2_hq_mag_recovery
+      threshold: 0.70
+
+  metabolomics:
+    slug: tut_metabolomics_mtbls
+    chain: lcms_metabolomics_consensus
+    prompt: "Untargeted metabolomics multi-method analysis"
+    s3_inputs: s3://biomate-workflow-inputs/tutorial-gold/metabolomics/MTBLS136/
+    gold:
+      dataset: MetaboLights MTBLS136 (Thévenot 2015 urine LC-MS)
+      anchor: "Thévenot et al., J Proteome Res 14:3322 (2015)"
+      metric: published_biomarker_recall
+      threshold: 0.70
