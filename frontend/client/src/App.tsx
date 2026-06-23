@@ -127,6 +127,14 @@ function RootRoute({
       window.history.replaceState(null, '', window.location.pathname)
       return decodeURIComponent(urlQ)
     }
+    // Fallback: hero query parked in sessionStorage during login (auth-context's
+    // setLocation('/') mounts this component before login.tsx can append ?q=,
+    // so the URL param path above would miss it).
+    const stored = sessionStorage.getItem('pendingHeroQuery')
+    if (stored) {
+      sessionStorage.removeItem('pendingHeroQuery')
+      return stored
+    }
     return undefined
   })
 
