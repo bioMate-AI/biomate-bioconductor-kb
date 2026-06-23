@@ -183,7 +183,16 @@ process TORCHGWAS_SCAN {
     """
 }
 
-// [Phase D] Loci report — summarise results.tsv.gz
+// [Phase D] Loci report — summarise results.tsv.gz + GWAS Catalog novelty check
+//
+// For each genome-wide significant locus (p ≤ 5e-8), queries the EBI GWAS
+// Catalog REST API to determine whether the locus is novel vs known.
+// API: https://www.ebi.ac.uk/gwas/rest/api/
+// Window: ±500 kb around each top variant per locus (clumped by 1 Mb).
+// Rate limiting: max 20 catalog queries per run; remaining loci marked
+//   "catalog_not_queried" to stay within EBI's anonymous rate limit.
+// Graceful: if the API is unreachable (no internet on Batch worker), all
+//   loci get catalog_status="catalog_unavailable" and the run still succeeds.
 process TORCHGWAS_REPORT {
     tag "torchgwas:phaseD"
     label 'process_low'
@@ -196,37 +205,138 @@ process TORCHGWAS_REPORT {
     script:
     """
     python3 - <<'PY'
-    import json, gzip, os
+    import json, gzip, os, time
+    from urllib.request import urlopen, Request
+    from urllib.error import URLError, HTTPError
+
+    GWAS_API   = "https://www.ebi.ac.uk/gwas/rest/api"
+    WINDOW_BP  = 500_000          # ±500 kb novelty window
+    MAX_QUERIES = 20              # respect EBI anonymous rate limit
+    PVAL_THRESH = 5e-8
+
+    # ---- parse results.tsv.gz ------------------------------------------------
     summary = {
         "phase": "D",
         "run": json.load(open("${run_json}")) if os.path.exists("${run_json}") else {},
         "qc":  json.load(open("${qc_json}"))  if os.path.exists("${qc_json}")  else {},
     }
-    # Best-effort GW-sig hit count from results.tsv.gz (header: phenotype_id, chr, pos, rsid, ...)
-    sig = 0; total = 0
+    sig_loci = []   # list of dicts: {phenotype_id, chr, pos, rsid, pvalue}
+    total = 0
     try:
         with gzip.open("${results}", "rt") as f:
             header = f.readline().strip().split("\\t")
-            pval_idx = header.index("pvalue") if "pvalue" in header else -1
+            col = {h: i for i, h in enumerate(header)}
+            pval_idx = col.get("pvalue", col.get("p_value", col.get("P", -1)))
+            chr_idx  = col.get("chr", col.get("chrom", col.get("CHR", -1)))
+            pos_idx  = col.get("pos", col.get("bp", col.get("POS", col.get("BP", -1))))
+            rsid_idx = col.get("rsid", col.get("SNP", col.get("snp", -1)))
+            pheno_idx = col.get("phenotype_id", col.get("pheno", 0))
             for line in f:
                 total += 1
-                if pval_idx >= 0:
-                    parts = line.strip().split("\\t")
-                    if len(parts) > pval_idx:
-                        try:
-                            p = float(parts[pval_idx])
-                            if p <= 5e-8: sig += 1
-                        except ValueError: pass
+                parts = line.strip().split("\\t")
+                try:
+                    p = float(parts[pval_idx]) if pval_idx >= 0 else 1.0
+                except (ValueError, IndexError):
+                    p = 1.0
+                if p <= PVAL_THRESH:
+                    sig_loci.append({
+                        "phenotype_id": parts[pheno_idx] if pheno_idx >= 0 and len(parts) > pheno_idx else "unknown",
+                        "chr":  parts[chr_idx]  if chr_idx  >= 0 and len(parts) > chr_idx  else "?",
+                        "pos":  int(parts[pos_idx]) if pos_idx >= 0 and len(parts) > pos_idx else 0,
+                        "rsid": parts[rsid_idx] if rsid_idx >= 0 and len(parts) > rsid_idx else ".",
+                        "pvalue": p,
+                    })
     except Exception as exc:
         summary["results_parse_error"] = str(exc)
-    summary["variant_assocs_total"] = total
-    summary["genome_wide_hits_5e8"] = sig
+
+    # ---- clump into independent loci (1 Mb distance rule) -------------------
+    # Sort by p-value, greedily assign to loci.
+    sig_loci.sort(key=lambda x: x["pvalue"])
+    lead_loci = []
+    for v in sig_loci:
+        overlaps = False
+        for locus in lead_loci:
+            if locus["chr"] == v["chr"] and abs(locus["pos"] - v["pos"]) <= 1_000_000:
+                overlaps = True; break
+        if not overlaps:
+            lead_loci.append(v)
+
+    # ---- GWAS Catalog novelty check -----------------------------------------
+    def query_catalog(chrom, pos):
+        """Returns list of known associations within WINDOW_BP of pos.
+        Returns None on network error."""
+        url = (f"{GWAS_API}/singleNucleotidePolymorphisms/search/"
+               f"findByChromBpLocationRange"
+               f"?chrom={chrom}&bpLocationMin={max(0,pos-WINDOW_BP)}"
+               f"&bpLocationMax={pos+WINDOW_BP}&size=10")
+        try:
+            req = Request(url, headers={"Accept": "application/json"})
+            with urlopen(req, timeout=10) as r:
+                data = json.loads(r.read())
+                embedded = data.get("_embedded", {})
+                return embedded.get("singleNucleotidePolymorphisms", [])
+        except (URLError, HTTPError, Exception):
+            return None
+
+    catalog_available = True
+    n_queried = 0
+    for locus in lead_loci:
+        if n_queried >= MAX_QUERIES:
+            locus["catalog_status"] = "catalog_not_queried"
+            locus["catalog_hits"] = -1
+            continue
+        hits = query_catalog(locus["chr"], locus["pos"])
+        n_queried += 1
+        time.sleep(0.2)   # polite 200 ms between requests
+        if hits is None:
+            catalog_available = False
+            locus["catalog_status"] = "catalog_unavailable"
+            locus["catalog_hits"] = -1
+        elif len(hits) == 0:
+            locus["catalog_status"] = "novel"
+            locus["catalog_hits"] = 0
+        else:
+            locus["catalog_status"] = "known"
+            locus["catalog_hits"] = len(hits)
+            locus["catalog_rsids"] = [
+                s.get("rsId", "?") for s in hits[:5]
+            ]
+
+    novel_loci  = [l for l in lead_loci if l.get("catalog_status") == "novel"]
+    known_loci  = [l for l in lead_loci if l.get("catalog_status") == "known"]
+    queried     = [l for l in lead_loci if l.get("catalog_status") in ("novel","known")]
+
+    summary["variant_assocs_total"]   = total
+    summary["genome_wide_hits_5e8"]   = len(sig_loci)
+    summary["independent_loci"]       = len(lead_loci)
+    summary["novel_loci"]             = len(novel_loci)
+    summary["known_loci"]             = len(known_loci)
+    summary["catalog_queried"]        = len(queried)
+    summary["catalog_available"]      = catalog_available
+    summary["catalog_window_bp"]      = WINDOW_BP
+    summary["catalog_api"]            = GWAS_API
+    summary["lead_loci"]              = lead_loci[:50]   # cap to 50 for JSON size
+
     json.dump(summary, open("loci_report.json","w"), indent=2)
+
+    novel_note = (
+        f"{len(novel_loci)} novel vs GWAS Catalog (±{WINDOW_BP//1000} kb window)"
+        if catalog_available and len(queried) > 0
+        else "GWAS Catalog unavailable — novelty not assessed"
+    )
     open("loci_report.md","w").write(
         f"# TorchGWAS loci report\\n\\n"
         f"- Total variant associations tested: {total}\\n"
-        f"- Genome-wide significant hits (p ≤ 5e-8): {sig}\\n\\n"
-        f"```json\\n{json.dumps(summary, indent=2)}\\n```\\n"
+        f"- Genome-wide significant hits (p ≤ 5e-8): {len(sig_loci)}\\n"
+        f"- Independent loci (1 Mb clumping): {len(lead_loci)}\\n"
+        f"- {novel_note}\\n\\n"
+        f"## Lead loci\\n\\n"
+        + "\\n".join(
+            f"- {l['chr']}:{l['pos']} ({l['rsid']}) p={l['pvalue']:.2e} "
+            f"[{l.get('catalog_status','?')}]"
+            for l in lead_loci[:20]
+        )
+        + f"\\n\\n```json\\n{json.dumps(summary, indent=2)}\\n```\\n"
     )
     PY
     """
