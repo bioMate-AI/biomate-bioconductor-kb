@@ -957,6 +957,19 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
             return {"parameters": parameters, "parameter_metadata": parameter_metadata}
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
+        # Normalize DSL2 params { } block → flat params.xxx = value lines so the
+        # regex below can parse them (old generated workflows used block syntax).
+        _block_re = re.compile(r'\bparams\s*\{([^}]*)\}', re.DOTALL)
+        _block_entry_re = re.compile(r'^\s*([a-zA-Z_]\w*)\s*=\s*(.+)$')
+        _flat_extra: list = []
+        for _bm in _block_re.finditer(content):
+            for _bline in _bm.group(1).splitlines():
+                _em = _block_entry_re.match(_bline)
+                if _em:
+                    _flat_extra.append(f'params.{_em.group(1)} = {_em.group(2).rstrip()}')
+        if _flat_extra:
+            content = '\n'.join(_flat_extra) + '\n' + content
+
         # Scan line-by-line to track [Phase X] / [Global] section headers
         # Header format: // [Phase A] Description  or  // [Global] Description
         section_re = re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
