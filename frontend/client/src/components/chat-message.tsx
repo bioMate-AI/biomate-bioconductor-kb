@@ -221,6 +221,44 @@ export function ChatMessage({
   // with N expanded cards when N progress events fire in a row.
   if (isProgressMessage) {
     const kind = (message.metadata as any)?.kind as string | undefined
+    const tech = (message.metadata as any)?.technical as Record<string, any> | undefined
+
+    // Chain suggestion — render as a rich card, not a dim progress dot
+    if (kind === "chain_suggestion" && Array.isArray(tech?.suggestions) && tech.suggestions.length > 0) {
+      const triggerWf = String(tech.trigger_workflow || "").split("/").pop() || "your workflow"
+      return (
+        <div
+          data-testid="chain-suggestion-card"
+          data-progress-kind="chain_suggestion"
+          data-trigger-workflow={tech.trigger_workflow || ""}
+          className="msg px-4 py-2"
+          id={`chat-message-anchor-${message.id}`}
+        >
+          <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+            Suggested next steps after {triggerWf}
+          </div>
+          <div className="flex flex-col gap-2">
+            {(tech.suggestions as Array<{ name: string; display_name: string; steps: number; description: string; required_inputs?: string[] }>).map((s) => (
+              <div
+                key={s.name}
+                data-testid={`chain-suggestion-item-${s.name}`}
+                className="rounded-md border border-border bg-card px-3 py-2 flex items-start gap-2 text-sm"
+              >
+                <span className="text-primary mt-0.5">→</span>
+                <div>
+                  <span className="font-medium">{s.display_name}</span>
+                  <span className="text-muted-foreground ml-2 text-xs">({s.steps} steps)</span>
+                  {s.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
     const speaker = deriveSpeaker(kind)
     const pillLabel = SPEAKER_LABELS[speaker] ?? 'WF'
     // L week-3: thread workflow_name + phase_id through to <WhyAnchor>.
@@ -231,7 +269,6 @@ export function ChatMessage({
     //   <WhyAnchor> renders nothing when either context is missing or when
     //   the rationale endpoint returns no curated row — safe to mount
     //   unconditionally.
-    const tech = (message.metadata as any)?.technical as Record<string, any> | undefined
     // Phase 2 design-faithful: prefer explicit rationale_id from the narrator
     // when present (matches research_agents/research-data.js `rationaleId:'rnaseq:B'`).
     // Falls back to legacy (workflow_name + phase_id) derivation otherwise.
