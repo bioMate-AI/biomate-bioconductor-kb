@@ -1,5 +1,12 @@
 // nf-core/rnaseq — user-facing parameter stub
 // Full pipeline: FASTQ → trimming → alignment → quantification → QC
+//
+// Pipeline phases:
+// * 1. [Trimming] Adapter trimming + read-length QC (Trim Galore + FastQC)
+// * 2. [Alignment] Splice-aware alignment to reference (STAR or HISAT2)
+// * 3. [Quantification] Transcript-level counts (Salmon / featureCounts)
+// * 4. [QC] Alignment QC + library complexity (RSeQC, Picard, dupRadar)
+// * 5. [Report] MultiQC summary HTML + count matrix TSV
 
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2,strandedness)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCz11 | BDGP6 | Rnor_6.0 | R64-1-1
@@ -22,7 +29,6 @@ params.minlen           = null          // Minimum read length after trimming (b
 params.min_reads        = null          // Minimum reads per UMI group to retain
 params.max_reads        = null          // Maximum reads per sample (for pilot runs)
 params.gpu_acceleration = null          // Enable GPU acceleration
-params.outdir           = './results'
 params.email            = null
 params.max_memory       = '128.GB'
 params.max_cpus         = 16
@@ -30,13 +36,21 @@ params.max_time         = '240.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    output:
+    path "validated_samplesheet.csv", emit: samplesheet
+
     script: """
     check_samplesheet.py --input ${params.input} --strandedness ${params.strandedness}
     """
 }
 
-// [Trimming & QC]
+// [Trimming]
 process TRIMGALORE {
+    output:
+    path "*.fq.gz",         emit: reads
+    path "*.txt",           emit: log
+    path "*_fastqc.{zip,html}", emit: fastqc
+
     script: """
     trim_galore ${params.single_end ? '--single_end' : ''} \
         ${params.skip_trimming ? '--skip' : ''} \
@@ -48,18 +62,19 @@ process TRIMGALORE {
     """
 }
 
-// [Trimming & QC]
-process FASTQC {
-    script: """
-    fastqc ${params.skip_fastqc ? '--skip' : ''} --outdir ${params.outdir}
-    """
-}
-
 // [Alignment]
 process STAR_ALIGN {
+    output:
+    tuple val(meta), path("*.bam"),            emit: bam
+    tuple val(meta), path("*.bai"),            emit: bai
+    path "*.Log.final.out",                    emit: log
+    path "*.SJ.out.tab",                       emit: sj
+
     script: """
     STAR --genome ${params.genome} \
         --readFilesIn ${params.input} \
+        --outSAMtype BAM SortedByCoordinate \
+        --outSAMattributes NH HI AS NM \
         --outdir ${params.outdir} \
         ${params.save_unaligned ? '--outReadsUnmapped Fastx' : ''} \
         ${params.read_length ? "--sjdbOverhang $((${params.read_length} - 1))" : ''}
@@ -68,6 +83,12 @@ process STAR_ALIGN {
 
 // [Quantification]
 process SALMON_QUANT {
+    output:
+    tuple val(meta), path("${meta.id}"),       emit: results
+    path "${meta.id}/quant.sf",                emit: quant
+    path "${meta.id}/lib_format_counts.json",  emit: json
+    path "counts_matrix.tsv",                  emit: counts_matrix
+
     script: """
     salmon quant \
         --libType ${params.strandedness} \
@@ -76,8 +97,24 @@ process SALMON_QUANT {
     """
 }
 
+// [QC]
+process RSEQC_BAMSTAT {
+    output:
+    path "*.bam_stat.txt",  emit: txt
+    path "pca_plot.png",    emit: pca
+    path "heatmap.png",     emit: heatmap
+
+    script: """
+    infer_experiment.py -i sample.bam -r ${params.genome}.bed
+    """
+}
+
 // [Report]
 process MULTIQC {
+    output:
+    path "multiqc_report.html",     emit: report
+    path "multiqc_data/",           emit: data
+
     script: """
     multiqc ${params.skip_multiqc ? '--skip' : ''} \
         --outdir ${params.outdir} \
