@@ -131,8 +131,14 @@ function RootRoute({
   })
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) setLocation('/login')
-  }, [isAuthenticated, isLoading, setLocation])
+    if (!isLoading && !isAuthenticated) {
+      // Preserve the pending hero query so it survives the login/register flow
+      const dest = initialMessage
+        ? '/login?q=' + encodeURIComponent(initialMessage)
+        : '/login'
+      setLocation(dest)
+    }
+  }, [isAuthenticated, isLoading, setLocation, initialMessage])
 
   // Handle ?session=<chatSessionId> — emitted by the "Open" button in the
   // Workflow Runs dialog. Once auth is ready, load the session and strip the param.
