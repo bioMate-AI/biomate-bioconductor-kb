@@ -136,6 +136,7 @@ echo ""
 ssm_run() {
   local cmd="$1"
   local description="${2:-Running command}"
+  local timeout="${3:-300}"   # client poll budget; Step 6 overrides (cold starts are slow)
 
   echo "$description..."
 
@@ -159,8 +160,7 @@ ssm_run() {
     exit 1
   fi
 
-  # Wait for command to complete (max 5 minutes)
-  local timeout=300
+  # Wait for command to complete (default 5 min; caller may override via $3)
   local elapsed=0
   local status=""
 
@@ -303,6 +303,8 @@ echo "=== Step 6: Deploy + health check + auto-rollback ==="
 DEPLOY_AND_VERIFY=$(cat <<HOSTEOF
 set -u
 cd /opt/biomate
+RESULT_FILE=/tmp/biomate_deploy_result
+: > "\$RESULT_FILE" 2>/dev/null || true
 
 NEW_BACKEND='$BACKEND_IMAGE'
 NEW_FRONTEND='$FRONTEND_IMAGE'
@@ -315,59 +317,77 @@ PREV_FRONTEND=\$(docker inspect --format '{{.Config.Image}}' biomate-frontend-de
 echo "prev_backend=\${PREV_BACKEND:-<none>}"
 echo "prev_frontend=\${PREV_FRONTEND:-<none>}"
 
+# Bring up with a BOUNDED wait. The compose file has frontend depends_on backend
+# (condition: service_healthy) — so a broken image whose healthcheck never goes
+# green makes a plain \`up -d\` HANG FOREVER waiting on the dependency. --wait
+# --wait-timeout makes \`up\` RETURN NON-ZERO after the budget instead of hanging;
+# the outer \`timeout\` is a hard kill in case \`up\` itself wedges. \$3 = wait secs.
 bring_up() {
+  local wait_s="\$3" hard=\$(( \$3 + 30 ))
   export BACKEND_IMAGE="\$1"
   export FRONTEND_IMAGE="\$2"
-  docker compose -f docker-compose.deploy.yml up -d
+  timeout "\$hard" docker compose -f docker-compose.deploy.yml up -d --wait --wait-timeout "\$wait_s"
 }
 
-health_ok() {
-  local i
-  for i in \$(seq 1 18); do   # up to ~90s
-    if curl -fsS http://localhost:8081/api/version >/dev/null 2>&1 \\
-       && curl -fsS http://localhost:3000/api/health >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 5
-  done
-  return 1
+# --wait gates on docker healthchecks; this confirms the real HTTP endpoints too.
+endpoints_ok() {
+  curl -fsS http://localhost:8081/api/version >/dev/null 2>&1 \\
+    && curl -fsS http://localhost:3000/api/health >/dev/null 2>&1
 }
 
+finish() {   # \$1 = state, \$2 = exit code; persist marker to file AND stdout
+  echo "DEPLOY_RESULT=\$1"
+  echo "DEPLOY_RESULT=\$1" > "\$RESULT_FILE" 2>/dev/null || true
+  exit "\$2"
+}
+
+# Export NEW images so the down's project parse is valid (compose errors with
+# "invalid compose project" if BACKEND_IMAGE/FRONTEND_IMAGE are unset). bring_up
+# re-exports per-attempt below.
+export BACKEND_IMAGE="\$NEW_BACKEND"
+export FRONTEND_IMAGE="\$NEW_FRONTEND"
 docker compose -f docker-compose.deploy.yml down --timeout 30 || true
-bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND"
 
-if health_ok; then
-  echo 'DEPLOY_RESULT=healthy'
-  exit 0
+# New image gets up to 180s to go healthy (Galaxy cold start is ~60-90s).
+if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok; then
+  finish healthy 0
 fi
 
-echo '*** New images failed health check — backend/frontend logs follow ***'
+echo '*** New images failed health gate — backend/frontend logs follow ***'
 docker logs biomate-galaxy-deploy --tail 50 2>&1 || true
 docker logs biomate-frontend-deploy --tail 50 2>&1 || true
 
 if [ -n "\$PREV_BACKEND" ] && [ -n "\$PREV_FRONTEND" ] && [ "\$PREV_BACKEND" != "\$NEW_BACKEND" ]; then
   echo "Rolling back to \$PREV_BACKEND / \$PREV_FRONTEND"
-  bring_up "\$PREV_BACKEND" "\$PREV_FRONTEND"
-  if health_ok; then
-    echo 'DEPLOY_RESULT=rolled_back'
-    exit 2
+  # Rollback gets a longer budget (240s) — it is a real cold start of a good image.
+  if bring_up "\$PREV_BACKEND" "\$PREV_FRONTEND" 240 && endpoints_ok; then
+    finish rolled_back 2
   fi
-  echo 'DEPLOY_RESULT=rollback_failed'
-  exit 3
+  finish rollback_failed 3
 fi
 
-echo 'DEPLOY_RESULT=failed_no_prev'
-exit 1
+finish failed_no_prev 1
 HOSTEOF
 )
 
 # Don't let ssm_run's non-zero return (host rolled back -> exit 2/3) abort us
 # before we parse the marker; SSM_OUT is captured even on a failed invocation.
+# Budget 600s: worst case is new-image wait (180) + rollback cold start (240) +
+# docker/SSM overhead, which exceeds the default 300s poll.
 set +e
-ssm_run "$DEPLOY_AND_VERIFY" "Deploying + verifying + auto-rollback"
+ssm_run "$DEPLOY_AND_VERIFY" "Deploying + verifying + auto-rollback" 600
 set -e
 
 marker=$(printf '%s' "${SSM_OUT:-}" | grep -oE 'DEPLOY_RESULT=[a-z_]+' | tail -1 | cut -d= -f2)
+if [[ -z "$marker" ]]; then
+  # ssm_run's poll may have given up while the host script was still finishing.
+  # The host persists the terminal marker to a file — read it back.
+  echo "(no marker in stream — reading host result file)"
+  set +e
+  ssm_run "sleep 3; cat /tmp/biomate_deploy_result 2>/dev/null || echo NONE" "Fetching deploy result marker" 120
+  set -e
+  marker=$(printf '%s' "${SSM_OUT:-}" | grep -oE 'DEPLOY_RESULT=[a-z_]+' | tail -1 | cut -d= -f2)
+fi
 case "$marker" in
   healthy)         DEPLOY_STATE="healthy" ;;
   rolled_back)     DEPLOY_STATE="rolled_back" ;;
