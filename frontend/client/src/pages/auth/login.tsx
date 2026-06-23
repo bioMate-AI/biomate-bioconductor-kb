@@ -48,13 +48,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true); setError(null)
+    // Park the hero query in sessionStorage BEFORE calling login — auth-context
+    // calls setLocation('/') internally which mounts App.tsx before our override
+    // setLocation('/?q=...') can run, so the useState initializer in App.tsx
+    // would see no ?q= in the URL. sessionStorage survives that navigation.
+    if (qParam) sessionStorage.setItem('pendingHeroQuery', qParam)
     try {
       await login(email, password, rememberMe)
-      // auth-context.login() already calls setLocation('/') on success; override
-      // with the hero query or deep-link destination if present.
-      if (qParam) setLocation('/?q=' + encodeURIComponent(qParam))
-      else if (nextParam) setLocation(nextParam)
+      if (nextParam) setLocation(nextParam)
     } catch (err) {
+      if (qParam) sessionStorage.removeItem('pendingHeroQuery')
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.")
     } finally {
       setIsLoading(false)
