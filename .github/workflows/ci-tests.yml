@@ -76,7 +76,10 @@ jobs:
     name: Backend Tests (Full Suite)
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 10m was too tight: installing the full Galaxy requirements + running the
+    # whole pytest tree routinely overran and the job was cancelled (counted as
+    # a failure). 20m covers the cold pip install + suite.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -179,6 +182,12 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # upload-sarif writes to the code-scanning API — needs security-events:write.
+    # Without this block the default GITHUB_TOKEN can't, so every PR failed with
+    # "Resource not accessible by integration".
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout
@@ -193,8 +202,13 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
+        # v2 was deprecated and now hard-fails; v3 is current. continue-on-error
+        # so a repo without GitHub Advanced Security (where the code-scanning API
+        # is unavailable regardless of token perms) does not block the merge —
+        # the scan is informational, it was never a hard gate.
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
