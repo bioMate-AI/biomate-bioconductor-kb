@@ -961,7 +961,7 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
         # Header format: // [Phase A] Description  or  // [Global] Description
         section_re = re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
         param_re = re.compile(
-            r'^params\.([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^\n/]+?)\s*(?://\s*(.+))?$',
+            r"^params\.([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*('[^']*'|\"[^\"]*\"|[^\n/]+?)\s*(?://\s*(.+))?$",
         )
         current_group: str | None = None
         for line in content.splitlines():

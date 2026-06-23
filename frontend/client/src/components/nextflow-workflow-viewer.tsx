@@ -2370,7 +2370,7 @@ export function NextflowWorkflowViewer({
       {/* ── Top-level tabs (Step A MVP — phases tab keeps current view) ─────── */}
       {(() => {
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-        const phaseCount = hasRealPhases ? groupedPhases.length : updatedPhases.length;
+        const phaseCount = hasRealPhases ? groupedPhases.length : 0;
         const paramCount = renderedParameters.length;
         const showAfterRunDot = status === 'completed' || status === 'failed';
         // Per-tab hover tips so the user can see what each tab contains

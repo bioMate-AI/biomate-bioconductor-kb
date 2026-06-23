@@ -413,7 +413,7 @@ export function ChatMessage({
                     {[
                       message.metadata.workflow.domain,
                       message.metadata.workflow.subtitle ||
-                        (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps)
+                        (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
                           ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
                     ].filter(Boolean).join(' · ')}
                   </div>
