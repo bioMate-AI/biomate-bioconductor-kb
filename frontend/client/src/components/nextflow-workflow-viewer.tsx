@@ -993,16 +993,20 @@ export function NextflowWorkflowViewer({
 
   // Lazy-load workflow phase steps when workflowDefinition has a nextflow_path
   // but steps is empty (e.g. sessions created before steps parsing was deployed).
+  // null = fetch not started / in progress; {} = fetch done but no steps; {...} = steps loaded
   const [lazySteps, setLazySteps] = useState<Record<string, any> | null>(null);
+  const [lazyStepsFetching, setLazyStepsFetching] = useState(false);
   useEffect(() => {
     const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath;
     const existingSteps = workflowDefinition?.steps;
     const hasSteps = existingSteps && typeof existingSteps === 'object' && Object.keys(existingSteps).length > 0;
     if (!hasSteps && nfPath) {
+      setLazyStepsFetching(true);
       fetch(`/api/nextflow/steps?nextflow_path=${encodeURIComponent(nfPath)}`)
         .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data?.steps && Object.keys(data.steps).length > 0) setLazySteps(data.steps); })
-        .catch(() => {});
+        .then(data => { setLazySteps(data?.steps ?? {}); })
+        .catch(() => { setLazySteps({}); })
+        .finally(() => setLazyStepsFetching(false));
     }
   }, [workflowDefinition]);
 
@@ -2779,10 +2783,16 @@ export function NextflowWorkflowViewer({
             })()}
 
             {/* ── Loading state when steps are being lazily fetched ────────── */}
-            {groupedPhases.length === 0 && lazySteps === null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
+            {groupedPhases.length === 0 && lazyStepsFetching && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
                 <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
                 Loading workflow steps…
+              </div>
+            )}
+            {/* ── No steps found after fetch completed ─────────────────────── */}
+            {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
+              <div style={{ padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
+                Steps will appear here once the workflow runs.
               </div>
             )}
 
