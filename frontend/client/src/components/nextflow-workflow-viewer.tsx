@@ -2114,6 +2114,26 @@ export function NextflowWorkflowViewer({
         console.error("[SSE] workflow_state parse error:", err);
       }
     });
+    // ── Post-completion chain suggestions ────────────────────────────────
+    es.addEventListener("chain_suggestion", (event: MessageEvent) => {
+      if (!onWorkflowProgress) return;
+      try {
+        const data = JSON.parse(event.data as string);
+        const triggerWf = String(data.trigger_workflow || "").split("/").pop() || "your workflow";
+        const suggestionLines = (data.suggestions as Array<{ display_name: string; steps: number; description: string }> ?? [])
+          .map((s) => `→ **${s.display_name}** (${s.steps} steps) — ${s.description}`)
+          .join("\n");
+        if (!suggestionLines) return;
+        onWorkflowProgress({
+          kind: "chain_suggestion",
+          friendly_message: `**Suggested next steps** after your ${triggerWf} run:\n\n${suggestionLines}`,
+          ts: Date.now() / 1000,
+          technical: { chain_suggestion: true, suggestions: data.suggestions, trigger_workflow: data.trigger_workflow },
+        });
+      } catch (err) {
+        console.warn("[SSE] chain_suggestion parse error:", err);
+      }
+    });
     // ─────────────────────────────────────────────────────────────────────
 
     es.onerror = () => {

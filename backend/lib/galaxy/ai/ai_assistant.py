@@ -210,6 +210,19 @@ class AIAssistant:
         self._workflow_cache = {}
         self._tools_indexed = False  # Lazy loading flag for tool indexing
 
+        # Register reactive chain templates into the DB at startup.
+        try:
+            from galaxy.ai.bioc_chain_templates import register_bioc_chains
+            register_bioc_chains()
+        except Exception as _bioc_reg_exc:
+            log.error("bioc_chain_templates startup registration failed: %s", _bioc_reg_exc)
+
+        try:
+            from galaxy.ai.cryoem_chain_templates import register_cryoem_chains
+            register_cryoem_chains()
+        except Exception as _cryoem_reg_exc:
+            log.error("cryoem_chain_templates startup registration failed: %s", _cryoem_reg_exc)
+
     def _normalize_tool_id(self, tool_id: str) -> str:
         """
         Normalize tool ID to match Galaxy's loaded tool format.
@@ -3398,6 +3411,49 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     )
                 else:
                     chain_results = self.workflow_search.search_chains(user_intent, min_score=0.35, limit=3)
+
+                # Context signal: re-rank chain candidates when the user indicates
+                # they already have a pre-computed count matrix (not raw FASTQ).
+                # Chains with count_matrix in required_inputs are boosted; chains
+                # expecting raw reads (fastq) are penalised.
+                # Works on both string-element and dict-element required_inputs.
+                _COUNT_MATRIX_SIGNALS = frozenset([
+                    "count matrix", "counts.tsv", "gene_counts", "count_matrix",
+                    "already have counts", "pre-computed", "salmon.merged", "featurecounts",
+                    "rsem.merged", "counts file", "count table", "counts table",
+                ])
+                _has_count_matrix = any(sig in user_intent.lower() for sig in _COUNT_MATRIX_SIGNALS)
+
+                if _has_count_matrix and chain_results:
+                    def _req_inputs_lower(chain) -> List[str]:
+                        """Return lowercase string representation of required_inputs elements."""
+                        out = []
+                        for inp in (chain.required_inputs or []):
+                            if isinstance(inp, str):
+                                out.append(inp.lower())
+                            elif isinstance(inp, dict):
+                                out.append(inp.get("type", "").lower())
+                                out.append(inp.get("name", "").lower())
+                        return out
+
+                    def _chain_count_matrix_score(chain) -> int:
+                        req = _req_inputs_lower(chain)
+                        if any("count_matrix" in r or "counts_matrix" in r for r in req):
+                            return 1   # boost: chain expects a count matrix
+                        if any("fastq" in r or "reads" in r for r in req):
+                            return -1  # penalise: chain expects raw reads
+                        return 0
+
+                    chain_results = sorted(
+                        chain_results,
+                        key=_chain_count_matrix_score,
+                        reverse=True,
+                    )
+                    log.info(
+                        "[UnifiedWorkflowGeneration] Count-matrix signal detected — reranked chains: %s",
+                        [c.name for c in chain_results],
+                    )
+
                 if chain_results:
                     top_chain = chain_results[0]
                     # LLM requested clarification — surface the question; do NOT launch chain.
