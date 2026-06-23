@@ -69,6 +69,7 @@ process STAR_ALIGN {
     tuple val(meta), path("*.bai"),            emit: bai
     path "*.Log.final.out",                    emit: log
     path "*.SJ.out.tab",                       emit: sj
+    path "*.bigWig",                           emit: bigwig
 
     script: """
     STAR --genome ${params.genome} \

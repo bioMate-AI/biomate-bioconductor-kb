@@ -27,6 +27,9 @@ params.max_time             = '72.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    output:
+    path "validated_samplesheet.csv",  emit: samplesheet
+
     script: """
     check_input_files.py \
         --input ${params.input} \
@@ -36,6 +39,10 @@ process VALIDATE_INPUT {
 
 // [Database Search]
 process PEPTIDE_IDENTIFICATION {
+    output:
+    path "*.idXML",      emit: idxml
+    path "*.log",        emit: log
+
     script: """
     ${params.search_engines}_search.py \
         --input ${params.input} \
@@ -51,6 +58,11 @@ process PEPTIDE_IDENTIFICATION {
 
 // [Quantification]
 process LFQ_QUANTIFICATION {
+    output:
+    path "out.consensusXML",  emit: consensus_xml
+    path "out.mzTab",         emit: mztab
+    path "out.csv",           emit: msstats_input
+
     script: """
     openms_lfq.py \
         ${params.labeling_reagent ? "--labeling_reagent ${params.labeling_reagent}" : ''} \
@@ -62,6 +74,13 @@ process LFQ_QUANTIFICATION {
 
 // [Statistical Analysis]
 process MSSTATS_ANALYSIS {
+    output:
+    path "msstats_results.csv",    emit: results
+    path "VolcanoPlot.pdf",        emit: volcano
+    path "Heatmap.pdf",            emit: heatmap
+    path "ComparisonPlot.pdf",     emit: comparison_plot
+    path "msstats_out.mzTab",      emit: mztab_norm
+
     script: """
     msstats_analysis.R \
         --protein_fdr ${params.protein_level_fdr_cutoff} \
@@ -70,8 +89,23 @@ process MSSTATS_ANALYSIS {
     """
 }
 
+// [QC]
+process PTXQC {
+    output:
+    path "report_*.html",  emit: qc_html
+    path "report_*.pdf",   emit: qc_pdf
+
+    script: """
+    ptxqc.R --input ${params.outdir}/proteomics_lfq/ --outdir ${params.outdir}/ptxqc/
+    """
+}
+
 // [Report]
 process MULTIQC {
+    output:
+    path "multiqc_report.html",  emit: report
+    path "multiqc_data/",        emit: data
+
     script: """
     multiqc --outdir ${params.outdir} \
         ${params.email ? "--email ${params.email}" : ''}

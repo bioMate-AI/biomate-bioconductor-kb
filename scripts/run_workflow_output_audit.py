@@ -81,7 +81,10 @@ DOMAIN_EXPECTED: Dict[str, Dict[str, Any]] = {
             ["counts", "matrix", "quant"],   # quantification
             ["multiqc", "qc_report", "html"], # report
         ],
-        "viz_patterns":   ["pca", "heatmap", "volcano", "ma_plot", "density", "png", "pdf"],
+        # Real nf-core/rnaseq outputs: bigWig coverage tracks (BEDTools), PCA/clustering
+        # PDFs (DESeq2 QC), dupRadar PDFs, RSeQC PDFs. Volcano/MA plots are NOT
+        # produced by the pipeline itself — those come from downstream DE analysis.
+        "viz_patterns":   ["pca", "heatmap", "bigwig", "pdf", "png"],
         "qc_patterns":    ["multiqc", "fastp", "trimgalore", "fastqc", "flagstat"],
         "report_patterns":["multiqc", "html", "report"],
         "phase_keywords": ["trimming", "alignment", "quantification", "qc", "report"],
@@ -118,10 +121,13 @@ DOMAIN_EXPECTED: Dict[str, Dict[str, Any]] = {
             ["bam", "cram"],                 # alignment
             ["html", "multiqc", "report"],   # QC report
         ],
+        # Real sarek outputs: ASCAT PNGs, CNVKit PDFs/PNGs, Control-FREEC PNGs,
+        # mosdepth coverage, bcftools stats, VCF.gz + TBI. MultiQC HTML is the report.
         "viz_patterns":   ["png", "pdf", "summary", "stats"],
-        "qc_patterns":    ["multiqc", "fastqc", "mosdepth", "samtools", "flagstat"],
+        "qc_patterns":    ["multiqc", "fastqc", "mosdepth", "samtools", "flagstat", "bcftools"],
         "report_patterns":["multiqc", "html", "report", "summary"],
-        "phase_keywords": ["preprocessing", "alignment", "variant_calling", "annotation", "qc"],
+        # Note: keywords use spaces to match phase comments (e.g. "Variant Calling")
+        "phase_keywords": ["preprocessing", "alignment", "variant calling", "annotation", "report"],
         "key_tools":      ["bwa", "gatk", "haplotypecaller", "vep", "bcftools"],
     },
     "epigenomics": {
@@ -136,10 +142,14 @@ DOMAIN_EXPECTED: Dict[str, Dict[str, Any]] = {
             ["bam"],                                     # alignment
             ["annotation", "chipseeker", "homer"],       # peak annotation
         ],
-        "viz_patterns":   ["png", "pdf", "heatmap", "profile", "fingerprint", "bamcompare"],
+        # Real nf-core/chipseq outputs: BAM, bigWig (deepTools bamCoverage), narrowPeak/
+        # broadPeak (MACS3), HOMER annotatePeaks.txt, phantompeakqualtools cross-corr PDFs,
+        # deepTools plotFingerprint + plotProfile PDFs, DESeq2 PCA PDFs, MultiQC HTML.
+        "viz_patterns":   ["png", "pdf", "heatmap", "profile", "fingerprint", "bigwig"],
         "qc_patterns":    ["multiqc", "fastqc", "flagstat", "phantompeakqualtools"],
         "report_patterns":["html", "multiqc", "report"],
-        "phase_keywords": ["alignment", "peak_calling", "annotation", "qc"],
+        # Note: use spaces to match phase comments like "// [Peak Calling]"
+        "phase_keywords": ["alignment", "peak calling", "annotation", "qc"],
         "key_tools":      ["bwa", "macs2", "deeptools", "chipseeker", "homer"],
     },
     "proteomics": {
@@ -154,10 +164,14 @@ DOMAIN_EXPECTED: Dict[str, Dict[str, Any]] = {
             ["mzml", "idxml", "featurexml"],                   # raw/intermediate
             ["html", "report", "qc"],                          # report
         ],
+        # Real nf-core/proteomicslfq outputs: idXML (Comet PSMs), out.mzTab (OpenMS LFQ),
+        # msstats_results.csv, VolcanoPlot.pdf + Heatmap.pdf + ComparisonPlot.pdf (MSstats),
+        # PTXQC report.html + report.pdf, MultiQC HTML.
         "viz_patterns":   ["png", "pdf", "volcano", "heatmap", "pca"],
-        "qc_patterns":    ["qc", "html", "multiqc"],
+        "qc_patterns":    ["ptxqc", "html", "multiqc"],
         "report_patterns":["html", "report", "msstats"],
-        "phase_keywords": ["database_search", "quantification", "statistical_analysis", "qc"],
+        # Note: use spaces to match phase comments
+        "phase_keywords": ["database search", "quantification", "statistical analysis", "report"],
         "key_tools":      ["openms", "comet", "percolator", "msstats"],
     },
     "metagenomics": {
@@ -173,9 +187,13 @@ DOMAIN_EXPECTED: Dict[str, Dict[str, Any]] = {
             ["checkm", "quality", "completeness"],      # quality assessment
             ["gtdb", "taxonomy", "lineage"],            # taxonomy
         ],
+        # Real nf-core/mag outputs: *.contigs.fa.gz (MEGAHIT/SPAdes), bins/*.fa.gz (MetaBAT2),
+        # checkm_summary.tsv (CheckM completeness/contamination), GTDB-Tk summary.tsv
+        # (lineage classification), bin depth heatmap PNGs (BEDTools + R), MultiQC HTML.
         "viz_patterns":   ["png", "pdf", "html", "multiqc"],
         "qc_patterns":    ["multiqc", "fastqc", "checkm"],
         "report_patterns":["multiqc", "html", "report"],
+        # Note: use spaces; "qc" must appear as substring in a phase comment like "// [QC]"
         "phase_keywords": ["qc", "assembly", "binning", "taxonomy", "report"],
         "key_tools":      ["fastp", "megahit", "spades", "metabat2", "checkm", "gtdbtk"],
     },

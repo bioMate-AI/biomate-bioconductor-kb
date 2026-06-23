@@ -41,20 +41,31 @@ params.max_memory               = '128.GB'
 params.max_cpus                 = 16
 params.max_time                 = '240.h'
 
-// [Quality Control]
+// [QC]
 process FASTP {
+    output:
+    tuple val(meta), path("*.fastq.gz"),  emit: reads
+    path "*.html",                        emit: html
+    path "*.json",                        emit: json
+    path "*.log",                         emit: log
+
     script: """
     fastp \
         --in1 ${params.input} \
         ${params.single_end ? '' : '--in2 reads_2'} \
         --length_required ${params.min_length} \
         --out1 trimmed_1.fastq.gz \
-        --out2 trimmed_2.fastq.gz
+        --out2 trimmed_2.fastq.gz \
+        --html fastp.html --json fastp.json
     """
 }
 
 // [Host Removal]
 process BOWTIE2_HOST_REMOVAL {
+    output:
+    tuple val(meta), path("*.fastq.gz"),  emit: reads
+    path "*.bowtie2.log",                 emit: log
+
     script: """
     bowtie2 ${params.bowtie2_mode} \
         -x ${params.host_genome} \
@@ -66,6 +77,10 @@ process BOWTIE2_HOST_REMOVAL {
 
 // [Assembly]
 process MEGAHIT {
+    output:
+    path "*.contigs.fa.gz",  emit: contigs
+    path "*.log",            emit: log
+
     script: """
     megahit \
         -1 clean_reads_1.fastq.gz \
@@ -77,6 +92,11 @@ process MEGAHIT {
 
 // [Binning]
 process METABAT2 {
+    output:
+    path "bins/*.fa.gz",             emit: bins
+    path "unbinned/*.fa.gz",         emit: unbinned
+    path "*-binDepths.heatmap.png",  emit: depth_heatmap
+
     script: """
     metabat2 \
         -i assembly/final.contigs.fa \
@@ -86,8 +106,12 @@ process METABAT2 {
     """
 }
 
-// [QC & Taxonomy]
+// [QC]
 process CHECKM_LINEAGEWF {
+    output:
+    path "*_qa.txt",          emit: checkm
+    path "checkm_summary.tsv", emit: summary
+
     script: """
     checkm lineage_wf \
         ${params.checkm_db ? "--db_dir ${params.checkm_db}" : ''} \
@@ -95,8 +119,27 @@ process CHECKM_LINEAGEWF {
     """
 }
 
+// [Taxonomy]
+process GTDBTK_CLASSIFY {
+    output:
+    path "*.bac120.summary.tsv",   emit: taxonomy_bac
+    path "*.ar122.summary.tsv",    emit: taxonomy_arc
+    path "gtdbtk_summary.tsv",     emit: gtdbtk_summary
+
+    script: """
+    gtdbtk classify_wf \
+        --genome_dir bins/ \
+        --out_dir gtdbtk_output/ \
+        ${params.gtdb_db ? "--mash_db ${params.gtdb_db}" : ''}
+    """
+}
+
 // [Report]
 process MULTIQC {
+    output:
+    path "multiqc_report.html",  emit: report
+    path "multiqc_data/",        emit: data
+
     script: """
     multiqc --outdir ${params.outdir} \
         ${params.email ? "--email ${params.email}" : ''}
