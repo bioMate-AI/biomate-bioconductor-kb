@@ -2,9 +2,9 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[2] / "lib"))
+sys.path.insert(0, str(Path(__file__).parents[1] / "lib"))
 
-from galaxy.webapps.galaxy.api.workflow_chain import resolve_context_params
+from galaxy.webapps.galaxy.api.workflow_chain import resolve_context_params  # noqa: E402
 
 
 def test_grch38_to_hsa():

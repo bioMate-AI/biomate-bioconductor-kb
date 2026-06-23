@@ -217,6 +217,73 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
     _narrator_emit(invocation_id, kind, technical, sse_callback=_post_sse)
 
 
+def _post_sse_direct(invocation_id: str, event_type: str, data: Dict[str, Any]) -> None:
+    """Module-level SSE inject — usable outside _narrate_chat."""
+    import os as _os
+    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
+    try:
+        import requests as _req
+        _req.post(
+            f"{frontend_url}/internal/sse-inject",
+            json={"invocation_id": invocation_id, "event_type": event_type, "data": data},
+            timeout=2,
+        )
+    except Exception as _exc:
+        log.debug("[chain_suggest] SSE inject failed for %s: %s", event_type, _exc)
+
+
+def _collect_output_extensions(run_id: str) -> List[str]:
+    """Return lowercased unique file extensions from a run's output directory."""
+    import os as _os
+    with _runs_lock:
+        run = _runs.get(run_id, {})
+    outdir = run.get("outdir", "")
+    if not outdir or str(outdir).startswith("s3://"):
+        # For S3 runs, use s3_output_files list if available
+        s3_files = run.get("s3_output_files", [])
+        return list({f.rsplit(".", 1)[-1].lower() for f in s3_files if "." in f})
+    exts: set = set()
+    try:
+        for root, _dirs, files in _os.walk(str(outdir)):
+            for f in files:
+                if "." in f:
+                    exts.add(f.rsplit(".", 1)[-1].lower())
+    except Exception:
+        pass
+    return list(exts)
+
+
+def _fire_chain_suggestions(run_id: str, workflow_name: str, invocation_id: str) -> None:
+    """After a successful run, suggest relevant downstream chains via SSE."""
+    try:
+        from galaxy.ai.bioc_chain_templates import suggest_chains_for_run as _bioc_suggest
+        output_exts = _collect_output_extensions(run_id)
+        suggestions = _bioc_suggest(workflow_name, output_exts)
+        # Also check cryo-EM chains if the module exists
+        try:
+            from galaxy.ai.cryoem_chain_templates import suggest_chains_for_run as _cryoem_suggest
+            suggestions = suggestions + _cryoem_suggest(workflow_name, output_exts)
+        except ImportError:
+            pass
+        if not suggestions:
+            return
+        _post_sse_direct(invocation_id, "chain_suggestion", {
+            "trigger_workflow": workflow_name,
+            "suggestions": [
+                {
+                    "name": s["name"],
+                    "display_name": s["display_name"],
+                    "steps": len(s.get("steps", [])),
+                    "required_inputs": s.get("required_inputs", []),
+                    "description": s.get("description", "")[:200],
+                }
+                for s in suggestions[:2]
+            ],
+        })
+    except Exception as _exc:
+        log.debug("[chain_suggest] _fire_chain_suggestions failed for %s: %s", run_id, _exc)
+
+
 def _aws_cli_bin() -> str:
     """Canonical path to the aws CLI binary inside the Galaxy container.
 
@@ -3488,6 +3555,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "returncode": returncode, "reason": f"exit {returncode}"})
             elif final_status == "interrupted":
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "reason": "workflow was interrupted"})
+
+        # Post-completion chain suggestions: fire downstream chain hints when the
+        # run succeeded.  Uses nextflow_path as the workflow name for trigger
+        # matching (bioc + cryo-EM chain templates both key on the nf path
+        # basename).  Runs in the same completion thread — failures are silently
+        # swallowed so they cannot block billing / LTM writes below.
+        if final_status == "completed" and _inv_id:
+            with _runs_lock:
+                _wf_name = _runs.get(run_id, {}).get("nextflow_path", "")
+            if _wf_name:
+                _fire_chain_suggestions(run_id, _wf_name, _inv_id)
 
         # Write timing.json immediately — before any follow-on work that could fail.
         _write_timing(run_id, {

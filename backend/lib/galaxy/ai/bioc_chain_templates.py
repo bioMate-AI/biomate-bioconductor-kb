@@ -59,7 +59,15 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             },
         ],
         "connections": [
-            {"from_step": 1, "from_output": "results", "to_step": 2, "to_input": "de_results"},
+            {
+                "from_step": 1, "from_output": "results",
+                "to_step": 2, "to_input": "de_results",
+                # Inherit the genome param from step 1 and convert to KEGG organism code
+                # so clusterProfiler knows which organism DB to use (e.g. GRCh38 → "hsa").
+                "context_params": {
+                    "organism": {"from_run_param": "genome", "transform": "genome_to_organism"}
+                },
+            },
             {"from_step": 2, "from_output": "enrichment", "to_step": 3, "to_input": "enrichment_obj"},
         ],
         "required_inputs": ["count_matrix", "sample_sheet"],
