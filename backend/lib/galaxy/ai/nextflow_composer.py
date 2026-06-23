@@ -519,12 +519,17 @@ class NextflowComposer:
                - Selected tools and why
                - Expected inputs/outputs
 
-            7. Declare ALL user-configurable inputs in a `params {{ }}` block at the top:
-               - Required inputs: `params.reads = null` (null signals required)
-               - Optional inputs: `params.outdir = 'results'` (provide a sensible default)
+            7. Declare ALL user-configurable inputs as FLAT top-level `params.xxx = value` lines
+               (NOT a `params {{ }}` block — use the flat assignment form so the BioMate UI
+               can parse them):
+               - Required inputs:  `params.reads  = null          // Input FASTQ files`
+               - Optional inputs:  `params.outdir = './results'   // Output directory`
+               - Add a `// [Phase Name]` section comment immediately before each process
+                 definition so the UI groups steps into named phases.
                - Add `if (!params.reads) error "Required parameter: --reads"` guard in the
                  workflow body for each required parameter.
-               This ensures the BioMate UI can display and fill in parameters before execution.
+               This flat format (params.xxx = value) is required for the BioMate UI to
+               display and pre-fill parameters before execution.
 
             ## OUTPUT FORMAT
             Return ONLY the raw Nextflow DSL2 `main.nf` content.
