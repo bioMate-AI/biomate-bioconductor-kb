@@ -124,9 +124,24 @@ image-tag `deploy.sh`. Changes made there:
   now live in the single `on_exit` handler; temp files register via
   `CLEANUP_FILES` instead of re-trapping.
 
-- **A. Auto-rollback — deliberately NOT added here.** sync_to_dev is an in-place
-  file sync, so there is no "previous image" to revert to. A real rollback needs
-  a snapshot-before-sync design (e.g. capture the prior synced artifacts / git
-  ref and restore on failure). Bolting on a partial revert would be a workaround
-  (forbidden by CLAUDE.md), so the notification instead instructs the operator to
-  re-sync a known-good commit. **Open design item.**
+- **A. Auto-rollback — ADDED (2026-06-23).** Implemented via a snapshot-before-sync
+  design (the proper fix, not a workaround). Three additive functions; the
+  battle-tested layer functions are untouched:
+  - `snapshot_for_rollback` (runs before any mutation, and before the optional
+    `resync_galaxy_env`): the dev Galaxy container has **no mounts** (verified),
+    so `docker commit biomate-galaxy-dev biomate-galaxy-dev:rollback` captures all
+    hot-patched code/DB/workflows/config in one image; its run-spec (env/network/
+    ports) is persisted to `/opt/biomate/rollback/`. If the frontend layer runs,
+    the current `biomate-dev-frontend:latest` is tagged `:rollback`.
+  - `postsync_health_ok`: curls dev `:8081/api/version` + `:3000/api/health` with
+    retries (rides out HUP / cold start). This is the **first real post-sync health
+    gate** — previously do_sync only checked that commands didn't error.
+  - `rollback_sync`: on health failure, recreates Galaxy from the snapshot image
+    with the preserved run-spec (same pattern `resync_galaxy_env` already uses in
+    prod) and the frontend from `:rollback`, then re-checks health.
+  - do_sync now returns non-zero unless `SYNC_RESULT == healthy`; notify_sync +
+    the entry point report `ROLLED BACK` / `ROLLBACK FAILED` distinctly. Post-sync
+    E2E + PI suite only fire on a healthy (non-rolled-back) deploy.
+  - PostgreSQL migrations are forward-only (idempotent `IF NOT EXISTS`) and are
+    NOT reverted — additive schema changes don't cause the startup failures this
+    rollback targets.

@@ -48,32 +48,46 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 # dropping lock removal. Consolidate both into one handler and add an SNS
 # notification so a failed dev sync is no longer silent.
 #
-# NOTE on rollback: this script is an in-place file sync + gunicorn HUP, not an
-# image-tag swap, so there is no "previous image" to revert to. A real rollback
-# needs a snapshot-before-sync design (see docs); we deliberately do NOT bolt on
-# a partial/fake rollback here. The notification tells you to re-sync a known-
-# good commit on failure.
+# ROLLBACK: dev sync is in-place file hot-patch + gunicorn HUP, not an image-tag
+# swap. The Galaxy container has NO mounts (verified), so `docker commit` BEFORE
+# the sync captures all hot-patched code/db/workflows/config in one image; the
+# frontend keeps its own image tags. A post-sync health gate (snapshot_for_rollback
+# / postsync_health_ok / rollback_sync below) recreates both containers from those
+# snapshots if dev is unhealthy after the sync.
 AWS_REGION="${AWS_REGION:-us-west-2}"
 SNS_TOPIC_ARN="${SNS_TOPIC_ARN:-arn:aws:sns:$AWS_REGION:399683337364:biomate-deploy-events}"
 CLEANUP_FILES=""        # space-separated temp files to rm on exit (append, don't re-trap)
 SYNC_STARTED=0          # set to 1 once we enter do_sync; gates the notification
 CURRENT_COMMIT=""       # populated at the entry point; referenced by notify_sync
+SYNC_RESULT=""          # healthy|rolled_back|rollback_failed|failed — set by do_sync, read by notify_sync
+ROLLBACK_READY=0        # 1 once the pre-sync snapshot is taken
+RB_SNAPSHOT_FRONTEND=0  # 1 if the frontend image was snapshotted this run
+RB_GALAXY_IMAGE="biomate-galaxy-dev:rollback"   # snapshot tag (overwritten each run)
 
 notify_sync() {
-  local rc="$1" state subject
-  if [[ "$rc" -eq 0 ]]; then
-    state="ok";     subject="[dev-sync ok] dev -> ${CURRENT_COMMIT:0:8}"
-  else
-    state="FAILED"; subject="[dev-sync FAILED] dev -> ${CURRENT_COMMIT:0:8}"
-  fi
+  local rc="$1" state subject note
+  case "${SYNC_RESULT:-}" in
+    healthy)         state="ok" ;;
+    rolled_back)     state="ROLLED BACK" ;;
+    rollback_failed) state="ROLLBACK FAILED" ;;
+    "")              [[ "$rc" -eq 0 ]] && state="ok" || state="FAILED" ;;
+    *)               state="FAILED" ;;
+  esac
+  case "$state" in
+    "ROLLED BACK")     note="Sync failed health gate; dev auto-rolled back to the pre-sync snapshot and is healthy. Investigate the bad commit before re-syncing." ;;
+    "ROLLBACK FAILED") note="Sync failed health gate AND rollback failed — dev may be DOWN. Manual intervention required." ;;
+    "ok")              note="Dev healthy after sync." ;;
+    *)                 note="Sync failed; inspect dev and re-sync a known-good commit." ;;
+  esac
+  subject="[dev-sync $state] dev -> ${CURRENT_COMMIT:0:8}"
   if aws sns publish --region "$AWS_REGION" --topic-arn "$SNS_TOPIC_ARN" \
        --subject "${subject:0:99}" \
-       --message "BioMate dev sync $state
+       --message "BioMate dev sync: $state
 Target:   https://dev-public.biomate.ai
 Commit:   ${CURRENT_COMMIT:-unknown}
 Instance: $INSTANCE_ID
 Exit:     $rc
-NOTE: dev sync is in-place file sync + HUP; there is NO auto-rollback. On FAILED, inspect dev and re-sync a known-good commit." \
+$note" \
        >/dev/null 2>&1; then
     log "[notify] SNS sent ($state) -> $SNS_TOPIC_ARN"
   else
@@ -823,6 +837,107 @@ sync_logo() {
 # ---------------------------------------------------------------------------
 # Layer 5: Marketing website (reference/claude_design/webpage_design_v2/ → /var/www/biomate-marketing/)
 
+# ---------------------------------------------------------------------------
+# Auto-rollback: snapshot pre-sync state, health-gate post-sync, restore on fail
+# ---------------------------------------------------------------------------
+
+snapshot_for_rollback() {
+  # $1 = whether the frontend layer will run (true/false)
+  local snap_frontend="$1"
+  log "[rollback] Snapshotting pre-sync dev state (galaxy commit$( [[ "$snap_frontend" == true ]] && echo ' + frontend tag' ))..."
+  # Galaxy has NO mounts -> docker commit captures all hot-patched
+  # code/db/workflows/config in one image. Also persist its run-spec so the
+  # container can be faithfully recreated from the snapshot on rollback.
+  if ec2_ssh "
+    set -e
+    docker commit biomate-galaxy-dev $RB_GALAXY_IMAGE >/dev/null
+    mkdir -p /opt/biomate/rollback
+    docker inspect biomate-galaxy-dev --format '{{range .Config.Env}}{{println .}}{{end}}' > /opt/biomate/rollback/galaxy.env
+    docker inspect biomate-galaxy-dev --format '{{.HostConfig.NetworkMode}}' > /opt/biomate/rollback/galaxy.net
+    docker inspect biomate-galaxy-dev --format '{{range \$p,\$b := .HostConfig.PortBindings}}{{range \$b}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}' | sed 's#/tcp##g' > /opt/biomate/rollback/galaxy.ports
+    echo '[rollback]   galaxy committed -> $RB_GALAXY_IMAGE'
+    if [ '$snap_frontend' = true ] && docker image inspect biomate-dev-frontend:latest >/dev/null 2>&1; then
+      docker tag biomate-dev-frontend:latest biomate-dev-frontend:rollback
+      echo '[rollback]   frontend tagged :rollback'
+    fi
+  "; then
+    ROLLBACK_READY=1
+    [[ "$snap_frontend" == true ]] && RB_SNAPSHOT_FRONTEND=1
+    log "[rollback] Snapshot ready"
+  else
+    ROLLBACK_READY=0
+    log "[rollback] WARNING: snapshot failed — proceeding WITHOUT rollback safety"
+  fi
+}
+
+postsync_health_ok() {
+  # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
+  # $1 = number of 5s retries (default 24 = 120s).
+  local tries="${1:-24}"
+  ec2_ssh "
+    for i in \$(seq 1 $tries); do
+      if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version && curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health; then exit 0; fi
+      sleep 5
+    done
+    exit 1
+  "
+}
+
+rollback_sync() {
+  log "[rollback] Restoring pre-sync snapshot (galaxy$( [[ "$RB_SNAPSHOT_FRONTEND" == 1 ]] && echo ' + frontend' ))..."
+  # Recreate Galaxy from the committed snapshot with its preserved run-spec
+  # (no mounts to replay). This is a cold start (~60-90s) but fully reverts code.
+  if ! ec2_ssh "
+    set -e
+    NET=\$(cat /opt/biomate/rollback/galaxy.net)
+    PORTS=\$(cat /opt/biomate/rollback/galaxy.ports)
+    docker rm -f biomate-galaxy-dev >/dev/null 2>&1 || true
+    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS --restart unless-stopped \$(grep -vE '^(PATH|HOME|TERM|HOSTNAME)=' /opt/biomate/rollback/galaxy.env | awk '{print \"-e\", \$0}' | tr '\n' ' ') $RB_GALAXY_IMAGE >/dev/null
+    docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+    echo '[rollback]   galaxy recreated from snapshot'
+  "; then
+    log "[rollback] galaxy recreate FAILED"
+    SYNC_RESULT=rollback_failed
+    return 1
+  fi
+
+  if [[ "$RB_SNAPSHOT_FRONTEND" == 1 ]]; then
+    # Recreate frontend from the :rollback image using the SAME run args as
+    # deploy_frontend (network/ports/env-file/mounts).
+    if ! ec2_ssh '
+      set -e
+      if docker image inspect biomate-dev-frontend:rollback >/dev/null 2>&1; then
+        docker tag biomate-dev-frontend:rollback biomate-dev-frontend:latest
+        docker rm -f biomate-dev-frontend 2>/dev/null || true
+        mkdir -p /tmp/biomate_code
+        docker run -d --name biomate-dev-frontend --network biomate-dev-net \
+          -p 3000:3000 --env-file /opt/biomate/.env \
+          -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+          --restart unless-stopped \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v /tmp/biomate_code:/tmp/biomate_code \
+          biomate-dev-frontend:latest >/dev/null
+        docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
+        echo "[rollback]   frontend recreated from snapshot"
+      fi
+    '; then
+      log "[rollback] frontend recreate FAILED"
+      SYNC_RESULT=rollback_failed
+      return 1
+    fi
+  fi
+
+  # Confirm the rollback actually restored a healthy dev (longer budget: cold start).
+  if postsync_health_ok 48; then
+    log "[rollback] ✓ dev restored to pre-sync state and healthy"
+    SYNC_RESULT=rolled_back
+    return 0
+  fi
+  log "[rollback] ✗ dev still unhealthy after rollback"
+  SYNC_RESULT=rollback_failed
+  return 1
+}
+
 do_sync() {
   local commit="$1"
   local changed_paths="$2"
@@ -846,6 +961,11 @@ do_sync() {
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
+
+  # Snapshot the pre-sync state BEFORE any mutation (and before the optional
+  # resync_galaxy_env recreates the container) so we can roll back if the sync
+  # leaves dev unhealthy.
+  snapshot_for_rollback "$do_frontend"
 
   # Optional (RECOMMENDED): pull runtime env from AWS Secrets Manager into the
   # EC2's /opt/biomate/.env using the instance role. Values live in Secrets
@@ -888,7 +1008,24 @@ do_sync() {
   $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
 
-  log "=== Sync complete for ${commit:0:8} ==="
+  # --- Post-sync health gate + auto-rollback -------------------------------
+  if [[ "$ROLLBACK_READY" == 1 ]]; then
+    log "[health] Verifying dev health after sync..."
+    if postsync_health_ok 24; then
+      log "[health] ✓ dev healthy after sync"
+      SYNC_RESULT=healthy
+    else
+      log "[health] ✗ dev UNHEALTHY after sync — auto-rolling back"
+      rollback_sync || true
+    fi
+  else
+    # Snapshot wasn't taken — can't safely roll back. Still report real health.
+    log "[health] No snapshot — health-gate without rollback safety"
+    if postsync_health_ok 24; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
+  fi
+
+  log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
+  [[ "$SYNC_RESULT" == healthy ]] && return 0 || return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -942,6 +1079,13 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   trigger_pi_suite
   exit 0
 else
-  log "ERROR: sync failed — see output above"
+  case "${SYNC_RESULT:-failed}" in
+    rolled_back)
+      log "ERROR: sync failed health gate — dev AUTO-ROLLED BACK to the pre-sync snapshot (service is UP on old code). Investigate ${CURRENT_COMMIT:0:8} before re-syncing." ;;
+    rollback_failed)
+      log "FATAL: sync failed health gate AND rollback failed — dev may be DOWN. Manual intervention required on $INSTANCE_ID." ;;
+    *)
+      log "ERROR: sync failed — see output above" ;;
+  esac
   exit 1
 fi
