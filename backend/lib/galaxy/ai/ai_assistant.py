@@ -137,6 +137,20 @@ def _detect_alt_method_enumeration(user_intent: str):
     return methods, has_marker
 
 
+def _eager_load_steps(nextflow_path: str) -> dict:
+    """Eagerly parse steps from a .nf file so workflow_ga ships with real step data.
+
+    Uses a deferred import to avoid the circular import:
+    webapps/galaxy/api/ai_assistant → galaxy.ai.ai_assistant (this module).
+    Falls back silently to {} so callers always get a dict.
+    """
+    try:
+        from galaxy.webapps.galaxy.api.ai_assistant import _parse_nextflow_steps  # noqa: PLC0415
+        return _parse_nextflow_steps(nextflow_path)
+    except Exception:
+        return {}
+
+
 class AIAssistant:
     """Main Galaxy AI Assistant that orchestrates the entire AI pipeline."""
     
@@ -3139,7 +3153,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'format': 'nextflow',
                 'nextflow_path': match.filename,
                 'workflow_type': _wf_type,
-                'steps': {},
+                'steps': _eager_load_steps(match.filename),
                 'scientific_rationale': scientific_rationale,
                 'hardware_requirements': hardware_requirements,
                 'required_params': req,
@@ -3908,7 +3922,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             'format': 'nextflow',
                             'nextflow_path': composed['nextflow_path'],
                             'workflow_type': 'nextflow',
-                            'steps': {},
+                            'steps': _eager_load_steps(composed['nextflow_path']),
                             'required_params': _req_mc,
                             'optional_params': _opt_mc,
                         },
@@ -4007,7 +4021,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             'format': 'nextflow',
                             'nextflow_path': composed['nextflow_path'],
                             'workflow_type': 'nextflow',
-                            'steps': {},
+                            'steps': _eager_load_steps(composed['nextflow_path']),
                             'tools_used': composed['tools_used'],
                             'required_params': _req_lc,
                             'optional_params': _opt_lc,
