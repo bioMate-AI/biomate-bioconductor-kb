@@ -477,7 +477,13 @@ deploy_databases() {
   # BioMateEc2DeployProfile instance role take over) would restore the
   # S3 path, but that's a separate hardening pass.
   local local_db="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
-  local local_db_mtime=$(stat -f %m "$local_db" 2>/dev/null || stat -c %Y "$local_db" 2>/dev/null || echo 0)
+  # Probe GNU stat first (see comment at L960). BSD `stat -f %m` returns
+  # filesystem info on Linux *without* erroring, so the ||-fallback below
+  # would never engage and the [[ -gt ]] check would die under set -u.
+  local local_db_mtime=$(stat -c %Y "$local_db" 2>/dev/null \
+    || stat -f %m "$local_db" 2>/dev/null \
+    || echo 0)
+  [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
     log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
