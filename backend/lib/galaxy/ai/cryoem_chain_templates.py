@@ -95,6 +95,10 @@ CRYOEM_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "sharpen my cryo-em map",
             "relion refinement workflow",
             "cryosparc refinement pipeline",
+            "I completed particle picking and 2D classification, what are the recommended post-processing steps",
+            "I have a clean particle set and an initial 3D reconstruction, how do I improve the resolution",
+            "after single particle analysis what refinement should I run to get the best map quality",
+            "I finished the cryoSPARC SPA job and have a density map, guide me through the refinement steps",
         ],
         "tags": ["cryo_em", "cryosparc", "relion", "refinement", "3d_classification", "deepemhancer"],
         "trigger_on_workflows": [
@@ -151,6 +155,10 @@ CRYOEM_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "3d variability cryodrgn pipeline",
             "protein dynamics cryo-em",
             "conformational landscape analysis",
+            "my protein appears to adopt multiple distinct structural states and I want to characterize them",
+            "computationally separate different conformational populations in my particle set",
+            "the sample seems flexible, I need to analyze the range of conformational states",
+            "identify and quantify the different structural conformations present in my cryo-EM dataset",
         ],
         "tags": ["cryo_em", "cryodrgn", "heterogeneity", "3d_variability", "latent_space", "conformational_dynamics"],
         "trigger_on_workflows": [
@@ -209,6 +217,11 @@ CRYOEM_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             "sharpen map for phenix coot",
             "particle subtraction for asymmetric feature",
             "map post-processing before model building",
+            "I have a high-resolution density map and need to fit an atomic model into it",
+            "build and validate an atomic structure from my cryo-EM density map",
+            "my map is at 2.8 Angstrom resolution, I need to model the protein structure and check stereochemistry",
+            "run model building followed by geometry validation on my refined cryo-EM map",
+            "go from a density map to a validated atomic model using Phenix and MolProbity",
         ],
         "tags": [
             "cryo_em", "deepemhancer", "map_sharpening", "symmetry_expansion",
