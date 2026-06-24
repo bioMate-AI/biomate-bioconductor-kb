@@ -1517,6 +1517,120 @@ const _inlineDataCache = new Map<string, InlineDataMap>();
  * This is async and must be awaited; it is called once per generateResponse() turn.
  * Latency: ~200-400 ms (Haiku, max_tokens=256).
  */
+
+/**
+ * Detect paper references in a message (URL, DOI, arXiv ID, PMID) and fetch
+ * their text content. Runs in parallel with tool/dataset search.
+ *
+ * Returns { ref, content } or null if no paper reference found.
+ * Content is capped at 8000 chars (enough for methods + abstract).
+ */
+async function _fetchPaperContentFromMessage(
+  message: string,
+): Promise<{ ref: string; content: string } | null> {
+  // arXiv: https://arxiv.org/abs/XXXX.XXXXX or arxiv:XXXX.XXXXX
+  const arxivMatch = message.match(/(?:https?:\/\/arxiv\.org\/abs\/|arxiv[:\s]+)(\d{4}\.\d{4,})/i);
+  // DOI: 10.XXXX/...
+  const doiMatch = message.match(/\b(10\.\d{4,}\/\S+)/);
+  // PMID: PMID:XXXXXXXX or pubmed.ncbi.../<digits>
+  const pmidMatch = message.match(/\bPMID[:\s]+(\d{5,})\b/i)
+    || message.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d{5,})/i);
+  // Bare https URL (not already captured)
+  const urlMatch = !arxivMatch && !doiMatch && !pmidMatch
+    ? message.match(/https?:\/\/[^\s\])"']+/)
+    : null;
+
+  try {
+    if (arxivMatch) {
+      const id = arxivMatch[1];
+      const ref = `arXiv:${id}`;
+      const apiUrl = `https://export.arxiv.org/api/query?id_list=${encodeURIComponent(id)}&max_results=1`;
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) return null;
+      const xml = await res.text();
+      const summary = xml.match(/<summary[^>]*>([\s\S]*?)<\/summary>/i)?.[1]?.trim() ?? '';
+      const title = xml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\n\s+/g, ' ').trim() ?? '';
+      const pdfUrl = xml.match(/<link[^>]+title="pdf"[^>]+href="([^"]+)"/i)?.[1]
+        ?? `https://arxiv.org/pdf/${id}`;
+      let content = `Title: ${title}\n\nAbstract: ${summary}`;
+      // Attempt to fetch PDF text via Europe PMC / direct (lightweight, 15s budget)
+      try {
+        const pdfRes = await fetch(pdfUrl, { signal: AbortSignal.timeout(15_000) });
+        if (pdfRes.ok) {
+          const buf = await pdfRes.arrayBuffer();
+          // Extract readable ASCII text from PDF bytes (rough but fast — no native PDF lib needed)
+          const raw = Buffer.from(buf).toString('latin1');
+          const text = raw.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s{3,}/g, '\n').slice(0, 6000);
+          if (text.trim().length > 200) content += `\n\nPaper text (excerpt):\n${text}`;
+        }
+      } catch { /* PDF fetch is best-effort */ }
+      return { ref, content: content.slice(0, 8000) };
+    }
+
+    if (doiMatch) {
+      const doi = doiMatch[1].replace(/[.,;)\]]+$/, '');
+      const ref = `DOI:${doi}`;
+      // Try Unpaywall for open-access PDF, fall back to crossref for metadata
+      const crossref = await fetch(
+        `https://api.crossref.org/works/${encodeURIComponent(doi)}?mailto=biomate@biomate.ai`,
+        { signal: AbortSignal.timeout(10_000) },
+      ).catch(() => null);
+      if (crossref?.ok) {
+        const data = await crossref.json();
+        const item = data?.message ?? {};
+        const title = (item.title ?? [])[0] ?? '';
+        const abstract = item.abstract?.replace(/<[^>]+>/g, '') ?? '';
+        const content = `Title: ${title}\nAbstract: ${abstract}`.slice(0, 8000);
+        if (content.trim().length > 50) return { ref, content };
+      }
+      return null;
+    }
+
+    if (pmidMatch) {
+      const pmid = pmidMatch[1];
+      const ref = `PMID:${pmid}`;
+      const efetch = await fetch(
+        `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${pmid}&rettype=abstract&retmode=text`,
+        { signal: AbortSignal.timeout(10_000) },
+      ).catch(() => null);
+      if (efetch?.ok) {
+        const content = (await efetch.text()).slice(0, 8000);
+        return { ref, content };
+      }
+      return null;
+    }
+
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(12_000),
+        headers: { 'User-Agent': 'BioMate/1.0 (research assistant; mailto:biomate@biomate.ai)' },
+      }).catch(() => null);
+      if (!res?.ok) return null;
+      const ct = res.headers.get('content-type') ?? '';
+      if (ct.includes('pdf')) {
+        // Same rough PDF text extraction as arXiv path
+        const buf = await res.arrayBuffer();
+        const raw = Buffer.from(buf).toString('latin1');
+        const text = raw.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s{3,}/g, '\n').slice(0, 6000);
+        return text.trim().length > 200 ? { ref: url, content: text } : null;
+      }
+      // HTML: strip tags, collapse whitespace
+      const html = await res.text();
+      const text = html
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s{2,}/g, '\n')
+        .slice(0, 8000);
+      return { ref: url, content: text };
+    }
+  } catch (err: any) {
+    console.warn('[_fetchPaperContentFromMessage] fetch failed:', err.message);
+  }
+  return null;
+}
+
 async function extractInlineDataWithLLM(
   message: string,
   claude: Anthropic,
@@ -2564,6 +2678,11 @@ Rules:
     let toolSearchUsed = false;
     let datasetRAGUsed = false;
 
+    // Parallel content fetch: if the message contains a paper URL, DOI, arXiv ID, or PMID,
+    // fetch its text content now — in parallel with tool/dataset search — so the workflow
+    // generator and research agent both have the actual paper content to work from.
+    const _paperContentPromise = _fetchPaperContentFromMessage(message);
+
     const searchPromises: Promise<void>[] = [];
 
     // Search tools when action flags indicate it
@@ -2590,11 +2709,19 @@ Rules:
       );
     }
 
-    // Wait for all parallel searches to complete
+    // Wait for all parallel searches + paper content fetch to complete
     log('Steps 2-3: Starting parallel searches');
-    if (searchPromises.length > 0) {
-      await Promise.all(searchPromises);
-      log('Steps 2-3 complete');
+    const [, paperContentResult] = await Promise.all([
+      searchPromises.length > 0 ? Promise.all(searchPromises) : Promise.resolve(),
+      _paperContentPromise,
+    ]);
+    log('Steps 2-3 complete');
+
+    // Inject fetched paper content into the message so the workflow generator and
+    // response synthesizer both see the actual paper text.
+    if (paperContentResult) {
+      message = `${message}\n\n[Paper content: ${paperContentResult.ref}]\n${paperContentResult.content}`;
+      log(`Paper content injected: ${paperContentResult.ref} (${paperContentResult.content.length} chars)`);
     }
 
     // Step 4: Determine if workflow generation is needed
@@ -4072,6 +4199,8 @@ Ask a single question: **"Does completing this task require running a computatio
 - If yes → **workflow_generation**. The user may not have named their inputs yet; BioMate will ask.
 - **Accession IDs are workflow inputs.** SRA (SRR/ERR/DRR), GEO (GSE/GSM), NCBI (PRJNA/PRJEB), UniProt IDs, PDB IDs, EMBL accessions — these are valid workflow inputs BioMate fetches automatically. "Run RNA-seq on SRR12345678" or "dock compound into PDB:3HTB" is workflow_generation, not a database lookup.
 - **Molecular inputs are workflow inputs.** SMILES strings, PDB/SDF files, concentration-time CSV — signal workflow_generation for drug discovery / pharmacology workflows. But a conceptual or planning question about these topics (how does hERG work? what dose range is typical?) is still research_question or experiment_design.
+- **Paper-to-workflow (CRITICAL):** If the user provides a research paper — via URL (http/https), DOI (10.xxx/...), arXiv ID, PMID, uploaded PDF, or "[Attached files: paper.pdf]" — AND uses any execution verb (run, reproduce, implement, build, execute, replicate, generate the workflow, do what they did, follow their pipeline, apply their method) → **workflow_generation**. The paper is the workflow specification; BioMate will fetch it and extract the methods. Do NOT classify as research_question or protocol_guidance.
+- **Document reading without execution intent:** If the user provides a paper/URL and asks to read, summarize, extract, explain, or find information — WITHOUT asking to run anything → **protocol_guidance** (if asking about experimental steps) or **research_question** (if asking about findings/content).
 - If the task is planning, strategy, or design WITHOUT asking BioMate to execute a pipeline → **experiment_design**.
 - If the task is interpreting existing results, explaining what output means → **data_interpretation**.
 - If the task is diagnosing why a run failed or a metric looks wrong → **troubleshooting**.
@@ -6123,16 +6252,16 @@ When a workflow was generated successfully:
   - **Key steps:** [2–3 bullets, tool name → output]
   - **Expected output:** [what files/results the user will get]
 
-When no workflow was generated AND no inline data is present (clarification needed):
+When no workflow was generated AND no inline data is present (clarification needed — workflow turn only):
   **Missing: [what is needed]**
   [ONE specific question stating exactly what formats are accepted]
 
-When no workflow was generated AND inline data IS present (technical failure):
+When no workflow was generated AND inline data IS present (technical failure — workflow turn only):
   **Could not generate workflow** — [specific reason in one sentence]
   **Closest available option:** [name + brief description]
   [ONE configuration question if needed, otherwise say "Try adjusting parameters in the panel"]
 
-Do NOT deviate from these three formats. No freeform narrative, no "Next Steps" sections, no numbered lists of pipeline stages unless inside the key-steps bullet.
+**The three formats above apply ONLY to workflow-generation turns.** For all other intents (research questions, protocol guidance, document extraction, general questions, explanations, data interpretation, etc.) respond directly and comprehensively — no "Missing:" prefix, no data-format questions. Just answer.
 ════════════════════════════════════════════════════════
 
 IMPORTANT RULES:
@@ -6148,6 +6277,7 @@ DATA-FIRST RULE (hard prohibition — no exceptions except demo/test/mock):
 - NEVER describe workflow steps, list pipeline stages, explain tools, or provide any execution instructions in response to a workflow-generation request when the user has not yet provided input data. This is a strict prohibition, not a preference. Violating this rule means the system cannot run.
 - EXCEPTION — PRE-SATISFIED PARAMETERS: If a <pre_satisfied_parameters> block appears above AND a runnable workflow was generated, the DATA-FIRST RULE does NOT apply. The parameters are already provided (either explicitly in the message or auto-extracted by the AI). Proceed directly to the "Workflow generated" format.
 - "Input data provided" means the user's message contains ANY of: a file path (e.g. /path/to/sample.fastq, /data/reads_R1.fastq.gz), an S3 URI (s3://…), an SRA/ENA/DDBJ accession (SRR followed by digits, ERR followed by digits, DRR followed by digits), a GEO accession (GSE followed by digits, GSM followed by digits), an ArrayExpress accession (E-MTAB- followed by digits), a PXD accession (PXD followed by digits), a SMILES string, an InChI string, an amino acid sequence, a PDB ID, or an "[Uploaded datasets: ...]" block.
+- **PAPER-AS-SPECIFICATION EXCEPTION:** When the user provides a research paper (URL, DOI, arXiv ID, PMID, "[Attached files: *.pdf]", or "[Paper content: ...]" block) AND asks to reproduce/run/implement the workflow from it, the DATA-FIRST RULE does NOT apply. The paper is the workflow specification. Proceed to workflow generation — BioMate will extract the methods section and map it to an appropriate pipeline. If sample input data is needed to actually run the workflow, ask for it AFTER presenting the generated workflow, not before.
 - SRA ACCESSION RULE: An SRA/ENA/DDBJ accession number (e.g. SRR1518169, ERR204916, DRR013480) IS input data. Treat it as the reads/input parameter. Proceed directly to workflow generation. DO NOT ask for a file path or S3 URI when an SRA accession is present in the message.
 - If NO input data is present: ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please provide one of: (1) FASTQ file paths or S3 URIs for your sequencing reads, or (2) an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
 - Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it immediately without asking for data. This exception ALSO covers any of these phrasings, treat them as identical: "with defaults", "use defaults", "default parameters", "synthetic data", "synthetic plate", "demo data", "example data", "sample data", "built-in demo", "use the demo data", "no data, just run it", "I just want to see it", "show me how this works". Many BioMate workflows (notably hts_plate_qc_hit_calling, exposure_response_modelling, demo PBPK, the cryo-EM SPA reference workflows) ship with a built-in synthetic-data generator that fires when no input is provided — when the user signals they want to use it, generate the workflow immediately and do NOT ask for an upload.
@@ -6228,6 +6358,15 @@ ${runnableWorkflow
      - Bullet: Key steps (2–3, tool → output)
      - Bullet: Expected output (file types / results)
      - Do NOT say "click Run" — the Run button is already visible`
+  : !isWorkflowTurn
+    ? researchResponse
+      ? `FORMAT: Research / document answer.
+     - Answer directly and fully. Use the research evidence and any [Paper content: ...] in the message.
+     - Cite sources inline as [N] where relevant.
+     - End with ## References section if citations were provided.`
+      : `FORMAT: Direct answer.
+     - Answer the question directly and completely. No workflow format. No "Missing:" prefix.
+     - Use run_code if computation is needed on data already in the prompt.`
   : workflowGenerationFailed && hasInlineData
     ? `FORMAT: Technical failure — inline data was provided.
      - One sentence: why the exact workflow wasn't found
