@@ -957,7 +957,16 @@ do_sync() {
   sync_logo 2>/dev/null || true
 
   # DB sync is also time-based (if local DB newer than last sync)
-  local local_db_mtime=$(stat -f %m "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
+  # stat differs across platforms. GNU/Linux `stat -f %m` returns filesystem
+  # info (multi-line, starts "  File: ..."), it does NOT error — so the
+  # ||-fallback to `stat -c %Y` never runs, and the `[[ "$str" -gt 0 ]]`
+  # below treats "File" as a variable name → set-u unbound-variable death.
+  # Probe Linux first (stat -c) and fall back to BSD/macOS (stat -f).
+  local local_db_mtime=$(stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
+    || stat -f %m "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
+    || echo 0)
+  # Defensive: if probing produced non-numeric output anyway, treat as 0.
+  [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
   [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
