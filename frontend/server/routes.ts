@@ -1128,6 +1128,8 @@ const upload = multer({
       '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
       '.h5ad', '.h5', '.hdf5', '.loom',
       '.json', '.xml',
+      // Research papers / literature
+      '.pdf',
       // Cryo-EM / electron microscopy formats
       '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
       // Archive formats (capsule data, bulk uploads)
@@ -8866,7 +8868,7 @@ ${paramLines || '(none recorded)'}`;
       const result = await galaxyAPIProxy.launchInteractiveTool(toolId, targetHistoryId, inputs);
 
       // Construct entry point URL if not provided
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8080';
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const entryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
 
       res.json({
