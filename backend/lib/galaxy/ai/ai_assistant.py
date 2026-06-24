@@ -3412,48 +3412,6 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 else:
                     chain_results = self.workflow_search.search_chains(user_intent, min_score=0.35, limit=3)
 
-                # Context signal: re-rank chain candidates when the user indicates
-                # they already have a pre-computed count matrix (not raw FASTQ).
-                # Chains with count_matrix in required_inputs are boosted; chains
-                # expecting raw reads (fastq) are penalised.
-                # Works on both string-element and dict-element required_inputs.
-                _COUNT_MATRIX_SIGNALS = frozenset([
-                    "count matrix", "counts.tsv", "gene_counts", "count_matrix",
-                    "already have counts", "pre-computed", "salmon.merged", "featurecounts",
-                    "rsem.merged", "counts file", "count table", "counts table",
-                ])
-                _has_count_matrix = any(sig in user_intent.lower() for sig in _COUNT_MATRIX_SIGNALS)
-
-                if _has_count_matrix and chain_results:
-                    def _req_inputs_lower(chain) -> List[str]:
-                        """Return lowercase string representation of required_inputs elements."""
-                        out = []
-                        for inp in (chain.required_inputs or []):
-                            if isinstance(inp, str):
-                                out.append(inp.lower())
-                            elif isinstance(inp, dict):
-                                out.append(inp.get("type", "").lower())
-                                out.append(inp.get("name", "").lower())
-                        return out
-
-                    def _chain_count_matrix_score(chain) -> int:
-                        req = _req_inputs_lower(chain)
-                        if any("count_matrix" in r or "counts_matrix" in r for r in req):
-                            return 1   # boost: chain expects a count matrix
-                        if any("fastq" in r or "reads" in r for r in req):
-                            return -1  # penalise: chain expects raw reads
-                        return 0
-
-                    chain_results = sorted(
-                        chain_results,
-                        key=_chain_count_matrix_score,
-                        reverse=True,
-                    )
-                    log.info(
-                        "[UnifiedWorkflowGeneration] Count-matrix signal detected — reranked chains: %s",
-                        [c.name for c in chain_results],
-                    )
-
                 if chain_results:
                     top_chain = chain_results[0]
                     # LLM requested clarification — surface the question; do NOT launch chain.
@@ -3522,24 +3480,6 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     return chain_result
             except Exception as chain_exc:
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
-
-            # Pre-search: inject unambiguous data-type signals so search scores the
-            # right workflow highly BEFORE the LLM routing verifier runs.
-            # Rule: if the intent mentions a pre-computed count matrix filename or
-            # keyword, append an explicit differentialabundance hint.  rnaseq requires
-            # raw FASTQ — it is never correct when counts are already computed.
-            import re as _re_routing
-            _COUNT_MATRIX_PAT = _re_routing.compile(
-                r'\b(featureCounts?|counts?[_\-]?matrix|raw[_\-]?counts?|counts?[_\-]?table'
-                r'|counts?\.(csv|tsv|txt)|gene[_\-]counts?|expression[_\-]matrix'
-                r'|htseq[_\-]counts?|rsem\.genes?\.results?)\b',
-                _re_routing.IGNORECASE,
-            )
-            if _COUNT_MATRIX_PAT.search(user_intent):
-                _hint = ("\n[Routing hint: input is a pre-computed count matrix — "
-                         "use nf-core/differentialabundance (NOT nf-core/rnaseq which requires raw FASTQ)]")
-                user_intent = user_intent + _hint
-                log.info("[UnifiedWorkflowGeneration] Count-matrix pattern detected — injected differentialabundance routing hint")
 
             # Plan B / synthetic biology: codon optimization before mRNA-LNP engineering.
             _CODON_MRNA_PAT = _re_routing.compile(
