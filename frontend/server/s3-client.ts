@@ -8,6 +8,7 @@ import {
   UploadPartCommand,
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
+  GetBucketLocationCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
@@ -82,7 +83,54 @@ export class S3Service {
         accessKeyId,
         secretAccessKey,
       },
+      // For non-presigned SDK calls, if the bucket is actually in another
+      // region the SDK follows the 307 redirect transparently. Presigned
+      // URLs are signed for THIS client's region — see ensureBucketRegion()
+      // which rebuilds the client against the bucket's real region.
+      followRegionRedirects: true,
     });
+    this.configuredRegion = region;
+    this.configuredCredentials = { accessKeyId, secretAccessKey };
+  }
+
+  private configuredRegion: string = 'us-east-1';
+  private configuredCredentials: { accessKeyId: string; secretAccessKey: string } | null = null;
+  private bucketRegionEnsured = false;
+
+  /**
+   * Detect the bucket's real region (one GetBucketLocation, cached) and
+   * rebuild the S3Client against it if it differs from what we were configured
+   * with. Without this, presigned PUT URLs are signed for the wrong endpoint
+   * and the browser PUT fails signature validation after the 307 redirect.
+   *
+   * Called lazily by every method that issues a presigned URL.
+   */
+  private async ensureBucketRegion(): Promise<void> {
+    if (this.bucketRegionEnsured || !this.bucket) return;
+    try {
+      const loc = await this.s3Client.send(
+        new GetBucketLocationCommand({ Bucket: this.bucket })
+      );
+      // AWS legacy quirk: us-east-1 buckets return null/empty LocationConstraint.
+      const actual = loc.LocationConstraint || 'us-east-1';
+      if (actual !== this.configuredRegion && this.configuredCredentials) {
+        console.log(
+          `[S3Service] bucket ${this.bucket} is in ${actual}, ` +
+          `not ${this.configuredRegion} — rebuilding client for presign correctness`
+        );
+        this.s3Client = new S3Client({
+          region: actual,
+          credentials: this.configuredCredentials,
+          followRegionRedirects: true,
+        });
+        this.configuredRegion = actual;
+      }
+    } catch (err) {
+      console.warn('[S3Service] GetBucketLocation failed (continuing with configured region):', err);
+    } finally {
+      // Cache the attempt either way — we don't want to retry on every call.
+      this.bucketRegionEnsured = true;
+    }
   }
 
   /**
@@ -94,6 +142,7 @@ export class S3Service {
     contentType: string,
     expiresIn: number = 3600
   ): Promise<PresignedUploadUrl> {
+    await this.ensureBucketRegion();
     const uploadId = randomUUID();
     const key = `users/${userId}/uploads/${uploadId}-${filename}`;
 
@@ -141,6 +190,7 @@ export class S3Service {
     if (chunkSize < 5 * 1024 * 1024) {
       throw new Error('S3 requires chunkSize >= 5 MiB');
     }
+    await this.ensureBucketRegion();
     const numParts = Math.ceil(fileSize / chunkSize);
     if (numParts > 10000) {
       throw new Error(
@@ -188,6 +238,7 @@ export class S3Service {
     parts: CompletedPart[]
   ): Promise<{ key: string; bucket: string; location?: string }> {
     if (!parts.length) throw new Error('completeMultipartUpload: no parts supplied');
+    await this.ensureBucketRegion();
     const sorted = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
     const out = await this.s3Client.send(
       new CompleteMultipartUploadCommand({
@@ -202,6 +253,7 @@ export class S3Service {
 
   /** Abort an in-flight multipart upload (frees S3 from billing the parts). */
   async abortMultipartUpload(key: string, uploadId: string): Promise<void> {
+    await this.ensureBucketRegion();
     await this.s3Client.send(
       new AbortMultipartUploadCommand({
         Bucket: this.bucket,
@@ -218,6 +270,7 @@ export class S3Service {
     key: string,
     expiresIn: number = 3600
   ): Promise<string> {
+    await this.ensureBucketRegion();
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
